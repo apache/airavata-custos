@@ -26,6 +26,11 @@ import org.slf4j.LoggerFactory;
 public class ServerSettings extends ApplicationSettings {
 
     private static final Logger log = LoggerFactory.getLogger(ServerSettings.class);
+    //User Profile constant
+
+    public static final String USER_PROFILE_SERVER_HOST = "user.profile.server.host";
+    public static final String USER_PROFILE_SERVER_PORT = "user.profile.server.port";
+
     public static int getCacheSize() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.IN_MEMORY_CACHE_SIZE));
     }
@@ -53,4 +58,12 @@ public class ServerSettings extends ApplicationSettings {
     public static String getIamServerSuperAdminPassword() throws ApplicationSettingsException {
         return getSetting(ServerSettings.IAM_SERVER_SUPER_ADMIN_PASSWORD);
     }
+    public static String  getProfileServiceServerHost() throws ApplicationSettingsException {
+        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_HOST);
+    }
+
+    public static String getProfileServiceServerPort() throws ApplicationSettingsException {
+        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_PORT);
+    }
+
 }

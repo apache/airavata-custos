@@ -21,15 +21,9 @@
  include "profile-user/profile-user-cpi.thrift"
  include "profile-tenant/profile-tenant-cpi.thrift"
  include "iam-admin-services/iam-admin-services-cpi.thrift"
- include "group-manager/group-manager-cpi.thrift"
 
- namespace java org.apache.airavata.service.profile
- namespace php Airavata.Service.Profile
- namespace cpp apache.airavata.service.profile
- namespace py airavata.service.profile
+ namespace java org.apache.custos.profile
+ namespace php Custos.Profile
+ namespace cpp apache.custos.profile
+ namespace py custos.profile
 
- /*
-  * This file describes the definitions of the Airavata Execution Data Structures. Each of the
-  *   language specific Airavata Client SDK's will translate this neutral data model into an
-  *   appropriate form for passing to the Airavata Server Execution API Calls.
- */

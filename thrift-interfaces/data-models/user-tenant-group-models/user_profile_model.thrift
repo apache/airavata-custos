@@ -18,14 +18,13 @@
  *
  */
 
- include "../../airavata-apis/airavata_commons.thrift"
-
  namespace java org.apache.custos.profile.model.user
  namespace php Custos.Profile.Model.User
  namespace cpp apache.custos.profile.model.user
  namespace py custos.profile.model.user
 
 const string USER_PROFILE_VERSION = "1.0"
+const string DEFAULT_ID = "DO_NOT_SET_AT_CLIENTS"
 
 enum Status {
     ACTIVE,
@@ -100,7 +99,7 @@ enum disability {
  *
 */
 struct NSFDemographics {
-    1: required string custosInternalUserId = airavata_commons.DEFAULT_ID,
+    1: required string custosInternalUserId = DEFAULT_ID,
     2: optional string gender,
     3: optional USCitizenship usCitizenship,
     4: optional list<ethnicity> ethnicities,
@@ -114,7 +113,7 @@ struct NSFDemographics {
  *
 */
 struct CustomDashboard {
-    1: required string custosInternalUserId = airavata_commons.DEFAULT_ID,
+    1: required string custosInternalUserId = DEFAULT_ID,
     2: optional string experimentId,
     3: optional string name,
     4: optional string description,
@@ -155,7 +154,7 @@ struct CustomDashboard {
  *  Version number of profile
  *
  * custosInternalUserId:
- *  internal to Airavata, not intended to be used outside of the Airavata platform or possibly by gateways
+ *  internal to custos, not intended to be used outside of the custos platform or possibly by gateways
  *  (that is, never shown to users), never reassigned, REQUIRED
  *
  * userId:
@@ -172,7 +171,7 @@ struct CustomDashboard {
  *   Email identifier are Verified, REQUIRED and MULTIVALUED
  *
  * userName:
- *  Name-based identifiers can be multivalues. To keep it simple, Airavata will make it a string.
+ *  Name-based identifiers can be multivalues. To keep it simple, custos will make it a string.
  *   In the future these can be enumerated as:
      *   Official name (as asserted possibly by some external identity provider)
      *   Prefered name (as asserted or suggested by user directly)
@@ -190,7 +189,7 @@ struct CustomDashboard {
  * nationality Countries of citizenship
  *
  * comments:
- *   Free-form information (treated as opaque by Airavata and simply passed to resource).
+ *   Free-form information (treated as opaque by custos and simply passed to resource).
  *
  * labeledURI:
    * Google Scholar, Web of Science, ACS, e.t.c
@@ -202,7 +201,7 @@ struct CustomDashboard {
 
 struct UserProfile {
     1: required string userModelVersion = USER_PROFILE_VERSION,
-    2: required string custosInternalUserId = airavata_commons.DEFAULT_ID,
+    2: required string custosInternalUserId = DEFAULT_ID,
     3: required string userId,
     4: required string gatewayId,
     5: required list<string> emails,

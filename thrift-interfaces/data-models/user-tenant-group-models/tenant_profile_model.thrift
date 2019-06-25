@@ -18,8 +18,6 @@
  *
  */
 
-include "../../airavata-apis/airavata_commons.thrift"
-
 namespace java org.apache.custos.profile.model.tenant
 namespace php Custsos.Profile.Model.Tenant
 namespace cpp apache.custos.profile.model.tenant

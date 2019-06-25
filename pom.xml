@@ -16,15 +16,17 @@
     <version>1.0-SNAPSHOT</version>
 
     <modules>
-        <module>custos-services</module>
         <module>custos-commons</module>
+        <module>custos-connectors</module>
+        <module>custos-profile-service</module>
+        <module>custos-client</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.25</org.slf4j.version>
         <log4j.version>1.2.17</log4j.version>
-        <thrift.version>0.10.0</thrift.version>
+        <thrift.version>0.12.0</thrift.version>
         <openjpa.version>2.4.3</openjpa.version>
     </properties>
     <dependencies>

@@ -24,9 +24,9 @@
 *  built in funcationality to raise TApplicationException for all internal server errors.
 */
 
-namespace java org.apache.airavata.service.profile.user.cpi.exception
-namespace php Airavata.Service.Profile.User.CPI.Error
-namespace py airavata.service.profile.user.cpi.error
+namespace java org.apache.custos.profile.user.cpi.exception
+namespace php Custos.Profile.User.CPI.Error
+namespace py custos.profile.user.cpi.error
 
 exception UserProfileServiceException {
   1: required string message

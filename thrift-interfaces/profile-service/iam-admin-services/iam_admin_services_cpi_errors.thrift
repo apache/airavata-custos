@@ -20,13 +20,13 @@
 
 /*
 * This file describes the definitions of the Error Messages that can occur
-*  when invoking Apache Airavata Services through the API. In addition Thrift provides
+*  when invoking Apache Custos Services through the API. In addition Thrift provides
 *  built in funcationality to raise TApplicationException for all internal server errors.
 */
 
-namespace java org.apache.airavata.service.profile.iam.admin.services.cpi.exception
-namespace php Airavata.Service.Iam.Admin.Services.CPI.Error
-namespace py airavata.service.profile.iam.admin.services.cpi.error
+namespace java org.apache.custos.profile.iam.admin.services.cpi.exception
+namespace php Custos.Profile.Iam.Admin.Services.CPI.Error
+namespace py custos.profile.iam.admin.services.cpi.error
 
 exception IamAdminServicesException {
   1: required string message

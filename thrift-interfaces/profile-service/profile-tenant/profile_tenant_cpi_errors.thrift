@@ -24,9 +24,9 @@
 *  built in funcationality to raise TApplicationException for all internal server errors.
 */
 
-namespace java org.apache.airavata.service.profile.tenant.cpi.exception
-namespace php Airavata.Service.Profile.Tenant.CPI.Error
-namespace py airavata.service.profile.tenant.cpi.error
+namespace java org.apache.custos.profile.tenant.cpi.exception
+namespace php Custos.Profile.Tenant.CPI.Error
+namespace py custos.profile.tenant.cpi.error
 
 exception TenantProfileServiceException {
   1: required string message

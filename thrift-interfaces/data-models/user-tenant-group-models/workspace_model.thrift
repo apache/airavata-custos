@@ -18,10 +18,10 @@
  *
  */
 
-include "../../airavata-apis/airavata_commons.thrift"
+//include "../../airavata-apis/airavata_commons.thrift"
 
 namespace java org.apache.custos.profile.model.workspace
-namespace php Custis.Profile.Model.Workspace
+namespace php Custos.Profile.Model.Workspace
 namespace cpp apache.custos.profile.model.workspace
 namespace py custos.profile.model.workspace
 

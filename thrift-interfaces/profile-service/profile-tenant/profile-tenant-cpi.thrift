@@ -19,18 +19,18 @@
  */
 
 /*
- * Component Programming Interface definition for Apache Airavata Tenant profile Service.
+ * Component Programming Interface definition for Apache Custos Tenant profile Service.
  *
 */
 
-include "../../../airavata-apis/airavata_errors.thrift"
-include "../../../airavata-apis/security_model.thrift"
-include "../../../data-models/experiment-catalog-models/workspace_model.thrift"
+include "../../custos-apis/custos_errors.thrift"
+include "../../custos-apis/security_model.thrift"
+include "../../data-models/user-tenant-group-models/workspace_model.thrift"
 include "profile_tenant_cpi_errors.thrift"
 
-namespace java org.apache.airavata.service.profile.tenant.cpi
-namespace php Airavata.Service.Profile.Tenant.CPI
-namespace py airavata.service.profile.tenant.cpi
+namespace java org.apache.custos.profile.tenant.cpi
+namespace php Custos.Profile.Tenant.CPI
+namespace py custos.profile.tenant.cpi
 
 const string TENANT_PROFILE_CPI_VERSION = "0.17"
 const string TENANT_PROFILE_CPI_NAME = "TenantProfileService"
@@ -43,38 +43,43 @@ service TenantProfileService {
     /**
      * Return the custosInternalGatewayId assigned to given gateway.
      */
-    string addGateway (1: required security_model.AuthzToken authzToken,
+    workspace_model.Gateway addGateway (1: required security_model.AuthzToken authzToken,
                        2: required workspace_model.Gateway gateway)
                     throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                            2: airavata_errors.AuthorizationException ae)
+                            2: custos_errors.AuthorizationException ae)
 
-    bool updateGateway (1: required security_model.AuthzToken authzToken,
+    workspace_model.Gateway updateGateway (1: required security_model.AuthzToken authzToken,
                         2: required workspace_model.Gateway updatedGateway)
                      throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                             2: airavata_errors.AuthorizationException ae)
+                             2: custos_errors.AuthorizationException ae)
 
     workspace_model.Gateway getGateway (1: required security_model.AuthzToken authzToken,
                                         2: required string custosInternalGatewayId)
                                      throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                                             2: airavata_errors.AuthorizationException ae)
+                                             2: custos_errors.AuthorizationException ae)
+    //TODO: check why this method was not included here, add authztoken
+    workspace_model.Gateway getGatewayUsingGatewayId (
+                                             1: required string gatewayId)
+                                          throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
+                                                  2: custos_errors.AuthorizationException ae)
 
-    bool deleteGateway (1: required security_model.AuthzToken authzToken,
+    workspace_model.Gateway deleteGateway (1: required security_model.AuthzToken authzToken,
                         2: required string custosInternalGatewayId,
                         3: required string gatewayId)
                      throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                             2: airavata_errors.AuthorizationException ae)
+                             2: custos_errors.AuthorizationException ae)
 
     list<workspace_model.Gateway> getAllGateways (1: required security_model.AuthzToken authzToken)
                                                throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                                                       2: airavata_errors.AuthorizationException ae)
+                                                       2: custos_errors.AuthorizationException ae)
 
     bool isGatewayExist (1: required security_model.AuthzToken authzToken,
                          2: required string gatewayId)
                       throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                              2: airavata_errors.AuthorizationException ae)
+                              2: custos_errors.AuthorizationException ae)
 
     list<workspace_model.Gateway> getAllGatewaysForUser (1: required security_model.AuthzToken authzToken,
                                                          2: required string requesterUsername)
                                                throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
-                                                       2: airavata_errors.AuthorizationException ae)
+                                                       2: custos_errors.AuthorizationException ae)
 }
