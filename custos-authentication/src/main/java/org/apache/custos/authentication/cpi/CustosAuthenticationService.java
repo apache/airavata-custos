@@ -16,7 +16,7 @@ public class CustosAuthenticationService {
 
     public org.apache.custos.commons.model.security.UserInfo getUserInfoFromAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken) throws org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException, org.apache.thrift.TException;
 
-    public org.apache.custos.commons.model.security.AuthzToken getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId) throws org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException, org.apache.thrift.TException;
+    public org.apache.custos.commons.model.security.AuthzToken getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException, org.apache.thrift.TException;
 
   }
 
@@ -26,7 +26,7 @@ public class CustosAuthenticationService {
 
     public void getUserInfoFromAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.UserInfo> resultHandler) throws org.apache.thrift.TException;
 
-    public void getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler) throws org.apache.thrift.TException;
+    public void getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -102,17 +102,19 @@ public class CustosAuthenticationService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getUserInfoFromAuthzToken failed: unknown result");
     }
 
-    public org.apache.custos.commons.model.security.AuthzToken getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId) throws org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException, org.apache.thrift.TException
+    public org.apache.custos.commons.model.security.AuthzToken getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException, org.apache.thrift.TException
     {
-      send_getUserManagementServiceAccountAuthzToken(authzToken, gatewayId);
+      send_getUserManagementServiceAccountAuthzToken(authzToken, gatewayId, clientId, clientSecret);
       return recv_getUserManagementServiceAccountAuthzToken();
     }
 
-    public void send_getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId) throws org.apache.thrift.TException
+    public void send_getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws org.apache.thrift.TException
     {
       getUserManagementServiceAccountAuthzToken_args args = new getUserManagementServiceAccountAuthzToken_args();
       args.setAuthzToken(authzToken);
       args.setGatewayId(gatewayId);
+      args.setClientId(clientId);
+      args.setClientSecret(clientSecret);
       sendBase("getUserManagementServiceAccountAuthzToken", args);
     }
 
@@ -211,9 +213,9 @@ public class CustosAuthenticationService {
       }
     }
 
-    public void getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler) throws org.apache.thrift.TException {
+    public void getUserManagementServiceAccountAuthzToken(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getUserManagementServiceAccountAuthzToken_call method_call = new getUserManagementServiceAccountAuthzToken_call(authzToken, gatewayId, resultHandler, this, ___protocolFactory, ___transport);
+      getUserManagementServiceAccountAuthzToken_call method_call = new getUserManagementServiceAccountAuthzToken_call(authzToken, gatewayId, clientId, clientSecret, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -221,10 +223,14 @@ public class CustosAuthenticationService {
     public static class getUserManagementServiceAccountAuthzToken_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.custos.commons.model.security.AuthzToken> {
       private org.apache.custos.commons.model.security.AuthzToken authzToken;
       private String gatewayId;
-      public getUserManagementServiceAccountAuthzToken_call(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private String clientId;
+      private String clientSecret;
+      public getUserManagementServiceAccountAuthzToken_call(org.apache.custos.commons.model.security.AuthzToken authzToken, String gatewayId, String clientId, String clientSecret, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.authzToken = authzToken;
         this.gatewayId = gatewayId;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -232,6 +238,8 @@ public class CustosAuthenticationService {
         getUserManagementServiceAccountAuthzToken_args args = new getUserManagementServiceAccountAuthzToken_args();
         args.setAuthzToken(authzToken);
         args.setGatewayId(gatewayId);
+        args.setClientId(clientId);
+        args.setClientSecret(clientSecret);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -345,7 +353,7 @@ public class CustosAuthenticationService {
       public getUserManagementServiceAccountAuthzToken_result getResult(I iface, getUserManagementServiceAccountAuthzToken_args args) throws org.apache.thrift.TException {
         getUserManagementServiceAccountAuthzToken_result result = new getUserManagementServiceAccountAuthzToken_result();
         try {
-          result.success = iface.getUserManagementServiceAccountAuthzToken(args.authzToken, args.gatewayId);
+          result.success = iface.getUserManagementServiceAccountAuthzToken(args.authzToken, args.gatewayId, args.clientId, args.clientSecret);
         } catch (org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae) {
           result.ae = ae;
         }
@@ -449,7 +457,7 @@ public class CustosAuthenticationService {
 
       public org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.UserInfo> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.UserInfo>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.UserInfo>() {
           public void onComplete(org.apache.custos.commons.model.security.UserInfo o) {
             getUserInfoFromAuthzToken_result result = new getUserInfoFromAuthzToken_result();
             result.success = o;
@@ -514,7 +522,7 @@ public class CustosAuthenticationService {
 
       public org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken>() {
           public void onComplete(org.apache.custos.commons.model.security.AuthzToken o) {
             getUserManagementServiceAccountAuthzToken_result result = new getUserManagementServiceAccountAuthzToken_result();
             result.success = o;
@@ -564,7 +572,7 @@ public class CustosAuthenticationService {
       }
 
       public void start(I iface, getUserManagementServiceAccountAuthzToken_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.custos.commons.model.security.AuthzToken> resultHandler) throws org.apache.thrift.TException {
-        iface.getUserManagementServiceAccountAuthzToken(args.authzToken, args.gatewayId,resultHandler);
+        iface.getUserManagementServiceAccountAuthzToken(args.authzToken, args.gatewayId, args.clientId, args.clientSecret,resultHandler);
       }
     }
 
@@ -644,8 +652,8 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
+      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(isUserAuthenticated_args.class, metaDataMap);
     }
@@ -654,7 +662,7 @@ public class CustosAuthenticationService {
     }
 
     public isUserAuthenticated_args(
-      org.apache.custos.commons.model.security.AuthzToken authzToken)
+            org.apache.custos.commons.model.security.AuthzToken authzToken)
     {
       this();
       this.authzToken = authzToken;
@@ -705,13 +713,13 @@ public class CustosAuthenticationService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        if (value == null) {
-          unsetAuthzToken();
-        } else {
-          setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
-        }
-        break;
+        case AUTHZ_TOKEN:
+          if (value == null) {
+            unsetAuthzToken();
+          } else {
+            setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
+          }
+          break;
 
       }
     }
@@ -719,8 +727,8 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        return getAuthzToken();
+        case AUTHZ_TOKEN:
+          return getAuthzToken();
 
       }
       throw new IllegalStateException();
@@ -733,8 +741,8 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case AUTHZ_TOKEN:
-        return isSetAuthzToken();
+        case AUTHZ_TOKEN:
+          return isSetAuthzToken();
       }
       throw new IllegalStateException();
     }
@@ -868,7 +876,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -877,7 +885,7 @@ public class CustosAuthenticationService {
                 struct.authzToken = new org.apache.custos.commons.model.security.AuthzToken();
                 struct.authzToken.read(iprot);
                 struct.setAuthzTokenIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1016,10 +1024,10 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
-      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(isUserAuthenticated_result.class, metaDataMap);
     }
@@ -1028,8 +1036,8 @@ public class CustosAuthenticationService {
     }
 
     public isUserAuthenticated_result(
-      boolean success,
-      org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
+            boolean success,
+            org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
     {
       this();
       this.success = success;
@@ -1109,21 +1117,21 @@ public class CustosAuthenticationService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((Boolean)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((Boolean)value);
+          }
+          break;
 
-      case AE:
-        if (value == null) {
-          unsetAe();
-        } else {
-          setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
-        }
-        break;
+        case AE:
+          if (value == null) {
+            unsetAe();
+          } else {
+            setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
+          }
+          break;
 
       }
     }
@@ -1131,11 +1139,11 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSuccess();
+        case SUCCESS:
+          return isSuccess();
 
-      case AE:
-        return getAe();
+        case AE:
+          return getAe();
 
       }
       throw new IllegalStateException();
@@ -1148,10 +1156,10 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case AE:
-        return isSetAe();
+        case SUCCESS:
+          return isSetSuccess();
+        case AE:
+          return isSetAe();
       }
       throw new IllegalStateException();
     }
@@ -1247,7 +1255,7 @@ public class CustosAuthenticationService {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public String toString() {
@@ -1306,7 +1314,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -1314,7 +1322,7 @@ public class CustosAuthenticationService {
               if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
                 struct.success = iprot.readBool();
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1323,7 +1331,7 @@ public class CustosAuthenticationService {
                 struct.ae = new org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException();
                 struct.ae.read(iprot);
                 struct.setAeIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1480,8 +1488,8 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
+      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getUserInfoFromAuthzToken_args.class, metaDataMap);
     }
@@ -1490,7 +1498,7 @@ public class CustosAuthenticationService {
     }
 
     public getUserInfoFromAuthzToken_args(
-      org.apache.custos.commons.model.security.AuthzToken authzToken)
+            org.apache.custos.commons.model.security.AuthzToken authzToken)
     {
       this();
       this.authzToken = authzToken;
@@ -1541,13 +1549,13 @@ public class CustosAuthenticationService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        if (value == null) {
-          unsetAuthzToken();
-        } else {
-          setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
-        }
-        break;
+        case AUTHZ_TOKEN:
+          if (value == null) {
+            unsetAuthzToken();
+          } else {
+            setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
+          }
+          break;
 
       }
     }
@@ -1555,8 +1563,8 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        return getAuthzToken();
+        case AUTHZ_TOKEN:
+          return getAuthzToken();
 
       }
       throw new IllegalStateException();
@@ -1569,8 +1577,8 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case AUTHZ_TOKEN:
-        return isSetAuthzToken();
+        case AUTHZ_TOKEN:
+          return isSetAuthzToken();
       }
       throw new IllegalStateException();
     }
@@ -1704,7 +1712,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -1713,7 +1721,7 @@ public class CustosAuthenticationService {
                 struct.authzToken = new org.apache.custos.commons.model.security.AuthzToken();
                 struct.authzToken.read(iprot);
                 struct.setAuthzTokenIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -1850,10 +1858,10 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.UserInfo.class)));
-      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.UserInfo.class)));
+      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getUserInfoFromAuthzToken_result.class, metaDataMap);
     }
@@ -1862,8 +1870,8 @@ public class CustosAuthenticationService {
     }
 
     public getUserInfoFromAuthzToken_result(
-      org.apache.custos.commons.model.security.UserInfo success,
-      org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
+            org.apache.custos.commons.model.security.UserInfo success,
+            org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
     {
       this();
       this.success = success;
@@ -1944,21 +1952,21 @@ public class CustosAuthenticationService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.custos.commons.model.security.UserInfo)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.custos.commons.model.security.UserInfo)value);
+          }
+          break;
 
-      case AE:
-        if (value == null) {
-          unsetAe();
-        } else {
-          setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
-        }
-        break;
+        case AE:
+          if (value == null) {
+            unsetAe();
+          } else {
+            setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
+          }
+          break;
 
       }
     }
@@ -1966,11 +1974,11 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
-      case AE:
-        return getAe();
+        case AE:
+          return getAe();
 
       }
       throw new IllegalStateException();
@@ -1983,10 +1991,10 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case AE:
-        return isSetAe();
+        case SUCCESS:
+          return isSetSuccess();
+        case AE:
+          return isSetAe();
       }
       throw new IllegalStateException();
     }
@@ -2084,7 +2092,7 @@ public class CustosAuthenticationService {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public String toString() {
@@ -2148,7 +2156,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -2157,7 +2165,7 @@ public class CustosAuthenticationService {
                 struct.success = new org.apache.custos.commons.model.security.UserInfo();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2166,7 +2174,7 @@ public class CustosAuthenticationService {
                 struct.ae = new org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException();
                 struct.ae.read(iprot);
                 struct.setAeIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2255,17 +2263,23 @@ public class CustosAuthenticationService {
 
     private static final org.apache.thrift.protocol.TField AUTHZ_TOKEN_FIELD_DESC = new org.apache.thrift.protocol.TField("authzToken", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField GATEWAY_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("gatewayId", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField CLIENT_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("clientId", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField CLIENT_SECRET_FIELD_DESC = new org.apache.thrift.protocol.TField("clientSecret", org.apache.thrift.protocol.TType.STRING, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getUserManagementServiceAccountAuthzToken_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getUserManagementServiceAccountAuthzToken_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.custos.commons.model.security.AuthzToken authzToken; // required
     public @org.apache.thrift.annotation.Nullable String gatewayId; // required
+    public @org.apache.thrift.annotation.Nullable String clientId; // required
+    public @org.apache.thrift.annotation.Nullable String clientSecret; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       AUTHZ_TOKEN((short)1, "authzToken"),
-      GATEWAY_ID((short)2, "gatewayId");
+      GATEWAY_ID((short)2, "gatewayId"),
+      CLIENT_ID((short)3, "clientId"),
+      CLIENT_SECRET((short)4, "clientSecret");
 
       private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
 
@@ -2285,6 +2299,10 @@ public class CustosAuthenticationService {
             return AUTHZ_TOKEN;
           case 2: // GATEWAY_ID
             return GATEWAY_ID;
+          case 3: // CLIENT_ID
+            return CLIENT_ID;
+          case 4: // CLIENT_SECRET
+            return CLIENT_SECRET;
           default:
             return null;
         }
@@ -2329,10 +2347,14 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
-      tmpMap.put(_Fields.GATEWAY_ID, new org.apache.thrift.meta_data.FieldMetaData("gatewayId", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.AUTHZ_TOKEN, new org.apache.thrift.meta_data.FieldMetaData("authzToken", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
+      tmpMap.put(_Fields.GATEWAY_ID, new org.apache.thrift.meta_data.FieldMetaData("gatewayId", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.CLIENT_ID, new org.apache.thrift.meta_data.FieldMetaData("clientId", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.CLIENT_SECRET, new org.apache.thrift.meta_data.FieldMetaData("clientSecret", org.apache.thrift.TFieldRequirementType.REQUIRED,
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getUserManagementServiceAccountAuthzToken_args.class, metaDataMap);
     }
@@ -2341,12 +2363,16 @@ public class CustosAuthenticationService {
     }
 
     public getUserManagementServiceAccountAuthzToken_args(
-      org.apache.custos.commons.model.security.AuthzToken authzToken,
-      String gatewayId)
+            org.apache.custos.commons.model.security.AuthzToken authzToken,
+            String gatewayId,
+            String clientId,
+            String clientSecret)
     {
       this();
       this.authzToken = authzToken;
       this.gatewayId = gatewayId;
+      this.clientId = clientId;
+      this.clientSecret = clientSecret;
     }
 
     /**
@@ -2359,6 +2385,12 @@ public class CustosAuthenticationService {
       if (other.isSetGatewayId()) {
         this.gatewayId = other.gatewayId;
       }
+      if (other.isSetClientId()) {
+        this.clientId = other.clientId;
+      }
+      if (other.isSetClientSecret()) {
+        this.clientSecret = other.clientSecret;
+      }
     }
 
     public getUserManagementServiceAccountAuthzToken_args deepCopy() {
@@ -2369,6 +2401,8 @@ public class CustosAuthenticationService {
     public void clear() {
       this.authzToken = null;
       this.gatewayId = null;
+      this.clientId = null;
+      this.clientSecret = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -2421,23 +2455,89 @@ public class CustosAuthenticationService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public String getClientId() {
+      return this.clientId;
+    }
+
+    public getUserManagementServiceAccountAuthzToken_args setClientId(@org.apache.thrift.annotation.Nullable String clientId) {
+      this.clientId = clientId;
+      return this;
+    }
+
+    public void unsetClientId() {
+      this.clientId = null;
+    }
+
+    /** Returns true if field clientId is set (has been assigned a value) and false otherwise */
+    public boolean isSetClientId() {
+      return this.clientId != null;
+    }
+
+    public void setClientIdIsSet(boolean value) {
+      if (!value) {
+        this.clientId = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public String getClientSecret() {
+      return this.clientSecret;
+    }
+
+    public getUserManagementServiceAccountAuthzToken_args setClientSecret(@org.apache.thrift.annotation.Nullable String clientSecret) {
+      this.clientSecret = clientSecret;
+      return this;
+    }
+
+    public void unsetClientSecret() {
+      this.clientSecret = null;
+    }
+
+    /** Returns true if field clientSecret is set (has been assigned a value) and false otherwise */
+    public boolean isSetClientSecret() {
+      return this.clientSecret != null;
+    }
+
+    public void setClientSecretIsSet(boolean value) {
+      if (!value) {
+        this.clientSecret = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        if (value == null) {
-          unsetAuthzToken();
-        } else {
-          setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
-        }
-        break;
+        case AUTHZ_TOKEN:
+          if (value == null) {
+            unsetAuthzToken();
+          } else {
+            setAuthzToken((org.apache.custos.commons.model.security.AuthzToken)value);
+          }
+          break;
 
-      case GATEWAY_ID:
-        if (value == null) {
-          unsetGatewayId();
-        } else {
-          setGatewayId((String)value);
-        }
-        break;
+        case GATEWAY_ID:
+          if (value == null) {
+            unsetGatewayId();
+          } else {
+            setGatewayId((String)value);
+          }
+          break;
+
+        case CLIENT_ID:
+          if (value == null) {
+            unsetClientId();
+          } else {
+            setClientId((String)value);
+          }
+          break;
+
+        case CLIENT_SECRET:
+          if (value == null) {
+            unsetClientSecret();
+          } else {
+            setClientSecret((String)value);
+          }
+          break;
 
       }
     }
@@ -2445,11 +2545,17 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case AUTHZ_TOKEN:
-        return getAuthzToken();
+        case AUTHZ_TOKEN:
+          return getAuthzToken();
 
-      case GATEWAY_ID:
-        return getGatewayId();
+        case GATEWAY_ID:
+          return getGatewayId();
+
+        case CLIENT_ID:
+          return getClientId();
+
+        case CLIENT_SECRET:
+          return getClientSecret();
 
       }
       throw new IllegalStateException();
@@ -2462,10 +2568,14 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case AUTHZ_TOKEN:
-        return isSetAuthzToken();
-      case GATEWAY_ID:
-        return isSetGatewayId();
+        case AUTHZ_TOKEN:
+          return isSetAuthzToken();
+        case GATEWAY_ID:
+          return isSetGatewayId();
+        case CLIENT_ID:
+          return isSetClientId();
+        case CLIENT_SECRET:
+          return isSetClientSecret();
       }
       throw new IllegalStateException();
     }
@@ -2503,6 +2613,24 @@ public class CustosAuthenticationService {
           return false;
       }
 
+      boolean this_present_clientId = true && this.isSetClientId();
+      boolean that_present_clientId = true && that.isSetClientId();
+      if (this_present_clientId || that_present_clientId) {
+        if (!(this_present_clientId && that_present_clientId))
+          return false;
+        if (!this.clientId.equals(that.clientId))
+          return false;
+      }
+
+      boolean this_present_clientSecret = true && this.isSetClientSecret();
+      boolean that_present_clientSecret = true && that.isSetClientSecret();
+      if (this_present_clientSecret || that_present_clientSecret) {
+        if (!(this_present_clientSecret && that_present_clientSecret))
+          return false;
+        if (!this.clientSecret.equals(that.clientSecret))
+          return false;
+      }
+
       return true;
     }
 
@@ -2517,6 +2645,14 @@ public class CustosAuthenticationService {
       hashCode = hashCode * 8191 + ((isSetGatewayId()) ? 131071 : 524287);
       if (isSetGatewayId())
         hashCode = hashCode * 8191 + gatewayId.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetClientId()) ? 131071 : 524287);
+      if (isSetClientId())
+        hashCode = hashCode * 8191 + clientId.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetClientSecret()) ? 131071 : 524287);
+      if (isSetClientSecret())
+        hashCode = hashCode * 8191 + clientSecret.hashCode();
 
       return hashCode;
     }
@@ -2545,6 +2681,26 @@ public class CustosAuthenticationService {
       }
       if (isSetGatewayId()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.gatewayId, other.gatewayId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetClientId()).compareTo(other.isSetClientId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetClientId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.clientId, other.clientId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(isSetClientSecret()).compareTo(other.isSetClientSecret());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetClientSecret()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.clientSecret, other.clientSecret);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2585,6 +2741,22 @@ public class CustosAuthenticationService {
         sb.append(this.gatewayId);
       }
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("clientId:");
+      if (this.clientId == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.clientId);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("clientSecret:");
+      if (this.clientSecret == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.clientSecret);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -2596,6 +2768,12 @@ public class CustosAuthenticationService {
       }
       if (gatewayId == null) {
         throw new org.apache.thrift.protocol.TProtocolException("Required field 'gatewayId' was not present! Struct: " + toString());
+      }
+      if (clientId == null) {
+        throw new org.apache.thrift.protocol.TProtocolException("Required field 'clientId' was not present! Struct: " + toString());
+      }
+      if (clientSecret == null) {
+        throw new org.apache.thrift.protocol.TProtocolException("Required field 'clientSecret' was not present! Struct: " + toString());
       }
       // check for sub-struct validity
       if (authzToken != null) {
@@ -2633,7 +2811,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -2642,7 +2820,7 @@ public class CustosAuthenticationService {
                 struct.authzToken = new org.apache.custos.commons.model.security.AuthzToken();
                 struct.authzToken.read(iprot);
                 struct.setAuthzTokenIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2650,7 +2828,23 @@ public class CustosAuthenticationService {
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.gatewayId = iprot.readString();
                 struct.setGatewayIdIsSet(true);
-              } else { 
+              } else {
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // CLIENT_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.clientId = iprot.readString();
+                struct.setClientIdIsSet(true);
+              } else {
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // CLIENT_SECRET
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.clientSecret = iprot.readString();
+                struct.setClientSecretIsSet(true);
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -2679,6 +2873,16 @@ public class CustosAuthenticationService {
           oprot.writeString(struct.gatewayId);
           oprot.writeFieldEnd();
         }
+        if (struct.clientId != null) {
+          oprot.writeFieldBegin(CLIENT_ID_FIELD_DESC);
+          oprot.writeString(struct.clientId);
+          oprot.writeFieldEnd();
+        }
+        if (struct.clientSecret != null) {
+          oprot.writeFieldBegin(CLIENT_SECRET_FIELD_DESC);
+          oprot.writeString(struct.clientSecret);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -2698,6 +2902,8 @@ public class CustosAuthenticationService {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         struct.authzToken.write(oprot);
         oprot.writeString(struct.gatewayId);
+        oprot.writeString(struct.clientId);
+        oprot.writeString(struct.clientSecret);
       }
 
       @Override
@@ -2708,6 +2914,10 @@ public class CustosAuthenticationService {
         struct.setAuthzTokenIsSet(true);
         struct.gatewayId = iprot.readString();
         struct.setGatewayIdIsSet(true);
+        struct.clientId = iprot.readString();
+        struct.setClientIdIsSet(true);
+        struct.clientSecret = iprot.readString();
+        struct.setClientSecretIsSet(true);
       }
     }
 
@@ -2795,10 +3005,10 @@ public class CustosAuthenticationService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
-      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.commons.model.security.AuthzToken.class)));
+      tmpMap.put(_Fields.AE, new org.apache.thrift.meta_data.FieldMetaData("ae", org.apache.thrift.TFieldRequirementType.DEFAULT,
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getUserManagementServiceAccountAuthzToken_result.class, metaDataMap);
     }
@@ -2807,8 +3017,8 @@ public class CustosAuthenticationService {
     }
 
     public getUserManagementServiceAccountAuthzToken_result(
-      org.apache.custos.commons.model.security.AuthzToken success,
-      org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
+            org.apache.custos.commons.model.security.AuthzToken success,
+            org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException ae)
     {
       this();
       this.success = success;
@@ -2889,21 +3099,21 @@ public class CustosAuthenticationService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.custos.commons.model.security.AuthzToken)value);
-        }
-        break;
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.custos.commons.model.security.AuthzToken)value);
+          }
+          break;
 
-      case AE:
-        if (value == null) {
-          unsetAe();
-        } else {
-          setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
-        }
-        break;
+        case AE:
+          if (value == null) {
+            unsetAe();
+          } else {
+            setAe((org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException)value);
+          }
+          break;
 
       }
     }
@@ -2911,11 +3121,11 @@ public class CustosAuthenticationService {
     @org.apache.thrift.annotation.Nullable
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
+        case SUCCESS:
+          return getSuccess();
 
-      case AE:
-        return getAe();
+        case AE:
+          return getAe();
 
       }
       throw new IllegalStateException();
@@ -2928,10 +3138,10 @@ public class CustosAuthenticationService {
       }
 
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case AE:
-        return isSetAe();
+        case SUCCESS:
+          return isSetSuccess();
+        case AE:
+          return isSetAe();
       }
       throw new IllegalStateException();
     }
@@ -3029,7 +3239,7 @@ public class CustosAuthenticationService {
 
     public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
       scheme(oprot).write(oprot, this);
-      }
+    }
 
     @Override
     public String toString() {
@@ -3093,7 +3303,7 @@ public class CustosAuthenticationService {
         while (true)
         {
           schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) {
             break;
           }
           switch (schemeField.id) {
@@ -3102,7 +3312,7 @@ public class CustosAuthenticationService {
                 struct.success = new org.apache.custos.commons.model.security.AuthzToken();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
@@ -3111,7 +3321,7 @@ public class CustosAuthenticationService {
                 struct.ae = new org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException();
                 struct.ae.read(iprot);
                 struct.setAeIsSet(true);
-              } else { 
+              } else {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;

@@ -4,7 +4,6 @@ import org.apache.custos.authentication.cpi.CustosAuthenticationService;
 import org.apache.custos.authentication.cpi.exception.CustosAuthenticationServiceException;
 import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.exceptions.CustosSecurityException;
-import org.apache.custos.commons.model.error.AuthenticationException;
 import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.security.manager.CustosSecurityManager;
@@ -16,7 +15,7 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
     private final static Logger logger = LoggerFactory.getLogger(CustosAuthenticationHandler.class);
 
     @Override
-    public boolean isUserAuthenticated(AuthzToken authzToken) throws AuthenticationException {
+    public boolean isUserAuthenticated(AuthzToken authzToken) throws CustosAuthenticationServiceException {
         try {
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
             boolean isAuth = securityManager.isUserAuthenticated(authzToken);
@@ -25,11 +24,11 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
                     return isAuth;
                 }
                 else{
-                    throw new AuthenticationException("User is not authenticated.");
+                    throw new CustosAuthenticationServiceException("User is not authenticated.");
                 }
         } catch (CustosSecurityException e) {
             logger.error(e.getMessage(), e);
-            throw new AuthenticationException("Error in authenticating.");
+            throw new CustosAuthenticationServiceException("Error in authenticating.");
         }
     }
     @Override
@@ -44,10 +43,10 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
         }
     }
     @Override
-    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosAuthenticationServiceException {
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosAuthenticationServiceException {
         try{
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-            AuthzToken managementServiceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId);
+            AuthzToken managementServiceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId, clientId, clientSecret);
             return managementServiceAccountAuthzToken;
         }catch (CustosSecurityException e){
             logger.error(e.getMessage(), e);

@@ -96,11 +96,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
         String accessToken = authzToken.getAccessToken();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
-            if (!ServerSettings.isAPISecured()) {
-                return true;
-            }
-            initServiceClients();
-
             if (ServerSettings.isAuthzCacheEnabled()) {
                 //obtain an instance of AuthzCacheManager implementation.
                 AuthzCacheManager authzCacheManager = AuthzCacheManagerFactory.getAuthzCacheManager();
@@ -118,22 +113,17 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
                 } else if (AuthzCachedStatus.NOT_CACHED.equals(authzCachedStatus)) {
                     logger.debug("Authz decision for: (" + subject + ", " + accessToken + ") is not in the cache. " +
                             "Generating decision based on group membership.");
-//                    GatewayGroupMembership gatewayGroupMembership = getGatewayGroupMembership(subject, accessToken, gatewayId);
-//                    boolean authorizationDecision = hasPermission(gatewayGroupMembership, action);
-                    boolean authorizationDecision = validateToken(subject, accessToken, gatewayId);
+                    boolean authenticationDecision = validateToken(subject, accessToken, gatewayId);
                     //cache the authorization decision
                     long currentTime = System.currentTimeMillis();
-                    //TODO get the actual token expiration time
                     authzCacheManager.addToAuthzCache(new AuthzCacheIndex(subject, gatewayId, accessToken),
-                            new AuthzCacheEntry(authorizationDecision, currentTime + 1000 * 60 * 60, currentTime));
-                    return authorizationDecision;
+                            new AuthzCacheEntry(authenticationDecision, currentTime + 1000 * 60 * 60, currentTime));
+                    return authenticationDecision;
                 } else {
                     //undefined status returned from the authz cache manager
                     throw new CustosSecurityException("Error in reading from the authorization cache.");
                 }
             } else {
-//                GatewayGroupMembership gatewayGroupMembership = getGatewayGroupMembership(subject, accessToken, gatewayId);
-//                return hasPermission(gatewayGroupMembership, action);
                 return validateToken(subject, accessToken, gatewayId);
             }
 
@@ -144,48 +134,35 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
             logger.error("Error occurred while checking if user: " + subject + " is authorized in gateway: " + gatewayId, e);
             throw new CustosSecurityException(e.getMessage(), e);
         }
-//        } finally {
-//            closeServiceClients();
-//        }
     }
-
+    //TODO: no way to get gateway as tenant profile service has not been migrated. Check if clientId and clientSecret could be removed
     @Override
-    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException {
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosSecurityException {
         try {
-            initServiceClients();
-            Gateway gateway = tenantProfileClient.getGatewayUsingGatewayId(authzToken,gatewayId);
             String tokenURL = getTokenEndpoint(gatewayId);
-            JSONObject clientCredentials = getClientCredentials(tokenURL, gateway.getOauthClientId(), gateway.getOauthClientSecret());
+            JSONObject clientCredentials = getClientCredentials(tokenURL, clientId, clientSecret);
             String accessToken = clientCredentials.getString("access_token");
             AuthzToken userManagementServiceAccountAuthzToken = new AuthzToken(accessToken);
             userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.GATEWAY_ID, gatewayId);
-            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.USER_NAME, gateway.getOauthClientId());
+            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.USER_NAME, clientId);
             return userManagementServiceAccountAuthzToken;
         } catch (Exception e) {
             throw new CustosSecurityException(e);
-        } finally {
-            closeServiceClients();
         }
     }
 
     @Override
     public UserInfo getUserInfoFromAuthzToken(AuthzToken authzToken) throws CustosSecurityException {
         try {
-//            initServiceClients();
             final String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
             final String token = authzToken.getAccessToken();
             return getUserInfo(gatewayId, token);
         } catch (Exception e) {
             throw new CustosSecurityException(e);
         }
-//        } finally {
-//            closeServiceClients();
-//        }
     }
 
     private UserInfo getUserInfo(String gatewayId, String token) throws Exception {
-//        GatewayResourceProfile gwrp = registryServiceClient.getGatewayResourceProfile(gatewayId);
-//        String identityServerRealm = gwrp.getIdentityServerTenant();
         //TODO: Confirm the difference between gatewayId and IdentityServerTenant, using gatewayId as of now
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
@@ -200,25 +177,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
                 .setUsername(userInfo.getString("preferred_username"));
     }
 
-//    private GatewayGroupMembership getGatewayGroupMembership(String username, String token, String gatewayId) throws Exception {
-//        validateToken(username, token, gatewayId);
-//        GatewayGroups gatewayGroups = getGatewayGroups(gatewayId);
-//        List<UserGroup> userGroups = sharingRegistryServiceClient.getAllMemberGroupsForUser(gatewayId, username + "@" + gatewayId);
-//        List<String> userGroupIds = userGroups.stream().map(g -> g.getGroupId()).collect(Collectors.toList());
-//        GatewayGroupMembership gatewayGroupMembership = new GatewayGroupMembership();
-//        gatewayGroupMembership.setInAdminsGroup(userGroupIds.contains(gatewayGroups.getAdminsGroupId()));
-//        gatewayGroupMembership.setInReadOnlyAdminsGroup(userGroupIds.contains(gatewayGroups.getReadOnlyAdminsGroupId()));
-//        return gatewayGroupMembership;
-//    }
-
-//    private GatewayGroups getGatewayGroups(String gatewayId) throws Exception {
-//        if (registryServiceClient.isGatewayGroupsExists(gatewayId)) {
-//            return registryServiceClient.getGatewayGroups(gatewayId);
-//        } else {
-//            return GatewayGroupsInitializer.initializeGatewayGroups(gatewayId);
-//        }
-//    }
-
     private boolean validateToken(String username, String token, String gatewayId) throws Exception {
         UserInfo userInfo = getUserInfo(gatewayId, token);
         if (!username.equals(userInfo.getUsername())) {
@@ -226,30 +184,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
         }
         return true;
     }
-
-//    private String[] getUserRolesFromOAuthToken(String username, String token, String gatewayId) throws Exception {
-//        GatewayResourceProfile gwrp = getRegistryServiceClient().getGatewayResourceProfile(gatewayId);
-//        String identityServerRealm = gwrp.getIdentityServerTenant();
-//        String openIdConnectUrl = getOpenIDConfigurationUrl(identityServerRealm);
-//        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, token));
-//        String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");
-//        JSONObject userInfo = new JSONObject(getFromUrl(userInfoEndPoint, token));
-//        if (!username.equals(userInfo.get("preferred_username"))) {
-//            throw new CustosSecurityException("Subject name and username for the token doesn't match");
-//        }
-//        String userId = userInfo.getString("sub");
-//
-//        String userRoleMappingUrl = ServerSettings.getRemoteIDPServiceUrl() + "/admin/realms/"
-//                + identityServerRealm + "/users/"
-//                + userId + "/role-mappings/realm";
-//        JSONArray roleMappings = new JSONArray(getFromUrl(userRoleMappingUrl, getAdminAccessToken(gatewayId)));
-//        String[] roles = new String[roleMappings.length()];
-//        for (int i = 0; i < roleMappings.length(); i++) {
-//            roles[i] = (new JSONObject(roleMappings.get(i).toString())).get("name").toString();
-//        }
-//
-//        return roles;
-//    }
 
     private String getOpenIDConfigurationUrl(String realm) throws ApplicationSettingsException {
         return ServerSettings.getRemoteIDPServiceUrl() + "/realms/" + realm + "/.well-known/openid-configuration";
@@ -273,33 +207,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
         rd.close();
         return result.toString();
     }
-
-//    private String getAdminAccessToken(String gatewayId) throws Exception {
-//        CredentialStoreService.Client csClient = getCredentialStoreServiceClient();
-//        GatewayResourceProfile gwrp = getRegistryServiceClient().getGatewayResourceProfile(gatewayId);
-//        String identityServerRealm = gwrp.getIdentityServerTenant();
-//        String openIdConnectUrl = getOpenIDConfigurationUrl(identityServerRealm);
-//        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
-//        PasswordCredential credential = csClient.getPasswordCredential(gwrp.getIdentityServerPwdCredToken(), gwrp.getGatewayID());
-//        String username = credential.getLoginUserName();
-//        String password = credential.getPassword();
-//        String urlString = openIdConnectConfig.getString("token_endpoint");
-//        StringBuilder result = new StringBuilder();
-//        URL url = new URL(urlString);
-//        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//        conn.setRequestMethod("POST");
-//        conn.setDoOutput(true);
-//        String postFields = "client_id=admin-cli&username=" + username + "&password=" + password + "&grant_type=password";
-//        conn.getOutputStream().write(postFields.getBytes());
-//        BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//        String line;
-//        while ((line = rd.readLine()) != null) {
-//            result.append(line);
-//        }
-//        rd.close();
-//        JSONObject tokenInfo = new JSONObject(result.toString());
-//        return tokenInfo.get("access_token").toString();
-//    }
 
     private String getTokenEndpoint(String gatewayId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
@@ -335,96 +242,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        }
-    }
-
-//    private boolean hasPermission(GatewayGroupMembership gatewayGroupMembership, String apiMethod) {
-//
-//        // Note: as a stopgap solution, until all resources are secured with group-based authorization, map the Admins
-//        // and Read Only Admins groups to the corresponding roles
-//        final String role;
-//        if (gatewayGroupMembership.isInAdminsGroup()) {
-//            return true;
-//        } else if (gatewayGroupMembership.isInReadOnlyAdminsGroup()) {
-//            role = "admin-read-only";
-//        } else {
-//            // If not in Admins or Read Only Admins groups, treat as a gateway-user
-//            role = "gateway-user";
-//        }
-//        Pattern pattern = Pattern.compile(this.rolePermissionConfig.get(role));
-//        Matcher matcher = pattern.matcher(apiMethod);
-//        return matcher.matches();
-//    }
-//
-//    private boolean hasPermission(String[] roles, String apiMethod) {
-//        for (int i = 0; i < roles.length; i++) {
-//            String role = roles[i];
-//            if (this.rolePermissionConfig.keySet().contains(role)) {
-//                Pattern pattern = Pattern.compile(this.rolePermissionConfig.get(role));
-//                Matcher matcher = pattern.matcher(apiMethod);
-//                if (matcher.matches())
-//                    return true;
-//            }
-//        }
-//        return false;
-//    }
-//
-    private void initServiceClients() throws TException, ApplicationSettingsException {
-        tenantProfileClient = getTenantProfileServiceClient();
-    }
-
-    private void closeServiceClients() {
-        if (tenantProfileClient != null) {
-            ThriftUtils.close(tenantProfileClient);
-        }
-    }
-
-//    private RegistryService.Client getRegistryServiceClient() throws TException, ApplicationSettingsException {
-//        final int serverPort = Integer.parseInt(ServerSettings.getRegistryServerPort());
-//        final String serverHost = ServerSettings.getRegistryServerHost();
-//        try {
-//            return RegistryServiceClientFactory.createRegistryClient(serverHost, serverPort);
-//        } catch (RegistryServiceException e) {
-//            throw new TException("Unable to create registry client...", e);
-//        }
-//    }
-//
-//    private CredentialStoreService.Client getCredentialStoreServiceClient() throws TException, ApplicationSettingsException {
-//        final int serverPort = Integer.parseInt(ServerSettings.getCredentialStoreServerPort());
-//        final String serverHost = ServerSettings.getCredentialStoreServerHost();
-//        try {
-//            return CredentialStoreClientFactory.createAiravataCSClient(serverHost, serverPort);
-//        } catch (CredentialStoreException e) {
-//            throw new TException("Unable to create credential store client...", e);
-//        }
-//    }
-//
-//    private SharingRegistryService.Client getSharingRegistryServiceClient() throws TException, ApplicationSettingsException {
-//        final int serverPort = Integer.parseInt(ServerSettings.getSharingRegistryPort());
-//        final String serverHost = ServerSettings.getSharingRegistryHost();
-//        try {
-//            return SharingRegistryServiceClientFactory.createSharingRegistryClient(serverHost, serverPort);
-//        } catch (SharingRegistryException e) {
-//            throw new TException("Unable to create sharing registry client...", e);
-//        }
-//    }
-
-//    public static void main(String[] args) throws CustosSecurityException, ApplicationSettingsException {
-//        ServerSettings.setSetting("trust.store", "./modules/configuration/server/src/main/resources/client_truststore.jks");
-//        ServerSettings.setSetting("trust.store.password", "airavata");
-//        KeyCloakSecurityManager keyCloakSecurityManager = new KeyCloakSecurityManager();
-//        final String tokenURL = "...";
-//        final String clientId = "...";
-//        final String clientSecret = "...";
-//        JSONObject jsonObject = keyCloakSecurityManager.getClientCredentials(tokenURL, clientId, clientSecret);
-//        System.out.println("access_token=" + jsonObject.getString("access_token"));
-//    }
-    private TenantProfileService.Client getTenantProfileServiceClient() throws ApplicationSettingsException , TenantProfileServiceException, TException {
-        try {
-            TenantProfileService.Client tenantProfileClient = ProfileServiceClientFactory.createTenantProfileServiceClient(ServerSettings.getProfileServiceServerHost(), Integer.parseInt(ServerSettings.getProfileServiceServerPort()));
-            return tenantProfileClient;
-        } catch (TenantProfileServiceException e) {
-            throw new TenantProfileServiceException("Unable to create tenant profile client...");
         }
     }
 }

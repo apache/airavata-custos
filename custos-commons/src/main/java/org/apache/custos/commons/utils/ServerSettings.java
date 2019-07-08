@@ -26,7 +26,10 @@ import org.slf4j.LoggerFactory;
 public class ServerSettings extends ApplicationSettings {
 
     private static final Logger log = LoggerFactory.getLogger(ServerSettings.class);
-
+    // Iam Server Constants
+    public static final String IAM_SERVER_URL = "iam.server.url";
+    public static final String IAM_SERVER_SUPER_ADMIN_USERNAME = "iam.server.super.admin.username";
+    public static final String IAM_SERVER_SUPER_ADMIN_PASSWORD = "iam.server.super.admin.password";
 
     public static int getCacheSize() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.IN_MEMORY_CACHE_SIZE));
@@ -34,12 +37,7 @@ public class ServerSettings extends ApplicationSettings {
     public static String getAuthzCacheManagerClassName() throws ApplicationSettingsException {
         return getSetting(Constants.AUTHZ_CACHE_MANAGER_CLASS);
     }
-    public static boolean isAPISecured() throws ApplicationSettingsException {
-        return Boolean.valueOf(getSetting(Constants.IS_API_SECURED));
-    }
-    public static String getAuthorizationPoliyName() throws ApplicationSettingsException {
-        return getSetting(Constants.AUTHORIZATION_POLICY_NAME);
-    }
+
     public static String getSecurityManagerClassName() throws ApplicationSettingsException {
         return getSetting(Constants.SECURITY_MANAGER_CLASS);
     }
@@ -48,18 +46,6 @@ public class ServerSettings extends ApplicationSettings {
     }
     public static boolean isAuthzCacheEnabled() throws ApplicationSettingsException {
         return Boolean.valueOf(getSetting(Constants.AUTHZ_CACHE_ENABLED));
-    }
-    public static String getIamServerSuperAdminUsername() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.IAM_SERVER_SUPER_ADMIN_USERNAME);
-    }
-    public static String getIamServerSuperAdminPassword() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.IAM_SERVER_SUPER_ADMIN_PASSWORD);
-    }
-    public static String  getProfileServiceServerHost() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_HOST);
-    }
-    public static String getProfileServiceServerPort() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_PORT);
     }
     public static  String getAuthenticationServerPort() throws ApplicationSettingsException {
         return getSetting(ServerSettings.AUTHENTICATION_SERVICE_SERVER_PORT);

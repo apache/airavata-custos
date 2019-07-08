@@ -23,18 +23,6 @@ public class ApplicationSettings {
     protected static final String TRUST_STORE_PASSWORD="trust.store.password";
     private final static Logger logger = LoggerFactory.getLogger(ApplicationSettings.class);
     protected Properties properties = new Properties();
-    // Profile Service Constants
-    public static final String PROFILE_SERVICE_SERVER_HOST = "profile.service.server.host";
-    public static final String PROFILE_SERVICE_SERVER_PORT = "profile.service.server.port";
-
-    // Iam Server Constants
-    public static final String IAM_SERVER_URL = "iam.server.url";
-    public static final String IAM_SERVER_SUPER_ADMIN_USERNAME = "iam.server.super.admin.username";
-    public static final String IAM_SERVER_SUPER_ADMIN_PASSWORD = "iam.server.super.admin.password";
-
-    //User Profile constant
-    public static final String USER_PROFILE_SERVER_HOST = "user.profile.server.host";
-    public static final String USER_PROFILE_SERVER_PORT = "user.profile.server.port";
 
     // Authentication service constants
     public static final String AUTHENTICATION_SERVICE_SERVER_PORT = "custos.authentication.server.port";
@@ -179,15 +167,5 @@ public class ApplicationSettings {
     }
     public static String getTrustStorePassword() throws ApplicationSettingsException {
         return getSetting(TRUST_STORE_PASSWORD);
-    }
-    public static String getIamServerUrl() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.IAM_SERVER_URL);
-    }
-    public static String getProfileServiceServerHost() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_HOST);
-    }
-
-    public static String getProfileServiceServerPort() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_PORT);
     }
 }

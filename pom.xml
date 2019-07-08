@@ -18,7 +18,6 @@
     <modules>
         <module>custos-commons</module>
         <module>custos-connectors</module>
-        <module>custos-profile-service</module>
         <module>custos-client</module>
         <module>ide-integration</module>
         <module>custos-authentication</module>

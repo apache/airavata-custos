@@ -25,16 +25,12 @@ package org.apache.custos.commons.utils;
 public final class Constants {
     public static final String IN_MEMORY_CACHE_SIZE = "in.memory.cache.size";
     public static final String AUTHZ_CACHE_MANAGER_CLASS = "authz.cache.manager.class";
-    public static final String API_METHOD_NAME = "api.method.name";
-    public static final String IS_API_SECURED = "api.secured";
-    public static final String AUTHORIZATION_POLICY_NAME = "authorization.policy";
     public static final String SECURITY_MANAGER_CLASS = "security.manager.class";
     public static final String AUTHZ_CACHE_ENABLED = "authz.cache.enabled";
 
     //Names of the attributes that could be passed in the AuthzToken's claims map.
     public static final String USER_NAME = "userName";
     public static final String GATEWAY_ID = "gatewayID";
-    public static final String IDENTITY_SERVER_TENANT = "identityServerTenant";
 
     //constants in XACML authorization response.
     public static final String PERMIT = "Permit";
