@@ -20,14 +20,14 @@
 */
 package org.apache.custos.security.manager;
 
-
-import org.apache.custos.client.profile.service.ProfileServiceClientFactory;
 import org.apache.custos.commons.exceptions.ApplicationSettingsException;
 import org.apache.custos.commons.exceptions.CustosSecurityException;
 import org.apache.custos.commons.model.security.AuthzToken;
+import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.ServerSettings;
 import org.apache.custos.commons.utils.ThriftUtils;
+import org.apache.custos.profile.client.ProfileServiceClientFactory;
 import org.apache.custos.profile.model.workspace.Gateway;
 import org.apache.custos.profile.tenant.cpi.TenantProfileService;
 import org.apache.custos.profile.tenant.cpi.exception.TenantProfileServiceException;
@@ -57,7 +57,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 public class KeyCloakSecurityManager implements CustosSecurityManager {
     private final static Logger logger = LoggerFactory.getLogger(KeyCloakSecurityManager.class);
@@ -85,19 +84,17 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     }
 
     /**
-     * Implement this method with the user authentication/authorization logic in your SecurityManager.
+     * Implement this method with the user authentication logic in your SecurityManager.
      *
      * @param authzToken : this includes OAuth token and user's claims
-     * @param metaData   : this includes other meta data needed for security enforcements.
      * @return
      * @throws CustosSecurityException
      */
     @Override
-    public boolean isUserAuthorized(AuthzToken authzToken, Map<String, String> metaData) throws CustosSecurityException {
+    public boolean isUserAuthenticated(AuthzToken authzToken) throws CustosSecurityException {
         String subject = authzToken.getClaimsMap().get(Constants.USER_NAME);
         String accessToken = authzToken.getAccessToken();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
-        //String action = "/airavata/" + metaData.get(Constants.API_METHOD_NAME);
         try {
             if (!ServerSettings.isAPISecured()) {
                 return true;
@@ -153,17 +150,17 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     }
 
     @Override
-    public AuthzToken getUserManagementServiceAccountAuthzToken(String gatewayId) throws CustosSecurityException {
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException {
         try {
             initServiceClients();
-            Gateway gateway = tenantProfileClient.getGatewayUsingGatewayId(gatewayId);
+            Gateway gateway = tenantProfileClient.getGatewayUsingGatewayId(authzToken,gatewayId);
             String tokenURL = getTokenEndpoint(gatewayId);
             JSONObject clientCredentials = getClientCredentials(tokenURL, gateway.getOauthClientId(), gateway.getOauthClientSecret());
             String accessToken = clientCredentials.getString("access_token");
-            AuthzToken authzToken = new AuthzToken(accessToken);
-            authzToken.putToClaimsMap(Constants.GATEWAY_ID, gatewayId);
-            authzToken.putToClaimsMap(Constants.USER_NAME, gateway.getOauthClientId());
-            return authzToken;
+            AuthzToken userManagementServiceAccountAuthzToken = new AuthzToken(accessToken);
+            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.GATEWAY_ID, gatewayId);
+            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.USER_NAME, gateway.getOauthClientId());
+            return userManagementServiceAccountAuthzToken;
         } catch (Exception e) {
             throw new CustosSecurityException(e);
         } finally {

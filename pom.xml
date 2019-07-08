@@ -21,6 +21,7 @@
         <module>custos-profile-service</module>
         <module>custos-client</module>
         <module>ide-integration</module>
+        <module>custos-authentication</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

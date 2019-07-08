@@ -64,7 +64,7 @@ public class SecurityInterceptor implements MethodInterceptor {
             boolean isAPISecured = ServerSettings.isAPISecured();
             if (isAPISecured) {
                 CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-                boolean isAuthz = securityManager.isUserAuthorized(authzToken, metaData);
+                boolean isAuthz = securityManager.isUserAuthenticated(authzToken);
                 if (!isAuthz) {
                     throw new AuthorizationException("User is not authenticated or authorized.");
                 }

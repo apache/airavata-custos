@@ -45,7 +45,6 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
     private final static Logger logger = LoggerFactory.getLogger(TenantProfileServiceHandler.class);
 
     private TenantProfileRepository tenantProfileRepository;
-    //private DBEventPublisherUtils dbEventPublisherUtils = new DBEventPublisherUtils(DBEventService.TENANT);
 
     public TenantProfileServiceHandler() {
         logger.debug("Initializing TenantProfileServiceHandler");
@@ -75,13 +74,10 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
                     if (gateway.getGatewayApprovalStatus().equals(GatewayApprovalStatus.APPROVED)) {
                         logger.info("Gateway with ID: {}, is now APPROVED, replicating to subscribers.", gateway.getGatewayId());
                         return gateway;
-                        //dbEventPublisherUtils.publish(EntityType.TENANT, CrudType.CREATE, gateway);
                     }
                     else {
                         throw new Exception("Gateway status is not approved");
                     }
-//                    // return internal id
-//                    return gateway.getAiravataInternalGatewayId();
                 } else {
                     throw new Exception("Gateway object is null.");
                 }
@@ -112,8 +108,6 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
 
             if (tenantProfileRepository.update(updatedGateway) != null) {
                 logger.debug("Updated gateway-profile with ID: " + updatedGateway.getGatewayId());
-                // replicate tenant at end-places
-//                dbEventPublisherUtils.publish(EntityType.TENANT, CrudType.UPDATE, updatedGateway);
                 return updatedGateway;
             } else {
                 throw new TException("Could not update the gateway");
@@ -143,10 +137,10 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
         }
     }
 
-    //TODO: check why this was not included, add authToken
+    //TODO: check why this was not included
     @Override
     @SecurityCheck
-    public Gateway getGatewayUsingGatewayId(String gatewayId) throws TenantProfileServiceException, AuthorizationException, TException {
+    public Gateway getGatewayUsingGatewayId(AuthzToken authzToken,String gatewayId) throws TenantProfileServiceException, AuthorizationException, TException {
         try {
             Gateway gateway = tenantProfileRepository.getGatewayUsingId(gatewayId);
             if (gateway == null) {
@@ -168,11 +162,6 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
             logger.debug("Deleting Custos gateway-profile with ID: " + gatewayId + "Internal ID: " + custosInternalGatewayId);
             boolean deleteSuccess = tenantProfileRepository.delete(custosInternalGatewayId);
             if (deleteSuccess) {
-                // delete tenant at end-places
-//                dbEventPublisherUtils.publish(EntityType.TENANT, CrudType.DELETE,
-//                        // pass along gateway datamodel, with correct gatewayId;
-//                        // approvalstatus is not used for delete, hence set dummy value
-//                        new Gateway(gatewayId, GatewayApprovalStatus.DEACTIVATED));
                 return new Gateway(gatewayId, GatewayApprovalStatus.DEACTIVATED);
             }
             else {

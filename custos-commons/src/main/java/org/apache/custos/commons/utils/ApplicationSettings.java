@@ -31,6 +31,14 @@ public class ApplicationSettings {
     public static final String IAM_SERVER_URL = "iam.server.url";
     public static final String IAM_SERVER_SUPER_ADMIN_USERNAME = "iam.server.super.admin.username";
     public static final String IAM_SERVER_SUPER_ADMIN_PASSWORD = "iam.server.super.admin.password";
+
+    //User Profile constant
+    public static final String USER_PROFILE_SERVER_HOST = "user.profile.server.host";
+    public static final String USER_PROFILE_SERVER_PORT = "user.profile.server.port";
+
+    // Authentication service constants
+    public static final String AUTHENTICATION_SERVICE_SERVER_PORT = "custos.authentication.server.port";
+    public static final String AUTHENTICATION_SERVICE_SERVER_HOST = "custos.authentication.server.host";
     {
         loadProperties();
     }

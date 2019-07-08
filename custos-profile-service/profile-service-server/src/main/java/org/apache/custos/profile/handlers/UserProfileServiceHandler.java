@@ -20,15 +20,15 @@
 */
 package org.apache.custos.profile.handlers;
 
-
-import org.apache.custos.client.profile.service.ProfileServiceClientFactory;
 import org.apache.custos.commons.exceptions.ApplicationSettingsException;
 import org.apache.custos.commons.exceptions.CustosSecurityException;
 import org.apache.custos.commons.model.error.AuthorizationException;
 import org.apache.custos.commons.model.security.AuthzToken;
+import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.CustosUtils;
 import org.apache.custos.commons.utils.ServerSettings;
+import org.apache.custos.profile.client.ProfileServiceClientFactory;
 import org.apache.custos.profile.iam.admin.services.cpi.IamAdminServices;
 import org.apache.custos.profile.iam.admin.services.cpi.exception.IamAdminServicesException;
 import org.apache.custos.profile.model.user.Status;
@@ -40,7 +40,6 @@ import org.apache.custos.profile.user.cpi.exception.UserProfileServiceException;
 import org.apache.custos.security.interceptor.SecurityCheck;
 import org.apache.custos.security.manager.CustosSecurityManager;
 import org.apache.custos.security.manager.SecurityManagerFactory;
-import org.apache.custos.security.manager.UserInfo;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +52,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     private final static Logger logger = LoggerFactory.getLogger(UserProfileServiceHandler.class);
 
     private UserProfileRepository userProfileRepository;
-    //private DBEventPublisherUtils dbEventPublisherUtils = new DBEventPublisherUtils(DBEventService.USER_PROFILE);
 
     public UserProfileServiceHandler() {
 
@@ -66,14 +64,14 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public UserProfile initializeUserProfile(AuthzToken authzToken) throws UserProfileServiceException, AuthorizationException {
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
             // Load UserInfo for the access token and create an initial UserProfile from it
             UserInfo userInfo = SecurityManagerFactory.getSecurityManager().getUserInfoFromAuthzToken(authzToken);
             final UserProfile existingProfile = userProfileRepository.getUserProfileByIdAndGateWay(userInfo.getUsername(), gatewayId);
-            // If a user profile already exists, just return the userId
+            // If a user profile already exists, just return the existing profile
             if (existingProfile != null) {
                 return existingProfile;
             }
@@ -104,7 +102,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public UserProfile addUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException, AuthorizationException {
         try{
             // Lowercase user id and internal id
@@ -126,7 +124,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public UserProfile updateUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException, AuthorizationException {
         try {
             // After updating the user profile in the database but before committing the transaction, the
@@ -151,7 +149,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
         return () -> {
             try {
                 CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-                AuthzToken serviceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(gatewayId);
+                AuthzToken serviceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken,gatewayId);
                 IamAdminServices.Client iamAdminServicesClient = getIamAdminServicesClient();
                 iamAdminServicesClient.updateUserProfile(serviceAccountAuthzToken, userProfile);
             } catch (CustosSecurityException |TException e) {
@@ -161,7 +159,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public UserProfile getUserProfileById(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException, AuthorizationException, TException {
         try{
             UserProfile userProfile = userProfileRepository.getUserProfileByIdAndGateWay(userId, gatewayId);
@@ -178,7 +176,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public UserProfile deleteUserProfile(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException, AuthorizationException, TException {
         UserProfile userProfile = null;
         try{
@@ -198,7 +196,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    @SecurityCheck
+    //@SecurityCheck
     public List<UserProfile> getAllUserProfilesInGateway(AuthzToken authzToken, String gatewayId, int offset, int limit) throws UserProfileServiceException, AuthorizationException {
         try{
             List<UserProfile> usersInGateway = userProfileRepository.getAllUserProfilesInGateway(gatewayId, offset, limit);

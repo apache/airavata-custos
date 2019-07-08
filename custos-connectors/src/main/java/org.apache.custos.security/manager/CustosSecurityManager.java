@@ -22,6 +22,7 @@ package org.apache.custos.security.manager;
 
 import org.apache.custos.commons.exceptions.CustosSecurityException;
 import org.apache.custos.commons.model.security.AuthzToken;
+import org.apache.custos.commons.model.security.UserInfo;
 
 import java.util.Map;
 
@@ -35,11 +36,10 @@ public interface CustosSecurityManager {
     /**
      * Implement this method with the user authentication/authorization logic in your SecurityManager.
      * @param authzToken : this includes OAuth token and user's claims
-     * @param metaData : this includes other meta data needed for security enforcements.
      * @return
      * @throws CustosSecurityException
      */
-    public boolean isUserAuthorized(AuthzToken authzToken, Map<String, String> metaData) throws CustosSecurityException;
+    public boolean isUserAuthenticated(AuthzToken authzToken) throws CustosSecurityException;
 
 
     /**
@@ -48,7 +48,7 @@ public interface CustosSecurityManager {
      * @return
      * @throws CustosSecurityException
      */
-    public AuthzToken getUserManagementServiceAccountAuthzToken(String gatewayId) throws CustosSecurityException;
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException;
 
     /**
      * Get OpenID Connect user profile information from the given AuthzToken.

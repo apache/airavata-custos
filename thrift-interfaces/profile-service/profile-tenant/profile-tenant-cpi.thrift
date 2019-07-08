@@ -57,9 +57,9 @@ service TenantProfileService {
                                         2: required string custosInternalGatewayId)
                                      throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
                                              2: custos_errors.AuthorizationException ae)
-    //TODO: check why this method was not included here, add authztoken
-    workspace_model.Gateway getGatewayUsingGatewayId (
-                                             1: required string gatewayId)
+    //TODO: check why this method was not included here
+    workspace_model.Gateway getGatewayUsingGatewayId (1: required security_model.AuthzToken authzToken,
+                                             2: required string gatewayId)
                                           throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe,
                                                   2: custos_errors.AuthorizationException ae)
 

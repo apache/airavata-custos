@@ -38,8 +38,8 @@ import org.apache.thrift.transport.TTransportException;
 /**
  * Created by goshenoy on 03/08/2017.
  */
-public class ProfileServiceClientFactory {
-    public static UserProfileService.Client createUserProfileServiceClient(String serverHost, int serverPort)  throws UserProfileServiceException {
+public class CustosProfileServiceClientFactory {
+    public static UserProfileService.Client createCustosUserProfileServiceClient(String serverHost, int serverPort)  throws UserProfileServiceException {
         try {
             TTransport transport = new TSocket(serverHost, serverPort);
             transport.open();
@@ -51,7 +51,7 @@ public class ProfileServiceClientFactory {
         }
     }
 
-    public static TenantProfileService.Client createTenantProfileServiceClient(String serverHost, int serverPort) throws TenantProfileServiceException {
+    public static TenantProfileService.Client createCustosTenantProfileServiceClient(String serverHost, int serverPort) throws TenantProfileServiceException {
         try {
             TTransport transport = new TSocket(serverHost, serverPort);
             transport.open();
@@ -63,7 +63,7 @@ public class ProfileServiceClientFactory {
         }
     }
 
-    public static IamAdminServices.Client createIamAdminServiceClient(String serverHost, int serverPort) throws IamAdminServicesException {
+    public static IamAdminServices.Client createCustosIamAdminServiceClient(String serverHost, int serverPort) throws IamAdminServicesException {
         try {
             TTransport transport = new TSocket(serverHost, serverPort);
             transport.open();

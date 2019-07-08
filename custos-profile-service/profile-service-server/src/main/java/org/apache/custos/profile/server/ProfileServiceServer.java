@@ -101,14 +101,14 @@ public class ProfileServiceServer implements IServer {
 
             // create multiple processors for each profile-service
             UserProfileService.Processor userProfileProcessor = new UserProfileService.Processor(new UserProfileServiceHandler());
-            TenantProfileService.Processor teneantProfileProcessor = new TenantProfileService.Processor(new TenantProfileServiceHandler());
+            //TenantProfileService.Processor teneantProfileProcessor = new TenantProfileService.Processor(new TenantProfileServiceHandler());
             IamAdminServices.Processor iamAdminServicesProcessor = new IamAdminServices.Processor(new IamAdminServicesHandler());
             //GroupManagerService.Processor groupmanagerProcessor = new GroupManagerService.Processor(new GroupManagerServiceHandler());
 
             // create a multiplexed processor
             TMultiplexedProcessor profileServiceProcessor = new TMultiplexedProcessor();
             profileServiceProcessor.registerProcessor(profile_user_cpiConstants.USER_PROFILE_CPI_NAME, userProfileProcessor);
-            profileServiceProcessor.registerProcessor(profile_tenant_cpiConstants.TENANT_PROFILE_CPI_NAME, teneantProfileProcessor);
+            //profileServiceProcessor.registerProcessor(profile_tenant_cpiConstants.TENANT_PROFILE_CPI_NAME, teneantProfileProcessor);
             profileServiceProcessor.registerProcessor(iam_admin_services_cpiConstants.IAM_ADMIN_SERVICES_CPI_NAME, iamAdminServicesProcessor);
             //profileServiceProcessor.registerProcessor(group_manager_cpiConstants.GROUP_MANAGER_CPI_NAME, groupmanagerProcessor);
 
