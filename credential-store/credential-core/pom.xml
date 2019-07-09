@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>credntial-store</artifactId>
+        <artifactId>credential-store</artifactId>
         <groupId>org.apache.airavata.custos</groupId>
         <version>0.01-SNAPSHOT</version>
     </parent>

@@ -15,6 +15,7 @@ public class SSHCredentialsController {
     @Autowired
     private VaultManager vaultManager;
 
+
     @RequestMapping("/ssh/{gateway}/{token}")
     public SSHCredential getSSHCredential(@PathVariable("gateway") String gateway, @PathVariable("token") String token) throws Exception {
         SSHCredentialEntity credentialEntity = vaultManager.getCredentialEntity(SSHCredentialEntity.class, token, gateway);

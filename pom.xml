@@ -87,7 +87,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <modules>
-                <module>credntial-store</module>
+                <module>credential-store</module>
             </modules>
         </profile>
     </profiles>

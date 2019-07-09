@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.airavata.custos</groupId>
-    <artifactId>credntial-store</artifactId>
+    <artifactId>credential-store</artifactId>
     <packaging>pom</packaging>
     <version>0.01-SNAPSHOT</version>
     <name>Custos Credential Store</name>
