@@ -31,6 +31,7 @@ public class ServerSettings extends ApplicationSettings {
     public static final String IAM_SERVER_SUPER_ADMIN_USERNAME = "iam.server.super.admin.username";
     public static final String IAM_SERVER_SUPER_ADMIN_PASSWORD = "iam.server.super.admin.password";
 
+
     public static int getCacheSize() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.IN_MEMORY_CACHE_SIZE));
     }
@@ -53,6 +54,11 @@ public class ServerSettings extends ApplicationSettings {
     public static  String getAuthenticationServerHost() throws ApplicationSettingsException {
         return getSetting(ServerSettings.AUTHENTICATION_SERVICE_SERVER_HOST);
     }
+    public static String getKeyStorePath() throws ApplicationSettingsException {
+        return getSetting(Constants.KEYSTORE_PATH);
+    }
 
-
+    public static String getKeyStorePassword() throws ApplicationSettingsException {
+        return getSetting(Constants.KEYSTORE_PASSWORD);
+    }
 }

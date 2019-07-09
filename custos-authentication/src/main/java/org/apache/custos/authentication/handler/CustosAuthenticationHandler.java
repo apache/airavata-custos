@@ -35,8 +35,7 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
     public UserInfo getUserInfoFromAuthzToken(AuthzToken authzToken) throws CustosAuthenticationServiceException {
         try{
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-            UserInfo userInfo = securityManager.getUserInfoFromAuthzToken(authzToken);
-            return userInfo;
+            return securityManager.getUserInfoFromAuthzToken(authzToken);
         }catch (CustosSecurityException e){
             logger.error(e.getMessage(), e);
             throw new CustosAuthenticationServiceException("Could not retrieve user info");
@@ -46,8 +45,7 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
     public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosAuthenticationServiceException {
         try{
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-            AuthzToken managementServiceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId, clientId, clientSecret);
-            return managementServiceAccountAuthzToken;
+            return securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId, clientId, clientSecret);
         }catch (CustosSecurityException e){
             logger.error(e.getMessage(), e);
             throw new CustosAuthenticationServiceException("Could get user management account authz token");

@@ -27,6 +27,8 @@ public final class Constants {
     public static final String AUTHZ_CACHE_MANAGER_CLASS = "authz.cache.manager.class";
     public static final String SECURITY_MANAGER_CLASS = "security.manager.class";
     public static final String AUTHZ_CACHE_ENABLED = "authz.cache.enabled";
+    public static final String KEYSTORE_PATH = "keystore.path";
+    public static final String KEYSTORE_PASSWORD = "keystore.password";
 
     //Names of the attributes that could be passed in the AuthzToken's claims map.
     public static final String USER_NAME = "userName";

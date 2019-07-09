@@ -26,11 +26,7 @@ import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.ServerSettings;
-import org.apache.custos.commons.utils.ThriftUtils;
-import org.apache.custos.profile.client.ProfileServiceClientFactory;
-import org.apache.custos.profile.model.workspace.Gateway;
 import org.apache.custos.profile.tenant.cpi.TenantProfileService;
-import org.apache.custos.profile.tenant.cpi.exception.TenantProfileServiceException;
 import org.apache.custos.security.authzcache.*;
 import org.apache.custos.security.utils.TrustStoreManager;
 import org.apache.http.Consts;
@@ -43,7 +39,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.apache.thrift.TException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +57,7 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     private final static Logger logger = LoggerFactory.getLogger(KeyCloakSecurityManager.class);
     private TenantProfileService.Client tenantProfileClient = null;
     public KeyCloakSecurityManager() throws CustosSecurityException {
-        initializeSecurityInfra();
+        //initializeSecurityInfra();
     }
 
     /**

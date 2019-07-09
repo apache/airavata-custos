@@ -23,6 +23,7 @@
         <module>custos-authentication</module>
     </modules>
     <properties>
+        <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.25</org.slf4j.version>
@@ -62,4 +63,5 @@
             <version>${log4j.version}</version>
         </dependency>
     </dependencies>
+
 </project>
