@@ -57,7 +57,7 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     private final static Logger logger = LoggerFactory.getLogger(KeyCloakSecurityManager.class);
     private TenantProfileService.Client tenantProfileClient = null;
     public KeyCloakSecurityManager() throws CustosSecurityException {
-        //initializeSecurityInfra();
+        initializeSecurityInfra();
     }
 
     /**
