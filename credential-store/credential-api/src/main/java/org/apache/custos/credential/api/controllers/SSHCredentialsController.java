@@ -16,7 +16,8 @@ public class SSHCredentialsController {
     @Autowired
     private VaultManager vaultManager;
 
-    final private DozerBeanMapper mapper = new DozerBeanMapper();
+    @Autowired
+    private DozerBeanMapper mapper;
 
     @RequestMapping(value = "/ssh/{gateway}/{token}", method = RequestMethod.GET)
     public SSHCredential getSSHCredential(@PathVariable("gateway") String gateway, @PathVariable("token") String token) throws Exception {
