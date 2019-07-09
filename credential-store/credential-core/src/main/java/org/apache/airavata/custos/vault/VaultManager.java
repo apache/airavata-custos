@@ -10,6 +10,7 @@ import org.apache.airavata.custos.vault.annotations.VaultPath;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -27,25 +28,29 @@ public class VaultManager {
         vault = new Vault(config);
     }
 
-    public <T extends BaseCredentialEntity> T getCredentialEntity(Class<T> calzz, final String token, final String gateway) throws Exception {
+    public <T extends BaseCredentialEntity> T getCredentialEntity(Class<T> clazz, final String token, final String gateway) throws Exception {
 
         Map<String, String> params = new HashMap<String, String>() {{
             put("token", token);
             put("gateway", gateway);
         }};
 
-        for (Class<?> c = calzz; c != null; c = c.getSuperclass()) {
+        Constructor<T> ctor = clazz.getConstructor();
+        T obj = ctor.newInstance();
+
+        for (Class<?> c = clazz; c != null; c = c.getSuperclass()) {
             Field[] fields = c.getDeclaredFields();
             for (Field field : fields) {
                 VaultPath vaultPathAnnotation = field.getAnnotation(VaultPath.class);
                 if (vaultPathAnnotation != null) {
                     String path = populatePathWithParams(vaultPathAnnotation.path(), params);
                     Map<String,String> data = vault.logical().read(path).getData();
-                    System.out.println("Value for key " + vaultPathAnnotation.name() + " " + data.get(vaultPathAnnotation.name()));
+                    field.setAccessible(true);
+                    field.set(obj, data.get(vaultPathAnnotation.name()));
                 }
             }
         }
-        return null;
+        return obj;
     }
 
     public <T extends BaseCredentialEntity> String saveCredentialEntity(final T credentialEntity, final String gateway) throws Exception {
