@@ -23,13 +23,13 @@ import org.apache.airavata.custos.credentials.BaseCredentialEntity;
 import org.apache.airavata.custos.vault.annotations.VaultPath;
 
 public class SSHCredentialEntity extends BaseCredentialEntity {
-    @VaultPath(path = "secret/ssh/{gateway}/{token}", name = "private", required = true)
+    @VaultPath(path = "secret/ssh/{tenant}/{token}", name = "private", required = true)
     private String privateKey;
 
-    @VaultPath(path = "secret/ssh/{gateway}/{token}", name = "passphrase")
+    @VaultPath(path = "secret/ssh/{tenant}/{token}", name = "passphrase")
     private String passphrase;
 
-    @VaultPath(path = "secret/ssh/{gateway}/{token}", name = "public", required = true)
+    @VaultPath(path = "secret/ssh/{tenant}/{token}", name = "public", required = true)
     private String publicKey;
 
     public String getPrivateKey() {

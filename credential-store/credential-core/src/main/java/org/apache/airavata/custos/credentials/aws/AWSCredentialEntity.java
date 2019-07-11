@@ -24,10 +24,10 @@ import org.apache.airavata.custos.vault.annotations.VaultPath;
 
 public class AWSCredentialEntity extends BaseCredentialEntity {
 
-    @VaultPath(path = "secret/aws/{gateway}/{token}", name = "access_key_id", required = true)
+    @VaultPath(path = "secret/aws/{tenant}/{token}", name = "access_key_id", required = true)
     private String accessKey;
 
-    @VaultPath(path = "secret/aws/{gateway}/{token}", name = "secret_access_key")
+    @VaultPath(path = "secret/aws/{tenant}/{token}", name = "secret_access_key")
     private String secretKey;
 
     public String getAccessKey() {

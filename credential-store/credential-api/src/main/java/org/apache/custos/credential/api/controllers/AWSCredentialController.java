@@ -37,16 +37,16 @@ public class AWSCredentialController {
     @Autowired
     private DozerBeanMapper mapper;
 
-    @RequestMapping(value = "/{gateway}/{token}", method = RequestMethod.GET)
-    public AWSCredntial getAWSCredential(@PathVariable("gateway") String gateway, @PathVariable("token") String token) throws Exception {
-        AWSCredentialEntity credentialEntity = vaultManager.getCredentialEntity(AWSCredentialEntity.class, token, gateway);
+    @RequestMapping(value = "/{tenant}/{token}", method = RequestMethod.GET)
+    public AWSCredntial getAWSCredential(@PathVariable("tenant") String tenant, @PathVariable("token") String token) throws Exception {
+        AWSCredentialEntity credentialEntity = vaultManager.getCredentialEntity(AWSCredentialEntity.class, token, tenant);
         return mapper.map(credentialEntity, AWSCredntial.class);
     }
 
-    @RequestMapping(value = "/{gateway}", method = RequestMethod.POST)
-    public String createAWSCredential(@RequestBody AWSCredntial credntial, @PathVariable("gateway") String gateway) throws Exception {
+    @RequestMapping(value = "/{tenant}", method = RequestMethod.POST)
+    public String createAWSCredential(@RequestBody AWSCredntial credntial, @PathVariable("tenant") String tenant) throws Exception {
         AWSCredentialEntity credentialEntity = mapper.map(credntial, AWSCredentialEntity.class);
-        String token = vaultManager.saveCredentialEntity(credentialEntity, gateway);
+        String token = vaultManager.saveCredentialEntity(credentialEntity, tenant);
         return token;
     }
 }

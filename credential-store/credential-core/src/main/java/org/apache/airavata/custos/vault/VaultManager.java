@@ -47,11 +47,11 @@ public class VaultManager {
         vault = new Vault(config);
     }
 
-    public <T extends BaseCredentialEntity> T getCredentialEntity(Class<T> clazz, final String token, final String gateway) throws Exception {
+    public <T extends BaseCredentialEntity> T getCredentialEntity(Class<T> clazz, final String token, final String tenant) throws Exception {
 
         Map<String, String> params = new HashMap<String, String>() {{
             put("token", token);
-            put("gateway", gateway);
+            put("tenant", tenant);
         }};
 
         Constructor<T> ctor = clazz.getConstructor();
@@ -72,15 +72,15 @@ public class VaultManager {
         return obj;
     }
 
-    public <T extends BaseCredentialEntity> String saveCredentialEntity(final T credentialEntity, final String gateway) throws Exception {
+    public <T extends BaseCredentialEntity> String saveCredentialEntity(final T credentialEntity, final String tenant) throws Exception {
         final String token = UUID.randomUUID().toString();
 
-        credentialEntity.setGateway(gateway);
+        credentialEntity.setGateway(tenant);
         credentialEntity.setToken(token);
 
         Map<String, String> params = new HashMap<String, String>() {{
             put("token", token);
-            put("gateway", gateway);
+            put("tenant", tenant);
         }};
 
         Map<String, Map<String, Object>> summary = new HashMap<>();
