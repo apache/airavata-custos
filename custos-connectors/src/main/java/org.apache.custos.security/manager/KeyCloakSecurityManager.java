@@ -26,7 +26,6 @@ import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.ServerSettings;
-import org.apache.custos.profile.tenant.cpi.TenantProfileService;
 import org.apache.custos.security.authzcache.*;
 import org.apache.custos.security.utils.TrustStoreManager;
 import org.apache.http.Consts;
@@ -55,7 +54,6 @@ import java.util.List;
 
 public class KeyCloakSecurityManager implements CustosSecurityManager {
     private final static Logger logger = LoggerFactory.getLogger(KeyCloakSecurityManager.class);
-    private TenantProfileService.Client tenantProfileClient = null;
     public KeyCloakSecurityManager() throws CustosSecurityException {
         initializeSecurityInfra();
     }
