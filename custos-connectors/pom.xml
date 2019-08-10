@@ -18,12 +18,12 @@
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>custos-commons</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>profile-service-model</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
