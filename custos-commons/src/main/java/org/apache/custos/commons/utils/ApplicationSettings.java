@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class ApplicationSettings {
+    //private final static Logger logger = LoggerFactory.getLogger(ApplicationSettings.class);
     protected static ApplicationSettings INSTANCE;
     private Exception propertyLoadException;
     public static final String SERVER_PROPERTIES="custos-server.properties";
@@ -21,12 +22,8 @@ public class ApplicationSettings {
     public static String ADDITIONAL_SETTINGS_FILES = "external.settings";
     protected static final String TRUST_STORE_PATH="trust.store";
     protected static final String TRUST_STORE_PASSWORD="trust.store.password";
-    private final static Logger logger = LoggerFactory.getLogger(ApplicationSettings.class);
     protected Properties properties = new Properties();
 
-    // Authentication service constants
-    public static final String AUTHENTICATION_SERVICE_SERVER_PORT = "custos.authentication.server.port";
-    public static final String AUTHENTICATION_SERVICE_SERVER_HOST = "custos.authentication.server.host";
     {
         loadProperties();
     }
@@ -34,11 +31,11 @@ public class ApplicationSettings {
         URL url = getPropertyFileURL();
         try {
             properties.load(url.openStream());
-            logger.info("Settings loaded from "+url.toString());
+            //logger.info("Settings loaded from "+url.toString());
             URL[] externalSettingsFileURLs = getExternalSettingsFileURLs();
             for (URL externalSettings : externalSettingsFileURLs) {
                 mergeSettingsImpl(externalSettings.openStream());
-                logger.info("External settings merged from "+url.toString());
+                //logger.info("External settings merged from "+url.toString());
             }
         } catch (Exception e) {
             propertyLoadException=e;
@@ -57,7 +54,7 @@ public class ApplicationSettings {
             for (String externalSettingFile : externalSettingFiles) {
                 URL externalSettingFileURL = ApplicationSettings.loadFile(externalSettingFile);
                 if (externalSettingFileURL==null){
-                    logger.warn("Could not file external settings file "+externalSettingFile);
+                    //logger.warn("Could not file external settings file "+externalSettingFile);
                 }else{
                     externalSettingsFileURLs.add(externalSettingFileURL);
                 }
@@ -84,7 +81,7 @@ public class ApplicationSettings {
                     return asfile.toURI().toURL();
                 }
             } catch (MalformedURLException e) {
-                logger.error("Error parsing the file from custos.config.dir", custosConfigDir);
+                //logger.error("Error parsing the file from custos.config.dir", custosConfigDir);
             }
         }
 
@@ -117,7 +114,7 @@ public class ApplicationSettings {
                 throw new ApplicationSettingsException(url.getPath(), e);
             }
         }else{
-            logger.warn("Properties cannot be updated to location "+url.toString());
+            //logger.warn("Properties cannot be updated to location "+url.toString());
         }
     }
     private String getSettingImpl(String key, String defaultValue){
@@ -161,11 +158,5 @@ public class ApplicationSettings {
         if (propertyLoadException!=null){
             throw new ApplicationSettingsException(propertyLoadException.getMessage(), propertyLoadException);
         }
-    }
-    public static String getTrustStorePath() throws ApplicationSettingsException {
-        return getSetting(TRUST_STORE_PATH);
-    }
-    public static String getTrustStorePassword() throws ApplicationSettingsException {
-        return getSetting(TRUST_STORE_PASSWORD);
     }
 }

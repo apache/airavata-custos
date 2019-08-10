@@ -31,6 +31,13 @@ public class ServerSettings extends ApplicationSettings {
     public static final String IAM_SERVER_SUPER_ADMIN_USERNAME = "iam.server.super.admin.username";
     public static final String IAM_SERVER_SUPER_ADMIN_PASSWORD = "iam.server.super.admin.password";
 
+    // Authentication service constants
+    public static final String AUTHENTICATION_SERVICE_SERVER_PORT = "custos.authentication.server.port";
+    public static final String AUTHENTICATION_SERVICE_SERVER_HOST = "custos.authentication.server.host";
+
+    // Profile Service Constants
+    public static final String PROFILE_SERVICE_SERVER_HOST = "profile.service.server.host";
+    public static final String PROFILE_SERVICE_SERVER_PORT = "profile.service.server.port";
 
     public static int getCacheSize() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.IN_MEMORY_CACHE_SIZE));
@@ -43,22 +50,43 @@ public class ServerSettings extends ApplicationSettings {
         return getSetting(Constants.SECURITY_MANAGER_CLASS);
     }
     public static String getRemoteIDPServiceUrl() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.IAM_SERVER_URL);
+        return getSetting(IAM_SERVER_URL);
     }
     public static boolean isAuthzCacheEnabled() throws ApplicationSettingsException {
         return Boolean.valueOf(getSetting(Constants.AUTHZ_CACHE_ENABLED));
     }
     public static  String getAuthenticationServerPort() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.AUTHENTICATION_SERVICE_SERVER_PORT);
+        return getSetting(AUTHENTICATION_SERVICE_SERVER_PORT);
     }
     public static  String getAuthenticationServerHost() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.AUTHENTICATION_SERVICE_SERVER_HOST);
+        return getSetting(AUTHENTICATION_SERVICE_SERVER_HOST);
     }
     public static String getKeyStorePath() throws ApplicationSettingsException {
         return getSetting(Constants.KEYSTORE_PATH);
     }
-
     public static String getKeyStorePassword() throws ApplicationSettingsException {
         return getSetting(Constants.KEYSTORE_PASSWORD);
     }
+    public static String getIamServerUrl() throws ApplicationSettingsException {
+        return getSetting(ServerSettings.IAM_SERVER_URL);
+    }
+    public static String getTrustStorePath() throws ApplicationSettingsException {
+        return getSetting(TRUST_STORE_PATH);
+    }
+    public static String getTrustStorePassword() throws ApplicationSettingsException {
+        return getSetting(TRUST_STORE_PASSWORD);
+    }
+    public static String getIamServerSuperAdminUsername() throws ApplicationSettingsException{
+        return getSetting(IAM_SERVER_SUPER_ADMIN_USERNAME);
+    }
+    public static String getIamServerSuperAdminPassword() throws ApplicationSettingsException{
+        return getSetting(IAM_SERVER_SUPER_ADMIN_PASSWORD);
+    }
+    public static String getProfileServiceServerHost() throws ApplicationSettingsException {
+        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_HOST);
+    }
+    public static String getProfileServiceServerPort() throws ApplicationSettingsException {
+        return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_PORT);
+    }
+
 }

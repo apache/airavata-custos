@@ -12,13 +12,25 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>profile-service-stubs</artifactId>
+            <artifactId>custos-authentication</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>custos-authentication</artifactId>
+            <artifactId>user-profile-service</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>iam-admin-services</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>tenant-profile-service</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
