@@ -22,7 +22,6 @@
         <module>custos-authentication</module>
         <module>custos-profile-service</module>
         <module>custos-connectors</module>
-        <module>custos-sharing-registry-service</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
