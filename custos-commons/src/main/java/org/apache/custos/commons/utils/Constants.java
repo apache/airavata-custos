@@ -36,4 +36,8 @@ public final class Constants {
 
     //constants in XACML authorization response.
     public static final String PERMIT = "Permit";
+
+    //security related constants
+    public static final String IS_SHARING_TLS_ENABLED = "sharing.tls.enabled";
+    public static final String TLS_CLIENT_TIMEOUT = "TLS.client.timeout";
 }
