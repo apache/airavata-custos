@@ -18,9 +18,8 @@
  * under the License.
  *
 */
-package org.apache.custos.profile.user.core.repositories;
+package org.apache.custos.profile.commons.repositories;
 
-import org.apache.custos.profile.commons.repositories.AbstractRepository;
 import org.apache.custos.profile.commons.user.entities.UserProfileEntity;
 import org.apache.custos.profile.commons.utils.JPAUtils;
 import org.apache.custos.profile.commons.utils.ObjectMapperSingleton;

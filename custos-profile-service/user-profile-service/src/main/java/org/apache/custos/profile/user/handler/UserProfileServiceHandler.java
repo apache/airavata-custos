@@ -33,7 +33,7 @@ import org.apache.custos.profile.iam.admin.services.cpi.exception.IamAdminServic
 import org.apache.custos.profile.model.user.Status;
 import org.apache.custos.profile.model.user.UserProfile;
 import org.apache.custos.profile.model.user.user_profile_modelConstants;
-import org.apache.custos.profile.user.core.repositories.UserProfileRepository;
+import org.apache.custos.profile.commons.repositories.UserProfileRepository;
 import org.apache.custos.profile.user.cpi.UserProfileService;
 import org.apache.custos.profile.user.cpi.exception.UserProfileServiceException;
 import org.apache.custos.security.manager.CustosSecurityManager;
@@ -101,13 +101,12 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
 
     @Override
     //@SecurityCheck
-    //TODO: need to find alternative for clientId and clientSecret
-    public UserProfile addUserProfile(AuthzToken authzToken, UserProfile userProfile, String clientId, String clientSecret) throws UserProfileServiceException {
+    public UserProfile addUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
         try{
             // Lowercase user id and internal id
             userProfile.setUserId(userProfile.getUserId().toLowerCase());
             userProfile.setCustosInternalUserId(userProfile.getUserId() + "@" + userProfile.getGatewayId());
-            userProfile = userProfileRepository.updateUserProfile(userProfile, getIAMUserProfileUpdater(authzToken, userProfile, clientId, clientSecret));
+            userProfile = userProfileRepository.updateUserProfile(userProfile, getIAMUserProfileUpdater(authzToken, userProfile));
             if (null != userProfile) {
                 logger.info("Added UserProfile with userId: " + userProfile.getUserId());
                 return userProfile;
@@ -124,13 +123,12 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
 
     @Override
     //@SecurityCheck
-    //TODO: need to find alternative for clientId and secret
-    public UserProfile updateUserProfile(AuthzToken authzToken, UserProfile userProfile, String clientId, String clientSecret) throws UserProfileServiceException {
+    public UserProfile updateUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
         try {
             // After updating the user profile in the database but before committing the transaction, the
             // following will update the user profile in the IAM service also. If the update in the IAM service
             // fails then the transaction will be rolled back.
-            Runnable iamUserProfileUpdater = getIAMUserProfileUpdater(authzToken, userProfile, clientId, clientSecret);
+            Runnable iamUserProfileUpdater = getIAMUserProfileUpdater(authzToken, userProfile);
             if(userProfileRepository.updateUserProfile(userProfile, iamUserProfileUpdater) != null) {
                 logger.info("Updated UserProfile with userId: " + userProfile.getUserId());
                return userProfile;
@@ -144,12 +142,12 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
         throw new UserProfileServiceException("User update failed. Please try again.");
     }
 
-    private Runnable getIAMUserProfileUpdater(AuthzToken authzToken, UserProfile userProfile, String clientId, String clientSecret) throws UserProfileServiceException {
+    private Runnable getIAMUserProfileUpdater(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         return () -> {
             try {
                 CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-                AuthzToken serviceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken,gatewayId, clientId, clientSecret);
+                AuthzToken serviceAccountAuthzToken = securityManager.getUserManagementServiceAccountAuthzToken(authzToken,gatewayId);
                 IamAdminServices.Client iamAdminServicesClient = getIamAdminServicesClient();
                 iamAdminServicesClient.updateUserProfile(serviceAccountAuthzToken, userProfile);
             } catch (CustosSecurityException |TException e) {

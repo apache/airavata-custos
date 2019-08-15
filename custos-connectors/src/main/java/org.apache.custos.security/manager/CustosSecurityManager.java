@@ -48,7 +48,7 @@ public interface CustosSecurityManager {
      * @return
      * @throws CustosSecurityException
      */
-    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosSecurityException;
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException;
 
     /**
      * Get OpenID Connect user profile information from the given AuthzToken.

@@ -61,7 +61,11 @@ service IamAdminServices {
                         6: required string newPassword)
                         throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse)
 
-    bool enableUser(1: required security_model.AuthzToken authzToken,
+    bool deleteUser(1: required security_model.AuthzToken authzToken,
+                                    2: required string username)
+                                    throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse)
+
+    user_profile_model.UserProfile enableUser(1: required security_model.AuthzToken authzToken,
                         2: required string username)
                             throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse)
 

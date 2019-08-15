@@ -17,9 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.custos.profile.tenant.core;
+package org.apache.custos.profile.commons.repositories;
 
-import org.apache.custos.profile.commons.repositories.AbstractRepository;
 import org.apache.custos.profile.commons.tenant.entities.GatewayEntity;
 import org.apache.custos.profile.commons.utils.QueryConstants;
 import org.apache.custos.profile.model.workspace.Gateway;
@@ -49,6 +48,22 @@ public class TenantProfileRepository extends AbstractRepository<Gateway, Gateway
             Map<String, Object> queryParam = new HashMap<String, Object>();
             queryParam.put(Gateway._Fields.CUSTOS_INTERNAL_GATEWAY_ID.getFieldName(), custosInternalGatewayId);
             List<Gateway> gatewayList = select(QueryConstants.FIND_GATEWAY_BY_INTERNAL_ID, 1, 0, queryParam);
+            if (!gatewayList.isEmpty()) {
+                gateway = gatewayList.get(0);
+            }
+        } catch (Exception ex) {
+            logger.error("Error while getting gateway, reason: " + ex.getMessage(), ex);
+            throw ex;
+        }
+        return gateway;
+    }
+
+    public Gateway getGatewayUsingGatewayId (String gatewayId) throws Exception {
+        Gateway gateway = null;
+        try {
+            Map<String, Object> queryParam = new HashMap<String, Object>();
+            queryParam.put(Gateway._Fields.GATEWAY_ID.getFieldName(), gatewayId);
+            List<Gateway> gatewayList = select(QueryConstants.FIND_GATEWAY_BY_GATEWAY_ID, 1, 0, queryParam);
             if (!gatewayList.isEmpty()) {
                 gateway = gatewayList.get(0);
             }
