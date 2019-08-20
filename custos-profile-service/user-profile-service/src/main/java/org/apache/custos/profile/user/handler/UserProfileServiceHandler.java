@@ -27,13 +27,13 @@ import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.CustosUtils;
 import org.apache.custos.commons.utils.ServerSettings;
+import org.apache.custos.profile.commons.repositories.UserProfileRepository;
 import org.apache.custos.profile.iam.admin.services.client.CustosIamAdminServiceClient;
 import org.apache.custos.profile.iam.admin.services.cpi.IamAdminServices;
 import org.apache.custos.profile.iam.admin.services.cpi.exception.IamAdminServicesException;
 import org.apache.custos.profile.model.user.Status;
 import org.apache.custos.profile.model.user.UserProfile;
 import org.apache.custos.profile.model.user.user_profile_modelConstants;
-import org.apache.custos.profile.commons.repositories.UserProfileRepository;
 import org.apache.custos.profile.user.cpi.UserProfileService;
 import org.apache.custos.profile.user.cpi.exception.UserProfileServiceException;
 import org.apache.custos.security.manager.CustosSecurityManager;
@@ -62,7 +62,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    //@SecurityCheck
     public UserProfile initializeUserProfile(AuthzToken authzToken) throws UserProfileServiceException {
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
@@ -100,7 +99,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    //@SecurityCheck
     public UserProfile addUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
         try{
             // Lowercase user id and internal id
@@ -122,7 +120,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    //@SecurityCheck
     public UserProfile updateUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
         try {
             // After updating the user profile in the database but before committing the transaction, the
@@ -157,8 +154,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    //@SecurityCheck
-    public UserProfile getUserProfileById(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException,TException {
+    public UserProfile getUserProfileById(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException {
         try{
             UserProfile userProfile = userProfileRepository.getUserProfileByIdAndGateWay(userId, gatewayId);
             if(userProfile != null)
@@ -174,8 +170,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
     }
 
     @Override
-    //@SecurityCheck
-    public UserProfile deleteUserProfile(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException,TException {
+    public UserProfile deleteUserProfile(AuthzToken authzToken, String userId, String gatewayId) throws UserProfileServiceException {
         UserProfile userProfile = null;
         try{
             // find user-profile
@@ -184,17 +179,20 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             // delete user
             boolean deleteSuccess = userProfileRepository.delete(userId);
             logger.info("Delete UserProfile with userId: " + userId + ", " + (deleteSuccess? "Success!" : "Failed!"));
+            if(deleteSuccess){
+                return userProfile;
+            }else {
+                throw new Exception("Deleting of user profile with userId: "+ userId + "was not successful");
+            }
         } catch (Exception e) {
             logger.error("Error while deleting user profile", e);
             UserProfileServiceException exception = new UserProfileServiceException();
             exception.setMessage("Error while deleting user profile. More info : " + e.getMessage());
             throw exception;
         }
-        return userProfile;
     }
 
     @Override
-    //@SecurityCheck
     public List<UserProfile> getAllUserProfilesInGateway(AuthzToken authzToken, String gatewayId, int offset, int limit) throws UserProfileServiceException {
         try{
             List<UserProfile> usersInGateway = userProfileRepository.getAllUserProfilesInGateway(gatewayId, offset, limit);
