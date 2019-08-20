@@ -24,7 +24,9 @@ package org.apache.custos.profile.iam.admin.services.handler;
 import org.apache.custos.commons.exceptions.ApplicationSettingsException;
 import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.utils.Constants;
+import org.apache.custos.commons.utils.CustosUtils;
 import org.apache.custos.commons.utils.ServerSettings;
+import org.apache.custos.profile.commons.repositories.UserProfileRepository;
 import org.apache.custos.profile.model.tenant.PasswordCredential;
 import org.apache.custos.profile.model.user.UserProfile;
 import org.apache.custos.profile.model.workspace.Gateway;
@@ -41,7 +43,7 @@ import java.util.List;
 public class IamAdminServicesHandler implements IamAdminServices.Iface {
 
     private final static Logger logger = LoggerFactory.getLogger(IamAdminServicesHandler.class);
-
+    private UserProfileRepository userProfileRepository = new UserProfileRepository();
 
     @Override
     public String getAPIVersion() throws IamAdminServicesException {
@@ -98,14 +100,25 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
     }
 
     @Override
-    public boolean enableUser(AuthzToken authzToken, String username) throws IamAdminServicesException {
+    public UserProfile enableUser(AuthzToken authzToken, String username) throws IamAdminServicesException, TException {
         TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
-            if (keycloakclient.enableUserAccount(authzToken.getAccessToken(), gatewayId, username))
-                return true;
-            else
-                return false;
+            if (keycloakclient.enableUserAccount(authzToken.getAccessToken(), gatewayId, username)) {
+                // Check if user profile exists, if not create it
+                UserProfile userProfile = userProfileRepository.getUserProfileByIdAndGateWay(username, gatewayId);
+                if (userProfile == null) {
+                    // Load basic user profile information from Keycloak and then save in UserProfileRepository
+                    userProfile = keycloakclient.getUser(authzToken.getAccessToken(), gatewayId, username);
+                    userProfile.setCreationTime(CustosUtils.getCurrentTimestamp().getTime());
+                    userProfile.setLastAccessTime(CustosUtils.getCurrentTimestamp().getTime());
+                    userProfile.setValidUntil(-1);
+                    userProfileRepository.createUserProfile(userProfile);
+                }
+                return userProfile;
+            } else {
+                return null;
+            }
         } catch (TException ex) {
             String msg = "Error while enabling user account, reason: " + ex.getMessage();
             logger.error(msg, ex);
@@ -204,6 +217,15 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
 
         keycloakclient.updateUserProfile(authzToken.getAccessToken(), gatewayId, username, userDetails);
+    }
+
+    @Override
+    public boolean deleteUser(AuthzToken authzToken, String username) throws IamAdminServicesException, TException {
+
+        TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
+        String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
+
+        return keycloakclient.deleteUser(authzToken.getAccessToken(), gatewayId, username);
     }
 
     @Override

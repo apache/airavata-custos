@@ -48,15 +48,11 @@ service UserProfileService {
                             throws (1: profile_user_cpi_errors.UserProfileServiceException upe);
 
   user_profile_model.UserProfile addUserProfile (1: required security_model.AuthzToken authzToken,
-                         2: required user_profile_model.UserProfile userProfile,
-                         3: required string clientId,
-                         4: required string clientSecret)
+                         2: required user_profile_model.UserProfile userProfile)
                       throws (1: profile_user_cpi_errors.UserProfileServiceException upe);
 
   user_profile_model.UserProfile updateUserProfile (1: required security_model.AuthzToken authzToken,
-                          2: required user_profile_model.UserProfile userProfile,
-                          3: required string clientId,
-                          4: required string clientSecret)
+                          2: required user_profile_model.UserProfile userProfile)
                        throws (1: profile_user_cpi_errors.UserProfileServiceException upe);
 
   user_profile_model.UserProfile getUserProfileById (1: required security_model.AuthzToken authzToken,
