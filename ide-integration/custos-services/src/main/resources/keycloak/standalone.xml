@@ -47,7 +47,7 @@
             <security-realm name="UndertowRealm">
                 <server-identities>
                     <ssl>
-                        <keystore path="keystores/airavata.jks" relative-to="jboss.server.config.dir" keystore-password="airavata" />
+                        <keystore path="keystores/custos.jks" relative-to="jboss.server.config.dir" keystore-password="custos" />
                     </ssl>
                 </server-identities>
             </security-realm>

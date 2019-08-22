@@ -12,9 +12,8 @@
     <artifactId>ide-integration</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>custos-profile-service-samples</module>
-        <module>custos-authentication-service-samples</module>
         <module>custos-services</module>
+        <module>samples</module>
     </modules>
     <dependencies>
         <dependency>
