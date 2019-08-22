@@ -8,7 +8,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-public class AuthenticationServiceClient {
+public class AuthenticationServiceClientFactory {
 
     public static CustosAuthenticationService.Client createAuthenticationServiceClient(String serverHost, int serverPort)  throws CustosAuthenticationServiceException {
         try {

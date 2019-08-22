@@ -1,3 +1,5 @@
+package org.apache.custos.server.start;
+
 import org.apache.custos.authentication.server.CustosAuthenticationServer;
 import org.apache.custos.profile.server.ProfileServiceServer;
 
@@ -8,7 +10,5 @@ public class CustosAPIServerStarted {
 
         custosAuthenticationServer.start();
         custosProfileServer.start();
-
-
     }
 }

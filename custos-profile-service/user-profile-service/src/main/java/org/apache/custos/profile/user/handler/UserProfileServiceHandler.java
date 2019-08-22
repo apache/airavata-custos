@@ -103,7 +103,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
         try{
             // Lowercase user id and internal id
             userProfile.setUserId(userProfile.getUserId().toLowerCase());
-            userProfile.setCustosInternalUserId(userProfile.getUserId() + "@" + userProfile.getGatewayId());
             userProfile = userProfileRepository.updateUserProfile(userProfile, getIAMUserProfileUpdater(authzToken, userProfile));
             if (null != userProfile) {
                 logger.info("Added UserProfile with userId: " + userProfile.getUserId());
@@ -230,6 +229,15 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             logger.error("Failed to create IAM Admin Services client", e);
             UserProfileServiceException ex = new UserProfileServiceException("Failed to create IAM Admin Services client");
             throw ex;
+        }
+    }
+
+    private void updateCustosInternalId(UserProfile userProfile){
+        //TODO: check if other ids need to be changed
+        String internalId = userProfile.getUserId() + "@" + userProfile.getGatewayId();
+        userProfile.setCustosInternalUserId(internalId);
+        if(userProfile.isSetNsfDemographics()){
+            userProfile.setNsfDemographics(userProfile.getNsfDemographics().setCustosInternalUserId(internalId));
         }
     }
 }
