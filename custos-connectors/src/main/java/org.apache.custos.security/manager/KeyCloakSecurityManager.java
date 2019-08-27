@@ -95,6 +95,7 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
         String accessToken = authzToken.getAccessToken();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
+            initializeSecurityInfra();
             if (ServerSettings.isAuthzCacheEnabled()) {
                 //obtain an instance of AuthzCacheManager implementation.
                 AuthzCacheManager authzCacheManager = AuthzCacheManagerFactory.getAuthzCacheManager();
@@ -138,6 +139,7 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     @Override
     public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException {
         try {
+            initializeSecurityInfra();
             tenantProfileClient = getTenantProfileServiceClient();
             Gateway gateway = tenantProfileClient.getGatewayUsingGatewayId(authzToken, gatewayId);
             String tokenURL = getTokenEndpoint(gatewayId);
@@ -164,7 +166,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     }
 
     private UserInfo getUserInfo(String gatewayId, String token) throws Exception {
-        //TODO: Confirm the difference between gatewayId and IdentityServerTenant, using gatewayId as of now
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
         String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");
