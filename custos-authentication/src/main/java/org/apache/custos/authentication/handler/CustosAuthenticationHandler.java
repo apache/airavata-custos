@@ -20,7 +20,7 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
             boolean isAuth = securityManager.isUserAuthenticated(authzToken);
                 if (isAuth) {
-                    logger.info("User" + authzToken.getClaimsMap().get(Constants.USER_NAME) + "in gateway" + authzToken.getClaimsMap().get(Constants.GATEWAY_ID) + "is authenticated");
+                    logger.info("User " + authzToken.getClaimsMap().get(Constants.USER_NAME) + " in gateway " + authzToken.getClaimsMap().get(Constants.GATEWAY_ID) + " is authenticated");
                     return isAuth;
                 }
                 else{

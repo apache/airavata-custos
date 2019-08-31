@@ -9,7 +9,6 @@ import org.apache.custos.profile.user.cpi.exception.UserProfileServiceException;
 import org.apache.custos.profile.user.handler.UserProfileServiceHandler;
 import org.apache.custos.security.manager.CustosSecurityManager;
 import org.apache.custos.security.manager.SecurityManagerFactory;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,10 +39,6 @@ public class TestUserProfileServiceHandler {
         authzToken.setClaimsMap(map);
         authzToken.setAccessToken("access token");
     }
-    @After
-    public void cleanUp() {
-
-    }
     @Test
     public void testInitializeUserProfileWhenUserProfileDoesNotExist(@Mocked CustosSecurityManager mockedSecurityManager) throws UserProfileServiceException, CustosSecurityException {
         UserInfo userInfo = new UserInfo();
@@ -64,21 +59,36 @@ public class TestUserProfileServiceHandler {
     }
     @Test
     public void testInitializeUserProfileWhenUserProfileExists(@Mocked CustosSecurityManager mockedSecurityManager) throws UserProfileServiceException, CustosSecurityException{
+        //create a user
         UserInfo userInfo = new UserInfo();
         userInfo.setUsername("test-username");
-        userInfo.setEmailAddress("some-other-test@test.com");
-        userInfo.setFirstName("someother-test-first-name");
-        userInfo.setLastName("someother-test-last-name");
-        String old_email_address = "test@test.com";
+        userInfo.setEmailAddress("test@test.com");
+        userInfo.setFirstName("test-first-name");
+        userInfo.setLastName("test-last-name");
+        //create a user with same username
+        UserInfo userInfoCopy = new UserInfo();
+        userInfoCopy.setUsername("test-username");
+        userInfoCopy.setEmailAddress("some-other-test@test.com");
+        userInfoCopy.setFirstName("someother-test-first-name");
+        userInfoCopy.setLastName("someother-test-last-name");
+        AuthzToken authzTokenCopy = new AuthzToken();
+        HashMap<String,String> map = new HashMap<>();
+        map.put(Constants.GATEWAY_ID, GATEWAY_ID);
+        map.put(Constants.USER_NAME, userInfoCopy.getUsername());
+        authzTokenCopy.setClaimsMap(map);
+        authzTokenCopy.setAccessToken("access token");
+
         new MockUp<SecurityManagerFactory>() {
             @Mock
             public CustosSecurityManager getSecurityManager(){return mockedSecurityManager;};
         };
-        new Expectations() {{ mockedSecurityManager.getUserInfoFromAuthzToken(authzToken); result = userInfo;}};
+        new Expectations() {{
+            mockedSecurityManager.getUserInfoFromAuthzToken(authzToken); result = userInfo;
+            mockedSecurityManager.getUserInfoFromAuthzToken(authzTokenCopy); result = userInfoCopy;}};
 
-        UserProfile createdUserProfile = userProfileServiceHandler.initializeUserProfile(authzToken);
-        assertNotNull(createdUserProfile);
-        assertEquals(old_email_address,createdUserProfile.getEmails().get(0));
+        userProfileServiceHandler.initializeUserProfile(authzToken);
+        UserProfile createdUserProfile = userProfileServiceHandler.initializeUserProfile(authzTokenCopy);
+                assertNotNull(createdUserProfile);
         assertEquals(userInfo.getUsername().toLowerCase(), createdUserProfile.getUserId());
         assertEquals(GATEWAY_ID,createdUserProfile.getGatewayId());
     }
