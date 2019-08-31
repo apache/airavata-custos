@@ -22,6 +22,7 @@
         <module>custos-authentication</module>
         <module>custos-profile-service</module>
         <module>custos-connectors</module>
+        <module>custos-sharing-registry-service</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -30,6 +31,8 @@
         <log4j.version>1.2.17</log4j.version>
         <thrift.version>0.12.0</thrift.version>
         <openjpa.version>2.4.3</openjpa.version>
+        <mysql.connector.version>5.1.34</mysql.connector.version>
+        <maven.assembly.plugin>3.1.1</maven.assembly.plugin>
         <junit.version>4.8.1</junit.version>
         <jmockit.version>1.8</jmockit.version>
     </properties>
