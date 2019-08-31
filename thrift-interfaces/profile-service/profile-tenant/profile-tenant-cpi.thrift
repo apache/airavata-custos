@@ -53,6 +53,10 @@ service TenantProfileService {
                                         2: required string custosInternalGatewayId)
                                      throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe)
 
+    workspace_model.Gateway getGatewayUsingGatewayId (1: required security_model.AuthzToken authzToken,
+                                            2: required string gatewayId)
+                                         throws (1: profile_tenant_cpi_errors.TenantProfileServiceException tpe)
+
     workspace_model.Gateway deleteGateway (1: required security_model.AuthzToken authzToken,
                         2: required string custosInternalGatewayId,
                         3: required string gatewayId)

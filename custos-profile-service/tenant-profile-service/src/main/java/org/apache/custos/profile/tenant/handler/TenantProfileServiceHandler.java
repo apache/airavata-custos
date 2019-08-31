@@ -23,7 +23,7 @@ import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.profile.commons.tenant.entities.GatewayEntity;
 import org.apache.custos.profile.model.workspace.Gateway;
 import org.apache.custos.profile.model.workspace.GatewayApprovalStatus;
-import org.apache.custos.profile.tenant.core.TenantProfileRepository;
+import org.apache.custos.profile.commons.repositories.TenantProfileRepository;
 import org.apache.custos.profile.tenant.cpi.TenantProfileService;
 import org.apache.custos.profile.tenant.cpi.exception.TenantProfileServiceException;
 import org.apache.custos.profile.tenant.cpi.profile_tenant_cpiConstants;
@@ -31,7 +31,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.metamodel.EntityType;
 import java.util.List;
 import java.util.UUID;
 
@@ -112,6 +111,22 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
             Gateway gateway = tenantProfileRepository.getGateway(airavataInternalGatewayId);
             if (gateway == null) {
                 throw new Exception("Could not find Gateway with internal ID: " + airavataInternalGatewayId);
+            }
+            return gateway;
+        } catch (Exception ex) {
+            logger.error("Error getting gateway-profile, reason: " + ex.getMessage(), ex);
+            TenantProfileServiceException exception = new TenantProfileServiceException();
+            exception.setMessage("Error getting gateway-profile, reason: " + ex.getMessage());
+            throw exception;
+        }
+    }
+
+    @Override
+    public Gateway getGatewayUsingGatewayId(AuthzToken authzToken, String gatewayId) throws TenantProfileServiceException, TException {
+        try {
+            Gateway gateway = tenantProfileRepository.getGatewayUsingGatewayId(gatewayId);
+            if (gateway == null) {
+                throw new Exception("Could not find Gateway with ID: " + gatewayId);
             }
             return gateway;
         } catch (Exception ex) {

@@ -26,6 +26,9 @@ import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.model.security.UserInfo;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.ServerSettings;
+import org.apache.custos.profile.model.workspace.Gateway;
+import org.apache.custos.profile.tenant.client.TenantProfileClient;
+import org.apache.custos.profile.tenant.cpi.TenantProfileService;
 import org.apache.custos.security.authzcache.*;
 import org.apache.custos.security.utils.TrustStoreManager;
 import org.apache.http.Consts;
@@ -38,6 +41,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.apache.thrift.TException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +58,11 @@ import java.util.List;
 
 public class KeyCloakSecurityManager implements CustosSecurityManager {
     private final static Logger logger = LoggerFactory.getLogger(KeyCloakSecurityManager.class);
+    private static TenantProfileService.Client tenantProfileClient;
     public KeyCloakSecurityManager() throws CustosSecurityException {
         initializeSecurityInfra();
     }
+
 
     /**
      * Implement this method in your SecurityManager to perform necessary initializations at the server startup.
@@ -89,6 +95,7 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
         String accessToken = authzToken.getAccessToken();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
+            initializeSecurityInfra();
             if (ServerSettings.isAuthzCacheEnabled()) {
                 //obtain an instance of AuthzCacheManager implementation.
                 AuthzCacheManager authzCacheManager = AuthzCacheManagerFactory.getAuthzCacheManager();
@@ -128,16 +135,19 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
             throw new CustosSecurityException(e.getMessage(), e);
         }
     }
-    //TODO: no way to get gateway as tenant profile service has not been migrated. Check if clientId and clientSecret could be removed
+
     @Override
-    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosSecurityException {
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosSecurityException {
         try {
+            initializeSecurityInfra();
+            tenantProfileClient = getTenantProfileServiceClient();
+            Gateway gateway = tenantProfileClient.getGatewayUsingGatewayId(authzToken, gatewayId);
             String tokenURL = getTokenEndpoint(gatewayId);
-            JSONObject clientCredentials = getClientCredentials(tokenURL, clientId, clientSecret);
+            JSONObject clientCredentials = getClientCredentials(tokenURL, gateway.getOauthClientId(), gateway.getOauthClientSecret());
             String accessToken = clientCredentials.getString("access_token");
             AuthzToken userManagementServiceAccountAuthzToken = new AuthzToken(accessToken);
             userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.GATEWAY_ID, gatewayId);
-            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.USER_NAME, clientId);
+            userManagementServiceAccountAuthzToken.putToClaimsMap(Constants.USER_NAME, gateway.getOauthClientId());
             return userManagementServiceAccountAuthzToken;
         } catch (Exception e) {
             throw new CustosSecurityException(e);
@@ -156,7 +166,6 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
     }
 
     private UserInfo getUserInfo(String gatewayId, String token) throws Exception {
-        //TODO: Confirm the difference between gatewayId and IdentityServerTenant, using gatewayId as of now
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
         String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");
@@ -235,6 +244,17 @@ public class KeyCloakSecurityManager implements CustosSecurityManager {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+    private TenantProfileService.Client getTenantProfileServiceClient() throws Exception {
+
+        try {
+            String serverHost = ServerSettings.getProfileServiceServerHost();
+            String serverPort = ServerSettings.getProfileServiceServerPort();
+            TenantProfileService.Client client = TenantProfileClient.createCustosTenantProfileServiceClient(serverHost, Integer.parseInt(serverPort));
+            return client;
+        } catch (ApplicationSettingsException | TException e) {
+            throw new Exception("Could not create tenant profile client", e);
         }
     }
 }

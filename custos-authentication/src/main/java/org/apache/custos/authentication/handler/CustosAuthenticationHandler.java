@@ -20,7 +20,7 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
             boolean isAuth = securityManager.isUserAuthenticated(authzToken);
                 if (isAuth) {
-                    logger.info("User" + authzToken.getClaimsMap().get(Constants.USER_NAME) + "in gateway" + authzToken.getClaimsMap().get(Constants.GATEWAY_ID) + "is authenticated");
+                    logger.info("User " + authzToken.getClaimsMap().get(Constants.USER_NAME) + " in gateway " + authzToken.getClaimsMap().get(Constants.GATEWAY_ID) + " is authenticated");
                     return isAuth;
                 }
                 else{
@@ -42,10 +42,10 @@ public class CustosAuthenticationHandler implements CustosAuthenticationService.
         }
     }
     @Override
-    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId, String clientId, String clientSecret) throws CustosAuthenticationServiceException {
+    public AuthzToken getUserManagementServiceAccountAuthzToken(AuthzToken authzToken, String gatewayId) throws CustosAuthenticationServiceException {
         try{
             CustosSecurityManager securityManager = SecurityManagerFactory.getSecurityManager();
-            return securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId, clientId, clientSecret);
+            return securityManager.getUserManagementServiceAccountAuthzToken(authzToken, gatewayId);
         }catch (CustosSecurityException e){
             logger.error(e.getMessage(), e);
             throw new CustosAuthenticationServiceException("Could get user management account authz token");
