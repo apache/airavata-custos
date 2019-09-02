@@ -1,19 +1,34 @@
 package org.apache.custos.sharing.service.core.models;
 
+import javax.validation.constraints.NotNull;
+
 public class Entity {
+    
+    @NotNull(message = "Entity id cannot be null")
     private String entityId;
+
+    @NotNull(message = "Domain id for the Entity id cannot be null")
     private String domainId;
+
+    @NotNull(message = "Entity type id cannot be null")
     private String entityTypeId;
+
+    @NotNull(message = "Owner id cannot be null")
     private String ownerId;
+    
     private String parentEntityId;
+    
     private String name;
+    
     private String description;
+
     private byte[] binaryData;
     private String fullText;
-    private double sharedCount = 0;
-    private double originalEntityCreationTime;
-    private double createdTime;
-    private double updatedTime;
+    private Long originalEntityCreationTime;
+    private int sharedCount;
+    private Long createdTime;
+    private Long updatedTime;
+
 
     public String getEntityId() {
         return entityId;
@@ -87,35 +102,35 @@ public class Entity {
         this.fullText = fullText;
     }
 
-    public double getSharedCount() {
+    public int getSharedCount() {
         return sharedCount;
     }
 
-    public void setSharedCount(double sharedCount) {
+    public void setSharedCount(int sharedCount) {
         this.sharedCount = sharedCount;
     }
 
-    public double getOriginalEntityCreationTime() {
+    public Long getOriginalEntityCreationTime() {
         return originalEntityCreationTime;
     }
 
-    public void setOriginalEntityCreationTime(double originalEntityCreationTime) {
+    public void setOriginalEntityCreationTime(Long originalEntityCreationTime) {
         this.originalEntityCreationTime = originalEntityCreationTime;
     }
 
-    public double getCreatedTime() {
+    public Long getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(double createdTime) {
+    public void setCreatedTime(Long createdTime) {
         this.createdTime = createdTime;
     }
 
-    public double getUpdatedTime() {
+    public Long getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(double updatedTime) {
+    public void setUpdatedTime(Long updatedTime) {
         this.updatedTime = updatedTime;
     }
 }

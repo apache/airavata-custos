@@ -9,24 +9,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/entityType")
+@RequestMapping("/domains/{domainId}/entityTypes")
 public class EntityTypeController {
 
     @Autowired
-    private static SharingRegistryService sharingRegistryService;
+    SharingRegistryService sharingRegistryService;
     /**
      <p>API method to create a new entity type</p>
      */
-    @RequestMapping(value = "/create", method = RequestMethod.POST)
-    public ResponseEntity<String> createEntityType(@RequestBody EntityType entityType){
-        String createdEntityTypeId = sharingRegistryService.createEntityType(entityType);
-        if(createdEntityTypeId.equals(entityType.getEntityTypeId())){
-            return new ResponseEntity<>(HttpStatus.OK);
+    @RequestMapping(method = RequestMethod.POST)
+    public EntityType createEntityType(@Valid @RequestBody EntityType entityType){
+        EntityType createdEntityType = sharingRegistryService.createEntityType(entityType);
+        if(createdEntityType != null){
+            return createdEntityType;
         }
         else{
             throw new SharingRegistryException("Failed to create the entity type");
@@ -36,8 +37,8 @@ public class EntityTypeController {
     /**
      <p>API method to update entity type</p>
      */
-    @RequestMapping(value = "/update", method = RequestMethod.PUT)
-    public ResponseEntity<String> updateEntityType(@RequestBody EntityType entityType){
+    @RequestMapping(method = RequestMethod.PUT)
+    public ResponseEntity<String> updateEntityType(@Valid @RequestBody EntityType entityType){
         boolean response = sharingRegistryService.updateEntityType(entityType);
         if(response){
             return new ResponseEntity<>(HttpStatus.OK);
@@ -50,16 +51,20 @@ public class EntityTypeController {
     /**
      <p>API method to check EntityType Exists</p>
      */
-    @RequestMapping(value = "/exists/id/{entityTypeId/domain/{domainId}", method = RequestMethod.GET)
-    public @ResponseBody Map<String, Boolean> isEntityTypeExists(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
+    @RequestMapping(value = "/{entityTypeId}", method = RequestMethod.HEAD)
+    public ResponseEntity<String> isEntityTypeExists(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
         boolean response = sharingRegistryService.isEntityTypeExists(domainId, entityTypeId);
-        return Collections.singletonMap("exists", response);
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        if(response){
+            status = HttpStatus.OK;
+        }
+        return new ResponseEntity<>(status);
     }
 
     /**
      <p>API method to delete entity type</p>
      */
-    @RequestMapping(value = "/id/{entityTypeId}/domain/{domainId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{entityTypeId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteEntityType(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
         boolean response = sharingRegistryService.deleteEntityType(domainId, entityTypeId);
         if(response){
@@ -73,7 +78,7 @@ public class EntityTypeController {
     /**
      <p>API method to get an entity type</p>
      */
-    @RequestMapping(value = "/id/{entityTypeId}/domain/{domainId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{entityTypeId}", method = RequestMethod.GET)
     public @ResponseBody EntityType getEntityType(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
         EntityType entityType = sharingRegistryService.getEntityType(domainId, entityTypeId);
         if(entityType != null){
@@ -87,8 +92,8 @@ public class EntityTypeController {
     /**
      <p>API method to get entity types in a domainId.</p>
      */
-    @RequestMapping(value = "/domain/{domainId}/offset/{offset}/limit/{limit}", method = RequestMethod.GET)
-    public @ResponseBody List<EntityType> getEntityTypes(@PathVariable("domainId") String domainId, @PathVariable("offset") int offset, @PathVariable("limit") int limit){
+    @RequestMapping(method = RequestMethod.GET)
+    public @ResponseBody List<EntityType> getEntityTypes(@PathVariable("domainId") String domainId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
        List<EntityType> entityTypes = sharingRegistryService.getEntityTypes(domainId, offset, limit);
        return entityTypes;
     }

@@ -368,6 +368,69 @@ INSERT INTO `DOMAIN` VALUES ('default','default','Domain entry for default',1551
 UNLOCK TABLES;
 
 --
+-- Table structure for table `ENTITY_TYPE`
+--
+
+DROP TABLE IF EXISTS `ENTITY_TYPE`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ENTITY_TYPE` (
+  `ENTITY_TYPE_ID` varchar(255) NOT NULL,
+  `DOMAIN_ID` varchar(255) NOT NULL,
+  `NAME` varchar(255) NOT NULL,
+  `DESCRIPTION` varchar(255) DEFAULT NULL,
+  `CREATED_TIME` bigint(20) NOT NULL,
+  `UPDATED_TIME` bigint(20) NOT NULL,
+  PRIMARY KEY (`ENTITY_TYPE_ID`,`DOMAIN_ID`),
+  KEY `DOMAIN_ID` (`DOMAIN_ID`),
+  CONSTRAINT `entity_type_ibfk_1` FOREIGN KEY (`DOMAIN_ID`) REFERENCES `DOMAIN` (`DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ENTITY_TYPE`
+--
+
+LOCK TABLES `ENTITY_TYPE` WRITE;
+/*!40000 ALTER TABLE `ENTITY_TYPE` DISABLE KEYS */;
+INSERT INTO `ENTITY_TYPE` VALUES ('default:APPLICATION_DEPLOYMENT','default','APPLICATION-DEPLOYMENT','Application Deployment entity type',1551138011706,1551138011706),('default:CREDENTIAL_TOKEN','default','CREDENTIAL_TOKEN','Credential Store Token entity type',1551138011735,1551138011735),('default:EXPERIMENT','default','EXPERIMENT','Experiment entity type',1551138011685,1551138011685),('default:FILE','default','FILE','File entity type',1551138011696,1551138011696),('default:GROUP_RESOURCE_PROFILE','default','GROUP_RESOURCE_PROFILE','Group Resource Profile entity type',1551138011716,1551138011716),('default:PROJECT','default','PROJECT','Project entity type',1551138011665,1551138011665);
+/*!40000 ALTER TABLE `ENTITY_TYPE` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `SHARING_USER`
+--
+
+DROP TABLE IF EXISTS `SHARING_USER`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `SHARING_USER` (
+  `USER_ID` varchar(255) NOT NULL,
+  `DOMAIN_ID` varchar(255) NOT NULL,
+  `USER_NAME` varchar(255) NOT NULL,
+  `FIRST_NAME` varchar(255) DEFAULT NULL,
+  `LAST_NAME` varchar(255) DEFAULT NULL,
+  `EMAIL` varchar(255) DEFAULT NULL,
+  `ICON` blob,
+  `CREATED_TIME` bigint(20) NOT NULL,
+  `UPDATED_TIME` bigint(20) NOT NULL,
+  PRIMARY KEY (`USER_ID`,`DOMAIN_ID`),
+  KEY `DOMAIN_ID` (`DOMAIN_ID`),
+  CONSTRAINT `sharing_user_ibfk_1` FOREIGN KEY (`DOMAIN_ID`) REFERENCES `DOMAIN` (`DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `SHARING_USER`
+--
+
+LOCK TABLES `SHARING_USER` WRITE;
+/*!40000 ALTER TABLE `SHARING_USER` DISABLE KEYS */;
+INSERT INTO `SHARING_USER` VALUES ('default-admin@default','default','dim Upe',NULL,NULL,'dimuthu.upeksha2@gmail.com',NULL,1551138011603,1551138404868);
+/*!40000 ALTER TABLE `SHARING_USER` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `ENTITY`
 --
 
@@ -410,36 +473,6 @@ INSERT INTO `ENTITY` VALUES ('46a99a5a-8b55-4982-bfd7-90fe72b00d46','default','d
 UNLOCK TABLES;
 
 --
--- Table structure for table `ENTITY_TYPE`
---
-
-DROP TABLE IF EXISTS `ENTITY_TYPE`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `ENTITY_TYPE` (
-  `ENTITY_TYPE_ID` varchar(255) NOT NULL,
-  `DOMAIN_ID` varchar(255) NOT NULL,
-  `NAME` varchar(255) NOT NULL,
-  `DESCRIPTION` varchar(255) DEFAULT NULL,
-  `CREATED_TIME` bigint(20) NOT NULL,
-  `UPDATED_TIME` bigint(20) NOT NULL,
-  PRIMARY KEY (`ENTITY_TYPE_ID`,`DOMAIN_ID`),
-  KEY `DOMAIN_ID` (`DOMAIN_ID`),
-  CONSTRAINT `entity_type_ibfk_1` FOREIGN KEY (`DOMAIN_ID`) REFERENCES `DOMAIN` (`DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `ENTITY_TYPE`
---
-
-LOCK TABLES `ENTITY_TYPE` WRITE;
-/*!40000 ALTER TABLE `ENTITY_TYPE` DISABLE KEYS */;
-INSERT INTO `ENTITY_TYPE` VALUES ('default:APPLICATION_DEPLOYMENT','default','APPLICATION-DEPLOYMENT','Application Deployment entity type',1551138011706,1551138011706),('default:CREDENTIAL_TOKEN','default','CREDENTIAL_TOKEN','Credential Store Token entity type',1551138011735,1551138011735),('default:EXPERIMENT','default','EXPERIMENT','Experiment entity type',1551138011685,1551138011685),('default:FILE','default','FILE','File entity type',1551138011696,1551138011696),('default:GROUP_RESOURCE_PROFILE','default','GROUP_RESOURCE_PROFILE','Group Resource Profile entity type',1551138011716,1551138011716),('default:PROJECT','default','PROJECT','Project entity type',1551138011665,1551138011665);
-/*!40000 ALTER TABLE `ENTITY_TYPE` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `GROUP_ADMIN`
 --
 
@@ -463,6 +496,40 @@ CREATE TABLE `GROUP_ADMIN` (
 LOCK TABLES `GROUP_ADMIN` WRITE;
 /*!40000 ALTER TABLE `GROUP_ADMIN` DISABLE KEYS */;
 /*!40000 ALTER TABLE `GROUP_ADMIN` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+--
+-- Table structure for table `USER_GROUP`
+--
+
+DROP TABLE IF EXISTS `USER_GROUP`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `USER_GROUP` (
+  `GROUP_ID` varchar(255) NOT NULL,
+  `DOMAIN_ID` varchar(255) NOT NULL,
+  `NAME` varchar(255) NOT NULL,
+  `DESCRIPTION` varchar(255) DEFAULT NULL,
+  `OWNER_ID` varchar(255) NOT NULL,
+  `GROUP_TYPE` varchar(255) NOT NULL,
+  `GROUP_CARDINALITY` varchar(255) NOT NULL,
+  `CREATED_TIME` bigint(20) NOT NULL,
+  `UPDATED_TIME` bigint(20) NOT NULL,
+  PRIMARY KEY (`GROUP_ID`,`DOMAIN_ID`),
+  KEY `OWNER_ID` (`OWNER_ID`,`DOMAIN_ID`),
+  CONSTRAINT `user_group_ibfk_1` FOREIGN KEY (`OWNER_ID`, `DOMAIN_ID`) REFERENCES `SHARING_USER` (`USER_ID`, `DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `USER_GROUP`
+--
+
+LOCK TABLES `USER_GROUP` WRITE;
+/*!40000 ALTER TABLE `USER_GROUP` DISABLE KEYS */;
+INSERT INTO `USER_GROUP` VALUES ('Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','default','Admin Users','Admin users group.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405064,1551138405064),('default-admin@default','default','dim Upe','user dim Upe group','default-admin@default','USER_LEVEL_GROUP','SINGLE_USER',0,1551138404890),('Gateway_Users_2e4e6eb4-05ad-4a0f-92d1-02aa26c56004','default','Gateway Users','Default group for users of the gateway.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405011,1551138405011),('Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','default','Read Only Admin Users','Group of admin users with read-only access.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405099,1551138405099);
+/*!40000 ALTER TABLE `USER_GROUP` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -563,70 +630,4 @@ LOCK TABLES `SHARING` WRITE;
 /*!40000 ALTER TABLE `SHARING` DISABLE KEYS */;
 INSERT INTO `SHARING` VALUES ('default:OWNER','46a99a5a-8b55-4982-bfd7-90fe72b00d46','default','default-admin@default','DIRECT_CASCADING','46a99a5a-8b55-4982-bfd7-90fe72b00d46',1551139607745,1551139607745),('default:OWNER','af03c63d-a40e-4ed1-aee0-759a6ed0202c','default','default-admin@default','DIRECT_CASCADING','af03c63d-a40e-4ed1-aee0-759a6ed0202c',1552318871935,1552318871935),('default:OWNER','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b','default','default-admin@default','DIRECT_CASCADING','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b',1552323107903,1552323107903),('default:OWNER','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79','default','default-admin@default','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79',1552320576016,1552320576016),('default:OWNER','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd','default','default-admin@default','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd',1552322784315,1552322784315),('default:OWNER','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc','default','default-admin@default','DIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551138405554,1551138405554),('default:OWNER','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551200818759,1551200818759),('default:OWNER','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200818705,1551200818705),('default:OWNER','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551195758468,1551195758468),('default:OWNER','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195758430,1551195758430),('default:OWNER','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319249178,1552319249178),('default:OWNER','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','default-admin@default','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9',1552319249136,1552319249136),('default:OWNER','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319973685,1552319973685),('default:OWNER','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','default-admin@default','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f',1552319973651,1552319973651),('default:OWNER','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320158415,1552320158415),('default:OWNER','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','default-admin@default','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e',1552320158375,1552320158375),('default:OWNER','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320714215,1552320714215),('default:OWNER','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','default-admin@default','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1',1552320714184,1552320714184),('default:OWNER','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552321490609,1552321490609),('default:OWNER','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','default-admin@default','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387',1552321490586,1552321490586),('default:OWNER','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84','default','default-admin@default','DIRECT_CASCADING','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84',1551195720607,1551195720607),('default:READ','af03c63d-a40e-4ed1-aee0-759a6ed0202c','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','af03c63d-a40e-4ed1-aee0-759a6ed0202c',1552318872021,1552318872021),('default:READ','af03c63d-a40e-4ed1-aee0-759a6ed0202c','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','af03c63d-a40e-4ed1-aee0-759a6ed0202c',1552318872021,1552318872021),('default:READ','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b',1552323107949,1552323107949),('default:READ','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b',1552323107949,1552323107949),('default:READ','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79',1552320576060,1552320576060),('default:READ','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79',1552320576060,1552320576060),('default:READ','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd',1552322784367,1552322784367),('default:READ','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd',1552322784367,1552322784367),('default:READ','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc','default','default-admin@default','DIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551138406052,1551138406052),('default:READ','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200818860,1551200818860),('default:READ','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551200818736,1551200818736),('default:READ','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200819351,1551200819351),('default:READ','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200818860,1551200818860),('default:READ','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195758537,1551195758537),('default:READ','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551195758452,1551195758452),('default:READ','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195759028,1551195759028),('default:READ','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195758537,1551195758537),('default:READ','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9',1552319249231,1552319249231),('default:READ','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319249161,1552319249161),('default:READ','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9',1552319249231,1552319249231),('default:READ','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f',1552319973762,1552319973762),('default:READ','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319973669,1552319973669),('default:READ','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f',1552319973762,1552319973762),('default:READ','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e',1552320158500,1552320158500),('default:READ','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320158395,1552320158395),('default:READ','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e',1552320158500,1552320158500),('default:READ','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1',1552320714263,1552320714263),('default:READ','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320714198,1552320714198),('default:READ','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1',1552320714263,1552320714263),('default:READ','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387',1552321490657,1552321490657),('default:READ','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552321490595,1552321490595),('default:READ','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387',1552321490657,1552321490657),('default:READ','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84',1551195720704,1551195720704),('default:READ','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84','default','Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','DIRECT_CASCADING','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84',1551195720704,1551195720704),('default:WRITE','af03c63d-a40e-4ed1-aee0-759a6ed0202c','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','af03c63d-a40e-4ed1-aee0-759a6ed0202c',1552318871972,1552318871972),('default:WRITE','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Clone_of_Echo_on_Mar_11,_2019_12:24_PM_9182a6b7-520d-4a8d-92e1-24463aae530b',1552323107921,1552323107921),('default:WRITE','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:02_PM_32bd2154-9dd1-46c4-87c1-cd3925174f79',1552320576035,1552320576035),('default:WRITE','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Clone_of_Echo_on_Mar_11,_2019_12:24_PM_96170feb-9202-458f-8494-5fea6e5598dd',1552322784331,1552322784331),('default:WRITE','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc','default','default-admin@default','DIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551138405837,1551138405837),('default:WRITE','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200818802,1551200818802),('default:WRITE','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551200818748,1551200818748),('default:WRITE','echo2_190926b0-f389-4394-864e-0b2f0782692c','default','default-admin@default','DIRECT_CASCADING','echo2_190926b0-f389-4394-864e-0b2f0782692c',1551200819185,1551200819185),('default:WRITE','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195758494,1551195758494),('default:WRITE','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1551195758461,1551195758461),('default:WRITE','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32','default','default-admin@default','DIRECT_CASCADING','Echo2_56e5b34d-5ce1-47db-9723-29244d41da32',1551195758871,1551195758871),('default:WRITE','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9',1552319249200,1552319249200),('default:WRITE','Echo_on_Mar_11,_2019_11:47_AM_40ff0d5e-5053-43f7-8f80-faa53f623ca9','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319249169,1552319249169),('default:WRITE','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f',1552319973716,1552319973716),('default:WRITE','Echo_on_Mar_11,_2019_11:59_AM_d17b5f17-f9d3-442a-82d2-b386c3a9eb6f','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552319973676,1552319973676),('default:WRITE','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e',1552320158451,1552320158451),('default:WRITE','Echo_on_Mar_11,_2019_12:02_PM_d7d67775-e7f6-4255-9c05-764b29ac9e3e','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320158405,1552320158405),('default:WRITE','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1',1552320714233,1552320714233),('default:WRITE','Echo_on_Mar_11,_2019_12:11_PM_f2576ab2-c3af-47e9-8fe2-099802ba25c1','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552320714207,1552320714207),('default:WRITE','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387',1552321490625,1552321490625),('default:WRITE','Echo_on_Mar_11,_2019_12:24_PM_e78780cb-35a5-467b-baea-e9df5f498387','default','default-admin@default','INDIRECT_CASCADING','Default_Project_93d9a30a-4299-44dd-9e48-a7b8961464dc',1552321490602,1552321490602),('default:WRITE','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84','default','Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','DIRECT_CASCADING','js-156-93.jetstream-cloud.org_Echo_88202f35-beef-414a-84a4-6ee9dd4f5a84',1551195720648,1551195720648);
 /*!40000 ALTER TABLE `SHARING` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `SHARING_USER`
---
-
-DROP TABLE IF EXISTS `SHARING_USER`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `SHARING_USER` (
-  `USER_ID` varchar(255) NOT NULL,
-  `DOMAIN_ID` varchar(255) NOT NULL,
-  `USER_NAME` varchar(255) NOT NULL,
-  `FIRST_NAME` varchar(255) DEFAULT NULL,
-  `LAST_NAME` varchar(255) DEFAULT NULL,
-  `EMAIL` varchar(255) DEFAULT NULL,
-  `ICON` blob,
-  `CREATED_TIME` bigint(20) NOT NULL,
-  `UPDATED_TIME` bigint(20) NOT NULL,
-  PRIMARY KEY (`USER_ID`,`DOMAIN_ID`),
-  KEY `DOMAIN_ID` (`DOMAIN_ID`),
-  CONSTRAINT `sharing_user_ibfk_1` FOREIGN KEY (`DOMAIN_ID`) REFERENCES `DOMAIN` (`DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `SHARING_USER`
---
-
-LOCK TABLES `SHARING_USER` WRITE;
-/*!40000 ALTER TABLE `SHARING_USER` DISABLE KEYS */;
-INSERT INTO `SHARING_USER` VALUES ('default-admin@default','default','dim Upe',NULL,NULL,'dimuthu.upeksha2@gmail.com',NULL,1551138011603,1551138404868);
-/*!40000 ALTER TABLE `SHARING_USER` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `USER_GROUP`
---
-
-DROP TABLE IF EXISTS `USER_GROUP`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `USER_GROUP` (
-  `GROUP_ID` varchar(255) NOT NULL,
-  `DOMAIN_ID` varchar(255) NOT NULL,
-  `NAME` varchar(255) NOT NULL,
-  `DESCRIPTION` varchar(255) DEFAULT NULL,
-  `OWNER_ID` varchar(255) NOT NULL,
-  `GROUP_TYPE` varchar(255) NOT NULL,
-  `GROUP_CARDINALITY` varchar(255) NOT NULL,
-  `CREATED_TIME` bigint(20) NOT NULL,
-  `UPDATED_TIME` bigint(20) NOT NULL,
-  PRIMARY KEY (`GROUP_ID`,`DOMAIN_ID`),
-  KEY `OWNER_ID` (`OWNER_ID`,`DOMAIN_ID`),
-  CONSTRAINT `user_group_ibfk_1` FOREIGN KEY (`OWNER_ID`, `DOMAIN_ID`) REFERENCES `SHARING_USER` (`USER_ID`, `DOMAIN_ID`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `USER_GROUP`
---
-
-LOCK TABLES `USER_GROUP` WRITE;
-/*!40000 ALTER TABLE `USER_GROUP` DISABLE KEYS */;
-INSERT INTO `USER_GROUP` VALUES ('Admin_Users_ba3e4af7-9b1d-4f46-b43a-2b44790f6868','default','Admin Users','Admin users group.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405064,1551138405064),('default-admin@default','default','dim Upe','user dim Upe group','default-admin@default','USER_LEVEL_GROUP','SINGLE_USER',0,1551138404890),('Gateway_Users_2e4e6eb4-05ad-4a0f-92d1-02aa26c56004','default','Gateway Users','Default group for users of the gateway.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405011,1551138405011),('Read_Only_Admin_Users_68f97cb6-9d9a-4a41-a15e-1db24ec087b3','default','Read Only Admin Users','Group of admin users with read-only access.','default-admin@default','DOMAIN_LEVEL_GROUP','MULTI_USER',1551138405099,1551138405099);
-/*!40000 ALTER TABLE `USER_GROUP` ENABLE KEYS */;
 UNLOCK TABLES;

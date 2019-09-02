@@ -1,11 +1,20 @@
 package org.apache.custos.sharing.service.core.models;
 
+import javax.validation.constraints.NotNull;
+
 public class Domain {
-    private String domainId = "DO_NOT_SET_AT_CLIENTS_ID";
+
+    @NotNull(message = "Domain id cannot be null")
+    private String domainId;
+
+    @NotNull(message = "Domain name cannot be null")
     private String name;
+
     private String description;
-    private double createdTime;
-    private double updatedTime;
+
+    private Long createdTime;
+
+    private Long updatedTime;
 
     public String getDomainId() {
         return domainId;
@@ -31,11 +40,11 @@ public class Domain {
         this.description = description;
     }
 
-    public double getCreatedTime() {
+    public Long getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(double createdTime) {
+    public void setCreatedTime(Long createdTime) {
         this.createdTime = createdTime;
     }
 
@@ -43,7 +52,7 @@ public class Domain {
         return updatedTime;
     }
 
-    public void setUpdatedTime(double updatedTime) {
+    public void setUpdatedTime(Long updatedTime) {
         this.updatedTime = updatedTime;
     }
 }

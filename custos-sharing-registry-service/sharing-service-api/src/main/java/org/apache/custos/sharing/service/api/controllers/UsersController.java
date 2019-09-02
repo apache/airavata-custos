@@ -9,25 +9,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import javax.validation.Valid;
 import java.util.List;
-import java.util.Map;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/domains/{domainId}/users")
 public class UsersController {
 
     @Autowired
-    private static SharingRegistryService sharingRegistryService;
+    SharingRegistryService sharingRegistryService;
 
     /**
      <p>API method to register a user in the system</p>
      */
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> createUser(@RequestBody User user){
-        String userId = sharingRegistryService.createUser(user);
-        if(userId.equals(user.getUserId())){
-            return new ResponseEntity<>(HttpStatus.OK);
+    public @ResponseBody User createUser(@Valid @RequestBody User user){
+        User createdUser = sharingRegistryService.createUser(user);
+        if(createdUser != null){
+            return createdUser;
         }else{
             throw new SharingRegistryException("Failed to create the user");
         }
@@ -37,7 +36,7 @@ public class UsersController {
      <p>API method to update existing user</p>
      */
     @RequestMapping(method = RequestMethod.PUT)
-    public ResponseEntity<String> updateUser(@RequestBody User user){
+    public ResponseEntity<String> updateUser(@Valid @RequestBody User user){
         boolean response = sharingRegistryService.updatedUser(user);
         if(response){
             return new ResponseEntity<>(HttpStatus.OK);
@@ -49,17 +48,20 @@ public class UsersController {
     /**
      <p>API method to check User Exists</p>
      */
-    @RequestMapping(value = "/exists/domainId/{domainId}/userId/{userId}", method = RequestMethod.GET)
-    public @ResponseBody
-    Map<String, Boolean> isUserExists(@PathVariable("domainId") String domainId, @PathVariable("userId") String userId){
+    @RequestMapping(value = "/{userId}", method = RequestMethod.HEAD)
+    public ResponseEntity<String> isUserExists(@PathVariable("domainId") String domainId, @PathVariable("userId") String userId){
         boolean response = sharingRegistryService.isUserExists(domainId, userId);
-        return Collections.singletonMap("exists", response);
+        if(response){
+            return new ResponseEntity<>(HttpStatus.OK);
+        }else{
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     /**
      <p>API method to delete user</p>
      */
-    @RequestMapping(value="/id/{userId}/domain/{domainId}",method = RequestMethod.DELETE)
+    @RequestMapping(value="/{userId}",method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteUser(@PathVariable("userId") String userId, @PathVariable("domainId") String domainId){
         boolean response = sharingRegistryService.deleteUser(domainId, userId);
         if(response){
@@ -72,7 +74,7 @@ public class UsersController {
     /**
      <p>API method to get a user</p>
      */
-    @RequestMapping(value = "/domain/{domainId}/user/{userId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{userId}", method = RequestMethod.GET)
     public User getUser(@PathVariable("domainId") String domainId,@PathVariable("userId") String userId){
         User user = sharingRegistryService.getUser(domainId, userId);
         if(user != null){
@@ -88,8 +90,8 @@ public class UsersController {
      <li>offset : Starting result number</li>
      <li>limit : Number of max results to be sent</li>
      */
-    @RequestMapping(value = "/domainId/{domainId}/offset/{offset}/limit/{limit}")
-    public List<User> getUsers(@PathVariable("domainId") String domainId, @PathVariable("offset") int offset, @PathVariable("limit") int limit){
+    @RequestMapping(method = RequestMethod.GET)
+    public List<User> getUsers(@PathVariable("domainId") String domainId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
         return sharingRegistryService.getUsers(domainId,offset, limit);
     }
 }

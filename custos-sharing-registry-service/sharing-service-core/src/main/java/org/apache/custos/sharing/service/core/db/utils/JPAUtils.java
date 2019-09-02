@@ -25,7 +25,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 
 public class JPAUtils {
-    public static final String PERSISTENCE_UNIT_NAME = "airavata-sharing-registry";
+    public static final String PERSISTENCE_UNIT_NAME = "custos-sharing-registry";
     private static final JDBCConfig JDBC_CONFIG = new SharingRegistryJDBCConfig();
     private static final EntityManagerFactory factory = org.apache.custos.commons.utils.JPAUtils.getEntityManagerFactory(PERSISTENCE_UNIT_NAME, JDBC_CONFIG);
 
