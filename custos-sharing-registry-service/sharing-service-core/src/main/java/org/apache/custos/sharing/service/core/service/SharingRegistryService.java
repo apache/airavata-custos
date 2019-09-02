@@ -20,7 +20,6 @@
 package org.apache.custos.sharing.service.core.service;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.custos.commons.exceptions.ApplicationSettingsException;
 import org.apache.custos.commons.utils.DBInitializer;
 import org.apache.custos.sharing.service.core.models.*;
 import org.apache.custos.sharing.service.core.db.entities.*;
@@ -32,7 +31,6 @@ import org.apache.custos.sharing.service.core.exceptions.SharingRegistryExceptio
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
@@ -46,7 +44,7 @@ public class SharingRegistryService {
     public static String OWNER_PERMISSION_NAME = "OWNER";
     public static String SHARING_CPI_VERSION = "1.0";
 
-    public SharingRegistryService(SharingRegistryDBInitConfig sharingRegistryDBInitConfig)  throws ApplicationSettingsException {
+    public SharingRegistryService(SharingRegistryDBInitConfig sharingRegistryDBInitConfig) {
         DBInitializer.initializeDB(sharingRegistryDBInitConfig);
     }
 
@@ -59,15 +57,15 @@ public class SharingRegistryService {
      * *
      */
 
-    public String createDomain(Domain domain) throws SharingRegistryException, DuplicateEntryException {
+    public Domain createDomain(Domain domain) throws SharingRegistryException, DuplicateEntryException {
         try{
-            domain.setDomainId(domain.getName());
+            domain.setDomainId(domain.getDomainId());
             if((new DomainRepository()).get(domain.getDomainId()) != null)
                 throw new DuplicateEntryException("There exist domain with given domain id");
 
             domain.setCreatedTime(System.currentTimeMillis());
             domain.setUpdatedTime(System.currentTimeMillis());
-            (new DomainRepository()).create(domain);
+            Domain createdDomain = (new DomainRepository()).create(domain);
 
             //create the global permission for the domain
             PermissionType permissionType = new PermissionType();
@@ -79,7 +77,7 @@ public class SharingRegistryService {
             permissionType.setUpdatedTime(System.currentTimeMillis());
             (new PermissionTypeRepository()).create(permissionType);
 
-            return domain.getDomainId();
+            return createdDomain;
         }catch (Throwable ex){
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -116,8 +114,7 @@ public class SharingRegistryService {
 
     public boolean deleteDomain(String domainId) throws SharingRegistryException {
         try{
-            (new DomainRepository()).delete(domainId);
-            return true;
+            return (new DomainRepository()).delete(domainId);
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -146,7 +143,7 @@ public class SharingRegistryService {
      * * User Operations
      * *
      */
-    public String createUser(User user) throws SharingRegistryException, DuplicateEntryException {
+    public User createUser(User user) throws SharingRegistryException, DuplicateEntryException {
         try{
             UserPK userPK = new UserPK();
             userPK.setUserId(user.getUserId());
@@ -156,7 +153,7 @@ public class SharingRegistryService {
 
             user.setCreatedTime(System.currentTimeMillis());
             user.setUpdatedTime(System.currentTimeMillis());
-            (new UserRepository()).create(user);
+            User createdUser = (new UserRepository()).create(user);
 
             UserGroup userGroup = new UserGroup();
             userGroup.setGroupId(user.getUserId());
@@ -168,7 +165,7 @@ public class SharingRegistryService {
             userGroup.setGroupCardinality(GroupCardinality.SINGLE_USER);
             (new UserGroupRepository()).create(userGroup);
 
-            return user.getUserId();
+            return createdUser;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -262,7 +259,7 @@ public class SharingRegistryService {
      * * Group Operations
      * *
      */
-    public String createGroup(UserGroup group) throws DuplicateEntryException, SharingRegistryException{
+    public UserGroup createGroup(UserGroup group) throws DuplicateEntryException, SharingRegistryException{
         try {
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(group.getGroupId());
@@ -275,11 +272,11 @@ public class SharingRegistryService {
             group.setUpdatedTime(System.currentTimeMillis());
             //Add group admins once the group is created
             //group.unsetGroupAdmins();
-            (new UserGroupRepository()).create(group);
+            UserGroup createdUserGroup = (new UserGroupRepository()).create(group);
 
             addUsersToGroup(group.getDomainId(), Arrays.asList(group.getOwnerId()), group.getGroupId());
             addGroupAdmins(group.getDomainId(), group.getGroupId(), group.getGroupAdmins());
-            return group.getGroupId();
+            return createdUserGroup;
         } catch (DuplicateEntryException ex) {
             logger.error(ex.getMessage(), ex);
             throw ex;
@@ -603,7 +600,7 @@ public class SharingRegistryService {
      * * EntityType Operations
      * *
      */
-    public String createEntityType(EntityType entityType) throws SharingRegistryException, DuplicateEntryException {
+    public EntityType createEntityType(EntityType entityType) throws SharingRegistryException, DuplicateEntryException {
         try{
             EntityTypePK entityTypePK = new EntityTypePK();
             entityTypePK.setDomainId(entityType.getDomainId());
@@ -613,8 +610,7 @@ public class SharingRegistryService {
 
             entityType.setCreatedTime(System.currentTimeMillis());
             entityType.setUpdatedTime(System.currentTimeMillis());
-            (new EntityTypeRepository()).create(entityType);
-            return entityType.getEntityTypeId();
+            return (new EntityTypeRepository()).create(entityType);
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -695,7 +691,7 @@ public class SharingRegistryService {
      * * Permission Operations
      * *
      */
-    public String createPermissionType(PermissionType permissionType) throws SharingRegistryException, DuplicateEntryException {
+    public PermissionType createPermissionType(PermissionType permissionType) throws SharingRegistryException, DuplicateEntryException {
         try{
             PermissionTypePK permissionTypePK =  new PermissionTypePK();
             permissionTypePK.setDomainId(permissionType.getDomainId());
@@ -705,7 +701,7 @@ public class SharingRegistryService {
             permissionType.setCreatedTime(System.currentTimeMillis());
             permissionType.setUpdatedTime(System.currentTimeMillis());
             (new PermissionTypeRepository()).create(permissionType);
-            return permissionType.getPermissionTypeId();
+            return permissionType;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -785,7 +781,7 @@ public class SharingRegistryService {
      * * Entity Operations
      * *
      */
-    public String createEntity(Entity entity) throws SharingRegistryException, DuplicateEntryException {
+    public Entity createEntity(Entity entity) throws SharingRegistryException, DuplicateEntryException {
         try{
             EntityPK entityPK = new EntityPK();
             entityPK.setDomainId(entity.getDomainId());
@@ -811,7 +807,7 @@ public class SharingRegistryService {
             if(entity.getOriginalEntityCreationTime()==0){
                 entity.setOriginalEntityCreationTime(entity.getCreatedTime());
             }
-            (new EntityRepository()).create(entity);
+            Entity createdEntity = (new EntityRepository()).create(entity);
 
             //Assigning global permission for the owner
             Sharing newSharing = new Sharing();
@@ -831,7 +827,7 @@ public class SharingRegistryService {
                 addCascadingPermissionsForEntity(entity);
             }
 
-            return entity.getEntityId();
+            return createdEntity;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));

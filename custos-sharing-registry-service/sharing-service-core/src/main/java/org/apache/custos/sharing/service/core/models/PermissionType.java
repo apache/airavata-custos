@@ -1,13 +1,22 @@
 package org.apache.custos.sharing.service.core.models;
 
+import javax.validation.constraints.NotNull;
+
 public class PermissionType {
 
+    @NotNull(message = "Permission type id cannot be null")
     private String permissionTypeId;
+
+    @NotNull(message = "Domain id cannot be null")
     private String domainId;
+
     private String name;
+
     private String description;
-    private double createdTime;
-    private double updatedTime;
+
+    private Long createdTime;
+
+    private Long updatedTime;
 
     public String getPermissionTypeId() {
         return permissionTypeId;
@@ -41,19 +50,19 @@ public class PermissionType {
         this.description = description;
     }
 
-    public double getCreatedTime() {
+    public Long getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(double createdTime) {
+    public void setCreatedTime(Long createdTime) {
         this.createdTime = createdTime;
     }
 
-    public double getUpdatedTime() {
+    public Long getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(double updatedTime) {
+    public void setUpdatedTime(Long updatedTime) {
         this.updatedTime = updatedTime;
     }
 

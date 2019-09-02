@@ -9,24 +9,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/permissionType")
+@RequestMapping("domain/{domainId}/permissionTypes")
 public class PermissionTypeController {
 
     @Autowired
-    private static SharingRegistryService sharingRegistryService;
+    SharingRegistryService sharingRegistryService;
     /**
      <p>API method to create permission type</p>
      */
-    @RequestMapping(value= "/create", method = RequestMethod.POST)
-    public ResponseEntity<String> createPermissionType(@RequestBody PermissionType permissionType){
-        String permissionTypeId = sharingRegistryService.createPermissionType(permissionType);
-        if(permissionTypeId.equals(permissionType.getPermissionTypeId())){
-            return new ResponseEntity<>(HttpStatus.OK);
+    @RequestMapping(method = RequestMethod.POST)
+    public @ResponseBody PermissionType createPermissionType(@Valid @RequestBody PermissionType permissionType){
+        PermissionType createdPermissionType = sharingRegistryService.createPermissionType(permissionType);
+        if(createdPermissionType != null){
+            return createdPermissionType;
         }else{
             throw new SharingRegistryException("Could not create the permission type");
         }
@@ -35,8 +36,8 @@ public class PermissionTypeController {
     /**
      <p>API method to update permission type</p>
      */
-    @RequestMapping(value= "/update", method = RequestMethod.PUT)
-    public ResponseEntity<String> updatePermissionType(@RequestBody PermissionType permissionType){
+    @RequestMapping(method = RequestMethod.PUT)
+    public ResponseEntity<String> updatePermissionType(@Valid @RequestBody PermissionType permissionType){
 
         boolean response = sharingRegistryService.updatePermissionType(permissionType);
         if(response){
@@ -49,17 +50,20 @@ public class PermissionTypeController {
     /**
      <p>API method to check Permission Exists</p>
      */
-    @RequestMapping(value= "/exists/id/{permissionId}/domain/{domainId}", method = RequestMethod.GET)
-    public @ResponseBody
-    Map<String, Boolean> isPermissionExists(@PathVariable("permissionId") String permissionId, @PathVariable("domainId") String domainId){
+    @RequestMapping(value= "/{permissionId}", method = RequestMethod.HEAD)
+    public ResponseEntity<String> isPermissionExists(@PathVariable("permissionId") String permissionId, @PathVariable("domainId") String domainId){
         boolean response = sharingRegistryService.isPermissionExists(domainId, permissionId);
-        return Collections.singletonMap("exists", response);
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        if(response){
+            status = HttpStatus.OK;
+        }
+        return new ResponseEntity<>(status);
     }
 
     /**
      <p>API method to delete permission type</p>
      */
-    @RequestMapping(value= "/id/{permissionTypeId}/domain/{domainId}", method = RequestMethod.DELETE)
+    @RequestMapping(value= "/{permissionTypeId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deletePermissionType(@PathVariable("permissionTypeId") String permissionTypeId, @PathVariable("domainId") String domainId){
         boolean response = sharingRegistryService.deletePermissionType(domainId,permissionTypeId);
         if(response){
@@ -72,7 +76,7 @@ public class PermissionTypeController {
     /**
      <p>API method to get permission type</p>
      */
-    @RequestMapping(value= "/id/{permissionTypeId}/domain/{domainId}", method = RequestMethod.GET)
+    @RequestMapping(value= "/{permissionTypeId}", method = RequestMethod.GET)
     public @ResponseBody PermissionType getPermissionType(@PathVariable("permissionTypeId") String permissionTypeId, @PathVariable("domainId") String domainId){
         PermissionType permissionType = sharingRegistryService.getPermissionType(domainId, permissionTypeId);
         if(permissionType != null){
@@ -85,9 +89,9 @@ public class PermissionTypeController {
     /**
      <p>API method to get list of permission types in a given domainId.</p>
      */
-    @RequestMapping(value= "/domain/{domainId}/offset/{offset}/limit/{limit}", method = RequestMethod.GET)
+    @RequestMapping(method = RequestMethod.GET)
     public @ResponseBody
-    List<PermissionType> getPermissionTypes(@PathVariable("domainId") String domainId, @PathVariable("offset") int offset, @PathVariable("limit") int limit){
+    List<PermissionType> getPermissionTypes(@PathVariable("domainId") String domainId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
         return sharingRegistryService.getPermissionTypes(domainId, offset, limit);
     }
 

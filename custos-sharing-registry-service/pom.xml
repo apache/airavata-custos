@@ -13,9 +13,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>sharing-registry-distribution</module>
-        <module>sharing-registry-server</module>
-        <module>sharing-registry-stubs</module>
+        <module>sharing-service-api</module>
+        <module>sharing-service-core</module>
     </modules>
 
 </project>

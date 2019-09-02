@@ -1,12 +1,23 @@
 package org.apache.custos.sharing.service.core.models;
 
+import javax.validation.constraints.NotNull;
+
 public class EntityType {
+
+    @NotNull(message = "Entity type id cannot be null")
     private String entityTypeId;
+
+    @NotNull(message = "Domain id for entity type cannot be null")
     private String domainId;
+
+    @NotNull(message = "Name for entity type cannot be null")
     private String name;
+
     private String description;
-    private double createdTime;
-    private double updatedTime;
+
+    private Long createdTime;
+
+    private Long updatedTime;
 
     public String getEntityTypeId() {
         return entityTypeId;
@@ -40,19 +51,19 @@ public class EntityType {
         this.description = description;
     }
 
-    public double getCreatedTime() {
+    public Long getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(double createdTime) {
+    public void setCreatedTime(Long createdTime) {
         this.createdTime = createdTime;
     }
 
-    public double getUpdatedTime() {
+    public Long getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(double updatedTime) {
+    public void setUpdatedTime(Long updatedTime) {
         this.updatedTime = updatedTime;
     }
 }

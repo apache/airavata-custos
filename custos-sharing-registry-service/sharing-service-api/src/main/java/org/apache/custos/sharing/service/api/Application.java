@@ -24,7 +24,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"org.apache.custos.sharing.service.api.controllers"})
+@ComponentScan(basePackages = {"org.apache.custos.sharing.service"})
 public class Application {
     public static void main(String[] args){
         SpringApplication.run(Application.class, args);

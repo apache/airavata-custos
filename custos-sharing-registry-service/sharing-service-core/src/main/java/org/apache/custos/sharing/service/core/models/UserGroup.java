@@ -1,19 +1,35 @@
 package org.apache.custos.sharing.service.core.models;
 
+import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UserGroup {
 
+    @NotNull(message = "Group id cannot be null")
     private String groupId;
+
+    @NotNull(message = "Domain id from the group cannot be null")
     private String domainId;
+
+    @NotNull(message = "Name from the group cannot be null")
     private String name;
+    
     private String description;
+
+    @NotNull(message = "OwnerId of the group cannot be null")
     private String ownerId;
+
+    @NotNull(message = "Group type cannot be null")
     private GroupType groupType;
+    
     private GroupCardinality groupCardinality;
-    private double createdTime;
-    private double updatedTime;
-    private List<GroupAdmin> groupAdmins;
+    
+    private Long createdTime;
+    
+    private Long updatedTime;
+
+    private List<GroupAdmin> groupAdmins = new ArrayList<>();
 
     public String getGroupId() {
         return groupId;
@@ -71,19 +87,19 @@ public class UserGroup {
         this.groupCardinality = groupCardinality;
     }
 
-    public double getCreatedTime() {
+    public Long getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(double createdTime) {
+    public void setCreatedTime(Long createdTime) {
         this.createdTime = createdTime;
     }
 
-    public double getUpdatedTime() {
+    public Long getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(double updatedTime) {
+    public void setUpdatedTime(Long updatedTime) {
         this.updatedTime = updatedTime;
     }
 
