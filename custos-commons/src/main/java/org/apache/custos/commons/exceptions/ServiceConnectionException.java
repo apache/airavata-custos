@@ -1,4 +1,7 @@
 package org.apache.custos.commons.exceptions;
+/*
+This exception is thrown when client fails to make the Http call
+*/
 
 public class ServiceConnectionException extends RuntimeException {
 

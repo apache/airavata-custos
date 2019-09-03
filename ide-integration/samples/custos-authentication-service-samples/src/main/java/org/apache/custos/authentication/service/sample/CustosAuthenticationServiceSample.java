@@ -1,7 +1,7 @@
 package org.apache.custos.authentication.service.sample;
 
 import org.apache.custos.authentication.cpi.CustosAuthenticationService;
-import org.apache.custos.client.authentication.service.AuthenticationServiceClientFactory;
+import org.apache.custos.client.authentication.service.AuthenticationServiceClient;
 import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.ServerSettings;
@@ -24,7 +24,7 @@ public class CustosAuthenticationServiceSample {
         try {
             String serverHost = ServerSettings.getAuthenticationServerHost();
             int serverPort = Integer.parseInt(ServerSettings.getAuthenticationServerPort());
-            CustosAuthenticationService.Client client = AuthenticationServiceClientFactory.createAuthenticationServiceClient(serverHost, serverPort);
+            CustosAuthenticationService.Client client = AuthenticationServiceClient.createAuthenticationServiceClient(serverHost, serverPort);
             testUserAuthentication(client);
         }catch (Exception e){
            log.error("Error setting up the authentication server");
