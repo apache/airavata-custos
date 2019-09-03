@@ -88,5 +88,10 @@ public class ServerSettings extends ApplicationSettings {
     public static String getProfileServiceServerPort() throws ApplicationSettingsException {
         return getSetting(ServerSettings.PROFILE_SERVICE_SERVER_PORT);
     }
-
+    public static boolean isSharingTLSEnabled() throws ApplicationSettingsException {
+        return Boolean.valueOf(getSetting(Constants.IS_SHARING_TLS_ENABLED));
+    }
+    public static int getTLSClientTimeout() throws ApplicationSettingsException {
+        return Integer.valueOf(getSetting(Constants.TLS_CLIENT_TIMEOUT));
+    }
 }
