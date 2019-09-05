@@ -48,7 +48,7 @@ public class Domain {
         this.createdTime = createdTime;
     }
 
-    public double getUpdatedTime() {
+    public Long getUpdatedTime() {
         return updatedTime;
     }
 
