@@ -24,14 +24,9 @@ public class EntityTypeController {
      <p>API method to create a new entity type</p>
      */
     @RequestMapping(method = RequestMethod.POST)
-    public EntityType createEntityType(@Valid @RequestBody EntityType entityType){
+    public ResponseEntity<EntityType> createEntityType(@Valid @RequestBody EntityType entityType){
         EntityType createdEntityType = sharingRegistryService.createEntityType(entityType);
-        if(createdEntityType != null){
-            return createdEntityType;
-        }
-        else{
-            throw new SharingRegistryException("Failed to create the entity type");
-        }
+        return new ResponseEntity<>(createdEntityType, HttpStatus.CREATED);
     }
 
     /**
@@ -39,13 +34,8 @@ public class EntityTypeController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ResponseEntity<String> updateEntityType(@Valid @RequestBody EntityType entityType){
-        boolean response = sharingRegistryService.updateEntityType(entityType);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to updated the entity type");
-        }
+        sharingRegistryService.updateEntityType(entityType);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -66,35 +56,24 @@ public class EntityTypeController {
      */
     @RequestMapping(value = "/{entityTypeId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteEntityType(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
-        boolean response = sharingRegistryService.deleteEntityType(domainId, entityTypeId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to delete the entity type");
-        }
+        sharingRegistryService.deleteEntityType(domainId, entityTypeId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to get an entity type</p>
      */
     @RequestMapping(value = "/{entityTypeId}", method = RequestMethod.GET)
-    public @ResponseBody EntityType getEntityType(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
+    public ResponseEntity<EntityType> getEntityType(@PathVariable("entityTypeId") String entityTypeId, @PathVariable("domainId") String domainId){
         EntityType entityType = sharingRegistryService.getEntityType(domainId, entityTypeId);
-        if(entityType != null){
-            return entityType;
-        }
-        else{
-            throw new ResourceNotFoundException("Could not find the entity type with entityTypeId: " + entityTypeId + " in domainId: "+ domainId);
-        }
+        return new ResponseEntity<>(entityType, HttpStatus.OK);
     }
 
     /**
      <p>API method to get entity types in a domainId.</p>
      */
     @RequestMapping(method = RequestMethod.GET)
-    public @ResponseBody List<EntityType> getEntityTypes(@PathVariable("domainId") String domainId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
-       List<EntityType> entityTypes = sharingRegistryService.getEntityTypes(domainId, offset, limit);
-       return entityTypes;
+    public @ResponseBody List<EntityType> getEntityTypes(@PathVariable("domainId") String domainId, @RequestParam(name = "offset", defaultValue = "0") int offset, @RequestParam(name = "limit", defaultValue = "-1") int limit){
+       return sharingRegistryService.getEntityTypes(domainId, offset, limit);
     }
 }

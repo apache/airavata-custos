@@ -1,10 +1,7 @@
 package org.apache.custos.sharing.service.api.controllers;
 
-import org.apache.custos.sharing.service.core.models.GroupAdmin;
 import org.apache.custos.sharing.service.core.models.User;
 import org.apache.custos.sharing.service.core.models.UserGroup;
-import org.apache.custos.sharing.service.core.exceptions.ResourceNotFoundException;
-import org.apache.custos.sharing.service.core.exceptions.SharingRegistryException;
 import org.apache.custos.sharing.service.core.service.SharingRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,13 +22,9 @@ public class GroupController {
      <p>API method to create a new group</p>
      */
     @RequestMapping(method = RequestMethod.POST)
-    public @ResponseBody UserGroup createGroup(@Valid @RequestBody UserGroup group){
+    public ResponseEntity<UserGroup> createGroup(@Valid @RequestBody UserGroup group){
         UserGroup createdUserGroup = sharingRegistryService.createGroup(group);
-        if(createdUserGroup != null){
-            return createdUserGroup;
-        }else{
-            throw new SharingRegistryException("Failed to create group");
-        }
+        return new ResponseEntity<>(createdUserGroup, HttpStatus.CREATED);
     }
 
     /**
@@ -39,13 +32,8 @@ public class GroupController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ResponseEntity<String> updateGroup(@Valid @RequestBody UserGroup group){
-        boolean response = sharingRegistryService.updateGroup(group);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to update the group");
-        }
+        sharingRegistryService.updateGroup(group);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -66,26 +54,17 @@ public class GroupController {
      */
     @RequestMapping(value = "/{groupId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId){
-        boolean response = sharingRegistryService.deleteGroup(domainId, groupId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to delete the group");
-        }
+        sharingRegistryService.deleteGroup(domainId, groupId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to get a group</p>
      */
     @RequestMapping(value = "/{groupId}", method = RequestMethod.GET)
-    public @ResponseBody UserGroup getGroup(@PathVariable("groupId") String groupId, @PathVariable("domainId") String domainId){
+    public ResponseEntity<UserGroup> getGroup(@PathVariable("groupId") String groupId, @PathVariable("domainId") String domainId){
         UserGroup userGroup = sharingRegistryService.getGroup(domainId,groupId);
-        if(userGroup != null){
-            return userGroup;
-        }else{
-            throw new ResourceNotFoundException("Could not find the user group with groupId: "+ groupId + " in domainId: "+ domainId);
-        }
+        return new ResponseEntity<>(userGroup,HttpStatus.OK);
     }
 
     /**
@@ -100,14 +79,9 @@ public class GroupController {
      <p>API method to add list of users to a group</p>
      */
     @RequestMapping(value = "/{groupId}/users", method = RequestMethod.POST)
-    public ResponseEntity<String> addUsersToGroup(@PathVariable("groupId") String groupId, @PathVariable("domainId") String domainId, @RequestBody List<String> userIds){
-        boolean response = sharingRegistryService.addUsersToGroup(domainId, userIds, groupId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to add users to the group");
-        }
+    public ResponseEntity<String> addUsersToGroup(@PathVariable("groupId") String groupId, @PathVariable("domainId") String domainId, @RequestParam("ids") List<String> userIds){
+        sharingRegistryService.addUsersToGroup(domainId, userIds, groupId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -115,13 +89,8 @@ public class GroupController {
      */
     @RequestMapping(value = "/{groupId}/users", method = RequestMethod.DELETE)
     public ResponseEntity<String> removeUsersFromGroup(@PathVariable("groupId") String groupId, @PathVariable("domainId") String domainId, @RequestParam("ids") List<String> userIds){
-        boolean response = sharingRegistryService.removeUsersFromGroup(domainId, userIds, groupId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to remove users from the group");
-        }
+        sharingRegistryService.removeUsersFromGroup(domainId, userIds, groupId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -129,41 +98,26 @@ public class GroupController {
      */
     @RequestMapping(value = "/{groupId}/owners/{ownerId}", method = RequestMethod.PUT)
     public ResponseEntity<String> transferGroupOwnership(@PathVariable("domainId") String domainId,@PathVariable("groupId") String groupId, @PathVariable("ownerId") String newOwnerId){
-        boolean response = sharingRegistryService.transferGroupOwnership(domainId,groupId, newOwnerId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to change group owner");
-        }
+        sharingRegistryService.transferGroupOwnership(domainId,groupId, newOwnerId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to add Admin for a group</p>
      */
     @RequestMapping(value = "/{groupId}/admins", method = RequestMethod.POST)
-    public ResponseEntity<String> addGroupAdmins(@PathVariable("domainId") String domainId,@PathVariable("groupId") String groupId, @RequestBody List<GroupAdmin> admins){
-        boolean response = sharingRegistryService.addGroupAdmins(domainId,groupId, admins);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to add group admins");
-        }
+    public ResponseEntity<String> addGroupAdmins(@PathVariable("domainId") String domainId,@PathVariable("groupId") String groupId, @RequestParam("adminIds") List<String> admins){
+        sharingRegistryService.addGroupAdmins(domainId,groupId, admins);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to remove Admin for a group</p>
      */
     @RequestMapping(value = "/{groupId}/admins", method = RequestMethod.DELETE)
-    public ResponseEntity<String> removeGroupAdmins(@PathVariable("domainId") String domainId,@PathVariable("groupId") String groupId, @RequestParam("ids") List<String> adminIds){
-        boolean response = sharingRegistryService.removeGroupAdmins(domainId,groupId, adminIds);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-        else{
-            throw new SharingRegistryException("Failed to remove group admins");
-        }
+    public ResponseEntity<String> removeGroupAdmins(@PathVariable("domainId") String domainId,@PathVariable("groupId") String groupId, @RequestParam("adminIds") List<String> adminIds){
+        sharingRegistryService.removeGroupAdmins(domainId,groupId, adminIds);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -196,7 +150,7 @@ public class GroupController {
      <p>API method to get list of child users in a group. Only the direct members will be returned.</p>
      */
     @RequestMapping(value = "/{groupId}/users", method = RequestMethod.GET)
-    public @ResponseBody List<User> getGroupMembersOfTypeUser(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
+    public @ResponseBody List<User> getGroupMembersOfTypeUser(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestParam(name = "offset", defaultValue = "0") int offset, @RequestParam(value = "limit", defaultValue = "-1") int limit){
         return sharingRegistryService.getGroupMembersOfTypeUser(domainId, groupId, offset, limit);
     }
 
@@ -204,7 +158,7 @@ public class GroupController {
      <p>API method to get list of child groups in a group. Only the direct members will be returned.</p>
      */
     @RequestMapping(value = "/{groupId}/subgroups", method = RequestMethod.GET)
-    public @ResponseBody List<UserGroup> getGroupMembersOfTypeGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
+    public @ResponseBody List<UserGroup> getGroupMembersOfTypeGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestParam(name= "offset", defaultValue = "0") int offset, @RequestParam(value = "limit", defaultValue = "-1") int limit){
         return sharingRegistryService.getGroupMembersOfTypeGroup(domainId, groupId, offset, limit);
     }
 
@@ -212,13 +166,9 @@ public class GroupController {
      <p>API method to add a child group to a parent group.</p>
      */
     @RequestMapping(value = "/{groupId}/subgroups", method = RequestMethod.POST)
-    public ResponseEntity<String> addChildGroupsToParentGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestBody List<String> childIds){
-        boolean response = sharingRegistryService.addChildGroupsToParentGroup(domainId, childIds, groupId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }else{
-            throw new SharingRegistryException("Failed to add child groups to parent group");
-        }
+    public ResponseEntity<String> addChildGroupsToParentGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @RequestParam("subgroupIds") List<String> childIds){
+        sharingRegistryService.addChildGroupsToParentGroup(domainId, childIds, groupId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -226,12 +176,8 @@ public class GroupController {
      */
     @RequestMapping(value = "/{groupId}/subgroups/{childGroupId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> removeChildGroupFromParentGroup(@PathVariable("domainId") String domainId, @PathVariable("groupId") String groupId, @PathVariable("childGroupId") String childGroupId){
-        boolean response = sharingRegistryService.removeChildGroupFromParentGroup(domainId, childGroupId, groupId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }else{
-            throw new SharingRegistryException("Failed to remove child groups from parent group");
-        }
+        sharingRegistryService.removeChildGroupFromParentGroup(domainId, childGroupId, groupId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -241,29 +187,4 @@ public class GroupController {
     public @ResponseBody List<UserGroup> getAllMemberGroupsForUser(@PathVariable("domainId") String domainId, @PathVariable("userId") String userId){
         return sharingRegistryService.getAllMemberGroupsForUser(domainId, userId);
     }
-
-//    public static void main(String[] args) throws Exception{
-//        String url = "http://localhost:7070";
-//        String r = "/domains/default/groups";
-//        UserGroup test = new UserGroup();
-//        test.setGroupId("teqq1");
-//        test.setDomainId("default");
-//        test.setOwnerId("default-admin@default");
-//        test.setName("");
-//        test.setGroupType(GroupType.USER_LEVEL_GROUP);
-//        ServiceRequest serviceRequest = new ServiceRequest();
-//        HttpResponse response = serviceRequest.httpPost(url, r, test);
-//        System.out.println(response);
-//        if(response.getStatusLine().getStatusCode() == org.apache.http.HttpStatus.SC_OK) {
-//            BufferedReader rd = new BufferedReader(
-//                    new InputStreamReader(response.getEntity().getContent()));
-//            StringBuffer result = new StringBuffer();
-//            String line = "";
-//            while ((line = rd.readLine()) != null) {
-//                result.append(line);
-//            }
-//            JSONObject jsonObject = new JSONObject(result.toString());
-//            System.out.println(jsonObject.get("groupId"));
-//        }
-//    }
 }

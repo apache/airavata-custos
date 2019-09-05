@@ -26,12 +26,9 @@ public class EntityController {
      <p>API method to register new entity</p>
      */
     @RequestMapping(method = RequestMethod.POST)
-    public @ResponseBody Entity createEntity(@Valid @RequestBody Entity entity){
+    public ResponseEntity<Entity> createEntity(@Valid @RequestBody Entity entity){
         Entity createdEntity = sharingRegistryService.createEntity(entity);
-        if(createdEntity != null){
-            return createdEntity;
-        }
-        else throw new SharingRegistryException("Failed to create the entity");
+        return new ResponseEntity<>(createdEntity, HttpStatus.CREATED);
     }
 
     /**
@@ -39,9 +36,8 @@ public class EntityController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ResponseEntity<String> updateEntity(@Valid @RequestBody Entity entity){
-        boolean response = sharingRegistryService.updateEntity(entity);
-        if(response) return new ResponseEntity<>(HttpStatus.OK);
-        else throw new SharingRegistryException("Failed to update the entity");
+        sharingRegistryService.updateEntity(entity);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -62,28 +58,25 @@ public class EntityController {
      */
     @RequestMapping(value = "/{entityId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteEntity(@PathVariable("entityId") String entityId, @PathVariable("domainId") String domainId){
-        boolean response = sharingRegistryService.deleteEntity(domainId, entityId);
-        if(response) return new ResponseEntity<>(HttpStatus.OK);
-        else throw new SharingRegistryException("Could not delete the entity");
+        sharingRegistryService.deleteEntity(domainId, entityId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to get entity</p>
      */
     @RequestMapping(value = "/{entityId}", method = RequestMethod.GET)
-    public @ResponseBody Entity getEntity(@PathVariable("entityId") String entityId, @PathVariable("domainId") String domainId){
+    public ResponseEntity<Entity> getEntity(@PathVariable("entityId") String entityId, @PathVariable("domainId") String domainId){
         Entity entity = sharingRegistryService.getEntity(domainId, entityId);
-        if(entity != null) return entity;
-        else throw new ResourceNotFoundException("Could not find entity with entityId:" + entityId + " in domain:" + domainId);
+        return new ResponseEntity<>(entity, HttpStatus.OK);
     }
 
     /**
      <p>API method to search entities</p>
      */
     @RequestMapping(value = "/users/{userId}", method = RequestMethod.GET)
-    public @ResponseBody List<Entity> searchEntities(@RequestBody List<SearchCriteria> filters, @PathVariable("domainId") String domainId, @PathVariable("userId") String userId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
-        List<Entity> entities = sharingRegistryService.searchEntities(domainId, userId, filters, offset, limit);
-        return entities;
+    public @ResponseBody List<Entity> searchEntities(@RequestBody List<SearchCriteria> filters, @PathVariable("domainId") String domainId, @PathVariable("userId") String userId, @RequestParam(name = "offset", defaultValue = "0") int offset, @RequestParam(name = "limit", defaultValue = "-1") int limit){
+        return sharingRegistryService.searchEntities(domainId, userId, filters, offset, limit);
     }
 
     /**

@@ -1,18 +1,13 @@
 package org.apache.custos.sharing.service.api.controllers;
 
 import org.apache.custos.sharing.service.core.models.PermissionType;
-import org.apache.custos.sharing.service.core.exceptions.ResourceNotFoundException;
-import org.apache.custos.sharing.service.core.exceptions.SharingRegistryException;
 import org.apache.custos.sharing.service.core.service.SharingRegistryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import javax.validation.Valid;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("domain/{domainId}/permissionTypes")
@@ -24,13 +19,9 @@ public class PermissionTypeController {
      <p>API method to create permission type</p>
      */
     @RequestMapping(method = RequestMethod.POST)
-    public @ResponseBody PermissionType createPermissionType(@Valid @RequestBody PermissionType permissionType){
+    public ResponseEntity<PermissionType> createPermissionType(@Valid @RequestBody PermissionType permissionType){
         PermissionType createdPermissionType = sharingRegistryService.createPermissionType(permissionType);
-        if(createdPermissionType != null){
-            return createdPermissionType;
-        }else{
-            throw new SharingRegistryException("Could not create the permission type");
-        }
+        return new ResponseEntity<>(createdPermissionType, HttpStatus.CREATED);
     }
 
     /**
@@ -38,13 +29,8 @@ public class PermissionTypeController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ResponseEntity<String> updatePermissionType(@Valid @RequestBody PermissionType permissionType){
-
-        boolean response = sharingRegistryService.updatePermissionType(permissionType);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }else{
-            throw new SharingRegistryException("Could not update the permission type");
-        }
+        sharingRegistryService.updatePermissionType(permissionType);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
@@ -65,25 +51,17 @@ public class PermissionTypeController {
      */
     @RequestMapping(value= "/{permissionTypeId}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deletePermissionType(@PathVariable("permissionTypeId") String permissionTypeId, @PathVariable("domainId") String domainId){
-        boolean response = sharingRegistryService.deletePermissionType(domainId,permissionTypeId);
-        if(response){
-            return new ResponseEntity<>(HttpStatus.OK);
-        }else{
-            throw new SharingRegistryException("Could not delete the permission type");
-        }
+        sharingRegistryService.deletePermissionType(domainId,permissionTypeId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**
      <p>API method to get permission type</p>
      */
     @RequestMapping(value= "/{permissionTypeId}", method = RequestMethod.GET)
-    public @ResponseBody PermissionType getPermissionType(@PathVariable("permissionTypeId") String permissionTypeId, @PathVariable("domainId") String domainId){
+    public ResponseEntity<PermissionType> getPermissionType(@PathVariable("permissionTypeId") String permissionTypeId, @PathVariable("domainId") String domainId){
         PermissionType permissionType = sharingRegistryService.getPermissionType(domainId, permissionTypeId);
-        if(permissionType != null){
-            return permissionType;
-        }else{
-            throw new ResourceNotFoundException("Could not find the permission type with permission Id: "+ permissionTypeId + " in domainId: " + domainId);
-        }
+        return new ResponseEntity<>(permissionType, HttpStatus.OK);
     }
 
     /**
@@ -91,7 +69,7 @@ public class PermissionTypeController {
      */
     @RequestMapping(method = RequestMethod.GET)
     public @ResponseBody
-    List<PermissionType> getPermissionTypes(@PathVariable("domainId") String domainId, @RequestParam("offset") int offset, @RequestParam("limit") int limit){
+    List<PermissionType> getPermissionTypes(@PathVariable("domainId") String domainId, @RequestParam(name = "offset", defaultValue = "0") int offset, @RequestParam(name = "limit", defaultValue = "-1") int limit){
         return sharingRegistryService.getPermissionTypes(domainId, offset, limit);
     }
 
