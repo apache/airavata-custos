@@ -21,6 +21,8 @@ package org.apache.custos.sharing.service.core.service;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.custos.commons.utils.DBInitializer;
+import org.apache.custos.sharing.service.core.exceptions.InvalidRequestException;
+import org.apache.custos.sharing.service.core.exceptions.ResourceNotFoundException;
 import org.apache.custos.sharing.service.core.models.*;
 import org.apache.custos.sharing.service.core.db.entities.*;
 import org.apache.custos.sharing.service.core.db.repositories.*;
@@ -28,14 +30,13 @@ import org.apache.custos.sharing.service.core.db.utils.DBConstants;
 import org.apache.custos.sharing.service.core.db.utils.SharingRegistryDBInitConfig;
 import org.apache.custos.sharing.service.core.exceptions.DuplicateEntryException;
 import org.apache.custos.sharing.service.core.exceptions.SharingRegistryException;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SharingRegistryService {
@@ -59,7 +60,6 @@ public class SharingRegistryService {
 
     public Domain createDomain(Domain domain) throws SharingRegistryException, DuplicateEntryException {
         try{
-            domain.setDomainId(domain.getDomainId());
             if((new DomainRepository()).get(domain.getDomainId()) != null)
                 throw new DuplicateEntryException("There exist domain with given domain id");
 
@@ -78,21 +78,31 @@ public class SharingRegistryService {
             (new PermissionTypeRepository()).create(permissionType);
 
             return createdDomain;
+        }catch(DuplicateEntryException ex){
+            throw ex;
         }catch (Throwable ex){
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean updateDomain(Domain domain) throws SharingRegistryException {
+    public boolean updateDomain(Domain domain) throws SharingRegistryException, ResourceNotFoundException {
         try{
             Domain oldDomain = (new DomainRepository()).get(domain.getDomainId());
+            if(oldDomain == null){
+                throw new ResourceNotFoundException("Could not find the domain with domainId: "+ domain.getDomainId());
+            }
             domain.setCreatedTime(oldDomain.getCreatedTime());
             domain.setUpdatedTime(System.currentTimeMillis());
             domain = getUpdatedObject(oldDomain, domain);
-            (new DomainRepository()).update(domain);
-            return true;
-        }catch (Throwable ex) {
+            Domain updatedDomain = (new DomainRepository()).update(domain);
+            if(updatedDomain != null && updatedDomain.getDomainId().equals(oldDomain.getDomainId())){
+                return true;
+            }
+            throw new SharingRegistryException("Could not update the domain with domainId: "+ oldDomain.getDomainId());
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
+        }catch(Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -112,19 +122,32 @@ public class SharingRegistryService {
         }
     }
 
-    public boolean deleteDomain(String domainId) throws SharingRegistryException {
+    public boolean deleteDomain(String domainId) throws SharingRegistryException, ResourceNotFoundException {
         try{
-            return (new DomainRepository()).delete(domainId);
+            if(!isDomainExists(domainId)){
+                throw new ResourceNotFoundException("Could not find domain with domainId: "+ domainId);
+            }
+            boolean deleted = (new DomainRepository()).delete(domainId);
+            if(deleted) return true;
+            else throw new SharingRegistryException("Could not delete the domain with domainId: "+ domainId);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public Domain getDomain(String domainId) throws SharingRegistryException {
+    public Domain getDomain(String domainId) throws SharingRegistryException, ResourceNotFoundException {
         try{
-            return (new DomainRepository()).get(domainId);
-        }catch (Throwable ex) {
+            Domain domain = (new DomainRepository()).get(domainId);
+            if(domain == null){
+                throw new ResourceNotFoundException("Could not find domain with domainId:" + domainId);
+            }
+            return domain;
+        }catch (ResourceNotFoundException ex){
+            throw ex;
+        } catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -163,9 +186,13 @@ public class SharingRegistryService {
             userGroup.setOwnerId(user.getUserId());
             userGroup.setGroupType(GroupType.USER_LEVEL_GROUP);
             userGroup.setGroupCardinality(GroupCardinality.SINGLE_USER);
+            userGroup.setCreatedTime(System.currentTimeMillis());
+            userGroup.setUpdatedTime(System.currentTimeMillis());
             (new UserGroupRepository()).create(userGroup);
 
             return createdUser;
+        }catch(DuplicateEntryException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -174,6 +201,9 @@ public class SharingRegistryService {
 
     public boolean updatedUser(User user) throws SharingRegistryException {
         try{
+            if(!isUserExists(user.getDomainId(), user.getUserId())){
+                throw new ResourceNotFoundException("Could not find user with userId: " + user.getUserId());
+            }
             UserPK userPK = new UserPK();
             userPK.setUserId(user.getUserId());
             userPK.setDomainId(user.getDomainId());
@@ -181,7 +211,7 @@ public class SharingRegistryService {
             user.setCreatedTime(oldUser.getCreatedTime());
             user.setUpdatedTime(System.currentTimeMillis());
             user = getUpdatedObject(oldUser, user);
-            (new UserRepository()).update(user);
+            User updatedUser = (new UserRepository()).update(user);
 
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(user.getUserId());
@@ -190,7 +220,10 @@ public class SharingRegistryService {
             userGroup.setName(user.getUserName());
             userGroup.setDescription("user " + user.getUserName() + " group");
             updateGroup(userGroup);
-            return true;
+            if(updatedUser != null && updatedUser.getUserId().equals(user.getUserId())){
+                return true;
+            }
+            throw new SharingRegistryException("Could not update user with userId: " + user.getUserId());
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -214,41 +247,52 @@ public class SharingRegistryService {
         }
     }
 
-    public boolean deleteUser(String domainId, String userId) throws SharingRegistryException {
+    public boolean deleteUser(String domainId, String userId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isUserExists(domainId, userId)) throw new ResourceNotFoundException("Could not find userId: "+userId +" in domainId:" + domainId);
             UserPK userPK = new UserPK();
             userPK.setUserId(userId);
             userPK.setDomainId(domainId);
-            (new UserRepository()).delete(userPK);
+            boolean deleteuser = (new UserRepository()).delete(userPK);
 
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(userId);
             userGroupPK.setDomainId(domainId);
-            (new UserGroupRepository()).delete(userGroupPK);
-            return true;
-        }catch (Throwable ex) {
+            boolean deleteusergroup = (new UserGroupRepository()).delete(userGroupPK);
+            if(deleteuser && deleteusergroup) return true;
+            throw new SharingRegistryException("Could not delete user: "+ userId);
+        }catch (ResourceNotFoundException ex){
+            throw ex;
+        }
+        catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public User getUser(String domainId, String userId) throws SharingRegistryException {
+    public User getUser(String domainId, String userId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isUserExists(domainId, userId)) throw new ResourceNotFoundException("Could not find userId: "+userId +" in domainId:" + domainId);
             UserPK userPK = new UserPK();
             userPK.setUserId(userId);
             userPK.setDomainId(domainId);
             return (new UserRepository()).get(userPK);
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<User> getUsers(String domain, int offset, int limit) throws SharingRegistryException {
+    public List<User> getUsers(String domain, int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domain)) throw new ResourceNotFoundException("Could not find domain with domainId: "+ domain);
             HashMap<String, String> filters = new HashMap<>();
             filters.put(DBConstants.UserTable.DOMAIN_ID, domain);
             return (new UserRepository()).select(filters, offset, limit);
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -275,10 +319,9 @@ public class SharingRegistryService {
             UserGroup createdUserGroup = (new UserGroupRepository()).create(group);
 
             addUsersToGroup(group.getDomainId(), Arrays.asList(group.getOwnerId()), group.getGroupId());
-            addGroupAdmins(group.getDomainId(), group.getGroupId(), group.getGroupAdmins());
+            addGroupAdmins(group.getDomainId(), group.getGroupId(), group.getGroupAdmins().stream().map(y->y.getAdminId()).collect(Collectors.toList()));
             return createdUserGroup;
         } catch (DuplicateEntryException ex) {
-            logger.error(ex.getMessage(), ex);
             throw ex;
         } catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
@@ -286,22 +329,27 @@ public class SharingRegistryService {
         }
     }
 
-    public boolean updateGroup(UserGroup group) throws SharingRegistryException {
-        try{
+    public boolean updateGroup(UserGroup group) throws SharingRegistryException, ResourceNotFoundException, InvalidRequestException {
+        try {
+            if (isGroupExists(group.getDomainId(), group.getGroupId())) {
+                throw new ResourceNotFoundException("Could not find the group with groupId: " + group.getGroupId());
+            }
             group.setUpdatedTime(System.currentTimeMillis());
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(group.getGroupId());
             userGroupPK.setDomainId(group.getDomainId());
             UserGroup oldGroup = (new UserGroupRepository()).get(userGroupPK);
+            if(!group.getOwnerId().equals(oldGroup.getOwnerId()))
+                throw new InvalidRequestException("Group owner cannot be changed");
             group.setGroupCardinality(oldGroup.getGroupCardinality());
             group.setCreatedTime(oldGroup.getCreatedTime());
             group = getUpdatedObject(oldGroup, group);
-
-            if(!group.getOwnerId().equals(oldGroup.getOwnerId()))
-                throw new SharingRegistryException("Group owner cannot be changed");
-
-            (new UserGroupRepository()).update(group);
+            UserGroup updatedGroup = (new UserGroupRepository()).update(group);
+            if (!updatedGroup.getGroupId().equals(oldGroup.getGroupId()))
+                throw new SharingRegistryException("Group could not be updated");
             return true;
+        }catch (InvalidRequestException | ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -318,56 +366,76 @@ public class SharingRegistryService {
 
     public boolean isGroupExists(String domainId, String groupId) throws SharingRegistryException {
         try{
+            if (isGroupExists(domainId, groupId)) {
+                throw new ResourceNotFoundException("Could not find the group with groupId: " + groupId);
+            }
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setDomainId(domainId);
             userGroupPK.setGroupId(groupId);
             return (new UserGroupRepository()).isExists(userGroupPK);
-        }catch (Throwable ex) {
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
+        }
+        catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean deleteGroup(String domainId, String groupId) throws SharingRegistryException {
+    public boolean deleteGroup(String domainId, String groupId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if (isGroupExists(domainId, groupId)) {
+                throw new ResourceNotFoundException("Could not find the group with groupId: " + groupId);
+            }
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(groupId);
             userGroupPK.setDomainId(domainId);
-            (new UserGroupRepository()).delete(userGroupPK);
+            boolean deleted = (new UserGroupRepository()).delete(userGroupPK);
+            if(!deleted) throw new SharingRegistryException("Could not deleted the group with groupId: " + groupId);
             return true;
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public UserGroup getGroup(String domainId, String groupId) throws SharingRegistryException {
+    public UserGroup getGroup(String domainId, String groupId) throws SharingRegistryException, ResourceNotFoundException {
         try{
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(groupId);
             userGroupPK.setDomainId(domainId);
-            return (new UserGroupRepository()).get(userGroupPK);
+            UserGroup userGroup = (new UserGroupRepository()).get(userGroupPK);
+            if(userGroup != null) return userGroup;
+            throw new ResourceNotFoundException("Could not find the group with groupId: " + groupId);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<UserGroup> getGroups(String domain, int offset, int limit) throws SharingRegistryException {
+    public List<UserGroup> getGroups(String domain, int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domain)) throw new ResourceNotFoundException("Could not find the domain with domainId: "+domain);
             HashMap<String, String> filters = new HashMap<>();
             filters.put(DBConstants.UserGroupTable.DOMAIN_ID, domain);
             // Only return groups with MULTI_USER cardinality which is the only type of cardinality allowed for client created groups
             filters.put(DBConstants.UserGroupTable.GROUP_CARDINALITY, GroupCardinality.MULTI_USER.name());
             return (new UserGroupRepository()).select(filters, offset, limit);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean addUsersToGroup(String domainId, List<String> userIds, String groupId) throws SharingRegistryException {
+    public boolean addUsersToGroup(String domainId, List<String> userIds, String groupId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId)) throw new ResourceNotFoundException("Could not find the domain with domainId: "+domainId);
             for(int i=0; i < userIds.size(); i++){
                 GroupMembership groupMembership = new GroupMembership();
                 groupMembership.setParentId(groupId);
@@ -379,17 +447,20 @@ public class SharingRegistryService {
                 (new GroupMembershipRepository()).create(groupMembership);
             }
             return true;
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean removeUsersFromGroup(String domainId, List<String> userIds, String groupId) throws SharingRegistryException {
+    public boolean removeUsersFromGroup(String domainId, List<String> userIds, String groupId) throws SharingRegistryException, ResourceNotFoundException, InvalidRequestException{
         try{
+            if(!isDomainExists(domainId)) throw new ResourceNotFoundException("Could not find the domain with domainId: "+domainId);
             for (String userId: userIds) {
                 if (hasOwnerAccess(domainId, groupId, userId)) {
-                    throw new SharingRegistryException("List of User Ids contains Owner Id. Cannot remove owner from the group");
+                    throw new InvalidRequestException("List of User Ids contains Owner Id. Cannot remove owner from the group");
                 }
             }
 
@@ -401,6 +472,8 @@ public class SharingRegistryService {
                 (new GroupMembershipRepository()).delete(groupMembershipPK);
             }
             return true;
+        }catch (ResourceNotFoundException | InvalidRequestException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -409,13 +482,14 @@ public class SharingRegistryService {
 
     public boolean transferGroupOwnership(String domainId, String groupId, String newOwnerId) throws SharingRegistryException {
         try {
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId) || !isUserExists(domainId, newOwnerId)) throw new ResourceNotFoundException("Could not find resource");
             List<User> groupUser = getGroupMembersOfTypeUser(domainId, groupId, 0, -1);
             if (!isUserBelongsToGroup(groupUser, newOwnerId)) {
-                throw new SharingRegistryException("New group owner is not part of the group");
+                throw new InvalidRequestException("New group owner is not part of the group");
             }
 
             if (hasOwnerAccess(domainId, groupId, newOwnerId)) {
-                throw new DuplicateEntryException("User already the current owner of the group");
+                throw new InvalidRequestException("User already the current owner of the group");
             }
             // remove the new owner as Admin if present
             if (hasAdminAccess(domainId, groupId, newOwnerId)) {
@@ -436,8 +510,9 @@ public class SharingRegistryService {
             (new UserGroupRepository()).update(newUserGroup);
 
             return true;
-        }
-        catch (Throwable ex) {
+        }catch (ResourceNotFoundException | InvalidRequestException ex) {
+            throw ex;
+        }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -452,28 +527,32 @@ public class SharingRegistryService {
         return false;
     }
 
-    public boolean addGroupAdmins(String domainId, String groupId, List<GroupAdmin> admins) throws SharingRegistryException {
+    public boolean addGroupAdmins(String domainId, String groupId, List<String> admins) throws SharingRegistryException, ResourceNotFoundException,DuplicateEntryException, InvalidRequestException  {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId)) throw new ResourceNotFoundException("Could not find resource");
             List<User> groupUser = getGroupMembersOfTypeUser(domainId, groupId, 0, -1);
 
-            for (GroupAdmin admin: admins) {
-                String adminId = admin.getAdminId();
+            for (String adminId: admins) {
                 if (! isUserBelongsToGroup(groupUser, adminId)) {
-                    throw new SharingRegistryException("Admin not the user of the group. GroupId : "+ groupId + ", AdminId : "+ adminId);
+                    throw new InvalidRequestException("Admin not the user of the group. GroupId : "+ groupId + ", AdminId : "+ adminId);
                 }
                 GroupAdminPK groupAdminPK = new GroupAdminPK();
                 groupAdminPK.setGroupId(groupId);
                 groupAdminPK.setAdminId(adminId);
                 groupAdminPK.setDomainId(domainId);
-
+                GroupAdmin groupAdmin = new GroupAdmin();
+                groupAdmin.setAdminId(adminId);
+                groupAdmin.setDomainId(domainId);
+                groupAdmin.setGroupId(groupId);
                 if((new GroupAdminRepository()).get(groupAdminPK) != null)
                     throw new DuplicateEntryException("User already an admin for the group");
 
-                (new GroupAdminRepository()).create(admin);
+                (new GroupAdminRepository()).create(groupAdmin);
             }
             return true;
-        }
-        catch (Throwable ex) {
+        }catch (ResourceNotFoundException | DuplicateEntryException | InvalidRequestException ex) {
+            throw ex;
+        }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -496,8 +575,9 @@ public class SharingRegistryService {
         }
     }
 
-    public boolean hasAdminAccess(String domainId, String groupId, String adminId) throws SharingRegistryException {
+    public boolean hasAdminAccess(String domainId, String groupId, String adminId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId) || !isUserExists(domainId, adminId)) throw new ResourceNotFoundException("Could not find resource");
             GroupAdminPK groupAdminPK = new GroupAdminPK();
             groupAdminPK.setGroupId(groupId);
             groupAdminPK.setAdminId(adminId);
@@ -506,8 +586,9 @@ public class SharingRegistryService {
             if((new GroupAdminRepository()).get(groupAdminPK) != null)
                 return true;
             return false;
-        }
-        catch (Throwable ex) {
+        }catch (ResourceNotFoundException ex){
+            throw ex;
+        }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -515,6 +596,7 @@ public class SharingRegistryService {
 
     public boolean hasOwnerAccess(String domainId, String groupId, String ownerId) throws SharingRegistryException {
         try {
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId) || !isUserExists(domainId, ownerId)) throw new ResourceNotFoundException("Could not find resource");
             UserGroupPK userGroupPK = new UserGroupPK();
             userGroupPK.setGroupId(groupId);
             userGroupPK.setDomainId(domainId);
@@ -523,8 +605,9 @@ public class SharingRegistryService {
             if(getGroup.getOwnerId().equals(ownerId))
                 return true;
             return false;
-        }
-        catch (Throwable ex) {
+        }catch (ResourceNotFoundException ex){
+            throw ex;
+        }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -532,30 +615,38 @@ public class SharingRegistryService {
 
     public List<User> getGroupMembersOfTypeUser(String domainId, String groupId, int offset, int limit) throws SharingRegistryException {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId)) throw new ResourceNotFoundException("Could not find resource");
             //TODO limit offset
             List<User> groupMemberUsers = (new GroupMembershipRepository()).getAllChildUsers(domainId, groupId);
             return groupMemberUsers;
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<UserGroup> getGroupMembersOfTypeGroup(String domainId, String groupId, int offset, int limit) throws SharingRegistryException {
+    public List<UserGroup> getGroupMembersOfTypeGroup(String domainId, String groupId, int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId)) throw new ResourceNotFoundException("Could not find resource");
             //TODO limit offset
             List<UserGroup> groupMemberGroups = (new GroupMembershipRepository()).getAllChildGroups(domainId, groupId);
             return groupMemberGroups;
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean addChildGroupsToParentGroup(String domainId, List<String> childIds, String groupId) throws SharingRegistryException {
+    public boolean addChildGroupsToParentGroup(String domainId, List<String> childIds, String groupId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId)) throw new ResourceNotFoundException("Could not find resource");
             for(String childId : childIds) {
                 //Todo check for cyclic dependencies
+                if(!isGroupExists(domainId, childId)) throw new ResourceNotFoundException("Could not find resource");
                 GroupMembership groupMembership = new GroupMembership();
                 groupMembership.setParentId(groupId);
                 groupMembership.setChildId(childId);
@@ -566,6 +657,8 @@ public class SharingRegistryService {
                 (new GroupMembershipRepository()).create(groupMembership);
             }
             return true;
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -574,22 +667,28 @@ public class SharingRegistryService {
 
     public boolean removeChildGroupFromParentGroup(String domainId, String childId, String groupId) throws SharingRegistryException {
         try{
+            if(!isDomainExists(domainId) || !isGroupExists(domainId, groupId) || !isGroupExists(domainId, childId)) throw new ResourceNotFoundException("Could not find resource");
             GroupMembershipPK groupMembershipPK = new GroupMembershipPK();
             groupMembershipPK.setParentId(groupId);
             groupMembershipPK.setChildId(childId);
             groupMembershipPK.setDomainId(domainId);
             (new GroupMembershipRepository()).delete(groupMembershipPK);
             return true;
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<UserGroup> getAllMemberGroupsForUser(String domainId, String userId) throws SharingRegistryException {
+    public List<UserGroup> getAllMemberGroupsForUser(String domainId, String userId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId) || !isUserExists(domainId, userId)) throw new ResourceNotFoundException("Could not find resource");
             GroupMembershipRepository groupMembershipRepository = new GroupMembershipRepository();
             return groupMembershipRepository.getAllMemberGroupsForUser(domainId, userId);
+        }catch (ResourceNotFoundException ex){
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -611,14 +710,17 @@ public class SharingRegistryService {
             entityType.setCreatedTime(System.currentTimeMillis());
             entityType.setUpdatedTime(System.currentTimeMillis());
             return (new EntityTypeRepository()).create(entityType);
-        }catch (Throwable ex) {
+        }catch (DuplicateEntryException ex) {
+            throw ex;
+        }catch(Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean updateEntityType(EntityType entityType) throws SharingRegistryException {
+    public boolean updateEntityType(EntityType entityType) throws SharingRegistryException, ResourceNotFoundException{
         try{
+            if(!isEntityTypeExists(entityType.getDomainId(), entityType.getEntityTypeId())) throw new ResourceNotFoundException("Could not find entity type with id: " + entityType.getEntityTypeId());
             entityType.setUpdatedTime(System.currentTimeMillis());
             EntityTypePK entityTypePK = new EntityTypePK();
             entityTypePK.setDomainId(entityType.getDomainId());
@@ -626,8 +728,11 @@ public class SharingRegistryService {
             EntityType oldEntityType = (new EntityTypeRepository()).get(entityTypePK);
             entityType.setCreatedTime(oldEntityType.getCreatedTime());
             entityType = getUpdatedObject(oldEntityType, entityType);
-            (new EntityTypeRepository()).update(entityType);
-            return true;
+            EntityType updatedEntityType = (new EntityTypeRepository()).update(entityType);
+            if(updatedEntityType != null && updatedEntityType.getEntityTypeId().equals(entityType.getEntityTypeId())) return true;
+            throw new SharingRegistryException("Could not update the entity type");
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -639,48 +744,60 @@ public class SharingRegistryService {
      *
      * @param entityTypeId
      */
-    public boolean isEntityTypeExists(String domainId, String entityTypeId) throws SharingRegistryException {
+    public boolean isEntityTypeExists(String domainId, String entityTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityTypeExists(domainId, entityTypeId)) throw new ResourceNotFoundException("Could not find entity type with id: " + entityTypeId);
             EntityTypePK entityTypePK = new EntityTypePK();
             entityTypePK.setDomainId(domainId);
             entityTypePK.setEntityTypeId(entityTypeId);
             return (new EntityTypeRepository()).isExists(entityTypePK);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean deleteEntityType(String domainId, String entityTypeId) throws SharingRegistryException {
+    public boolean deleteEntityType(String domainId, String entityTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityTypeExists(domainId, entityTypeId)) throw new ResourceNotFoundException("Could not find entity type with id: " + entityTypeId);
             EntityTypePK entityTypePK = new EntityTypePK();
             entityTypePK.setDomainId(domainId);
             entityTypePK.setEntityTypeId(entityTypeId);
             (new EntityTypeRepository()).delete(entityTypePK);
             return true;
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public EntityType getEntityType(String domainId, String entityTypeId) throws SharingRegistryException {
+    public EntityType getEntityType(String domainId, String entityTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityTypeExists(domainId, entityTypeId)) throw new ResourceNotFoundException("Could not find entity type with id: " + entityTypeId);
             EntityTypePK entityTypePK = new EntityTypePK();
             entityTypePK.setDomainId(domainId);
             entityTypePK.setEntityTypeId(entityTypeId);
             return (new EntityTypeRepository()).get(entityTypePK);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<EntityType> getEntityTypes(String domain, int offset, int limit) throws SharingRegistryException {
+    public List<EntityType> getEntityTypes(String domain, int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domain)) throw new ResourceNotFoundException("Could not find domain with id: " + domain);
             HashMap<String, String> filters = new HashMap<>();
             filters.put(DBConstants.EntityTypeTable.DOMAIN_ID, domain);
             return (new EntityTypeRepository()).select(filters, offset, limit);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -702,22 +819,28 @@ public class SharingRegistryService {
             permissionType.setUpdatedTime(System.currentTimeMillis());
             (new PermissionTypeRepository()).create(permissionType);
             return permissionType;
+        }catch (DuplicateEntryException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean updatePermissionType(PermissionType permissionType) throws SharingRegistryException {
+    public boolean updatePermissionType(PermissionType permissionType) throws SharingRegistryException, ResourceNotFoundException{
         try{
+            if(!isPermissionExists(permissionType.getDomainId(), permissionType.getPermissionTypeId())) throw new ResourceNotFoundException("Permission Type not found");
             permissionType.setUpdatedTime(System.currentTimeMillis());
             PermissionTypePK permissionTypePK =  new PermissionTypePK();
             permissionTypePK.setDomainId(permissionType.getDomainId());
             permissionTypePK.setPermissionTypeId(permissionType.getPermissionTypeId());
             PermissionType oldPermissionType = (new PermissionTypeRepository()).get(permissionTypePK);
             permissionType = getUpdatedObject(oldPermissionType, permissionType);
-            (new PermissionTypeRepository()).update(permissionType);
-            return true;
+            PermissionType updatedPermissionType = (new PermissionTypeRepository()).update(permissionType);
+            if(updatedPermissionType != null && updatedPermissionType.getPermissionTypeId().equals(permissionType.getPermissionTypeId())) return true;
+            throw new SharingRegistryException("Could not update the permission type");
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -729,48 +852,60 @@ public class SharingRegistryService {
      *
      * @param permissionId
      */
-    public boolean isPermissionExists(String domainId, String permissionId) throws SharingRegistryException {
+    public boolean isPermissionExists(String domainId, String permissionId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isPermissionExists(domainId, permissionId)) throw new ResourceNotFoundException("Permission Type not found");
             PermissionTypePK permissionTypePK = new PermissionTypePK();
             permissionTypePK.setDomainId(domainId);
             permissionTypePK.setPermissionTypeId(permissionId);
             return (new PermissionTypeRepository()).isExists(permissionTypePK);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean deletePermissionType(String domainId, String permissionTypeId) throws SharingRegistryException {
+    public boolean deletePermissionType(String domainId, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Permission Type not found");
             PermissionTypePK permissionTypePK =  new PermissionTypePK();
             permissionTypePK.setDomainId(domainId);
             permissionTypePK.setPermissionTypeId(permissionTypeId);
             (new PermissionTypeRepository()).delete(permissionTypePK);
             return true;
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public PermissionType getPermissionType(String domainId, String permissionTypeId) throws SharingRegistryException {
+    public PermissionType getPermissionType(String domainId, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Permission Type not found");
             PermissionTypePK permissionTypePK =  new PermissionTypePK();
             permissionTypePK.setDomainId(domainId);
             permissionTypePK.setPermissionTypeId(permissionTypeId);
             return (new PermissionTypeRepository()).get(permissionTypePK);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<PermissionType> getPermissionTypes(String domain, int offset, int limit) throws SharingRegistryException {
+    public List<PermissionType> getPermissionTypes(String domain, int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domain)) throw new ResourceNotFoundException("Could not find the domain");
             HashMap<String, String> filters = new HashMap<>();
             filters.put(DBConstants.PermissionTypeTable.DOMAIN_ID, domain);
             return (new PermissionTypeRepository()).select(filters, offset, limit);
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -828,7 +963,9 @@ public class SharingRegistryService {
             }
 
             return createdEntity;
-        }catch (Throwable ex) {
+        }catch(DuplicateEntryException ex) {
+            throw ex;
+        }catch(Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
@@ -853,8 +990,9 @@ public class SharingRegistryService {
                 }
             }
 
-    public boolean updateEntity(Entity entity) throws SharingRegistryException {
+    public boolean updateEntity(Entity entity) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(entity.getDomainId(), entity.getEntityId())) throw new ResourceNotFoundException("Could not find entity with entityId: " + entity.getEntityId());
             //TODO Check for permission changes
             entity.setUpdatedTime(System.currentTimeMillis());
             EntityPK entityPK = new EntityPK();
@@ -877,8 +1015,11 @@ public class SharingRegistryService {
             }
             entity = getUpdatedObject(oldEntity, entity);
             entity.setSharedCount((new SharingRepository()).getSharedCount(entity.getDomainId(), entity.getEntityId()));
-            (new EntityRepository()).update(entity);
-            return true;
+            Entity updatedEntity = (new EntityRepository()).update(entity);
+            if(updatedEntity != null && updatedEntity.getEntityId().equals(entity.getEntityId())) return true;
+            throw new SharingRegistryException("Could not update the entity");
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -902,26 +1043,32 @@ public class SharingRegistryService {
         }
     }
 
-    public boolean deleteEntity(String domainId, String entityId) throws SharingRegistryException {
+    public boolean deleteEntity(String domainId, String entityId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId)) throw new ResourceNotFoundException("Could not find entity with entityId:" + entityId + " in domain:" + domainId);
             //TODO Check for permission changes
             EntityPK entityPK = new EntityPK();
             entityPK.setDomainId(domainId);
             entityPK.setEntityId(entityId);
             (new EntityRepository()).delete(entityPK);
             return true;
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public Entity getEntity(String domainId, String entityId) throws SharingRegistryException {
+    public Entity getEntity(String domainId, String entityId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId)) throw new ResourceNotFoundException("Could not find entity with entityId:" + entityId + " in domain:" + domainId);
             EntityPK entityPK = new EntityPK();
             entityPK.setDomainId(domainId);
             entityPK.setEntityId(entityId);
             return (new EntityRepository()).get(entityPK);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -929,21 +1076,27 @@ public class SharingRegistryService {
     }
 
     public List<Entity> searchEntities(String domainId, String userId, List<SearchCriteria> filters,
-                                       int offset, int limit) throws SharingRegistryException {
+                                       int offset, int limit) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isUserExists(domainId, userId)) throw new ResourceNotFoundException("Could not find user:" + userId + " in domain:" + domainId);
             List<String> groupIds = new ArrayList<>();
             groupIds.add(userId);
             (new GroupMembershipRepository()).getAllParentMembershipsForChild(domainId, userId).stream().forEach(gm -> groupIds.add(gm.getParentId()));
             return (new EntityRepository()).searchEntities(domainId, groupIds, filters, offset, limit);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<User> getListOfSharedUsers(String domainId, String entityId, String permissionTypeId) throws SharingRegistryException {
+    public List<User> getListOfSharedUsers(String domainId, String entityId, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the resource");
             return (new UserRepository()).getAccessibleUsers(domainId, entityId, permissionTypeId);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -951,18 +1104,24 @@ public class SharingRegistryService {
     }
 
     public List<User> getListOfDirectlySharedUsers(String domainId, String entityId, String permissionTypeId)
-            throws SharingRegistryException {
+            throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the resource");
             return (new UserRepository()).getDirectlyAccessibleUsers(domainId, entityId, permissionTypeId);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public List<UserGroup> getListOfSharedGroups(String domainId, String entityId, String permissionTypeId) throws SharingRegistryException {
+    public List<UserGroup> getListOfSharedGroups(String domainId, String entityId, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the resource");
             return (new UserGroupRepository()).getAccessibleGroups(domainId, entityId, permissionTypeId);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -970,9 +1129,12 @@ public class SharingRegistryService {
     }
 
     public List<UserGroup> getListOfDirectlySharedGroups(String domainId, String entityId, String permissionTypeId)
-            throws SharingRegistryException {
+            throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the resource");
             return (new UserGroupRepository()).getDirectlyAccessibleGroups(domainId, entityId, permissionTypeId);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -988,28 +1150,45 @@ public class SharingRegistryService {
      * @param cascadePermission
      * @return
      * @throws SharingRegistryException
-     * @throws TException
+     * @throws ResourceNotFoundException
      */
-    public boolean shareEntityWithUsers(String domainId, String entityId, List<String> userList, String permissionTypeId, boolean cascadePermission) throws SharingRegistryException {
+
+    public boolean shareEntityWithUsers(String domainId, String entityId, List<String> userList, String permissionTypeId, boolean cascadePermission) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            for(String user: userList){
+                if(!isUserExists(domainId, user)) throw new ResourceNotFoundException("Could not find the user");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             return shareEntity(domainId, entityId, userList, permissionTypeId, cascadePermission);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean shareEntityWithGroups(String domainId, String entityId, List<String> groupList, String permissionTypeId, boolean cascadePermission) throws SharingRegistryException {
+    public boolean shareEntityWithGroups(String domainId, String entityId, List<String> groupList, String permissionTypeId, boolean cascadePermission) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            for(String group: groupList){
+                if(!isGroupExists(domainId, group)) throw new ResourceNotFoundException("Could not find the group");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             return shareEntity(domainId, entityId, groupList, permissionTypeId, cascadePermission);
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    private boolean shareEntity(String domainId, String entityId, List<String> groupOrUserList, String permissionTypeId, boolean cascadePermission)  throws SharingRegistryException {
+    private boolean shareEntity(String domainId, String entityId, List<String> groupOrUserList, String permissionTypeId, boolean cascadePermission)  throws SharingRegistryException, ResourceNotFoundException {
         try{
+            for(String groupOrUser: groupOrUserList){
+                if(!isUserExists(domainId, groupOrUser) && !isGroupExists(domainId, groupOrUser)) throw new ResourceNotFoundException("Could not find the user");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             if(permissionTypeId.equals((new PermissionTypeRepository()).getOwnerPermissionTypeIdForDomain(domainId))){
                 throw new SharingRegistryException(OWNER_PERMISSION_NAME + " permission cannot be assigned or removed");
             }
@@ -1067,31 +1246,45 @@ public class SharingRegistryService {
             entity.setSharedCount((new SharingRepository()).getSharedCount(domainId, entityId));
             (new EntityRepository()).update(entity);
             return true;
+        }catch(ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean revokeEntitySharingFromUsers(String domainId, String entityId, List<String> userList, String permissionTypeId) throws SharingRegistryException {
+    public boolean revokeEntitySharingFromUsers(String domainId, String entityId, List<String> userList, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException, InvalidRequestException {
         try{
+            for(String user: userList){
+                if(!isUserExists(domainId, user)) throw new ResourceNotFoundException("Could not find the user");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             if(permissionTypeId.equals((new PermissionTypeRepository()).getOwnerPermissionTypeIdForDomain(domainId))){
-                throw new SharingRegistryException(OWNER_PERMISSION_NAME + " permission cannot be assigned or removed");
+                throw new InvalidRequestException(OWNER_PERMISSION_NAME + " permission cannot be assigned or removed");
             }
             return revokeEntitySharing(domainId, entityId, userList, permissionTypeId);
-        }catch (Throwable ex) {
+        }catch (InvalidRequestException | ResourceNotFoundException ex) {
+            throw ex;
+        }catch(Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
 
-    public boolean revokeEntitySharingFromGroups(String domainId, String entityId, List<String> groupList, String permissionTypeId) throws SharingRegistryException {
+    public boolean revokeEntitySharingFromGroups(String domainId, String entityId, List<String> groupList, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException, InvalidRequestException {
         try{
+            for(String group: groupList){
+                if(!isGroupExists(domainId, group)) throw new ResourceNotFoundException("Could not find the group");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             if(permissionTypeId.equals((new PermissionTypeRepository()).getOwnerPermissionTypeIdForDomain(domainId))){
-                throw new SharingRegistryException(OWNER_PERMISSION_NAME + " permission cannot be assigned or removed");
+                throw new InvalidRequestException(OWNER_PERMISSION_NAME + " permission cannot be assigned or removed");
             }
             return revokeEntitySharing(domainId, entityId, groupList, permissionTypeId);
+        }catch (InvalidRequestException | ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
@@ -1099,8 +1292,9 @@ public class SharingRegistryService {
     }
 
 
-    public boolean userHasAccess(String domainId, String userId, String entityId, String permissionTypeId) throws SharingRegistryException {
+    public boolean userHasAccess(String domainId, String userId, String entityId, String permissionTypeId) throws SharingRegistryException, ResourceNotFoundException {
         try{
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId) || !isUserExists(domainId, userId)) throw new ResourceNotFoundException("Could not find the resource");
             //check whether the user has permission directly or indirectly
             List<GroupMembership> parentMemberships = (new GroupMembershipRepository()).getAllParentMembershipsForChild(domainId, userId);
             List<String> groupIds = new ArrayList<>();
@@ -1108,16 +1302,22 @@ public class SharingRegistryService {
             groupIds.add(userId);
             return (new SharingRepository()).hasAccess(domainId, entityId, groupIds, Arrays.asList(permissionTypeId,
                     (new PermissionTypeRepository()).getOwnerPermissionTypeIdForDomain(domainId)));
+        }catch (ResourceNotFoundException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
         }
     }
 
-    public boolean revokeEntitySharing(String domainId, String entityId, List<String> groupOrUserList, String permissionTypeId) throws SharingRegistryException {
+    public boolean revokeEntitySharing(String domainId, String entityId, List<String> groupOrUserList, String permissionTypeId) throws SharingRegistryException, InvalidRequestException, ResourceNotFoundException {
         try{
+            for(String groupOrUser: groupOrUserList){
+                if(!isUserExists(domainId, groupOrUser) && !isGroupExists(domainId, groupOrUser)) throw new ResourceNotFoundException("Could not find the user");
+            }
+            if(!isDomainExists(domainId) || !isEntityExists(domainId, entityId) || !isPermissionExists(domainId, permissionTypeId)) throw new ResourceNotFoundException("Could not find the user");
             if(permissionTypeId.equals((new PermissionTypeRepository()).getOwnerPermissionTypeIdForDomain(domainId))){
-                throw new SharingRegistryException(OWNER_PERMISSION_NAME + " permission cannot be removed");
+                throw new InvalidRequestException(OWNER_PERMISSION_NAME + " permission cannot be removed");
             }
 
             //revoking permission for the entity
@@ -1156,6 +1356,8 @@ public class SharingRegistryService {
             entity.setSharedCount((new SharingRepository()).getSharedCount(domainId, entityId));
             (new EntityRepository()).update(entity);
             return true;
+        }catch (ResourceNotFoundException | InvalidRequestException ex) {
+            throw ex;
         }catch (Throwable ex) {
             logger.error(ex.getMessage(), ex);
             throw new SharingRegistryException(ex.getMessage() + " Stack trace:" + ExceptionUtils.getStackTrace(ex));
