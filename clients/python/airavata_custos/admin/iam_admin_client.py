@@ -1,3 +1,20 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import logging
 from airavata_custos.utils import iamadmin_client_pool
 
@@ -71,41 +88,51 @@ def is_user_exist(authz_token, username):
     :param username: The username of the user
     :return: boolean
     """
-    return iamadmin_client_pool.isUserExist(authz_token, username)
+    try:
+        return iamadmin_client_pool.isUserExist(authz_token, username)
+    except Exception:
+        return None
 
 
 def get_user(authz_token, username):
     """
 
-    :param authz_token:
-    :param username:
-    :return:
+    :param authz_token: Object of AuthzToken class containing access token, username, gatewayId of the active user
+    :param username: username of the user
+    :return: object of class UserProfile
     """
-    return iamadmin_client_pool.getUser(authz_token, username)
+    try:
+        return iamadmin_client_pool.getUser(authz_token, username)
+    except Exception:
+        return None
 
 
-def get_users(authz_token, offset, limit, search=None):
+def get_users(authz_token, offset=0, limit=-1, search=None):
     """
 
-    :param authz_token:
-    :param offset:
-    :param limit:
-    :param search:
-    :return:
+    :param authz_token: Object of AuthzToken class containing access token, username, gatewayId of the active user
+    :param offset: start index
+    :param limit: end index
+    :param search: search criteria for filtering users
+    :return: list of UserProfile class objects
     """
-    return iamadmin_client_pool.getUsers(authz_token, offset, limit, search)
+    try:
+        return iamadmin_client_pool.getUsers(authz_token, offset, limit, search)
+    except Exception:
+        return None
 
 
 def reset_user_password(authz_token, username, new_password):
     """
 
-    :param authz_token:
-    :param username:
-    :param new_password:
+    :param authz_token: Object of AuthzToken class containing access token, username, gatewayId of the active user
+    :param username: username of the user
+    :param new_password: new password for the user
     :return:
     """
-    return iamadmin_client_pool.resetUserPassword(
-        authz_token, username, new_password)
+    try:
+        return iamadmin_client_pool.resetUserPassword(
+            authz_token, username, new_password)
+    except Exception:
+        return None
 
-def set_up_tenant(authz_token, gateway, tenantAdminPasswordCredentials):
-    pass

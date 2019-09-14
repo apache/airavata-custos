@@ -26,6 +26,8 @@ KEYCLOAK_LOGOUT_URL = 'https://localhost:8443/auth/realms/default/protocol/openi
 THRIFT_CLIENT_POOL_KEEPALIVE = 5
 
 # Profile Service Configuration
-PROFILE_SERVICE_HOST = ''
-PROFILE_SERVICE_PORT = ''
+PROFILE_SERVICE_HOST = '0.0.0.0'
+PROFILE_SERVICE_PORT = '8081'
 PROFILE_SERVICE_SECURE = False
+
+VERIFY_SSL = False

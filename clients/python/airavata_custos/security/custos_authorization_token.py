@@ -17,10 +17,18 @@
 from airavata_custos import settings
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
-from airavata_custos.security.model.ttypes import AuthzToken
+from custos.commons.model.security.ttypes import AuthzToken
 
 
-def create_authorization_token(client_credentials, tenant_id, username=None):
+def get_authorization_token(client_credentials, tenant_id, username=None):
+    """
+    This method created a authorization token for the user or a service account
+    In case of a service account username will be null
+    :param client_credentials: object of class client_credentials
+    :param tenant_id: gateway id of the client
+    :param username: username of the user for which authorization token is being created
+    :return: AuthzToken
+    """
     client = BackendApplicationClient(client_id=client_credentials.client_id)
     oauth = OAuth2Session(client=client)
     token = oauth.fetch_token(
@@ -32,5 +40,4 @@ def create_authorization_token(client_credentials, tenant_id, username=None):
     access_token = token.get('access_token')
     return AuthzToken(
         accessToken=access_token,
-        # This is a service account, so leaving out userName for now
         claimsMap={'gatewayID': tenant_id, 'userName': username})

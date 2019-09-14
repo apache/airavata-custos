@@ -18,38 +18,51 @@
 
 class ClientCredentials(object):
     """
-
-    Attributes:
-        client_id:  Client ID, which you get from tenant registration with Keycloak
-        client_secret: Client Secret, which you get from tenant registration with Keycloak
-        username:  Username of the tenant user that needs to be authenticated
-        password:  Password of the tenant user that needs to be authenticated
-        authorization_code_url: URL of the authorization server’s authorization endpoint
-        state:
-        redirect_uri: Redirect URI you registered as callback
-        refresh_token:
-        verify_ssl: Flag to indicate ssl verification is required
-
+    This is the base class for passing parameters required to authenticate with keycloak
     """
-    client_id = None
-    client_secret = None
-    verify_ssl = None
-    authorization_code_url = None
-    state = None
-    redirect_uri = None
-    username = None
-    password = None
-    refresh_token = None
-
-    def __init__(self, client_id, client_secret, verify_ssl=False, authorization_code_url=None, state=None, redirect_uri=None, username=None, password=None, refresh_token=None):
+    def __init__(self, client_id, client_secret):
+        """
+        This is the constructor for ClientCredentials class
+        :param client_id: client identifier received after registering the tenant
+        :param client_secret: client password received after registering the tenant
+        """
         self.client_id = client_id
         self.client_secret = client_secret
-        self.verify_ssl = verify_ssl
+
+
+class UserCredentials(ClientCredentials):
+    """
+    This class inherits from ClientCredentials class. Used for passing parameters required to authenticate user
+    with keycloak
+    """
+    def __init__(self, client_id, client_secret, username, password):
+        """
+        This is the constructor for UserCredentials class
+        :param client_id: client identifier received after registering the tenant
+        :param client_secret: client password received after registering the tenant
+        :param username: username of the user which needs to be authenticated
+        :param password: password of the user which needs to be authenticated
+        """
+        super().__init__(client_id, client_secret)
+        self.username = username
+        self.password = password
+
+
+class AccountCredentials(ClientCredentials):
+    """
+    This class inherits from ClientCredentials class. Used for passing parameters required to authenticate service
+    account with keycloak
+    """
+    def __init__(self, client_id, client_secret, authorization_code_url, state, redirect_uri):
+        """
+        This is the constructor for AccountCredentials class
+        :param client_id: client identifier received after registering the tenant
+        :param client_secret: client password received after registering the tenant
+        :param authorization_code_url: The URL that the user will be redirected back from the keycloak to the client
+        :param state: An state string for CSRF protection.
+        :param redirect_uri: URI for the callback entry point of the client
+        """
+        super().__init__(client_id, client_secret)
         self.authorization_code_url = authorization_code_url
         self.state = state
         self.redirect_uri = redirect_uri
-        self.username = username
-        self.password = password
-        self.refresh_token = refresh_token
-
-
