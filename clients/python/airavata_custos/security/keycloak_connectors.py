@@ -50,11 +50,11 @@ class KeycloakBackend(object):
         """
 
         :param account_credentials: object of AccountCredentials class
-        :return: Token object, UserInfo object
+        :return: Token object, Account info object
         """
         try:
-            token, user_info = self._get_token_and_user_info_redirect_flow(account_credentials)
-            return token, user_info
+            token, account_info = self._get_token_and_user_info_redirect_flow(account_credentials)
+            return token, account_info
         except Exception as e:
             return None
 
@@ -70,6 +70,29 @@ class KeycloakBackend(object):
             return token
         except Exception as e:
             return None
+
+    def get_authorization_token(self, client_credentials, tenant_id, username=None):
+        """
+        This method created a authorization token for the user or a service account
+        In case of a service account username will be null
+        :param client_credentials: object of class client_credentials
+        :param tenant_id: gateway id of the client
+        :param username: username of the user for which authorization token is being created
+        :return: AuthzToken
+        """
+        client = BackendApplicationClient(client_id=client_credentials.client_id)
+        oauth = OAuth2Session(client=client)
+        token = oauth.fetch_token(
+            token_url=self.keycloak_settings.token_url,
+            client_id=client_credentials.client_id,
+            client_secret=client_credentials.client_secret,
+            verify=client_credentials.verify_ssl)
+
+        access_token = token.get('access_token')
+        return AuthzToken(
+            accessToken=access_token,
+            claimsMap={'gatewayID': tenant_id, 'userName': username})
+
 
     def _get_token_and_user_info_password_flow(self, client_credentials):
 
@@ -104,28 +127,6 @@ class KeycloakBackend(object):
                                              auth=auth,
                                              verify=self.keycloak_settings.VERIFY_SSL)
         return self._process_token(token)
-
-    def get_authorization_token(self, client_credentials, tenant_id, username=None):
-        """
-        This method created a authorization token for the user or a service account
-        In case of a service account username will be null
-        :param client_credentials: object of class client_credentials
-        :param tenant_id: gateway id of the client
-        :param username: username of the user for which authorization token is being created
-        :return: AuthzToken
-        """
-        client = BackendApplicationClient(client_id=client_credentials.client_id)
-        oauth = OAuth2Session(client=client)
-        token = oauth.fetch_token(
-            token_url=self.keycloak_settings.token_url,
-            client_id=client_credentials.client_id,
-            client_secret=client_credentials.client_secret,
-            verify=client_credentials.verify_ssl)
-
-        access_token = token.get('access_token')
-        return AuthzToken(
-            accessToken=access_token,
-            claimsMap={'gatewayID': tenant_id, 'userName': username})
 
     @classmethod
     def _process_token(cls, token):
