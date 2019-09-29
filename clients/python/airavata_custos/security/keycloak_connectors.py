@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+
 from oauthlib.oauth2 import LegacyApplicationClient
 import requests
 import configparser
@@ -23,6 +23,7 @@ from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from custos.commons.model.security.ttypes import AuthzToken
 from urllib.parse import quote
+from airavata_custos.security.client_credentials import IdpCredentials, UserCredentials, ClientCredentials
 
 
 class KeycloakBackend(object):
@@ -35,10 +36,10 @@ class KeycloakBackend(object):
         self.keycloak_settings = IAMSettings()
         self._load_settings(configuration_file_location)
 
-    def authenticate_user(self, user_credentials):
+    def authenticate_using_user_details(self, user_credentials):
         """
         Method to authenticate a gateway user with keycloak
-        :param user_credentials: object of UserCredentials class
+        :param user_credentials: object of UserCredentials class. To get instance of this class use prepare_user_credentials
         :return: openid token, openid user information
         """
         try:
@@ -47,45 +48,59 @@ class KeycloakBackend(object):
         except Exception as e:
             return None
 
-    def authenticate_account(self, account_credentials):
-        """
-
-        :param account_credentials: object of AccountCredentials class
-        :return: openid token, openid user information
-        """
-        try:
-            token, account_info = self._get_token_and_user_info_redirect_flow(account_credentials)
-            return token, account_info
-        except Exception as e:
-            return None
-
-    def authenticate_using_refresh_token(self, client_credentials, refresh_token):
-        """
-
-        :param client_credentials: object of ClientCredentials class
-        :param refresh_token: openid connect refresh token
-        :return: openid token
-        """
-        try:
-            token = self._get_token_from_refresh_token(client_credentials, refresh_token)
-            return token
-        except Exception as e:
-            return None
-
-    def idp_login(self, client_id, redirect_uri, idp_alias):
+    def prepare_user_credentials(self, client_id, client_secret, username, password):
         """
 
         :param client_id: client identifier received after registering the tenant
-        :param redirect_uri: redirect url
-        :param idp_alias: idp to which redirection has to be made
-        :return:authorization_url, redirect_uri, state
+        :param client_secret: client password received after registering the tenant
+        :param username: username of the user which needs to be authenticated
+        :param password: password of the user which needs to be authenticated
+        :return: UserCredentials object
+        """
+        return UserCredentials(client_id, client_secret, username, password)
+
+    def authenticate_using_idp(self, idp_credentials):
+        """
+
+        :param idp_credentials: object of IdpCredentials class. To get an instance of this class use prepare_idp_credentials
+        :return: openid token, openid user information
+        """
+        try:
+            token, user_info = self._get_token_and_user_info_redirect_flow(idp_credentials)
+            return token, user_info
+        except Exception as e:
+            return None
+
+    def prepare_idp_credentials(self, client_id, client_secret, redirect_uri, idp_alias):
+        """
+
+        :param client_id: client identifier received after registering the tenant
+        :param client_secret: client password received after registering the tenant
+        :param redirect_uri: URI for the callback entry point of the client
+        :param idp_alias: name of the idp
+        :return: object of class IdpCredentials
         """
         redirect_uri += '?idp_alias=' + quote(idp_alias)
         base_authorize_url = self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL
         oauth2_session = OAuth2Session(client_id, scope='openid', redirect_uri=redirect_uri)
         authorization_url, state = oauth2_session.authorization_url(base_authorize_url)
         authorization_url += '&kc_idp_hint=' + quote(idp_alias)
-        return authorization_url, redirect_uri, state
+        return IdpCredentials(client_id, client_secret, authorization_url, state,
+                              redirect_uri)
+
+    def authenticate_using_refresh_token(self, client_id, client_secret, refresh_token):
+        """
+
+        :param client_id: client identifier received after registering the tenant
+        :param client_secret: client password received after registering the tenant
+        :param refresh_token: openid connect refresh token
+        :return: openid token
+        """
+        try:
+            token = self._get_token_from_refresh_token(ClientCredentials(client_id, client_secret), refresh_token)
+            return token
+        except Exception as e:
+            return None
 
     def get_authorization_token(self, client_credentials, tenant_id, username=None):
         """

@@ -48,7 +48,7 @@ class UserCredentials(ClientCredentials):
         self.password = password
 
 
-class AccountCredentials(ClientCredentials):
+class IdpCredentials(ClientCredentials):
     """
     This class inherits from ClientCredentials class. Used for passing parameters required to authenticate service
     account with keycloak
