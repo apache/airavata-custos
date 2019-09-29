@@ -72,7 +72,7 @@ class KeycloakBackend(object):
         except Exception as e:
             return None
 
-    def redirect_login(self, client_id, redirect_uri, idp_alias):
+    def idp_login(self, client_id, redirect_uri, idp_alias):
         """
 
         :param client_id: client identifier received after registering the tenant
