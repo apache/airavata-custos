@@ -22,6 +22,7 @@ from airavata_custos.settings import IAMSettings
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from custos.commons.model.security.ttypes import AuthzToken
+from urllib.parse import quote
 
 
 class KeycloakBackend(object):
@@ -38,7 +39,7 @@ class KeycloakBackend(object):
         """
         Method to authenticate a gateway user with keycloak
         :param user_credentials: object of UserCredentials class
-        :return: Token object, UserInfo object
+        :return: openid token, openid user information
         """
         try:
             token, user_info = self._get_token_and_user_info_password_flow(user_credentials)
@@ -50,7 +51,7 @@ class KeycloakBackend(object):
         """
 
         :param account_credentials: object of AccountCredentials class
-        :return: Token object, Account info object
+        :return: openid token, openid user information
         """
         try:
             token, account_info = self._get_token_and_user_info_redirect_flow(account_credentials)
@@ -63,13 +64,28 @@ class KeycloakBackend(object):
 
         :param client_credentials: object of ClientCredentials class
         :param refresh_token: openid connect refresh token
-        :return: Token object
+        :return: openid token
         """
         try:
             token = self._get_token_from_refresh_token(client_credentials, refresh_token)
             return token
         except Exception as e:
             return None
+
+    def redirect_login(self, client_id, redirect_uri, idp_alias):
+        """
+
+        :param client_id: client identifier received after registering the tenant
+        :param redirect_uri: redirect url
+        :param idp_alias: idp to which redirection has to be made
+        :return:authorization_url, redirect_uri, state
+        """
+        redirect_uri += '?idp_alias=' + quote(idp_alias)
+        base_authorize_url = self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL
+        oauth2_session = OAuth2Session(client_id, scope='openid', redirect_uri=redirect_uri)
+        authorization_url, state = oauth2_session.authorization_url(base_authorize_url)
+        authorization_url += '&kc_idp_hint=' + quote(idp_alias)
+        return authorization_url, redirect_uri, state
 
     def get_authorization_token(self, client_credentials, tenant_id, username=None):
         """
@@ -83,7 +99,7 @@ class KeycloakBackend(object):
         client = BackendApplicationClient(client_id=client_credentials.client_id)
         oauth = OAuth2Session(client=client)
         token = oauth.fetch_token(
-            token_url=self.keycloak_settings.token_url,
+            token_url=self.keycloak_settings.KEYCLOAK_TOKEN_URL,
             client_id=client_credentials.client_id,
             client_secret=client_credentials.client_secret,
             verify=client_credentials.verify_ssl)
@@ -92,7 +108,6 @@ class KeycloakBackend(object):
         return AuthzToken(
             accessToken=access_token,
             claimsMap={'gatewayID': tenant_id, 'userName': username})
-
 
     def _get_token_and_user_info_password_flow(self, client_credentials):
 
@@ -104,7 +119,7 @@ class KeycloakBackend(object):
                                            client_secret=client_credentials.client_secret,
                                            verify=self.keycloak_settings.VERIFY_SSL)
         user_info = oauth2_session.get(self.keycloak_settings.KEYCLOAK_USERINFO_URL).json()
-        return self._process_token(token), self._process_userinfo(user_info)
+        return token, user_info
 
     def _get_token_and_user_info_redirect_flow(self, client_credentials):
         oauth2_session = OAuth2Session(client_credentials.client_id,
@@ -116,7 +131,7 @@ class KeycloakBackend(object):
                                            authorization_response=client_credentials.authorization_code_url,
                                            verify=self.keycloak_settings.VERIFY_SSL)
         user_info = oauth2_session.get(self.keycloak_settings.KEYCLOAK_USERINFO_URL).json()
-        return self._process_token(token), self._process_userinfo(user_info)
+        return token, user_info
 
     def _get_token_from_refresh_token(self, client_credentials, refresh_token):
 
@@ -126,26 +141,7 @@ class KeycloakBackend(object):
                                              refresh_token=refresh_token,
                                              auth=auth,
                                              verify=self.keycloak_settings.VERIFY_SSL)
-        return self._process_token(token)
-
-    @classmethod
-    def _process_token(cls, token):
-
-        now = time.time()
-        access_token = token['access_token']
-        access_token_expires_at = now + token['expires_in']
-        refresh_token = token['refresh_token']
-        refresh_token_expires_at = now + token['refresh_expires_in']
-        return Token(access_token, access_token_expires_at, refresh_token, refresh_token_expires_at)
-
-    @classmethod
-    def _process_userinfo(cls, userinfo):
-
-        username = userinfo['preferred_username']
-        email = userinfo['email']
-        first_name = userinfo['given_name']
-        last_name = userinfo['family_name']
-        return UserInfo(username, email, first_name, last_name)
+        return token
 
     def _load_settings(self, configuration_file_location):
         config = configparser.ConfigParser()
@@ -157,20 +153,3 @@ class KeycloakBackend(object):
         self.keycloak_settings.KEYCLOAK_USERINFO_URL = settings['KEYCLOAK_USERINFO_URL']
         self.keycloak_settings.VERIFY_SSL = settings.getboolean('VERIFY_SSL')
 
-
-class Token(object):
-
-    def __init__(self, access_token, access_token_expires_at, refresh_token, refresh_token_expires_at):
-        self.access_token = access_token
-        self.access_token_expires_at = access_token_expires_at
-        self.refresh_token = refresh_token
-        self.refresh_token_expires_at = refresh_token_expires_at
-
-
-class UserInfo(object):
-
-    def __init__(self, username, email, first_name, last_name):
-        self.username = username
-        self.email = email
-        self.first_name = first_name
-        self.last_name = last_name
