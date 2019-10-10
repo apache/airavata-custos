@@ -23,7 +23,7 @@ Install dependencies
 
 Server configuration should be kept in a INI file in the following format. For more information refer to sample_settings.ini file  
     
-    [IAMSeverSettings]
+    [IAMServerSettings]
     KEYCLOAK_AUTHORIZE_URL =
     KEYCLOAK_TOKEN_URL = 
     KEYCLOAK_USERINFO_URL = 

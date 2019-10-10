@@ -80,7 +80,7 @@ class KeycloakBackend(object):
         :param idp_alias: name of the idp
         :return: object of class IdpCredentials
         """
-        redirect_uri += '?idp_alias=' + quote(idp_alias)
+
         base_authorize_url = self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL
         oauth2_session = OAuth2Session(client_id, scope='openid', redirect_uri=redirect_uri)
         authorization_url, state = oauth2_session.authorization_url(base_authorize_url)
@@ -161,7 +161,7 @@ class KeycloakBackend(object):
     def _load_settings(self, configuration_file_location):
         config = configparser.ConfigParser()
         config.read(configuration_file_location)
-        settings = config['IAMSeverSettings']
+        settings = config['IAMServerSettings']
         self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL = settings['KEYCLOAK_AUTHORIZE_URL']
         self.keycloak_settings.KEYCLOAK_LOGOUT_URL = settings['KEYCLOAK_LOGOUT_URL']
         self.keycloak_settings.KEYCLOAK_TOKEN_URL = settings['KEYCLOAK_TOKEN_URL']
