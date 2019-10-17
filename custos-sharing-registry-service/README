@@ -1,0 +1,67 @@
+Custos Sharing Registry Service
+
+To start the service go to org.apache.custos.sharing.service.api and run Application.java
+
+Following are the list of APIs along with sample request body. Please please replace host and port number according to the host and port on which sharing registry service is running.
+
+##Domain
+
+To get all domains
+GET http://localhost:7070/domains?offset=%d&limit=%d
+
+Create a new domain
+POST http://localhost:7070/domains
+{
+	"domainId": "test-domain",
+	"name": "test-domain"
+}
+
+Update a domain
+PUT http://localhost:7070/domains
+{
+	"domainId": "test-domain",
+	"name": "test-domain",
+	"description":"updating the description"
+}
+
+Check if domain exists
+HEAD http://localhost:7070/domains/{domainId}
+
+To retrieve a domain
+GET http://localhost:7070/domains/{domainId}
+
+To delete a domain
+DELETE http://localhost:7070/domains/{domainId}
+
+##Users
+
+Get all users is a domain
+GET http://localhost:7070/domains/{domainId}/users?offset=%d&limit=%d
+
+Create a new user in a domain
+http://localhost:7070/domains/{domainId}/users
+{
+	"userId": "user1",
+	"domainId": "domain",
+	"userName": "test-user"
+}
+
+Update a user in a domain
+PUT http://localhost:7070/domains/{domainId}/users
+{
+	"userId": "user1",
+	"domainId": "domain",
+	"userName": "test-user"
+}
+
+Check if a user exists in a domain
+GET http://localhost:7070/domains/domain/users/user1
+
+Delete a user is a domain
+DELETE http://localhost:7070/domains/{domainId}/users/{userId}
+
+Get a user
+GET http://localhost:7070/domains/{domainId}/users/{userId}
+
+
+

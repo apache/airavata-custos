@@ -61,7 +61,7 @@ class KeycloakBackend(object):
 
     def authenticate_using_idp(self, idp_credentials):
         """
-
+        Method to authenticate a gateway user using idp for example ci logon
         :param idp_credentials: object of IdpCredentials class. To get an instance of this class use prepare_idp_credentials
         :return: openid token, openid user information
         """
