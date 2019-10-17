@@ -21,7 +21,8 @@ from thrift.protocol import TBinaryProtocol
 from thrift.protocol.TMultiplexedProtocol import TMultiplexedProtocol
 from thrift.transport import TSocket, TSSLSocket, TTransport
 
-from custos.profile.iam.admin.services.cpi import IamAdminServices, constants
+from custos.profile.iam.admin.services.cpi import IamAdminServices, constants as admin_constants
+from custos.profile.user.cpi import UserProfileService, constants as user_profile_constants
 from airavata_custos import settings
 
 log = logging.getLogger(__name__)
@@ -62,7 +63,13 @@ class CustomThriftClient(connection_pool.ThriftClient):
 
 class IAMAdminServiceThriftClient(MultiplexThriftClientMixin,
                                   CustomThriftClient):
-    service_name = constants.IAM_ADMIN_SERVICES_CPI_NAME
+    service_name = admin_constants.IAM_ADMIN_SERVICES_CPI_NAME
+    secure = True
+
+
+class UserProfileServiceThriftClient(MultiplexThriftClientMixin,
+                                  CustomThriftClient):
+    service_name = user_profile_constants.USER_PROFILE_CPI_NAME
     secure = True
 
 
@@ -76,3 +83,12 @@ def initialize_iamadmin_client_pool(host, port):
     )
     return iamadmin_client_pool
 
+def initialize_userprofile_client_pool(host, port):
+    userprofile_client_pool = connection_pool.ClientPool(
+        UserProfileService,
+        host,
+        port,
+        connection_class=UserProfileServiceThriftClient,
+        keepalive=settings.THRIFT_CLIENT_POOL_KEEPALIVE
+    )
+    return userprofile_client_pool
