@@ -41,15 +41,9 @@ service UserProfileService {
   string getAPIVersion ()
                        throws (1: profile_user_cpi_errors.UserProfileServiceException upe)
 
-  /**
-   * Create an initial UserProfile based on information in the IAM service for this user.
-   */
   user_profile_model.UserProfile initializeUserProfile (1: required security_model.AuthzToken authzToken)
                             throws (1: profile_user_cpi_errors.UserProfileServiceException upe);
 
-  user_profile_model.UserProfile addUserProfile (1: required security_model.AuthzToken authzToken,
-                         2: required user_profile_model.UserProfile userProfile)
-                      throws (1: profile_user_cpi_errors.UserProfileServiceException upe);
 
   user_profile_model.UserProfile updateUserProfile (1: required security_model.AuthzToken authzToken,
                           2: required user_profile_model.UserProfile userProfile)

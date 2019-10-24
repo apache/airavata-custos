@@ -75,7 +75,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             UserProfile userProfile = new UserProfile();
             userProfile.setUserId(userInfo.getUsername().toLowerCase());
             userProfile.setGatewayId(gatewayId);
-            userProfile.setCustosInternalUserId(userProfile.getUserId() + "@" + gatewayId);
             userProfile.addToEmails(userInfo.getEmailAddress());
             userProfile.setFirstName(userInfo.getFirstName());
             userProfile.setLastName(userInfo.getLastName());
@@ -94,26 +93,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             logger.error("Error while initializing user profile", e);
             UserProfileServiceException exception = new UserProfileServiceException();
             exception.setMessage("Error while initializing user profile. More info : " + e.getMessage());
-            throw exception;
-        }
-    }
-
-    @Override
-    public UserProfile addUserProfile(AuthzToken authzToken, UserProfile userProfile) throws UserProfileServiceException {
-        try{
-            // Lowercase user id and internal id
-            userProfile.setUserId(userProfile.getUserId().toLowerCase());
-            userProfile = userProfileRepository.updateUserProfile(userProfile, getIAMUserProfileUpdater(authzToken, userProfile));
-            if (null != userProfile) {
-                logger.info("Added UserProfile with userId: " + userProfile.getUserId());
-                return userProfile;
-            } else {
-                throw new Exception("User creation failed. Please try again.");
-            }
-        } catch (Exception e) {
-            logger.error("Error while creating user profile", e);
-            UserProfileServiceException exception = new UserProfileServiceException();
-            exception.setMessage("Error while creating user profile. More info : " + e.getMessage());
             throw exception;
         }
     }
@@ -229,15 +208,6 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             logger.error("Failed to create IAM Admin Services client", e);
             UserProfileServiceException ex = new UserProfileServiceException("Failed to create IAM Admin Services client");
             throw ex;
-        }
-    }
-
-    private void updateCustosInternalId(UserProfile userProfile){
-        //TODO: check if other ids need to be changed
-        String internalId = userProfile.getUserId() + "@" + userProfile.getGatewayId();
-        userProfile.setCustosInternalUserId(internalId);
-        if(userProfile.isSetNsfDemographics()){
-            userProfile.setNsfDemographics(userProfile.getNsfDemographics().setCustosInternalUserId(internalId));
         }
     }
 }

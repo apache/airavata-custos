@@ -27,7 +27,6 @@ import java.util.List;
 @Entity
 @Table(name="USER_PROFILE")
 public class UserProfileEntity {
-    private String custosInternalUserId;
     private String userId;
     private String gatewayId;
     private String userModelVersion;
@@ -55,15 +54,6 @@ public class UserProfileEntity {
     private NSFDemographicsEntity nsfDemographics;
 
     @Id
-    @Column(name = "CUSTOS_INTERNAL_USER_ID")
-    public String getCustosInternalUserId() {
-        return custosInternalUserId;
-    }
-
-    public void setCustosInternalUserId(String id) {
-        this.custosInternalUserId = id;
-    }
-
     @Column(name = "USER_ID")
     public String getUserId() {
         return userId;
@@ -73,6 +63,7 @@ public class UserProfileEntity {
         this.userId = userId;
     }
 
+    @Id
     @Column(name = "GATEWAY_ID")
     public String getGatewayId() {
         return gatewayId;
@@ -92,7 +83,7 @@ public class UserProfileEntity {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name="USER_PROFILE_EMAIL", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="USER_PROFILE_EMAIL", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name="GATEWAY_ID")})
     @Column(name = "EMAIL")
     public List<String> getEmails() {
         return emails;
@@ -157,7 +148,7 @@ public class UserProfileEntity {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name="USER_PROFILE_PHONE", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="USER_PROFILE_PHONE", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name="GATEWAY_ID")})
     @Column(name = "PHONE")
     public List<String> getPhones() {
         return phones;
@@ -177,7 +168,7 @@ public class UserProfileEntity {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name="USER_PROFILE_NATIONALITY", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="USER_PROFILE_NATIONALITY", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name="GATEWAY_ID")})
     @Column(name = "NATIONALITY")
     public List<String> getNationality() {
         return nationality;
@@ -252,7 +243,7 @@ public class UserProfileEntity {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name="USER_PROFILE_LABELED_URI", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="USER_PROFILE_LABELED_URI", joinColumns = @JoinColumn(name="UA"))
     @Column(name = "LABELED_URI")
     public List<String> getLabeledURI() {
         return labeledURI;
@@ -304,7 +295,6 @@ public class UserProfileEntity {
     @Override
     public String toString() {
         return "UserProfileEntity{" +
-                "custosInternalUserId='" + custosInternalUserId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", gatewayId='" + gatewayId + '\'' +
                 ", userModelVersion='" + userModelVersion + '\'' +

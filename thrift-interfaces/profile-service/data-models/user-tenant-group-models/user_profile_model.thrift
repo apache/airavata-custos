@@ -24,7 +24,6 @@
  namespace py custos.profile.model.User
 
 const string USER_PROFILE_VERSION = "1.0"
-const string DEFAULT_ID = "DO_NOT_SET_AT_CLIENTS"
 
 enum Status {
     ACTIVE,
@@ -99,12 +98,13 @@ enum disability {
  *
 */
 struct NSFDemographics {
-    1: required string custosInternalUserId = DEFAULT_ID,
-    2: optional string gender,
-    3: optional USCitizenship usCitizenship,
-    4: optional list<ethnicity> ethnicities,
-    5: optional list<race> races,
-    6: optional list<disability> disabilities
+    1: required string userId,
+    2: required string gatewayId,
+    3: optional string gender,
+    4: optional USCitizenship usCitizenship,
+    5: optional list<ethnicity> ethnicities,
+    6: optional list<race> races,
+    7: optional list<disability> disabilities
 }
 
 /**
@@ -168,28 +168,27 @@ struct NSFDemographics {
 
 struct UserProfile {
     1: required string userModelVersion = USER_PROFILE_VERSION,
-    2: required string custosInternalUserId = DEFAULT_ID,
-    3: required string userId,
-    4: required string gatewayId,
-    5: required list<string> emails,
-    6: required string firstName,
-    7: required string lastName,
-    8: optional string middleName,
-    9: optional string namePrefix,
-    10: optional string nameSuffix,
-    11: optional string orcidId,
-    12: optional list<string> phones,
-    13: optional string country,
-    14: optional list<string> nationality,
-    15: optional string homeOrganization,
-    16: optional string orginationAffiliation,
-    17: required i64 creationTime,
-    18: required i64 lastAccessTime,
-    19: required i64 validUntil,
-    20: required Status State,
-    21: optional string comments,
-    22: optional list<string> labeledURI,
-    23: optional string gpgKey,
-    24: optional string timeZone,
-    25: optional NSFDemographics nsfDemographics
+    2: required string userId,
+    3: required string gatewayId,
+    4: optional list<string> emails,
+    5: optional string firstName,
+    6: optional string lastName,
+    7: optional string middleName,
+    8: optional string namePrefix,
+    9: optional string nameSuffix,
+    10: optional string orcidId,
+    11: optional list<string> phones,
+    12: optional string country,
+    13: optional list<string> nationality,
+    14: optional string homeOrganization,
+    15: optional string orginationAffiliation,
+    16: required i64 creationTime,
+    17: required i64 lastAccessTime,
+    18: required i64 validUntil,
+    19: required Status State,
+    20: optional string comments,
+    21: optional list<string> labeledURI,
+    22: optional string gpgKey,
+    23: optional string timeZone,
+    24: optional NSFDemographics nsfDemographics
 }
