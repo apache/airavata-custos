@@ -387,9 +387,10 @@ class UserProfile(object):
     *
 
     Attributes:
-     - userModelVersion
      - userId
      - gatewayId
+     - State
+     - userModelVersion
      - emails
      - firstName
      - lastName
@@ -405,7 +406,6 @@ class UserProfile(object):
      - creationTime
      - lastAccessTime
      - validUntil
-     - State
      - comments
      - labeledURI
      - gpgKey
@@ -415,10 +415,11 @@ class UserProfile(object):
     """
 
 
-    def __init__(self, userModelVersion="1.0", userId=None, gatewayId=None, emails=None, firstName=None, lastName=None, middleName=None, namePrefix=None, nameSuffix=None, orcidId=None, phones=None, country=None, nationality=None, homeOrganization=None, orginationAffiliation=None, creationTime=None, lastAccessTime=None, validUntil=None, State=None, comments=None, labeledURI=None, gpgKey=None, timeZone=None, nsfDemographics=None,):
-        self.userModelVersion = userModelVersion
+    def __init__(self, userId=None, gatewayId=None, State=None, userModelVersion="1.0", emails=None, firstName=None, lastName=None, middleName=None, namePrefix=None, nameSuffix=None, orcidId=None, phones=None, country=None, nationality=None, homeOrganization=None, orginationAffiliation=None, creationTime=None, lastAccessTime=None, validUntil=None, comments=None, labeledURI=None, gpgKey=None, timeZone=None, nsfDemographics=None,):
         self.userId = userId
         self.gatewayId = gatewayId
+        self.State = State
+        self.userModelVersion = userModelVersion
         self.emails = emails
         self.firstName = firstName
         self.lastName = lastName
@@ -434,7 +435,6 @@ class UserProfile(object):
         self.creationTime = creationTime
         self.lastAccessTime = lastAccessTime
         self.validUntil = validUntil
-        self.State = State
         self.comments = comments
         self.labeledURI = labeledURI
         self.gpgKey = gpgKey
@@ -452,20 +452,25 @@ class UserProfile(object):
                 break
             if fid == 1:
                 if ftype == TType.STRING:
-                    self.userModelVersion = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                    self.userId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.STRING:
-                    self.userId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.STRING:
                     self.gatewayId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.I32:
+                    self.State = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
             elif fid == 4:
+                if ftype == TType.STRING:
+                    self.userModelVersion = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
                 if ftype == TType.LIST:
                     self.emails = []
                     (_etype24, _size21) = iprot.readListBegin()
@@ -475,37 +480,37 @@ class UserProfile(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
-            elif fid == 5:
+            elif fid == 6:
                 if ftype == TType.STRING:
                     self.firstName = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 6:
+            elif fid == 7:
                 if ftype == TType.STRING:
                     self.lastName = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 7:
+            elif fid == 8:
                 if ftype == TType.STRING:
                     self.middleName = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 8:
+            elif fid == 9:
                 if ftype == TType.STRING:
                     self.namePrefix = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 9:
+            elif fid == 10:
                 if ftype == TType.STRING:
                     self.nameSuffix = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 10:
+            elif fid == 11:
                 if ftype == TType.STRING:
                     self.orcidId = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 11:
+            elif fid == 12:
                 if ftype == TType.LIST:
                     self.phones = []
                     (_etype30, _size27) = iprot.readListBegin()
@@ -515,12 +520,12 @@ class UserProfile(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
-            elif fid == 12:
+            elif fid == 13:
                 if ftype == TType.STRING:
                     self.country = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 13:
+            elif fid == 14:
                 if ftype == TType.LIST:
                     self.nationality = []
                     (_etype36, _size33) = iprot.readListBegin()
@@ -530,34 +535,29 @@ class UserProfile(object):
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
-            elif fid == 14:
+            elif fid == 15:
                 if ftype == TType.STRING:
                     self.homeOrganization = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 15:
+            elif fid == 16:
                 if ftype == TType.STRING:
                     self.orginationAffiliation = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
-            elif fid == 16:
+            elif fid == 17:
                 if ftype == TType.I64:
                     self.creationTime = iprot.readI64()
                 else:
                     iprot.skip(ftype)
-            elif fid == 17:
+            elif fid == 18:
                 if ftype == TType.I64:
                     self.lastAccessTime = iprot.readI64()
                 else:
                     iprot.skip(ftype)
-            elif fid == 18:
+            elif fid == 19:
                 if ftype == TType.I64:
                     self.validUntil = iprot.readI64()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 19:
-                if ftype == TType.I32:
-                    self.State = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             elif fid == 20:
@@ -601,90 +601,90 @@ class UserProfile(object):
             oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
             return
         oprot.writeStructBegin('UserProfile')
-        if self.userModelVersion is not None:
-            oprot.writeFieldBegin('userModelVersion', TType.STRING, 1)
-            oprot.writeString(self.userModelVersion.encode('utf-8') if sys.version_info[0] == 2 else self.userModelVersion)
-            oprot.writeFieldEnd()
         if self.userId is not None:
-            oprot.writeFieldBegin('userId', TType.STRING, 2)
+            oprot.writeFieldBegin('userId', TType.STRING, 1)
             oprot.writeString(self.userId.encode('utf-8') if sys.version_info[0] == 2 else self.userId)
             oprot.writeFieldEnd()
         if self.gatewayId is not None:
-            oprot.writeFieldBegin('gatewayId', TType.STRING, 3)
+            oprot.writeFieldBegin('gatewayId', TType.STRING, 2)
             oprot.writeString(self.gatewayId.encode('utf-8') if sys.version_info[0] == 2 else self.gatewayId)
             oprot.writeFieldEnd()
+        if self.State is not None:
+            oprot.writeFieldBegin('State', TType.I32, 3)
+            oprot.writeI32(self.State)
+            oprot.writeFieldEnd()
+        if self.userModelVersion is not None:
+            oprot.writeFieldBegin('userModelVersion', TType.STRING, 4)
+            oprot.writeString(self.userModelVersion.encode('utf-8') if sys.version_info[0] == 2 else self.userModelVersion)
+            oprot.writeFieldEnd()
         if self.emails is not None:
-            oprot.writeFieldBegin('emails', TType.LIST, 4)
+            oprot.writeFieldBegin('emails', TType.LIST, 5)
             oprot.writeListBegin(TType.STRING, len(self.emails))
             for iter45 in self.emails:
                 oprot.writeString(iter45.encode('utf-8') if sys.version_info[0] == 2 else iter45)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.firstName is not None:
-            oprot.writeFieldBegin('firstName', TType.STRING, 5)
+            oprot.writeFieldBegin('firstName', TType.STRING, 6)
             oprot.writeString(self.firstName.encode('utf-8') if sys.version_info[0] == 2 else self.firstName)
             oprot.writeFieldEnd()
         if self.lastName is not None:
-            oprot.writeFieldBegin('lastName', TType.STRING, 6)
+            oprot.writeFieldBegin('lastName', TType.STRING, 7)
             oprot.writeString(self.lastName.encode('utf-8') if sys.version_info[0] == 2 else self.lastName)
             oprot.writeFieldEnd()
         if self.middleName is not None:
-            oprot.writeFieldBegin('middleName', TType.STRING, 7)
+            oprot.writeFieldBegin('middleName', TType.STRING, 8)
             oprot.writeString(self.middleName.encode('utf-8') if sys.version_info[0] == 2 else self.middleName)
             oprot.writeFieldEnd()
         if self.namePrefix is not None:
-            oprot.writeFieldBegin('namePrefix', TType.STRING, 8)
+            oprot.writeFieldBegin('namePrefix', TType.STRING, 9)
             oprot.writeString(self.namePrefix.encode('utf-8') if sys.version_info[0] == 2 else self.namePrefix)
             oprot.writeFieldEnd()
         if self.nameSuffix is not None:
-            oprot.writeFieldBegin('nameSuffix', TType.STRING, 9)
+            oprot.writeFieldBegin('nameSuffix', TType.STRING, 10)
             oprot.writeString(self.nameSuffix.encode('utf-8') if sys.version_info[0] == 2 else self.nameSuffix)
             oprot.writeFieldEnd()
         if self.orcidId is not None:
-            oprot.writeFieldBegin('orcidId', TType.STRING, 10)
+            oprot.writeFieldBegin('orcidId', TType.STRING, 11)
             oprot.writeString(self.orcidId.encode('utf-8') if sys.version_info[0] == 2 else self.orcidId)
             oprot.writeFieldEnd()
         if self.phones is not None:
-            oprot.writeFieldBegin('phones', TType.LIST, 11)
+            oprot.writeFieldBegin('phones', TType.LIST, 12)
             oprot.writeListBegin(TType.STRING, len(self.phones))
             for iter46 in self.phones:
                 oprot.writeString(iter46.encode('utf-8') if sys.version_info[0] == 2 else iter46)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.country is not None:
-            oprot.writeFieldBegin('country', TType.STRING, 12)
+            oprot.writeFieldBegin('country', TType.STRING, 13)
             oprot.writeString(self.country.encode('utf-8') if sys.version_info[0] == 2 else self.country)
             oprot.writeFieldEnd()
         if self.nationality is not None:
-            oprot.writeFieldBegin('nationality', TType.LIST, 13)
+            oprot.writeFieldBegin('nationality', TType.LIST, 14)
             oprot.writeListBegin(TType.STRING, len(self.nationality))
             for iter47 in self.nationality:
                 oprot.writeString(iter47.encode('utf-8') if sys.version_info[0] == 2 else iter47)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.homeOrganization is not None:
-            oprot.writeFieldBegin('homeOrganization', TType.STRING, 14)
+            oprot.writeFieldBegin('homeOrganization', TType.STRING, 15)
             oprot.writeString(self.homeOrganization.encode('utf-8') if sys.version_info[0] == 2 else self.homeOrganization)
             oprot.writeFieldEnd()
         if self.orginationAffiliation is not None:
-            oprot.writeFieldBegin('orginationAffiliation', TType.STRING, 15)
+            oprot.writeFieldBegin('orginationAffiliation', TType.STRING, 16)
             oprot.writeString(self.orginationAffiliation.encode('utf-8') if sys.version_info[0] == 2 else self.orginationAffiliation)
             oprot.writeFieldEnd()
         if self.creationTime is not None:
-            oprot.writeFieldBegin('creationTime', TType.I64, 16)
+            oprot.writeFieldBegin('creationTime', TType.I64, 17)
             oprot.writeI64(self.creationTime)
             oprot.writeFieldEnd()
         if self.lastAccessTime is not None:
-            oprot.writeFieldBegin('lastAccessTime', TType.I64, 17)
+            oprot.writeFieldBegin('lastAccessTime', TType.I64, 18)
             oprot.writeI64(self.lastAccessTime)
             oprot.writeFieldEnd()
         if self.validUntil is not None:
-            oprot.writeFieldBegin('validUntil', TType.I64, 18)
+            oprot.writeFieldBegin('validUntil', TType.I64, 19)
             oprot.writeI64(self.validUntil)
-            oprot.writeFieldEnd()
-        if self.State is not None:
-            oprot.writeFieldBegin('State', TType.I32, 19)
-            oprot.writeI32(self.State)
             oprot.writeFieldEnd()
         if self.comments is not None:
             oprot.writeFieldBegin('comments', TType.STRING, 20)
@@ -713,20 +713,14 @@ class UserProfile(object):
         oprot.writeStructEnd()
 
     def validate(self):
-        if self.userModelVersion is None:
-            raise TProtocolException(message='Required field userModelVersion is unset!')
         if self.userId is None:
             raise TProtocolException(message='Required field userId is unset!')
         if self.gatewayId is None:
             raise TProtocolException(message='Required field gatewayId is unset!')
-        if self.creationTime is None:
-            raise TProtocolException(message='Required field creationTime is unset!')
-        if self.lastAccessTime is None:
-            raise TProtocolException(message='Required field lastAccessTime is unset!')
-        if self.validUntil is None:
-            raise TProtocolException(message='Required field validUntil is unset!')
         if self.State is None:
             raise TProtocolException(message='Required field State is unset!')
+        if self.userModelVersion is None:
+            raise TProtocolException(message='Required field userModelVersion is unset!')
         return
 
     def __repr__(self):
@@ -753,25 +747,25 @@ NSFDemographics.thrift_spec = (
 all_structs.append(UserProfile)
 UserProfile.thrift_spec = (
     None,  # 0
-    (1, TType.STRING, 'userModelVersion', 'UTF8', "1.0", ),  # 1
-    (2, TType.STRING, 'userId', 'UTF8', None, ),  # 2
-    (3, TType.STRING, 'gatewayId', 'UTF8', None, ),  # 3
-    (4, TType.LIST, 'emails', (TType.STRING, 'UTF8', False), None, ),  # 4
-    (5, TType.STRING, 'firstName', 'UTF8', None, ),  # 5
-    (6, TType.STRING, 'lastName', 'UTF8', None, ),  # 6
-    (7, TType.STRING, 'middleName', 'UTF8', None, ),  # 7
-    (8, TType.STRING, 'namePrefix', 'UTF8', None, ),  # 8
-    (9, TType.STRING, 'nameSuffix', 'UTF8', None, ),  # 9
-    (10, TType.STRING, 'orcidId', 'UTF8', None, ),  # 10
-    (11, TType.LIST, 'phones', (TType.STRING, 'UTF8', False), None, ),  # 11
-    (12, TType.STRING, 'country', 'UTF8', None, ),  # 12
-    (13, TType.LIST, 'nationality', (TType.STRING, 'UTF8', False), None, ),  # 13
-    (14, TType.STRING, 'homeOrganization', 'UTF8', None, ),  # 14
-    (15, TType.STRING, 'orginationAffiliation', 'UTF8', None, ),  # 15
-    (16, TType.I64, 'creationTime', None, None, ),  # 16
-    (17, TType.I64, 'lastAccessTime', None, None, ),  # 17
-    (18, TType.I64, 'validUntil', None, None, ),  # 18
-    (19, TType.I32, 'State', None, None, ),  # 19
+    (1, TType.STRING, 'userId', 'UTF8', None, ),  # 1
+    (2, TType.STRING, 'gatewayId', 'UTF8', None, ),  # 2
+    (3, TType.I32, 'State', None, None, ),  # 3
+    (4, TType.STRING, 'userModelVersion', 'UTF8', "1.0", ),  # 4
+    (5, TType.LIST, 'emails', (TType.STRING, 'UTF8', False), None, ),  # 5
+    (6, TType.STRING, 'firstName', 'UTF8', None, ),  # 6
+    (7, TType.STRING, 'lastName', 'UTF8', None, ),  # 7
+    (8, TType.STRING, 'middleName', 'UTF8', None, ),  # 8
+    (9, TType.STRING, 'namePrefix', 'UTF8', None, ),  # 9
+    (10, TType.STRING, 'nameSuffix', 'UTF8', None, ),  # 10
+    (11, TType.STRING, 'orcidId', 'UTF8', None, ),  # 11
+    (12, TType.LIST, 'phones', (TType.STRING, 'UTF8', False), None, ),  # 12
+    (13, TType.STRING, 'country', 'UTF8', None, ),  # 13
+    (14, TType.LIST, 'nationality', (TType.STRING, 'UTF8', False), None, ),  # 14
+    (15, TType.STRING, 'homeOrganization', 'UTF8', None, ),  # 15
+    (16, TType.STRING, 'orginationAffiliation', 'UTF8', None, ),  # 16
+    (17, TType.I64, 'creationTime', None, None, ),  # 17
+    (18, TType.I64, 'lastAccessTime', None, None, ),  # 18
+    (19, TType.I64, 'validUntil', None, None, ),  # 19
     (20, TType.STRING, 'comments', 'UTF8', None, ),  # 20
     (21, TType.LIST, 'labeledURI', (TType.STRING, 'UTF8', False), None, ),  # 21
     (22, TType.STRING, 'gpgKey', 'UTF8', None, ),  # 22

@@ -1,13 +1,29 @@
 from airavata_custos import utils
 from custos.commons.model.security.ttypes import AuthzToken
 from custos.profile.model.User.ttypes import UserProfile
+from custos.profile.model.User.ttypes import Status
 
 
 class User(object):
 
-    def __init__(self, user_name, tenant, emails, first_name=None, last_name=None, middle_name=None, name_prefix=None,
+    def __init__(self, user_name, tenant, status=Status.ACTIVE, emails=None, first_name=None, last_name=None, middle_name=None, name_prefix=None,
                  name_suffix=None,
                  phones=None, country=None, nationality=None, labeled_URI=None, time_zone=None):
+
+        UserProfile(user_name, tenant, status, emails, first_name, last_name, middle_name, name_prefix,
+                           name_suffix ,phones, country, nationality, labeled_URI,time_zone )
+
+
+class Profile(object):
+
+    def __init__(self):
+        host = ""
+        port = ""
+        self.profile_service_pool = utils.initialize_userprofile_client_pool(host, port)
+
+    def initialize_user(self, user_name, tenant, status, emails, first_name, last_name, middle_name, name_prefix,
+                    name_suffix, phones, country, nationality, time_zone, nsf_demographics, home_organization,
+                    original_affiliation, labeled_URI, comments, user_model_version, ordcidId)
         """
         constructor to create a user object
         :param user_name: unique identifier of the user PRIMARY
@@ -24,28 +40,8 @@ class User(object):
         :param labeled_URI: Google Scholar, Web of Science, ACS, e.t.c
         :param time_zone: User’s preferred timezone
         """
-
-        self.user_name = user_name
-        self.tenant = tenant
-        self.first_name = first_name
-        self.last_name = last_name
-        self.middle_name = middle_name
-        self.namePrefix = name_prefix
-        self.nameSuffix = name_suffix
-        self.emails = emails
-        self.phones = phones
-        self.country = country
-        self.nationality = nationality
-        self.labeled_URI = labeled_URI
-        self.time_zone = time_zone
-
-
-class Profile(object):
-
-    def __init__(self):
-        host = ""
-        port = ""
-        self.profile_service_pool = utils.initialize_userprofile_client_pool(host, port)
+        return UserProfile(user_name, tenant, status, emails, first_name, last_name, middle_name, name_prefix,
+                           name_suffix ,phones, country, nationality, labeled_URI,time_zone )
 
     def create_user(self, authorization_token: AuthzToken) -> User:
         """
