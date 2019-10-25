@@ -341,11 +341,8 @@ class UserProfile(object):
     * userModelVersion:
     *  Version number of profile
     *
-    * custosInternalUserId:
-    *  internal to custos, not intended to be used outside of the custos platform or possibly by gateways
-    *  (that is, never shown to users), never reassigned, REQUIRED
     *
-    * userId:
+    * userId: required
     *  Externally assertable unique identifier. SAML (primarly in higher education, academic) tends to keep
     *   user name less opaque. OpenID Connect maintains them to be opaque.
     *
