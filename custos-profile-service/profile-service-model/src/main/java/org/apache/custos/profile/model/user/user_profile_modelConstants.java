@@ -11,6 +11,4 @@ public class user_profile_modelConstants {
 
   public static final String USER_PROFILE_VERSION = "1.0";
 
-  public static final String DEFAULT_ID = "DO_NOT_SET_AT_CLIENTS";
-
 }

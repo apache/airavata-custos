@@ -67,7 +67,7 @@ public class UserProfileSample {
             userProfileClient = CustosProfileServiceClientFactory.createCustosUserProfileServiceClient(profileServiceServerHost, profileServiceServerPort);
 
             // test add-user-profile
-            testUser = userProfileClient.addUserProfile(authzToken, getUserProfile(username));
+            testUser = userProfileClient.initializeUserProfile(authzToken);
             assert (testUser != null) : "User creation failed. Null userId returned!";
             System.out.println("User created with userId: " + testUser);
 
@@ -116,7 +116,6 @@ public class UserProfileSample {
         // construct userProfile object
         UserProfile userProfile = new UserProfile();
         userProfile.setUserModelVersion("model-" + userIdValue);
-        userProfile.setCustosInternalUserId("test-user-internal-" + userIdValue);
         userProfile.setUserId(userId);
         userProfile.setFirstName("test-user-fname");
         userProfile.setLastName("test-user-lname");
@@ -134,7 +133,6 @@ public class UserProfileSample {
     private static NSFDemographics getNSFDemographics(int userIdValue) {
         // construct nsfdemographics object
         NSFDemographics nsfDemographics = new NSFDemographics();
-        nsfDemographics.setCustosInternalUserId("test-user-internal-" + userIdValue);
         nsfDemographics.setGender("male");
         nsfDemographics.setUsCitizenship(USCitizenship.US_CITIZEN);
         nsfDemographics.addToEthnicities(ethnicity.NOT_HISPANIC_LATINO);

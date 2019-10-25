@@ -795,7 +795,6 @@ public class TenantManagementKeycloakImpl implements TenantManagementInterface {
     private UserProfile convertUserRepresentationToUserProfile(UserRepresentation userRepresentation, String tenantId) {
 
         UserProfile profile = new UserProfile();
-        profile.setCustosInternalUserId(userRepresentation.getUsername() + "@" + tenantId);
         profile.setGatewayId(tenantId);
         profile.setUserId(userRepresentation.getUsername());
         profile.setFirstName(userRepresentation.getFirstName());

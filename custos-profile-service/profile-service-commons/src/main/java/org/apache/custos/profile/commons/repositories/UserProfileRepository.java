@@ -20,6 +20,7 @@
 */
 package org.apache.custos.profile.commons.repositories;
 
+import org.apache.custos.profile.commons.user.entities.UserIdentifier;
 import org.apache.custos.profile.commons.user.entities.UserProfileEntity;
 import org.apache.custos.profile.commons.utils.JPAUtils;
 import org.apache.custos.profile.commons.utils.ObjectMapperSingleton;
@@ -29,6 +30,7 @@ import org.dozer.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +107,16 @@ public class UserProfileRepository extends AbstractRepository<UserProfile, UserP
             return result;
         });
         return mapper.map(persistedCopy, UserProfile.class);
+    }
+
+    public boolean deleteUserProfile(UserProfile userProfile){
+        Mapper mapper = ObjectMapperSingleton.getInstance();
+        UserProfileEntity entity = mapper.map(userProfile, UserProfileEntity.class);
+        JPAUtils.execute(entityManager -> {
+            entityManager.remove(entity);
+            return entity;
+        });
+        return true;
     }
 
 //    public static void main(String args[]) {

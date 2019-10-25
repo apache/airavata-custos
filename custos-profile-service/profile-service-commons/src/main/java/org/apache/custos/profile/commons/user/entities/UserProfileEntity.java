@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 
 @Entity
+@IdClass(UserIdentifier.class)
 @Table(name="USER_PROFILE")
 public class UserProfileEntity {
     private String userId;
@@ -243,7 +244,7 @@ public class UserProfileEntity {
     }
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name="USER_PROFILE_LABELED_URI", joinColumns = @JoinColumn(name="UA"))
+    @CollectionTable(name="USER_PROFILE_LABELED_URI", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name="GATEWAY_ID")})
     @Column(name = "LABELED_URI")
     public List<String> getLabeledURI() {
         return labeledURI;

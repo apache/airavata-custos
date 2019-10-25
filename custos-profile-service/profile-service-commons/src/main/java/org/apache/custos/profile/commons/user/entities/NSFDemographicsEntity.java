@@ -24,9 +24,12 @@ import javax.persistence.*;
 import java.util.List;
 
 @Entity
+@IdClass(UserIdentifier.class)
 @Table(name = "NSF_DEMOGRAPHIC")
 public class NSFDemographicsEntity {
-    private String custosInternalUserId;
+
+    private String userId;
+    private String gatewayId;
     private String gender;
     private List<String> ethnicities;
     private List<String> races;
@@ -34,13 +37,23 @@ public class NSFDemographicsEntity {
     private UserProfileEntity userProfile;
 
     @Id
-    @Column(name = "CUSTOS_INTERNAL_USER_ID")
-    public String getCustosInternalUserId() {
-        return custosInternalUserId;
+    @Column(name = "USER_ID")
+    public String getUserId() {
+        return userId;
     }
 
-    public void setCustosInternalUserId(String userId) {
-        this.custosInternalUserId = userId;
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    @Id
+    @Column(name = "GATEWAY_ID")
+    public String getGatewayId() {
+        return gatewayId;
+    }
+
+    public void setGatewayId(String gatewayId) {
+        this.gatewayId = gatewayId;
     }
 
     @Column(name = "GENDER")
@@ -53,7 +66,7 @@ public class NSFDemographicsEntity {
     }
 
     @ElementCollection
-    @CollectionTable(name="NSF_DEMOGRAPHIC_ETHNICITY", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="NSF_DEMOGRAPHIC_ETHNICITY", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name = "GATEWAY_ID")})
     @Column(name = "ETHNICITY")
     public List<String> getEthnicities() {
         return ethnicities;
@@ -64,7 +77,7 @@ public class NSFDemographicsEntity {
     }
 
     @ElementCollection
-    @CollectionTable(name="NSF_DEMOGRAPHIC_RACE", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="NSF_DEMOGRAPHIC_RACE", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name = "GATEWAY_ID")})
     @Column(name = "RACE")
     public List<String> getRaces() {
         return races;
@@ -75,7 +88,7 @@ public class NSFDemographicsEntity {
     }
 
     @ElementCollection
-    @CollectionTable(name="NSF_DEMOGRAPHIC_DISABILITY", joinColumns = @JoinColumn(name="CUSTOS_INTERNAL_USER_ID"))
+    @CollectionTable(name="NSF_DEMOGRAPHIC_DISABILITY", joinColumns = {@JoinColumn(name="USER_ID"), @JoinColumn(name = "GATEWAY_ID")})
     @Column(name = "DISABILITY")
     public List<String> getDisabilities() {
         return disabilities;
@@ -86,7 +99,8 @@ public class NSFDemographicsEntity {
     }
 
     @OneToOne(targetEntity = UserProfileEntity.class, cascade = CascadeType.ALL)
-    @PrimaryKeyJoinColumn(name = "CUSTOS_INTERNAL_USER_ID", referencedColumnName = "CUSTOS_INTERNAL_USER_ID")
+    @PrimaryKeyJoinColumns({@PrimaryKeyJoinColumn(name = "USER_ID", referencedColumnName = "USER_ID"),
+            @PrimaryKeyJoinColumn(name = "GATEWAY_ID", referencedColumnName = "GATEWAY_ID")})
     public UserProfileEntity getUserProfile() {
         return userProfile;
     }
@@ -98,7 +112,8 @@ public class NSFDemographicsEntity {
     @Override
     public String toString() {
         return "NSFDemographicsEntity{" +
-                "custosInternalUserId='" + custosInternalUserId + '\'' +
+                "userId='" + userId + '\'' +
+                "gatewayId='" + gatewayId + '\'' +
                 ", gender='" + gender + '\'' +
                 ", ethnicities=" + ethnicities +
                 ", races=" + races +

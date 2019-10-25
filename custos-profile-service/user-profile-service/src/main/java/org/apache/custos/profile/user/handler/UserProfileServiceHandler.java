@@ -155,7 +155,7 @@ public class UserProfileServiceHandler implements UserProfileService.Iface {
             userProfile = userProfileRepository.getUserProfileByIdAndGateWay(userId, gatewayId);
 
             // delete user
-            boolean deleteSuccess = userProfileRepository.delete(userId);
+            boolean deleteSuccess = userProfileRepository.deleteUserProfile(userProfile);
             logger.info("Delete UserProfile with userId: " + userId + ", " + (deleteSuccess? "Success!" : "Failed!"));
             if(deleteSuccess){
                 return userProfile;
