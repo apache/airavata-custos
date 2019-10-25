@@ -24,19 +24,8 @@ class Iface(object):
 
     def initializeUserProfile(self, authzToken):
         """
-        Create an initial UserProfile based on information in the IAM service for this user.
-
         Parameters:
          - authzToken
-
-        """
-        pass
-
-    def addUserProfile(self, authzToken, userProfile):
-        """
-        Parameters:
-         - authzToken
-         - userProfile
 
         """
         pass
@@ -129,8 +118,6 @@ class Client(Iface):
 
     def initializeUserProfile(self, authzToken):
         """
-        Create an initial UserProfile based on information in the IAM service for this user.
-
         Parameters:
          - authzToken
 
@@ -162,42 +149,6 @@ class Client(Iface):
         if result.upe is not None:
             raise result.upe
         raise TApplicationException(TApplicationException.MISSING_RESULT, "initializeUserProfile failed: unknown result")
-
-    def addUserProfile(self, authzToken, userProfile):
-        """
-        Parameters:
-         - authzToken
-         - userProfile
-
-        """
-        self.send_addUserProfile(authzToken, userProfile)
-        return self.recv_addUserProfile()
-
-    def send_addUserProfile(self, authzToken, userProfile):
-        self._oprot.writeMessageBegin('addUserProfile', TMessageType.CALL, self._seqid)
-        args = addUserProfile_args()
-        args.authzToken = authzToken
-        args.userProfile = userProfile
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_addUserProfile(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = addUserProfile_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        if result.success is not None:
-            return result.success
-        if result.upe is not None:
-            raise result.upe
-        raise TApplicationException(TApplicationException.MISSING_RESULT, "addUserProfile failed: unknown result")
 
     def updateUserProfile(self, authzToken, userProfile):
         """
@@ -396,7 +347,6 @@ class Processor(Iface, TProcessor):
         self._processMap = {}
         self._processMap["getAPIVersion"] = Processor.process_getAPIVersion
         self._processMap["initializeUserProfile"] = Processor.process_initializeUserProfile
-        self._processMap["addUserProfile"] = Processor.process_addUserProfile
         self._processMap["updateUserProfile"] = Processor.process_updateUserProfile
         self._processMap["getUserProfileById"] = Processor.process_getUserProfileById
         self._processMap["deleteUserProfile"] = Processor.process_deleteUserProfile
@@ -466,32 +416,6 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("initializeUserProfile", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_addUserProfile(self, seqid, iprot, oprot):
-        args = addUserProfile_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = addUserProfile_result()
-        try:
-            result.success = self._handler.addUserProfile(args.authzToken, args.userProfile)
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except custos.profile.user.cpi.error.ttypes.UserProfileServiceException as upe:
-            msg_type = TMessageType.REPLY
-            result.upe = upe
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("addUserProfile", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -881,161 +805,6 @@ class initializeUserProfile_result(object):
         return not (self == other)
 all_structs.append(initializeUserProfile_result)
 initializeUserProfile_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [custos.profile.model.User.ttypes.UserProfile, None], None, ),  # 0
-    (1, TType.STRUCT, 'upe', [custos.profile.user.cpi.error.ttypes.UserProfileServiceException, None], None, ),  # 1
-)
-
-
-class addUserProfile_args(object):
-    """
-    Attributes:
-     - authzToken
-     - userProfile
-
-    """
-
-
-    def __init__(self, authzToken=None, userProfile=None,):
-        self.authzToken = authzToken
-        self.userProfile = userProfile
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 1:
-                if ftype == TType.STRUCT:
-                    self.authzToken = custos.commons.model.security.ttypes.AuthzToken()
-                    self.authzToken.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            elif fid == 2:
-                if ftype == TType.STRUCT:
-                    self.userProfile = custos.profile.model.User.ttypes.UserProfile()
-                    self.userProfile.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('addUserProfile_args')
-        if self.authzToken is not None:
-            oprot.writeFieldBegin('authzToken', TType.STRUCT, 1)
-            self.authzToken.write(oprot)
-            oprot.writeFieldEnd()
-        if self.userProfile is not None:
-            oprot.writeFieldBegin('userProfile', TType.STRUCT, 2)
-            self.userProfile.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        if self.authzToken is None:
-            raise TProtocolException(message='Required field authzToken is unset!')
-        if self.userProfile is None:
-            raise TProtocolException(message='Required field userProfile is unset!')
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(addUserProfile_args)
-addUserProfile_args.thrift_spec = (
-    None,  # 0
-    (1, TType.STRUCT, 'authzToken', [custos.commons.model.security.ttypes.AuthzToken, None], None, ),  # 1
-    (2, TType.STRUCT, 'userProfile', [custos.profile.model.User.ttypes.UserProfile, None], None, ),  # 2
-)
-
-
-class addUserProfile_result(object):
-    """
-    Attributes:
-     - success
-     - upe
-
-    """
-
-
-    def __init__(self, success=None, upe=None,):
-        self.success = success
-        self.upe = upe
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            if fid == 0:
-                if ftype == TType.STRUCT:
-                    self.success = custos.profile.model.User.ttypes.UserProfile()
-                    self.success.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            elif fid == 1:
-                if ftype == TType.STRUCT:
-                    self.upe = custos.profile.user.cpi.error.ttypes.UserProfileServiceException()
-                    self.upe.read(iprot)
-                else:
-                    iprot.skip(ftype)
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('addUserProfile_result')
-        if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
-            self.success.write(oprot)
-            oprot.writeFieldEnd()
-        if self.upe is not None:
-            oprot.writeFieldBegin('upe', TType.STRUCT, 1)
-            self.upe.write(oprot)
-            oprot.writeFieldEnd()
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(addUserProfile_result)
-addUserProfile_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [custos.profile.model.User.ttypes.UserProfile, None], None, ),  # 0
     (1, TType.STRUCT, 'upe', [custos.profile.user.cpi.error.ttypes.UserProfileServiceException, None], None, ),  # 1
 )

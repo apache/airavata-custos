@@ -13,4 +13,3 @@ from thrift.TRecursive import fix_spec
 import sys
 from .ttypes import *
 USER_PROFILE_VERSION = "1.0"
-DEFAULT_ID = "DO_NOT_SET_AT_CLIENTS"

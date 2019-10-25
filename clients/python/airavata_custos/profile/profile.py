@@ -1,5 +1,6 @@
 from airavata_custos import utils
-from airavata_custos.security.keycloak_connectors import AuthzToken
+from custos.commons.model.security.ttypes import AuthzToken
+from custos.profile.model.User.ttypes import UserProfile
 
 
 class User(object):
@@ -23,6 +24,7 @@ class User(object):
         :param labeled_URI: Google Scholar, Web of Science, ACS, e.t.c
         :param time_zone: User’s preferred timezone
         """
+
         self.user_name = user_name
         self.tenant = tenant
         self.first_name = first_name
@@ -45,17 +47,14 @@ class Profile(object):
         port = ""
         self.profile_service_pool = utils.initialize_userprofile_client_pool(host, port)
 
-    def create_user(self, authorization_token: AuthzToken, user_profile: User = None) -> User:
+    def create_user(self, authorization_token: AuthzToken) -> User:
         """
         This method creates a new user in custos profile service
         :param authorization_token: object of class AuthzToken
         :param user_profile: object of class User
         :return: boolean true if user is created successfully otherwise false
         """
-        if user_profile:
-            return self.profile_service_pool.addUserProfile(authorization_token, user_profile, user_profile.tenant)
-        else:
-            return self.profile_service_pool.initializeUserProfile(authorization_token)
+        return self.profile_service_pool.initializeUserProfile(authorization_token)
 
     def update_user(self, authorization_token, user_profile):
         """
@@ -65,7 +64,7 @@ class Profile(object):
         :param tenant: tenant identifier to which the user belongs
         :return: boolean true if user is updated successfully otherwise false
         """
-        return self.updateUserProfile(authorization_token, user_profile)
+        return self.profile_service_pool.updateUserProfile(authorization_token, user_profile)
 
     def delete_user(self, authorization_token, user_name, tenant):
         """
@@ -75,7 +74,7 @@ class Profile(object):
         :param tenant: tenant identifier to which the user belongs
         :return: boolean true if user is deleted successfully otherwise false
         """
-        return self.deleteUserProfile(authorization_token, user_name, tenant)
+        return self.profile_service_pool.deleteUserProfile(authorization_token, user_name, tenant)
 
     def get_user(self, authorization_token, user_name, tenant):
         """
