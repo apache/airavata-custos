@@ -1,5 +1,9 @@
 ---
 
+user: airavata
+group: airavata
+user_home: "/home/{{ user }}"
+
 # Database related variables
 db_server: "{{ groups['database'][0] }}"
 db_server_port: "3306"
