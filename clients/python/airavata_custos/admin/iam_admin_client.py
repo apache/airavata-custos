@@ -16,24 +16,22 @@
 #
 
 import logging
-import configparser
 from airavata_custos import utils
-from airavata_custos.settings import ProfileSettings
+from airavata_custos.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 
 
 class IAMAdminClient(object):
 
-    def __init__(self, configuration_file_location):
+    def __init__(self, configuration: Configuration):
         """
         constructor for IAMAdminClient class
-        :param configuration_file_location: takes the location of the ini file containing server configuration
+        :param configuration: object of class Configuration which has hosts/ports for custos services
         """
-        self.profile_settings = ProfileSettings()
-        self._load_settings(configuration_file_location)
-        self.iamadmin_client_pool = utils.initialize_iamadmin_client_pool(self.profile_settings.PROFILE_SERVICE_HOST,
-                                                                          self.profile_settings.PROFILE_SERVICE_PORT)
+
+        self.iamadmin_client_pool = utils.initialize_iamadmin_client_pool(configuration.PROFILE_SERVICE_HOST,
+                                                                          configuration.PROFILE_SERVICE_PORT)
 
     def is_username_available(self, authz_token, username):
         """
@@ -141,10 +139,3 @@ class IAMAdminClient(object):
                 authz_token, username, new_password)
         except Exception:
             return None
-
-    def _load_settings(self, configuration_file_location):
-        config = configparser.ConfigParser()
-        config.read(configuration_file_location)
-        settings = config['ProfileServerSettings']
-        self.profile_settings.PROFILE_SERVICE_HOST = settings['PROFILE_SERVICE_HOST']
-        self.profile_settings.PROFILE_SERVICE_PORT = settings['PROFILE_SERVICE_PORT']

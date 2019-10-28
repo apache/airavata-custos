@@ -83,6 +83,7 @@ def initialize_iamadmin_client_pool(host, port):
     )
     return iamadmin_client_pool
 
+
 def initialize_userprofile_client_pool(host, port):
     userprofile_client_pool = connection_pool.ClientPool(
         UserProfileService,

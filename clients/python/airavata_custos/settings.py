@@ -15,24 +15,6 @@
 # limitations under the License.
 #
 
-
-class ProfileSettings(object):
-    # Profile Service Configuration
-
-    def __init__(self):
-        self.PROFILE_SERVICE_HOST = '0.0.0.0'
-        self.PROFILE_SERVICE_PORT = '8081'
-
-
-class IAMSettings(object):
-
-    def __init__(self):
-        self.KEYCLOAK_AUTHORIZE_URL = 'https://localhost:8443/auth/realms/default/protocol/openid-connect/auth'
-        self.KEYCLOAK_TOKEN_URL = 'https://localhost:8443/auth/realms/default/protocol/openid-connect/token'
-        self.KEYCLOAK_USERINFO_URL = 'https://localhost:8443/auth/realms/default/protocol/openid-connect/userinfo'
-        self.KEYCLOAK_LOGOUT_URL = 'https://localhost:8443/auth/realms/default/protocol/openid-connect/logout'
-        self.VERIFY_SSL = False
-
 # Seconds each connection in the pool is able to stay alive. If open connection
 # has lived longer than this period, it will be closed.
 # (https://github.com/Thriftpy/thrift_connector)

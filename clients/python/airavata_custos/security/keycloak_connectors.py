@@ -16,25 +16,25 @@
 #
 
 from oauthlib.oauth2 import LegacyApplicationClient
-import requests
-import configparser
-from airavata_custos.settings import IAMSettings
+from requests.auth import HTTPBasicAuth
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from custos.commons.model.security.ttypes import AuthzToken
 from urllib.parse import quote
 from airavata_custos.security.client_credentials import IdpCredentials, UserCredentials, ClientCredentials
+from airavata_custos.configuration import Configuration
 
 
 class KeycloakBackend(object):
 
-    def __init__(self, configuration_file_location):
+    configurations: Configuration
+
+    def __init__(self, configuration: Configuration):
         """
         constructor for KeycloakBackend class
-        :param configuration_file_location: takes the location of the ini file containing server configuration
+        :param configuration: object of the class Configuration which has keycloak endpoints
         """
-        self.keycloak_settings = IAMSettings()
-        self._load_settings(configuration_file_location)
+        self.configurations = configuration
 
     def authenticate_using_user_details(self, user_credentials):
         """
@@ -81,7 +81,7 @@ class KeycloakBackend(object):
         :return: object of class IdpCredentials
         """
 
-        base_authorize_url = self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL
+        base_authorize_url = self.configurations.KEYCLOAK_AUTHORIZE_URL
         oauth2_session = OAuth2Session(client_id, scope='openid', redirect_uri=redirect_uri)
         authorization_url, state = oauth2_session.authorization_url(base_authorize_url)
         authorization_url += '&kc_idp_hint=' + quote(idp_alias)
@@ -114,7 +114,7 @@ class KeycloakBackend(object):
         client = BackendApplicationClient(client_id=client_credentials.client_id)
         oauth = OAuth2Session(client=client)
         token = oauth.fetch_token(
-            token_url=self.keycloak_settings.KEYCLOAK_TOKEN_URL,
+            token_url=self.configurations.KEYCLOAK_TOKEN_URL,
             client_id=client_credentials.client_id,
             client_secret=client_credentials.client_secret,
             verify=client_credentials.verify_ssl)
@@ -127,13 +127,13 @@ class KeycloakBackend(object):
     def _get_token_and_user_info_password_flow(self, client_credentials):
 
         oauth2_session = OAuth2Session(client=LegacyApplicationClient(client_id=client_credentials.client_id))
-        token = oauth2_session.fetch_token(token_url=self.keycloak_settings.KEYCLOAK_TOKEN_URL,
+        token = oauth2_session.fetch_token(token_url=self.configurations.KEYCLOAK_TOKEN_URL,
                                            username=client_credentials.username,
                                            password=client_credentials.password,
                                            client_id=client_credentials.client_id,
                                            client_secret=client_credentials.client_secret,
-                                           verify=self.keycloak_settings.VERIFY_SSL)
-        user_info = oauth2_session.get(self.keycloak_settings.KEYCLOAK_USERINFO_URL).json()
+                                           verify=self.configurations.VERIFY_SSL)
+        user_info = oauth2_session.get(self.configurations.KEYCLOAK_USERINFO_URL).json()
         return token, user_info
 
     def _get_token_and_user_info_redirect_flow(self, client_credentials):
@@ -141,30 +141,20 @@ class KeycloakBackend(object):
                                        scope='openid',
                                        redirect_uri=client_credentials.redirect_uri,
                                        state=client_credentials.state)
-        token = oauth2_session.fetch_token(self.keycloak_settings.KEYCLOAK_TOKEN_URL,
+        token = oauth2_session.fetch_token(self.configurations.KEYCLOAK_TOKEN_URL,
                                            client_secret=client_credentials.client_secret,
                                            authorization_response=client_credentials.authorization_code_url,
-                                           verify=self.keycloak_settings.VERIFY_SSL)
-        user_info = oauth2_session.get(self.keycloak_settings.KEYCLOAK_USERINFO_URL).json()
+                                           verify=self.configurations.VERIFY_SSL)
+        user_info = oauth2_session.get(self.configurations.KEYCLOAK_USERINFO_URL).json()
         return token, user_info
 
     def _get_token_from_refresh_token(self, client_credentials, refresh_token):
 
         oauth2_session = OAuth2Session(client_credentials.client_id, scope='openid')
-        auth = requests.auth.HTTPBasicAuth(client_credentials.client_id, client_credentials.client_secret)
-        token = oauth2_session.refresh_token(token_url=self.keycloak_settings.KEYCLOAK_TOKEN_URL,
+        auth = HTTPBasicAuth(client_credentials.client_id, client_credentials.client_secret)
+        token = oauth2_session.refresh_token(token_url=self.configurations.KEYCLOAK_TOKEN_URL,
                                              refresh_token=refresh_token,
                                              auth=auth,
-                                             verify=self.keycloak_settings.VERIFY_SSL)
+                                             verify=self.configurations.VERIFY_SSL)
         return token
-
-    def _load_settings(self, configuration_file_location):
-        config = configparser.ConfigParser()
-        config.read(configuration_file_location)
-        settings = config['IAMServerSettings']
-        self.keycloak_settings.KEYCLOAK_AUTHORIZE_URL = settings['KEYCLOAK_AUTHORIZE_URL']
-        self.keycloak_settings.KEYCLOAK_LOGOUT_URL = settings['KEYCLOAK_LOGOUT_URL']
-        self.keycloak_settings.KEYCLOAK_TOKEN_URL = settings['KEYCLOAK_TOKEN_URL']
-        self.keycloak_settings.KEYCLOAK_USERINFO_URL = settings['KEYCLOAK_USERINFO_URL']
-        self.keycloak_settings.VERIFY_SSL = settings.getboolean('VERIFY_SSL')
 

@@ -1,17 +1,35 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from airavata_custos import utils
 from custos.commons.model.security.ttypes import AuthzToken
 from custos.profile.model.User.ttypes import UserProfile
-from airavata_custos.settings import ProfileSettings
-import configparser
+from airavata_custos.configuration import Configuration
 
 
 class Profile(object):
 
-    def __init__(self, configuration_file_location: str):
-        self.profile_settings = ProfileSettings()
-        self._load_settings(configuration_file_location)
-        self.profile_service_pool = utils.initialize_userprofile_client_pool(self.profile_settings.PROFILE_SERVICE_HOST,
-                                                                             self.profile_settings.PROFILE_SERVICE_PORT)
+    def __init__(self, configuration: Configuration):
+        """
+
+        :param configuration: object of class Configuration which has hosts/ports of custos services
+        """
+        self.profile_service_pool = utils.initialize_userprofile_client_pool(configuration.PROFILE_SERVICE_HOST,
+                                                                             configuration.PROFILE_SERVICE_PORT)
 
     def create_user(self, authorization_token: AuthzToken) -> UserProfile:
         """
@@ -61,10 +79,3 @@ class Profile(object):
         :return: list of users
         """
         return self.profile_service_pool.getAllUserProfilesInGateway(authorization_token, tenant, offset, limit)
-
-    def _load_settings(self, configuration_file_location):
-        config = configparser.ConfigParser()
-        config.read(configuration_file_location)
-        settings = config['ProfileServerSettings']
-        self.profile_settings.PROFILE_SERVICE_HOST = settings['PROFILE_SERVICE_HOST']
-        self.profile_settings.PROFILE_SERVICE_PORT = settings['PROFILE_SERVICE_PORT']
