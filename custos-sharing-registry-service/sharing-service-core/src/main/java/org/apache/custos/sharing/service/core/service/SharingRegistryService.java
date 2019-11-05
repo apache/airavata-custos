@@ -19,7 +19,7 @@
  */
 package org.apache.custos.sharing.service.core.service;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.custos.commons.utils.DBInitializer;
 import org.apache.custos.sharing.service.core.exceptions.InvalidRequestException;
 import org.apache.custos.sharing.service.core.exceptions.ResourceNotFoundException;

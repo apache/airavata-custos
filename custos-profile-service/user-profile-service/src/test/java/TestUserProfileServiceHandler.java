@@ -1,5 +1,5 @@
 import mockit.*;
-import mockit.integration.junit4.JMockit;
+
 import org.apache.custos.commons.exceptions.CustosSecurityException;
 import org.apache.custos.commons.model.security.AuthzToken;
 import org.apache.custos.commons.model.security.UserInfo;
@@ -11,14 +11,14 @@ import org.apache.custos.security.manager.CustosSecurityManager;
 import org.apache.custos.security.manager.SecurityManagerFactory;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+
 
 import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
-@RunWith(JMockit.class)
+
 public class TestUserProfileServiceHandler {
 
     private static String GATEWAY_ID = "test-gateway";
@@ -27,7 +27,7 @@ public class TestUserProfileServiceHandler {
     private static String NEW_USER_ID = "test-username";
     private int NUMBER_OF_USERS = 1;
     @Tested
-    private static UserProfileServiceHandler userProfileServiceHandler;
+    private static UserProfileServiceHandler userProfileServiceHandler = new UserProfileServiceHandler();
     @Mocked
     private static CustosSecurityManager mockedSecurityManager;
 
@@ -49,9 +49,9 @@ public class TestUserProfileServiceHandler {
         new MockUp<SecurityManagerFactory>() {
             @Mock
             public CustosSecurityManager getSecurityManager(){return mockedSecurityManager;};
+
         };
         new Expectations() {{ mockedSecurityManager.getUserInfoFromAuthzToken(authzToken); result = userInfo;}};
-
         UserProfile createdUserProfile = userProfileServiceHandler.initializeUserProfile(authzToken);
         assertNotNull(createdUserProfile);
         assertEquals(userInfo.getUsername().toLowerCase(), createdUserProfile.getUserId());

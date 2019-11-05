@@ -11,7 +11,10 @@
 
     <artifactId>custos-sharing-registry-service</artifactId>
     <packaging>pom</packaging>
-
+    <properties>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+    </properties>
     <modules>
         <module>sharing-service-api</module>
         <module>sharing-service-core</module>
