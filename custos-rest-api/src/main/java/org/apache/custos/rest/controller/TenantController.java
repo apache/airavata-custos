@@ -9,6 +9,7 @@ import org.apache.thrift.TException;
 import org.dozer.DozerBeanMapper;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.representations.idm.IdentityProviderRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -62,7 +63,7 @@ public class TenantController {
     /*
     Sample Request
 
-    GET
+    POST
     Creating a realm on keycloak for above gateway
         http://localhost:8080/tenant/realm/40e5be38-0fde-41fe-a846-13de8b2ecfec
      */
@@ -73,16 +74,29 @@ public class TenantController {
         RealmRepresentation realmRepresentation = new RealmRepresentation();
         realmRepresentation.setRealm(gatewayT.getGatewayId());
         keycloakAdminClient.realms().create(realmRepresentation);
-
         return gateway;
     }
 
+    /*
+    Sample Request
+
+    GET
+    Get the tenant with given id
+        http://localhost:8080/tenant/40e5be38-0fde-41fe-a846-13de8b2ecfec
+     */
     @RequestMapping(value = "/{tenant}", method = RequestMethod.GET)
     public GatewayResource getTenant(@PathVariable("tenant")String tenantId) throws TException {
         Gateway gateway = tenantClient.getGateway(authzToken, tenantId);
         return mapper.map(gateway, GatewayResource.class);
     }
 
+    /*
+    Sample Request
+
+    GET
+    Get all tenants
+        http://localhost:8080/tenant
+     */
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public List<GatewayResource> getAllTenants() throws TException {
 
@@ -98,4 +112,6 @@ public class TenantController {
     public Boolean isTenantExists(@PathVariable("tenant")String tenantId) throws TException {
        return tenantClient.isGatewayExist(authzToken, tenantId);
     }
+
+    // save cilogon client id / secret. Secret goes to vault
 }

@@ -3,6 +3,7 @@ package org.apache.custos.rest.core;
 import org.apache.custos.client.profile.service.CustosProfileServiceClientFactory;
 import org.apache.custos.profile.tenant.cpi.TenantProfileService;
 import org.apache.custos.profile.tenant.cpi.exception.TenantProfileServiceException;
+import org.apache.custos.rest.util.SecretEngine;
 import org.dozer.DozerBeanMapper;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
@@ -25,6 +26,11 @@ public class AppConfig {
     @Bean
     public TenantProfileService.Client tenantClient() throws TenantProfileServiceException {
         return CustosProfileServiceClientFactory.createCustosTenantProfileServiceClient("iam.custos.scigap.org", 8081);
+    }
+
+    @Bean
+    public SecretEngine secretEngine() {
+        return new SecretEngine();
     }
 
     @Bean Keycloak keycloakAdminClient() {
