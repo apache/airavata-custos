@@ -39,6 +39,11 @@ public class ServerSettings extends ApplicationSettings {
     public static final String PROFILE_SERVICE_SERVER_HOST = "profile.service.server.host";
     public static final String PROFILE_SERVICE_SERVER_PORT = "profile.service.server.port";
 
+    // CI logon Constants
+    private static final String CILOGON_CLIENT_ID = "cilogon.admin.client.id";
+    private static final String CILOGON_CLIENT_SECRET = "cilogon.admin.client.secret";
+    private static final String CILOGON_URL = "cilogon.server";
+
     public static int getCacheSize() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.IN_MEMORY_CACHE_SIZE));
     }
@@ -93,5 +98,17 @@ public class ServerSettings extends ApplicationSettings {
     }
     public static int getTLSClientTimeout() throws ApplicationSettingsException {
         return Integer.valueOf(getSetting(Constants.TLS_CLIENT_TIMEOUT));
+    }
+
+    public static String getCILogonAdminClientId() throws ApplicationSettingsException{
+        return getSetting(ServerSettings.CILOGON_CLIENT_ID);
+    }
+
+    public static String getCILogonAdminClientSecret() throws ApplicationSettingsException{
+        return getSetting(ServerSettings.CILOGON_CLIENT_SECRET);
+    }
+
+    public static String getCILogonURL() throws ApplicationSettingsException{
+        return getSetting(ServerSettings.CILOGON_URL);
     }
 }

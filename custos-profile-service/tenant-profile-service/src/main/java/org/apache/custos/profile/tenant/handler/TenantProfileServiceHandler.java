@@ -52,7 +52,7 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
     public String getAPIVersion() throws TException {
         return profile_tenant_cpiConstants.TENANT_PROFILE_CPI_VERSION;
     }
-    //TODO: what is the purpose of authzToken when no security check is performed here
+
     @Override
     public Gateway addGateway(AuthzToken authzToken, Gateway gateway) throws TenantProfileServiceException, TException {
         try {
@@ -62,7 +62,6 @@ public class TenantProfileServiceHandler implements TenantProfileService.Iface {
                 gateway = tenantProfileRepository.create(gateway);
                 if (gateway != null) {
                     logger.info("Added Custos Gateway with Id: " + gateway.getGatewayId());
-                    // replicate tenant at end-places only if status is APPROVED
                     // TODO: approval status will be set to approved only if gateway object has approved status
                     if (gateway.getGatewayApprovalStatus().equals(GatewayApprovalStatus.APPROVED)) {
                         logger.info("Gateway with ID: {}, is now APPROVED, returning", gateway.getGatewayId());

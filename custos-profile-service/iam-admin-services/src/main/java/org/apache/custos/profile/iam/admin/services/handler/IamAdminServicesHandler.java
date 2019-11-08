@@ -27,6 +27,7 @@ import org.apache.custos.commons.utils.Constants;
 import org.apache.custos.commons.utils.CustosUtils;
 import org.apache.custos.commons.utils.ServerSettings;
 import org.apache.custos.profile.commons.repositories.UserProfileRepository;
+import org.apache.custos.profile.iam.admin.services.core.CILogonManagementImpl;
 import org.apache.custos.profile.model.tenant.PasswordCredential;
 import org.apache.custos.profile.model.user.UserProfile;
 import org.apache.custos.profile.model.workspace.Gateway;
@@ -34,10 +35,14 @@ import org.apache.custos.profile.iam.admin.services.core.TenantManagementKeycloa
 import org.apache.custos.profile.iam.admin.services.cpi.IamAdminServices;
 import org.apache.custos.profile.iam.admin.services.cpi.exception.IamAdminServicesException;
 import org.apache.custos.profile.iam.admin.services.cpi.iam_admin_services_cpiConstants;
+import org.apache.custos.profile.model.workspace.GatewayApprovalStatus;
 import org.apache.thrift.TException;
+import org.json.JSONObject;
+import org.keycloak.representations.idm.IdentityProviderRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class IamAdminServicesHandler implements IamAdminServices.Iface {
@@ -51,18 +56,11 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
     }
 
     @Override
-    //TODO: check if tenantAdminPasswordCredential is required
     public Gateway setUpGateway(AuthzToken authzToken, Gateway gateway, PasswordCredential tenantAdminPasswordCredential) throws IamAdminServicesException {
         TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
         PasswordCredential isSuperAdminCredentials = getSuperAdminPasswordCredential();
         try {
             keycloakclient.addTenant(isSuperAdminCredentials, gateway);
-
-//            // Load the tenant admin password stored in gateway request
-//            CredentialStoreService.Client credentialStoreClient = getCredentialStoreServiceClient();
-//            // Admin password token should already be stored under requested gateway's gatewayId
-//            PasswordCredential tenantAdminPasswordCredential = credentialStoreClient.getPasswordCredential(gateway.getIdentityServerPasswordToken(), gateway.getGatewayId());
-//
         if (!keycloakclient.createTenantAdminAccount(isSuperAdminCredentials, gateway, tenantAdminPasswordCredential.getPassword())) {
                 logger.error("Admin account creation failed !!, please refer error logs for reason");
             }
@@ -230,12 +228,11 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
 
     @Override
     @Deprecated
-    //TODO: check if isRealmAdminCredentials required or not
     public boolean addRoleToUser(AuthzToken authzToken, String username, String roleName, PasswordCredential isRealmAdminCredentials) throws IamAdminServicesException, TException {
         TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
-            //PasswordCredential isRealmAdminCredentials = getTenantAdminPasswordCredential(gatewayId);
+
             return keycloakclient.addRoleToUser(isRealmAdminCredentials, gatewayId, username, roleName);
         } catch (TException ex) {
             String msg = "Error while adding role to user, reason: " + ex.getMessage();
@@ -246,12 +243,10 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
 
     @Override
     @Deprecated
-    //TODO:// check if isRealmAdminCredentials required or not
     public boolean removeRoleFromUser(AuthzToken authzToken, String username, String roleName, PasswordCredential isRealmAdminCredentials) throws IamAdminServicesException, TException {
         TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
-            //PasswordCredential isRealmAdminCredentials = getTenantAdminPasswordCredential(gatewayId);
             return keycloakclient.removeRoleFromUser(isRealmAdminCredentials, gatewayId, username, roleName);
         } catch (TException ex) {
             String msg = "Error while removing role from user, reason: " + ex.getMessage();
@@ -262,13 +257,11 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
 
     @Override
     @Deprecated
-    //TODO: check if PasswordCredential required
     public List<UserProfile> getUsersWithRole(AuthzToken authzToken, String roleName, PasswordCredential isRealmAdminCredentials) throws IamAdminServicesException, TException {
 
         TenantManagementKeycloakImpl keycloakclient = new TenantManagementKeycloakImpl();
         String gatewayId = authzToken.getClaimsMap().get(Constants.GATEWAY_ID);
         try {
-            //PasswordCredential isRealmAdminCredentials = getTenantAdminPasswordCredential(gatewayId);
             return keycloakclient.getUsersWithRole(isRealmAdminCredentials, gatewayId, roleName);
         } catch (Exception ex) {
             String msg = "Error while retrieving users with role, reason: " + ex.getMessage();
@@ -276,6 +269,7 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
             throw new IamAdminServicesException(msg);
         }
     }
+
 
     private PasswordCredential getSuperAdminPasswordCredential() {
         PasswordCredential isSuperAdminCredentials = new PasswordCredential();
@@ -288,31 +282,32 @@ public class IamAdminServicesHandler implements IamAdminServices.Iface {
         return isSuperAdminCredentials;
     }
 
-//    private PasswordCredential getTenantAdminPasswordCredential(String tenantId) throws TException, ApplicationSettingsException {
-//
-//        GatewayResourceProfile gwrp = getRegistryServiceClient().getGatewayResourceProfile(tenantId);
-//
-//        CredentialStoreService.Client csClient = getCredentialStoreServiceClient();
-//        return csClient.getPasswordCredential(gwrp.getIdentityServerPwdCredToken(), gwrp.getGatewayID());
-//    }
+    //Client secret is part of return value, if it is lost there is no way to retrieve the client secret
+    public JSONObject createCILogonClient(String client_name, List<String> redirect_uris) throws ApplicationSettingsException, IamAdminServicesException{
+        String adminClientId = ServerSettings.getCILogonAdminClientId();
+        String adminClientSecret = ServerSettings.getCILogonAdminClientSecret();
+        return CILogonManagementImpl.create(adminClientId, adminClientSecret, client_name, redirect_uris);
+    }
 
-//    private RegistryService.Client getRegistryServiceClient() throws TException, ApplicationSettingsException {
-//        final int serverPort = Integer.parseInt(ServerSettings.getRegistryServerPort());
-//        final String serverHost = ServerSettings.getRegistryServerHost();
-//        try {
-//            return RegistryServiceClientFactory.createRegistryClient(serverHost, serverPort);
-//        } catch (RegistryServiceException e) {
-//            throw new TException("Unable to create registry client...", e);
-//        }
-//    }
+    //Note: only for testing should be removed
+//    public static void main(String[] args) throws ApplicationSettingsException, IamAdminServicesException{
 //
-//    private CredentialStoreService.Client getCredentialStoreServiceClient() throws TException, ApplicationSettingsException {
-//        final int serverPort = Integer.parseInt(ServerSettings.getCredentialStoreServerPort());
-//        final String serverHost = ServerSettings.getCredentialStoreServerHost();
-//        try {
-//            return CredentialStoreClientFactory.createAiravataCSClient(serverHost, serverPort);
-//        } catch (CredentialStoreException e) {
-//            throw new TException("Unable to create credential store client...", e);
-//        }
+//        TenantManagementKeycloakImpl tenantManagementKeycloak = new TenantManagementKeycloakImpl();
+//        PasswordCredential cred = new PasswordCredential();
+//        cred.setLoginUserName("admin");
+//        cred.setPassword("admin");
+//        Gateway gateway = new Gateway();
+//        gateway.setGatewayId("galaxy-1");
+//        gateway.setGatewayName("galaxy-1");
+//        tenantManagementKeycloak.addTenant(cred, gateway);
+//        IdentityProviderRepresentation iden = new IdentityProviderRepresentation();
+//        iden.setProviderId("cilogon");
+//        iden.setAlias("cilogon");
+//        iden.setDisplayName("cilogon");
+//        iden.setInternalId("cilogon");
+//        tenantManagementKeycloak.addIdentityProvider(cred, "galaxy-1", iden);
+//        List<String> redirect_uris = new ArrayList<>();
+//        JSONObject created_client = new IamAdminServicesHandler().createCILogonClient("galaxy-1", redirect_uris);
+//        System.out.println(created_client.toString());
 //    }
 }

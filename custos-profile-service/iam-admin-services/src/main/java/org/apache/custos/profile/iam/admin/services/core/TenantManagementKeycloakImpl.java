@@ -24,6 +24,7 @@ package org.apache.custos.profile.iam.admin.services.core;
 import org.apache.custos.commons.exceptions.ApplicationSettingsException;
 import org.apache.custos.commons.utils.SecurityUtil;
 import org.apache.custos.commons.utils.ServerSettings;
+import org.apache.custos.profile.iam.admin.services.cpi.IamAdminServices;
 import org.apache.custos.profile.iam.admin.services.cpi.exception.IamAdminServicesException;
 import org.apache.custos.profile.model.tenant.PasswordCredential;
 import org.apache.custos.profile.model.user.Status;
@@ -123,6 +124,14 @@ public class TenantManagementKeycloakImpl implements TenantManagementInterface {
                 }
             }
         }
+    }
+    public boolean addIdentityProvider(PasswordCredential isSuperAdminPasswordCreds, String tenantId, IdentityProviderRepresentation identityProvider) throws ApplicationSettingsException, IamAdminServicesException{
+        Keycloak client = TenantManagementKeycloakImpl.getClient(ServerSettings.getIamServerUrl(), this.superAdminRealmId, isSuperAdminPasswordCreds);
+        Response isAdded = client.realm(tenantId).identityProviders().create(identityProvider);
+        if(isAdded.getStatus() < 200 && isAdded.getStatus() > 299){
+            throw new IamAdminServicesException("Could not add an identity provider for tenant" + tenantId);
+        }
+        return true;
     }
 
     @Override
