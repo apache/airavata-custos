@@ -23,6 +23,7 @@
         <module>custos-profile-service</module>
         <module>custos-connectors</module>
         <module>custos-sharing-registry-service</module>
+        <module>custos-rest-api</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
