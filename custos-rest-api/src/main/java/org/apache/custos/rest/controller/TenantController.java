@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.keycloak.admin.client.Keycloak;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
 @RequestMapping("/tenant")
 public class TenantController {
@@ -49,7 +52,7 @@ public class TenantController {
         }
      */
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public String createTenant(@RequestBody GatewayResource gatewayResource) throws TException {
+    public String addTenant(@RequestBody GatewayResource gatewayResource) throws TException {
 
         Gateway gatewayT = mapper.map(gatewayResource, Gateway.class);
         Gateway gateway = tenantClient.addGateway(authzToken, gatewayT);
@@ -71,8 +74,28 @@ public class TenantController {
         realmRepresentation.setRealm(gatewayT.getGatewayId());
         keycloakAdminClient.realms().create(realmRepresentation);
 
-        return "Created";
+        return gateway;
     }
 
+    @RequestMapping(value = "/{tenant}", method = RequestMethod.GET)
+    public GatewayResource getTenant(@PathVariable("tenant")String tenantId) throws TException {
+        Gateway gateway = tenantClient.getGateway(authzToken, tenantId);
+        return mapper.map(gateway, GatewayResource.class);
+    }
 
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public List<GatewayResource> getAllTenants() throws TException {
+
+        List<GatewayResource> resources = new ArrayList<>();
+        List<Gateway> allGateways = tenantClient.getAllGateways(authzToken);
+        for (Gateway g : allGateways) {
+            resources.add(mapper.map(g, GatewayResource.class));
+        }
+        return resources;
+    }
+
+    @RequestMapping(value = "/exists/{tenant}", method = RequestMethod.GET)
+    public Boolean isTenantExists(@PathVariable("tenant")String tenantId) throws TException {
+       return tenantClient.isGatewayExist(authzToken, tenantId);
+    }
 }
