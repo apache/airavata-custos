@@ -46,8 +46,14 @@ public class TenantRegistrationService {
     @PostMapping
     public void createTenant(@RequestBody Tenant tenant){
 
-        TenantProfileClient client = new TenantProfileClient(tenantServiceName, tenantServicePort);
-        client.addGateway(tenant.getName(),UUID.randomUUID().toString());
+        System.out.println("Response received");
+        System.out.println("Tenant Service Name " +tenantServiceName);
+        try {
+            TenantProfileClient client = new TenantProfileClient(tenantServiceName, tenantServicePort);
+            client.addGateway(tenant.getName(), UUID.randomUUID().toString());
+        } catch (Exception e){
+            e.printStackTrace();
+        }
 
         System.out.println("Successfully added the gateway");
 

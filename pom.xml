@@ -137,6 +137,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
@@ -152,6 +159,55 @@
                         <goals>
                             <goal>compile</goal>
                             <goal>compile-custom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${docker.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <noCache>true</noCache>
+                    <serverId>docker.io</serverId>
+                    <repository>${docker.image.prefix}/${project.artifactId}</repository>
+                    <tag>${project.version}</tag>
+                    <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
+                    <buildArgs>
+                        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.deviceinsight.helm</groupId>
+                <artifactId>helm-maven-plugin</artifactId>
+                <version>${helm.maven.plugin.version}</version>
+                <configuration>
+                    <chartName>${project.artifactId}</chartName>
+                    <chartFolder>src/main/helm</chartFolder>
+                    <chartRepoUrl>https://kubernetes-charts.storage.googleapis.com/</chartRepoUrl>
+                    <helmVersion>2.16.0</helmVersion>
+                    <strictLint>true</strictLint>
+                    <valuesFile>src/main/helm/values.yaml</valuesFile>
+                    <skip>true</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>package</goal>
+                            <goal>lint</goal>
+                            <goal>template</goal>
+                            <goal>deploy</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -184,6 +240,12 @@
 
         <io.grpc.version>1.25.0</io.grpc.version>
 
+         <docker.image.prefix>isurur</docker.image.prefix>
+        <docker.image.repo>custos</docker.image.repo>
+         <docker.plugin.version>1.4.13</docker.plugin.version>
+
+         <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
+        <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
     </properties>
 

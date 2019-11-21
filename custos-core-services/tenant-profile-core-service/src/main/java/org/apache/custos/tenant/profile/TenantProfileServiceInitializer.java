@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AppInitializer {
+public class TenantProfileServiceInitializer {
 
     public static void main(String[] args) {
-        SpringApplication.run(AppInitializer.class, args);
+        SpringApplication.run(TenantProfileServiceInitializer.class, args);
     }
 }
