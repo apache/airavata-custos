@@ -47,6 +47,7 @@
         <module>custos-core-services</module>
         <module>custos-integration-services</module>
         <module>custos-core-services-client-stubs</module>
+        <module>custos-integration-core</module>
     </modules>
 
 
@@ -237,6 +238,8 @@
         <spring.boot.version>2.2.0.RELEASE</spring.boot.version>
         <spring.cloud.version>Greenwich.RELEASE</spring.cloud.version>
         <grpc.spring.boot.version>2.3.2</grpc.spring.boot.version>
+
+        <spring.cloud.stream.version>2.0.0.RELEASE</spring.cloud.stream.version>
 
         <io.grpc.version>1.25.0</io.grpc.version>
 

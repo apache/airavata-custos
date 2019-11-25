@@ -17,16 +17,34 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.integration.core.endpoint;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+/**
+ * Represents target endpoint
+ */
+public class TargetEndpoint {
 
+    private String dnsName;
+    private int port;
 
+    public TargetEndpoint(String dnsName, int port) {
+        this.dnsName = dnsName;
+        this.port = port;
+    }
 
-@SpringBootApplication
-public class TenantRegistrationServiceInitializer {
-    public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
+    public String getDnsName() {
+        return dnsName;
+    }
+
+    public void setDnsName(String dnsName) {
+        this.dnsName = dnsName;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }

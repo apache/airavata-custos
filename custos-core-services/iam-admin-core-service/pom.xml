@@ -22,44 +22,41 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>custos-integration-services</artifactId>
+        <artifactId>custos-core-services</artifactId>
         <groupId>org.apache.custos</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>client-registration-service</artifactId>
+    <artifactId>iam-admin-core-service</artifactId>
 
-      <dependencies>
-          <dependency>
-              <groupId>org.apache.custos</groupId>
-              <artifactId>tenant-profile-core-service-client-stub</artifactId>
-              <version>${project.version}</version>
-          </dependency>
-          <dependency>
-              <groupId>org.apache.custos</groupId>
-              <artifactId>iam-admin-core-service-client-stub</artifactId>
-              <version>${project.version}</version>
-          </dependency>
-          <dependency>
-              <groupId>org.apache.custos</groupId>
-              <artifactId>custos-integration-core</artifactId>
-              <version>${project.version}</version>
-          </dependency>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.lognet</groupId>
+            <artifactId>grpc-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty</artifactId>
+        </dependency>
+    </dependencies>
 
-          <dependency>
-              <groupId>org.springframework.boot</groupId>
-              <artifactId>spring-boot-starter-web</artifactId>
-          </dependency>
-          <dependency>
-              <groupId>org.springframework.boot</groupId>
-              <artifactId>spring-boot-starter-actuator</artifactId>
-          </dependency>
-          <dependency>
-              <groupId>org.springframework.cloud</groupId>
-              <artifactId>spring-cloud-starter-config</artifactId>
-          </dependency>
-      </dependencies>
 
     <build>
         <plugins>
@@ -79,5 +76,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

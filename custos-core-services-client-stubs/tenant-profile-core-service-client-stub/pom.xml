@@ -48,6 +48,11 @@
         <groupId>javax.annotation</groupId>
         <artifactId>javax.annotation-api</artifactId>
     </dependency>
+    <dependency>
+        <groupId>org.apache.custos</groupId>
+        <artifactId>custos-integration-core</artifactId>
+        <version>${project.version}</version>
+    </dependency>
 </dependencies>
 
   <build>

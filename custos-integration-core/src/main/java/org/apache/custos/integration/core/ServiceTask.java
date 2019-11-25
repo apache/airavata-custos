@@ -17,16 +17,20 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.integration.core;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+/**
+ * Interface represents service task for invoking core services
+ * Service task is bind to a single operation of one client
+ */
+public interface ServiceTask<T, U> {
 
+    void invokeService(T data);
 
+    void  invokeNextTask(U data);
 
-@SpringBootApplication
-public class TenantRegistrationServiceInitializer {
-    public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
-    }
+    void setNextTask(ServiceTask serviceTask);
+
+    void setServiceCallback(ServiceCallback serviceCallback);
+
 }

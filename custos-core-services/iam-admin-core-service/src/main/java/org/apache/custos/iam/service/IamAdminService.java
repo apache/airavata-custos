@@ -17,16 +17,20 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.iam.service;
+import io.grpc.stub.StreamObserver;
+import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
+import org.apache.custos.iam.service.AddUserResponse;
+import org.apache.custos.iam.service.User;
+import org.lognet.springboot.grpc.GRpcService;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+@GRpcService
+public class IamAdminService extends IamAdminServiceImplBase {
 
-
-
-@SpringBootApplication
-public class TenantRegistrationServiceInitializer {
-    public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
+    @Override
+    public void addUser(User request, StreamObserver responseObserver) {
+        System.out.println("User added");
+        responseObserver.onNext(AddUserResponse.newBuilder().setCode("Success").build());
+        responseObserver.onCompleted();
     }
 }

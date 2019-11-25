@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.iam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,8 +25,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
 @SpringBootApplication
-public class TenantRegistrationServiceInitializer {
+public class IamServiceInitializer {
+
     public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
+        SpringApplication.run(IamServiceInitializer.class, args);
     }
 }

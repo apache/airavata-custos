@@ -35,6 +35,7 @@
     <modules>
         <module>tenant-profile-core-service</module>
         <module>utility-services/custos-configuration-service</module>
+        <module>iam-admin-core-service</module>
     </modules>
 
 

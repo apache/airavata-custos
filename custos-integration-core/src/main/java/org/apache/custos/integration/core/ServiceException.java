@@ -17,16 +17,18 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.integration.core;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+/**
+ * This class wraps exceptions arising in custos message flow and
+ * has a local error code
+ */
+public class ServiceException extends Exception{
 
+    private String code;
 
-
-@SpringBootApplication
-public class TenantRegistrationServiceInitializer {
-    public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
+    public ServiceException (String message, Throwable cause, String code) {
+        super(message, cause);
+        this.code = code;
     }
 }

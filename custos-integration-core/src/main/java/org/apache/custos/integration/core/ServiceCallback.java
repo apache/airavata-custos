@@ -17,16 +17,13 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.integration.core;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+/**
+ * An interface represents callback for async communication
+ */
+public interface ServiceCallback {
 
+    void onCompleted(String msg, ServiceException exception);
 
-
-@SpringBootApplication
-public class TenantRegistrationServiceInitializer {
-    public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
-    }
 }
