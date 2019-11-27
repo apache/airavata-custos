@@ -40,18 +40,17 @@ public class IamAdminServiceClient {
     private ManagedChannel managedChannel;
     private IamAdminServiceGrpc.IamAdminServiceStub iamAdminServiceStub;
 
-    @Value("${iam.admin.service.dns.name}")
-    private String serviceHost;
-
-    @Value("${iam.admin.service.port}")
-    private int servicePort;
-
 
     private final List<ClientInterceptor> clientInterceptorList;
 
 
-    public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList){
+    public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList,
+                                 @Value("${iam.admin.service.dns.name}") String serviceHost,
+                                 @Value("${iam.admin.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
+        managedChannel = ManagedChannelBuilder.forAddress(
+                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+        iamAdminServiceStub = IamAdminServiceGrpc.newStub(managedChannel);
     }
 
 
@@ -73,11 +72,7 @@ public class IamAdminServiceClient {
             }
         };
 
-        managedChannel = ManagedChannelBuilder.forAddress(
-                this.serviceHost, this.servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
 
-
-        iamAdminServiceStub = IamAdminServiceGrpc.newStub(managedChannel);
         iamAdminServiceStub.addUser(user, observer);
 
 

@@ -35,7 +35,7 @@ public class TenantRegistrationServiceInitializer {
 
     @Bean
     public GrpcTracing grpcTracing(Tracing tracing) {
-    //   Tracing tracing1 =  Tracing.newBuilder().build();
+        //   Tracing tracing1 =  Tracing.newBuilder().build();
         return GrpcTracing.create(tracing);
     }
 

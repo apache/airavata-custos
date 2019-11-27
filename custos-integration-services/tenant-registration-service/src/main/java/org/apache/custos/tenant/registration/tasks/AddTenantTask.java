@@ -31,7 +31,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 
 @Component
-@ComponentScan(basePackages = "org.apache.custos.*")
+@ComponentScan(basePackages = "org.apache.custos")
 public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AddTenantTask.class);
@@ -56,6 +56,6 @@ public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
             }
         };
 
-        tenantProfileClient.addGateway(gateway, myCallback);
+        tenantProfileClient.addGatewayAsync(gateway, myCallback);
     }
 }

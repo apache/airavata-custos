@@ -19,15 +19,19 @@
 
 package org.apache.custos.tenant.profile.client.async;
 
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
+import org.apache.custos.tenant.profile.service.AddGatewayResponse;
 import org.apache.custos.tenant.profile.service.Gateway;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * This class uses gRPC stubs generated for {@link TenantProfileServiceGrpc}
@@ -37,17 +41,24 @@ import org.springframework.stereotype.Component;
 public class TenantProfileClient {
 
     private ManagedChannel managedChannel;
-    private TenantProfileServiceGrpc.TenantProfileServiceStub tenantProfileServiceBlockingStub;
-
-    @Value("${tenant.profile.core.service.dns.name}")
-    private String serviceHost;
-
-    @Value("${tenant.profile.core.service.port}")
-    private int servicePort;
+    private TenantProfileServiceGrpc.TenantProfileServiceStub profileServiceStub;
+    private TenantProfileServiceGrpc.TenantProfileServiceBlockingStub profileServiceBlockingStub;
 
 
-    public void addGateway(Gateway gateway, ServiceCallback callback) {
+    private final List<ClientInterceptor> clientInterceptorList;
 
+
+    public TenantProfileClient(List<ClientInterceptor> clientInterceptorList,
+                               @Value("${tenant.profile.core.service.dns.name}")  String serviceHost,
+                                        @Value("${tenant.profile.core.service.port}") int servicePort) {
+        this.clientInterceptorList = clientInterceptorList;
+        managedChannel = ManagedChannelBuilder.forAddress(
+                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+        profileServiceStub = TenantProfileServiceGrpc.newStub(managedChannel);
+        profileServiceBlockingStub = TenantProfileServiceGrpc.newBlockingStub(managedChannel);
+    }
+
+    public void addGatewayAsync(Gateway gateway, ServiceCallback callback) {
 
         StreamObserver observer = new StreamObserver() {
             @Override
@@ -68,13 +79,16 @@ public class TenantProfileClient {
             }
         };
 
-        managedChannel = ManagedChannelBuilder.forAddress(
-                this.serviceHost, this.servicePort).usePlaintext(true).build();
 
-        tenantProfileServiceBlockingStub = TenantProfileServiceGrpc.newStub(managedChannel);
-        tenantProfileServiceBlockingStub.addGateway(gateway, observer);
+        profileServiceStub.addGateway(gateway, observer);
+    }
 
+
+    public String addGateway(Gateway gateway) {
+        AddGatewayResponse response = profileServiceBlockingStub.addGateway(gateway);
+        return response.getCode();
 
     }
+
 
 }
