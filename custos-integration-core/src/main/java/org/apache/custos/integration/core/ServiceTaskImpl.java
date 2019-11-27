@@ -44,7 +44,9 @@ public abstract class ServiceTaskImpl<T, U> implements ServiceTask<T, U> {
         this.nextTask = nextTask;
     }
 
-
+    public ServiceTask getNextTask() {
+        return nextTask;
+    }
 
     @Override
     public void invokeNextTask(U output){

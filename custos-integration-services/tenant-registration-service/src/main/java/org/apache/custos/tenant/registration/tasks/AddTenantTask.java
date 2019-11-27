@@ -22,30 +22,35 @@ package org.apache.custos.tenant.registration.tasks;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceTaskImpl;
-import org.apache.custos.integration.core.endpoint.TargetEndpoint;
 import org.apache.custos.tenant.profile.service.Gateway;
-import org.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 
+@Component
+@ComponentScan(basePackages = "org.apache.custos.*")
 public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
 
-    private TargetEndpoint endpoint;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AddTenantTask.class);
 
+    @Autowired
+    private TenantProfileClient tenantProfileClient;
 
-    public AddTenantTask(TargetEndpoint targetEndpoint) {
-        this.endpoint = targetEndpoint;
-    }
 
     @Override
     public void invokeService(T data) {
+        LOGGER.info("Invoking Add tenant task");
         Gateway gateway = (Gateway) data;
-        TenantProfileClient tenantProfileClient = new TenantProfileClient(this.endpoint);
 
         ServiceCallback myCallback = (msg, exception) -> {
             if (exception != null) {
-                System.out.println(exception);
+                LOGGER.info("Invoking parent call back");
                 getServiceCallback().onCompleted(msg, exception);
             } else {
-                System.out.println("Calling next task");
+                LOGGER.info("Calling next task");
                 U user = (U) User.newBuilder().setUserId("XXXXX").build();
                 invokeNextTask(user);
             }

@@ -22,13 +22,13 @@ package org.apache.custos.tenant.registration.controller;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
-import org.apache.custos.integration.core.ServiceException;
-import org.apache.custos.integration.core.endpoint.TargetEndpoint;
 import org.apache.custos.tenant.profile.service.Gateway;
 import org.apache.custos.tenant.registration.model.Tenant;
 import org.apache.custos.tenant.registration.tasks.AddIamAdminUserTask;
 import org.apache.custos.tenant.registration.tasks.AddTenantTask;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,26 +41,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/tenant")
 public class TenantRegistrationController {
 
-  //  @Value("${tenant.profile.core.service.dns.name}")
-    private String tenantServiceName;
+    private static final Logger logger = LoggerFactory.getLogger(TenantRegistrationController.class);
 
-  //  @Value("${tenant.profile.core.service.port}")
-    private int tenantServicePort;
+    @Autowired
+    private AddTenantTask<Gateway, User> addTenantTask;
+
+    @Autowired
+    private AddIamAdminUserTask<User, User> addIamAdminUserTask;
 
     @PostMapping
     public void createTenant(@RequestBody Tenant tenant) {
         try {
 
-            TargetEndpoint tenProfile = new TargetEndpoint("localhost",7000);
-            TargetEndpoint iamCustos = new TargetEndpoint("localhost",7001);
+            logger.info("Receiving tenant info for tenant " + tenant.getName());
+
 
             ServiceCallback callback = (msg, exception) -> System.out.println("Completing create tenant");
-            AddTenantTask<Gateway, User> addTenantTask = new AddTenantTask<>(tenProfile);
-            AddIamAdminUserTask<User,User>  addIamAdminUserTask = new AddIamAdminUserTask<>(iamCustos);
 
-            ServiceChain chain = new ServiceChain.
-                                     ServiceChainBuilder(addTenantTask,callback).nextTask(addIamAdminUserTask).build();
+
+            ServiceChain chain = ServiceChain.newBuilder(addTenantTask, callback).
+                    nextTask(addIamAdminUserTask).build();
+
             Gateway gateway = Gateway.newBuilder().setGatewayId("qweqw").setInternalGatewayId("asdasd").build();
+
+
             chain.serve(gateway);
 
         } catch (Exception e) {

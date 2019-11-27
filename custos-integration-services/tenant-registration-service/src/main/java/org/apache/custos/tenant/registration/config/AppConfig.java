@@ -17,24 +17,18 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.service;
-import io.grpc.stub.StreamObserver;
-import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
-import org.apache.custos.iam.service.AddUserResponse;
-import org.apache.custos.iam.service.User;
-import org.lognet.springboot.grpc.GRpcService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package org.apache.custos.tenant.registration.config;
 
-@GRpcService
-public class IamAdminService extends IamAdminServiceImplBase {
+import org.apache.custos.integration.core.endpoint.TargetEndpoint;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(IamAdminService.class);
+@Configuration
+public class AppConfig {
 
-    @Override
-    public void addUser(User request, StreamObserver responseObserver) {
-        LOGGER.info("User added");
-        responseObserver.onNext(AddUserResponse.newBuilder().setCode("Success").build());
-        responseObserver.onCompleted();
-    }
+//    public TargetEndpoint getTenantProfileCoreServiceEndpoint(Value("${tenant.profile.core.service.dns.name}") val){
+//
+//    }
+
+
 }

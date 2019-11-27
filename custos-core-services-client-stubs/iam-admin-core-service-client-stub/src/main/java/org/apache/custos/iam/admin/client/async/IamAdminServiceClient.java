@@ -19,6 +19,7 @@
 
 package org.apache.custos.iam.admin.client.async;
 
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -26,23 +27,33 @@ import org.apache.custos.iam.service.IamAdminServiceGrpc;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
-import org.apache.custos.integration.core.endpoint.TargetEndpoint;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * The client class used to connect IAM admin services
  */
+@Component
 public class IamAdminServiceClient {
     private ManagedChannel managedChannel;
     private IamAdminServiceGrpc.IamAdminServiceStub iamAdminServiceStub;
 
-    private String iamAdminServiceAddress;
-    private int port;
+    @Value("${iam.admin.service.dns.name}")
+    private String serviceHost;
+
+    @Value("${iam.admin.service.port}")
+    private int servicePort;
 
 
-    public IamAdminServiceClient(TargetEndpoint targetEndpoint) {
-        this.iamAdminServiceAddress = targetEndpoint.getDnsName();
-        this.port = targetEndpoint.getPort();
+    private final List<ClientInterceptor> clientInterceptorList;
+
+
+    public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList){
+        this.clientInterceptorList = clientInterceptorList;
     }
+
 
     public void addUser(User user, ServiceCallback callback) {
         StreamObserver observer = new StreamObserver() {
@@ -63,7 +74,7 @@ public class IamAdminServiceClient {
         };
 
         managedChannel = ManagedChannelBuilder.forAddress(
-                this.iamAdminServiceAddress, this.port).usePlaintext(true).build();
+                this.serviceHost, this.servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
 
 
         iamAdminServiceStub = IamAdminServiceGrpc.newStub(managedChannel);

@@ -23,31 +23,36 @@ import org.apache.custos.iam.admin.client.async.IamAdminServiceClient;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceTaskImpl;
-import org.apache.custos.integration.core.endpoint.TargetEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 
-public class AddIamAdminUserTask<T, U> extends ServiceTaskImpl<T,U> {
+@Component
+@ComponentScan(basePackages = "org.apache.custos")
+public class AddIamAdminUserTask<T, U> extends ServiceTaskImpl<T, U> {
 
-    private TargetEndpoint endpoint;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AddIamAdminUserTask.class);
 
-
-    public AddIamAdminUserTask(TargetEndpoint targetEndpoint) {
-        this.endpoint = targetEndpoint;
-    }
+    @Autowired
+    private IamAdminServiceClient iamAdminServiceClient;
 
     @Override
     public void invokeService(T data) {
-            User user = (User) data;
-            IamAdminServiceClient iamAdminServiceClient = new IamAdminServiceClient(endpoint);
+        LOGGER.info("Invoking Add Iam Admin User Task");
+        User user = (User) data;
 
-            ServiceCallback myCallback = (msg, exception) -> {
-                if (exception != null) {
-                    System.out.println(exception);
-                    getServiceCallback().onCompleted(msg, exception);
-                } else {
-                    invokeNextTask(null);
-                }
-            };
+        ServiceCallback myCallback = (msg, exception) -> {
+            if (exception != null) {
+                LOGGER.info("IAM admin user task completed and return to parent");
+                getServiceCallback().onCompleted(msg, exception);
+            } else {
+                LOGGER.info("Invoking next task");
+                invokeNextTask(null);
+            }
+        };
 
-            iamAdminServiceClient.addUser(user, myCallback);
+        iamAdminServiceClient.addUser(user, myCallback);
     }
 }

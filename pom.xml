@@ -102,6 +102,21 @@
                  <artifactId>javax.annotation-api</artifactId>
                  <version>${javax.annotation.version}</version>
              </dependency>
+             <dependency>
+                 <groupId>org.springframework.cloud</groupId>
+                 <artifactId>spring-cloud-starter-sleuth</artifactId>
+                 <version>${spring.cloud.slueth.version}</version>
+             </dependency>
+             <dependency>
+                 <groupId>org.springframework.cloud</groupId>
+                 <artifactId>spring-cloud-sleuth-zipkin</artifactId>
+                 <version>${spring.cloud.slueth.version}</version>
+             </dependency>
+             <dependency>
+                 <groupId>io.zipkin.brave</groupId>
+                 <artifactId>brave-instrumentation-grpc</artifactId>
+                 <version>${brave.version}</version>
+             </dependency>
          </dependencies>
     </dependencyManagement>
 
@@ -240,8 +255,10 @@
         <grpc.spring.boot.version>2.3.2</grpc.spring.boot.version>
 
         <spring.cloud.stream.version>2.0.0.RELEASE</spring.cloud.stream.version>
+        <spring.cloud.slueth.version>2.1.6.RELEASE</spring.cloud.slueth.version>
 
         <io.grpc.version>1.25.0</io.grpc.version>
+        <brave.version>5.9.1</brave.version>
 
          <docker.image.prefix>isurur</docker.image.prefix>
         <docker.image.repo>custos</docker.image.repo>

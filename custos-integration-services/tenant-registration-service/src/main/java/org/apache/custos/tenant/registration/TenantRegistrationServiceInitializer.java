@@ -19,9 +19,12 @@
 
 package org.apache.custos.tenant.registration;
 
+import brave.Tracing;
+import brave.grpc.GrpcTracing;
+import io.grpc.ClientInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
+import org.springframework.context.annotation.Bean;
 
 
 @SpringBootApplication
@@ -29,4 +32,18 @@ public class TenantRegistrationServiceInitializer {
     public static void main(String[] args) {
         SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
     }
+
+    @Bean
+    public GrpcTracing grpcTracing(Tracing tracing) {
+    //   Tracing tracing1 =  Tracing.newBuilder().build();
+        return GrpcTracing.create(tracing);
+    }
+
+    //We also create a client-side interceptor and put that in the context, this interceptor can then be injected into gRPC clients and
+    //then applied to the managed channel.
+    @Bean
+    ClientInterceptor grpcClientSleuthInterceptor(GrpcTracing grpcTracing) {
+        return grpcTracing.newClientInterceptor();
+    }
+
 }

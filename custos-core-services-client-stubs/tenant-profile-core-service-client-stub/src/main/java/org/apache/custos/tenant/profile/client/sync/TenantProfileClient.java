@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.custos.tenant.profile.client.sync;
+package org.apache.custos.tenant.profile.client.sync;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;

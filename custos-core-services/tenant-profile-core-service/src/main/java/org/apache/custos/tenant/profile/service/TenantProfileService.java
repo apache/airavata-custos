@@ -24,16 +24,19 @@ import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc.TenantP
 import org.lognet.springboot.grpc.GRpcService;
 import org.apache.custos.tenant.profile.service.Gateway;
 import org.apache.custos.tenant.profile.service.AddGatewayResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This service is responsible for custos gateway management functions
  */
 @GRpcService
 public class TenantProfileService extends TenantProfileServiceImplBase {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantProfileService.class);
 
     @Override
     public void addGateway(Gateway gateway, StreamObserver<AddGatewayResponse> responseObserver) {
-        System.out.println(gateway.getGatewayId() +" gateway deployed successfully");
+        LOGGER.info(gateway.getGatewayId() +" gateway deployed successfully");
         responseObserver.onNext(AddGatewayResponse.newBuilder().setCode("success").build());
         responseObserver.onCompleted();
     }

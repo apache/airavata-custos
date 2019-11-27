@@ -17,33 +17,33 @@
  *  under the License.
  */
 
-package org.custos.tenant.profile.client.async;
+package org.apache.custos.tenant.profile.client.async;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
-import org.apache.custos.integration.core.endpoint.TargetEndpoint;
 import org.apache.custos.tenant.profile.service.Gateway;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * This class uses gRPC stubs generated for {@link TenantProfileServiceGrpc}
  * and acts as the client
  */
+@Component
 public class TenantProfileClient {
 
     private ManagedChannel managedChannel;
     private TenantProfileServiceGrpc.TenantProfileServiceStub tenantProfileServiceBlockingStub;
 
-    private String tenantProfileServiceAddress;
-    private int port;
+    @Value("${tenant.profile.core.service.dns.name}")
+    private String serviceHost;
 
-    public TenantProfileClient(TargetEndpoint endpoint) {
-        this.tenantProfileServiceAddress = endpoint.getDnsName();
-        this.port = endpoint.getPort();
-    }
+    @Value("${tenant.profile.core.service.port}")
+    private int servicePort;
 
 
     public void addGateway(Gateway gateway, ServiceCallback callback) {
@@ -69,7 +69,7 @@ public class TenantProfileClient {
         };
 
         managedChannel = ManagedChannelBuilder.forAddress(
-                this.tenantProfileServiceAddress, this.port).usePlaintext(true).build();
+                this.serviceHost, this.servicePort).usePlaintext(true).build();
 
         tenantProfileServiceBlockingStub = TenantProfileServiceGrpc.newStub(managedChannel);
         tenantProfileServiceBlockingStub.addGateway(gateway, observer);

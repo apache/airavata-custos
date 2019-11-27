@@ -49,12 +49,14 @@ private final List<ServiceTask> serviceTasks;
        private List<ServiceTask> serviceTasks = new ArrayList();
        private ServiceTask latestTask;
 
-       public ServiceChainBuilder(ServiceTask fistTask, ServiceCallback serviceCallback) {
-          this.latestTask = fistTask;
+       private ServiceChainBuilder(ServiceTask firstTask, ServiceCallback serviceCallback) {
+          this.latestTask = firstTask;
           this.serviceCallback = serviceCallback;
           this.latestTask.setServiceCallback(serviceCallback);
           this.serviceTasks.add(this.latestTask);
        }
+
+
 
        public ServiceChainBuilder nextTask(ServiceTask serviceTask){
            this.latestTask.setNextTask(serviceTask);
@@ -71,6 +73,10 @@ private final List<ServiceTask> serviceTasks;
        }
 
 
+    }
+
+    public static ServiceChainBuilder newBuilder(ServiceTask firstTask, ServiceCallback serviceCallback) {
+        return  new ServiceChainBuilder(firstTask, serviceCallback);
     }
 
 
