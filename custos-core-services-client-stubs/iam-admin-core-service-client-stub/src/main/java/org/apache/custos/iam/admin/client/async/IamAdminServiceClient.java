@@ -54,7 +54,7 @@ public class IamAdminServiceClient {
     }
 
 
-    public void addUser(User user, ServiceCallback callback) {
+    public void addUser(User user, final ServiceCallback callback) {
         StreamObserver observer = new StreamObserver() {
             @Override
             public void onNext(Object o) {

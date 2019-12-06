@@ -58,7 +58,7 @@ public class TenantProfileClient {
         profileServiceBlockingStub = TenantProfileServiceGrpc.newBlockingStub(managedChannel);
     }
 
-    public void addGatewayAsync(Gateway gateway, ServiceCallback callback) {
+    public void addGatewayAsync(Gateway gateway, final ServiceCallback callback) {
 
         StreamObserver observer = new StreamObserver() {
             @Override

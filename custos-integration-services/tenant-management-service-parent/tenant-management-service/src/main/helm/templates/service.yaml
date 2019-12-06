@@ -11,6 +11,14 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    - port: {{ .Values.service.grpcport }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.proxy.port }}
+      targetPort: envoyhttp
+      protocol: TCP
+      name: envoyhttp
   selector:
     app.kubernetes.io/name: {{ include "helm.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

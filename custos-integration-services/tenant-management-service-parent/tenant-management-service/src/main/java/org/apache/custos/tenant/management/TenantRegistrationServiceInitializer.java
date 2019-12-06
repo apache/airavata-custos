@@ -17,11 +17,13 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration;
+package org.apache.custos.tenant.management;
 
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
+import io.grpc.ServerInterceptor;
+import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -44,6 +46,12 @@ public class TenantRegistrationServiceInitializer {
     @Bean
     ClientInterceptor grpcClientSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newClientInterceptor();
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
+        return grpcTracing.newServerInterceptor();
     }
 
 }

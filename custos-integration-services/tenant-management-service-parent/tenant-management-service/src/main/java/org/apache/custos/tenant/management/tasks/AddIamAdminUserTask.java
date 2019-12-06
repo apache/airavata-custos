@@ -17,13 +17,12 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.registration.tasks;
+package org.apache.custos.tenant.management.tasks;
 
+import org.apache.custos.iam.admin.client.async.IamAdminServiceClient;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceTaskImpl;
-import org.apache.custos.tenant.profile.service.Gateway;
-import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,30 +31,28 @@ import org.springframework.stereotype.Component;
 
 @Component
 @ComponentScan(basePackages = "org.apache.custos")
-public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
+public class AddIamAdminUserTask<T, U> extends ServiceTaskImpl<T, U> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AddTenantTask.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AddIamAdminUserTask.class);
 
     @Autowired
-    private TenantProfileClient tenantProfileClient;
-
+    private IamAdminServiceClient iamAdminServiceClient;
 
     @Override
     public void invokeService(T data) {
-        LOGGER.info("Invoking Add tenant task");
-        Gateway gateway = (Gateway) data;
+        LOGGER.info("Invoking Add Iam Admin User Task");
+        User user = (User) data;
 
         ServiceCallback myCallback = (msg, exception) -> {
             if (exception != null) {
-                LOGGER.info("Invoking parent call back");
+                LOGGER.info("IAM admin user task completed and return to parent");
                 getServiceCallback().onCompleted(msg, exception);
             } else {
-                LOGGER.info("Calling next task");
-                U user = (U) User.newBuilder().setUserId("XXXXX").build();
-                invokeNextTask(user);
+                LOGGER.info("Invoking next task");
+                invokeNextTask(null);
             }
         };
 
-        tenantProfileClient.addGatewayAsync(gateway, myCallback);
+        iamAdminServiceClient.addUser(user, myCallback);
     }
 }

@@ -34,6 +34,7 @@ securityContext: {}
 service:
   type: NodePort
   port: 8080
+  grpcport: 7000
 
 ingress:
   enabled: false
@@ -66,3 +67,9 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+proxy:
+   repository: isurur/tenant-management-service-sidecar
+   tag: 1.0-SNAPSHOT
+   port: 50000
+   adminport: 9901

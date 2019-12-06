@@ -13,10 +13,10 @@ scrape_configs:
     scrape_interval: 10s
     metrics_path: '/actuator/prometheus'
     static_configs:
-        - targets: ['docker.for.mac.localhost:8082']
+        - targets: ['docker.for.mac.localhost:8080']
 
   - job_name: 'tenantProfileCoreService'
     scrape_interval: 10s
     metrics_path: '/actuator/prometheus'
     static_configs:
-        - targets: ['docker.for.mac.localhost:8081']
+        - targets: ['docker.for.mac.localhost:8080']
