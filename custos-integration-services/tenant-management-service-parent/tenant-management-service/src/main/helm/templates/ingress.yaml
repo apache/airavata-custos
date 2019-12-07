@@ -11,4 +11,4 @@ spec:
           - path: /tenant-management(/|$)(.*)
             backend:
               serviceName: tenant-management-service
-              servicePort: 50000
+              servicePort: envoyhttp
