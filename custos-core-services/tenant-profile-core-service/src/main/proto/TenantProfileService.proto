@@ -23,15 +23,121 @@ syntax = "proto3";
 option java_multiple_files = true;
 package org.apache.custos.tenant.profile.service;
 
-message Gateway {
-    string internalGatewayId = 1;
-    string gatewayId = 2;
+message Tenant {
+    string tenantId = 1;
+    string tenantName = 2;
+    string requesterUsername = 3;
+    string requesterEmail = 4;
+    string adminFirstName = 5;
+    string adminLastName = 6;
+    string adminEmail = 7;
+    string tenantStatus = 8;
+    repeated string contacts = 9;
+    repeated string redirectURIs = 10;
+    string logoURI = 11;
+    string scope = 12;
+    string domain = 13;
 }
 
-message AddGatewayResponse {
-    string code = 1;
+
+message TenantAttributeUpdateMetadata {
+    string updatedAttributed = 1;
+    string updatedAttributeValue = 2;
+    string updatedBy = 3;
+    string updatedAt = 4;
 }
 
-service  TenantProfileService {
-    rpc addGateway(Gateway) returns (AddGatewayResponse);
+message TenantStatusUpdateMetadata {
+    string updatedStatus = 1;
+    string updatedBy = 2;
+    string updatedAt = 3;
+}
+
+
+message AddTenantResponse {
+    string tenantId = 1;
+}
+
+message UpdateTenantRequest {
+    Tenant tenant = 1;
+    string updatedBy = 2;
+}
+
+message UpdateTenantResponse {
+    Tenant tenant = 1;
+
+}
+
+message GetTenantRequest {
+    string tenantId = 1;
+}
+
+message GetTenantResponse {
+    Tenant tenant = 1;
+}
+
+
+message GetAllTenantsResponse {
+    repeated Tenant tenant = 1;
+}
+
+message isTenantExistRequest {
+    string tenantId = 1;
+}
+
+message IsTenantExistResponse {
+    bool isExist = 1;
+}
+
+message GetAllTenantsForUserRequest {
+    string requesterUserName = 1;
+}
+
+message GetAllTenantsForUserResponse {
+    repeated Tenant tenant = 1;
+}
+
+message UpdateStatusRequest {
+    string tenantId = 1;
+    string status = 2;
+    string updatedBy = 3;
+}
+
+message UpdateStatusResponse {
+    string tenantId = 1;
+    string status = 2;
+}
+
+message GetAuditTrailRequest {
+    string tenantId = 1;
+}
+
+message GetStatusUpdateAuditTrailResponse {
+    repeated TenantStatusUpdateMetadata metadata = 1;
+}
+
+message GetAttributeUpdateAuditTrailResponse {
+    repeated TenantAttributeUpdateMetadata metadata = 2;
+}
+
+message GetFullAuditTrailResponse {
+    repeated TenantStatusUpdateMetadata statusMetadata = 1;
+    repeated TenantAttributeUpdateMetadata attributeMetadata = 2;
+}
+
+message Empty {
+
+}
+
+service TenantProfileService {
+    rpc addTenant (Tenant) returns (AddTenantResponse);
+    rpc updateTenant (UpdateTenantRequest) returns (UpdateTenantResponse);
+    rpc getTenant (GetTenantRequest) returns (GetTenantResponse);
+    rpc updateTenantStatus (UpdateStatusRequest) returns (UpdateStatusResponse);
+    rpc getAllTenants (Empty) returns (GetAllTenantsResponse);
+    rpc isTenantExist (IsTenantExistResponse) returns (IsTenantExistResponse);
+    rpc getAllTenantsForUser (GetAllTenantsForUserRequest) returns (GetAllTenantsForUserResponse);
+    rpc getTenantStatusUpdateAuditTrail (GetAuditTrailRequest) returns (GetStatusUpdateAuditTrailResponse);
+    rpc getTenantAttributeUpdateAuditTrail (GetAuditTrailRequest) returns (GetAttributeUpdateAuditTrailResponse);
+    rpc getTenantFullAuditTrail (GetAuditTrailRequest) returns (GetFullAuditTrailResponse);
 }

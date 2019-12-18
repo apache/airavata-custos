@@ -19,6 +19,7 @@
 
 package org.apache.custos.tenant.management.service;
 
+import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
@@ -48,16 +49,21 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void createTenant(CreateTenantRequest request, StreamObserver<Tenant> responseObserver) {
         LOGGER.info("Tenant requested " + request.getTenant().getTenantName());
 
-        ServiceCallback callback = (msg, exception) -> System.out.println("Completing create tenant");
+        Context ctx = Context.current().fork();
+        // Set ctx as the current context within the Runnable
+        ctx.run(() -> {
+            ServiceCallback callback = (msg, exception) -> System.out.println("Completing create tenant");
 
 
-        ServiceChain chain = ServiceChain.newBuilder(addTenantTask, callback).
-                nextTask(addIamAdminUserTask).build();
+            ServiceChain chain = ServiceChain.newBuilder(addTenantTask, callback).
+                    nextTask(addIamAdminUserTask).build();
 
-        Gateway gateway = Gateway.newBuilder().setGatewayId("qweqw").setInternalGatewayId("asdasd").build();
+            Gateway gateway = Gateway.newBuilder().setGatewayId("qweqw").setInternalGatewayId("asdasd").build();
 
 
-        chain.serve(gateway);
+            chain.serve(gateway);
+        });
+
 
 
         responseObserver.onNext(request.getTenant());

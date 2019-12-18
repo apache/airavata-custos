@@ -127,6 +127,17 @@
                  <artifactId>proto-google-common-protos</artifactId>
                  <version>${google.common.protos}</version>
              </dependency>
+             <dependency>
+                 <groupId>mysql</groupId>
+                 <artifactId>mysql-connector-java</artifactId>
+                 <version>${mysql.connector.java}</version>
+             </dependency>
+             <dependency>
+                 <groupId>javax.persistence</groupId>
+                 <artifactId>persistence-api</artifactId>
+                 <version>${javax.persistance}</version>
+             </dependency>
+
          </dependencies>
     </dependencyManagement>
 
@@ -278,6 +289,9 @@
 
          <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
+
+        <mysql.connector.java>8.0.18</mysql.connector.java>
+        <javax.persistance>1.0.2</javax.persistance>
 
     </properties>
 
