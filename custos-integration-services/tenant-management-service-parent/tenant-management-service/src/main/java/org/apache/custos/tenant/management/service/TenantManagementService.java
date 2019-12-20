@@ -27,46 +27,56 @@ import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.AddIamAdminUserTask;
 import org.apache.custos.tenant.management.tasks.AddTenantTask;
-import org.apache.custos.tenant.profile.service.Gateway;
+
+import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.AddTenantResponse;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.custos.tenant.management.service.CreateTenantRequest;
-import org.apache.custos.tenant.management.service.Tenant;
+
 
 @GRpcService
 public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Autowired
-    private AddTenantTask<Gateway, User> addTenantTask;
+    private AddTenantTask<Tenant, User> addTenantTask;
+
+    @Autowired
+    private TenantProfileClient profileClient;
 
     @Autowired
     private AddIamAdminUserTask<User, User> addIamAdminUserTask;
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantManagementService.class);
 
     @Override
-    public void createTenant(CreateTenantRequest request, StreamObserver<Tenant> responseObserver) {
+    public void createTenant(CreateTenantRequest request, StreamObserver<CreateTenantResponse> responseObserver) {
         LOGGER.info("Tenant requested " + request.getTenant().getTenantName());
 
-        Context ctx = Context.current().fork();
-        // Set ctx as the current context within the Runnable
-        ctx.run(() -> {
-            ServiceCallback callback = (msg, exception) -> System.out.println("Completing create tenant");
+        AddTenantResponse response = profileClient.addTenant(request.getTenant());
 
+//        Context ctx = Context.current().fork();
+//        // Set ctx as the current context within the Runnable
+//        ctx.run(() -> {
+//            ServiceCallback callback = (msg, exception) -> System.out.println("Completing create tenant");
+//
+//
+//            ServiceChain chain = ServiceChain.newBuilder(addTenantTask, callback).
+//                    nextTask(addIamAdminUserTask).build();
+//
+//           Tenant tenant =   request.getTenant();
+//
+//            chain.serve(tenant);
+//        });
 
-            ServiceChain chain = ServiceChain.newBuilder(addTenantTask, callback).
-                    nextTask(addIamAdminUserTask).build();
+       CreateTenantResponse tenantResponse =  CreateTenantResponse.newBuilder()
+                .setTenantId(response.getTenantId())
+                .setMsg("Tenant Requested Successfully")
+                .build();
 
-            Gateway gateway = Gateway.newBuilder().setGatewayId("qweqw").setInternalGatewayId("asdasd").build();
-
-
-            chain.serve(gateway);
-        });
-
-
-
-        responseObserver.onNext(request.getTenant());
+        responseObserver.onNext(tenantResponse);
         responseObserver.onCompleted();
     }
 }

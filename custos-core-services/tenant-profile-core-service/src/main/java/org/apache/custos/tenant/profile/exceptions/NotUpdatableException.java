@@ -17,14 +17,13 @@
  *  under the License.
  */
 
-package org.apache.custos.integration.core;
+package org.apache.custos.tenant.profile.exceptions;
 
 /**
- * An interface represents callback for async communication
+ * Throws when tenant is not updatable
  */
-public interface ServiceCallback {
-
-
-    void onCompleted(Object obj, ServiceException exception);
-
+public class NotUpdatableException extends RuntimeException {
+    public NotUpdatableException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

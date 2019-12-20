@@ -22,6 +22,7 @@ package org.apache.custos.tenant.profile;
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ServerInterceptor;
+import org.apache.custos.tenant.profile.validator.TenantServiceValidationInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -47,5 +48,11 @@ public class TenantProfileServiceInitializer {
     @GRpcGlobalInterceptor
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(){
+        return new TenantServiceValidationInterceptor();
     }
 }

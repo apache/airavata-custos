@@ -22,8 +22,8 @@ package org.apache.custos.tenant.management.tasks;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceTaskImpl;
-import org.apache.custos.tenant.profile.service.Gateway;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +43,7 @@ public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
     @Override
     public void invokeService(T data) {
         LOGGER.info("Invoking Add tenant task");
-        Gateway gateway = (Gateway) data;
+        Tenant tenant = (Tenant) data;
 
         ServiceCallback myCallback = (msg, exception) -> {
             if (exception != null) {
@@ -56,6 +56,6 @@ public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
             }
         };
 
-        tenantProfileClient.addGatewayAsync(gateway, myCallback);
+        tenantProfileClient.addTenantAsync(tenant, myCallback);
     }
 }

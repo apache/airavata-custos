@@ -21,6 +21,10 @@ package org.apache.custos.tenant.profile.mapper;
 
 import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
+import org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class maps attributes between grpc TenantStatusUpdateMetadata to DB StatusUpdateMetadata table
@@ -30,18 +34,37 @@ public class StatusUpdateMetadataMapper {
 
     /**
      * Creates Status update entity for save in DB
-     * @param {@link org.apache.custos.tenant.profile.service.Tenant} tenant
+     *
+     * @param {@link    org.apache.custos.tenant.profile.service.Tenant} tenant
      * @param updatedBy
      * @return
      */
-    public static StatusUpdateMetadata createStatusUpdateMetadataEntity(Tenant tenant, String updatedBy) {
+    public static Set<StatusUpdateMetadata>  createStatusUpdateMetadataEntity(Tenant tenant, String updatedBy) {
+
+        Set<StatusUpdateMetadata> metaDataSet = new HashSet<>();
 
         StatusUpdateMetadata metadata = new StatusUpdateMetadata();
         metadata.setTenant(tenant);
         metadata.setUpdatedBy(updatedBy);
         metadata.setUpdatedStatus(tenant.getStatus());
 
-        return metadata;
+        metaDataSet.add(metadata);
+        return metaDataSet;
 
     }
+
+    /**
+     * convert TenantStatusUpdateMetadataEntity to gRPC TenantStatusUpdateMetadata
+     *
+     * @param metadata
+     * @return TenantStatusUpdateMetadata
+     */
+    public static TenantStatusUpdateMetadata createTenantStatusMetadataFrom(StatusUpdateMetadata metadata) {
+        return TenantStatusUpdateMetadata.newBuilder()
+                .setUpdatedAt(metadata.getUpdatedAt().toString())
+                .setUpdatedBy(metadata.getUpdatedBy())
+                .setUpdatedStatus(metadata.getUpdatedStatus()).build();
+
+    }
+
 }

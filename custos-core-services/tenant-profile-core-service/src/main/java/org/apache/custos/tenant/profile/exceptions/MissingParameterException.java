@@ -17,14 +17,14 @@
  *  under the License.
  */
 
-package org.apache.custos.integration.core;
+package org.apache.custos.tenant.profile.exceptions;
 
 /**
- * An interface represents callback for async communication
+ * Missing Parameter
  */
-public interface ServiceCallback {
+public class MissingParameterException extends RuntimeException {
 
-
-    void onCompleted(Object obj, ServiceException exception);
-
+   public MissingParameterException(String msg, Throwable e) {
+      super(msg,e);
+   }
 }

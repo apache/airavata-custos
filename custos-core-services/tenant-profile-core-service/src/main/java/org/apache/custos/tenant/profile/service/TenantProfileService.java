@@ -20,13 +20,28 @@
 package org.apache.custos.tenant.profile.service;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.tenant.profile.exceptions.NotUpdatableException;
+import org.apache.custos.tenant.profile.exceptions.TenantDuplicateException;
+import org.apache.custos.tenant.profile.mapper.AttributeUpdateMetadataMapper;
+import org.apache.custos.tenant.profile.mapper.StatusUpdateMetadataMapper;
+import org.apache.custos.tenant.profile.mapper.TenantMapper;
+import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
+import org.apache.custos.tenant.profile.persistance.respository.AttributeUpdateMetadataRepository;
+import org.apache.custos.tenant.profile.persistance.respository.StatusUpdateMetadataRepository;
 import org.apache.custos.tenant.profile.persistance.respository.TenantRepository;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc.TenantProfileServiceImplBase;
+import org.apache.custos.tenant.profile.utils.TenantStatus;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * This service is responsible for custos gateway management functions
@@ -35,115 +50,333 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class TenantProfileService extends TenantProfileServiceImplBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantProfileService.class);
 
+
     @Autowired
     private TenantRepository tenantRepository;
 
+    @Autowired
+    private StatusUpdateMetadataRepository statusUpdateMetadataRepository;
+
+    @Autowired
+    private AttributeUpdateMetadataRepository attributeUpdateMetadataRepository;
+
 
     @Override
-    public void addTenant(org.apache.custos.tenant.profile.service.Tenant request, StreamObserver<AddTenantResponse> responseObserver) {
-        super.addTenant(request, responseObserver);
+    public void addTenant(org.apache.custos.tenant.profile.service.Tenant request,
+                          StreamObserver<AddTenantResponse> responseObserver) {
+
+        try {
+            LOGGER.debug("Add tenant request received for tenant " + TenantMapper.getTenantInfoAsString(request));
+
+            if (!isTenantExist(request.getDomain(), request.getTenantName())) {
+
+                Tenant tenant = TenantMapper.createTenantEntityFromTenant(request);
+
+                tenant.setStatus(TenantStatus.REQUESTED);
+
+                Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
+                        createStatusUpdateMetadataEntity(tenant, tenant.getRequesterUsername());
+
+                tenant.setStatusUpdateMetadata(metadataSet);
+
+                Tenant savedTenant = tenantRepository.save(tenant);
+
+                AddTenantResponse response = AddTenantResponse.newBuilder().
+                        setTenantId(String.valueOf(savedTenant.getId())).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Tenant exist with name " + request.getTenantName() + " in domain " + request.getDomain();
+                TenantDuplicateException exception = new TenantDuplicateException(msg, null);
+                LOGGER.error(msg);
+                responseObserver.onError(exception);
+            }
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while adding the tenant " + ex);
+            responseObserver.onError(ex);
+        }
+
+
     }
 
     @Override
     public void updateTenant(UpdateTenantRequest request, StreamObserver<UpdateTenantResponse> responseObserver) {
-        super.updateTenant(request, responseObserver);
+        try {
+            LOGGER.debug("Update tenant request received for tenant " + TenantMapper.
+                    getTenantInfoAsString(request.getTenant()));
+
+            org.apache.custos.tenant.profile.service.Tenant tenant = request.getTenant();
+
+            String updatedBy = request.getUpdatedBy();
+
+            Long tenantId = Long.valueOf(tenant.getTenantId());
+
+            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getTenantName())) {
+
+                Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
+
+                //Do not update the tenant status
+                Optional<Tenant> opt = tenantRepository.findById(tenantId);
+                Tenant exTenant = opt.get();
+                tenantEntity.setStatus(exTenant.getStatus());
+
+
+                Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
+                        createAttributeUpdateMetadataEntity(exTenant, tenantEntity, updatedBy);
+
+                tenantEntity.setAttributeUpdateMetadata(metadata);
+
+                tenantRepository.save(tenantEntity);
+
+                UpdateTenantResponse response = UpdateTenantResponse.newBuilder().
+                        build().newBuilder().setTenant(tenant).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Tenant is not updatable, " +
+                        "because tenant may not exist with given Id or there may be a tenant with" +
+                        "updated domain and name";
+                NotUpdatableException exception = new NotUpdatableException(msg, null);
+                LOGGER.error(msg);
+                responseObserver.onError(exception);
+            }
+
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while updating the tenant " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
     public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
-        super.getAllTenants(request, responseObserver);
+        try {
+            LOGGER.debug("Get all tenants request received");
+
+            List<Tenant> tenants = tenantRepository.findAll();
+
+            List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
+
+            for (Tenant tenant : tenants) {
+                org.apache.custos.tenant.profile.service.Tenant t = TenantMapper.createTenantFromTenantEntity(tenant);
+                tenantList.add(t);
+            }
+
+            GetAllTenantsResponse response = GetAllTenantsResponse.newBuilder().addAllTenant(tenantList).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
-    public void getAllTenantsForUser(GetAllTenantsForUserRequest request, StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
-        super.getAllTenantsForUser(request, responseObserver);
+    public void getAllTenantsForUser(GetAllTenantsForUserRequest request,
+                                     StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
+        try {
+            LOGGER.debug("Get all tenants for user " + request.getRequesterUserName() + " received");
+
+            String username = request.getRequesterUserName();
+
+            List<Tenant> tenants = tenantRepository.findByRequesterUsername(username);
+
+            List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
+
+            for (Tenant tenant : tenants) {
+                org.apache.custos.tenant.profile.service.Tenant t = TenantMapper.createTenantFromTenantEntity(tenant);
+                tenantList.add(t);
+            }
+
+            GetAllTenantsForUserResponse response = GetAllTenantsForUserResponse.newBuilder()
+                    .addAllTenant(tenantList).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
     public void getTenant(GetTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
-        super.getTenant(request, responseObserver);
+        try {
+            LOGGER.debug("Get tenant with Id " + request.getTenantId() + " received");
+
+            Long id = Long.valueOf(request.getTenantId());
+
+            Optional<Tenant> tenant = tenantRepository.findById(id);
+            org.apache.custos.tenant.profile.service.Tenant t = null;
+            if (tenant.isPresent()) {
+                t = TenantMapper.createTenantFromTenantEntity(tenant.get());
+            }
+
+            GetTenantResponse response = GetTenantResponse.newBuilder().setTenant(t).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
-    public void getTenantAttributeUpdateAuditTrail(GetAuditTrailRequest request, StreamObserver<GetAttributeUpdateAuditTrailResponse> responseObserver) {
-        super.getTenantAttributeUpdateAuditTrail(request, responseObserver);
+    public void getTenantAttributeUpdateAuditTrail(GetAuditTrailRequest request,
+                                                   StreamObserver<GetAttributeUpdateAuditTrailResponse> responseObserver) {
+        try {
+            LOGGER.debug("Get tenant attribute update audit trail for  " + request.getTenantId());
+
+            Long id = Long.valueOf(request.getTenantId());
+
+            List<AttributeUpdateMetadata> tenantList = attributeUpdateMetadataRepository.findAll();
+            List<TenantAttributeUpdateMetadata> metadata = new ArrayList<>();
+
+            for (AttributeUpdateMetadata attributeUpdateMetadata : tenantList) {
+
+                TenantAttributeUpdateMetadata updatedMetadata = AttributeUpdateMetadataMapper.
+                        createAttributeUpdateMetadataFromEntity(attributeUpdateMetadata);
+                metadata.add(updatedMetadata);
+
+            }
+
+            GetAttributeUpdateAuditTrailResponse response = GetAttributeUpdateAuditTrailResponse
+                    .newBuilder()
+                    .addAllMetadata(metadata)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  attribute status update metadata " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
 
     @Override
-    public void getTenantFullAuditTrail(GetAuditTrailRequest request, StreamObserver<GetFullAuditTrailResponse> responseObserver) {
-        super.getTenantFullAuditTrail(request, responseObserver);
+    public void getTenantStatusUpdateAuditTrail(GetAuditTrailRequest request,
+                                                StreamObserver<GetStatusUpdateAuditTrailResponse> responseObserver) {
+        try {
+            LOGGER.debug("Get tenant attribute update audit trail for  " + request.getTenantId());
+
+            Long id = Long.valueOf(request.getTenantId());
+
+            List<StatusUpdateMetadata> tenantList = statusUpdateMetadataRepository.findAll();
+            List<TenantStatusUpdateMetadata> metadata = new ArrayList<>();
+
+            for (StatusUpdateMetadata statusUpdateMetadata : tenantList) {
+
+                TenantStatusUpdateMetadata updatedMetadata = StatusUpdateMetadataMapper
+                        .createTenantStatusMetadataFrom(statusUpdateMetadata);
+                metadata.add(updatedMetadata);
+
+            }
+
+            GetStatusUpdateAuditTrailResponse response = GetStatusUpdateAuditTrailResponse
+                    .newBuilder()
+                    .addAllMetadata(metadata)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  status update metadata " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
-    public void getTenantStatusUpdateAuditTrail(GetAuditTrailRequest request, StreamObserver<GetStatusUpdateAuditTrailResponse> responseObserver) {
-        super.getTenantStatusUpdateAuditTrail(request, responseObserver);
-    }
+    public void isTenantExist(IsTenantExistRequest request, StreamObserver<IsTenantExistResponse> responseObserver) {
+        try {
+            LOGGER.debug("Is tenant exist " + request.getTenantId() + " received");
 
-    @Override
-    public void isTenantExist(IsTenantExistResponse request, StreamObserver<IsTenantExistResponse> responseObserver) {
-        super.isTenantExist(request, responseObserver);
+            Long id = Long.valueOf(request.getTenantId());
+
+            Optional<Tenant> tenant = tenantRepository.findById(id);
+
+
+            IsTenantExistResponse response = IsTenantExistResponse.newBuilder().setIsExist(tenant.isPresent()).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
     @Override
     public void updateTenantStatus(UpdateStatusRequest request, StreamObserver<UpdateStatusResponse> responseObserver) {
-        super.updateTenantStatus(request, responseObserver);
+        try {
+            LOGGER.debug("Update tenant request status received for " + request.getTenantId() + " received");
+
+            Long id = Long.valueOf(request.getTenantId());
+
+            String status = request.getStatus();
+
+            String updatedBy = request.getUpdatedBy();
+
+            Optional<Tenant> tenant = tenantRepository.findById(id);
+
+            if (tenant.isPresent()) {
+
+                Tenant t = tenant.get();
+
+                t.setStatus(status);
+
+                Set<StatusUpdateMetadata> metadata = StatusUpdateMetadataMapper
+                        .createStatusUpdateMetadataEntity(t, updatedBy);
+                t.setStatusUpdateMetadata(metadata);
+
+                tenantRepository.save(t);
+
+
+                UpdateStatusResponse response = UpdateStatusResponse.newBuilder()
+                        .setTenantId(String.valueOf(id))
+                        .setStatus(status)
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            LOGGER.error("Exception occurred while updating tenant status " + ex);
+            responseObserver.onError(ex);
+        }
     }
 
 
-    // @Override
-    public void addTenant(Tenant tenant, StreamObserver<AddTenantResponse> responseObserver) {
-//        LOGGER.info(gateway.getGatewayId() + " gateway deployed successfully");
-//
-//        Tenant tenant = new Tenant();
-//        tenant.setName("Test");
-//        tenant.setAdminEmail("irjanith@gmail.com");
-//        tenant.setAdminFirstName("Isuru");
-//        tenant.setAdminLastName("Ranawaka");
-//        tenant.setRequesterEmail("irjanith@gmail.com");
-//        tenant.setRequesterUsername("IsuruR");
-//        tenant.setStatus("REQUESTED");
-//
-//        String[] contacts = {"0714629880","07895678345"};
-//        String[] redirectURIs = {"http://wwww.example.com","https://tenant.com"};
-//
-//        List<Contact> contactList = new ArrayList<>();
-//       for(String contact: contacts) {
-//           Contact contact1 = new Contact();
-//           contact1.setContactInfo(contact);
-//           contact1.setTenant(tenant);
-//           contactList.add(contact1);
-//       }
-//
-//        List<RedirectURI> redirectURIS = new ArrayList<>();
-//        for(String contact: contacts) {
-//            RedirectURI contact1 = new RedirectURI();
-//            contact1.setRedirectURI(contact);
-//            contact1.setTenant(tenant);
-//            redirectURIS.add(contact1);
-//        }
-//
-//        tenant.setRedirectURIS(new HashSet<>(redirectURIS));
-//        tenant.setContacts(new HashSet<>(contactList));
-//
-//       Tenant saved = tenantRepository.save(tenant);
-//        LOGGER.info("Saved ID "+ saved.getId());
-//       Optional<Tenant> readT =  tenantRepository.findById(saved.getId());
-//
-//
-//       if(readT.isPresent()){
-//         Tenant read =  readT.get();
-//           LOGGER.info("Contacts " + read.getContacts().toArray());
-//           LOGGER.info("RedirectURI " + read.getRedirectURIS().toArray());
-//       }else {
-//           LOGGER.info("NO saved element");
-//       }
-
-
-        // tenantRepository.deleteById(Long.valueOf("10000101"));
-
-//        responseObserver.onNext(AddTenantResponse.newBuilder().setCode("success").build());
-//        responseObserver.onCompleted();
+    private boolean isTenantExist(String domain, String name) {
+        List<Tenant> tenant = tenantRepository.findByDomainAndName(domain, name);
+        if (tenant != null && !tenant.isEmpty()) {
+            return true;
+        }
+        return false;
     }
+
+    private boolean isUpdatable(Long tenantId, String domain, String name) {
+        List<Tenant> tenantList = tenantRepository.findByDomainAndName(domain, name);
+
+        if (tenantList != null && !tenantList.isEmpty()) {
+            Tenant exTeant = tenantList.get(0);
+            if (!exTeant.getId().equals(tenantId)) {
+                return false;
+            }
+        }
+        Optional<Tenant> opt = tenantRepository.findById(tenantId);
+        if (opt.isPresent()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
 }
+
+
+

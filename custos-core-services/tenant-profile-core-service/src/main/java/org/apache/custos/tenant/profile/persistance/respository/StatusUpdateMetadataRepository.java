@@ -19,8 +19,9 @@
 
 package org.apache.custos.tenant.profile.persistance.respository;
 
+import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface StatusUpdateMetadataRepository extends JpaRepository<Tenant, Long> {
+public interface StatusUpdateMetadataRepository extends JpaRepository<StatusUpdateMetadata, Long> {
 }

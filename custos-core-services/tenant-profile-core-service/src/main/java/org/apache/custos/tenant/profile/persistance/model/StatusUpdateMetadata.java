@@ -23,6 +23,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
+import java.util.Date;
 
 /**
  * Keeps the track of status updated metadata
@@ -42,7 +43,7 @@ public class StatusUpdateMetadata {
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
-    private String updatedAt;
+    private Date updatedAt;
 
     @Column(nullable = false)
     private String updatedBy;
@@ -67,7 +68,7 @@ public class StatusUpdateMetadata {
         this.updatedStatus = updatedStatus;
     }
 
-    public String getUpdatedAt() {
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 

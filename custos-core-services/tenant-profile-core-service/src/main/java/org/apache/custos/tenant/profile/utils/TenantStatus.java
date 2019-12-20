@@ -24,11 +24,10 @@ package org.apache.custos.tenant.profile.utils;
  */
 public class TenantStatus {
 
-    private final static String REQUESTED = "REQUESTED";
-    private final static String APPROVED = "APPROVED";
-    private final static String DENIED = "DENIED";
-    private final static String CANCELLED = "CANCELLED";
-    private final static String ACTIVE = "ACTIVE";
-    private final static String DEACTIVED = "DEACTIVED";
-
+    public final static String REQUESTED = "REQUESTED";
+    public final static String APPROVED = "APPROVED";
+    public final static String DENIED = "DENIED";
+    public final static String CANCELLED = "CANCELLED";
+    public final static String ACTIVE = "ACTIVE";
+    public final static String DEACTIVED = "DEACTIVED";
 }

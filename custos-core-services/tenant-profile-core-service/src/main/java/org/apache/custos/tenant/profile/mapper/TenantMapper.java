@@ -19,9 +19,13 @@
 
 package org.apache.custos.tenant.profile.mapper;
 
-import org.apache.custos.tenant.profile.persistance.model.*;
+import org.apache.custos.tenant.profile.persistance.model.Contact;
+import org.apache.custos.tenant.profile.persistance.model.RedirectURI;
+import org.apache.custos.tenant.profile.persistance.model.Tenant;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -39,7 +43,7 @@ public class TenantMapper {
      */
     public static Tenant createTenantEntityFromTenant(org.apache.custos.tenant.profile.service.Tenant tenant) {
         Tenant tenantEntity = new Tenant();
-        if (tenant.getTenantId() != null) {
+        if (!(tenant.getTenantId() == null || tenant.getTenantId().equals(""))){
             Long castedId = Long.valueOf(tenant.getTenantId());
             tenantEntity.setId(castedId);
         }
@@ -60,6 +64,7 @@ public class TenantMapper {
 
             String contact = tenant.getContacts(i);
             Contact contactEntity = new Contact();
+            contactEntity.setTenant(tenantEntity);
             contactEntity.setContactInfo(contact);
             contactSet.add(contactEntity);
         }
@@ -71,6 +76,7 @@ public class TenantMapper {
 
             String uri = tenant.getRedirectURIs(i);
             RedirectURI redirectURIEntity = new RedirectURI();
+            redirectURIEntity.setTenant(tenantEntity);
             redirectURIEntity.setRedirectURI(uri);
             redirectURIS.add(redirectURIEntity);
         }
@@ -82,8 +88,84 @@ public class TenantMapper {
     }
 
 
+    /**
+     * Transform TenantEntity to Tenant
+     *
+     * @param tenantEntity
+     * @return tenant
+     */
+    public static org.apache.custos.tenant.profile.service.Tenant createTenantFromTenantEntity(Tenant tenantEntity) {
+
+        Set<Contact> contacts = tenantEntity.getContacts();
+        List<String> contactList = new ArrayList<>();
+        if (contacts != null && !contacts.isEmpty()) {
+            for (Contact contact : contacts) {
+                contactList.add(contact.getContactInfo());
+            }
+        }
 
 
+        Set<RedirectURI> redirectURIS = tenantEntity.getRedirectURIS();
+        List<String> uriList = new ArrayList<>();
+        if (redirectURIS != null && !redirectURIS.isEmpty()) {
+            for (RedirectURI redirectURI : redirectURIS) {
+                uriList.add(redirectURI.getRedirectURI());
+            }
+        }
+
+
+        return org.apache.custos.tenant.profile.service.Tenant.newBuilder()
+                .setAdminEmail(tenantEntity.getAdminEmail())
+                .setAdminFirstName(tenantEntity.getAdminFirstName())
+                .setAdminLastName(tenantEntity.getAdminLastName())
+                .setDomain(tenantEntity.getDomain())
+                .setLogoURI(tenantEntity.getLogoURI())
+                .setRequesterEmail(tenantEntity.getRequesterEmail())
+                .setScope(tenantEntity.getScope())
+                .addAllContacts(contactList)
+                .addAllRedirectURIs(uriList)
+                .setTenantName(tenantEntity.getName())
+                .setRequesterUsername(tenantEntity.getRequesterUsername())
+                .setTenantId(String.valueOf(tenantEntity.getId()))
+                .setTenantStatus(tenantEntity.getStatus())
+                .build();
+
+
+    }
+
+
+    public static String getTenantInfoAsString (org.apache.custos.tenant.profile.service.Tenant tenant) {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("tenantName : "+tenant.getTenantName());
+        buffer.append("\n");
+        buffer.append("tenantId : "+tenant.getTenantId());
+        buffer.append("\n");
+        buffer.append("tenantAdminEmail : "+tenant.getAdminEmail());
+        buffer.append("\n");
+        buffer.append("tenantAdminFirstName : "+tenant.getAdminFirstName());
+        buffer.append("\n");
+        buffer.append("tenantAdminLastName : "+tenant.getAdminLastName());
+        buffer.append("domain : "+tenant.getDomain());
+        buffer.append("\n");
+        buffer.append("logoURI : "+tenant.getLogoURI());
+        buffer.append("\n");
+        buffer.append("requesterUserName : "+tenant.getRequesterUsername());
+        buffer.append("\n");
+        buffer.append("requesterEmail : "+tenant.getRequesterEmail());
+        buffer.append("\n");
+        buffer.append("tenantScope : "+tenant.getScope());
+        buffer.append("\n");
+        buffer.append("contacts  : "+tenant.getContactsList().toString());
+        buffer.append("\n");
+        buffer.append("redirectURIs : "+ tenant.getRedirectURIsList().toString());
+        buffer.append("\n");
+
+        return buffer.toString();
+
+    }
 
 
 }
+
+
+

@@ -24,32 +24,21 @@ option java_multiple_files = true;
 package org.apache.custos.tenant.management.service;
 
 import "google/api/annotations.proto";
+import "TenantProfileService.proto";
 
 
-message Tenant {
-    int32 tenantId = 1;
-    string tenantName = 2;
-    string requesterEmail = 3;
-    string domain = 4;
-    string tenantAdminFirstName = 5;
-    string tenantAdminLastName = 6;
-    string tenantURI = 7;
-    repeated string redirectURIs = 8;
-    string logoURI = 9;
-    string scope = 10;
-    repeated  string contacts = 11;
-}
 
 message CreateTenantRequest {
-    Tenant tenant = 2;
+    org.apache.custos.tenant.profile.service.Tenant tenant = 1;
 }
 
 message CreateTenantResponse {
-    Tenant tenant = 1;
+    string tenantId = 1;
+    string msg = 2;
 }
 
 service  TenantManagementService {
-    rpc createTenant(CreateTenantRequest) returns (Tenant) {
+    rpc createTenant(CreateTenantRequest) returns (CreateTenantResponse) {
         option(google.api.http) = {
            post: "/tenant-management/v1.0.0/tenant"
            body: "tenant"

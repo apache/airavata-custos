@@ -25,8 +25,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
-import org.apache.custos.tenant.profile.service.AddGatewayResponse;
-import org.apache.custos.tenant.profile.service.Gateway;
+import org.apache.custos.tenant.profile.service.AddTenantResponse;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -58,35 +58,35 @@ public class TenantProfileClient {
         profileServiceBlockingStub = TenantProfileServiceGrpc.newBlockingStub(managedChannel);
     }
 
-    public void addGatewayAsync(Gateway gateway, final ServiceCallback callback) {
+    public void addTenantAsync(Tenant tenant, final ServiceCallback callback) {
+
+        final AddTenantResponse[] response = new AddTenantResponse[1];
 
         StreamObserver observer = new StreamObserver() {
             @Override
             public void onNext(Object o) {
-                //TODO implement this
+               response[0] = ((AddTenantResponse)o);
             }
 
             @Override
             public void onError(Throwable throwable) {
-                throwable.printStackTrace();
                 callback.onCompleted(null, new ServiceException("Add tenant task failed", throwable, null));
             }
 
             @Override
             public void onCompleted() {
-                System.out.println("Add gateway called");
-                callback.onCompleted("Completed", null);
+                callback.onCompleted(response[0], null);
             }
         };
 
 
-        profileServiceStub.addGateway(gateway, observer);
+        profileServiceStub.addTenant(tenant, observer);
     }
 
 
-    public String addGateway(Gateway gateway) {
-        AddGatewayResponse response = profileServiceBlockingStub.addGateway(gateway);
-        return response.getCode();
+    public AddTenantResponse addTenant(Tenant tenant) {
+        AddTenantResponse response = profileServiceBlockingStub.addTenant(tenant);
+        return response;
 
     }
 
