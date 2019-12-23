@@ -27,7 +27,6 @@ import "google/api/annotations.proto";
 import "TenantProfileService.proto";
 
 
-
 message CreateTenantRequest {
     org.apache.custos.tenant.profile.service.Tenant tenant = 1;
 }
@@ -37,11 +36,64 @@ message CreateTenantResponse {
     string msg = 2;
 }
 
-service  TenantManagementService {
-    rpc createTenant(CreateTenantRequest) returns (CreateTenantResponse) {
-        option(google.api.http) = {
+message UpdateStatusRequest {
+    org.apache.custos.tenant.profile.service.UpdateStatusRequest status= 1;
+}
+
+
+message UpdateTenantRequest {
+    org.apache.custos.tenant.profile.service.UpdateTenantRequest request= 1;
+}
+
+
+service TenantManagementService {
+    rpc createTenant (CreateTenantRequest) returns (CreateTenantResponse) {
+        option (google.api.http) = {
            post: "/tenant-management/v1.0.0/tenant"
            body: "tenant"
-   };
+         };
     }
+    rpc updateTenant (UpdateTenantRequest) returns (org.apache.custos.tenant.profile.service.UpdateTenantResponse) {
+        option (google.api.http) = {
+           put: "/tenant-management/v1.0.0/tenant"
+           body: "request"
+        };
+    }
+
+    rpc getTenant (org.apache.custos.tenant.profile.service.GetTenantRequest) returns (org.apache.custos.tenant.profile.service.GetTenantResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/tenant/{tenantId}"
+        };
+    }
+
+    rpc updateTenantStatus (UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/status"
+           body: "status"
+        };
+    }
+
+    rpc getAllTenants (org.apache.custos.tenant.profile.service.Empty) returns (org.apache.custos.tenant.profile.service.GetAllTenantsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/tenants"
+        };
+    }
+
+    rpc getAllTenantsForUser (org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest) returns (org.apache.custos.tenant.profile.service.GetAllTenantsForUserResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/tenants/{requesterUserName}"
+        };
+    }
+    rpc getTenantStatusUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetStatusUpdateAuditTrailResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/audit/status/{tenantId}"
+        };
+    }
+    rpc getTenantAttributeUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/audit/attributes/{tenantId}"
+        };
+    }
+
+
 }

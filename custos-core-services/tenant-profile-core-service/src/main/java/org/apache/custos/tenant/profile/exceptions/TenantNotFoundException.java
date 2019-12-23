@@ -17,14 +17,10 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.profile.persistance.respository;
+package org.apache.custos.tenant.profile.exceptions;
 
-import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
-
-public interface AttributeUpdateMetadataRepository extends JpaRepository<AttributeUpdateMetadata, Long> {
-
-    public List<AttributeUpdateMetadata> findAllByTenantId(Long tenant);
+public class TenantNotFoundException extends RuntimeException {
+    public TenantNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

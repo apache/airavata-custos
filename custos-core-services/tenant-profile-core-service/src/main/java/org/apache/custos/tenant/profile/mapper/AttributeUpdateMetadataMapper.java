@@ -20,6 +20,8 @@
 package org.apache.custos.tenant.profile.mapper;
 
 import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.Contact;
+import org.apache.custos.tenant.profile.persistance.model.RedirectURI;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata;
 
@@ -133,21 +135,24 @@ public class AttributeUpdateMetadataMapper {
             metadataSet.add(attributeUpdateMetadata);
         }
 
-        if (!oldTenant.getRedirectURIS().equals(newTenant.getRedirectURIS())) {
+         Set diff =   difference(oldTenant.getRedirectURIS(), newTenant.getRedirectURIS());
+
+        if (!diff.isEmpty()) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("redirectURIS");
-            attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getRedirectURIS().toString());
+            attributeUpdateMetadata.setUpdatedFieldValue(setToString(diff));
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
             attributeUpdateMetadata.setTenant(newTenant);
             metadataSet.add(attributeUpdateMetadata);
         }
 
-        if (!oldTenant.getContacts().equals(newTenant.getContacts())) {
+        Set conDiff = difference(oldTenant.getContacts(), newTenant.getContacts());
+        if (!conDiff.isEmpty()) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("contacts");
-            attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getContacts().toString());
+            attributeUpdateMetadata.setUpdatedFieldValue(setToString(conDiff));
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
             attributeUpdateMetadata.setTenant(newTenant);
             metadataSet.add(attributeUpdateMetadata);
@@ -170,6 +175,32 @@ public class AttributeUpdateMetadataMapper {
                 .setUpdatedAttribute(metadata.getUpdatedFieldKey())
                 .build();
     }
+
+
+
+    private static <T> Set<T> difference(final Set<T> setOne, final Set<T> setTwo) {
+        Set<T> result = new HashSet<T>(setOne);
+        result.removeIf(setTwo::contains);
+        return result;
+    }
+
+    private static String setToString(Set<Object> result){
+        StringBuffer buffer = new StringBuffer();
+        if (!result.isEmpty()) {
+            for (Object t : result){
+                if (t instanceof RedirectURI) {
+                    buffer.append(((RedirectURI)t).getRedirectURI());
+                } else {
+                    buffer.append(((Contact)t).getContactInfo());
+                }
+                buffer.append(",");
+            }
+        }
+        return buffer.toString();
+    }
+
+
+
 
 
 

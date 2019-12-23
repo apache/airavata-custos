@@ -22,15 +22,14 @@ package org.apache.custos.tenant.profile.service;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.tenant.profile.exceptions.NotUpdatableException;
 import org.apache.custos.tenant.profile.exceptions.TenantDuplicateException;
+import org.apache.custos.tenant.profile.exceptions.TenantNotFoundException;
 import org.apache.custos.tenant.profile.mapper.AttributeUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.TenantMapper;
 import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
-import org.apache.custos.tenant.profile.persistance.respository.AttributeUpdateMetadataRepository;
-import org.apache.custos.tenant.profile.persistance.respository.StatusUpdateMetadataRepository;
-import org.apache.custos.tenant.profile.persistance.respository.TenantRepository;
+import org.apache.custos.tenant.profile.persistance.respository.*;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc.TenantProfileServiceImplBase;
 import org.apache.custos.tenant.profile.utils.TenantStatus;
 import org.lognet.springboot.grpc.GRpcService;
@@ -38,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +60,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     @Autowired
     private AttributeUpdateMetadataRepository attributeUpdateMetadataRepository;
 
+    @Autowired
+    private ContactRepository contactRepository;
+
+    @Autowired
+    private RedirectURIRepository redirectURIRepository;
+
 
     @Override
     public void addTenant(org.apache.custos.tenant.profile.service.Tenant request,
@@ -78,6 +84,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                         createStatusUpdateMetadataEntity(tenant, tenant.getRequesterUsername());
 
                 tenant.setStatusUpdateMetadata(metadataSet);
+
 
                 Tenant savedTenant = tenantRepository.save(tenant);
 
@@ -112,13 +119,14 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long tenantId = Long.valueOf(tenant.getTenantId());
 
-            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getTenantName())) {
 
+            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getTenantName())) {
+                Optional<Tenant> opt = tenantRepository.findById(tenantId);
+                Tenant exTenant = opt.get();
                 Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
 
                 //Do not update the tenant status
-                Optional<Tenant> opt = tenantRepository.findById(tenantId);
-                Tenant exTenant = opt.get();
+
                 tenantEntity.setStatus(exTenant.getStatus());
 
 
@@ -126,6 +134,10 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                         createAttributeUpdateMetadataEntity(exTenant, tenantEntity, updatedBy);
 
                 tenantEntity.setAttributeUpdateMetadata(metadata);
+
+                contactRepository.deleteAllByTenantId(tenantId);
+
+                redirectURIRepository.deleteAllByTenantId(tenantId);
 
                 tenantRepository.save(tenantEntity);
 
@@ -212,11 +224,17 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             org.apache.custos.tenant.profile.service.Tenant t = null;
             if (tenant.isPresent()) {
                 t = TenantMapper.createTenantFromTenantEntity(tenant.get());
+                GetTenantResponse response = GetTenantResponse.newBuilder().setTenant(t).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                LOGGER.error("Tenant not found with Id  " + id);
+                TenantNotFoundException notFoundException = new TenantNotFoundException
+                                                         ("Cannot find the tenant with Id "+ t.getTenantId(), null);
+                responseObserver.onError(notFoundException);
             }
 
-            GetTenantResponse response = GetTenantResponse.newBuilder().setTenant(t).build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+
 
         } catch (Exception ex) {
             LOGGER.error("Exception occurred while retrieving  tenants " + ex);
@@ -232,7 +250,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long id = Long.valueOf(request.getTenantId());
 
-            List<AttributeUpdateMetadata> tenantList = attributeUpdateMetadataRepository.findAll();
+            List<AttributeUpdateMetadata> tenantList = attributeUpdateMetadataRepository.findAllByTenantId(id);
             List<TenantAttributeUpdateMetadata> metadata = new ArrayList<>();
 
             for (AttributeUpdateMetadata attributeUpdateMetadata : tenantList) {
@@ -265,7 +283,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long id = Long.valueOf(request.getTenantId());
 
-            List<StatusUpdateMetadata> tenantList = statusUpdateMetadataRepository.findAll();
+            List<StatusUpdateMetadata> tenantList = statusUpdateMetadataRepository.findAllByTenantId(id);
             List<TenantStatusUpdateMetadata> metadata = new ArrayList<>();
 
             for (StatusUpdateMetadata statusUpdateMetadata : tenantList) {

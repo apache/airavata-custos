@@ -38,7 +38,7 @@ public class Tenant {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tenant_id_generator")
     @SequenceGenerator(name = "tenant_id_generator", sequenceName = "tenant_sequence", initialValue = 10000000, allocationSize = 100)
-    private Long Id;
+    private Long id;
 
     @Column(nullable = false)
     private String name;
@@ -61,11 +61,6 @@ public class Tenant {
     @Column(nullable = false)
     private String adminEmail;
 
-
-    @Column(nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    @CreatedDate
-    private Date requestedTime;
 
     @Column(nullable = false)
     private String requesterUsername;
@@ -91,11 +86,11 @@ public class Tenant {
 
 
     public Long getId() {
-        return Id;
+        return id;
     }
 
     public void setId(Long id) {
-        Id = id;
+        this.id = id;
     }
 
     public String getName() {
@@ -154,14 +149,6 @@ public class Tenant {
         this.adminEmail = adminEmail;
     }
 
-
-    public Date getRequestedTime() {
-        return requestedTime;
-    }
-
-    public void setRequestedTime(Date requestedTime) {
-        this.requestedTime = requestedTime;
-    }
 
     public String getRequesterUsername() {
         return requesterUsername;

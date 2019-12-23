@@ -19,12 +19,12 @@
 
 package org.apache.custos.tenant.profile.persistance.respository;
 
-import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.Contact;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+public interface ContactRepository  extends JpaRepository<Contact, Long>  {
 
-public interface AttributeUpdateMetadataRepository extends JpaRepository<AttributeUpdateMetadata, Long> {
-
-    public List<AttributeUpdateMetadata> findAllByTenantId(Long tenant);
+    @Transactional
+    public void deleteAllByTenantId(Long tenantId);
 }

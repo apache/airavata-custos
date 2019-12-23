@@ -25,9 +25,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
-import org.apache.custos.tenant.profile.service.AddTenantResponse;
-import org.apache.custos.tenant.profile.service.Tenant;
-import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc;
+import org.apache.custos.tenant.profile.service.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -49,8 +47,8 @@ public class TenantProfileClient {
 
 
     public TenantProfileClient(List<ClientInterceptor> clientInterceptorList,
-                               @Value("${tenant.profile.core.service.dns.name}")  String serviceHost,
-                                        @Value("${tenant.profile.core.service.port}") int servicePort) {
+                               @Value("${tenant.profile.core.service.dns.name}") String serviceHost,
+                               @Value("${tenant.profile.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
@@ -60,17 +58,128 @@ public class TenantProfileClient {
 
     public void addTenantAsync(Tenant tenant, final ServiceCallback callback) {
 
-        final AddTenantResponse[] response = new AddTenantResponse[1];
+        StreamObserver observer = this.getObserver(callback, "Add tenant task failed");
 
+        profileServiceStub.addTenant(tenant, observer);
+    }
+
+
+    public AddTenantResponse addTenant(Tenant tenant) {
+        return profileServiceBlockingStub.addTenant(tenant);
+
+    }
+
+
+    public void updateTenantAsync(UpdateTenantRequest request, final ServiceCallback callback) {
+
+        StreamObserver observer = this.getObserver(callback, "Update tenant task failed");
+
+        profileServiceStub.updateTenant(request, observer);
+    }
+
+
+    public UpdateTenantResponse updateTenant(UpdateTenantRequest updateTenantRequest) {
+        return profileServiceBlockingStub.updateTenant(updateTenantRequest);
+
+
+    }
+
+
+    public void getAllTenantsAsync(final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Get all tenants task failed");
+
+        Empty empty = Empty.newBuilder().build();
+        profileServiceStub.getAllTenants(empty, observer);
+    }
+
+    public GetAllTenantsResponse getAllTenants() {
+        Empty empty = Empty.newBuilder().build();
+        return profileServiceBlockingStub.getAllTenants(empty);
+    }
+
+
+    public void getAllTenantsForUserAsync(GetAllTenantsForUserRequest getAllTenantsForUserRequest, final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Get all tenants for user task failed");
+
+        profileServiceStub.getAllTenantsForUser(getAllTenantsForUserRequest, observer);
+    }
+
+    public GetAllTenantsForUserResponse getAllTenantsForUser(GetAllTenantsForUserRequest getAllTenantsForUserRequest) {
+
+        return profileServiceBlockingStub.getAllTenantsForUser(getAllTenantsForUserRequest);
+    }
+
+
+    public void getTenantAsync(GetTenantRequest getTenantRequest, final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Get tenant task failed");
+
+        profileServiceStub.getTenant(getTenantRequest, observer);
+    }
+
+    public GetTenantResponse getTenant(GetTenantRequest getTenantRequest) {
+        return profileServiceBlockingStub.getTenant(getTenantRequest);
+    }
+
+    public void updateTenantStatusAsync(UpdateStatusRequest updateTenantRequest, final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Update tenant status task failed");
+
+        profileServiceStub.updateTenantStatus(updateTenantRequest, observer);
+    }
+
+    public UpdateStatusResponse updateTenantStatus(UpdateStatusRequest request) {
+        return profileServiceBlockingStub.updateTenantStatus(request);
+    }
+
+    public void getAttributeUpdateAuditTrailAsync(
+            GetAuditTrailRequest request, final ServiceCallback callback) {
+
+        StreamObserver observer = this.getObserver(callback, "Get attribute update audit trail failed");
+
+        profileServiceStub.getTenantAttributeUpdateAuditTrail(request, observer);
+    }
+
+    public GetAttributeUpdateAuditTrailResponse getAttributeUpdateAuditTrail(
+            GetAuditTrailRequest request) {
+
+        return profileServiceBlockingStub.getTenantAttributeUpdateAuditTrail(request);
+    }
+
+    public void getStatusUpdateAuditTrailAsync(GetAuditTrailRequest request,
+                                               final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Get  status update audit trail task failed");
+
+        profileServiceStub.getTenantStatusUpdateAuditTrail(request, observer);
+    }
+
+    public GetStatusUpdateAuditTrailResponse getStatusUpdateAuditTrail(
+            GetAuditTrailRequest request) {
+
+        return profileServiceBlockingStub.getTenantStatusUpdateAuditTrail(request);
+    }
+
+    public void isTenantExistAsync(IsTenantExistRequest request, final ServiceCallback callback) {
+        StreamObserver observer = this.getObserver(callback, "Is tenant exist task failed");
+
+        profileServiceStub.isTenantExist(request, observer);
+    }
+
+
+    public IsTenantExistResponse isTenantExist(IsTenantExistRequest request) {
+        return profileServiceBlockingStub.isTenantExist(request);
+    }
+
+
+    private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
+        final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {
             @Override
             public void onNext(Object o) {
-               response[0] = ((AddTenantResponse)o);
+                response[0] = o;
             }
 
             @Override
             public void onError(Throwable throwable) {
-                callback.onCompleted(null, new ServiceException("Add tenant task failed", throwable, null));
+                callback.onCompleted(null, new ServiceException(failureMsg, throwable, null));
             }
 
             @Override
@@ -79,15 +188,7 @@ public class TenantProfileClient {
             }
         };
 
-
-        profileServiceStub.addTenant(tenant, observer);
-    }
-
-
-    public AddTenantResponse addTenant(Tenant tenant) {
-        AddTenantResponse response = profileServiceBlockingStub.addTenant(tenant);
-        return response;
-
+        return observer;
     }
 
 

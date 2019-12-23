@@ -43,7 +43,7 @@ public class TenantMapper {
      */
     public static Tenant createTenantEntityFromTenant(org.apache.custos.tenant.profile.service.Tenant tenant) {
         Tenant tenantEntity = new Tenant();
-        if (!(tenant.getTenantId() == null || tenant.getTenantId().equals(""))){
+        if ((tenant.getTenantId() != null && !tenant.getTenantId().equals(""))){
             Long castedId = Long.valueOf(tenant.getTenantId());
             tenantEntity.setId(castedId);
         }
@@ -60,6 +60,7 @@ public class TenantMapper {
         tenantEntity.setDomain(tenant.getDomain());
 
         Set<Contact> contactSet = new HashSet<Contact>();
+
         for (int i = 0; i < tenant.getContactsCount(); i++) {
 
             String contact = tenant.getContacts(i);
@@ -163,6 +164,14 @@ public class TenantMapper {
         return buffer.toString();
 
     }
+
+
+//    private <T> Set<T>  difference(Set<T> newSet, Set<T> oldSet) {
+//        Set<T> diffSet = new HashSet<>();
+//
+//
+//
+//    }
 
 
 }

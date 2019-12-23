@@ -54,4 +54,18 @@ public class RedirectURI {
     public void setTenant(Tenant tenant) {
         this.tenant = tenant;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+
+    @Override
+    public boolean equals(Object obj) {
+        return this.redirectURI.equals(((RedirectURI)obj).getRedirectURI());
+    }
 }
