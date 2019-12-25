@@ -22,6 +22,7 @@ package org.apache.custos.iam;
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ServerInterceptor;
+import org.apache.custos.iam.validator.IAMServiceValidationInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -47,5 +48,12 @@ public class IamServiceInitializer {
     @GRpcGlobalInterceptor
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
+    }
+
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(){
+        return new IAMServiceValidationInterceptor();
     }
 }

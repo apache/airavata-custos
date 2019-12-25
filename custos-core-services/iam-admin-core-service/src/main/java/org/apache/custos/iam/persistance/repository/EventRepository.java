@@ -17,19 +17,10 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.utils;
+package org.apache.custos.iam.persistance.repository;
 
-/**
- * This class represents the status of the user
- */
-public final class Status {
+import org.apache.custos.iam.persistance.model.IAMEventMetadata;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-    public static final String ACTIVE = "ACTIVE";
-    public static final String CONFIRMED  = "CONFIRMED";
-    public static final String PENDING_CONFIRMATION = "PENDING_CONFIRMATION";
-
-
-    public  static final String SUCCESS = "SUCCESS";
-    public  static  final String FAILED = "FAILED";
-
+public interface EventRepository extends JpaRepository<IAMEventMetadata,Long> {
 }

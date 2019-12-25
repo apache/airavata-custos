@@ -20,16 +20,24 @@
 package org.apache.custos.iam.utils;
 
 /**
- * This class represents the status of the user
+ * Includes operations associated with keycloak
  */
-public final class Status {
+public  final class IAMOperations {
 
-    public static final String ACTIVE = "ACTIVE";
-    public static final String CONFIRMED  = "CONFIRMED";
-    public static final String PENDING_CONFIRMATION = "PENDING_CONFIRMATION";
+    public static final String SET_UP_TENANT = "SET_UP_TENANT";
 
+    public static final String REGISTER_USER = "REGISTER_USER";
 
-    public  static final String SUCCESS = "SUCCESS";
-    public  static  final String FAILED = "FAILED";
+    public static final String ENABLE_USER = "ENABLE_USER";
+
+    public static final String DELETE_USER = "DELETE_USER";
+
+    public static final String RESET_PASSWORD  = "RESET_PASSWORD";
+
+    public static final String UPDATE_USER_PROFILE = "UPDATE_USER_PROFILE";
+
+    public static final String ADD_ROLE_TO_USER = "ADD_ROLE_TO_USER";
+
+    public static final String DELETE_ROLE_FROM_USER = "DELETE_ROLE_FROM_USER";
 
 }

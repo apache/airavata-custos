@@ -17,19 +17,14 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.utils;
+package org.apache.custos.iam.exceptions;
 
 /**
- * This class represents the status of the user
+ * Missing Parameter
  */
-public final class Status {
+public class MissingParameterException extends RuntimeException {
 
-    public static final String ACTIVE = "ACTIVE";
-    public static final String CONFIRMED  = "CONFIRMED";
-    public static final String PENDING_CONFIRMATION = "PENDING_CONFIRMATION";
-
-
-    public  static final String SUCCESS = "SUCCESS";
-    public  static  final String FAILED = "FAILED";
-
+   public MissingParameterException(String msg, Throwable e) {
+      super(msg,e);
+   }
 }

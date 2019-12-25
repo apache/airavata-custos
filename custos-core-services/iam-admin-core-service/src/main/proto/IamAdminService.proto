@@ -43,7 +43,8 @@ message  SetUpTenantRequest {
     string adminEmail = 6;
     string adminPassword = 7;
     string tenantURL = 8;
-    repeated  string redirectURIs = 9;
+    string requesterEmail = 9;
+    repeated  string redirectURIs = 10;
 
 }
 
@@ -117,24 +118,28 @@ message RoleOperationsUserRequest {
 
 }
 
+message UpdateUserProfileRequest {
+     string accessToken = 1;
+     User user = 2;
+}
+
 message AddUserResponse {
     string code = 1;
 }
 
 service  IamAdminService {
-    rpc setUPTenant(SetUpTenantRequest) returns (SetUpTenantResponse);
-    rpc isUsernameAvailable(IsUsernameAvailableRequest) returns (CheckingResponse);
-    rpc registerUser(RegisterUserRequest) returns (RegisterUserResponse);
-    rpc enableUser(UserAccessInfo) returns (User);
-    rpc isUserEnabled(UserAccessInfo) returns (CheckingResponse);
-    rpc isUserExist(UserAccessInfo) returns (CheckingResponse);
-    rpc getUser(UserAccessInfo) returns (User);
-    rpc getUsers(GetUsersRequest) returns (GetUsersResponse);
-    rpc resetPassword(ResetUserPassword) returns (CheckingResponse);
-    rpc findUsers(FindUsersRequest) returns (GetUsersResponse);
-    rpc updateUserProfile(User) returns (CheckingResponse);
-    rpc deleteUser(UserAccessInfo) returns (CheckingResponse);
-    rpc addRoleToUser(RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc isUsernameAvailable (IsUsernameAvailableRequest) returns (CheckingResponse);
+    rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc enableUser (UserAccessInfo) returns (User);
+    rpc isUserEnabled (UserAccessInfo) returns (CheckingResponse);
+    rpc isUserExist (UserAccessInfo) returns (CheckingResponse);
+    rpc getUser (UserAccessInfo) returns (User);
+    rpc getUsers (GetUsersRequest) returns (GetUsersResponse);
+    rpc resetPassword (ResetUserPassword) returns (CheckingResponse);
+    rpc findUsers (FindUsersRequest) returns (GetUsersResponse);
+    rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
+    rpc deleteUser (UserAccessInfo) returns (CheckingResponse);
+    rpc addRoleToUser (RoleOperationsUserRequest) returns (CheckingResponse);
     rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
-    rpc getUsersWithRole (RoleOperationsUserRequest) returns (GetUsersResponse);
 }

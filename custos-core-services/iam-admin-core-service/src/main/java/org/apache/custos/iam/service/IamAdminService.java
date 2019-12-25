@@ -23,7 +23,10 @@ import io.grpc.stub.StreamObserver;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClientSecret;
 import org.apache.custos.iam.exceptions.IAMAdminServiceException;
+import org.apache.custos.iam.persistance.model.IAMEventMetadata;
+import org.apache.custos.iam.persistance.repository.EventRepository;
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
+import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.lognet.springboot.grpc.GRpcService;
@@ -42,8 +45,15 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Autowired
     private KeycloakClient keycloakClient;
 
+    @Autowired
+    private EventRepository repository;
+
     @Override
     public void setUPTenant(SetUpTenantRequest request, StreamObserver<SetUpTenantResponse> responseObserver) {
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.SET_UP_TENANT);
+        iamEventMetadata.setPerformedBy(request.getRequesterEmail());
+
         try {
             LOGGER.debug("Request received to setUPTenant for " + request.getTenantId());
 
@@ -61,12 +71,18 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     .setClientSecret(clientSecret.getClientSecret())
                     .build();
 
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred during setUPTenant" + ex;
             LOGGER.error(msg, ex);
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -117,6 +133,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void addRoleToUser(RoleOperationsUserRequest request, StreamObserver<CheckingResponse> responseObserver) {
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.ADD_ROLE_TO_USER);
+        String userId = request.getAdminUsername() +"@"+request.getTenantId();
+        iamEventMetadata.setPerformedBy(userId);
         try {
             LOGGER.debug("Request received to addRoleToUser for " + request.getTenantId());
 
@@ -128,12 +148,19 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isAdded).build();
 
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred during addRoleToUser" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -141,6 +168,12 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void registerUser(RegisterUserRequest request, StreamObserver<RegisterUserResponse> responseObserver) {
+
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.REGISTER_USER);
+        iamEventMetadata.setPerformedBy(request.getTenantId());
+
+
         try {
             LOGGER.debug("Request received to registerUser for " + request.getTenantId());
 
@@ -155,12 +188,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
             RegisterUserResponse registerUserResponse = RegisterUserResponse.newBuilder().
                     setIsRegistered(registered).build();
 
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
             responseObserver.onNext(registerUserResponse);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred during registerUser" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -168,6 +209,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void enableUser(UserAccessInfo request, StreamObserver<User> responseObserver) {
+
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.ENABLE_USER);
+        iamEventMetadata.setPerformedBy(request.getTenantId());
+
         try {
             LOGGER.debug("Request received to enableUser for " + request.getTenantId());
 
@@ -180,10 +226,19 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
                 User user = getUser(representation);
 
+
+                iamEventMetadata.setState(Status.SUCCESS);
+                repository.save(iamEventMetadata);
+
+
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
 
             } else {
+
+                iamEventMetadata.setState(Status.FAILED);
+                repository.save(iamEventMetadata);
+
                 IAMAdminServiceException exception = new IAMAdminServiceException("Account enabling failed ", null);
                 responseObserver.onError(exception);
             }
@@ -192,6 +247,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during enableUser" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -264,6 +323,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.RESET_PASSWORD);
+        iamEventMetadata.setPerformedBy(request.getInfo().getUsername()+"@"+request.getInfo().getTenantId());
         try {
             LOGGER.debug("Request received to resetPassword for " + request.getInfo().getUsername());
 
@@ -274,6 +336,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isChanged).build();
 
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
@@ -281,6 +348,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during resetPassword" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -312,13 +383,38 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void updateUserProfile(User request, StreamObserver<CheckingResponse> responseObserver) {
+    public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.UPDATE_USER_PROFILE);
+        iamEventMetadata.setPerformedBy(request.getUser().getUsername()+"@"+request.getUser().getTenantId());
         try {
-            LOGGER.debug("Request received to updateUserProfile for " + request.getTenantId());
+            LOGGER.debug("Request received to updateUserProfile for " + request.getUser().getUsername());
+
+            keycloakClient.updateUserRepresentation(request.getAccessToken(),
+                    request.getUser().getTenantId(),
+                    request.getUser().getUsername(),
+                    request.getUser().getFirstName(),
+                    request.getUser().getLastName(),
+                    request.getUser().getEmail());
+
+            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
+
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
 
         } catch (Exception ex) {
             String msg = "Error occurred during updateUserProfile" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -326,12 +422,29 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void deleteUser(UserAccessInfo request, StreamObserver<CheckingResponse> responseObserver) {
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.DELETE_USER);
+        iamEventMetadata.setPerformedBy(request.getUsername()+"@"+request.getTenantId());
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
 
+            boolean isUpdated = keycloakClient.deleteUser(request.getAccessToken(),
+                    request.getTenantId(), request.getUsername());
+
+            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUpdated).build();
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
         } catch (Exception ex) {
             String msg = "Error occurred during deleteUser" + ex;
             LOGGER.error(msg, ex);
+
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
+
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -339,25 +452,33 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void deleteRoleFromUser(RoleOperationsUserRequest request, StreamObserver<CheckingResponse> responseObserver) {
+
+        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
+        iamEventMetadata.setEvent(IAMOperations.DELETE_ROLE_FROM_USER);
+        iamEventMetadata.setPerformedBy(request.getAdminUsername()+"@"+request.getTenantId());
         try {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
+
+
+            boolean isRemoved = keycloakClient.removeRoleFromUser(request.getAdminUsername(), request.getPassword(),
+                    request.getTenantId(), request.getUsername(), request.getRole());
+
+            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isRemoved).build();
+
+
+            iamEventMetadata.setState(Status.SUCCESS);
+            repository.save(iamEventMetadata);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred during deleteRoleFromUser" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
-        }
-    }
 
-    @Override
-    public void getUsersWithRole(RoleOperationsUserRequest request, StreamObserver<GetUsersResponse> responseObserver) {
-        try {
-            LOGGER.debug("Request received to getUsersWithRole for " + request.getTenantId());
+            iamEventMetadata.setState(Status.FAILED);
+            repository.save(iamEventMetadata);
 
-        } catch (Exception ex) {
-            String msg = "Error occurred during getUsersWithRole" + ex;
-            LOGGER.error(msg, ex);
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
