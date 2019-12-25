@@ -24,7 +24,97 @@ option java_multiple_files = true;
 package org.apache.custos.iam.service;
 
 message User {
-    string userId = 1;
+    string internalUserId = 1;
+    string username = 2;
+    string tenantId = 3;
+    string firstName = 4;
+    string lastName = 5;
+     string email = 6;
+    float creationTime = 7;
+    string state = 8;
+}
+
+message  SetUpTenantRequest {
+    string tenantId = 1;
+    string tenantName = 2;
+    string adminUsername = 3;
+    string adminFirstname = 4;
+    string adminLastname = 5;
+    string adminEmail = 6;
+    string adminPassword = 7;
+    string tenantURL = 8;
+    repeated  string redirectURIs = 9;
+
+}
+
+message SetUpTenantResponse {
+    string clientId = 1;
+    string clientSecret = 2;
+}
+
+message IsUsernameAvailableRequest {
+    string tenantId = 1;
+    string accessToken = 2;
+    string userName = 3;
+
+}
+
+message CheckingResponse {
+    bool isExist = 1;
+}
+
+message RegisterUserRequest {
+    string tenantId = 1;
+    string accessToken = 2;
+    string username = 3;
+    string firstName = 4;
+    string lastName = 5;
+    string password = 6;
+    string email = 7;
+}
+
+
+message RegisterUserResponse {
+    bool isRegistered = 1;
+}
+
+
+message UserAccessInfo {
+    string tenantId = 1;
+    string accessToken = 2;
+    string username = 3;
+
+}
+
+message GetUsersRequest {
+    UserAccessInfo info = 1;
+    int32 offset =3;
+    int32 limit =4;
+    string search = 5;
+
+}
+
+message GetUsersResponse{
+    repeated User user = 1;
+}
+
+message ResetUserPassword {
+    UserAccessInfo info = 1;
+    string password = 2;
+}
+
+message FindUsersRequest {
+   UserAccessInfo info = 1;
+   string email = 2;
+}
+
+message RoleOperationsUserRequest {
+    string tenantId = 1;
+    string username = 2;
+    string role = 3;
+    string adminUsername = 4;
+    string password = 5;
+
 }
 
 message AddUserResponse {
@@ -32,5 +122,19 @@ message AddUserResponse {
 }
 
 service  IamAdminService {
-    rpc addUser(User) returns (AddUserResponse);
+    rpc setUPTenant(SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc isUsernameAvailable(IsUsernameAvailableRequest) returns (CheckingResponse);
+    rpc registerUser(RegisterUserRequest) returns (RegisterUserResponse);
+    rpc enableUser(UserAccessInfo) returns (User);
+    rpc isUserEnabled(UserAccessInfo) returns (CheckingResponse);
+    rpc isUserExist(UserAccessInfo) returns (CheckingResponse);
+    rpc getUser(UserAccessInfo) returns (User);
+    rpc getUsers(GetUsersRequest) returns (GetUsersResponse);
+    rpc resetPassword(ResetUserPassword) returns (CheckingResponse);
+    rpc findUsers(FindUsersRequest) returns (GetUsersResponse);
+    rpc updateUserProfile(User) returns (CheckingResponse);
+    rpc deleteUser(UserAccessInfo) returns (CheckingResponse);
+    rpc addRoleToUser(RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc getUsersWithRole (RoleOperationsUserRequest) returns (GetUsersResponse);
 }
