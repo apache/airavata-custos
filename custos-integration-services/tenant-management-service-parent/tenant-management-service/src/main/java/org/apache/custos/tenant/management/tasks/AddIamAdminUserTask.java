@@ -19,7 +19,7 @@
 
 package org.apache.custos.tenant.management.tasks;
 
-import org.apache.custos.iam.admin.client.async.IamAdminServiceClient;
+import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.User;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceTaskImpl;

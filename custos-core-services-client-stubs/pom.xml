@@ -30,6 +30,7 @@
     <modules>
         <module>tenant-profile-core-service-client-stub</module>
         <module>iam-admin-core-service-client-stub</module>
+        <module>credential-store-core-service-client-stubs</module>
     </modules>
     <artifactId>custos-core-services-client-stubs</artifactId>
 

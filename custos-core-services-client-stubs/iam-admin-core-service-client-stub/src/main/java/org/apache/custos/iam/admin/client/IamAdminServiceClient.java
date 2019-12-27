@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.admin.client.async;
+package org.apache.custos.iam.admin.client;
 
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
