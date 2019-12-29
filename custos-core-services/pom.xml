@@ -37,6 +37,7 @@
         <module>utility-services/custos-configuration-service</module>
         <module>iam-admin-core-service</module>
         <module>credential-store-core-service</module>
+        <module>federated-authentication-core-service</module>
     </modules>
 
 
