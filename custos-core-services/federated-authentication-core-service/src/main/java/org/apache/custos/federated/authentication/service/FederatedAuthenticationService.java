@@ -31,14 +31,6 @@ import org.apache.custos.federated.services.clients.cilogon.CILogonResponse;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.custos.federated.authentication.service.ClientMetadata;
-import org.apache.custos.federated.authentication.service.GetClientRequest;
-import org.apache.custos.federated.authentication.service.DeleteClientRequest;
-
-import org.apache.custos.federated.authentication.service.RegisterClientResponse;
-import org.apache.custos.federated.authentication.service.Empty;
-import org.apache.custos.federated.authentication.service.GetClientResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
@@ -64,28 +56,28 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         try {
             LOGGER.debug("Request received to addClient for " + request.getTenantId());
             String[] scopes = request.getScopeList() != null ?
-                           request.getScopeList().toArray(new String[request.getScopeCount()]) : new String[0];
-            String  contact = request.getContactsList() != null ? request.getContacts(0): null;
+                    request.getScopeList().toArray(new String[request.getScopeCount()]) : new String[0];
+            String contact = request.getContactsList() != null ? request.getContacts(0) : null;
 
 
-           CILogonResponse response =  ciLogonClient.registerClient(request.getTenantName(),
-                     request.getRedirectURIsList().toArray(new String[request.getRedirectURIsCount()]),
-                     request.getComment(),
-                     scopes,
-                     request.getTenantURI(),
-                     contact);
+            CILogonResponse response = ciLogonClient.registerClient(request.getTenantName(),
+                    request.getRedirectURIsList().toArray(new String[request.getRedirectURIsCount()]),
+                    request.getComment(),
+                    scopes,
+                    request.getTenantURI(),
+                    contact);
 
-           metadata.setState(OperationStatus.SUCCESS.name());
-           repository.save(metadata);
+            metadata.setState(OperationStatus.SUCCESS.name());
+            repository.save(metadata);
 
-           RegisterClientResponse registerClientResponse = RegisterClientResponse.newBuilder()
-                                                            .setClientId(response.getClientId())
-                                                            .setClientSecret(response.getClientSecret())
-                                                            .setClientSecretExpiresAt(response.getClientSecretExpiredAt())
-                                                             .setClientIdIssuedAt(response.getClientIdIssuedAt()).build();
+            RegisterClientResponse registerClientResponse = RegisterClientResponse.newBuilder()
+                    .setClientId(response.getClientId())
+                    .setClientSecret(response.getClientSecret())
+                    .setClientSecretExpiresAt(response.getClientSecretExpiredAt())
+                    .setClientIdIssuedAt(response.getClientIdIssuedAt()).build();
 
-           responseObserver.onNext(registerClientResponse);
-           responseObserver.onCompleted();
+            responseObserver.onNext(registerClientResponse);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred during addClient" + ex;
@@ -107,9 +99,9 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
             LOGGER.debug("Request received to updateClient for " + request.getTenantId());
             String[] scopes = request.getScopeList() != null ?
                     request.getScopeList().toArray(new String[request.getScopeCount()]) : new String[0];
-            String  contact = request.getContactsList() != null ? request.getContacts(0): null;
+            String contact = request.getContactsList() != null ? request.getContacts(0) : null;
 
-             ciLogonClient.updateClient(request.getClientId(),request.getTenantName(),
+            ciLogonClient.updateClient(request.getClientId(), request.getTenantName(),
                     request.getRedirectURIsList().toArray(new String[request.getRedirectURIsCount()]),
                     request.getComment(),
                     scopes,
@@ -142,14 +134,14 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
             CILogonResponse response = ciLogonClient.getClient(request.getClientId());
             GetClientResponse getClientResponse = GetClientResponse.newBuilder()
-                                                   .setClientId(response.getClientId())
-                                                    .setClientName(response.getClientName())
-                                                    .addAllRedirectURIs(Arrays.asList(response.getRedirectURIs()))
-                                                     .addAllScope(Arrays.asList(response.getScope()))
-                                                      .setComment(response.getComment())
-                                                      .setClientIdIssuedAt(response.getClientIdIssuedAt())
-                                                    .addAllGrantTypes(Arrays.asList(response.getGrantTypes()))
-                                                     .build();
+                    .setClientId(response.getClientId())
+                    .setClientName(response.getClientName())
+                    .addAllRedirectURIs(Arrays.asList(response.getRedirectURIs()))
+                    .addAllScope(Arrays.asList(response.getScope()))
+                    .setComment(response.getComment())
+                    .setClientIdIssuedAt(response.getClientIdIssuedAt())
+                    .addAllGrantTypes(Arrays.asList(response.getGrantTypes()))
+                    .build();
 
             responseObserver.onNext(getClientResponse);
             responseObserver.onCompleted();
@@ -171,7 +163,7 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         try {
             LOGGER.debug("Request received to deleteClient for " + request.getTenantId());
 
-             ciLogonClient.deleteClient(request.getClientId());
+            ciLogonClient.deleteClient(request.getClientId());
 
             metadata.setState(OperationStatus.SUCCESS.name());
             repository.save(metadata);
