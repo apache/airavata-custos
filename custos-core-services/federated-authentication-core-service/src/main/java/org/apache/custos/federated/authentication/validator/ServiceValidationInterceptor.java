@@ -46,6 +46,8 @@ public class ServiceValidationInterceptor implements ServerInterceptor {
                 super.onMessage(message);
             }
 
+
+
             @Override
             public void onHalfClose() {
                 try {

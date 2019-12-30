@@ -20,16 +20,18 @@
 package org.apache.custos.credential.store.service;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.core.services.commons.StatusUpdater;
+import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.credential.store.exceptions.CredentialsNotFoundException;
 import org.apache.custos.credential.store.exceptions.OperationFailedException;
 import org.apache.custos.credential.store.model.Credential;
-import org.apache.custos.credential.store.persistance.model.ServiceEvent;
-import org.apache.custos.credential.store.persistance.repository.ServiceEventRepository;
 import org.apache.custos.credential.store.service.CredentialStoreServiceGrpc.CredentialStoreServiceImplBase;
 import org.apache.custos.credential.store.utils.Operations;
+import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultResponse;
 import org.springframework.vault.support.VaultResponseSupport;
@@ -40,6 +42,7 @@ import java.util.List;
 /**
  * This is responsible for vault operations
  */
+@GRpcService
 public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CredentialStoreService.class);
@@ -50,14 +53,10 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     private VaultTemplate vaultTemplate;
 
     @Autowired
-    private ServiceEventRepository repository;
+    private StatusUpdater statusUpdater;
 
     @Override
     public void putCredential(CredentialMetadata request, StreamObserver<OperationStatus> responseObserver) {
-
-        ServiceEvent serviceEvent = new ServiceEvent();
-        serviceEvent.setEvent(Operations.PUT_CREDENTIAL.name());
-        serviceEvent.setTraceId(request.getOwnerId());
 
         try {
             LOGGER.debug("Calling putSecret API for owner " + request.getOwnerId() + " with credentials Id "
@@ -68,8 +67,11 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             if (response != null) {
                 OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
-                serviceEvent.setState(org.apache.custos.credential.store.utils.OperationStatus.SUCCESS.name());
-                repository.save(serviceEvent);
+                statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                        request.getOwnerId(),
+                        null);
+
 
                 responseObserver.onNext(secretStatus);
                 responseObserver.onCompleted();
@@ -78,8 +80,10 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getOwnerId() + "with credentials Id "
                         + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name(), null);
 
-                serviceEvent.setState(org.apache.custos.credential.store.utils.OperationStatus.FAILED.name());
-                repository.save(serviceEvent);
+                statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
 
                 responseObserver.onError(failedException);
             }
@@ -88,8 +92,10 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     + request.getOwnerId() + "with credentials Id "
                     + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name(), ex);
 
-            serviceEvent.setState(org.apache.custos.credential.store.utils.OperationStatus.FAILED.name());
-            repository.save(serviceEvent);
+            statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    request.getOwnerId(),
+                    null);
 
             responseObserver.onError(failedException);
         }
@@ -159,9 +165,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
     @Override
     public void deleteCredential(DeleteCredentialRequest request, StreamObserver<OperationStatus> responseObserver) {
-        ServiceEvent serviceEvent = new ServiceEvent();
-        serviceEvent.setEvent(Operations.DELETE_CREDENTIAL.name());
-        serviceEvent.setTraceId(request.getOwnerId());
+
         try {
 
             LOGGER.debug("Calling deleteSecret API for owner " + request.getOwnerId());
@@ -172,9 +176,10 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             vaultTemplate.delete(path);
             OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
-            serviceEvent.setState(org.apache.custos.credential.store.utils.OperationStatus.SUCCESS.name());
-            repository.save(serviceEvent);
-
+            statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    request.getOwnerId(),
+                    null);
             responseObserver.onNext(secretStatus);
             responseObserver.onCompleted();
 
@@ -182,15 +187,54 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             OperationFailedException failedException = new OperationFailedException(" operation failed for "
                     + request.getOwnerId(), ex);
 
-            serviceEvent.setState(org.apache.custos.credential.store.utils.OperationStatus.FAILED.name());
-            repository.save(serviceEvent);
-
+            statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    request.getOwnerId(),
+                    null);
             responseObserver.onError(failedException);
         }
     }
 
+    @Override
+    public void getOperationMetadata(GetOperationsMetadataRequest request, StreamObserver<GetOperationsMetadataResponse> responseObserver) {
+        try {
+            LOGGER.debug("Calling getOperationMetadata API for traceId " + request.getTraceId());
 
-    private CredentialMetadata convertToCredentialMetadata(Credential credential, String ownerId, String type) {
+            List<OperationMetadata> metadata = new ArrayList<>();
+            List<StatusEntity> entities = statusUpdater.getOperationStatus(request.getTraceId());
+            if (entities == null || entities.size() > 0) {
+
+                for (StatusEntity statusEntity : entities) {
+                    OperationMetadata data = convertFromEntity(statusEntity);
+                    metadata.add(data);
+                }
+            }
+
+            GetOperationsMetadataResponse response = GetOperationsMetadataResponse
+                    .newBuilder()
+                    .addAllMetadata(metadata)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            OperationFailedException failedException = new OperationFailedException(" operation failed for "
+                    + request.getTraceId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+    private OperationMetadata convertFromEntity(StatusEntity entity) {
+        return OperationMetadata.newBuilder()
+                .setEvent(entity.getEvent())
+                .setStatus(entity.getState())
+                .setPerformedBy(entity.getPerformedBy())
+                .setTimeStamp(entity.getTime().toString()).build();
+    }
+
+
+    private CredentialMetadata convertToCredentialMetadata(Credential credential, long ownerId, String type) {
 
         return CredentialMetadata.newBuilder()
                 .setOwnerId(ownerId)

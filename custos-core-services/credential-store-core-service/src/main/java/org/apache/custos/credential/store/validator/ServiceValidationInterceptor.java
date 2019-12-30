@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.validator;
+package org.apache.custos.credential.store.validator;
 
 import io.grpc.*;
 import org.slf4j.Logger;
@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
 /**
  * This class intercepts incoming requests and forwarding for validation
  */
-public class IAMServiceValidationInterceptor implements ServerInterceptor {
+public class ServiceValidationInterceptor implements ServerInterceptor {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(IAMServiceValidationInterceptor.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(ServiceValidationInterceptor.class);
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall,
@@ -39,14 +39,12 @@ public class IAMServiceValidationInterceptor implements ServerInterceptor {
 
         LOGGER.debug("Calling method : " + serverCall.getMethodDescriptor().getFullMethodName());
 
-
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
             @Override
             public void onMessage(ReqT message) {
-                IAMServiceInputValidator.validate(methodName, message);
+                InputValidator.validate(methodName, message);
                 super.onMessage(message);
             }
-
 
             @Override
             public void onHalfClose() {

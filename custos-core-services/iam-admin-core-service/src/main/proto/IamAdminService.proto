@@ -26,7 +26,7 @@ package org.apache.custos.iam.service;
 message User {
     string internalUserId = 1;
     string username = 2;
-    string tenantId = 3;
+    int64 tenantId = 3;
     string firstName = 4;
     string lastName = 5;
      string email = 6;
@@ -35,7 +35,7 @@ message User {
 }
 
 message  SetUpTenantRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string tenantName = 2;
     string adminUsername = 3;
     string adminFirstname = 4;
@@ -54,7 +54,7 @@ message SetUpTenantResponse {
 }
 
 message IsUsernameAvailableRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string accessToken = 2;
     string userName = 3;
 
@@ -65,7 +65,7 @@ message CheckingResponse {
 }
 
 message RegisterUserRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string accessToken = 2;
     string username = 3;
     string firstName = 4;
@@ -81,7 +81,7 @@ message RegisterUserResponse {
 
 
 message UserAccessInfo {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string accessToken = 2;
     string username = 3;
 
@@ -110,7 +110,7 @@ message FindUsersRequest {
 }
 
 message RoleOperationsUserRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string username = 2;
     string role = 3;
     string adminUsername = 4;
@@ -127,6 +127,21 @@ message AddUserResponse {
     string code = 1;
 }
 
+message GetOperationsMetadataRequest {
+    int64 traceId = 1;
+}
+
+message OperationMetadata {
+    string event = 1;
+    string status = 2;
+    string timeStamp = 3;
+    string performedBy = 4;
+}
+message GetOperationsMetadataResponse {
+    repeated OperationMetadata metadata = 1;
+}
+
+
 service  IamAdminService {
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
     rpc isUsernameAvailable (IsUsernameAvailableRequest) returns (CheckingResponse);
@@ -142,4 +157,5 @@ service  IamAdminService {
     rpc deleteUser (UserAccessInfo) returns (CheckingResponse);
     rpc addRoleToUser (RoleOperationsUserRequest) returns (CheckingResponse);
     rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
 }

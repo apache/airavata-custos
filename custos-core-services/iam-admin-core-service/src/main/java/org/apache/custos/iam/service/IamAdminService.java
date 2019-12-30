@@ -20,11 +20,12 @@
 package org.apache.custos.iam.service;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.core.services.commons.StatusUpdater;
+import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
+import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClientSecret;
 import org.apache.custos.iam.exceptions.IAMAdminServiceException;
-import org.apache.custos.iam.persistance.model.IAMEventMetadata;
-import org.apache.custos.iam.persistance.repository.EventRepository;
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
 import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
@@ -33,6 +34,9 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,24 +50,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
     private KeycloakClient keycloakClient;
 
     @Autowired
-    private EventRepository repository;
+    private StatusUpdater statusUpdater;
 
     @Override
     public void setUPTenant(SetUpTenantRequest request, StreamObserver<SetUpTenantResponse> responseObserver) {
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.SET_UP_TENANT);
-        iamEventMetadata.setPerformedBy(request.getRequesterEmail());
-
         try {
             LOGGER.debug("Request received to setUPTenant for " + request.getTenantId());
 
-            keycloakClient.createRealm(request.getTenantId(), request.getTenantName());
+            keycloakClient.createRealm(String.valueOf(request.getTenantId()), request.getTenantName());
 
-            keycloakClient.createRealmAdminAccount(request.getTenantId(), request.getAdminUsername(),
+            keycloakClient.createRealmAdminAccount(String.valueOf(request.getTenantId()), request.getAdminUsername(),
                     request.getAdminFirstname(), request.getAdminLastname(),
                     request.getAdminEmail(), request.getAdminPassword());
 
-            KeycloakClientSecret clientSecret = keycloakClient.configureClient(request.getTenantId(),
+            KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(request.getTenantId()),
                     request.getTenantURL());
 
             SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
@@ -72,8 +72,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     .build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.SET_UP_TENANT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getRequesterEmail());
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -81,8 +83,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during setUPTenant" + ex;
             LOGGER.error(msg, ex);
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.SET_UP_TENANT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getRequesterEmail());
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -93,7 +97,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to isUsernameAvailable for " + request.getTenantId());
 
-            boolean isAvailable = keycloakClient.isUsernameAvailable(request.getTenantId(),
+            boolean isAvailable = keycloakClient.isUsernameAvailable(String.valueOf(request.getTenantId()),
                     request.getUserName(),
                     request.getAccessToken());
 
@@ -115,7 +119,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to isUserEnabled for " + request.getTenantId());
 
-            boolean isAvailable = keycloakClient.isUserAccountEnabled(request.getTenantId(),
+            boolean isAvailable = keycloakClient.isUserAccountEnabled(String.valueOf(request.getTenantId()),
                     request.getAccessToken(),
                     request.getUsername());
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isAvailable).build();
@@ -133,24 +137,26 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void addRoleToUser(RoleOperationsUserRequest request, StreamObserver<CheckingResponse> responseObserver) {
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.ADD_ROLE_TO_USER);
-        String userId = request.getAdminUsername() +"@"+request.getTenantId();
-        iamEventMetadata.setPerformedBy(userId);
+
+        String userId = request.getAdminUsername() + "@" + request.getTenantId();
+
         try {
             LOGGER.debug("Request received to addRoleToUser for " + request.getTenantId());
 
             boolean isAdded = keycloakClient.addRoleToUser(request.getAdminUsername(),
                     request.getPassword(),
-                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()),
                     request.getUsername(),
                     request.getRole());
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isAdded).build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.ADD_ROLE_TO_USER.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    userId);
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
@@ -158,8 +164,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during addRoleToUser" + ex;
             LOGGER.error(msg, ex);
 
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.ADD_ROLE_TO_USER.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    userId);
 
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
@@ -169,15 +177,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void registerUser(RegisterUserRequest request, StreamObserver<RegisterUserResponse> responseObserver) {
 
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.REGISTER_USER);
-        iamEventMetadata.setPerformedBy(request.getTenantId());
-
-
         try {
             LOGGER.debug("Request received to registerUser for " + request.getTenantId());
 
-            boolean registered = keycloakClient.createUser(request.getTenantId(),
+            boolean registered = keycloakClient.createUser(String.valueOf(request.getTenantId()),
                     request.getUsername(),
                     request.getPassword(),
                     request.getFirstName(),
@@ -189,8 +192,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     setIsRegistered(registered).build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.REGISTER_USER.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()));
 
             responseObserver.onNext(registerUserResponse);
             responseObserver.onCompleted();
@@ -198,10 +203,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during registerUser" + ex;
             LOGGER.error(msg, ex);
-
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
-
+            statusUpdater.updateStatus(IAMOperations.REGISTER_USER.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()));
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -210,25 +215,23 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void enableUser(UserAccessInfo request, StreamObserver<User> responseObserver) {
 
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.ENABLE_USER);
-        iamEventMetadata.setPerformedBy(request.getTenantId());
-
         try {
             LOGGER.debug("Request received to enableUser for " + request.getTenantId());
 
-            boolean accountEnabled = keycloakClient.enableUserAccount(request.getTenantId(),
+            boolean accountEnabled = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUsername());
             if (accountEnabled) {
 
-                UserRepresentation representation = keycloakClient.getUser(request.getTenantId(),
+                UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
                         request.getAccessToken(), request.getUsername());
 
                 User user = getUser(representation);
 
 
-                iamEventMetadata.setState(Status.SUCCESS);
-                repository.save(iamEventMetadata);
+                statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
 
 
                 responseObserver.onNext(user);
@@ -236,8 +239,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             } else {
 
-                iamEventMetadata.setState(Status.FAILED);
-                repository.save(iamEventMetadata);
+                statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
 
                 IAMAdminServiceException exception = new IAMAdminServiceException("Account enabling failed ", null);
                 responseObserver.onError(exception);
@@ -247,10 +252,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during enableUser" + ex;
             LOGGER.error(msg, ex);
-
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
-
+            statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()));
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -261,7 +266,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to isUserExist for " + request.getTenantId());
 
-            boolean isUserExist = keycloakClient.isUserExist(request.getTenantId(),
+            boolean isUserExist = keycloakClient.isUserExist(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUsername());
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUserExist).build();
 
@@ -282,7 +287,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to getUser for " + request.getTenantId());
 
-            UserRepresentation representation = keycloakClient.getUser(request.getTenantId(),
+            UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUsername());
 
             User user = getUser(representation);
@@ -304,7 +309,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to getUsers for " + request.getInfo().getUsername());
 
             List<UserRepresentation> representation = keycloakClient.getUsers(request.getInfo().getAccessToken(),
-                    request.getInfo().getTenantId(), request.getOffset(), request.getLimit(), request.getSearch());
+                    String.valueOf(request.getInfo().getTenantId()), request.getOffset(), request.getLimit(), request.getSearch());
             List<User> users = new ArrayList<>();
             representation.stream().forEach(r -> users.add(this.getUser(r)));
 
@@ -323,22 +328,21 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.RESET_PASSWORD);
-        iamEventMetadata.setPerformedBy(request.getInfo().getUsername()+"@"+request.getInfo().getTenantId());
+        String userId = request.getInfo().getUsername() + "@" + request.getInfo().getTenantId();
         try {
             LOGGER.debug("Request received to resetPassword for " + request.getInfo().getUsername());
 
             boolean isChanged = keycloakClient.resetUserPassword(request.getInfo().getAccessToken(),
-                    request.getInfo().getTenantId(),
+                    String.valueOf(request.getInfo().getTenantId()),
                     request.getInfo().getUsername(),
                     request.getPassword());
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isChanged).build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(),
+                    OperationStatus.SUCCESS,
+                    request.getInfo().getTenantId(), userId);
 
 
             responseObserver.onNext(response);
@@ -349,8 +353,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during resetPassword" + ex;
             LOGGER.error(msg, ex);
 
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(),
+                    OperationStatus.FAILED,
+                    request.getInfo().getTenantId(), userId);
 
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
@@ -363,7 +368,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to findUsers for " + request.getInfo().getTenantId());
 
             List<UserRepresentation> representations = keycloakClient.findUser(request.getInfo().getAccessToken(),
-                    request.getInfo().getTenantId(),
+                    String.valueOf(request.getInfo().getTenantId()),
                     request.getInfo().getUsername(),
                     request.getEmail());
             List<User> users = new ArrayList<>();
@@ -384,14 +389,13 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.UPDATE_USER_PROFILE);
-        iamEventMetadata.setPerformedBy(request.getUser().getUsername()+"@"+request.getUser().getTenantId());
+        String userId = request.getUser().getUsername() + "@" + request.getUser().getTenantId();
+
         try {
             LOGGER.debug("Request received to updateUserProfile for " + request.getUser().getUsername());
 
             keycloakClient.updateUserRepresentation(request.getAccessToken(),
-                    request.getUser().getTenantId(),
+                    String.valueOf(request.getUser().getTenantId()),
                     request.getUser().getUsername(),
                     request.getUser().getFirstName(),
                     request.getUser().getLastName(),
@@ -400,8 +404,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+                    OperationStatus.SUCCESS,
+                    request.getUser().getTenantId(), userId);
 
 
             responseObserver.onNext(response);
@@ -412,8 +417,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during updateUserProfile" + ex;
             LOGGER.error(msg, ex);
 
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+                    OperationStatus.FAILED,
+                    request.getUser().getTenantId(), userId);
 
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
@@ -422,19 +428,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
     @Override
     public void deleteUser(UserAccessInfo request, StreamObserver<CheckingResponse> responseObserver) {
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.DELETE_USER);
-        iamEventMetadata.setPerformedBy(request.getUsername()+"@"+request.getTenantId());
+
+        String userId = request.getUsername() + "@" + request.getTenantId();
+
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
 
             boolean isUpdated = keycloakClient.deleteUser(request.getAccessToken(),
-                    request.getTenantId(), request.getUsername());
+                    String.valueOf(request.getTenantId()), request.getUsername());
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUpdated).build();
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), userId);
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -442,8 +449,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during deleteUser" + ex;
             LOGGER.error(msg, ex);
 
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), userId);
 
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
@@ -453,21 +461,22 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void deleteRoleFromUser(RoleOperationsUserRequest request, StreamObserver<CheckingResponse> responseObserver) {
 
-        IAMEventMetadata iamEventMetadata = new IAMEventMetadata();
-        iamEventMetadata.setEvent(IAMOperations.DELETE_ROLE_FROM_USER);
-        iamEventMetadata.setPerformedBy(request.getAdminUsername()+"@"+request.getTenantId());
+        String userId = request.getAdminUsername() + "@" + request.getTenantId();
+
         try {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
 
 
             boolean isRemoved = keycloakClient.removeRoleFromUser(request.getAdminUsername(), request.getPassword(),
-                    request.getTenantId(), request.getUsername(), request.getRole());
+                    String.valueOf(request.getTenantId()), request.getUsername(), request.getRole());
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isRemoved).build();
 
 
-            iamEventMetadata.setState(Status.SUCCESS);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_USER.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), userId);
+
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -476,12 +485,50 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during deleteRoleFromUser" + ex;
             LOGGER.error(msg, ex);
 
-            iamEventMetadata.setState(Status.FAILED);
-            repository.save(iamEventMetadata);
+            statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_USER.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), userId);
 
             IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
             responseObserver.onError(exception);
         }
+    }
+    @Override
+    public void getOperationMetadata(GetOperationsMetadataRequest request, StreamObserver<GetOperationsMetadataResponse> responseObserver) {
+        try {
+            LOGGER.debug("Calling getOperationMetadata API for traceId " + request.getTraceId());
+
+            List<OperationMetadata> metadata = new ArrayList<>();
+            List<StatusEntity> entities = statusUpdater.getOperationStatus(request.getTraceId());
+            if (entities == null || entities.size() > 0) {
+
+                for (StatusEntity statusEntity : entities) {
+                    OperationMetadata data = convertFromEntity(statusEntity);
+                    metadata.add(data);
+                }
+            }
+
+            GetOperationsMetadataResponse response = GetOperationsMetadataResponse
+                    .newBuilder()
+                    .addAllMetadata(metadata)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            IAMAdminServiceException failedException = new IAMAdminServiceException(" operation failed for "
+                    + request.getTraceId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+    private OperationMetadata convertFromEntity(StatusEntity entity) {
+        return OperationMetadata.newBuilder()
+                .setEvent(entity.getEvent())
+                .setStatus(entity.getState())
+                .setPerformedBy(entity.getPerformedBy())
+                .setTimeStamp(entity.getTime().toString()).build();
     }
 
 

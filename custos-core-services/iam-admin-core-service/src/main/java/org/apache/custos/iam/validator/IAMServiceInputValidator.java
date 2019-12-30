@@ -75,7 +75,7 @@ public class IAMServiceInputValidator {
     private static boolean validateSetUPTenant(Object obj) {
         if (obj instanceof SetUpTenantRequest) {
             SetUpTenantRequest request = (SetUpTenantRequest) obj;
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -115,7 +115,7 @@ public class IAMServiceInputValidator {
     private static boolean validateIsUsernameAvailable(Object obj) {
         if (obj instanceof IsUsernameAvailableRequest) {
             IsUsernameAvailableRequest request = (IsUsernameAvailableRequest)obj;
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -136,7 +136,7 @@ public class IAMServiceInputValidator {
     private static boolean validateRegisterUser(Object obj) {
         if (obj instanceof RegisterUserRequest) {
             RegisterUserRequest request = (RegisterUserRequest)obj;
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -167,7 +167,7 @@ public class IAMServiceInputValidator {
     private static boolean validateUserAccess(Object obj) {
         if (obj instanceof UserAccessInfo) {
             UserAccessInfo request = (UserAccessInfo)obj;
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -190,7 +190,7 @@ public class IAMServiceInputValidator {
         if (obj instanceof GetUsersRequest) {
         GetUsersRequest request = (GetUsersRequest)obj;
         UserAccessInfo info =  request.getInfo();
-            if (info.getTenantId() == null || info.getTenantId().trim().equals("")) {
+            if (info.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -215,7 +215,7 @@ public class IAMServiceInputValidator {
         if (obj instanceof ResetUserPassword) {
             ResetUserPassword request = (ResetUserPassword) obj;
             UserAccessInfo info = request.getInfo();
-            if (info.getTenantId() == null || info.getTenantId().trim().equals("")) {
+            if (info.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -241,7 +241,7 @@ public class IAMServiceInputValidator {
         if (obj instanceof FindUsersRequest) {
             FindUsersRequest request = (FindUsersRequest) obj;
             UserAccessInfo info = request.getInfo();
-            if (info.getTenantId() == null || info.getTenantId().trim().equals("")) {
+            if (info.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -267,7 +267,7 @@ public class IAMServiceInputValidator {
         if (obj instanceof UpdateUserProfileRequest) {
             UpdateUserProfileRequest re = (UpdateUserProfileRequest)obj;
             User request = re.getUser();
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -301,7 +301,7 @@ public class IAMServiceInputValidator {
     private static boolean validateRoleOperationsRequest(Object obj) {
         if (obj instanceof RoleOperationsUserRequest) {
             RoleOperationsUserRequest request = (RoleOperationsUserRequest)obj;
-            if (request.getTenantId() == null || request.getTenantId().trim().equals("")) {
+            if (request.getTenantId() ==0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 

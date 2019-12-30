@@ -22,22 +22,16 @@ package org.apache.custos.iam.utils;
 /**
  * Includes operations associated with keycloak
  */
-public  final class IAMOperations {
+public enum IAMOperations {
 
-    public static final String SET_UP_TENANT = "SET_UP_TENANT";
+    SET_UP_TENANT,
+    REGISTER_USER,
+    ENABLE_USER,
+    DELETE_USER,
+    RESET_PASSWORD,
+    UPDATE_USER_PROFILE,
+    ADD_ROLE_TO_USER,
+    DELETE_ROLE_FROM_USER
 
-    public static final String REGISTER_USER = "REGISTER_USER";
-
-    public static final String ENABLE_USER = "ENABLE_USER";
-
-    public static final String DELETE_USER = "DELETE_USER";
-
-    public static final String RESET_PASSWORD  = "RESET_PASSWORD";
-
-    public static final String UPDATE_USER_PROFILE = "UPDATE_USER_PROFILE";
-
-    public static final String ADD_ROLE_TO_USER = "ADD_ROLE_TO_USER";
-
-    public static final String DELETE_ROLE_FROM_USER = "DELETE_ROLE_FROM_USER";
 
 }

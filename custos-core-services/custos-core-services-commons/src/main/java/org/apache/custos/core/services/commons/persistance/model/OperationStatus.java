@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.credential.store.utils;
+package org.apache.custos.core.services.commons.persistance.model;
 
 public enum OperationStatus {
 

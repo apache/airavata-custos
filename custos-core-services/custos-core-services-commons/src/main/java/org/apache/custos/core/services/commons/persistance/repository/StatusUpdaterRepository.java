@@ -17,16 +17,16 @@
  *  under the License.
  */
 
-package org.apache.custos.federated.authentication.persistance.repository;
+package org.apache.custos.core.services.commons.persistance.repository;
 
-import org.apache.custos.federated.authentication.persistance.model.EventMetadata;
+import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-public interface EventRepository extends JpaRepository<EventMetadata,Long> {
+public interface StatusUpdaterRepository extends JpaRepository<StatusEntity, Long> {
 
     @Transactional
-    public List<EventMetadata> findAllByTraceId(Long traceId);
+    public List<StatusEntity> findAllByTraceId(long traceId);
 }

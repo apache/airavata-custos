@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.persistance.model;
+package org.apache.custos.core.services.commons.persistance.model;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -29,9 +29,9 @@ import java.util.Date;
  * Captured and stores Keycloak events
  */
 @Entity
-@Table(name = "keycloak_event_metadata")
+@Table(name = "vault_event_metadata")
 @EntityListeners(AuditingEntityListener.class)
-public class IAMEventMetadata {
+public class StatusEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -43,13 +43,19 @@ public class IAMEventMetadata {
     @Column(nullable = false)
     private String state;
 
-    @Column(nullable = false)
-    private String performedBy;
 
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
     private Date time;
+
+    @Column(nullable = false)
+    private Long traceId;
+
+
+    private String performedBy;
+
+
 
     public Long getId() {
         return id;
@@ -81,6 +87,15 @@ public class IAMEventMetadata {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+
+    public Long getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(Long traceId) {
+        this.traceId = traceId;
     }
 
     public String getPerformedBy() {

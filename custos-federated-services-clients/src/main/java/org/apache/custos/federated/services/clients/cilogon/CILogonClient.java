@@ -37,16 +37,16 @@ import java.util.Base64;
 public class CILogonClient {
     private final static Logger LOGGER = LoggerFactory.getLogger(CILogonClient.class);
 
-    @Value("${ciLogon.admin.client.id}")
+    @Value("${ciLogon.admin.client.id:cilogon:/client_id/9ffbef37c479d52156507b463e8748e}")
     private String adminClientId;
 
 
-    @Value("${ciLogon.admin.client.secret}")
+    @Value("${ciLogon.admin.client.secret:qKyOhpIKNURaez0R-kKh9gjnjizzKR9Bwi3DZ_sv52lmZXOywnqTa3CjFCZRfXFYBryNbb4EYkU-ddlmD0Z29Q}")
     private String adminClientSecret;
 
 
-    @Value("${ciLogon.admin.auth.endpoint}")
-    private String ciLogonAuthEndpoint = "https://test.cilogon.org/oauth2/oidc-cm";
+    @Value("${ciLogon.admin.auth.endpoint:https://test.cilogon.org/oauth2/oidc-cm}")
+    private String ciLogonAuthEndpoint;
 
     private RestTemplate template = new RestTemplate();
 

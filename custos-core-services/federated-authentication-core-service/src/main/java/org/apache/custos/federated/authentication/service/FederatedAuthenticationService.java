@@ -20,11 +20,11 @@
 package org.apache.custos.federated.authentication.service;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.core.services.commons.StatusUpdater;
+import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
+import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.federated.authentication.exceptions.FederatedAuthenticationServiceException;
-import org.apache.custos.federated.authentication.persistance.model.EventMetadata;
-import org.apache.custos.federated.authentication.persistance.repository.EventRepository;
 import org.apache.custos.federated.authentication.service.FederatedAuthenticationServiceGrpc.FederatedAuthenticationServiceImplBase;
-import org.apache.custos.federated.authentication.utils.OperationStatus;
 import org.apache.custos.federated.authentication.utils.Operations;
 import org.apache.custos.federated.services.clients.cilogon.CILogonClient;
 import org.apache.custos.federated.services.clients.cilogon.CILogonResponse;
@@ -33,7 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @GRpcService
 public class FederatedAuthenticationService extends FederatedAuthenticationServiceImplBase {
@@ -44,15 +46,10 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
     private CILogonClient ciLogonClient;
 
     @Autowired
-    private EventRepository repository;
+    private StatusUpdater statusUpdater;
 
     @Override
     public void addClient(ClientMetadata request, StreamObserver<RegisterClientResponse> responseObserver) {
-        EventMetadata metadata = new EventMetadata();
-        metadata.setEvent(Operations.ADD_CLIENT.name());
-        metadata.setTraceId(request.getTenantId());
-        metadata.setPerformedBy(request.getPerformedBy());
-
         try {
             LOGGER.debug("Request received to addClient for " + request.getTenantId());
             String[] scopes = request.getScopeList() != null ?
@@ -67,8 +64,10 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
                     request.getTenantURI(),
                     contact);
 
-            metadata.setState(OperationStatus.SUCCESS.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.ADD_CLIENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
 
             RegisterClientResponse registerClientResponse = RegisterClientResponse.newBuilder()
                     .setClientId(response.getClientId())
@@ -82,8 +81,10 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         } catch (Exception ex) {
             String msg = "Error occurred during addClient" + ex;
             LOGGER.error(msg, ex);
-            metadata.setState(OperationStatus.FAILED.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.ADD_CLIENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
             FederatedAuthenticationServiceException exception = new FederatedAuthenticationServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -91,10 +92,6 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
     @Override
     public void updateClient(ClientMetadata request, StreamObserver<Empty> responseObserver) {
-        EventMetadata metadata = new EventMetadata();
-        metadata.setEvent(Operations.UPDATE_CLIENT.name());
-        metadata.setTraceId(request.getTenantId());
-        metadata.setPerformedBy(request.getPerformedBy());
         try {
             LOGGER.debug("Request received to updateClient for " + request.getTenantId());
             String[] scopes = request.getScopeList() != null ?
@@ -108,8 +105,10 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
                     request.getTenantURI(),
                     contact);
 
-            metadata.setState(OperationStatus.SUCCESS.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.UPDATE_CLIENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
 
             Empty empty = Empty.newBuilder().build();
 
@@ -120,8 +119,10 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         } catch (Exception ex) {
             String msg = "Error occurred during updateClient" + ex;
             LOGGER.error(msg, ex);
-            metadata.setState(OperationStatus.FAILED.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.UPDATE_CLIENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
             FederatedAuthenticationServiceException exception = new FederatedAuthenticationServiceException(msg, ex);
             responseObserver.onError(exception);
         }
@@ -156,17 +157,16 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
     @Override
     public void deleteClient(DeleteClientRequest request, StreamObserver<Empty> responseObserver) {
-        EventMetadata metadata = new EventMetadata();
-        metadata.setEvent(Operations.UPDATE_CLIENT.name());
-        metadata.setTraceId(request.getTenantId());
-        metadata.setPerformedBy(request.getPerformedBy());
+
         try {
             LOGGER.debug("Request received to deleteClient for " + request.getTenantId());
 
             ciLogonClient.deleteClient(request.getClientId());
 
-            metadata.setState(OperationStatus.SUCCESS.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.DELETE_CLIENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
 
             Empty empty = Empty.newBuilder().build();
 
@@ -176,10 +176,51 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         } catch (Exception ex) {
             String msg = "Error occurred during deleteClient" + ex;
             LOGGER.error(msg, ex);
-            metadata.setState(OperationStatus.FAILED.name());
-            repository.save(metadata);
+            statusUpdater.updateStatus(Operations.DELETE_CLIENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
             FederatedAuthenticationServiceException exception = new FederatedAuthenticationServiceException(msg, ex);
             responseObserver.onError(exception);
         }
     }
+
+    @Override
+    public void getOperationMetadata(GetOperationsMetadataRequest request, StreamObserver<GetOperationsMetadataResponse> responseObserver) {
+        try {
+            LOGGER.debug("Calling getOperationMetadata API for traceId " + request.getTraceId());
+
+            List<OperationMetadata> metadata = new ArrayList<>();
+            List<StatusEntity> entities = statusUpdater.getOperationStatus(request.getTraceId());
+            if (entities == null || entities.size() > 0) {
+
+                for (StatusEntity statusEntity : entities) {
+                    OperationMetadata data = convertFromEntity(statusEntity);
+                    metadata.add(data);
+                }
+            }
+
+            GetOperationsMetadataResponse response = GetOperationsMetadataResponse
+                    .newBuilder()
+                    .addAllMetadata(metadata)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            FederatedAuthenticationServiceException failedException = new FederatedAuthenticationServiceException(" operation failed for "
+                    + request.getTraceId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+    private OperationMetadata convertFromEntity(StatusEntity entity) {
+        return OperationMetadata.newBuilder()
+                .setEvent(entity.getEvent())
+                .setStatus(entity.getState())
+                .setPerformedBy(entity.getPerformedBy())
+                .setTimeStamp(entity.getTime().toString()).build();
+    }
+
 }

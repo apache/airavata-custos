@@ -59,25 +59,25 @@ public class KeycloakClient {
 
     private final static int SESSION_IDLE_TIMEOUT = 3600;
 
-    @Value("${iam.server.client.id}")
+    @Value("${iam.server.client.id:admin-cli}")
     private String clientId;
 
-    @Value("${iam.server.truststore.path}")
+    @Value("${iam.server.truststore.path:/home/ubuntu/keystore/keycloak-client-truststore.pkcs12}")
     private String trustStorePath;
 
-    @Value("${iam.server.truststore.password}")
+    @Value("${iam.server.truststore.password:keycloak}")
     private String truststorePassword;
 
-    @Value("${iam.server.url}")
+    @Value("${iam.server.url:https://keycloak.custos.scigap.org:31000/auth/}")
     private String iamServerURL;
 
-    @Value("${iam.server.admin.username}")
+    @Value("${iam.server.admin.username:keycloak}")
     private String superAdminUserName;
 
-    @Value("${iam.server.admin.password}")
+    @Value("${iam.server.admin.password:5SocwZ78TEUyyj0R}")
     private String superAdminPassword;
 
-    @Value("${iam.server.super.admin.realm.id}")
+    @Value("${iam.server.super.admin.realm.id:master}")
     private String superAdminRealmID;
 
 

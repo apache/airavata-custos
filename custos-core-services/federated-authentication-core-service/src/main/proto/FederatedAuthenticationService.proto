@@ -70,10 +70,25 @@ message Empty {
 
 }
 
+message GetOperationsMetadataRequest {
+    int64 traceId = 1;
+}
+
+message OperationMetadata {
+    string event = 1;
+    string status = 2;
+    string timeStamp = 3;
+    string performedBy = 4;
+}
+message GetOperationsMetadataResponse {
+    repeated OperationMetadata metadata = 1;
+}
+
 
 service FederatedAuthenticationService {
     rpc addClient (ClientMetadata) returns (RegisterClientResponse);
     rpc updateClient (ClientMetadata) returns (Empty);
     rpc getClient (GetClientRequest) returns (GetClientResponse);
     rpc deleteClient (DeleteClientRequest) returns (Empty);
+    rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
 }
