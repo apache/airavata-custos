@@ -43,19 +43,16 @@ public class TenantMapper {
      */
     public static Tenant createTenantEntityFromTenant(org.apache.custos.tenant.profile.service.Tenant tenant) {
         Tenant tenantEntity = new Tenant();
-        if ((tenant.getTenantId() != null && !tenant.getTenantId().equals(""))){
-            Long castedId = Long.valueOf(tenant.getTenantId());
-            tenantEntity.setId(castedId);
+        if (tenant.getTenantId() != 0){
+            tenantEntity.setId(tenant.getTenantId());
         }
         tenantEntity.setName(tenant.getTenantName());
         tenantEntity.setStatus(tenant.getTenantStatus());
-        tenantEntity.setRequesterUsername(tenant.getRequesterUsername());
         tenantEntity.setAdminFirstName(tenant.getAdminFirstName());
         tenantEntity.setAdminLastName(tenant.getAdminLastName());
         tenantEntity.setAdminEmail(tenant.getAdminEmail());
-        tenantEntity.setRequesterUsername(tenant.getRequesterUsername());
         tenantEntity.setRequesterEmail(tenant.getRequesterEmail());
-        tenantEntity.setLogoURI(tenant.getLogoURI());
+        tenantEntity.setLogoURI(tenant.getTenantURI());
         tenantEntity.setScope(tenant.getScope());
         tenantEntity.setDomain(tenant.getDomain());
 
@@ -120,14 +117,13 @@ public class TenantMapper {
                 .setAdminFirstName(tenantEntity.getAdminFirstName())
                 .setAdminLastName(tenantEntity.getAdminLastName())
                 .setDomain(tenantEntity.getDomain())
-                .setLogoURI(tenantEntity.getLogoURI())
+                .setTenantURI(tenantEntity.getLogoURI())
                 .setRequesterEmail(tenantEntity.getRequesterEmail())
                 .setScope(tenantEntity.getScope())
                 .addAllContacts(contactList)
                 .addAllRedirectURIs(uriList)
                 .setTenantName(tenantEntity.getName())
-                .setRequesterUsername(tenantEntity.getRequesterUsername())
-                .setTenantId(String.valueOf(tenantEntity.getId()))
+                .setTenantId(tenantEntity.getId())
                 .setTenantStatus(tenantEntity.getStatus())
                 .build();
 
@@ -148,9 +144,8 @@ public class TenantMapper {
         buffer.append("tenantAdminLastName : "+tenant.getAdminLastName());
         buffer.append("domain : "+tenant.getDomain());
         buffer.append("\n");
-        buffer.append("logoURI : "+tenant.getLogoURI());
+        buffer.append("logoURI : "+tenant.getTenantURI());
         buffer.append("\n");
-        buffer.append("requesterUserName : "+tenant.getRequesterUsername());
         buffer.append("\n");
         buffer.append("requesterEmail : "+tenant.getRequesterEmail());
         buffer.append("\n");

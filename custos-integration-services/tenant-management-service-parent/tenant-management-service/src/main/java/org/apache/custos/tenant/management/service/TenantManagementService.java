@@ -20,10 +20,16 @@
 package org.apache.custos.tenant.management.service;
 
 import io.grpc.stub.StreamObserver;
-import org.apache.custos.iam.service.User;
+import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.credential.store.service.CredentialMetadata;
+import org.apache.custos.credential.store.service.Type;
+import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
+import org.apache.custos.federated.authentication.service.ClientMetadata;
+import org.apache.custos.federated.authentication.service.RegisterClientResponse;
+import org.apache.custos.iam.admin.client.IamAdminServiceClient;
+import org.apache.custos.iam.service.SetUpTenantRequest;
+import org.apache.custos.iam.service.SetUpTenantResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
-import org.apache.custos.tenant.management.tasks.AddIamAdminUserTask;
-import org.apache.custos.tenant.management.tasks.AddTenantTask;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
@@ -34,22 +40,94 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @GRpcService
 public class TenantManagementService extends TenantManagementServiceImplBase {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantManagementService.class);
 
-    @Autowired
-    private AddTenantTask<Tenant, User> addTenantTask;
+//    @Autowired
+//    private AddTenantTask<Tenant, User> addTenantTask;
 
     @Autowired
     private TenantProfileClient profileClient;
 
     @Autowired
-    private AddIamAdminUserTask<User, User> addIamAdminUserTask;
-    private static final Logger LOGGER = LoggerFactory.getLogger(TenantManagementService.class);
+    private CredentialStoreServiceClient credentialStoreServiceClient;
+
+    @Autowired
+    private IamAdminServiceClient iamAdminServiceClient;
+
+    @Autowired
+    private FederatedAuthenticationClient federatedAuthenticationClient;
+
+//    @Autowired
+//    private AddIamAdminUserTask<User, User> addIamAdminUserTask;
+
 
     @Override
     public void createTenant(CreateTenantRequest request, StreamObserver<CreateTenantResponse> responseObserver) {
-        LOGGER.info("Tenant requested " + request.getTenant().getTenantName());
+        try {
+            LOGGER.info("Tenant requested for " + request.getInfo().getTenant().getTenantName());
 
-        AddTenantResponse response = profileClient.addTenant(request.getTenant());
+            Tenant tenant = request.getInfo().getTenant();
+
+            AddTenantResponse response = profileClient.addTenant(request.getInfo().getTenant());
+
+            LOGGER.info("Admin password :"+request.getInfo().getAdminPassword());
+            LOGGER.info("Admin Username :"+request.getInfo().getAdminUsername());
+
+            SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
+                    .newBuilder()
+                    .setTenantId(response.getTenantId())
+                    .setTenantName(tenant.getTenantName())
+                    .setAdminFirstname(tenant.getAdminFirstName())
+                    .setAdminLastname(tenant.getAdminLastName())
+                    .setAdminEmail(tenant.getAdminEmail())
+                    .addAllRedirectURIs(tenant.getRedirectURIsList())
+                    .setAdminPassword(request.getInfo().getAdminPassword())
+                    .setAdminUsername(request.getInfo().getAdminUsername())
+                    .setRequesterEmail(tenant.getRequesterEmail())
+                    .setTenantURL(tenant.getTenantURI())
+                    .build();
+
+            SetUpTenantResponse iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);
+
+            CredentialMetadata credentialMetadata = CredentialMetadata
+                    .newBuilder()
+                    .setId(iamResponse.getClientId())
+                    .setSecret(iamResponse.getClientSecret())
+                    .setOwnerId(response.getTenantId())
+                    .setType(Type.IAM)
+                    .build();
+
+            credentialStoreServiceClient.putCredential(credentialMetadata);
+
+            ClientMetadata clientMetadata = ClientMetadata
+                    .newBuilder()
+                    .setTenantId(response.getTenantId())
+                    .setTenantName(tenant.getTenantName())
+                    .setTenantURI(tenant.getTenantURI())
+                    .setComment("Created by custos")
+                    .addScope(tenant.getScope())
+                    .addAllRedirectURIs(tenant.getRedirectURIsList())
+                    .addAllContacts(tenant.getContactsList())
+                    .setPerformedBy(tenant.getRequesterEmail())
+                    .build();
+
+         RegisterClientResponse registerClientResponse =  federatedAuthenticationClient.addClient(clientMetadata);
+
+
+            CredentialMetadata credentialMetadataCILogon = CredentialMetadata
+                    .newBuilder()
+                    .setId(registerClientResponse.getClientId())
+                    .setSecret(registerClientResponse.getClientSecret())
+                    .setOwnerId(response.getTenantId())
+                    .setType(Type.CILOGON)
+                    .build();
+
+            credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
+
+            //  .setAdminUsername(request.getTenant())
+            // .setTenantURL(request.getTenant().get)
+
+//            iamAdminServiceClient.setUPTenantAsync();
 
 //        Context ctx = Context.current().fork();
 //        // Set ctx as the current context within the Runnable
@@ -65,15 +143,18 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 //            chain.serve(tenant);
 //        });
 
-        CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()
-                .setTenantId(response.getTenantId())
-                .setMsg("Tenant Requested Successfully")
-                .build();
+            CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()
+                    .setTenantId(response.getTenantId())
+                    .setMsg("Tenant Requested Successfully")
+                    .build();
 
-        responseObserver.onNext(tenantResponse);
-        responseObserver.onCompleted();
+            responseObserver.onNext(tenantResponse);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            LOGGER.error("Error occurred at createTenant " + ex);
+            responseObserver.onError(ex);
+        }
     }
-
 
     @Override
     public void updateTenant(UpdateTenantRequest request, StreamObserver<UpdateTenantResponse> responseObserver) {

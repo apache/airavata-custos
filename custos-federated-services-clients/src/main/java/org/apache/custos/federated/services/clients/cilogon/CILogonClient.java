@@ -37,11 +37,11 @@ import java.util.Base64;
 public class CILogonClient {
     private final static Logger LOGGER = LoggerFactory.getLogger(CILogonClient.class);
 
-    @Value("${ciLogon.admin.client.id:cilogon:/client_id/9ffbef37c479d52156507b463e8748e}")
+    @Value("${ciLogon.admin.client.id:cilogon:/adminClient/332b62ccdae98bad47bc4a823fafa369/1573169678768}")
     private String adminClientId;
 
 
-    @Value("${ciLogon.admin.client.secret:qKyOhpIKNURaez0R-kKh9gjnjizzKR9Bwi3DZ_sv52lmZXOywnqTa3CjFCZRfXFYBryNbb4EYkU-ddlmD0Z29Q}")
+    @Value("${ciLogon.admin.client.secret:lzoJ7F9JOq-q4qabXg8W9btHA1Nqwd0TFRfbCAiffL-QKlsuFtiRY5OaR1C8vGBy2glt9KEDPCBKproXFhQNyA}")
     private String adminClientSecret;
 
 
@@ -74,6 +74,10 @@ public class CILogonClient {
         }
         HttpHeaders headers = new HttpHeaders();
 
+        LOGGER.info("client name" + clientName);
+        LOGGER.info("URIS "+redirectURIs.toString());
+        LOGGER.info("Comment "+comment);
+        LOGGER.info("Token " +getBearerToken());
 
         headers.add("Authorization", getBearerToken());
         headers.setContentType(MediaType.APPLICATION_JSON);

@@ -48,7 +48,6 @@ public class Tenant {
     @Column(nullable = false)
     private String requesterEmail;
 
-
     @Column(nullable = false)
     private String status;
 
@@ -61,11 +60,11 @@ public class Tenant {
     @Column(nullable = false)
     private String adminEmail;
 
-
     @Column(nullable = false)
-    private String requesterUsername;
+    private String  adminUsername;
 
-    @Column(name = "logo_uri")
+
+    @Column(name = "tenant_uri")
     private String logoURI;
 
 
@@ -150,14 +149,6 @@ public class Tenant {
     }
 
 
-    public String getRequesterUsername() {
-        return requesterUsername;
-    }
-
-    public void setRequesterUsername(String requesterUsername) {
-        this.requesterUsername = requesterUsername;
-    }
-
     public String getLogoURI() {
         return logoURI;
     }
@@ -204,5 +195,13 @@ public class Tenant {
 
     public void setStatusUpdateMetadata(Set<StatusUpdateMetadata> statusUpdateMetadata) {
         this.statusUpdateMetadata = statusUpdateMetadata;
+    }
+
+    public String getAdminUsername() {
+        return adminUsername;
+    }
+
+    public void setAdminUsername(String adminUsername) {
+        this.adminUsername = adminUsername;
     }
 }

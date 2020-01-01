@@ -81,7 +81,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 tenant.setStatus(TenantStatus.REQUESTED);
 
                 Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
-                        createStatusUpdateMetadataEntity(tenant, tenant.getRequesterUsername());
+                        createStatusUpdateMetadataEntity(tenant, tenant.getRequesterEmail());
 
                 tenant.setStatusUpdateMetadata(metadataSet);
 
@@ -89,7 +89,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 Tenant savedTenant = tenantRepository.save(tenant);
 
                 AddTenantResponse response = AddTenantResponse.newBuilder().
-                        setTenantId(String.valueOf(savedTenant.getId())).build();
+                        setTenantId(savedTenant.getId()).build();
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
@@ -117,7 +117,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             String updatedBy = request.getUpdatedBy();
 
-            Long tenantId = Long.valueOf(tenant.getTenantId());
+            Long tenantId = tenant.getTenantId();
 
 
             if (isUpdatable(tenantId, tenant.getDomain(), tenant.getTenantName())) {
@@ -218,7 +218,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
         try {
             LOGGER.debug("Get tenant with Id " + request.getTenantId() + " received");
 
-            Long id = Long.valueOf(request.getTenantId());
+            Long id = request.getTenantId();
 
             Optional<Tenant> tenant = tenantRepository.findById(id);
             org.apache.custos.tenant.profile.service.Tenant t = null;
@@ -281,7 +281,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
         try {
             LOGGER.debug("Get tenant attribute update audit trail for  " + request.getTenantId());
 
-            Long id = Long.valueOf(request.getTenantId());
+            Long id = request.getTenantId();
 
             List<StatusUpdateMetadata> tenantList = statusUpdateMetadataRepository.findAllByTenantId(id);
             List<TenantStatusUpdateMetadata> metadata = new ArrayList<>();
@@ -332,7 +332,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
         try {
             LOGGER.debug("Update tenant request status received for " + request.getTenantId() + " received");
 
-            Long id = Long.valueOf(request.getTenantId());
+            Long id = request.getTenantId();
 
             String status = request.getStatus();
 
@@ -354,7 +354,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
 
                 UpdateStatusResponse response = UpdateStatusResponse.newBuilder()
-                        .setTenantId(String.valueOf(id))
+                        .setTenantId(id)
                         .setStatus(status)
                         .build();
                 responseObserver.onNext(response);

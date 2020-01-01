@@ -75,9 +75,6 @@ public class TenantServiceInputValidator {
                 throw new MissingParameterException("Tenant domain should not be null", null);
             }
 
-            if (tenant.getRequesterUsername() == null || tenant.getRequesterUsername().trim() == "") {
-                throw new MissingParameterException("Tenant requester username should not be null", null);
-            }
 
             if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
                 throw new MissingParameterException("Tenant admin first name should not be null", null);
@@ -109,7 +106,7 @@ public class TenantServiceInputValidator {
             Tenant tenant = req.getTenant();
             String updatedBy = req.getUpdatedBy();
 
-            if (tenant == null || tenant.getTenantId() == null || tenant.getTenantId().trim() == "") {
+            if (tenant == null || tenant.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -125,9 +122,7 @@ public class TenantServiceInputValidator {
                 throw new MissingParameterException("Tenant domain should not be null", null);
             }
 
-            if (tenant.getRequesterUsername() == null || tenant.getRequesterUsername().trim() == "") {
-                throw new MissingParameterException("Tenant requester username should not be null", null);
-            }
+
 
             if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
                 throw new MissingParameterException("Tenant admin first name should not be null", null);
@@ -169,7 +164,7 @@ public class TenantServiceInputValidator {
         if (obj instanceof GetTenantRequest) {
             GetTenantRequest req = (GetTenantRequest) obj;
 
-            if (req.getTenantId() == null || req.getTenantId().trim().equals("")) {
+            if (req.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id  should not be null", null);
             }
         } else {
@@ -183,7 +178,7 @@ public class TenantServiceInputValidator {
         if (obj instanceof GetAuditTrailRequest) {
             GetAuditTrailRequest req = (GetAuditTrailRequest) obj;
 
-            if (req.getTenantId() == null || req.getTenantId().trim().equals("")) {
+            if (req.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id  should not be null", null);
             }
         } else {
@@ -198,7 +193,7 @@ public class TenantServiceInputValidator {
         if (obj instanceof UpdateStatusRequest) {
             UpdateStatusRequest req = (UpdateStatusRequest) obj;
 
-            if (req.getTenantId() == null || req.getTenantId().trim().equals("")) {
+            if (req.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id  should not be null", null);
             }
 

@@ -17,45 +17,45 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.management.tasks;
-
-import org.apache.custos.iam.service.User;
-import org.apache.custos.integration.core.ServiceCallback;
-import org.apache.custos.integration.core.ServiceTaskImpl;
-import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
-import org.apache.custos.tenant.profile.service.Tenant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.stereotype.Component;
-
-@Component
-@ComponentScan(basePackages = "org.apache.custos")
-public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AddTenantTask.class);
-
-    @Autowired
-    private TenantProfileClient tenantProfileClient;
-
-
-    @Override
-    public void invokeService(T data) {
-        LOGGER.info("Invoking Add tenant task");
-        Tenant tenant = (Tenant) data;
-
-        ServiceCallback myCallback = (msg, exception) -> {
-            if (exception != null) {
-                LOGGER.info("Invoking parent call back");
-                getServiceCallback().onCompleted(msg, exception);
-            } else {
-                LOGGER.info("Calling next task");
-                U user = (U) User.newBuilder().setUserId("XXXXX").build();
-                invokeNextTask(user);
-            }
-        };
-
-        tenantProfileClient.addTenantAsync(tenant, myCallback);
-    }
-}
+//package org.apache.custos.tenant.management.tasks;
+//
+//import org.apache.custos.iam.service.User;
+//import org.apache.custos.integration.core.ServiceCallback;
+//import org.apache.custos.integration.core.ServiceTaskImpl;
+//import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+//import org.apache.custos.tenant.profile.service.Tenant;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.context.annotation.ComponentScan;
+//import org.springframework.stereotype.Component;
+//
+//@Component
+//@ComponentScan(basePackages = "org.apache.custos")
+//public class AddTenantTask<T, U> extends ServiceTaskImpl<T, U> {
+//
+//    private static final Logger LOGGER = LoggerFactory.getLogger(AddTenantTask.class);
+//
+////    @Autowired
+////    private TenantProfileClient tenantProfileClient;
+////
+////
+////    @Override
+////    public void invokeService(T data) {
+////        LOGGER.info("Invoking Add tenant task");
+////        Tenant tenant = (Tenant) data;
+////
+////        ServiceCallback myCallback = (msg, exception) -> {
+////            if (exception != null) {
+////                LOGGER.info("Invoking parent call back");
+////                getServiceCallback().onCompleted(msg, exception);
+////            } else {
+////                LOGGER.info("Calling next task");
+////                U user = (U) User.newBuilder().setUserId("XXXXX").build();
+////                invokeNextTask(user);
+////            }
+////        };
+////
+////        tenantProfileClient.addTenantAsync(tenant, myCallback);
+////    }
+//}

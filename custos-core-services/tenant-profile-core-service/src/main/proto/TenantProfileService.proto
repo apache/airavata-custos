@@ -24,19 +24,20 @@ option java_multiple_files = true;
 package org.apache.custos.tenant.profile.service;
 
 message Tenant {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string tenantName = 2;
-    string requesterUsername = 3;
     string requesterEmail = 4;
     string adminFirstName = 5;
     string adminLastName = 6;
     string adminEmail = 7;
-    string tenantStatus = 8;
-    repeated string contacts = 9;
-    repeated string redirectURIs = 10;
-    string logoURI = 11;
-    string scope = 12;
-    string domain = 13;
+    string adminUsername = 8;
+    string adminPassword = 9;
+    string tenantStatus = 10;
+    repeated string contacts = 11;
+    repeated string redirectURIs = 12;
+    string tenantURI = 13;
+    string scope = 14;
+    string domain = 15;
 }
 
 
@@ -55,7 +56,7 @@ message TenantStatusUpdateMetadata {
 
 
 message AddTenantResponse {
-    string tenantId = 1;
+    int64 tenantId = 1;
 }
 
 message UpdateTenantRequest {
@@ -69,7 +70,7 @@ message UpdateTenantResponse {
 }
 
 message GetTenantRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
 }
 
 message GetTenantResponse {
@@ -82,7 +83,7 @@ message GetAllTenantsResponse {
 }
 
 message IsTenantExistRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
 }
 
 message IsTenantExistResponse {
@@ -98,18 +99,18 @@ message GetAllTenantsForUserResponse {
 }
 
 message UpdateStatusRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string status = 2;
     string updatedBy = 3;
 }
 
 message UpdateStatusResponse {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string status = 2;
 }
 
 message GetAuditTrailRequest {
-    string tenantId = 1;
+    int64 tenantId = 1;
 }
 
 message GetStatusUpdateAuditTrailResponse {

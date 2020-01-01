@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.core.services.commons.persistance.model;
+package org.apache.custos.credential.store.persistance.model;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -25,84 +25,68 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import javax.persistence.*;
 import java.util.Date;
 
-/**
- * Captured and stores Keycloak events
- */
 @Entity
-@Table(name = "event_metadata")
+@Table(name = "custos_credentials")
 @EntityListeners(AuditingEntityListener.class)
-public class StatusEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+public class CredentialEntity {
 
     @Column(nullable = false)
-    private String event;
-
-    @Column(nullable = false)
-    private String state;
+    private String clientId;
 
 
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
-    private Date time;
+    private Date issuedAt;
 
-    @Column(nullable = false)
-    private Long traceId;
+     @Column(nullable = false)
+    private long clientSecretExpiredAt;
+
+     @Id
+     @Column(nullable = false)
+     private long ownerId;
+
+     @Column(nullable = false)
+     private String type;
 
 
-    private String performedBy;
-
-
-
-    public Long getId() {
-        return id;
+    public String getClientId() {
+        return clientId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
-    public String getEvent() {
-        return event;
+    public Date getIssuedAt() {
+        return issuedAt;
     }
 
-    public void setEvent(String event) {
-        this.event = event;
+    public void setIssuedAt(Date issuedAt) {
+        this.issuedAt = issuedAt;
     }
 
-    public Date getTime() {
-        return time;
+    public long getClientSecretExpiredAt() {
+        return clientSecretExpiredAt;
     }
 
-    public void setTime(Date time) {
-        this.time = time;
+    public void setClientSecretExpiredAt(long clientSecretExpiredAt) {
+        this.clientSecretExpiredAt = clientSecretExpiredAt;
     }
 
-    public String getState() {
-        return state;
+    public long getOwnerId() {
+        return ownerId;
     }
 
-    public void setState(String state) {
-        this.state = state;
+    public void setOwnerId(long ownerId) {
+        this.ownerId = ownerId;
     }
 
-
-    public Long getTraceId() {
-        return traceId;
+    public String getType() {
+        return type;
     }
 
-    public void setTraceId(Long traceId) {
-        this.traceId = traceId;
-    }
-
-    public String getPerformedBy() {
-        return performedBy;
-    }
-
-    public void setPerformedBy(String performedBy) {
-        this.performedBy = performedBy;
+    public void setType(String type) {
+        this.type = type;
     }
 }

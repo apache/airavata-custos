@@ -136,6 +136,11 @@ public class IamAdminServiceClient {
         iamAdminServiceStub.deleteRoleFromUser(request, observer);
     }
 
+    public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
+        StreamObserver observer = getObserver(callback, "get operations metadata");
+        iamAdminServiceStub.getOperationMetadata(request,observer);
+    }
+
     public SetUpTenantResponse setUPTenant(SetUpTenantRequest request) {
         return iamAdminServiceBlockingStub.setUPTenant(request);
     }
@@ -208,6 +213,10 @@ public class IamAdminServiceClient {
 
     public CheckingResponse deleteRoleFromUser(RoleOperationsUserRequest request) {
         return iamAdminServiceBlockingStub.deleteRoleFromUser(request);
+    }
+
+    public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
+        return iamAdminServiceBlockingStub.getOperationMetadata(request);
     }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {

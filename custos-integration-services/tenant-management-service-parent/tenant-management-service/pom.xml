@@ -43,6 +43,16 @@
               <artifactId>iam-admin-core-service-client-stub</artifactId>
               <version>${project.version}</version>
           </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>federated-authentication-core-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>credential-store-core-service-client-stubs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
           <dependency>
               <groupId>org.apache.custos</groupId>
               <artifactId>custos-integration-core</artifactId>

@@ -27,12 +27,17 @@ import "google/api/annotations.proto";
 import "TenantProfileService.proto";
 
 
-message CreateTenantRequest {
+message TenantInfo {
     org.apache.custos.tenant.profile.service.Tenant tenant = 1;
+    string adminPassword = 2;
+    string adminUsername = 3;
 }
 
+message CreateTenantRequest {
+   TenantInfo info = 1;
+}
 message CreateTenantResponse {
-    string tenantId = 1;
+    int64 tenantId = 1;
     string msg = 2;
 }
 
@@ -50,7 +55,7 @@ service TenantManagementService {
     rpc createTenant (CreateTenantRequest) returns (CreateTenantResponse) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/tenant"
-           body: "tenant"
+           body: "info"
          };
     }
     rpc updateTenant (UpdateTenantRequest) returns (org.apache.custos.tenant.profile.service.UpdateTenantResponse) {

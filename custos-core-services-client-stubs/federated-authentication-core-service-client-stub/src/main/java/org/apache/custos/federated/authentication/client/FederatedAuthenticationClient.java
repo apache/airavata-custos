@@ -67,6 +67,12 @@ public class FederatedAuthenticationClient {
         StreamObserver observer = this.getObserver(callback, "deleteClient   task failed");
         federatedAuthenticationServiceStub.deleteClient(request, observer);
     }
+
+    public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
+        StreamObserver observer = getObserver(callback, "get operations metadata");
+        federatedAuthenticationServiceStub.getOperationMetadata(request,observer);
+    }
+
     public void getClientAsync(GetClientRequest request) {
         federatedAuthenticationServiceBlockingStub.getClient(request);
     }
@@ -85,6 +91,9 @@ public class FederatedAuthenticationClient {
         return federatedAuthenticationServiceBlockingStub.getClient(request);
     }
 
+    public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
+        return federatedAuthenticationServiceBlockingStub.getOperationMetadata(request);
+    }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

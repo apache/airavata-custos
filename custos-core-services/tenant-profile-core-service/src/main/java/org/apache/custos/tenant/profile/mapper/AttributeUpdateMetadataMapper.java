@@ -114,16 +114,7 @@ public class AttributeUpdateMetadataMapper {
             attributeUpdateMetadata.setTenant(newTenant);
             metadataSet.add(attributeUpdateMetadata);
         }
-
-        if (!oldTenant.getRequesterUsername().equals(newTenant.getRequesterUsername())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setTenant(newTenant);
-            attributeUpdateMetadata.setUpdatedFieldKey("requesterUsername");
-            attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getRequesterUsername());
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            attributeUpdateMetadata.setTenant(newTenant);
-            metadataSet.add(attributeUpdateMetadata);
-        }
+        
 
         if (!oldTenant.getScope().equals(newTenant.getScope())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();

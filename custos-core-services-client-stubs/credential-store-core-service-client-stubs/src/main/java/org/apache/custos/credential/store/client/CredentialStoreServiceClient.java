@@ -78,6 +78,11 @@ public class CredentialStoreServiceClient {
         credentialStoreServiceStub.deleteCredential(request, observer);
     }
 
+    public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
+        StreamObserver observer = getObserver(callback, "get operations metadata");
+         credentialStoreServiceStub.getOperationMetadata(request,observer);
+    }
+
     public OperationStatus putCredential(CredentialMetadata request) {
         return credentialStoreServiceBlockingStub.putCredential(request);
 
@@ -96,6 +101,11 @@ public class CredentialStoreServiceClient {
 
     public OperationStatus deleteCredential(DeleteCredentialRequest request) {
         return credentialStoreServiceBlockingStub.deleteCredential(request);
+    }
+
+
+    public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
+        return credentialStoreServiceBlockingStub.getOperationMetadata(request);
     }
 
 

@@ -27,9 +27,11 @@ import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 
 
 @SpringBootApplication
+@ComponentScan(basePackages = "org.apache.custos")
 public class TenantRegistrationServiceInitializer {
     public static void main(String[] args) {
         SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
