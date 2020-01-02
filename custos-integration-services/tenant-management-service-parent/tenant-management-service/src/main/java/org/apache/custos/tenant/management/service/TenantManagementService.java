@@ -29,6 +29,7 @@ import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
+import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
@@ -55,13 +56,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     @Override
     public void createTenant(CreateTenantRequest request, StreamObserver<CreateTenantResponse> responseObserver) {
         try {
-            LOGGER.info("Tenant requested for " + request.getTenant().getTenantName());
-
+            LOGGER.debug("Tenant requested for " + request.getTenant().getTenantName());
 
             AddTenantResponse response = profileClient.addTenant(request.getTenant());
-
-            LOGGER.info("Admin password :" + request.getTenant().getAdminPassword());
-            LOGGER.info("Admin Username :" + request.getTenant().getAdminUsername());
 
             long tenantId = response.getTenantId();
 
@@ -99,31 +96,44 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Override
     public void updateTenantStatus(UpdateStatusRequest request, StreamObserver<UpdateStatusResponse> responseObserver) {
-        org.apache.custos.tenant.profile.service.UpdateStatusRequest req = request.getStatus();
-        UpdateStatusResponse response = profileClient.updateTenantStatus(req);
+        try {
+            org.apache.custos.tenant.profile.service.UpdateStatusRequest req = request.getStatus();
+            UpdateStatusResponse response = profileClient.updateTenantStatus(req);
 
-        Context ctx = Context.current().fork();
-        // Set ctx as the current context within the Runnable
-        ctx.run(() -> {
-            ServiceCallback callback = new ServiceCallback() {
-                @Override
-                public void onCompleted(Object obj) {
-                    LOGGER.info(" Tenant Activate task finished " + obj.toString());
-                }
+            Context ctx = Context.current().fork();
+            // Set ctx as the current context within the Runnable
+            ctx.run(() -> {
+                ServiceCallback callback = new ServiceCallback() {
+                    @Override
+                    public void onCompleted(Object obj) {
+                        LOGGER.debug(" Tenant Activate task finished " + obj.toString());
+                    }
 
-                @Override
-                public void onError(ServiceException ex) {
-                    LOGGER.error("Tenant Activation task failed " + ex);
-                }
-            };
+                    @Override
+                    public void onError(ServiceException ex) {
+                        LOGGER.error("Tenant Activation task failed " + ex);
+                        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
+                                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
+                                        .setTenantId(req.getTenantId())
+                                        .setStatus(TenantStatus.CANCELLED)
+                                        .setUpdatedBy(Constants.SYSTEM)
+                                        .build();
+                        profileClient.updateTenantStatus(updateTenantRequest);
+                    }
+                };
 
-            ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
+                ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
 
-            chain.serve(response);
-        });
+                chain.serve(response);
+            });
 
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Tenant update task failed for tenant "+ request.getStatus().getTenantId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
 

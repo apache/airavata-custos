@@ -31,6 +31,7 @@ import org.apache.custos.iam.service.SetUpTenantRequest;
 import org.apache.custos.iam.service.SetUpTenantResponse;
 import org.apache.custos.integration.core.ServiceException;
 import org.apache.custos.integration.core.ServiceTaskImpl;
+import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.*;
 import org.slf4j.Logger;
@@ -43,7 +44,6 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantActivationTask.class);
 
-    private final String SYSTEM_UPDATE = "SYSTEM";
 
 
     @Autowired
@@ -64,7 +64,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
         try {
             if (data instanceof UpdateStatusResponse) {
                 long tenantId = ((UpdateStatusResponse) data).getTenantId();
-                LOGGER.info("Invoking tenant activation task for tenant " + tenantId);
+                LOGGER.debug("Invoking tenant activation task for tenant " + tenantId);
 
                 GetTenantRequest tenantRequest = GetTenantRequest
                         .newBuilder()
@@ -143,7 +143,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                                 org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
                                         .setTenantId(tenantId)
                                         .setStatus(TenantStatus.ACTIVE)
-                                        .setUpdatedBy(SYSTEM_UPDATE)
+                                        .setUpdatedBy(Constants.SYSTEM)
                                         .build();
 
                         UpdateStatusResponse response = profileClient.updateTenantStatus(updateTenantRequest);
