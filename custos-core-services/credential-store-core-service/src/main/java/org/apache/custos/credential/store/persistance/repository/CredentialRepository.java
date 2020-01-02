@@ -21,8 +21,10 @@ package org.apache.custos.credential.store.persistance.repository;
 
 import org.apache.custos.credential.store.persistance.model.CredentialEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface CredentialRepository extends JpaRepository<CredentialEntity, Long> {
 
-
+    @Transactional
+   public CredentialEntity findByClientId(String clientId);
 }

@@ -26,7 +26,7 @@ import java.util.List;
 
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
-    public List<Tenant> findByRequesterUsername(String requesterUsername);
+    public List<Tenant> findByRequesterEmail(String requesterEmail);
 
     public List<Tenant> findByDomainAndName(String domain, String name);
 }

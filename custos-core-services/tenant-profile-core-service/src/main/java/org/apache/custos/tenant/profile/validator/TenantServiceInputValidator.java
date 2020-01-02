@@ -88,6 +88,10 @@ public class TenantServiceInputValidator {
                 throw new MissingParameterException("Tenant admin email should not be null", null);
             }
 
+            if (tenant.getAdminUsername() == null || tenant.getAdminUsername().trim() == "") {
+                throw new MissingParameterException("Tenant admin username should not be null", null);
+            }
+
             if (tenant.getRequesterEmail() == null || tenant.getRequesterEmail().trim() == "") {
                 throw new MissingParameterException("Tenant requester email  should not be null", null);
             }
@@ -197,7 +201,7 @@ public class TenantServiceInputValidator {
                 throw new MissingParameterException("Tenant Id  should not be null", null);
             }
 
-            if (req.getStatus() == null || req.getStatus().trim().equals("")) {
+            if (req.getStatus() == null) {
                 throw new MissingParameterException("Tenant Status  should not be null", null);
             }
 

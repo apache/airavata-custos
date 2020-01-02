@@ -21,6 +21,7 @@ package org.apache.custos.tenant.profile.mapper;
 
 import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
+import org.apache.custos.tenant.profile.service.TenantStatus;
 import org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata;
 
 import java.util.HashSet;
@@ -63,7 +64,7 @@ public class StatusUpdateMetadataMapper {
         return TenantStatusUpdateMetadata.newBuilder()
                 .setUpdatedAt(metadata.getUpdatedAt().toString())
                 .setUpdatedBy(metadata.getUpdatedBy())
-                .setUpdatedStatus(metadata.getUpdatedStatus()).build();
+                .setUpdatedStatus(TenantStatus.valueOf(metadata.getUpdatedStatus())).build();
 
     }
 

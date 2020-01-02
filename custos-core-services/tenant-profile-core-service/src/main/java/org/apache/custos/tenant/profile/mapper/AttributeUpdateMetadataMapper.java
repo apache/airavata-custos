@@ -114,7 +114,7 @@ public class AttributeUpdateMetadataMapper {
             attributeUpdateMetadata.setTenant(newTenant);
             metadataSet.add(attributeUpdateMetadata);
         }
-        
+
 
         if (!oldTenant.getScope().equals(newTenant.getScope())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();

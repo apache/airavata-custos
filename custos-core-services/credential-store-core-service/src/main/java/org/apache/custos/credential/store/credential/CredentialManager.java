@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Random;
 
 /**
@@ -40,28 +41,26 @@ public class CredentialManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CredentialManager.class);
 
-    private String credentialPrefix = "custos:/";
+    private String credentialPrefix = "custos/";
 
     private static final Random RANDOM = new SecureRandom();
 
     private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    private static final int ID_LENGTH = 10;
+    private static final int ID_LENGTH = 20;
 
-    private static final int SECRET_LENGTH = 15;
+    private static final int SECRET_LENGTH = 40;
 
     @Autowired
     private CredentialRepository repository;
 
 
-    public Credential generateCredential(long ownerId, CredentialTypes type, long validTime)  {
+    public Credential generateCredential(long ownerId, CredentialTypes type, long validTime) {
         try {
 
-            String credIdPrefix = credentialPrefix + type.name() +"/";
+            String clientId = credentialPrefix + generateRandomClientId(ID_LENGTH) + "/" + ownerId;
 
-             String clientId = credIdPrefix + generateRandomClientId(ID_LENGTH)+"/"+ownerId;
-
-             String secret = generateSecret(SECRET_LENGTH);
+            String secret = generateSecret(SECRET_LENGTH);
 
             Credential credential = new Credential();
             CredentialEntity entity = new CredentialEntity();
@@ -69,6 +68,7 @@ public class CredentialManager {
             entity.setClientId(clientId);
             entity.setClientSecretExpiredAt(0);
             entity.setOwnerId(ownerId);
+            entity.setType(type.name());
 
             credential.setId(clientId);
             credential.setSecret(secret);
@@ -84,6 +84,30 @@ public class CredentialManager {
     }
 
 
+    public Credential decodeToken(String token) {
+
+        try {
+            byte[] array = Base64.getDecoder().decode(token);
+            if (array != null && array.length > 0) {
+                String decodeString = new String(array);
+                String[] idSecretPair = decodeString.split(":");
+                if (idSecretPair != null && idSecretPair.length == 2) {
+                    Credential credential = new Credential();
+                    credential.setId(idSecretPair[0]);
+                    credential.setSecret(idSecretPair[1]);
+                    return credential;
+                }
+
+            }
+        } catch (Exception ex) {
+            throw new CredentialGenerationException
+                    ("Error occurred while decoding token ", ex);
+
+        }
+        return null;
+    }
+
+
     private String generateRandomClientId(int length) {
         StringBuilder returnValue = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -92,7 +116,7 @@ public class CredentialManager {
         return new String(returnValue);
     }
 
-    private String generateSecret(int length){
+    private String generateSecret(int length) {
         StringBuilder returnValue = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             returnValue.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));

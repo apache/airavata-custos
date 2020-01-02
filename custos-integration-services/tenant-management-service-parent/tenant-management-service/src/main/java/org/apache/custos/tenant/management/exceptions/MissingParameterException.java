@@ -17,14 +17,14 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.profile.exceptions;
+package org.apache.custos.tenant.management.exceptions;
 
-/**\
- * This created exception for duplication of tenant
+/**
+ * Missing Parameter
  */
-public class TenantDuplicateException extends RuntimeException{
+public class MissingParameterException extends RuntimeException {
 
-    public TenantDuplicateException(String message, Throwable cause) {
-        super(message, cause);
-    }
+   public MissingParameterException(String msg, Throwable e) {
+      super(msg,e);
+   }
 }

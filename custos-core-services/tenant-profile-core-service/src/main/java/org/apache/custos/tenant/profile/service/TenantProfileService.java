@@ -19,10 +19,8 @@
 
 package org.apache.custos.tenant.profile.service;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import org.apache.custos.tenant.profile.exceptions.NotUpdatableException;
-import org.apache.custos.tenant.profile.exceptions.TenantDuplicateException;
-import org.apache.custos.tenant.profile.exceptions.TenantNotFoundException;
 import org.apache.custos.tenant.profile.mapper.AttributeUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.TenantMapper;
@@ -31,13 +29,11 @@ import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.apache.custos.tenant.profile.persistance.respository.*;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc.TenantProfileServiceImplBase;
-import org.apache.custos.tenant.profile.utils.TenantStatus;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -78,7 +74,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
                 Tenant tenant = TenantMapper.createTenantEntityFromTenant(request);
 
-                tenant.setStatus(TenantStatus.REQUESTED);
+                tenant.setStatus(TenantStatus.REQUESTED.name());
 
                 Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
                         createStatusUpdateMetadataEntity(tenant, tenant.getRequesterEmail());
@@ -94,14 +90,14 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 responseObserver.onCompleted();
             } else {
                 String msg = "Tenant exist with name " + request.getTenantName() + " in domain " + request.getDomain();
-                TenantDuplicateException exception = new TenantDuplicateException(msg, null);
                 LOGGER.error(msg);
-                responseObserver.onError(exception);
+                responseObserver.onError(Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
             }
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while adding the tenant " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while adding the tenant " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
 
@@ -149,15 +145,15 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 String msg = "Tenant is not updatable, " +
                         "because tenant may not exist with given Id or there may be a tenant with" +
                         "updated domain and name";
-                NotUpdatableException exception = new NotUpdatableException(msg, null);
                 LOGGER.error(msg);
-                responseObserver.onError(exception);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
             }
 
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while updating the tenant " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while updating the tenant " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -180,8 +176,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  tenants " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -193,7 +190,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             String username = request.getRequesterUserName();
 
-            List<Tenant> tenants = tenantRepository.findByRequesterUsername(username);
+            List<Tenant> tenants = tenantRepository.findByRequesterEmail(username);
 
             List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
 
@@ -208,8 +205,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  tenants " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -228,17 +226,16 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
-                LOGGER.error("Tenant not found with Id  " + id);
-                TenantNotFoundException notFoundException = new TenantNotFoundException
-                                                         ("Cannot find the tenant with Id "+ t.getTenantId(), null);
-                responseObserver.onError(notFoundException);
+                String msg = "Cannot find the tenant with Id " + t.getTenantId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
 
 
-
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  tenants " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -269,8 +266,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  attribute status update metadata " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  attribute status update metadata " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -302,8 +300,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  status update metadata " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  status update metadata " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -322,8 +321,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while retrieving  tenants " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while retrieving  tenants " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -334,7 +334,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long id = request.getTenantId();
 
-            String status = request.getStatus();
+            String status = request.getStatus().name();
 
             String updatedBy = request.getUpdatedBy();
 
@@ -355,15 +355,16 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
                 UpdateStatusResponse response = UpdateStatusResponse.newBuilder()
                         .setTenantId(id)
-                        .setStatus(status)
+                        .setStatus(request.getStatus())
                         .build();
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
 
         } catch (Exception ex) {
-            LOGGER.error("Exception occurred while updating tenant status " + ex);
-            responseObserver.onError(ex);
+            String msg = "Exception occurred while updating tenant status " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 

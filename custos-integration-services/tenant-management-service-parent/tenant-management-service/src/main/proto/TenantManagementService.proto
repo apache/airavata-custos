@@ -27,18 +27,17 @@ import "google/api/annotations.proto";
 import "TenantProfileService.proto";
 
 
-message TenantInfo {
-    org.apache.custos.tenant.profile.service.Tenant tenant = 1;
-    string adminPassword = 2;
-    string adminUsername = 3;
-}
 
 message CreateTenantRequest {
-   TenantInfo info = 1;
+    org.apache.custos.tenant.profile.service.Tenant tenant = 1;
 }
+
+
 message CreateTenantResponse {
     int64 tenantId = 1;
-    string msg = 2;
+    string clientId = 2;
+    string clientSecret = 3;
+    string msg = 4;
 }
 
 message UpdateStatusRequest {
@@ -50,20 +49,40 @@ message UpdateTenantRequest {
     org.apache.custos.tenant.profile.service.UpdateTenantRequest request= 1;
 }
 
+message GetCredentialRequest {
+    int64  tenantId = 1;
+}
+
+message GetCredentialResponse {
+     string iamClientId = 1;
+     string iamClientSecret = 2;
+     string ciLogonClientId = 3;
+     string ciLogonClientSecret = 4;
+}
 
 service TenantManagementService {
+
     rpc createTenant (CreateTenantRequest) returns (CreateTenantResponse) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/tenant"
-           body: "info"
+           body: "tenant"
          };
     }
+
     rpc updateTenant (UpdateTenantRequest) returns (org.apache.custos.tenant.profile.service.UpdateTenantResponse) {
         option (google.api.http) = {
            put: "/tenant-management/v1.0.0/tenant"
            body: "request"
         };
     }
+
+    rpc getCredentials (GetCredentialRequest) returns (GetCredentialResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/credentials"
+        };
+    }
+
+
 
     rpc getTenant (org.apache.custos.tenant.profile.service.GetTenantRequest) returns (org.apache.custos.tenant.profile.service.GetTenantResponse) {
         option (google.api.http) = {

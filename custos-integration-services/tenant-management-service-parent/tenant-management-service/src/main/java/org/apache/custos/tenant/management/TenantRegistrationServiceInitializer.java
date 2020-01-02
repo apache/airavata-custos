@@ -23,6 +23,7 @@ import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
+import org.apache.custos.tenant.management.interceptors.ServiceInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -54,6 +55,12 @@ public class TenantRegistrationServiceInitializer {
     @GRpcGlobalInterceptor
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(){
+        return new ServiceInterceptor();
     }
 
 }

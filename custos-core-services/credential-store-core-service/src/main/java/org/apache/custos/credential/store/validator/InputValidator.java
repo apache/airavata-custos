@@ -21,10 +21,7 @@ package org.apache.custos.credential.store.validator;
 
 
 import org.apache.custos.credential.store.exceptions.MissingParameterException;
-import org.apache.custos.credential.store.service.CredentialMetadata;
-import org.apache.custos.credential.store.service.DeleteCredentialRequest;
-import org.apache.custos.credential.store.service.GetAllCredentialsRequest;
-import org.apache.custos.credential.store.service.GetCredentialsRequest;
+import org.apache.custos.credential.store.service.*;
 
 /**
  * This class validates the  requests
@@ -52,6 +49,12 @@ public class InputValidator {
                 break;
             case "getAllCredentials":
                 validateGetAllCredentials(obj, methodName);
+                break;
+            case "getNewCustosCredential":
+                validateGetNewCustosCredential(obj, methodName);
+                break;
+            case "getOwnerIdFromToken":
+                validateGetOwnerIdFromToken(obj, methodName);
                 break;
             default:
         }
@@ -116,6 +119,34 @@ public class InputValidator {
 
             if (metadata.getType() == null) {
                 throw new MissingParameterException("Type cannot be null at " + method, null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method  " + method);
+        }
+        return true;
+
+    }
+
+    private static boolean validateGetNewCustosCredential (Object obj, String method) {
+        if (obj instanceof GetNewCustosCredentialRequest) {
+            GetNewCustosCredentialRequest metadata = (GetNewCustosCredentialRequest) obj;
+            if (metadata.getOwnerId() == 0) {
+                throw new MissingParameterException("OwnerId cannot be null at " + method, null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method  " + method);
+        }
+        return true;
+
+    }
+
+    private static boolean validateGetOwnerIdFromToken (Object obj, String method) {
+        if (obj instanceof GetOwnerIdFromTokenRequest) {
+            GetOwnerIdFromTokenRequest metadata = (GetOwnerIdFromTokenRequest) obj;
+            if (metadata.getToken() == null || metadata.getToken().trim().equals("") ){
+                throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }
 
         } else {

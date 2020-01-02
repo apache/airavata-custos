@@ -51,8 +51,9 @@ public class ServiceValidationInterceptor implements ServerInterceptor {
                 try {
                     super.onHalfClose();
                 } catch (Exception e) {
-                    LOGGER.error("Error while validating method "+ methodName + " "+e);
-                    serverCall.close(Status.FAILED_PRECONDITION.withCause(e).withDescription(e.getMessage()), new Metadata());
+                    String msg = "Error while validating method "+ methodName + " "+e;
+                    LOGGER.error(msg);
+                    serverCall.close(Status.FAILED_PRECONDITION.withCause(e).withDescription(msg), new Metadata());
                 }
             }
 

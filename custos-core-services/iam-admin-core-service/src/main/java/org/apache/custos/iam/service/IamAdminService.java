@@ -25,7 +25,6 @@ import org.apache.custos.core.services.commons.persistance.model.OperationStatus
 import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClientSecret;
-import org.apache.custos.iam.exceptions.IAMAdminServiceException;
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
 import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
@@ -34,9 +33,6 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,8 +83,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(),
                     request.getRequesterEmail());
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -109,8 +105,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during isUsernameAvailable" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -130,8 +125,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during isUserEnabled" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -169,8 +163,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getTenantId(),
                     userId);
 
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -207,8 +200,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(),
                     String.valueOf(request.getTenantId()));
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -244,8 +236,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                         request.getTenantId(),
                         String.valueOf(request.getTenantId()));
 
-                IAMAdminServiceException exception = new IAMAdminServiceException("Account enabling failed ", null);
-                responseObserver.onError(exception);
+                String msg = "Account enabling failed ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
 
 
@@ -256,8 +248,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(),
                     String.valueOf(request.getTenantId()));
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -277,8 +268,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during isUserExist" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -298,8 +288,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during getUser" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -321,8 +310,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during getUsers" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -357,8 +345,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getInfo().getTenantId(), userId);
 
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -382,8 +369,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         } catch (Exception ex) {
             String msg = "Error occurred during findUsers" + ex;
             LOGGER.error(msg, ex);
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -421,8 +407,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getUser().getTenantId(), userId);
 
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -453,8 +438,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(), userId);
 
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -489,10 +473,10 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(), userId);
 
-            IAMAdminServiceException exception = new IAMAdminServiceException(msg, ex);
-            responseObserver.onError(exception);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
     @Override
     public void getOperationMetadata(GetOperationsMetadataRequest request, StreamObserver<GetOperationsMetadataResponse> responseObserver) {
         try {
@@ -517,9 +501,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
         } catch (Exception ex) {
-            IAMAdminServiceException failedException = new IAMAdminServiceException(" operation failed for "
-                    + request.getTraceId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " operation failed for " + request.getTraceId();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 

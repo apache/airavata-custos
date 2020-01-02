@@ -22,6 +22,8 @@ package org.apache.custos.tenant.profile.mapper;
 import org.apache.custos.tenant.profile.persistance.model.Contact;
 import org.apache.custos.tenant.profile.persistance.model.RedirectURI;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
+import org.apache.custos.tenant.profile.service.TenantStatus;
+
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,7 +49,7 @@ public class TenantMapper {
             tenantEntity.setId(tenant.getTenantId());
         }
         tenantEntity.setName(tenant.getTenantName());
-        tenantEntity.setStatus(tenant.getTenantStatus());
+        tenantEntity.setStatus(tenant.getTenantStatus().name());
         tenantEntity.setAdminFirstName(tenant.getAdminFirstName());
         tenantEntity.setAdminLastName(tenant.getAdminLastName());
         tenantEntity.setAdminEmail(tenant.getAdminEmail());
@@ -55,6 +57,7 @@ public class TenantMapper {
         tenantEntity.setLogoURI(tenant.getTenantURI());
         tenantEntity.setScope(tenant.getScope());
         tenantEntity.setDomain(tenant.getDomain());
+        tenantEntity.setAdminUsername(tenant.getAdminUsername());
 
         Set<Contact> contactSet = new HashSet<Contact>();
 
@@ -124,7 +127,8 @@ public class TenantMapper {
                 .addAllRedirectURIs(uriList)
                 .setTenantName(tenantEntity.getName())
                 .setTenantId(tenantEntity.getId())
-                .setTenantStatus(tenantEntity.getStatus())
+                .setTenantStatus(TenantStatus.valueOf(tenantEntity.getStatus()))
+                .setAdminUsername(tenantEntity.getAdminUsername())
                 .build();
 
 

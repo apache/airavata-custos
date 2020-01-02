@@ -32,7 +32,7 @@ message Tenant {
     string adminEmail = 7;
     string adminUsername = 8;
     string adminPassword = 9;
-    string tenantStatus = 10;
+    TenantStatus tenantStatus = 10;
     repeated string contacts = 11;
     repeated string redirectURIs = 12;
     string tenantURI = 13;
@@ -40,6 +40,14 @@ message Tenant {
     string domain = 15;
 }
 
+enum TenantStatus {
+    REQUESTED = 0;
+    APPROVED = 1;
+    DENIED = 2;
+    CANCELLED = 3;
+    ACTIVE = 4;
+    DEACTIVATED = 5;
+}
 
 message TenantAttributeUpdateMetadata {
     string updatedAttribute = 1;
@@ -49,7 +57,7 @@ message TenantAttributeUpdateMetadata {
 }
 
 message TenantStatusUpdateMetadata {
-    string updatedStatus = 1;
+    TenantStatus updatedStatus = 1;
     string updatedBy = 2;
     string updatedAt = 3;
 }
@@ -100,13 +108,13 @@ message GetAllTenantsForUserResponse {
 
 message UpdateStatusRequest {
     int64 tenantId = 1;
-    string status = 2;
+    TenantStatus status = 2;
     string updatedBy = 3;
 }
 
 message UpdateStatusResponse {
     int64 tenantId = 1;
-    string status = 2;
+    TenantStatus status = 2;
 }
 
 message GetAuditTrailRequest {

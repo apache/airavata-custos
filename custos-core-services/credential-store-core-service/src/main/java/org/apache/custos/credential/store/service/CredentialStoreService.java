@@ -19,14 +19,15 @@
 
 package org.apache.custos.credential.store.service;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.credential.store.credential.CredentialManager;
-import org.apache.custos.credential.store.exceptions.CredentialsNotFoundException;
-import org.apache.custos.credential.store.exceptions.OperationFailedException;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
+import org.apache.custos.credential.store.persistance.model.CredentialEntity;
+import org.apache.custos.credential.store.persistance.repository.CredentialRepository;
 import org.apache.custos.credential.store.service.CredentialStoreServiceGrpc.CredentialStoreServiceImplBase;
 import org.apache.custos.credential.store.utils.Operations;
 import org.lognet.springboot.grpc.GRpcService;
@@ -58,11 +59,14 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     @Autowired
     private CredentialManager credentialManager;
 
+    @Autowired
+    private CredentialRepository repository;
+
     @Override
     public void putCredential(CredentialMetadata request, StreamObserver<OperationStatus> responseObserver) {
 
         try {
-            LOGGER.info("Calling putSecret API for owner " + request.getOwnerId() + " with credentials Id "
+            LOGGER.debug("Calling putSecret API for owner " + request.getOwnerId() + " with credentials Id "
                     + request.getId() + " Secret " + request.getSecret());
             String path = BASE_PATH + request.getOwnerId() + "/" + request.getType().name();
             Credential credential = new Credential(request.getId(), request.getSecret());
@@ -80,30 +84,31 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 responseObserver.onNext(secretStatus);
                 responseObserver.onCompleted();
             } else {
-                LOGGER.error("Credentials are not saved  ");
-                OperationFailedException failedException = new OperationFailedException("PutSecret operation failed for "
+
+                String msg = "PutSecret operation failed for "
                         + request.getOwnerId() + "with credentials Id "
-                        + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name(), null);
+                        + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name();
+                LOGGER.error(msg);
 
                 statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
                         org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
-                responseObserver.onError(failedException);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
             }
         } catch (Exception ex) {
-            LOGGER.error("Error occurred at put credentials  " + ex);
-            OperationFailedException failedException = new OperationFailedException("PutSecret operation failed for "
+            String msg = "PutSecret operation failed for "
                     + request.getOwnerId() + "with credentials Id "
-                    + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name(), ex);
+                    + request.getId() + " Secret " + request.getSecret() + " Type " + request.getType().name();
+            LOGGER.error(msg);
 
             statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
                     org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
                     request.getOwnerId(),
                     null);
 
-            responseObserver.onError(failedException);
+            responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -124,16 +129,19 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 responseObserver.onNext(secret);
                 responseObserver.onCompleted();
             } else {
-                CredentialsNotFoundException credentialsNotFoundException =
-                        new CredentialsNotFoundException("Cannot find credentials", null);
-                responseObserver.onError(credentialsNotFoundException);
+                String msg = "Cannot find credentials for "
+                        + request.getOwnerId() + " for type " + request.getType();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             }
 
         } catch (Exception ex) {
-            OperationFailedException failedException = new OperationFailedException(" operation failed for "
+
+            String msg = " operation failed for "
                     + request.getOwnerId() + "with credentials Id "
-                    + request.getId() + " Type " + request.getType().name(), ex);
-            responseObserver.onError(failedException);
+                    + request.getId() + " Type " + request.getType().name();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -152,7 +160,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 for (String key : paths) {
                     String path = subPath + "/" + key;
                     VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), request.getOwnerId(), path);
+                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), request.getOwnerId(), key);
                     credentialMetadata.add(metadata);
                 }
             }
@@ -163,9 +171,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            OperationFailedException failedException = new OperationFailedException(" operation failed for "
-                    + request.getOwnerId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " operation failed for " + request.getOwnerId()+ " " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -190,14 +198,14 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            OperationFailedException failedException = new OperationFailedException(" operation failed for "
-                    + request.getOwnerId(), ex);
+            String msg = " operation failed for " + request.getOwnerId();
 
             statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
                     org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
                     request.getOwnerId(),
                     null);
-            responseObserver.onError(failedException);
+
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -225,9 +233,8 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            OperationFailedException failedException = new OperationFailedException(" operation failed for "
-                    + request.getTraceId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " operation failed for " + request.getTraceId();
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -238,19 +245,73 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
             Credential credential = credentialManager.generateCredential(request.getOwnerId(), CredentialTypes.CUSTOS, 0);
 
-            GetNewCustosCredentialResponse response = GetNewCustosCredentialResponse
-                    .newBuilder()
-                    .setClientId(credential.getId())
-                    .setClientSecret(credential.getSecret())
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+            String path = BASE_PATH + request.getOwnerId() + "/" + CredentialTypes.CUSTOS.name();
+
+            vaultTemplate.write(path, credential);
+
+            VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
+            if (response != null && response.getData() != null && response.getData().getId() != null) {
+
+                statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                        request.getOwnerId(),
+                        null);
+
+                GetNewCustosCredentialResponse rep = GetNewCustosCredentialResponse
+                        .newBuilder()
+                        .setClientId(credential.getId())
+                        .setClientSecret(credential.getSecret())
+                        .build();
+                responseObserver.onNext(rep);
+                responseObserver.onCompleted();
+            } else {
+
+                String msg = "get new custos operation failed for "
+                        + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
 
         } catch (Exception ex) {
-            LOGGER.error("Error occurred while generating custos credentials");
-            OperationFailedException failedException = new OperationFailedException(" operation failed for "
-                    + request.getOwnerId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " operation failed for " + request.getOwnerId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getOwnerIdFromToken(GetOwnerIdFromTokenRequest request, StreamObserver<GetOwnerIdResponse> responseObserver) {
+        try {
+            LOGGER.debug("Get ownerId for    " + request.getToken());
+            String token = request.getToken();
+            Credential credential = credentialManager.decodeToken(token);
+            if (credential != null && credential.getId() != null) {
+                CredentialEntity entity = repository.findByClientId(credential.getId());
+                if (entity != null) {
+                    GetOwnerIdResponse response = GetOwnerIdResponse.
+                            newBuilder().setOwnerId(entity.getOwnerId()).build();
+                    responseObserver.onNext(response);
+                    responseObserver.onCompleted();
+                } else {
+                    responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                }
+            } else {
+                responseObserver.onNext(null);
+                responseObserver.onCompleted();
+            }
+
+
+        } catch (Exception ex) {
+            String msg = " operation failed ";
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 

@@ -83,6 +83,24 @@ public class CredentialStoreServiceClient {
          credentialStoreServiceStub.getOperationMetadata(request,observer);
     }
 
+
+    public void getNewCustosCredentialsAsync(GetNewCustosCredentialRequest request, final  ServiceCallback callback) {
+        StreamObserver observer = getObserver(callback, "get new custos credentials metadata");
+        credentialStoreServiceStub.getNewCustosCredential(request,observer);
+
+    }
+
+
+    public void getOwnerIdFormToken( GetOwnerIdFromTokenRequest request, final  ServiceCallback callback) {
+        StreamObserver observer = getObserver(callback, "get new custos credentials metadata");
+        credentialStoreServiceStub.getOwnerIdFromToken(request,observer);
+
+    }
+
+
+
+
+
     public OperationStatus putCredential(CredentialMetadata request) {
         return credentialStoreServiceBlockingStub.putCredential(request);
 
@@ -106,6 +124,14 @@ public class CredentialStoreServiceClient {
 
     public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
         return credentialStoreServiceBlockingStub.getOperationMetadata(request);
+    }
+
+    public GetNewCustosCredentialResponse getNewCustosCredentials(GetNewCustosCredentialRequest request) {
+        return  credentialStoreServiceBlockingStub.getNewCustosCredential(request);
+    }
+
+    public GetOwnerIdResponse getOwnerIdFormToken( GetOwnerIdFromTokenRequest request) {
+       return credentialStoreServiceBlockingStub.getOwnerIdFromToken(request);
     }
 
 
