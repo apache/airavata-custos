@@ -106,8 +106,8 @@ public class InputValidator {
     }
 
     private static boolean validateGetCredential(Object obj, String method) {
-        if (obj instanceof GetCredentialsRequest) {
-            GetCredentialsRequest metadata = (GetCredentialsRequest) obj;
+        if (obj instanceof GetCredentialRequest) {
+            GetCredentialRequest metadata = (GetCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
                 throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }

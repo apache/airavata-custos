@@ -61,7 +61,7 @@ public class CredentialStoreServiceClient {
     }
 
 
-    public void getCredentialAsync(GetCredentialsRequest request, final ServiceCallback callback) {
+    public void getCredentialAsync(GetCredentialRequest request, final ServiceCallback callback) {
         StreamObserver observer = getObserver(callback, " getCredentialAsync task failed");
         credentialStoreServiceStub.getCredential(request, observer);
     }
@@ -107,7 +107,7 @@ public class CredentialStoreServiceClient {
     }
 
 
-    public CredentialMetadata getCredential(GetCredentialsRequest request) {
+    public CredentialMetadata getCredential(GetCredentialRequest request) {
         return credentialStoreServiceBlockingStub.getCredential(request);
     }
 
@@ -145,12 +145,12 @@ public class CredentialStoreServiceClient {
 
             @Override
             public void onError(Throwable throwable) {
-                callback.onCompleted(null, new ServiceException(failureMsg, throwable, null));
+                callback.onError(new ServiceException(failureMsg, throwable, null));
             }
 
             @Override
             public void onCompleted() {
-                callback.onCompleted(response[0], null);
+                callback.onCompleted(response[0]);
             }
         };
 

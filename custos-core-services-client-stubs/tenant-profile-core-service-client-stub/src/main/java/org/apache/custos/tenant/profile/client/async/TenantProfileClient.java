@@ -179,12 +179,12 @@ public class TenantProfileClient {
 
             @Override
             public void onError(Throwable throwable) {
-                callback.onCompleted(null, new ServiceException(failureMsg, throwable, null));
+                callback.onError(new ServiceException(failureMsg, throwable, null));
             }
 
             @Override
             public void onCompleted() {
-                callback.onCompleted(response[0], null);
+                callback.onCompleted(response[0]);
             }
         };
 

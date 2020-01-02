@@ -45,7 +45,7 @@
           </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>federated-authentication-core-service</artifactId>
+            <artifactId>federated-authentication-core-service-client-stub</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

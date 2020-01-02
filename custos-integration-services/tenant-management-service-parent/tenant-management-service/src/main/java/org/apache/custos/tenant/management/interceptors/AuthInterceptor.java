@@ -23,7 +23,7 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.GetOwnerIdFromTokenRequest;
 import org.apache.custos.credential.store.service.GetOwnerIdResponse;
-import org.apache.custos.tenant.management.service.GetCredentialRequest;
+import org.apache.custos.tenant.management.service.GetCredentialsRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +55,7 @@ public class AuthInterceptor {
                     .build();
             GetOwnerIdResponse response = credentialStoreServiceClient.getOwnerIdFormToken(request);
             if (response != null) {
-                return (ReqT) GetCredentialRequest.newBuilder().setTenantId(response.getOwnerId()).build();
+                return (ReqT) GetCredentialsRequest.newBuilder().setTenantId(response.getOwnerId()).build();
             }
         }
         return msg;

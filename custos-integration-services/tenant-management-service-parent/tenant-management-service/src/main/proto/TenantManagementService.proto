@@ -49,11 +49,11 @@ message UpdateTenantRequest {
     org.apache.custos.tenant.profile.service.UpdateTenantRequest request= 1;
 }
 
-message GetCredentialRequest {
+message GetCredentialsRequest {
     int64  tenantId = 1;
 }
 
-message GetCredentialResponse {
+message GetCredentialsResponse {
      string iamClientId = 1;
      string iamClientSecret = 2;
      string ciLogonClientId = 3;
@@ -76,7 +76,7 @@ service TenantManagementService {
         };
     }
 
-    rpc getCredentials (GetCredentialRequest) returns (GetCredentialResponse) {
+    rpc getCredentials (GetCredentialsRequest) returns (GetCredentialsResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/credentials"
         };

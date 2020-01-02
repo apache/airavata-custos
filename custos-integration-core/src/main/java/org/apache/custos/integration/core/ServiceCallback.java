@@ -25,6 +25,8 @@ package org.apache.custos.integration.core;
 public interface ServiceCallback {
 
 
-    void onCompleted(Object obj, ServiceException exception);
+    void onCompleted(Object obj);
+
+    void onError(ServiceException ex);
 
 }

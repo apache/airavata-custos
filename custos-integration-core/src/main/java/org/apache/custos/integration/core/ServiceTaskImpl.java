@@ -54,7 +54,7 @@ public abstract class ServiceTaskImpl<T, U> implements ServiceTask<T, U> {
             nextTask.invokeService(output);
         } else {
             System.out.println("Calling Parent Callback");
-            serviceCallback.onCompleted(taskStatus,null);
+            serviceCallback.onCompleted(taskStatus);
         }
 
     }

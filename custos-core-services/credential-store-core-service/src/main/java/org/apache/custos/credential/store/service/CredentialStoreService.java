@@ -113,7 +113,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     }
 
     @Override
-    public void getCredential(GetCredentialsRequest request, StreamObserver<CredentialMetadata> responseObserver) {
+    public void getCredential(GetCredentialRequest request, StreamObserver<CredentialMetadata> responseObserver) {
         try {
             LOGGER.debug("Calling getSecret API for owner " + request.getOwnerId() + " for type " + request.getType());
             String path = BASE_PATH + request.getOwnerId() + "/" + request.getType().name();
