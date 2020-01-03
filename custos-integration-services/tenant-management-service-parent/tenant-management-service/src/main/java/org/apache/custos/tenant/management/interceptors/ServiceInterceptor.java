@@ -20,6 +20,7 @@
 package org.apache.custos.tenant.management.interceptors;
 
 import io.grpc.*;
+import org.apache.custos.tenant.management.exceptions.MissingParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,22 +47,33 @@ public class ServiceInterceptor implements ServerInterceptor {
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
             @Override
             public void onMessage(ReqT message) {
-                InputValidator.validate(methodName, message, metadata);
-                ReqT msg = interceptor.authorize(methodName, metadata, message);
-                super.onMessage(msg);
+                try {
+                    InputValidator.validate(methodName, message, metadata);
+                    ReqT msg = interceptor.authorize(methodName, metadata, message);
+                    super.onMessage(msg);
+                } catch (Exception ex) {
+                    String msg = "Error while validating method " + methodName + " " + ex.getMessage();
+                    LOGGER.error(msg);
+                    if (ex instanceof MissingParameterException) {
+                        serverCall.close(Status.FAILED_PRECONDITION.withDescription(msg), metadata);
+                    } else {
+                        serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
+                    }
+                }
             }
 
             @Override
             public void onHalfClose() {
                 try {
                     super.onHalfClose();
+                } catch (IllegalStateException e) {
+                    LOGGER.debug(e.getMessage());
                 } catch (Exception e) {
-                    String msg = "Error while validating method " + methodName + " " + e;
+                    String msg = "Error while validating method " + methodName + " " + e.getMessage();
                     LOGGER.error(msg);
-                    serverCall.close(Status.FAILED_PRECONDITION.withCause(e).withDescription(msg), new Metadata());
+                        serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
                 }
             }
-
         };
     }
 

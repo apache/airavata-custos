@@ -7,8 +7,14 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - http:
+     - host: custos.scigap.org
+       http:
         paths:
           - backend:
               serviceName: tenant-management-service
               servicePort: grpc
+
+  tls:
+    - hosts:
+        - custos.scigap.org
+      secretName: tls-secret

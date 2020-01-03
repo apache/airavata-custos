@@ -6,9 +6,15 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /tenant-management/$2
 spec:
   rules:
-    - http:
+    - host: custos.scigap.org
+      http:
         paths:
           - path: /tenant-management(/|$)(.*)
             backend:
               serviceName: tenant-management-service
               servicePort: envoyhttp
+
+  tls:
+    - hosts:
+        - custos.scigap.org
+      secretName: tls-secret

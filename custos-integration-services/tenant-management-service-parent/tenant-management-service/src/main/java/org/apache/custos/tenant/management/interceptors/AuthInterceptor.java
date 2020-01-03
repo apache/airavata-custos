@@ -43,7 +43,6 @@ public class AuthInterceptor {
 
 
     public <ReqT> ReqT authorize(String method, Metadata headers, ReqT msg) {
-
         if (method.equals("getCredentials")) {
             String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
             String prefix = "Bearer";
