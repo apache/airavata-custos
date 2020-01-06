@@ -24,10 +24,12 @@ import io.grpc.Metadata;
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
 import org.apache.custos.tenant.management.service.CreateTenantRequest;
 import org.apache.custos.tenant.profile.service.Tenant;
+import org.springframework.stereotype.Component;
 
 /**
  * This class validates the  requests
  */
+@Component
 public class InputValidator {
 
     /**
@@ -37,7 +39,7 @@ public class InputValidator {
      * @param body
      * @return
      */
-    public static void validate(String methodName, Object body, Metadata headers) {
+    public  void validate(String methodName, Object body, Metadata headers) {
 
         switch (methodName) {
             case "createTenant":
@@ -50,7 +52,7 @@ public class InputValidator {
         }
     }
 
-    private static boolean validateCreateTenant(Object obj, String method) {
+    private  boolean validateCreateTenant(Object obj, String method) {
         if (obj instanceof CreateTenantRequest) {
             CreateTenantRequest request = (CreateTenantRequest) obj;
             Tenant tenant = request.getTenant();
@@ -92,7 +94,7 @@ public class InputValidator {
         return true;
     }
 
-    private static boolean validateGetCredentials(Metadata headers, String method) {
+    private  boolean validateGetCredentials(Metadata headers, String method) {
         if (headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
             throw new MissingParameterException("authorization header not available", null);
         }

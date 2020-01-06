@@ -22,7 +22,8 @@ package org.apache.custos.iam;
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ServerInterceptor;
-import org.apache.custos.iam.validator.IAMServiceValidationInterceptor;
+import org.apache.custos.core.services.commons.ServiceInterceptor;
+import org.apache.custos.iam.validator.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -60,8 +61,13 @@ public class IamServiceInitializer {
 
 
     @Bean
+    public InputValidator getValidator() {
+        return new InputValidator();
+    }
+
+    @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(){
-        return new IAMServiceValidationInterceptor();
+    ServerInterceptor validationInterceptor(InputValidator validator){
+        return new ServiceInterceptor(validator);
     }
 }

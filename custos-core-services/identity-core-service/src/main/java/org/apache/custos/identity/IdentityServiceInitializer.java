@@ -17,18 +17,11 @@
  *  under the License.
  */
 
-package org.apache.custos.federated.authentication;
+package org.apache.custos.identity;
 
-import brave.Tracing;
-import brave.grpc.GrpcTracing;
-import io.grpc.ServerInterceptor;
-import org.apache.custos.core.services.commons.ServiceInterceptor;
-import org.apache.custos.federated.authentication.validator.InputValidator;
-import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -38,33 +31,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = "org.apache.custos")
 @ComponentScan(basePackages = "org.apache.custos")
 @EntityScan(basePackages = "org.apache.custos")
-public class FederatedAuthenticationServiceInitializer {
-
+public class IdentityServiceInitializer {
     public static void main(String[] args) {
-        SpringApplication.run(FederatedAuthenticationServiceInitializer.class,args);
-    }
-
-    @Bean
-    public GrpcTracing grpcTracing(Tracing tracing) {
-        return GrpcTracing.create(tracing);
-    }
-
-    //grpc-spring-boot-starter provides @GrpcGlobalInterceptor to allow server-side interceptors to be registered with all
-    //server stubs, we are just taking advantage of that to install the server-side gRPC tracer.
-    @Bean
-    @GRpcGlobalInterceptor
-    ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
-        return grpcTracing.newServerInterceptor();
-    }
-    @Bean
-    public InputValidator getValidator() {
-        return new InputValidator();
-    }
-
-    @Bean
-    @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(InputValidator validator){
-        return new ServiceInterceptor(validator);
+        SpringApplication.run(IdentityServiceInitializer.class, args);
     }
 }
-

@@ -24,7 +24,6 @@ import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.*;
@@ -100,6 +99,7 @@ public class KeycloakClient {
             newRealmDetails.setSsoSessionIdleTimeout(SESSION_IDLE_TIMEOUT);
             RealmRepresentation realmWithRoles = createDefaultRoles(newRealmDetails);
             client.realms().create(realmWithRoles);
+
 
         } catch (Exception ex) {
             String msg = "Error creating Realm in Keycloak Server, reason: " + ex.getMessage();
@@ -556,24 +556,13 @@ public class KeycloakClient {
 
     private Keycloak getClient(String adminUrl, String realm, String loginUsername, String password) {
 
-        return KeycloakBuilder.builder()
-                .serverUrl(adminUrl)
-                .realm(realm)
-                .username(loginUsername)
-                .password(password)
-                .clientId(clientId)
-                .resteasyClient(getRestClient())
-                .build();
+        return KeycloakUtils.getClient(adminUrl, realm, loginUsername,
+                password, clientId, trustStorePath, truststorePassword);
     }
 
     private Keycloak getClient(String adminUrl, String realm, String accessToken) {
 
-        return KeycloakBuilder.builder()
-                .serverUrl(adminUrl)
-                .realm(realm)
-                .authorization(accessToken)
-                .resteasyClient(getRestClient())
-                .build();
+        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword);
     }
 
     private KeyStore loadKeyStore() {

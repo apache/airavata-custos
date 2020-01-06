@@ -17,18 +17,25 @@
  *  under the License.
  */
 
-package org.apache.custos.federated.authentication.validator;
+package org.apache.custos.core.services.commons;
 
 import io.grpc.*;
+import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * This class intercepts incoming requests and forwarding for validation
  */
-public class ServiceValidationInterceptor implements ServerInterceptor {
+public class ServiceInterceptor implements ServerInterceptor {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(ServiceValidationInterceptor.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(ServiceInterceptor.class);
+
+    private Validator validator;
+
+    public ServiceInterceptor(Validator validator) {
+        this.validator = validator;
+    }
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall,
@@ -42,22 +49,32 @@ public class ServiceValidationInterceptor implements ServerInterceptor {
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
             @Override
             public void onMessage(ReqT message) {
-                InputValidator.validate(methodName, message);
-                super.onMessage(message);
+                try {
+                    validator.validate(methodName, message);
+                    super.onMessage(message);
+                } catch (Exception ex) {
+                    String msg = "Error while validating method " + methodName + " " + ex.getMessage();
+                    LOGGER.error(msg);
+                    if (ex instanceof MissingParameterException) {
+                        serverCall.close(Status.FAILED_PRECONDITION.withDescription(msg), metadata);
+                    } else {
+                        serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
+                    }
+                }
             }
-
-
 
             @Override
             public void onHalfClose() {
                 try {
                     super.onHalfClose();
+                } catch (IllegalStateException e) {
+                    LOGGER.debug(e.getMessage());
                 } catch (Exception e) {
-                    LOGGER.error("Error while validating method "+ methodName + " "+e);
-                    serverCall.close(Status.FAILED_PRECONDITION.withCause(e).withDescription(e.getMessage()), new Metadata());
+                    String msg = "Error while validating method " + methodName + " " + e.getMessage();
+                    LOGGER.error(msg);
+                    serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
                 }
             }
-
         };
     }
 

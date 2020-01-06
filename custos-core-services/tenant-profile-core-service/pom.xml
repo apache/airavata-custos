@@ -41,7 +41,11 @@
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-actuator</artifactId>
       </dependency>
-
+      <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>custos-core-services-commons</artifactId>
+          <version>${project.version}</version>
+      </dependency>
 
 
 

@@ -20,13 +20,14 @@
 package org.apache.custos.credential.store.validator;
 
 
+import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.credential.store.exceptions.MissingParameterException;
 import org.apache.custos.credential.store.service.*;
 
 /**
  * This class validates the  requests
  */
-public class InputValidator {
+public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -35,7 +36,7 @@ public class InputValidator {
      * @param obj
      * @return
      */
-    public static void validate(String methodName, Object obj) {
+    public  void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "putCredential":
@@ -60,7 +61,7 @@ public class InputValidator {
         }
     }
 
-    private static boolean validatePutCredential(Object obj, String method) {
+    private  boolean validatePutCredential(Object obj, String method) {
         if (obj instanceof CredentialMetadata) {
             CredentialMetadata metadata = (CredentialMetadata) obj;
 
@@ -86,7 +87,7 @@ public class InputValidator {
         return true;
     }
 
-    private static boolean validateDeleteCredential(Object obj, String method) {
+    private  boolean validateDeleteCredential(Object obj, String method) {
         if (obj instanceof DeleteCredentialRequest) {
             DeleteCredentialRequest metadata = (DeleteCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -105,7 +106,7 @@ public class InputValidator {
         return true;
     }
 
-    private static boolean validateGetCredential(Object obj, String method) {
+    private  boolean validateGetCredential(Object obj, String method) {
         if (obj instanceof GetCredentialRequest) {
             GetCredentialRequest metadata = (GetCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -128,7 +129,7 @@ public class InputValidator {
 
     }
 
-    private static boolean validateGetNewCustosCredential (Object obj, String method) {
+    private  boolean validateGetNewCustosCredential (Object obj, String method) {
         if (obj instanceof GetNewCustosCredentialRequest) {
             GetNewCustosCredentialRequest metadata = (GetNewCustosCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -142,7 +143,7 @@ public class InputValidator {
 
     }
 
-    private static boolean validateGetOwnerIdFromToken (Object obj, String method) {
+    private  boolean validateGetOwnerIdFromToken (Object obj, String method) {
         if (obj instanceof GetOwnerIdFromTokenRequest) {
             GetOwnerIdFromTokenRequest metadata = (GetOwnerIdFromTokenRequest) obj;
             if (metadata.getToken() == null || metadata.getToken().trim().equals("") ){
@@ -156,7 +157,7 @@ public class InputValidator {
 
     }
 
-    private static boolean validateGetAllCredentials(Object obj, String method) {
+    private  boolean validateGetAllCredentials(Object obj, String method) {
         if (obj instanceof GetAllCredentialsRequest) {
             GetAllCredentialsRequest request = (GetAllCredentialsRequest) obj;
             if (request.getOwnerId() == 0) {

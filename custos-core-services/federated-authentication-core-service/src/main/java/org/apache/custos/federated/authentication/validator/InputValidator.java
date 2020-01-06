@@ -20,6 +20,7 @@
 package org.apache.custos.federated.authentication.validator;
 
 
+import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.federated.authentication.exceptions.MissingParameterException;
 import org.apache.custos.federated.authentication.service.ClientMetadata;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
@@ -28,7 +29,7 @@ import org.apache.custos.federated.authentication.service.GetClientRequest;
 /**
  * This class validates the  requests
  */
-public class InputValidator {
+public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -36,7 +37,7 @@ public class InputValidator {
      * @param obj
      * @return
      */
-    public static void validate(String methodName, Object obj) {
+    public  void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "addClient":
@@ -53,7 +54,7 @@ public class InputValidator {
         }
     }
 
-    private static boolean validateClientMetadata(Object obj, String method) {
+    private  boolean validateClientMetadata(Object obj, String method) {
         if (obj instanceof ClientMetadata) {
           ClientMetadata metadata = (ClientMetadata)obj;
           if (metadata.getTenantId() == 0) {
@@ -81,7 +82,7 @@ public class InputValidator {
         return true;
     }
 
-    private static boolean validateGetClientRequest(Object obj) {
+    private  boolean validateGetClientRequest(Object obj) {
         if (obj instanceof GetClientRequest) {
             GetClientRequest request = (GetClientRequest)obj;
 
@@ -100,7 +101,7 @@ public class InputValidator {
         return true;
     }
 
-    private static boolean validateDeleteClientRequest(Object obj) {
+    private  boolean validateDeleteClientRequest(Object obj) {
         if (obj instanceof DeleteClientRequest) {
             DeleteClientRequest request = (DeleteClientRequest) obj;
 

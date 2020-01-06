@@ -35,6 +35,9 @@ public class ServiceInterceptor implements ServerInterceptor {
     @Autowired
     private AuthInterceptor interceptor;
 
+    @Autowired
+    private InputValidator validator;
+
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall,
                                                                  Metadata metadata, ServerCallHandler<ReqT, RespT> serverCallHandler) {
@@ -48,7 +51,7 @@ public class ServiceInterceptor implements ServerInterceptor {
             @Override
             public void onMessage(ReqT message) {
                 try {
-                    InputValidator.validate(methodName, message, metadata);
+                   validator.validate(methodName, message, metadata);
                     ReqT msg = interceptor.authorize(methodName, metadata, message);
                     super.onMessage(msg);
                 } catch (Exception ex) {

@@ -39,6 +39,7 @@
         <module>credential-store-core-service</module>
         <module>federated-authentication-core-service</module>
         <module>custos-core-services-commons</module>
+        <module>identity-core-service</module>
     </modules>
 
 

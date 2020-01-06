@@ -21,10 +21,9 @@ package org.apache.custos.credential.store;
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ServerInterceptor;
-import org.apache.custos.credential.store.service.CredentialStoreService;
-import org.apache.custos.credential.store.validator.ServiceValidationInterceptor;
+import org.apache.custos.core.services.commons.ServiceInterceptor;
+import org.apache.custos.credential.store.validator.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -47,6 +46,8 @@ public class CredentialStoreServiceInitializer {
         SpringApplication.run(CredentialStoreServiceInitializer.class, args);
     }
 
+
+
     @Bean
     public GrpcTracing grpcTracing(Tracing tracing) {
         return GrpcTracing.create(tracing);
@@ -59,11 +60,18 @@ public class CredentialStoreServiceInitializer {
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
     }
+
+    @Bean
+    public InputValidator getValidator() {
+        return new InputValidator();
+    }
+
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(){
-        return new ServiceValidationInterceptor();
+    ServerInterceptor validationInterceptor(InputValidator validator){
+        return new ServiceInterceptor(validator);
     }
+
 
 }
 

@@ -19,13 +19,14 @@
 
 package org.apache.custos.tenant.profile.validator;
 
+import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.tenant.profile.exceptions.MissingParameterException;
 import org.apache.custos.tenant.profile.service.*;
 
 /**
  * This class validates the  requests
  */
-public class TenantServiceInputValidator {
+public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -34,7 +35,7 @@ public class TenantServiceInputValidator {
      * @param obj
      * @return
      */
-    public static void  validate(String methodName, Object obj) {
+    public  void  validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "addTenant":
@@ -63,7 +64,7 @@ public class TenantServiceInputValidator {
 
     }
 
-    private static boolean validateAddTenant(Object obj) {
+    private  boolean validateAddTenant(Object obj) {
         if (obj instanceof Tenant) {
             Tenant tenant = (Tenant) obj;
 
@@ -103,7 +104,7 @@ public class TenantServiceInputValidator {
     }
 
 
-    private static boolean validateUpdateTenant(Object obj) {
+    private  boolean validateUpdateTenant(Object obj) {
         if (obj instanceof UpdateTenantRequest) {
             UpdateTenantRequest req = (UpdateTenantRequest) obj;
 
@@ -151,7 +152,7 @@ public class TenantServiceInputValidator {
     }
 
 
-    private static boolean validateGetAllTenantsForUser(Object obj) {
+    private  boolean validateGetAllTenantsForUser(Object obj) {
         if (obj instanceof GetAllTenantsForUserRequest) {
             GetAllTenantsForUserRequest req = (GetAllTenantsForUserRequest) obj;
 
@@ -164,7 +165,7 @@ public class TenantServiceInputValidator {
         return true;
     }
 
-    private static boolean validateGetTenant(Object obj) {
+    private  boolean validateGetTenant(Object obj) {
         if (obj instanceof GetTenantRequest) {
             GetTenantRequest req = (GetTenantRequest) obj;
 
@@ -178,7 +179,7 @@ public class TenantServiceInputValidator {
     }
 
 
-    private static boolean validateGetMetadata(Object obj) {
+    private  boolean validateGetMetadata(Object obj) {
         if (obj instanceof GetAuditTrailRequest) {
             GetAuditTrailRequest req = (GetAuditTrailRequest) obj;
 
@@ -193,7 +194,7 @@ public class TenantServiceInputValidator {
     }
 
 
-    private static boolean validateUpdateTenantStatus(Object obj) {
+    private  boolean validateUpdateTenantStatus(Object obj) {
         if (obj instanceof UpdateStatusRequest) {
             UpdateStatusRequest req = (UpdateStatusRequest) obj;
 

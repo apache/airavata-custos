@@ -20,13 +20,14 @@
 package org.apache.custos.iam.validator;
 
 
+import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.iam.exceptions.MissingParameterException;
 import org.apache.custos.iam.service.*;
 
 /**
  * This class validates the  requests
  */
-public class IAMServiceInputValidator {
+public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -34,7 +35,7 @@ public class IAMServiceInputValidator {
      * @param obj
      * @return
      */
-    public static void validate(String methodName, Object obj) {
+    public  void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "setUPTenant":
@@ -72,7 +73,7 @@ public class IAMServiceInputValidator {
 
     }
 
-    private static boolean validateSetUPTenant(Object obj) {
+    private  boolean validateSetUPTenant(Object obj) {
         if (obj instanceof SetUpTenantRequest) {
             SetUpTenantRequest request = (SetUpTenantRequest) obj;
             if (request.getTenantId() == 0) {
@@ -112,7 +113,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateIsUsernameAvailable(Object obj) {
+    private  boolean validateIsUsernameAvailable(Object obj) {
         if (obj instanceof IsUsernameAvailableRequest) {
             IsUsernameAvailableRequest request = (IsUsernameAvailableRequest)obj;
             if (request.getTenantId() == 0) {
@@ -133,7 +134,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateRegisterUser(Object obj) {
+    private  boolean validateRegisterUser(Object obj) {
         if (obj instanceof RegisterUserRequest) {
             RegisterUserRequest request = (RegisterUserRequest)obj;
             if (request.getTenantId() == 0) {
@@ -164,7 +165,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateUserAccess(Object obj) {
+    private  boolean validateUserAccess(Object obj) {
         if (obj instanceof UserAccessInfo) {
             UserAccessInfo request = (UserAccessInfo)obj;
             if (request.getTenantId() == 0) {
@@ -186,7 +187,7 @@ public class IAMServiceInputValidator {
     }
 
 
-    private static boolean validateGetUsers(Object obj) {
+    private  boolean validateGetUsers(Object obj) {
         if (obj instanceof GetUsersRequest) {
         GetUsersRequest request = (GetUsersRequest)obj;
         UserAccessInfo info =  request.getInfo();
@@ -211,7 +212,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateResetPassword(Object obj) {
+    private  boolean validateResetPassword(Object obj) {
         if (obj instanceof ResetUserPassword) {
             ResetUserPassword request = (ResetUserPassword) obj;
             UserAccessInfo info = request.getInfo();
@@ -237,7 +238,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateFindUsers(Object obj) {
+    private  boolean validateFindUsers(Object obj) {
         if (obj instanceof FindUsersRequest) {
             FindUsersRequest request = (FindUsersRequest) obj;
             UserAccessInfo info = request.getInfo();
@@ -263,7 +264,7 @@ public class IAMServiceInputValidator {
         return true;
     }
 
-    private static boolean validateUpdateUserProfile(Object obj) {
+    private  boolean validateUpdateUserProfile(Object obj) {
         if (obj instanceof UpdateUserProfileRequest) {
             UpdateUserProfileRequest re = (UpdateUserProfileRequest)obj;
             User request = re.getUser();
@@ -298,7 +299,7 @@ public class IAMServiceInputValidator {
 
 
 
-    private static boolean validateRoleOperationsRequest(Object obj) {
+    private  boolean validateRoleOperationsRequest(Object obj) {
         if (obj instanceof RoleOperationsUserRequest) {
             RoleOperationsUserRequest request = (RoleOperationsUserRequest)obj;
             if (request.getTenantId() ==0) {
