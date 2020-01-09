@@ -41,6 +41,8 @@ import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -68,19 +70,26 @@ public class KeycloakAuthClient {
     private String trustStorePath;
 
     @Value("${iam.server.truststore.password:keycloak}")
-    private String trustStorePassword ;
+    private String trustStorePassword;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakAuthClient.class);
 
-    public KeycloakAuthClient() throws CertificateException, NoSuchAlgorithmException,
+    public KeycloakAuthClient() {
+
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeSecurity() throws CertificateException, NoSuchAlgorithmException,
             KeyStoreException, KeyManagementException, IOException {
         try {
+            LOGGER.info("initializing security requirements");
             KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword);
         } catch (Exception ex) {
-           LOGGER.error("Keycloak Authclient initialization failed "+ex.getMessage());
-           throw ex;
+            LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
+            throw ex;
         }
     }
+
 
     public String authenticate(String clientId, String clientSecret, String realmId, String username, String password) {
 
@@ -101,6 +110,7 @@ public class KeycloakAuthClient {
 
 
             AccessTokenResponse accessToken = keycloakClient.obtainAccessToken(username, password);
+
 
             if (accessToken != null) {
                 return accessToken.getToken();

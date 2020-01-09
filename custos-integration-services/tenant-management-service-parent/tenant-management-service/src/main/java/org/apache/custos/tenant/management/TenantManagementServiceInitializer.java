@@ -17,55 +17,50 @@
  *  under the License.
  */
 
-package org.apache.custos.identity;
+package org.apache.custos.tenant.management;
 
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
+import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
-import org.apache.custos.core.services.commons.ServiceInterceptor;
-import org.apache.custos.identity.validator.InputValidator;
+import org.apache.custos.tenant.management.interceptors.ServiceInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
 
 @SpringBootApplication
-@EnableJpaAuditing
-@EnableJpaRepositories(basePackages = "org.apache.custos")
 @ComponentScan(basePackages = "org.apache.custos")
-@EntityScan(basePackages = "org.apache.custos")
-public class IdentityServiceInitializer {
+public class TenantManagementServiceInitializer {
     public static void main(String[] args) {
-        SpringApplication.run(IdentityServiceInitializer.class, args);
+        SpringApplication.run(TenantManagementServiceInitializer.class, args);
     }
 
     @Bean
     public GrpcTracing grpcTracing(Tracing tracing) {
+        //   Tracing tracing1 =  Tracing.newBuilder().build();
         return GrpcTracing.create(tracing);
     }
 
-    //grpc-spring-boot-starter provides @GrpcGlobalInterceptor to allow server-side interceptors to be registered with all
-    //server stubs, we are just taking advantage of that to install the server-side gRPC tracer.
+    //We also create a client-side interceptor and put that in the context, this interceptor can then be injected into gRPC clients and
+    //then applied to the managed channel.
+    @Bean
+    ClientInterceptor grpcClientSleuthInterceptor(GrpcTracing grpcTracing) {
+        return grpcTracing.newClientInterceptor();
+    }
+
     @Bean
     @GRpcGlobalInterceptor
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
     }
 
-
-    @Bean
-    public InputValidator getValidator() {
-        return new InputValidator();
-    }
-
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(InputValidator validator){
-        return new ServiceInterceptor(validator);
+    ServerInterceptor validationInterceptor(){
+        return new ServiceInterceptor();
     }
 
 }

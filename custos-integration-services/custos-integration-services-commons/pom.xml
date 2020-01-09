@@ -22,15 +22,29 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>custos</artifactId>
+        <artifactId>custos-integration-services</artifactId>
         <groupId>org.apache.custos</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>custos-integration-core</artifactId>
-
+    <artifactId>custos-integration-services-commons</artifactId>
     <dependencies>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>identity-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>credential-store-core-service-client-stubs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>tenant-profile-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

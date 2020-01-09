@@ -32,6 +32,7 @@
         <module>iam-admin-core-service-client-stub</module>
         <module>credential-store-core-service-client-stubs</module>
         <module>federated-authentication-core-service-client-stub</module>
+        <module>identity-core-service-client-stub</module>
     </modules>
     <artifactId>custos-core-services-client-stubs</artifactId>
 

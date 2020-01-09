@@ -17,25 +17,30 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.management;
+package org.apache.custos.identity.management;
 
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
-import org.apache.custos.tenant.management.interceptors.ServiceInterceptor;
+import org.apache.custos.identity.management.interceptors.AuthInterceptorImpl;
+import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
+import java.util.HashSet;
+import java.util.Set;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "org.apache.custos")
-public class TenantRegistrationServiceInitializer {
+public class IdentityManagementServiceInitializer {
+
     public static void main(String[] args) {
-        SpringApplication.run(TenantRegistrationServiceInitializer.class, args);
+        SpringApplication.run(IdentityManagementServiceInitializer.class, args);
     }
 
     @Bean
@@ -58,9 +63,19 @@ public class TenantRegistrationServiceInitializer {
     }
 
     @Bean
-    @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(){
-        return new ServiceInterceptor();
+    public Set<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor) {
+        Set<IntegrationServiceInterceptor> interceptors = new HashSet<>();
+        interceptors.add(authInterceptor);
+
+
+        return interceptors;
     }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+        return new ServiceInterceptor(integrationServiceInterceptors);
+    }
+
 
 }

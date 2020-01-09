@@ -300,11 +300,12 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     responseObserver.onNext(response);
                     responseObserver.onCompleted();
                 } else {
+                    LOGGER.error("User not found");
                     responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
                 }
             } else {
-                responseObserver.onNext(null);
-                responseObserver.onCompleted();
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
             }
 
 

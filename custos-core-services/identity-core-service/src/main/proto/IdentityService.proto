@@ -24,9 +24,14 @@ option java_multiple_files = true;
 package org.apache.custos.identity.service;
 
 
-message AuthzToken {
+message AuthToken {
     string accessToken = 1;
-    map<string, string> claimsMap = 2;
+    repeated Claim claims = 2;
+}
+
+message Claim {
+    string key = 1;
+    string value = 2;
 }
 
 message User {
@@ -42,7 +47,7 @@ message User {
 message AuthenticationRequest {
     string clientId = 1;
     string clientSecret = 2;
-    string tenantId = 3;
+    int64 tenantId = 3;
     string username = 4;
     string password = 5;
 }
@@ -54,12 +59,12 @@ message IsAuthenticateResponse {
 message GetUserManagementSATokenRequest {
     string clientId = 1;
     string clientSecret = 2;
-    string tenantId = 3;
+    int64 tenantId = 3;
 }
 
 service  IdentityService {
-    rpc authenticate (AuthenticationRequest) returns (AuthzToken);
-    rpc isAuthenticate (AuthzToken) returns (IsAuthenticateResponse);
-    rpc getUser (AuthzToken) returns (User);
-    rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthzToken);
+    rpc authenticate (AuthenticationRequest) returns (AuthToken);
+    rpc isAuthenticate (AuthToken) returns (IsAuthenticateResponse);
+    rpc getUser (AuthToken) returns (User);
+    rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthToken);
 }
