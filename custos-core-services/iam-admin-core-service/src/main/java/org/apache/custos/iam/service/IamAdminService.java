@@ -280,10 +280,15 @@ public class IamAdminService extends IamAdminServiceImplBase {
             UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUsername());
 
-            User user = getUser(representation);
-            responseObserver.onNext(user);
-            responseObserver.onCompleted();
-
+            if (representation != null) {
+                User user = getUser(representation).toBuilder().setTenantId(request.getTenantId()).
+                        build();
+                responseObserver.onNext(user);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "User " + request.getUsername() + "not found at " + request.getTenantId();
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred during getUser" + ex;

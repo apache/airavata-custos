@@ -33,6 +33,7 @@
         <module>tenant-management-service-parent</module>
         <module>identity-management-service-parent</module>
         <module>custos-integration-services-commons</module>
+        <module>user-management-service-parent</module>
     </modules>
 
 </project>

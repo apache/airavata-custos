@@ -1,0 +1,208 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.user.management.service;
+
+import "google/api/annotations.proto";
+import "UserProfileService.proto";
+import "IamAdminService.proto";
+
+
+message UserProfileRequest {
+    org.apache.custos.user.profile.service.UserProfile userProfile = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+}
+
+message DeleteProfileRequest {
+    org.apache.custos.user.profile.service.DeleteUserProfileRequest deleteRequest = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+}
+
+
+message RegisterUserRequest {
+    org.apache.custos.iam.service.RegisterUserRequest userRequest = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+}
+
+
+message UserIdentificationRequest {
+    org.apache.custos.iam.service.UserAccessInfo info = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+}
+
+message GetUserRequest {
+    string username = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+    int64 tenantId = 4;
+}
+
+message GetUsersRequest {
+    int64 tenantId = 1;
+    string email = 2;
+    string username = 3;
+    int32 offset = 4;
+    int32 limit = 5;
+    string search = 6;
+    string iamClientId = 7;
+    string iamClientSecret = 8;
+}
+
+message ResetPassword {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string username = 3;
+    string password = 4;
+    string iamClientId = 5;
+    string iamClientSecret = 6;
+}
+
+message ResetPasswordRequest {
+    ResetPassword passwordMetadata = 1;
+}
+
+
+message RoleOperationRequest {
+    org.apache.custos.iam.service.RoleOperationsUserRequest role = 1;
+    string iamClientId = 2;
+    string iamClientSecret = 3;
+}
+
+service UserManagementService {
+
+    rpc registerUser (RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user"
+           body: "userRequest"
+         };
+    }
+
+    rpc enableUser (UserIdentificationRequest) returns (org.apache.custos.iam.service.User) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/activation"
+           body: "info"
+         };
+    }
+
+    rpc isUserEnabled (GetUserRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/activation/status"
+         };
+
+    }
+
+    rpc getUser (GetUserRequest) returns (org.apache.custos.iam.service.User) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user"
+         };
+
+    }
+
+    rpc getUsers (GetUsersRequest) returns (org.apache.custos.iam.service.GetUsersResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users"
+         };
+
+    }
+
+    rpc resetPassword (ResetPasswordRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           put: "/user-management/v1.0.0/user/password"
+           body: "passwordMetadata"
+         };
+
+    }
+
+
+    rpc deleteUser (UserIdentificationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user"
+           body: "info"
+         };
+
+    }
+
+    rpc addRoleToUser (RoleOperationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/role"
+           body: "role"
+         };
+    }
+
+
+    rpc deleteRoleFromUser (RoleOperationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/role"
+           body: "role"
+         };
+    }
+
+
+    rpc updateUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           put: "/user-management/v1.0.0/user/profile"
+           body: "userProfile"
+         };
+    }
+    rpc getUserProfile (org.apache.custos.user.profile.service.GetUserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/profile"
+         };
+    }
+    rpc deleteUserProfile (DeleteProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/profile"
+         };
+
+    }
+    rpc getAllUserProfilesInTenant (org.apache.custos.user.profile.service.GetAllUserProfilesRequest) returns (org.apache.custos.user.profile.service.GetAllUserProfilesResponse) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users/profile"
+         };
+
+
+    }
+
+
+    rpc getUserProfileAuditTrails (org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest) returns (org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/profile/audit"
+         };
+
+    }
+
+
+}
+
+
+
+

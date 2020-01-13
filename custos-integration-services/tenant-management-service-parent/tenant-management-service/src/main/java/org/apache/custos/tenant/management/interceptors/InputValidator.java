@@ -21,16 +21,19 @@ package org.apache.custos.tenant.management.interceptors;
 
 
 import io.grpc.Metadata;
+import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
 import org.apache.custos.tenant.management.service.CreateTenantRequest;
 import org.apache.custos.tenant.profile.service.Tenant;
 import org.springframework.stereotype.Component;
 
+import javax.xml.validation.Validator;
+
 /**
  * This class validates the  requests
  */
 @Component
-public class InputValidator {
+public class InputValidator implements IntegrationServiceInterceptor {
 
     /**
      * Input parameter validater
@@ -39,7 +42,7 @@ public class InputValidator {
      * @param body
      * @return
      */
-    public  void validate(String methodName, Object body, Metadata headers) {
+    private   void validate(String methodName, Object body, Metadata headers) {
 
         switch (methodName) {
             case "createTenant":
@@ -103,4 +106,9 @@ public class InputValidator {
     }
 
 
+    @Override
+    public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
+        validate(method,msg,headers);
+        return msg;
+    }
 }

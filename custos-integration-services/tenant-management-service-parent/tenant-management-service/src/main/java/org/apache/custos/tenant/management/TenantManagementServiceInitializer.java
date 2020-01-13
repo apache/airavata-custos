@@ -23,12 +23,18 @@ import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
-import org.apache.custos.tenant.management.interceptors.ServiceInterceptor;
+import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.tenant.management.interceptors.AuthInterceptorImpl;
+import org.apache.custos.tenant.management.interceptors.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 @SpringBootApplication
@@ -58,9 +64,19 @@ public class TenantManagementServiceInitializer {
     }
 
     @Bean
+    public Set<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator) {
+        Set<IntegrationServiceInterceptor> interceptors = new HashSet<>();
+        interceptors.add(validator);
+        interceptors.add(authInterceptor);
+
+
+        return interceptors;
+    }
+
+    @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(){
-        return new ServiceInterceptor();
+    ServerInterceptor validationInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+        return new ServiceInterceptor(integrationServiceInterceptors);
     }
 
 }

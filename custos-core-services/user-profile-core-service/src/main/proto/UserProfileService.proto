@@ -1,0 +1,107 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.user.profile.service;
+
+
+enum UserStatus {
+    ACTIVE = 0;
+    CONFIRMED = 1;
+    APPROVED = 2;
+    DELETED = 3;
+    DUPLICATE = 4;
+    GRACE_PERIOD = 5;
+    INVITED = 6;
+    DENIED = 7;
+    PENDING = 8;
+    PENDING_APPROVAL = 9;
+    PENDING_CONFIRMATION = 10;
+    SUSPENDED = 11;
+    DECLINED = 12;
+    EXPIRED = 13;
+}
+
+
+message UserProfile {
+    int64 tenantId = 1;
+    string username = 2;
+    string emailAddress = 3;
+    string firstName = 4;
+    string lastName = 5;
+    string createAt = 6;
+    string lastAccessAt = 7;
+    int32 validTill = 8;
+    UserStatus status = 9;
+    string userId = 10;
+    string updatedBy = 11;
+}
+
+message GetUserProfileRequest {
+    int64 tenantId = 1;
+    string username = 2;
+}
+
+message DeleteUserProfileRequest {
+    int64 tenantId = 1;
+    string username = 2;
+}
+
+message GetAllUserProfilesRequest {
+    int64 tenantId = 1;
+}
+
+message GetAllUserProfilesResponse {
+    repeated UserProfile profiles = 1;
+}
+
+message GetUpdateAuditTrailRequest {
+    int64 tenantId = 1;
+    string username = 2;
+}
+
+message UserProfileAttributeUpdateMetadata {
+    string updatedAttribute = 1;
+    string updatedAttributeValue = 2;
+    string updatedBy = 3;
+    string updatedAt = 4;
+}
+
+message UserProfileStatusUpdateMetadata {
+    UserStatus updatedStatus = 1;
+    string updatedBy = 2;
+    string updatedAt = 3;
+}
+
+message GetUpdateAuditTrailResponse {
+    repeated UserProfileAttributeUpdateMetadata attributeAudit = 1;
+    repeated UserProfileStatusUpdateMetadata statusAudit = 2;
+}
+
+service UserProfileService {
+    rpc createUserProfile (UserProfile) returns (UserProfile);
+    rpc updateUserProfile (UserProfile) returns (UserProfile);
+    rpc getUserProfile (GetUserProfileRequest) returns (UserProfile);
+    rpc deleteUserProfile (DeleteUserProfileRequest) returns (UserProfile);
+    rpc getAllUserProfilesInTenant (GetAllUserProfilesRequest) returns (GetAllUserProfilesResponse);
+    rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
+}

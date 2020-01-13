@@ -28,6 +28,7 @@ import org.apache.custos.identity.authzcache.AuthzCachedStatus;
 import org.apache.custos.identity.authzcache.DefaultAuthzCacheManager;
 import org.apache.custos.identity.exceptions.CustosSecurityException;
 import org.apache.custos.identity.service.IdentityServiceGrpc.IdentityServiceImplBase;
+import org.apache.http.HttpStatus;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,12 @@ public class IdentityService extends IdentityServiceImplBase {
                 responseObserver.onError(Status.UNAUTHENTICATED.asRuntimeException());
             }
 
+        } catch (org.keycloak.authorization.client.util.HttpResponseException ex) {
+            String msg = "Error occurred while authenticating  user " + request.getUsername() + " " + ex.getReasonPhrase();
+            LOGGER.error(msg);
+            if (ex.getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(ex.getReasonPhrase()).asRuntimeException());
+            }
         } catch (Exception ex) {
             String msg = "Error occurred while authenticating  user " + request.getUsername() + " " + ex.getMessage();
             LOGGER.error(msg);
@@ -99,14 +106,14 @@ public class IdentityService extends IdentityServiceImplBase {
                         StreamObserver<org.apache.custos.identity.service.User> responseObserver) {
         String username = null;
         String tenantId = null;
-        try{
-        for (Claim claim : request.getClaimsList()) {
-            if (claim.getKey().equals("username")) {
-                username = claim.getValue();
-            } else if (claim.getKey().equals("tenantId")) {
-                tenantId = claim.getValue();
+        try {
+            for (Claim claim : request.getClaimsList()) {
+                if (claim.getKey().equals("username")) {
+                    username = claim.getValue();
+                } else if (claim.getKey().equals("tenantId")) {
+                    tenantId = claim.getValue();
+                }
             }
-        }
 
             LOGGER.debug("Get user request received for " + username);
 

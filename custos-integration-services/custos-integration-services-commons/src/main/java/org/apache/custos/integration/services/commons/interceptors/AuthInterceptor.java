@@ -55,6 +55,10 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         String formattedToken = getToken(headers);
 
+        if (formattedToken == null) {
+            return null;
+        }
+
         LOGGER.info("formatted Token " + formattedToken);
 
         GetOwnerIdFromTokenRequest request = GetOwnerIdFromTokenRequest
@@ -100,6 +104,9 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     private String getToken(Metadata headers) {
         String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+        if (tokenWithBearer == null) {
+            return null;
+        }
         String prefix = "Bearer";
         String token = tokenWithBearer.substring(prefix.length());
         return token.trim();

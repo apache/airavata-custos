@@ -199,10 +199,6 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (info.getUsername() == null || info.getUsername().trim().equals("")) {
-                throw new MissingParameterException("Username should not be null", null);
-            }
-
             if (request.getSearch() == null || request.getSearch().trim().equals("")) {
                 throw new MissingParameterException("Search parameter should not be null", null);
             }

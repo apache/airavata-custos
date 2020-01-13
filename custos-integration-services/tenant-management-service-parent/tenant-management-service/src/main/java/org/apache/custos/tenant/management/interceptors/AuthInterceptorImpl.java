@@ -23,7 +23,11 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.GetOwnerIdFromTokenRequest;
 import org.apache.custos.credential.store.service.GetOwnerIdResponse;
+import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
+import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.GetCredentialsRequest;
+import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,30 +38,35 @@ import org.springframework.stereotype.Component;
  * and validate auth requirements of services
  */
 @Component
-public class AuthInterceptor {
+public class AuthInterceptorImpl extends AuthInterceptor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptor.class);
-
-    @Autowired
-    private CredentialStoreServiceClient credentialStoreServiceClient;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
 
-    public <ReqT> ReqT authorize(String method, Metadata headers, ReqT msg) {
-        if (method.equals("getCredentials")) {
-            String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
-            String prefix = "Bearer";
-            String token = tokenWithBearer.substring(prefix.length());
-            String formattedToken = token.trim();
-            GetOwnerIdFromTokenRequest request = GetOwnerIdFromTokenRequest
-                    .newBuilder()
-                    .setToken(formattedToken)
-                    .build();
-            GetOwnerIdResponse response = credentialStoreServiceClient.getOwnerIdFormToken(request);
-            if (response != null) {
-                return (ReqT) GetCredentialsRequest.newBuilder().setTenantId(response.getOwnerId()).build();
-            }
-        }
-        return msg;
+    public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient) {
+        super(credentialStoreServiceClient, tenantProfileClient);
     }
 
+
+
+    @Override
+    public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
+
+
+        if (method.equals("getCredentials")) {
+            AuthClaim claim = authorize(headers);
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            return (ReqT) GetCredentialsRequest.newBuilder().setTenantId(tenantId).build();
+        }
+
+        return msg;
+    }
 }

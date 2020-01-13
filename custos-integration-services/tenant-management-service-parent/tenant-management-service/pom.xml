@@ -58,7 +58,11 @@
               <artifactId>custos-integration-core</artifactId>
               <version>${project.version}</version>
           </dependency>
-
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>custos-integration-services-commons</artifactId>
+            <version>${project.version}</version>
+        </dependency>
           <dependency>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-starter-web</artifactId>
