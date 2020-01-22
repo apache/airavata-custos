@@ -36,7 +36,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableJpaRepositories(basePackages = "org.apache.custos")
-@ComponentScan(basePackages = "org.apache.custos")
+@ComponentScan(basePackages = {"org.apache.custos.federated.authentication",
+        "org.apache.custos.federated.services.clients.cilogon", "org.apache.custos.core.services.commons"})
 @EntityScan(basePackages = "org.apache.custos")
 public class FederatedAuthenticationServiceInitializer {
 

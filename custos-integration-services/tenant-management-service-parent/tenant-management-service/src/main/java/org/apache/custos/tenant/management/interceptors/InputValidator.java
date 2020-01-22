@@ -23,14 +23,11 @@ package org.apache.custos.tenant.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
-import org.apache.custos.tenant.management.service.CreateTenantRequest;
-import org.apache.custos.tenant.profile.service.Tenant;
+import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.springframework.stereotype.Component;
 
-import javax.xml.validation.Validator;
-
 /**
- * This class validates the  requests
+ * This class validates the  request input parameters
  */
 @Component
 public class InputValidator implements IntegrationServiceInterceptor {
@@ -42,62 +39,21 @@ public class InputValidator implements IntegrationServiceInterceptor {
      * @param body
      * @return
      */
-    private   void validate(String methodName, Object body, Metadata headers) {
+    private void validate(String methodName, Object body, Metadata headers) {
 
         switch (methodName) {
-            case "createTenant":
-                validateCreateTenant(body, methodName);
-                break;
             case "getCredentials":
                 validateGetCredentials(headers, methodName);
+                break;
+            case "getTenant":
+                validateGetTenant(headers, body, methodName);
                 break;
             default:
         }
     }
 
-    private  boolean validateCreateTenant(Object obj, String method) {
-        if (obj instanceof CreateTenantRequest) {
-            CreateTenantRequest request = (CreateTenantRequest) obj;
-            Tenant tenant = request.getTenant();
 
-            if (tenant.getTenantName() == null || tenant.getTenantName().trim() == "") {
-                throw new MissingParameterException("Tenant name should not be null", null);
-            }
-
-            if (tenant.getDomain() == null || tenant.getDomain().trim() == "") {
-                throw new MissingParameterException("Tenant domain should not be null", null);
-            }
-
-            if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
-                throw new MissingParameterException("Tenant admin first name should not be null", null);
-            }
-
-            if (tenant.getAdminLastName() == null || tenant.getAdminLastName().trim() == "") {
-                throw new MissingParameterException("Tenant admin last name should not be null", null);
-            }
-
-            if (tenant.getAdminEmail() == null || tenant.getAdminEmail().trim() == "") {
-                throw new MissingParameterException("Tenant admin email should not be null", null);
-            }
-
-            if (tenant.getAdminUsername() == null || tenant.getAdminUsername().trim() == "") {
-                throw new MissingParameterException("Tenant admin username should not be null", null);
-            }
-            if (tenant.getAdminPassword() == null || tenant.getAdminPassword().trim() == "") {
-                throw new MissingParameterException("Tenant admin username should not be null", null);
-            }
-
-            if (tenant.getRequesterEmail() == null || tenant.getRequesterEmail().trim() == "") {
-                throw new MissingParameterException("Tenant requester email  should not be null", null);
-            }
-
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
-        }
-        return true;
-    }
-
-    private  boolean validateGetCredentials(Metadata headers, String method) {
+    private boolean validateGetCredentials(Metadata headers, String method) {
         if (headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
             throw new MissingParameterException("authorization header not available", null);
         }
@@ -105,10 +61,25 @@ public class InputValidator implements IntegrationServiceInterceptor {
         return true;
     }
 
+    private boolean validateGetTenant(Metadata headers, Object body, String method) {
+        if (headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
+            throw new MissingParameterException("authorization header not available", null);
+        }
+
+        GetTenantRequest tenantRequest = ((GetTenantRequest) body);
+
+        String clientId = tenantRequest.getClientId();
+
+        if (clientId == null) {
+            throw new MissingParameterException("client_id should not be null", null);
+        }
+        return true;
+    }
+
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        validate(method,msg,headers);
+        validate(method, msg, headers);
         return msg;
     }
 }

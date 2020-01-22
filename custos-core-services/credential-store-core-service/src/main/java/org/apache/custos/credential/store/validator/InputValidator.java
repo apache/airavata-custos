@@ -55,7 +55,11 @@ public class InputValidator implements Validator {
                 validateGetNewCustosCredential(obj, methodName);
                 break;
             case "getOwnerIdFromToken":
-                validateGetOwnerIdFromToken(obj, methodName);
+            case "getCredentialFromToken":
+                validateTokenRequest(obj, methodName);
+                break;
+            case "getCredentialFromClientId":
+                validateGetCredentialFromClientId(obj,methodName);
                 break;
             default:
         }
@@ -143,9 +147,9 @@ public class InputValidator implements Validator {
 
     }
 
-    private  boolean validateGetOwnerIdFromToken (Object obj, String method) {
-        if (obj instanceof GetOwnerIdFromTokenRequest) {
-            GetOwnerIdFromTokenRequest metadata = (GetOwnerIdFromTokenRequest) obj;
+    private  boolean validateTokenRequest(Object obj, String method) {
+        if (obj instanceof TokenRequest) {
+            TokenRequest metadata = (TokenRequest) obj;
             if (metadata.getToken() == null || metadata.getToken().trim().equals("") ){
                 throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }
@@ -169,6 +173,18 @@ public class InputValidator implements Validator {
         }
         return true;
 
+    }
+
+    private boolean validateGetCredentialFromClientId (Object obj, String method) {
+        if (obj instanceof GetCredentialRequest) {
+            GetCredentialRequest request = (GetCredentialRequest) obj;
+            if (request.getId() == null || request.getId().equals("")) {
+                throw new MissingParameterException("Client Id cannot be null at " + method, null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method  " + method);
+        }
+        return true;
     }
 
 }

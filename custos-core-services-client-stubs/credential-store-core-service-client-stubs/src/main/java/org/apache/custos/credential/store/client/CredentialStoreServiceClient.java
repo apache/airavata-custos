@@ -91,7 +91,7 @@ public class CredentialStoreServiceClient {
     }
 
 
-    public void getOwnerIdFormToken( GetOwnerIdFromTokenRequest request, final  ServiceCallback callback) {
+    public void getOwnerIdFormToken( TokenRequest request, final  ServiceCallback callback) {
         StreamObserver observer = getObserver(callback, "get new custos credentials metadata");
         credentialStoreServiceStub.getOwnerIdFromToken(request,observer);
 
@@ -126,14 +126,24 @@ public class CredentialStoreServiceClient {
         return credentialStoreServiceBlockingStub.getOperationMetadata(request);
     }
 
-    public GetNewCustosCredentialResponse getNewCustosCredentials(GetNewCustosCredentialRequest request) {
+    public CredentialMetadata getNewCustosCredentials(GetNewCustosCredentialRequest request) {
         return  credentialStoreServiceBlockingStub.getNewCustosCredential(request);
     }
 
-    public GetOwnerIdResponse getOwnerIdFormToken( GetOwnerIdFromTokenRequest request) {
+    public GetOwnerIdResponse getOwnerIdFormToken( TokenRequest request) {
        return credentialStoreServiceBlockingStub.getOwnerIdFromToken(request);
     }
 
+    public CredentialMetadata getCustosCredentialFromToken( TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getCustosCredentialFromToken(request);
+    }
+
+    public CredentialMetadata getCustosCredentialFromClientId (GetCredentialRequest request) {
+        return credentialStoreServiceBlockingStub.getCustosCredentialFromClientId(request);
+    }
+    public GetAllCredentialsResponse getAllCredentialFromToken (TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getAllCredentialsFromToken(request);
+    }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

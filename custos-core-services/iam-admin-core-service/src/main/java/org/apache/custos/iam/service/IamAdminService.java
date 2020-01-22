@@ -181,6 +181,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getEmail(),
                     request.getAccessToken());
 
+
             RegisterUserResponse registerUserResponse = RegisterUserResponse.newBuilder().
                     setIsRegistered(registered).build();
 
@@ -217,7 +218,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
                         request.getAccessToken(), request.getUsername());
 
-                User user = getUser(representation);
+                User user = getUser(representation, request.getTenantId());
 
 
                 statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
@@ -281,8 +282,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getAccessToken(), request.getUsername());
 
             if (representation != null) {
-                User user = getUser(representation).toBuilder().setTenantId(request.getTenantId()).
-                        build();
+                User user = getUser(representation, request.getTenantId());
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
@@ -305,7 +305,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<UserRepresentation> representation = keycloakClient.getUsers(request.getInfo().getAccessToken(),
                     String.valueOf(request.getInfo().getTenantId()), request.getOffset(), request.getLimit(), request.getSearch());
             List<User> users = new ArrayList<>();
-            representation.stream().forEach(r -> users.add(this.getUser(r)));
+            representation.stream().forEach(r -> users.add(this.getUser(r, request.getInfo().getTenantId())));
 
 
             GetUsersResponse response = GetUsersResponse.newBuilder().addAllUser(users).build();
@@ -364,7 +364,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getInfo().getUsername(),
                     request.getEmail());
             List<User> users = new ArrayList<>();
-            representations.stream().forEach(r -> users.add(this.getUser(r)));
+            representations.stream().forEach(r -> users.add(this.getUser(r, request.getInfo().getTenantId())));
 
 
             GetUsersResponse response = GetUsersResponse.newBuilder().addAllUser(users).build();
@@ -521,7 +521,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
 
-    private User getUser(UserRepresentation representation) {
+    private User getUser(UserRepresentation representation, long teantId) {
         String state = Status.PENDING_CONFIRMATION;
         if (representation.isEnabled()) {
             state = Status.ACTIVE;
@@ -530,13 +530,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
 
         return User.newBuilder()
-                .setInternalUserId(representation.getUsername() + "@" + representation.getId())
+                .setInternalUserId(representation.getUsername() + "@" + teantId)
                 .setUsername(representation.getUsername())
                 .setFirstName(representation.getFirstName())
                 .setLastName(representation.getLastName())
                 .setState(state)
                 .setCreationTime(representation.getCreatedTimestamp())
                 .setEmail(representation.getEmail())
+                .setTenantId(teantId)
                 .build();
 
     }

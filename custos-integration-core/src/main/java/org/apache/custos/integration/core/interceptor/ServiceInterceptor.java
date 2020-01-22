@@ -22,10 +22,12 @@ package org.apache.custos.integration.core.interceptor;
 
 import io.grpc.*;
 import org.apache.custos.integration.core.exceptions.MissingParameterException;
+import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -35,9 +37,9 @@ public class ServiceInterceptor implements ServerInterceptor {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ServiceInterceptor.class);
 
-    private Set<IntegrationServiceInterceptor> interceptorSet;
+    private List<IntegrationServiceInterceptor> interceptorSet;
 
-    public ServiceInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    public ServiceInterceptor(List<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         this.interceptorSet = integrationServiceInterceptors;
     }
 
@@ -64,15 +66,14 @@ public class ServiceInterceptor implements ServerInterceptor {
                         resp  =  interceptor.intercept(methodName, metadata, (resp==null)?message:resp);
                     }
                     super.onMessage(resp);
-                } catch (Exception ex) {
-                    LOGGER.error(""+ex);
-                    String msg = "Error while validating method " + methodName + " " + ex.getMessage();
+                } catch (NotAuthorizedException ex) {
+                    String msg = "Error while authorizing method " + methodName + ", " + ex.getMessage();
                     LOGGER.error(msg);
-                    if (ex instanceof MissingParameterException) {
-                        serverCall.close(Status.FAILED_PRECONDITION.withDescription(msg), metadata);
-                    } else {
-                        serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
-                    }
+                        serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), metadata);
+                } catch (Exception ex) {
+                    String msg = "Error while validating method " + methodName + ", " + ex.getMessage();
+                    LOGGER.error(msg);
+                    serverCall.close(Status.INVALID_ARGUMENT.withDescription(msg), metadata);
                 }
             }
 
@@ -83,9 +84,9 @@ public class ServiceInterceptor implements ServerInterceptor {
                 } catch (IllegalStateException e) {
                     LOGGER.debug(e.getMessage());
                 } catch (Exception e) {
-                    String msg = "Error while validating method " + methodName + " " + e.getMessage();
+                    String msg = "Error while validating method " + methodName + ", " + e.getMessage();
                     LOGGER.error(msg);
-                    serverCall.close(Status.UNKNOWN.withDescription(msg), metadata);
+                    serverCall.close(Status.INVALID_ARGUMENT.withDescription(msg), metadata);
                 }
             }
         };

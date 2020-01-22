@@ -73,6 +73,7 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
                     .setClientId(response.getClientId())
                     .setClientSecret(response.getClientSecret())
                     .setClientSecretExpiresAt(response.getClientSecretExpiredAt())
+                    .setClientRegistrationUri(response.getRegistrationClientURI())
                     .setClientIdIssuedAt(response.getClientIdIssuedAt()).build();
 
             responseObserver.onNext(registerClientResponse);
@@ -141,6 +142,9 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
                     .addAllScope(Arrays.asList(response.getScope()))
                     .setComment(response.getComment())
                     .setClientIdIssuedAt(response.getClientIdIssuedAt())
+                    .setClientRegistrationUri(response.getRegistrationClientURI())
+                    .setClientSecretExpiresAt(response.getClientSecretExpiredAt())
+                    .setClientSecret(response.getClientSecret())
                     .addAllGrantTypes(Arrays.asList(response.getGrantTypes()))
                     .build();
 

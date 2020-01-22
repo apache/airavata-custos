@@ -50,14 +50,15 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         AuthClaim claim = authorize(headers);
 
+        if (claim == null) {
+            throw new NotAuthorizedException("Request is not authorized", null);
+        }
+
         String oauthId = claim.getIamAuthId();
         String oauthSec = claim.getIamAuthSecret();
 
         long tenantId = claim.getTenantId();
 
-        if (claim == null) {
-            throw new NotAuthorizedException("Request is not authorized", null);
-        }
         if (method.equals("updateUserProfile")) {
             UserProfile pr = ((UserProfileRequest) reqT).getUserProfile().toBuilder().setTenantId(tenantId).build();
 

@@ -39,6 +39,7 @@ import org.springframework.vault.support.VaultResponseSupport;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This is responsible for vault operations
@@ -119,21 +120,31 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             String path = BASE_PATH + request.getOwnerId() + "/" + request.getType().name();
             VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
 
-            if (response != null) {
-                Credential credential = response.getData();
-                CredentialMetadata secret = CredentialMetadata.newBuilder()
-                        .setSecret(credential.getSecret())
-                        .setId(credential.getId())
-                        .setOwnerId(request.getOwnerId())
-                        .setType(request.getType()).build();
-                responseObserver.onNext(secret);
-                responseObserver.onCompleted();
-            } else {
+            if (response == null) {
                 String msg = "Cannot find credentials for "
                         + request.getOwnerId() + " for type " + request.getType();
                 LOGGER.error(msg);
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+
             }
+            Credential credential = response.getData();
+            CredentialMetadata.Builder secret = CredentialMetadata.newBuilder()
+                    .setSecret(credential.getSecret())
+                    .setId(credential.getId())
+                    .setOwnerId(request.getOwnerId());
+
+
+            if (request.getType() == Type.CUSTOS) {
+                Optional<CredentialEntity> entity = repository.findById(request.getOwnerId());
+                if (entity.isPresent()) {
+                    secret.setClientIdIssuedAt(entity.get().getIssuedAt().getTime());
+                    secret.setClientSecretExpiredAt(entity.get().getClientSecretExpiredAt());
+                }
+            }
+
+            responseObserver.onNext(secret.build());
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
 
@@ -171,7 +182,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " operation failed for " + request.getOwnerId()+ " " + ex;
+            String msg = " operation failed for " + request.getOwnerId() + " " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -239,7 +250,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     }
 
     @Override
-    public void getNewCustosCredential(GetNewCustosCredentialRequest request, StreamObserver<GetNewCustosCredentialResponse> responseObserver) {
+    public void getNewCustosCredential(GetNewCustosCredentialRequest request, StreamObserver<CredentialMetadata> responseObserver) {
         try {
             LOGGER.debug("Generating custos credentials for  " + request.getOwnerId());
 
@@ -250,23 +261,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             vaultTemplate.write(path, credential);
 
             VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
-            if (response != null && response.getData() != null && response.getData().getId() != null) {
 
-                statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
-                        request.getOwnerId(),
-                        null);
-
-                GetNewCustosCredentialResponse rep = GetNewCustosCredentialResponse
-                        .newBuilder()
-                        .setClientId(credential.getId())
-                        .setClientSecret(credential.getSecret())
-                        .build();
-                responseObserver.onNext(rep);
-                responseObserver.onCompleted();
-            } else {
-
-                String msg = "get new custos operation failed for "
+            if (response == null || response.getData() == null || response.getData().getId() == null) {
+                String msg = "Get new custos operation failed for "
                         + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
@@ -275,7 +272,41 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         null);
 
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
             }
+
+
+            statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    request.getOwnerId(),
+                    null);
+
+            Optional<CredentialEntity> entity = repository.findById(request.getOwnerId());
+
+            if (entity.isEmpty()) {
+                String msg = "Credential is not persisted"
+                        + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            CredentialEntity en = entity.get();
+            CredentialMetadata rep = CredentialMetadata
+                    .newBuilder()
+                    .setOwnerId(request.getOwnerId())
+                    .setSecret(credential.getSecret())
+                    .setClientIdIssuedAt(en.getIssuedAt().getTime())
+                    .setClientSecretExpiredAt(en.getClientSecretExpiredAt())
+                    .setId(credential.getId())
+                    .build();
+            responseObserver.onNext(rep);
+            responseObserver.onCompleted();
 
 
         } catch (Exception ex) {
@@ -287,30 +318,185 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
     @Override
-    public void getOwnerIdFromToken(GetOwnerIdFromTokenRequest request, StreamObserver<GetOwnerIdResponse> responseObserver) {
+    public void getOwnerIdFromToken(TokenRequest request, StreamObserver<GetOwnerIdResponse> responseObserver) {
         try {
             LOGGER.debug("Get ownerId for    " + request.getToken());
             String token = request.getToken();
             Credential credential = credentialManager.decodeToken(token);
-            if (credential != null && credential.getId() != null) {
-                CredentialEntity entity = repository.findByClientId(credential.getId());
-                if (entity != null) {
-                    GetOwnerIdResponse response = GetOwnerIdResponse.
-                            newBuilder().setOwnerId(entity.getOwnerId()).build();
-                    responseObserver.onNext(response);
-                    responseObserver.onCompleted();
-                } else {
-                    LOGGER.error("User not found");
-                    responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
-                }
-            } else {
+
+            if (credential == null || credential.getId() == null) {
                 LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity entity = repository.findByClientId(credential.getId());
+
+
+            if (entity != null) {
+                GetOwnerIdResponse response = GetOwnerIdResponse.
+                        newBuilder().setOwnerId(entity.getOwnerId()).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                LOGGER.error("User not found");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
             }
 
 
         } catch (Exception ex) {
             String msg = " operation failed ";
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCustosCredentialFromToken(TokenRequest request, StreamObserver<CredentialMetadata> responseObserver) {
+        try {
+            LOGGER.debug("Get credential for    " + request.getToken());
+            String token = request.getToken();
+            Credential credential = credentialManager.decodeToken(token);
+
+            if (credential == null || credential.getId() == null) {
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity entity = repository.findByClientId(credential.getId());
+
+            if (entity == null) {
+                LOGGER.error("User not found");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            String path = BASE_PATH + entity.getOwnerId() + "/" + Type.CUSTOS.name();
+            VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
+
+            if (response == null || response.getData() == null || !response.getData().getSecret().equals(credential.getSecret())) {
+                String msg = "Invalid secret for id"
+                        + credential.getId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            CredentialMetadata secret = CredentialMetadata.newBuilder()
+                    .setSecret(credential.getSecret())
+                    .setId(credential.getId())
+                    .setOwnerId(entity.getOwnerId())
+                    .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                    .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                    .setType(Type.CUSTOS).build();
+            responseObserver.onNext(secret);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " operation failed ";
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getCustosCredentialFromClientId(GetCredentialRequest request, StreamObserver<CredentialMetadata> responseObserver) {
+        try {
+            String clientId = request.getId();
+
+            CredentialEntity entity = repository.findByClientId(clientId);
+
+            if (entity == null) {
+                String msg = " Credentials not found for user " + clientId;
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            String path = BASE_PATH + entity.getOwnerId() + "/" + Type.CUSTOS.name();
+
+            VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
+
+            if (response == null || response.getData() == null) {
+                String msg = "Cannot find credentials for "
+                        + entity.getOwnerId() + " for type " + Type.CUSTOS.name();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            CredentialMetadata metadata = CredentialMetadata.newBuilder()
+                    .setSecret(response.getData().getSecret())
+                    .setId(request.getId())
+                    .setOwnerId(entity.getOwnerId())
+                    .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                    .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                    .setType(Type.CUSTOS).build();
+            responseObserver.onNext(metadata);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed failed " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getAllCredentialsFromToken(TokenRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+            String token = request.getToken();
+            Credential credential = credentialManager.decodeToken(token);
+
+            if (credential == null || credential.getId() == null) {
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity entity = repository.findByClientId(credential.getId());
+           
+            if (entity == null) {
+                LOGGER.error("User not found");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            String subPath = BASE_PATH + entity.getOwnerId();
+            List<String> paths = vaultTemplate.list(subPath);
+
+            List<CredentialMetadata> credentialMetadata = new ArrayList<>();
+
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+
+
+                    if (key.equals(Type.CUSTOS)) {
+                        metadata = metadata.toBuilder()
+                                .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                                .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                                .build();
+                    }
+                    credentialMetadata.add(metadata);
+                }
+            }
+            GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
+                    .addAllSecretList(credentialMetadata).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed failed " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

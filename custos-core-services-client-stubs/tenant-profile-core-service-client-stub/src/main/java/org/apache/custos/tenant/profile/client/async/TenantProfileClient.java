@@ -64,7 +64,7 @@ public class TenantProfileClient {
     }
 
 
-    public AddTenantResponse addTenant(Tenant tenant) {
+    public  Tenant addTenant(Tenant tenant) {
         return profileServiceBlockingStub.addTenant(tenant);
 
     }

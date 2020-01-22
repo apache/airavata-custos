@@ -26,6 +26,7 @@ import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.apache.custos.tenant.management.interceptors.AuthInterceptorImpl;
+import org.apache.custos.tenant.management.interceptors.DynamicRegistrationValidator;
 import org.apache.custos.tenant.management.interceptors.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
@@ -33,7 +34,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -64,18 +67,19 @@ public class TenantManagementServiceInitializer {
     }
 
     @Bean
-    public Set<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator) {
-        Set<IntegrationServiceInterceptor> interceptors = new HashSet<>();
+    public List<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
+                                                                DynamicRegistrationValidator registrationValidator, InputValidator validator) {
+        List<IntegrationServiceInterceptor> interceptors = new ArrayList<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
-
+        interceptors.add(registrationValidator);
 
         return interceptors;
     }
 
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    ServerInterceptor validationInterceptor(List<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
 

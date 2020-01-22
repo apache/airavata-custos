@@ -35,7 +35,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public  void  validate(String methodName, Object obj) {
+    public void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "addTenant":
@@ -64,38 +64,51 @@ public class InputValidator implements Validator {
 
     }
 
-    private  boolean validateAddTenant(Object obj) {
+    private boolean validateAddTenant(Object obj) {
         if (obj instanceof Tenant) {
             Tenant tenant = (Tenant) obj;
 
-            if (tenant.getTenantName() == null || tenant.getTenantName().trim() == "") {
-                throw new MissingParameterException("Tenant name should not be null", null);
+            if (tenant.getClientName() == null || tenant.getClientName().trim() == "") {
+                throw new MissingParameterException("Client name should not be null", null);
             }
 
             if (tenant.getDomain() == null || tenant.getDomain().trim() == "") {
-                throw new MissingParameterException("Tenant domain should not be null", null);
+                throw new MissingParameterException(" Domain should not be null", null);
             }
 
 
             if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
-                throw new MissingParameterException("Tenant admin first name should not be null", null);
+                throw new MissingParameterException(" Admin first name should not be null", null);
             }
 
             if (tenant.getAdminLastName() == null || tenant.getAdminLastName().trim() == "") {
-                throw new MissingParameterException("Tenant admin last name should not be null", null);
+                throw new MissingParameterException(" Admin last name should not be null", null);
             }
 
             if (tenant.getAdminEmail() == null || tenant.getAdminEmail().trim() == "") {
-                throw new MissingParameterException("Tenant admin email should not be null", null);
+                throw new MissingParameterException(" Admin email should not be null", null);
             }
 
             if (tenant.getAdminUsername() == null || tenant.getAdminUsername().trim() == "") {
-                throw new MissingParameterException("Tenant admin username should not be null", null);
+                throw new MissingParameterException(" Admin username should not be null", null);
+            }
+
+            if (tenant.getAdminPassword() == null || tenant.getAdminPassword().trim() == "") {
+                throw new MissingParameterException(" Admin password should not be null", null);
             }
 
             if (tenant.getRequesterEmail() == null || tenant.getRequesterEmail().trim() == "") {
-                throw new MissingParameterException("Tenant requester email  should not be null", null);
+                throw new MissingParameterException("Admin requester email  should not be null", null);
             }
+
+            if (tenant.getRedirectUrisCount() == 0) {
+                throw new MissingParameterException("Redirect uris cannot be  should not be null", null);
+            }
+
+            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
+                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
+            }
+
 
         } else {
             throw new RuntimeException("Unexpected input type for method addTenant");
@@ -104,7 +117,7 @@ public class InputValidator implements Validator {
     }
 
 
-    private  boolean validateUpdateTenant(Object obj) {
+    private boolean validateUpdateTenant(Object obj) {
         if (obj instanceof UpdateTenantRequest) {
             UpdateTenantRequest req = (UpdateTenantRequest) obj;
 
@@ -119,14 +132,13 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Updated by should not be null", null);
             }
 
-            if (tenant.getTenantName() == null || tenant.getTenantName().trim() == "") {
-                throw new MissingParameterException("Tenant name should not be null", null);
+            if (tenant.getClientName() == null || tenant.getClientName().trim() == "") {
+                throw new MissingParameterException("Client name should not be null", null);
             }
 
             if (tenant.getDomain() == null || tenant.getDomain().trim() == "") {
                 throw new MissingParameterException("Tenant domain should not be null", null);
             }
-
 
 
             if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
@@ -152,7 +164,7 @@ public class InputValidator implements Validator {
     }
 
 
-    private  boolean validateGetAllTenantsForUser(Object obj) {
+    private boolean validateGetAllTenantsForUser(Object obj) {
         if (obj instanceof GetAllTenantsForUserRequest) {
             GetAllTenantsForUserRequest req = (GetAllTenantsForUserRequest) obj;
 
@@ -165,7 +177,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateGetTenant(Object obj) {
+    private boolean validateGetTenant(Object obj) {
         if (obj instanceof GetTenantRequest) {
             GetTenantRequest req = (GetTenantRequest) obj;
 
@@ -179,7 +191,7 @@ public class InputValidator implements Validator {
     }
 
 
-    private  boolean validateGetMetadata(Object obj) {
+    private boolean validateGetMetadata(Object obj) {
         if (obj instanceof GetAuditTrailRequest) {
             GetAuditTrailRequest req = (GetAuditTrailRequest) obj;
 
@@ -194,7 +206,7 @@ public class InputValidator implements Validator {
     }
 
 
-    private  boolean validateUpdateTenantStatus(Object obj) {
+    private boolean validateUpdateTenantStatus(Object obj) {
         if (obj instanceof UpdateStatusRequest) {
             UpdateStatusRequest req = (UpdateStatusRequest) obj;
 

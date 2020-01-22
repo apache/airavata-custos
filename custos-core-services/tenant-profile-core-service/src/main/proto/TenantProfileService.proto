@@ -24,20 +24,33 @@ option java_multiple_files = true;
 package org.apache.custos.tenant.profile.service;
 
 message Tenant {
-    int64 tenantId = 1;
-    string tenantName = 2;
-    string requesterEmail = 4;
-    string adminFirstName = 5;
-    string adminLastName = 6;
-    string adminEmail = 7;
-    string adminUsername = 8;
-    string adminPassword = 9;
-    TenantStatus tenantStatus = 10;
+    int64 tenant_id = 1;
+    string client_name = 2;
+    string requester_email = 4;
+    string admin_first_name = 5;
+    string admin_last_name = 6;
+    string admin_email = 7;
+    string admin_username = 8;
+    string admin_password = 9;
+    TenantStatus tenant_status = 10;
     repeated string contacts = 11;
-    repeated string redirectURIs = 12;
-    string tenantURI = 13;
+    repeated string redirect_uris = 12;
+    string client_uri = 13;
     string scope = 14;
     string domain = 15;
+    string comment = 16;
+    string logo_uri = 17;
+    int64 parent_tenant_id = 18;
+    string application_type = 19;
+    string token_endpoint_auth_method = 20;
+    string jwks_uri = 21;
+    string example_extension_parameter = 22;
+    string tos_uri = 23;
+    string policy_uri = 24;
+    map<string, string> jwks = 25;
+    string software_id = 26;
+    string software_version = 27;
+    int64 refesh_token_lifetime = 28;
 }
 
 enum TenantStatus {
@@ -135,7 +148,7 @@ message Empty {
 }
 
 service TenantProfileService {
-    rpc addTenant (Tenant) returns (AddTenantResponse);
+    rpc addTenant (Tenant) returns (Tenant);
     rpc updateTenant (UpdateTenantRequest) returns (UpdateTenantResponse);
     rpc getTenant (GetTenantRequest) returns (GetTenantResponse);
     rpc updateTenantStatus (UpdateStatusRequest) returns (UpdateStatusResponse);

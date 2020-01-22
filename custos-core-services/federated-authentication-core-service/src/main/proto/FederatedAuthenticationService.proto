@@ -32,8 +32,8 @@ message ClientMetadata {
     repeated string contacts = 5;
     string comment = 6;
     repeated string redirectURIs = 7;
-    string clientId = 9;
-    string performedBy = 10;
+    string clientId = 8;
+    string performedBy = 9;
 }
 
 
@@ -42,6 +42,7 @@ message RegisterClientResponse {
     string clientSecret = 2;
     int64 clientIdIssuedAt = 3;
     int64 clientSecretExpiresAt = 4;
+    string clientRegistrationUri = 5;
 }
 
 
@@ -58,6 +59,9 @@ message GetClientResponse {
     repeated string scope = 5;
      int64 clientIdIssuedAt = 6;
     string comment = 7;
+    string clientSecret = 8;
+    int64 clientSecretExpiresAt = 9;
+    string clientRegistrationUri = 10;
 }
 
 message DeleteClientRequest {

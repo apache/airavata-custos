@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -65,12 +66,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
     @Override
     public void addTenant(org.apache.custos.tenant.profile.service.Tenant request,
-                          StreamObserver<AddTenantResponse> responseObserver) {
+                          StreamObserver<org.apache.custos.tenant.profile.service.Tenant> responseObserver) {
 
         try {
             LOGGER.debug("Add tenant request received for tenant " + TenantMapper.getTenantInfoAsString(request));
 
-            if (!isTenantExist(request.getDomain(), request.getTenantName())) {
+            if (!isTenantExist(request.getDomain(), request.getClientName())) {
 
                 Tenant tenant = TenantMapper.createTenantEntityFromTenant(request);
 
@@ -84,12 +85,14 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
                 Tenant savedTenant = tenantRepository.save(tenant);
 
-                AddTenantResponse response = AddTenantResponse.newBuilder().
-                        setTenantId(savedTenant.getId()).build();
+
+                org.apache.custos.tenant.profile.service.Tenant
+                        response =   request.toBuilder().setTenantId(savedTenant.getId()).build();
+
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
-                String msg = "Tenant exist with name " + request.getTenantName() + " in domain " + request.getDomain();
+                String msg = "Tenant exist with name " + request.getClientName() + " in domain " + request.getDomain();
                 LOGGER.error(msg);
                 responseObserver.onError(Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
             }
@@ -98,6 +101,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             String msg = "Exception occurred while adding the tenant " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
 
 
@@ -116,7 +120,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             Long tenantId = tenant.getTenantId();
 
 
-            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getTenantName())) {
+            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getClientName())) {
                 Optional<Tenant> opt = tenantRepository.findById(tenantId);
                 Tenant exTenant = opt.get();
                 Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
@@ -154,6 +158,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             String msg = "Exception occurred while updating the tenant " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 

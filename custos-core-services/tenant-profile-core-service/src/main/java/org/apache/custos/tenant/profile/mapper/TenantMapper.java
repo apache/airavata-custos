@@ -19,16 +19,16 @@
 
 package org.apache.custos.tenant.profile.mapper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.custos.tenant.profile.persistance.model.Contact;
 import org.apache.custos.tenant.profile.persistance.model.RedirectURI;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.apache.custos.tenant.profile.service.TenantStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -36,6 +36,7 @@ import java.util.Set;
  */
 public class TenantMapper {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenantMapper.class);
 
     /**
      * Maps gRPC Tenant Model to DB Layer Tenant Entity
@@ -45,19 +46,29 @@ public class TenantMapper {
      */
     public static Tenant createTenantEntityFromTenant(org.apache.custos.tenant.profile.service.Tenant tenant) {
         Tenant tenantEntity = new Tenant();
-        if (tenant.getTenantId() != 0){
-            tenantEntity.setId(tenant.getTenantId());
-        }
-        tenantEntity.setName(tenant.getTenantName());
+        tenantEntity.setId(tenant.getTenantId());
+        tenantEntity.setName(tenant.getClientName());
         tenantEntity.setStatus(tenant.getTenantStatus().name());
         tenantEntity.setAdminFirstName(tenant.getAdminFirstName());
         tenantEntity.setAdminLastName(tenant.getAdminLastName());
         tenantEntity.setAdminEmail(tenant.getAdminEmail());
         tenantEntity.setRequesterEmail(tenant.getRequesterEmail());
-        tenantEntity.setLogoURI(tenant.getTenantURI());
+        tenantEntity.setLogoURI(tenant.getClientUri());
         tenantEntity.setScope(tenant.getScope());
         tenantEntity.setDomain(tenant.getDomain());
         tenantEntity.setAdminUsername(tenant.getAdminUsername());
+        tenantEntity.setComment(tenant.getComment());
+        tenantEntity.setUri(tenant.getClientUri());
+        tenantEntity.setParentId(tenant.getParentTenantId());
+        tenantEntity.setApplicationType(tenant.getApplicationType());
+        tenantEntity.setJwks(tenant.getJwksCount() > 0 ? getJWKSAsString(tenant.getJwksMap()) : null);
+        tenantEntity.setJwksUri(tenant.getJwksUri());
+        tenantEntity.setExample_extension_parameter(tenant.getExampleExtensionParameter());
+        tenantEntity.setTosUri(tenant.getTosUri());
+        tenantEntity.setPolicyUri(tenant.getPolicyUri());
+        tenantEntity.setSoftwareId(tenant.getSoftwareId());
+        tenantEntity.setSoftwareVersion(tenant.getSoftwareVersion());
+        tenantEntity.setRefreshTokenLifetime(tenant.getRefeshTokenLifetime());
 
         Set<Contact> contactSet = new HashSet<Contact>();
 
@@ -73,9 +84,9 @@ public class TenantMapper {
         tenantEntity.setContacts(contactSet);
 
         Set<RedirectURI> redirectURIS = new HashSet<RedirectURI>();
-        for (int i = 0; i < tenant.getRedirectURIsCount(); i++) {
+        for (int i = 0; i < tenant.getRedirectUrisCount(); i++) {
 
-            String uri = tenant.getRedirectURIs(i);
+            String uri = tenant.getRedirectUris(i);
             RedirectURI redirectURIEntity = new RedirectURI();
             redirectURIEntity.setTenant(tenantEntity);
             redirectURIEntity.setRedirectURI(uri);
@@ -120,44 +131,55 @@ public class TenantMapper {
                 .setAdminFirstName(tenantEntity.getAdminFirstName())
                 .setAdminLastName(tenantEntity.getAdminLastName())
                 .setDomain(tenantEntity.getDomain())
-                .setTenantURI(tenantEntity.getLogoURI())
+                .setClientUri(tenantEntity.getLogoURI())
                 .setRequesterEmail(tenantEntity.getRequesterEmail())
                 .setScope(tenantEntity.getScope())
                 .addAllContacts(contactList)
-                .addAllRedirectURIs(uriList)
-                .setTenantName(tenantEntity.getName())
+                .addAllRedirectUris(uriList)
+                .setClientName(tenantEntity.getName())
                 .setTenantId(tenantEntity.getId())
                 .setTenantStatus(TenantStatus.valueOf(tenantEntity.getStatus()))
                 .setAdminUsername(tenantEntity.getAdminUsername())
+                .setComment(tenantEntity.getComment())
+                .setLogoUri(tenantEntity.getLogoURI())
+                .setApplicationType(tenantEntity.getApplicationType())
+                .setJwksUri(tenantEntity.getJwksUri())
+                .setExampleExtensionParameter(tenantEntity.getExample_extension_parameter())
+                .setTosUri(tenantEntity.getTosUri())
+                .setPolicyUri(tenantEntity.getPolicyUri())
+                .setSoftwareId(tenantEntity.getSoftwareId())
+                .setSoftwareVersion(tenantEntity.getSoftwareVersion())
+                .setRefeshTokenLifetime(tenantEntity.getRefreshTokenLifetime())
+                .setParentTenantId(tenantEntity.getParentId())
                 .build();
 
 
     }
 
 
-    public static String getTenantInfoAsString (org.apache.custos.tenant.profile.service.Tenant tenant) {
+    public static String getTenantInfoAsString(org.apache.custos.tenant.profile.service.Tenant tenant) {
         StringBuffer buffer = new StringBuffer();
-        buffer.append("tenantName : "+tenant.getTenantName());
+        buffer.append("tenantName : " + tenant.getClientName());
         buffer.append("\n");
-        buffer.append("tenantId : "+tenant.getTenantId());
+        buffer.append("tenantId : " + tenant.getTenantId());
         buffer.append("\n");
-        buffer.append("tenantAdminEmail : "+tenant.getAdminEmail());
+        buffer.append("tenantAdminEmail : " + tenant.getAdminEmail());
         buffer.append("\n");
-        buffer.append("tenantAdminFirstName : "+tenant.getAdminFirstName());
+        buffer.append("tenantAdminFirstName : " + tenant.getAdminFirstName());
         buffer.append("\n");
-        buffer.append("tenantAdminLastName : "+tenant.getAdminLastName());
-        buffer.append("domain : "+tenant.getDomain());
+        buffer.append("tenantAdminLastName : " + tenant.getAdminLastName());
+        buffer.append("domain : " + tenant.getDomain());
         buffer.append("\n");
-        buffer.append("logoURI : "+tenant.getTenantURI());
+        buffer.append("logoURI : " + tenant.getClientUri());
         buffer.append("\n");
         buffer.append("\n");
-        buffer.append("requesterEmail : "+tenant.getRequesterEmail());
+        buffer.append("requesterEmail : " + tenant.getRequesterEmail());
         buffer.append("\n");
-        buffer.append("tenantScope : "+tenant.getScope());
+        buffer.append("tenantScope : " + tenant.getScope());
         buffer.append("\n");
-        buffer.append("contacts  : "+tenant.getContactsList().toString());
+        buffer.append("contacts  : " + tenant.getContactsList().toString());
         buffer.append("\n");
-        buffer.append("redirectURIs : "+ tenant.getRedirectURIsList().toString());
+        buffer.append("redirectURIs : " + tenant.getRedirectUrisList().toString());
         buffer.append("\n");
 
         return buffer.toString();
@@ -165,12 +187,16 @@ public class TenantMapper {
     }
 
 
-//    private <T> Set<T>  difference(Set<T> newSet, Set<T> oldSet) {
-//        Set<T> diffSet = new HashSet<>();
-//
-//
-//
-//    }
+    private static String getJWKSAsString(Map<String, String> jwksMap) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            return objectMapper.writeValueAsString(jwksMap);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error occurred while printing json ", e);
+            return null;
+        }
+    }
 
 
 }

@@ -21,32 +21,32 @@ package org.apache.custos.tenant.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
-import org.apache.custos.credential.store.service.GetOwnerIdFromTokenRequest;
-import org.apache.custos.credential.store.service.GetOwnerIdResponse;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
+import org.apache.custos.tenant.management.service.Credentials;
 import org.apache.custos.tenant.management.service.GetCredentialsRequest;
+import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * This talks to custos authentication and authorization services
- * and validate auth requirements of services
+ * This validates custos credentials
  */
 @Component
 public class AuthInterceptorImpl extends AuthInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
+    private CredentialStoreServiceClient credentialStoreServiceClient;
 
     public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient) {
         super(credentialStoreServiceClient, tenantProfileClient);
+        this.credentialStoreServiceClient = credentialStoreServiceClient;
     }
-
 
 
     @Override
@@ -55,16 +55,43 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         if (method.equals("getCredentials")) {
             AuthClaim claim = authorize(headers);
-
-            String oauthId = claim.getIamAuthId();
-            String oauthSec = claim.getIamAuthSecret();
-
-            long tenantId = claim.getTenantId();
-
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
             }
+            long tenantId = claim.getTenantId();
+
+
             return (ReqT) GetCredentialsRequest.newBuilder().setTenantId(tenantId).build();
+        } else if (method.equals("createTenant")) {
+            AuthClaim claim = authorize(headers);
+            if (claim != null) {
+
+                return (ReqT) ((Tenant) msg).toBuilder().setParentTenantId(claim.getTenantId()).build();
+            }
+        } else if (method.equals("getTenant")) {
+
+            LOGGER.info("Calling getTenant at Auth interceptor");
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            GetTenantRequest tenantRequest = ((GetTenantRequest) msg);
+
+            Credentials credentials = Credentials.newBuilder()
+                    .setCustosClientId(claim.getCustosId())
+                    .setCustosClientSecret(claim.getCustosSecret())
+                    .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
+                    .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
+                    .setIamClientId(claim.getIamAuthId())
+                    .setIamClientSecret(claim.getIamAuthSecret())
+                    .setCiLogonClientId(claim.getCiLogonId())
+                    .setCiLogonClientSecret(claim.getCiLogonSecret()).build();
+
+            LOGGER.info("TenantId " + claim.getTenantId());
+
+            return (ReqT) tenantRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
         }
 
         return msg;

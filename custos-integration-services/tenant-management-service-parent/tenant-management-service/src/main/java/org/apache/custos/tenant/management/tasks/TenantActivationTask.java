@@ -45,7 +45,6 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantActivationTask.class);
 
 
-
     @Autowired
     private IamAdminServiceClient iamAdminServiceClient;
 
@@ -87,66 +86,9 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
                     if (metadata != null && metadata.getSecret() != null) {
 
-                        SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
-                                .newBuilder()
-                                .setTenantId(tenantId)
-                                .setTenantName(tenant.getTenantName())
-                                .setAdminFirstname(tenant.getAdminFirstName())
-                                .setAdminLastname(tenant.getAdminLastName())
-                                .setAdminEmail(tenant.getAdminEmail())
-                                .addAllRedirectURIs(tenant.getRedirectURIsList())
-                                .setAdminPassword(metadata.getSecret())
-                                .setAdminUsername(tenant.getAdminUsername())
-                                .setRequesterEmail(tenant.getRequesterEmail())
-                                .setTenantURL(tenant.getTenantURI())
-                                .build();
+                        Tenant newTenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
 
-                        SetUpTenantResponse iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);
-
-                        CredentialMetadata credentialMetadata = CredentialMetadata
-                                .newBuilder()
-                                .setId(iamResponse.getClientId())
-                                .setSecret(iamResponse.getClientSecret())
-                                .setOwnerId(tenantId)
-                                .setType(Type.IAM)
-                                .build();
-
-                        credentialStoreServiceClient.putCredential(credentialMetadata);
-
-                        ClientMetadata clientMetadata = ClientMetadata
-                                .newBuilder()
-                                .setTenantId(tenantId)
-                                .setTenantName(tenant.getTenantName())
-                                .setTenantURI(tenant.getTenantURI())
-                                .setComment("Created by custos")
-                                .addScope(tenant.getScope())
-                                .addAllRedirectURIs(tenant.getRedirectURIsList())
-                                .addAllContacts(tenant.getContactsList())
-                                .setPerformedBy(tenant.getRequesterEmail())
-                                .build();
-
-                        RegisterClientResponse registerClientResponse = federatedAuthenticationClient
-                                .addClient(clientMetadata);
-
-
-                        CredentialMetadata credentialMetadataCILogon = CredentialMetadata
-                                .newBuilder()
-                                .setId(registerClientResponse.getClientId())
-                                .setSecret(registerClientResponse.getClientSecret())
-                                .setOwnerId(tenantId)
-                                .setType(Type.CILOGON)
-                                .build();
-
-                        credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
-
-                        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
-                                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
-                                        .setTenantId(tenantId)
-                                        .setStatus(TenantStatus.ACTIVE)
-                                        .setUpdatedBy(Constants.SYSTEM)
-                                        .build();
-
-                        UpdateStatusResponse response = profileClient.updateTenantStatus(updateTenantRequest);
+                        UpdateStatusResponse response = this.activateTenant(newTenant);
 
                         invokeNextTask((U) response);
 
@@ -166,9 +108,82 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 getServiceCallback().onError(new ServiceException(msg, null, null));
             }
         } catch (Exception ex) {
-            String msg = "Error occurred  " + ex;
+            String msg = "Error occurred  " + ex.getCause();
             LOGGER.error(msg);
-            getServiceCallback().onError(new ServiceException(msg, ex, null));
+            getServiceCallback().onError(new ServiceException(msg, ex.getCause(), null));
         }
     }
+
+
+    public UpdateStatusResponse activateTenant(Tenant tenant) {
+
+        SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
+                .newBuilder()
+                .setTenantId(tenant.getTenantId())
+                .setTenantName(tenant.getClientName())
+                .setAdminFirstname(tenant.getAdminFirstName())
+                .setAdminLastname(tenant.getAdminLastName())
+                .setAdminEmail(tenant.getAdminEmail())
+                .addAllRedirectURIs(tenant.getRedirectUrisList())
+                .setAdminPassword(tenant.getAdminPassword())
+                .setAdminUsername(tenant.getAdminUsername())
+                .setRequesterEmail(tenant.getRequesterEmail())
+                .setTenantURL(tenant.getClientUri())
+                .build();
+
+        SetUpTenantResponse iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);
+
+        CredentialMetadata credentialMetadata = CredentialMetadata
+                .newBuilder()
+                .setId(iamResponse.getClientId())
+                .setSecret(iamResponse.getClientSecret())
+                .setOwnerId(tenant.getTenantId())
+                .setType(Type.IAM)
+                .build();
+
+        credentialStoreServiceClient.putCredential(credentialMetadata);
+
+      String comment =   (tenant.getComment() == null || tenant.getComment().trim().equals("")) ?
+                 "Created by custos": tenant.getComment() ;
+
+      LOGGER.info("COmment "+ tenant.getComment());
+
+        ClientMetadata clientMetadata = ClientMetadata
+                .newBuilder()
+                .setTenantId(tenant.getTenantId())
+                .setTenantName(tenant.getClientName())
+                .setTenantURI(tenant.getClientUri())
+                .setComment(comment)
+                .addScope(tenant.getScope())
+                .addAllRedirectURIs(tenant.getRedirectUrisList())
+                .addAllContacts(tenant.getContactsList())
+                .setPerformedBy(tenant.getRequesterEmail())
+                .build();
+
+        LOGGER.info("clientMetadata "+ clientMetadata.getComment());
+
+        RegisterClientResponse registerClientResponse = federatedAuthenticationClient
+                .addClient(clientMetadata);
+
+
+        CredentialMetadata credentialMetadataCILogon = CredentialMetadata
+                .newBuilder()
+                .setId(registerClientResponse.getClientId())
+                .setSecret(registerClientResponse.getClientSecret())
+                .setOwnerId(tenant.getTenantId())
+                .setType(Type.CILOGON)
+                .build();
+
+        credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
+
+        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
+                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
+                        .setTenantId(tenant.getTenantId())
+                        .setStatus(TenantStatus.ACTIVE)
+                        .setUpdatedBy(Constants.SYSTEM)
+                        .build();
+
+        return profileClient.updateTenantStatus(updateTenantRequest);
+    }
+
 }

@@ -27,6 +27,22 @@ public class AuthClaim {
 
     private String iamAuthSecret;
 
+    private String ciLogonId;
+
+    private String ciLogonSecret;
+
+    private String custosId;
+
+    private String custosSecret;
+
+    private long custosIdIssuedAt;
+
+
+    private long custosSecretExpiredAt;
+
+
+    public AuthClaim() {
+    }
 
     public AuthClaim(long tenantId, String iamAuthId, String iamAuthSecret) {
         this.tenantId = tenantId;
@@ -56,5 +72,53 @@ public class AuthClaim {
 
     public void setIamAuthSecret(String iamAuthSecret) {
         this.iamAuthSecret = iamAuthSecret;
+    }
+
+    public String getCiLogonId() {
+        return ciLogonId;
+    }
+
+    public void setCiLogonId(String ciLogonId) {
+        this.ciLogonId = ciLogonId;
+    }
+
+    public String getCiLogonSecret() {
+        return ciLogonSecret;
+    }
+
+    public void setCiLogonSecret(String ciLogonSecret) {
+        this.ciLogonSecret = ciLogonSecret;
+    }
+
+    public String getCustosId() {
+        return custosId;
+    }
+
+    public void setCustosId(String custosId) {
+        this.custosId = custosId;
+    }
+
+    public String getCustosSecret() {
+        return custosSecret;
+    }
+
+    public void setCustosSecret(String custosSecret) {
+        this.custosSecret = custosSecret;
+    }
+
+    public long getCustosIdIssuedAt() {
+        return custosIdIssuedAt;
+    }
+
+    public void setCustosIdIssuedAt(long custosIdIssuedAt) {
+        this.custosIdIssuedAt = custosIdIssuedAt;
+    }
+
+    public long getCustosSecretExpiredAt() {
+        return custosSecretExpiredAt;
+    }
+
+    public void setCustosSecretExpiredAt(long custosSecretExpiredAt) {
+        this.custosSecretExpiredAt = custosSecretExpiredAt;
     }
 }

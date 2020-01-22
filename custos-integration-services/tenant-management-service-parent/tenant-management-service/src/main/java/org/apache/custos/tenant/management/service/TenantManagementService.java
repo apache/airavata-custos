@@ -37,6 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Arrays;
+
 
 @GRpcService
 public class TenantManagementService extends TenantManagementServiceImplBase {
@@ -54,43 +56,65 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
-    public void createTenant(CreateTenantRequest request, StreamObserver<CreateTenantResponse> responseObserver) {
+    public void createTenant(Tenant request, StreamObserver<CreateTenantResponse> responseObserver) {
         try {
-            LOGGER.debug("Tenant requested for " + request.getTenant().getTenantName());
+            LOGGER.debug("Tenant requested for " + request.getClientName());
 
-            AddTenantResponse response = profileClient.addTenant(request.getTenant());
+            Tenant response = profileClient.addTenant(request);
 
             long tenantId = response.getTenantId();
 
             GetNewCustosCredentialRequest req = GetNewCustosCredentialRequest.newBuilder().setOwnerId(tenantId).build();
 
-            GetNewCustosCredentialResponse resp = credentialStoreServiceClient.getNewCustosCredentials(req);
+            CredentialMetadata resp = credentialStoreServiceClient.getNewCustosCredentials(req);
 
-            CredentialMetadata metadata = CredentialMetadata
-                    .newBuilder()
-                    .setId(request.getTenant().getAdminUsername())
-                    .setSecret(request.getTenant().getAdminPassword())
-                    .setOwnerId(tenantId)
-                    .setType(Type.INDIVIDUAL)
-                    .build();
+            String message = "Use Base64 encoded clientId:clientSecret as auth token for authorization, " +
+                    "Credentials are activated after admin approval";
+            boolean isTenantActivated = false;
 
-            credentialStoreServiceClient.putCredential(metadata);
+            if (request.getParentTenantId() > 0) {
+                request = request.toBuilder().setTenantId(tenantId).build();
 
+                tenantActivationTask.activateTenant(request);
+
+                isTenantActivated = true;
+
+                message = "Credentials are activated";
+
+            } else {
+                CredentialMetadata metadata = CredentialMetadata
+                        .newBuilder()
+                        .setId(request.getAdminUsername())
+                        .setSecret(request.getAdminPassword())
+                        .setOwnerId(tenantId)
+                        .setType(Type.INDIVIDUAL)
+                        .build();
+
+                credentialStoreServiceClient.putCredential(metadata);
+
+            }
+
+            String tenantBaseURI = Constants.TENANT_BASE_URI + "/client_id?" + resp.getId();
 
             CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()
-                    .setTenantId(response.getTenantId())
-                    .setClientId(resp.getClientId())
-                    .setClientSecret(resp.getClientSecret())
-                    .setMsg("Use Base64 encoded clientId:clientSecret as auth token for authorization, " +
-                            "Credentials are activated after admin approval")
+                    .setClientId(resp.getId())
+                    .setClientSecret(resp.getSecret())
+                    .setClientIdIssuedAt(resp.getClientIdIssuedAt())
+                    .setClientSecretExpiresAt(resp.getClientSecretExpiredAt())
+                    .setTokenEndpointAuthMethod(Constants.CLIENT_SECRET_BASIC)
+                    .setIsActivated(isTenantActivated)
+                    .setRegistrationClientUri(tenantBaseURI)
+                    .setMsg(message)
                     .build();
 
             responseObserver.onNext(tenantResponse);
             responseObserver.onCompleted();
+
+
         } catch (Exception ex) {
-            String msg = "Error occurred at createTenant " + ex;
+            String msg = "Error occurred at createTenant " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -130,7 +154,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
-            String msg = "Tenant update task failed for tenant "+ request.getStatus().getTenantId();
+            String msg = "Tenant update task failed for tenant " + request.getStatus().getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -141,9 +165,10 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void getCredentials(GetCredentialsRequest request, StreamObserver<GetCredentialsResponse> responseObserver) {
         try {
 
-            GetTenantRequest req = GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
+            org.apache.custos.tenant.profile.service.GetTenantRequest req =
+                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
 
-            GetTenantResponse tenantRes = profileClient.getTenant(req);
+            org.apache.custos.tenant.profile.service.GetTenantResponse tenantRes = profileClient.getTenant(req);
 
             if (tenantRes.getTenant() == null) {
                 responseObserver.onError(Status.NOT_FOUND.withDescription("Invalid Request ").asRuntimeException());
@@ -211,10 +236,68 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Override
     public void getTenant(GetTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
-        GetTenantResponse response = profileClient.getTenant(request);
+        try {
 
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+            Tenant tenant = request.getTenant(); // retrieved cached tenant from interceptors
+
+            if (tenant == null) {
+                org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
+                        org.apache.custos.tenant.profile.service.GetTenantRequest
+                                .newBuilder().setTenantId(request.getTenantId()).build();
+
+                org.apache.custos.tenant.profile.service.GetTenantResponse response =
+                        profileClient.getTenant(tenantReq);
+                tenant = response.getTenant();
+            }
+
+            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
+
+            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+
+                GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getTenantId())
+                        .setId(request.getClientId())
+                        .setType(Type.CUSTOS).build();
+
+                clientIdIssuedAt = credentialStoreServiceClient.
+                        getCredential(credentialRequest).getClientIdIssuedAt();
+            }
+
+
+            String[] grantTypes = {Constants.AUTHORIZATION_CODE};
+
+            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
+                    .setClientId(request.getClientId())
+                    .setAdminEmail(tenant.getAdminEmail())
+                    .setAdminFirstName(tenant.getAdminFirstName())
+                    .setAdminLastName(tenant.getAdminLastName())
+                    .setRequesterEmail(tenant.getRequesterEmail())
+                    .setApplicationType(tenant.getApplicationType())
+                    .setClientName(tenant.getClientName())
+                    .setClientUri(tenant.getClientUri())
+                    .setComment(tenant.getComment())
+                    .setDomain(tenant.getDomain())
+                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
+                    .setJwksUri(tenant.getJwksUri())
+                    .addAllContacts(tenant.getContactsList())
+                    .addAllRedirectUris(tenant.getRedirectUrisList())
+                    .setLogoUri(tenant.getLogoUri())
+                    .setPolicyUri(tenant.getPolicyUri())
+                    .setTosUri(tenant.getTosUri())
+                    .setScope(tenant.getScope())
+                    .setSoftwareId(tenant.getSoftwareId())
+                    .setSoftwareVersion(tenant.getSoftwareVersion())
+                    .addAllGrantTypes(Arrays.asList(grantTypes))
+                    .setClientIdIssuedAt(clientIdIssuedAt)
+                    .build();
+            responseObserver.onNext(tenantResponse);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getTenant " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+        }
     }
 
     @Override

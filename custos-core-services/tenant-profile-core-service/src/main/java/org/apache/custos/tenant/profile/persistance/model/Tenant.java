@@ -43,7 +43,8 @@ public class Tenant {
     @Column(nullable = false)
     private String name;
 
-    private String domain; //check meaning of this
+    @Column(nullable = false)
+    private String domain;
 
     @Column(nullable = false)
     private String requesterEmail;
@@ -61,14 +62,44 @@ public class Tenant {
     private String adminEmail;
 
     @Column(nullable = false)
-    private String  adminUsername;
+    private String adminUsername;
 
 
     @Column(name = "tenant_uri")
     private String logoURI;
 
-
+    @Column(nullable = false)
     private String scope;
+
+    @Column(nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @CreatedDate
+    private Date createdAt;
+
+    private String uri;
+
+    private String comment;
+
+    private long parentId;
+
+    @Column(nullable = false)
+    private String applicationType;
+
+    private String jwksUri;
+
+    private String example_extension_parameter;
+
+    private String tosUri;
+
+    private String policyUri;
+
+    private String jwks;
+
+    private String softwareId;
+
+    private String softwareVersion;
+
+    private long refreshTokenLifetime = 0;
 
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
@@ -203,5 +234,111 @@ public class Tenant {
 
     public void setAdminUsername(String adminUsername) {
         this.adminUsername = adminUsername;
+    }
+
+
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
+    }
+
+    public String getApplicationType() {
+        return applicationType;
+    }
+
+    public void setApplicationType(String applicationType) {
+        this.applicationType = applicationType;
+    }
+
+
+    public String getJwksUri() {
+        return jwksUri;
+    }
+
+    public void setJwksUri(String jwksUri) {
+        this.jwksUri = jwksUri;
+    }
+
+    public String getExample_extension_parameter() {
+        return example_extension_parameter;
+    }
+
+    public void setExample_extension_parameter(String example_extension_parameter) {
+        this.example_extension_parameter = example_extension_parameter;
+    }
+
+    public String getTosUri() {
+        return tosUri;
+    }
+
+    public void setTosUri(String tosUri) {
+        this.tosUri = tosUri;
+    }
+
+    public String getPolicyUri() {
+        return policyUri;
+    }
+
+    public void setPolicyUri(String policyUri) {
+        this.policyUri = policyUri;
+    }
+
+    public String getJwks() {
+        return jwks;
+    }
+
+    public void setJwks(String jwks) {
+        this.jwks = jwks;
+    }
+
+    public String getSoftwareId() {
+        return softwareId;
+    }
+
+    public void setSoftwareId(String softwareId) {
+        this.softwareId = softwareId;
+    }
+
+    public String getSoftwareVersion() {
+        return softwareVersion;
+    }
+
+    public void setSoftwareVersion(String softwareVersion) {
+        this.softwareVersion = softwareVersion;
+    }
+
+    public long getRefreshTokenLifetime() {
+        return refreshTokenLifetime;
+    }
+
+    public void setRefreshTokenLifetime(long refreshTokenLifetime) {
+        this.refreshTokenLifetime = refreshTokenLifetime;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
     }
 }
