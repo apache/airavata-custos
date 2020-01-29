@@ -23,7 +23,12 @@ package org.apache.custos.tenant.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
+import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
+import org.apache.custos.tenant.management.service.UpdateTenantRequest;
+import org.apache.custos.tenant.management.utils.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,6 +36,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class InputValidator implements IntegrationServiceInterceptor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
 
     /**
      * Input parameter validater
@@ -48,31 +55,69 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "getTenant":
                 validateGetTenant(headers, body, methodName);
                 break;
+            case "updateTenant":
+                validateUpdateTenant(headers, body, methodName);
+                break;
+            case "deleteTenant":
+                validateDeleteTenant(headers, body, methodName);
+                break;
             default:
         }
     }
 
 
     private boolean validateGetCredentials(Metadata headers, String method) {
-        if (headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
-            throw new MissingParameterException("authorization header not available", null);
-        }
+        return validationAuthorizationHeader(headers);
 
-        return true;
     }
 
     private boolean validateGetTenant(Metadata headers, Object body, String method) {
-        if (headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
-            throw new MissingParameterException("authorization header not available", null);
-        }
-
+        validationAuthorizationHeader(headers);
         GetTenantRequest tenantRequest = ((GetTenantRequest) body);
 
         String clientId = tenantRequest.getClientId();
 
-        if (clientId == null) {
+        if (clientId == null || clientId.trim().equals("")) {
             throw new MissingParameterException("client_id should not be null", null);
         }
+        return true;
+    }
+
+    private boolean validateUpdateTenant(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+
+        UpdateTenantRequest tenantRequest = ((UpdateTenantRequest) body);
+
+        String clientId = tenantRequest.getClientId();
+
+
+        if (clientId == null || clientId.trim().equals("")) {
+            throw new MissingParameterException("client_id should not be null", null);
+        }
+        return true;
+    }
+
+    private boolean validateDeleteTenant(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+
+        DeleteTenantRequest tenantRequest = ((DeleteTenantRequest) body);
+
+        String clientId = tenantRequest.getClientId();
+
+
+        if (clientId == null || clientId.trim().equals("")) {
+            throw new MissingParameterException("client_id should not be null", null);
+        }
+        return true;
+    }
+
+    private boolean validationAuthorizationHeader(Metadata headers) {
+        if (headers.get(Metadata.Key.of(Constants.AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER)) == null) {
+            throw new MissingParameterException("authorization header not available", null);
+        }
+
         return true;
     }
 

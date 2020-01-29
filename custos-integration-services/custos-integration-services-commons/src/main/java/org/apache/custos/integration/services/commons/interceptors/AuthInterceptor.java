@@ -68,7 +68,6 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
 
         if (response == null || response.getSecretListCount() == 0) {
-            LOGGER.info("response null");
             return null;
         }
 

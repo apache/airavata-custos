@@ -1,0 +1,31 @@
+{
+ "client_id": "custos/h9RWrJZTxFoewlVtZf0x/10000308",
+ "client_name": "sampletenant29",
+ "requester_email": "irjanith@gmail.com",
+ "admin_first_name": "Janith",
+ "admin_last_name": "Ranawaka",
+ "admin_email": "isjarana@iu.edu",
+ "contacts": [
+  "+18123915386"
+ ],
+ "redirect_uris": [
+  "http://tenantsample.com/callback"
+ ],
+ "grant_types": [
+  "authorization_code"
+ ],
+ "client_id_issued_at": 1580270498000,
+ "client_uri": "https://custos.lk",
+ "scope": "openId",
+ "domain": "custos.scigap.org",
+ "comment": "Custos For comment",
+ "logo_uri": "https://custos.lk",
+ "application_type": "web",
+ "jwks_uri": "",
+ "example_extension_parameter": "",
+ "tos_uri": "",
+ "policy_uri": "",
+ "jwks": {},
+ "software_id": "",
+ "software_version": ""
+}

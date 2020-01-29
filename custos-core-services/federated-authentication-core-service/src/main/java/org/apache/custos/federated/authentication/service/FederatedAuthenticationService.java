@@ -52,6 +52,16 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
     public void addClient(ClientMetadata request, StreamObserver<RegisterClientResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to addClient for " + request.getTenantId());
+
+            if (request.getClientId() != null && !request.getClientId().trim().equals("")) {
+
+                try {
+                    ciLogonClient.deleteClient(request.getClientId());
+                } catch (Exception ex) {
+                    LOGGER.debug("Error occurred while deleting client " + request.getClientId());
+                }
+            }
+
             String[] scopes = request.getScopeList() != null ?
                     request.getScopeList().toArray(new String[request.getScopeCount()]) : new String[0];
             String contact = request.getContactsList() != null ? request.getContacts(0) : null;

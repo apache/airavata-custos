@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+
 @Component
 public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
@@ -88,7 +90,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
                         Tenant newTenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
 
-                        UpdateStatusResponse response = this.activateTenant(newTenant);
+                        UpdateStatusResponse response = this.activateTenant(newTenant, Constants.SYSTEM);
 
                         invokeNextTask((U) response);
 
@@ -115,7 +117,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
     }
 
 
-    public UpdateStatusResponse activateTenant(Tenant tenant) {
+    public UpdateStatusResponse activateTenant(Tenant tenant, String performedBy) {
 
         SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
                 .newBuilder()
@@ -146,24 +148,38 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
       String comment =   (tenant.getComment() == null || tenant.getComment().trim().equals("")) ?
                  "Created by custos": tenant.getComment() ;
 
-      LOGGER.info("COmment "+ tenant.getComment());
 
-        ClientMetadata clientMetadata = ClientMetadata
+
+      String[] scopes = tenant.getScope() != null ? tenant.getScope().split(" "):new String[0];
+
+        GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                .setOwnerId(tenant.getTenantId())
+                .setType(Type.CILOGON).build();
+
+
+
+        ClientMetadata.Builder clientMetadataBuilder = ClientMetadata
                 .newBuilder()
                 .setTenantId(tenant.getTenantId())
                 .setTenantName(tenant.getClientName())
                 .setTenantURI(tenant.getClientUri())
                 .setComment(comment)
-                .addScope(tenant.getScope())
+                .addAllScope(Arrays.asList(scopes))
                 .addAllRedirectURIs(tenant.getRedirectUrisList())
                 .addAllContacts(tenant.getContactsList())
-                .setPerformedBy(tenant.getRequesterEmail())
-                .build();
+                .setPerformedBy(performedBy);
 
-        LOGGER.info("clientMetadata "+ clientMetadata.getComment());
+
+            CredentialMetadata creMeta = credentialStoreServiceClient.
+                    getCredential(credentialRequest);
+
+            clientMetadataBuilder.setClientId(creMeta.getId());
+
+
+
 
         RegisterClientResponse registerClientResponse = federatedAuthenticationClient
-                .addClient(clientMetadata);
+                .addClient(clientMetadataBuilder.build());
 
 
         CredentialMetadata credentialMetadataCILogon = CredentialMetadata

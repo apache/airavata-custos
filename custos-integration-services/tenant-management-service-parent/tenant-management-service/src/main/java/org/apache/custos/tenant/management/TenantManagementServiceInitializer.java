@@ -34,10 +34,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 @SpringBootApplication
@@ -67,9 +64,9 @@ public class TenantManagementServiceInitializer {
     }
 
     @Bean
-    public List<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
-                                                                DynamicRegistrationValidator registrationValidator, InputValidator validator) {
-        List<IntegrationServiceInterceptor> interceptors = new ArrayList<>();
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
+                                                                  DynamicRegistrationValidator registrationValidator, InputValidator validator) {
+        Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
         interceptors.add(registrationValidator);
@@ -79,7 +76,7 @@ public class TenantManagementServiceInitializer {
 
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(List<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
 

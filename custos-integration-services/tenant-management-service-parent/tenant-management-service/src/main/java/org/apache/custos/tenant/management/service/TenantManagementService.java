@@ -24,6 +24,9 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.*;
+import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
+import org.apache.custos.federated.authentication.service.DeleteClientRequest;
+import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
@@ -52,6 +55,12 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     private CredentialStoreServiceClient credentialStoreServiceClient;
 
     @Autowired
+    private IamAdminServiceClient iamAdminServiceClient;
+
+    @Autowired
+    private FederatedAuthenticationClient federatedAuthenticationClient;
+
+    @Autowired
     private TenantActivationTask<UpdateStatusResponse, UpdateStatusResponse> tenantActivationTask;
 
 
@@ -75,7 +84,8 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             if (request.getParentTenantId() > 0) {
                 request = request.toBuilder().setTenantId(tenantId).build();
 
-                tenantActivationTask.activateTenant(request);
+                //TODO: this is blocking call, improve to non blocking call
+                tenantActivationTask.activateTenant(request, request.getRequesterEmail());
 
                 isTenantActivated = true;
 
@@ -94,7 +104,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             }
 
-            String tenantBaseURI = Constants.TENANT_BASE_URI + "/client_id?" + resp.getId();
+            String tenantBaseURI = Constants.TENANT_BASE_URI + "?client_id=" + resp.getId();
 
             CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()
                     .setClientId(resp.getId())
@@ -116,122 +126,6 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             LOGGER.error(msg);
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
         }
-    }
-
-    @Override
-    public void updateTenantStatus(UpdateStatusRequest request, StreamObserver<UpdateStatusResponse> responseObserver) {
-        try {
-            org.apache.custos.tenant.profile.service.UpdateStatusRequest req = request.getStatus();
-            UpdateStatusResponse response = profileClient.updateTenantStatus(req);
-
-            Context ctx = Context.current().fork();
-            // Set ctx as the current context within the Runnable
-            ctx.run(() -> {
-                ServiceCallback callback = new ServiceCallback() {
-                    @Override
-                    public void onCompleted(Object obj) {
-                        LOGGER.debug(" Tenant Activate task finished " + obj.toString());
-                    }
-
-                    @Override
-                    public void onError(ServiceException ex) {
-                        LOGGER.error("Tenant Activation task failed " + ex);
-                        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
-                                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
-                                        .setTenantId(req.getTenantId())
-                                        .setStatus(TenantStatus.CANCELLED)
-                                        .setUpdatedBy(Constants.SYSTEM)
-                                        .build();
-                        profileClient.updateTenantStatus(updateTenantRequest);
-                    }
-                };
-
-                ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
-
-                chain.serve(response);
-            });
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            String msg = "Tenant update task failed for tenant " + request.getStatus().getTenantId();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
-
-
-    @Override
-    public void getCredentials(GetCredentialsRequest request, StreamObserver<GetCredentialsResponse> responseObserver) {
-        try {
-
-            org.apache.custos.tenant.profile.service.GetTenantRequest req =
-                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
-
-            org.apache.custos.tenant.profile.service.GetTenantResponse tenantRes = profileClient.getTenant(req);
-
-            if (tenantRes.getTenant() == null) {
-                responseObserver.onError(Status.NOT_FOUND.withDescription("Invalid Request ").asRuntimeException());
-            } else if (!tenantRes.getTenant().getTenantStatus().equals(TenantStatus.ACTIVE)) {
-
-                responseObserver.onError(Status.PERMISSION_DENIED.
-                        withDescription("Tenant not yet approved or invalidated").asRuntimeException());
-            } else {
-
-                GetAllCredentialsRequest allReq = GetAllCredentialsRequest
-                        .newBuilder()
-                        .setOwnerId(request.getTenantId())
-                        .build();
-
-                GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentials(allReq);
-
-
-                if (response != null && response.getSecretListCount() > 0) {
-                    GetCredentialsResponse.Builder builder = GetCredentialsResponse.newBuilder();
-                    for (CredentialMetadata metadata : response.getSecretListList()) {
-                        if (metadata.getType().name().equals(Type.CILOGON.name())) {
-                            builder.setCiLogonClientId(metadata.getId());
-                            builder.setCiLogonClientSecret(metadata.getSecret());
-                        } else if (metadata.getType().name().equals(Type.IAM.name())) {
-                            builder.setIamClientId(metadata.getId());
-                            builder.setIamClientSecret(metadata.getSecret());
-                        }
-                    }
-                    GetCredentialsResponse res = builder.build();
-                    responseObserver.onNext(res);
-                    responseObserver.onCompleted();
-                } else {
-                    responseObserver.onError(Status.NOT_FOUND.withDescription("Cannot find credentials ").asRuntimeException());
-                }
-            }
-        } catch (Exception ex) {
-            String msg = "Error occurred while getting credentials " + ex;
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
-
-
-    @Override
-    public void updateTenant(UpdateTenantRequest request, StreamObserver<UpdateTenantResponse> responseObserver) {
-        UpdateTenantResponse response = profileClient.updateTenant(request.getRequest());
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
-    }
-
-
-    @Override
-    public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
-        GetAllTenantsResponse response = profileClient.getAllTenants();
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
-    }
-
-    @Override
-    public void getAllTenantsForUser(GetAllTenantsForUserRequest request, StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
-        GetAllTenantsForUserResponse response = profileClient.getAllTenantsForUser(request);
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
     }
 
     @Override
@@ -297,6 +191,265 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             String msg = "Error occurred at getTenant " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void updateTenant(UpdateTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
+
+        try {
+            Tenant tenant = request.getBody();
+
+            tenant = tenant.toBuilder().setTenantId(request.getTenantId()).build();
+
+            Tenant updateTenant = profileClient.updateTenant(tenant);
+
+            tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN);
+
+            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
+
+            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+
+                GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getTenantId())
+                        .setId(request.getClientId())
+                        .setType(Type.CUSTOS).build();
+
+                clientIdIssuedAt = credentialStoreServiceClient.
+                        getCredential(credentialRequest).getClientIdIssuedAt();
+            }
+
+
+            String[] grantTypes = {Constants.AUTHORIZATION_CODE};
+
+
+            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
+                    .setClientId(request.getClientId())
+                    .setAdminEmail(tenant.getAdminEmail())
+                    .setAdminFirstName(tenant.getAdminFirstName())
+                    .setAdminLastName(tenant.getAdminLastName())
+                    .setRequesterEmail(tenant.getRequesterEmail())
+                    .setApplicationType(tenant.getApplicationType())
+                    .setClientName(tenant.getClientName())
+                    .setClientUri(tenant.getClientUri())
+                    .setComment(tenant.getComment())
+                    .setDomain(tenant.getDomain())
+                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
+                    .setJwksUri(tenant.getJwksUri())
+                    .addAllContacts(tenant.getContactsList())
+                    .addAllRedirectUris(tenant.getRedirectUrisList())
+                    .setLogoUri(tenant.getLogoUri())
+                    .setPolicyUri(tenant.getPolicyUri())
+                    .setTosUri(tenant.getTosUri())
+                    .setScope(tenant.getScope())
+                    .setSoftwareId(tenant.getSoftwareId())
+                    .setSoftwareVersion(tenant.getSoftwareVersion())
+                    .addAllGrantTypes(Arrays.asList(grantTypes))
+                    .setClientIdIssuedAt(clientIdIssuedAt)
+                    .build();
+
+            responseObserver.onNext(tenantResponse);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at updateTenant " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void deleteTenant(DeleteTenantRequest request, StreamObserver<com.google.protobuf.Empty> responseObserver) {
+        try {
+            org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
+                    org.apache.custos.tenant.profile.service.UpdateStatusRequest
+                            .newBuilder()
+                            .setStatus(TenantStatus.DEACTIVATED)
+                            .setTenantId(request.getTenantId())
+                            .setUpdatedBy(Constants.GATEWAY_ADMIN)
+                            .build();
+
+            profileClient.updateTenantStatus(updateTenantRequest);
+
+            Credentials credentials = request.getCredentials();
+
+
+            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+
+                GetAllCredentialsRequest credentialRequest = GetAllCredentialsRequest.newBuilder()
+                        .setOwnerId(request.getTenantId())
+                        .build();
+
+                GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentials(credentialRequest);
+
+                if (response.getSecretListCount() > 0) {
+
+                    Credentials.Builder creBuilder = Credentials.newBuilder();
+                    response.getSecretListList().forEach(metadata -> {
+
+                                if (metadata.getType() == Type.CUSTOS) {
+                                    creBuilder.setCustosClientId(metadata.getId())
+                                            .setCustosClientSecret(metadata.getSecret())
+                                            .setCustosClientIdIssuedAt(metadata.getClientIdIssuedAt())
+                                            .setCustosClientSecretExpiredAt(metadata.getClientSecretExpiredAt());
+                                } else if (metadata.getType() == Type.IAM) {
+                                    creBuilder.setIamClientId(metadata.getId())
+                                            .setIamClientSecret(metadata.getSecret());
+
+
+                                } else if (metadata.getType() == Type.CILOGON) {
+                                    creBuilder.setCiLogonClientId(metadata.getId())
+                                            .setCiLogonClientSecret(metadata.getSecret());
+                                }
+
+                            }
+
+                    );
+
+                    credentials = creBuilder.build();
+                }
+
+            }
+
+
+            DeleteClientRequest clientRequest = DeleteClientRequest.newBuilder()
+                    .setClientId(credentials.getCiLogonClientId())
+                    .setTenantId(request.getTenantId())
+                    .setPerformedBy(Constants.GATEWAY_ADMIN)
+                    .build();
+            federatedAuthenticationClient.deleteClient(clientRequest);
+
+
+            org.apache.custos.iam.service.DeleteTenantRequest tenantRequest = org.apache.custos.iam.service.
+                    DeleteTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
+            iamAdminServiceClient.deleteTenant(tenantRequest);
+
+            DeleteCredentialRequest deleteCredentialRequest = DeleteCredentialRequest
+                    .newBuilder().setOwnerId(request.getTenantId()).build();
+
+            credentialStoreServiceClient.deleteCredential(deleteCredentialRequest);
+
+            responseObserver.onNext(com.google.protobuf.Empty.newBuilder().build());
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at deleteTenant " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
+        GetAllTenantsResponse response = profileClient.getAllTenants();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getAllTenantsForUser(GetAllTenantsForUserRequest request, StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
+        GetAllTenantsForUserResponse response = profileClient.getAllTenantsForUser(request);
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+
+    @Override
+    public void updateTenantStatus(UpdateStatusRequest request, StreamObserver<UpdateStatusResponse> responseObserver) {
+        try {
+            org.apache.custos.tenant.profile.service.UpdateStatusRequest req = request.getStatus();
+            UpdateStatusResponse response = profileClient.updateTenantStatus(req);
+
+            Context ctx = Context.current().fork();
+            // Set ctx as the current context within the Runnable
+            ctx.run(() -> {
+                ServiceCallback callback = new ServiceCallback() {
+                    @Override
+                    public void onCompleted(Object obj) {
+                        LOGGER.debug(" Tenant Activate task finished " + obj.toString());
+                        responseObserver.onNext(response);
+                        responseObserver.onCompleted();
+                    }
+
+                    @Override
+                    public void onError(ServiceException ex) {
+                        String msg = "Tenant Activation task failed " + ex;
+                        LOGGER.error(msg);
+                        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
+                                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
+                                        .setTenantId(req.getTenantId())
+                                        .setStatus(TenantStatus.CANCELLED)
+                                        .setUpdatedBy(Constants.SYSTEM)
+                                        .build();
+                        profileClient.updateTenantStatus(updateTenantRequest);
+                        responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
+                    }
+                };
+
+                ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
+
+                chain.serve(response);
+            });
+
+
+        } catch (Exception ex) {
+            String msg = "Tenant update task failed for tenant " + request.getStatus().getTenantId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getCredentials(GetCredentialsRequest request, StreamObserver<GetCredentialsResponse> responseObserver) {
+        try {
+
+            org.apache.custos.tenant.profile.service.GetTenantRequest req =
+                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
+
+            org.apache.custos.tenant.profile.service.GetTenantResponse tenantRes = profileClient.getTenant(req);
+
+            if (tenantRes.getTenant() == null) {
+                responseObserver.onError(Status.NOT_FOUND.withDescription("Invalid Request ").asRuntimeException());
+            } else if (!tenantRes.getTenant().getTenantStatus().equals(TenantStatus.ACTIVE)) {
+
+                responseObserver.onError(Status.PERMISSION_DENIED.
+                        withDescription("Tenant not yet approved or invalidated").asRuntimeException());
+            } else {
+
+                GetAllCredentialsRequest allReq = GetAllCredentialsRequest
+                        .newBuilder()
+                        .setOwnerId(request.getTenantId())
+                        .build();
+
+                GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentials(allReq);
+
+
+                if (response != null && response.getSecretListCount() > 0) {
+                    GetCredentialsResponse.Builder builder = GetCredentialsResponse.newBuilder();
+                    for (CredentialMetadata metadata : response.getSecretListList()) {
+                        if (metadata.getType().name().equals(Type.CILOGON.name())) {
+                            builder.setCiLogonClientId(metadata.getId());
+                            builder.setCiLogonClientSecret(metadata.getSecret());
+                        } else if (metadata.getType().name().equals(Type.IAM.name())) {
+                            builder.setIamClientId(metadata.getId());
+                            builder.setIamClientSecret(metadata.getSecret());
+                        }
+                    }
+                    GetCredentialsResponse res = builder.build();
+                    responseObserver.onNext(res);
+                    responseObserver.onCompleted();
+                } else {
+                    responseObserver.onError(Status.NOT_FOUND.withDescription("Cannot find credentials ").asRuntimeException());
+                }
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while getting credentials " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 

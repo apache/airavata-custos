@@ -80,10 +80,6 @@ message AddTenantResponse {
     int64 tenantId = 1;
 }
 
-message UpdateTenantRequest {
-    Tenant tenant = 1;
-    string updatedBy = 2;
-}
 
 message UpdateTenantResponse {
     Tenant tenant = 1;
@@ -149,7 +145,7 @@ message Empty {
 
 service TenantProfileService {
     rpc addTenant (Tenant) returns (Tenant);
-    rpc updateTenant (UpdateTenantRequest) returns (UpdateTenantResponse);
+    rpc updateTenant (Tenant) returns (Tenant);
     rpc getTenant (GetTenantRequest) returns (GetTenantResponse);
     rpc updateTenantStatus (UpdateStatusRequest) returns (UpdateStatusResponse);
     rpc getAllTenants (Empty) returns (GetAllTenantsResponse);

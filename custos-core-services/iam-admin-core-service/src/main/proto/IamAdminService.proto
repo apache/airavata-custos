@@ -23,6 +23,8 @@ syntax = "proto3";
 option java_multiple_files = true;
 package org.apache.custos.iam.service;
 
+import "google/protobuf/empty.proto";
+
 message User {
     string internalUserId = 1;
     string username = 2;
@@ -141,9 +143,14 @@ message GetOperationsMetadataResponse {
     repeated OperationMetadata metadata = 1;
 }
 
+message DeleteTenantRequest {
+    int64 tenantId = 1;
+}
+
 
 service  IamAdminService {
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc deleteTenant(DeleteTenantRequest) returns (google.protobuf.Empty);
     rpc isUsernameAvailable (IsUsernameAvailableRequest) returns (CheckingResponse);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc enableUser (UserAccessInfo) returns (User);
@@ -158,4 +165,5 @@ service  IamAdminService {
     rpc addRoleToUser (RoleOperationsUserRequest) returns (CheckingResponse);
     rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+
 }

@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -71,31 +70,25 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
         try {
             LOGGER.debug("Add tenant request received for tenant " + TenantMapper.getTenantInfoAsString(request));
 
-            if (!isTenantExist(request.getDomain(), request.getClientName())) {
+            Tenant tenant = TenantMapper.createTenantEntityFromTenant(request);
 
-                Tenant tenant = TenantMapper.createTenantEntityFromTenant(request);
+            tenant.setStatus(TenantStatus.REQUESTED.name());
 
-                tenant.setStatus(TenantStatus.REQUESTED.name());
+            Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
+                    createStatusUpdateMetadataEntity(tenant, tenant.getRequesterEmail());
 
-                Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
-                        createStatusUpdateMetadataEntity(tenant, tenant.getRequesterEmail());
-
-                tenant.setStatusUpdateMetadata(metadataSet);
+            tenant.setStatusUpdateMetadata(metadataSet);
 
 
-                Tenant savedTenant = tenantRepository.save(tenant);
+            Tenant savedTenant = tenantRepository.save(tenant);
 
 
-                org.apache.custos.tenant.profile.service.Tenant
-                        response =   request.toBuilder().setTenantId(savedTenant.getId()).build();
+            org.apache.custos.tenant.profile.service.Tenant
+                    response = request.toBuilder().setTenantId(savedTenant.getId()).build();
 
-                responseObserver.onNext(response);
-                responseObserver.onCompleted();
-            } else {
-                String msg = "Tenant exist with name " + request.getClientName() + " in domain " + request.getDomain();
-                LOGGER.error(msg);
-                responseObserver.onError(Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding the tenant " + ex;
@@ -108,51 +101,52 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     }
 
     @Override
-    public void updateTenant(UpdateTenantRequest request, StreamObserver<UpdateTenantResponse> responseObserver) {
+    public void updateTenant(org.apache.custos.tenant.profile.service.Tenant tenant, StreamObserver<org.apache.custos.tenant.profile.service.Tenant> responseObserver) {
         try {
             LOGGER.debug("Update tenant request received for tenant " + TenantMapper.
-                    getTenantInfoAsString(request.getTenant()));
+                    getTenantInfoAsString(tenant));
 
-            org.apache.custos.tenant.profile.service.Tenant tenant = request.getTenant();
 
-            String updatedBy = request.getUpdatedBy();
+            String updatedBy = "Tenant Admin";
 
             Long tenantId = tenant.getTenantId();
 
-
-            if (isUpdatable(tenantId, tenant.getDomain(), tenant.getClientName())) {
-                Optional<Tenant> opt = tenantRepository.findById(tenantId);
-                Tenant exTenant = opt.get();
-                Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
-
-                //Do not update the tenant status
-
-                tenantEntity.setStatus(exTenant.getStatus());
-
-
-                Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
-                        createAttributeUpdateMetadataEntity(exTenant, tenantEntity, updatedBy);
-
-                tenantEntity.setAttributeUpdateMetadata(metadata);
-
-                contactRepository.deleteAllByTenantId(tenantId);
-
-                redirectURIRepository.deleteAllByTenantId(tenantId);
-
-                tenantRepository.save(tenantEntity);
-
-                UpdateTenantResponse response = UpdateTenantResponse.newBuilder().
-                        build().newBuilder().setTenant(tenant).build();
-                responseObserver.onNext(response);
-                responseObserver.onCompleted();
-            } else {
-                String msg = "Tenant is not updatable, " +
-                        "because tenant may not exist with given Id or there may be a tenant with" +
-                        "updated domain and name";
+            if (!isUpdatable(tenantId, tenant.getDomain(), tenant.getClientName())) {
+                String msg = "Tenant not exist";
                 LOGGER.error(msg);
-                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+                return;
             }
 
+            Optional<Tenant> opt = tenantRepository.findById(tenantId);
+            Tenant exTenant = opt.get();
+            Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
+
+            //Do not update the tenant status
+
+            if (tenantEntity.getParentId() > 0) {
+
+                tenantEntity.setStatus(exTenant.getStatus());
+            } else {
+                tenantEntity.setStatus(TenantStatus.REQUESTED.name());
+            }
+
+            tenantEntity.setCreatedAt(exTenant.getCreatedAt());
+
+
+            Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
+                    createAttributeUpdateMetadataEntity(exTenant, tenantEntity, updatedBy);
+
+            tenantEntity.setAttributeUpdateMetadata(metadata);
+
+            contactRepository.deleteAllByTenantId(tenantId);
+
+            redirectURIRepository.deleteAllByTenantId(tenantId);
+
+            tenantRepository.save(tenantEntity);
+
+            responseObserver.onNext(tenant);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while updating the tenant " + ex;
@@ -385,12 +379,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     private boolean isUpdatable(Long tenantId, String domain, String name) {
         List<Tenant> tenantList = tenantRepository.findByDomainAndName(domain, name);
 
-        if (tenantList != null && !tenantList.isEmpty()) {
-            Tenant exTeant = tenantList.get(0);
-            if (!exTeant.getId().equals(tenantId)) {
-                return false;
-            }
-        }
+//        if (tenantList != null && !tenantList.isEmpty()) {
+//            Tenant exTeant = tenantList.get(0);
+//            if (!exTeant.getId().equals(tenantId)) {
+//                return false;
+//            }
+//        }
         Optional<Tenant> opt = tenantRepository.findById(tenantId);
         if (opt.isPresent()) {
             return true;

@@ -109,6 +109,7 @@ public class KeycloakAuthClient {
             AuthzClient keycloakClient = AuthzClient.create(configuration);
 
 
+
             AccessTokenResponse accessToken = keycloakClient.obtainAccessToken(username, password);
 
 

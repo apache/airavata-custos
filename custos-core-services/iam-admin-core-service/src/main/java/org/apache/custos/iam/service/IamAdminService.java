@@ -19,6 +19,7 @@
 
 package org.apache.custos.iam.service;
 
+import com.google.protobuf.Empty;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
@@ -51,7 +52,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void setUPTenant(SetUpTenantRequest request, StreamObserver<SetUpTenantResponse> responseObserver) {
         try {
-            LOGGER.debug("Request received to setUPTenant for " + request.getTenantId());
+            LOGGER.debug("Request received to setUPTenant  " + request.getTenantId());
+
+             keycloakClient.deleteRealm(String.valueOf(request.getTenantId()));
 
             keycloakClient.createRealm(String.valueOf(request.getTenantId()), request.getTenantName());
 
@@ -88,10 +91,28 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+
+    @Override
+    public void deleteTenant(DeleteTenantRequest request, StreamObserver<Empty> responseObserver) {
+        try {
+            LOGGER.debug("Request received to delete tenant  " + request.getTenantId());
+
+            keycloakClient.deleteRealm(String.valueOf(request.getTenantId()));
+
+            responseObserver.onNext(Empty.newBuilder().build());
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred during delete tenant" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     @Override
     public void isUsernameAvailable(IsUsernameAvailableRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
-            LOGGER.debug("Request received to isUsernameAvailable for " + request.getTenantId());
+            LOGGER.debug("Request received to isUsernameAvailable at " + request.getTenantId());
 
             boolean isAvailable = keycloakClient.isUsernameAvailable(String.valueOf(request.getTenantId()),
                     request.getUserName(),
@@ -112,7 +133,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void isUserEnabled(UserAccessInfo request, StreamObserver<CheckingResponse> responseObserver) {
         try {
-            LOGGER.debug("Request received to isUserEnabled for " + request.getTenantId());
+            LOGGER.debug("Request received to isUserEnabled at " + request.getTenantId());
 
             boolean isAvailable = keycloakClient.isUserAccountEnabled(String.valueOf(request.getTenantId()),
                     request.getAccessToken(),
@@ -135,7 +156,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         String userId = request.getAdminUsername() + "@" + request.getTenantId();
 
         try {
-            LOGGER.debug("Request received to addRoleToUser for " + request.getTenantId());
+            LOGGER.debug("Request received to addRoleToUser at " + request.getTenantId());
 
             boolean isAdded = keycloakClient.addRoleToUser(request.getAdminUsername(),
                     request.getPassword(),

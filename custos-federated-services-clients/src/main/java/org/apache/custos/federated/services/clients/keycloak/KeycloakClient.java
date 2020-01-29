@@ -20,10 +20,12 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
+import org.apache.http.HttpException;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.*;
@@ -33,6 +35,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileInputStream;
@@ -544,6 +547,36 @@ public class KeycloakClient {
                 client.close();
             }
         }
+    }
+
+
+    public boolean deleteRealm(String realmId) {
+        Keycloak client = null;
+        try {
+            // get client
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (realmResource != null) {
+                realmResource.remove();
+            }
+
+        }
+        catch (NotFoundException ex) {
+            LOGGER.debug("Realm not found", ex);
+        }
+        catch (Exception ex) {
+            String msg = "Error deleting Realm in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+
     }
 
 

@@ -19,6 +19,7 @@
 
 package org.apache.custos.iam.admin.client;
 
+import com.google.protobuf.Empty;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -217,6 +218,11 @@ public class IamAdminServiceClient {
 
     public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
         return iamAdminServiceBlockingStub.getOperationMetadata(request);
+    }
+
+
+    public Empty deleteTenant(DeleteTenantRequest request) {
+        return iamAdminServiceBlockingStub.deleteTenant(request);
     }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {

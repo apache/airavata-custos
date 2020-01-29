@@ -25,7 +25,9 @@ import org.apache.custos.credential.store.service.CredentialMetadata;
 import org.apache.custos.credential.store.service.GetCredentialRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
+import org.apache.custos.tenant.management.service.UpdateTenantRequest;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.Tenant;
 import org.slf4j.Logger;
@@ -52,8 +54,9 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
+
+
         if (method.equals("getTenant")) {
-            LOGGER.info("Calling getTenant at Dynamic interceptor");
             GetTenantRequest tenantRequest = ((GetTenantRequest) msg);
 
             String clientId = tenantRequest.getClientId();
@@ -78,6 +81,48 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
             if (tenantRequest.getParentTenantId() > 0) {
                 validateTenant(tenantRequest.getParentTenantId(), tenantRequest.getParentTenantId());
             }
+
+        } else if (method.equals("updateTenant")) {
+
+
+            UpdateTenantRequest tenantRequest = ((UpdateTenantRequest) msg);
+
+            String clientId = tenantRequest.getClientId();
+
+            GetCredentialRequest request = GetCredentialRequest.newBuilder()
+                    .setId(clientId)
+                    .build();
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+            if (metadata == null || metadata.getOwnerId() == 0) {
+                throw new NotAuthorizedException("Invalid client_id", null);
+            }
+
+
+            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId());
+
+            return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
+
+        } else if (method.equals("deleteTenant")) {
+
+
+            DeleteTenantRequest tenantRequest = ((DeleteTenantRequest) msg);
+
+            String clientId = tenantRequest.getClientId();
+
+            GetCredentialRequest request = GetCredentialRequest.newBuilder()
+                    .setId(clientId)
+                    .build();
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+            if (metadata == null || metadata.getOwnerId() == 0) {
+                throw new NotAuthorizedException("Invalid client_id", null);
+            }
+
+
+            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId());
+
+            return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
         }
         return msg;

@@ -70,7 +70,7 @@ public class TenantProfileClient {
     }
 
 
-    public void updateTenantAsync(UpdateTenantRequest request, final ServiceCallback callback) {
+    public void updateTenantAsync(Tenant request, final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "Update tenant task failed");
 
@@ -78,7 +78,7 @@ public class TenantProfileClient {
     }
 
 
-    public UpdateTenantResponse updateTenant(UpdateTenantRequest updateTenantRequest) {
+    public Tenant updateTenant(Tenant updateTenantRequest) {
         return profileServiceBlockingStub.updateTenant(updateTenantRequest);
 
 

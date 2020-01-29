@@ -117,11 +117,6 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }
 
-            if (metadata.getId() == null || metadata.getId().trim().equals("")) {
-                throw new MissingParameterException("Id cannot be null at " + method, null);
-            }
-
-
             if (metadata.getType() == null) {
                 throw new MissingParameterException("Type cannot be null at " + method, null);
             }

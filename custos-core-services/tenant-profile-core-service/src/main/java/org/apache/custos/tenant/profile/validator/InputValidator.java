@@ -118,19 +118,16 @@ public class InputValidator implements Validator {
 
 
     private boolean validateUpdateTenant(Object obj) {
-        if (obj instanceof UpdateTenantRequest) {
-            UpdateTenantRequest req = (UpdateTenantRequest) obj;
+        if (obj instanceof Tenant) {
 
-            Tenant tenant = req.getTenant();
-            String updatedBy = req.getUpdatedBy();
+            Tenant tenant = (Tenant) obj;
+
 
             if (tenant == null || tenant.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (updatedBy == null || updatedBy.trim().equals("")) {
-                throw new MissingParameterException("Updated by should not be null", null);
-            }
+
 
             if (tenant.getClientName() == null || tenant.getClientName().trim() == "") {
                 throw new MissingParameterException("Client name should not be null", null);
@@ -142,19 +139,35 @@ public class InputValidator implements Validator {
 
 
             if (tenant.getAdminFirstName() == null || tenant.getAdminFirstName().trim() == "") {
-                throw new MissingParameterException("Tenant admin first name should not be null", null);
+                throw new MissingParameterException(" Admin first name should not be null", null);
             }
 
             if (tenant.getAdminLastName() == null || tenant.getAdminLastName().trim() == "") {
-                throw new MissingParameterException("Tenant admin last name should not be null", null);
+                throw new MissingParameterException(" Admin last name should not be null", null);
             }
 
             if (tenant.getAdminEmail() == null || tenant.getAdminEmail().trim() == "") {
-                throw new MissingParameterException("Tenant admin email should not be null", null);
+                throw new MissingParameterException(" Admin email should not be null", null);
+            }
+
+            if (tenant.getAdminUsername() == null || tenant.getAdminUsername().trim() == "") {
+                throw new MissingParameterException(" Admin username should not be null", null);
+            }
+
+            if (tenant.getAdminPassword() == null || tenant.getAdminPassword().trim() == "") {
+                throw new MissingParameterException(" Admin password should not be null", null);
             }
 
             if (tenant.getRequesterEmail() == null || tenant.getRequesterEmail().trim() == "") {
                 throw new MissingParameterException("Tenant requester email  should not be null", null);
+            }
+
+            if (tenant.getRedirectUrisCount() == 0) {
+                throw new MissingParameterException("Redirect uris cannot be  should not be null", null);
+            }
+
+            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
+                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
             }
 
         } else {

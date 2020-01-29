@@ -24,9 +24,7 @@ import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
-import org.apache.custos.tenant.management.service.Credentials;
-import org.apache.custos.tenant.management.service.GetCredentialsRequest;
-import org.apache.custos.tenant.management.service.GetTenantRequest;
+import org.apache.custos.tenant.management.service.*;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.Tenant;
 import org.slf4j.Logger;
@@ -70,7 +68,6 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             }
         } else if (method.equals("getTenant")) {
 
-            LOGGER.info("Calling getTenant at Auth interceptor");
             AuthClaim claim = authorize(headers);
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -78,22 +75,55 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
             GetTenantRequest tenantRequest = ((GetTenantRequest) msg);
 
-            Credentials credentials = Credentials.newBuilder()
-                    .setCustosClientId(claim.getCustosId())
-                    .setCustosClientSecret(claim.getCustosSecret())
-                    .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
-                    .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
-                    .setIamClientId(claim.getIamAuthId())
-                    .setIamClientSecret(claim.getIamAuthSecret())
-                    .setCiLogonClientId(claim.getCiLogonId())
-                    .setCiLogonClientSecret(claim.getCiLogonSecret()).build();
+            Credentials credentials = getCredentials(claim);
 
-            LOGGER.info("TenantId " + claim.getTenantId());
+
+            return (ReqT) tenantRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
+        } else if (method.equals("updateTenant")) {
+
+
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            UpdateTenantRequest tenantRequest = ((UpdateTenantRequest) msg);
+
+            Credentials credentials = getCredentials(claim);
+
+            return (ReqT) tenantRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
+        } else if (method.equals("deleteTenant")) {
+
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            DeleteTenantRequest tenantRequest = ((DeleteTenantRequest) msg);
+
+            Credentials credentials = getCredentials(claim);
+
 
             return (ReqT) tenantRequest.toBuilder()
                     .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
         }
 
         return msg;
+    }
+
+
+    private Credentials getCredentials(AuthClaim claim) {
+        return Credentials.newBuilder()
+                .setCustosClientId(claim.getCustosId())
+                .setCustosClientSecret(claim.getCustosSecret())
+                .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
+                .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
+                .setIamClientId(claim.getIamAuthId())
+                .setIamClientSecret(claim.getIamAuthSecret())
+                .setCiLogonClientId(claim.getCiLogonId())
+                .setCiLogonClientSecret(claim.getCiLogonSecret()).build();
+
     }
 }

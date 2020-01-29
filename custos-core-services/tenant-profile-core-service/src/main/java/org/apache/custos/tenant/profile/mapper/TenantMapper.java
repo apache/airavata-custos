@@ -70,6 +70,7 @@ public class TenantMapper {
         tenantEntity.setSoftwareVersion(tenant.getSoftwareVersion());
         tenantEntity.setRefreshTokenLifetime(tenant.getRefeshTokenLifetime());
 
+
         Set<Contact> contactSet = new HashSet<Contact>();
 
         for (int i = 0; i < tenant.getContactsCount(); i++) {

@@ -124,7 +124,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 String msg = "Cannot find credentials for "
                         + request.getOwnerId() + " for type " + request.getType();
                 LOGGER.error(msg);
-                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                CredentialMetadata secret = CredentialMetadata.newBuilder().build();
+                responseObserver.onNext(secret);
+                responseObserver.onCompleted();
                 return;
 
             }
@@ -460,7 +462,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             }
 
             CredentialEntity entity = repository.findByClientId(credential.getId());
-           
+
             if (entity == null) {
                 LOGGER.error("User not found");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 /**
  * This class intercepts incoming requests and forwarding for validation
@@ -37,9 +38,9 @@ public class ServiceInterceptor implements ServerInterceptor {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ServiceInterceptor.class);
 
-    private List<IntegrationServiceInterceptor> interceptorSet;
+    private Stack<IntegrationServiceInterceptor> interceptorSet;
 
-    public ServiceInterceptor(List<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    public ServiceInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         this.interceptorSet = integrationServiceInterceptors;
     }
 
