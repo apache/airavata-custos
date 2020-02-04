@@ -24,10 +24,12 @@ option java_multiple_files = true;
 package org.apache.custos.identity.service;
 
 
+
 message AuthToken {
     string accessToken = 1;
     repeated Claim claims = 2;
 }
+
 
 message Claim {
     string key = 1;
@@ -41,6 +43,27 @@ message User {
     string lastName = 4;
     string emailAddress = 5;
     string username = 6;
+}
+
+
+message GetTokenRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    string client_secret = 3;
+    string redirect_uri = 4;
+    string code = 6;
+}
+
+message TokenResponse {
+    string access_token = 1;
+    double expires_in = 2;
+    double refresh_expires_in = 3;
+    string refresh_token = 4;
+    string token_type = 5;
+    string id_token = 6;
+    double not_before_policy = 7;
+    string session_state = 8;
+    string scope = 9;
 }
 
 
@@ -62,9 +85,20 @@ message GetUserManagementSATokenRequest {
     int64 tenantId = 3;
 }
 
+message GetAuthorizationEndpointRequest {
+    int64 tenantId = 1;
+}
+
+message AuthorizationResponse {
+    string authorizationEndpoint = 2;
+}
+
 service  IdentityService {
     rpc authenticate (AuthenticationRequest) returns (AuthToken);
     rpc isAuthenticate (AuthToken) returns (IsAuthenticateResponse);
     rpc getUser (AuthToken) returns (User);
     rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthToken);
+    rpc getToken(GetTokenRequest) returns (TokenResponse);
+    rpc getAuthorizeEndpoint(GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
+
 }

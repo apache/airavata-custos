@@ -22,8 +22,10 @@ package org.apache.custos.identity.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.management.service.AuthenticationRequest;
+import org.apache.custos.identity.management.service.AuthorizationRequest;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
+import org.apache.custos.identity.service.GetTokenRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -104,6 +106,24 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                             .setClientId(claim.getIamAuthId())
                             .setClientSecret(claim.getIamAuthSecret())
                             .build();
+            return (ReqT) request;
+
+        } else if (method.equals("authorize")) {
+
+            AuthorizationRequest request = ((AuthorizationRequest) reqT).toBuilder()
+                    .setTenantId(claim.getTenantId())
+                    .setClientId(claim.getIamAuthId())
+                    .setClientSecret(claim.getIamAuthSecret())
+                    .build();
+            return (ReqT) request;
+
+        } else if (method.equals("token")) {
+
+            GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
+                    .setTenantId(claim.getTenantId())
+                    .setClientId(claim.getIamAuthId())
+                    .setClientSecret(claim.getIamAuthSecret())
+                    .build();
             return (ReqT) request;
 
         }

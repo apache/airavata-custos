@@ -34,6 +34,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Stack;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "org.apache.custos")
@@ -62,8 +63,8 @@ public class UserManagementServiceInitializer {
     }
 
     @Bean
-    public Set<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor) {
-        Set<IntegrationServiceInterceptor> interceptors = new HashSet<>();
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor) {
+        Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(authInterceptor);
 
 
@@ -72,7 +73,7 @@ public class UserManagementServiceInitializer {
 
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
 }

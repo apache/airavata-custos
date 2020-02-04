@@ -27,6 +27,8 @@ import org.apache.custos.federated.authentication.client.FederatedAuthentication
 import org.apache.custos.federated.authentication.service.ClientMetadata;
 import org.apache.custos.federated.authentication.service.RegisterClientResponse;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
+import org.apache.custos.iam.service.ConfigureFederateIDPRequest;
+import org.apache.custos.iam.service.FederatedIDPs;
 import org.apache.custos.iam.service.SetUpTenantRequest;
 import org.apache.custos.iam.service.SetUpTenantResponse;
 import org.apache.custos.integration.core.ServiceException;
@@ -37,9 +39,12 @@ import org.apache.custos.tenant.profile.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
@@ -145,18 +150,24 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
         credentialStoreServiceClient.putCredential(credentialMetadata);
 
-      String comment =   (tenant.getComment() == null || tenant.getComment().trim().equals("")) ?
-                 "Created by custos": tenant.getComment() ;
+        String comment = (tenant.getComment() == null || tenant.getComment().trim().equals("")) ?
+                "Created by custos" : tenant.getComment();
 
 
-
-      String[] scopes = tenant.getScope() != null ? tenant.getScope().split(" "):new String[0];
+        String[] scopes = tenant.getScope() != null ? tenant.getScope().split(" ") : new String[0];
 
         GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                 .setOwnerId(tenant.getTenantId())
                 .setType(Type.CILOGON).build();
 
+        String ciLogonRedirectURI = iamAdminServiceClient.getIamServerURL() + "realms" + "/" + tenant.getTenantId() + "/" + "broker" + "/" + "oidc" + "/" + "endpoint";
 
+        LOGGER.info("redirectURI" + ciLogonRedirectURI);
+
+        List<String> arrayList = new ArrayList<>();
+        arrayList.add(ciLogonRedirectURI);
+
+        LOGGER.info("scopes ", scopes);
 
         ClientMetadata.Builder clientMetadataBuilder = ClientMetadata
                 .newBuilder()
@@ -165,17 +176,15 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 .setTenantURI(tenant.getClientUri())
                 .setComment(comment)
                 .addAllScope(Arrays.asList(scopes))
-                .addAllRedirectURIs(tenant.getRedirectUrisList())
+                .addAllRedirectURIs(arrayList)
                 .addAllContacts(tenant.getContactsList())
                 .setPerformedBy(performedBy);
 
 
-            CredentialMetadata creMeta = credentialStoreServiceClient.
-                    getCredential(credentialRequest);
+        CredentialMetadata creMeta = credentialStoreServiceClient.
+                getCredential(credentialRequest);
 
-            clientMetadataBuilder.setClientId(creMeta.getId());
-
-
+        clientMetadataBuilder.setClientId(creMeta.getId());
 
 
         RegisterClientResponse registerClientResponse = federatedAuthenticationClient
@@ -198,6 +207,18 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                         .setStatus(TenantStatus.ACTIVE)
                         .setUpdatedBy(Constants.SYSTEM)
                         .build();
+
+        ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
+                .newBuilder()
+                .setTenantId(tenant.getTenantId())
+                .setClientID(registerClientResponse.getClientId())
+                .setClientSec(registerClientResponse.getClientSecret())
+                .setScope(tenant.getScope())
+                .setRequesterEmail(tenant.getRequesterEmail())
+                .setType(FederatedIDPs.CILOGON)
+                .build();
+        iamAdminServiceClient.configureFederatedIDP(request);
+
 
         return profileClient.updateTenantStatus(updateTenantRequest);
     }

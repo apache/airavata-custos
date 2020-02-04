@@ -54,7 +54,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to setUPTenant  " + request.getTenantId());
 
-             keycloakClient.deleteRealm(String.valueOf(request.getTenantId()));
+            keycloakClient.deleteRealm(String.valueOf(request.getTenantId()));
 
             keycloakClient.createRealm(String.valueOf(request.getTenantId()), request.getTenantName());
 
@@ -63,7 +63,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getAdminEmail(), request.getAdminPassword());
 
             KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(request.getTenantId()),
-                    request.getTenantURL());
+                    request.getTenantName(),
+                    request.getTenantURL(), request.getRedirectURIsList());
 
             SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
                     .setClientId(clientSecret.getClientId())
@@ -387,7 +388,6 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<User> users = new ArrayList<>();
             representations.stream().forEach(r -> users.add(this.getUser(r, request.getInfo().getTenantId())));
 
-
             GetUsersResponse response = GetUsersResponse.newBuilder().addAllUser(users).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -528,6 +528,33 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         } catch (Exception ex) {
             String msg = " operation failed for " + request.getTraceId();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void configureFederatedIDP(ConfigureFederateIDPRequest request, StreamObserver<FederateIDPResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to configureFederatedIDP for " + request.getTenantId());
+
+
+
+          keycloakClient.configureOIDCFederatedIDP(String.valueOf(request.getTenantId()), "CILogon",request.getScope(),
+                    new KeycloakClientSecret(request.getClientID(), request.getClientSec()), null);
+
+
+            FederateIDPResponse federateIDPResponse = FederateIDPResponse.newBuilder().setStatus(true).build();
+
+            statusUpdater.updateStatus(IAMOperations.CONFIGURE_IDP.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getRequesterEmail());
+
+            responseObserver.onNext(federateIDPResponse);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Configure Federated IDP failed for " + request.getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

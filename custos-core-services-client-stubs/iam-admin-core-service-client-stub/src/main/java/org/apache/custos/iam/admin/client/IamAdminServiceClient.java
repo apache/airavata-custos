@@ -43,15 +43,19 @@ public class IamAdminServiceClient {
 
     private final List<ClientInterceptor> clientInterceptorList;
 
+    private String iamServerURL;
+
 
     public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList,
                                  @Value("${iam.admin.service.dns.name}") String serviceHost,
-                                 @Value("${iam.admin.service.port}") int servicePort) {
+                                 @Value("${iam.admin.service.port}") int servicePort,
+                                 @Value("${iam.server.url}") String url) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
         iamAdminServiceStub = IamAdminServiceGrpc.newStub(managedChannel);
         iamAdminServiceBlockingStub = IamAdminServiceGrpc.newBlockingStub(managedChannel);
+        this.iamServerURL = url;
     }
 
 
@@ -218,6 +222,14 @@ public class IamAdminServiceClient {
 
     public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
         return iamAdminServiceBlockingStub.getOperationMetadata(request);
+    }
+
+    public FederateIDPResponse configureFederatedIDP (ConfigureFederateIDPRequest request) {
+        return iamAdminServiceBlockingStub.configureFederatedIDP(request);
+    }
+
+    public String getIamServerURL(){
+        return iamServerURL;
     }
 
 

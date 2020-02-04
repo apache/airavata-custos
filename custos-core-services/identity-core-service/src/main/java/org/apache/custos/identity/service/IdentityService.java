@@ -239,4 +239,60 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+
+    @Override
+    public void getToken(GetTokenRequest request, StreamObserver<TokenResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request token for " + request.getTenantId());
+
+            org.apache.custos.federated.services.clients.keycloak.auth.TokenResponse tokenResponse = keycloakAuthClient.
+                    getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
+                            request.getCode(), request.getRedirectUri());
+
+            if (tokenResponse != null) {
+                TokenResponse response = TokenResponse.newBuilder()
+                        .setAccessToken(tokenResponse.getAccessToken())
+                        .setExpiresIn(tokenResponse.getExpiresIn())
+                        .setRefreshExpiresIn(tokenResponse.getRefreshExpiresIn())
+                        .setRefreshToken(tokenResponse.getRefreshToken())
+                        .setIdToken(tokenResponse.getIdToken())
+                        .setScope(tokenResponse.getScope())
+                        .setNotBeforePolicy(tokenResponse.getNotBeforePolicy())
+                        .setSessionState(tokenResponse.getSessionState())
+                        .setTokenType(tokenResponse.getTokenType())
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(Status.
+                        INTERNAL.withDescription("Error occurred while fetching token").asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getAuthorizeEndpoint(GetAuthorizationEndpointRequest request, StreamObserver<AuthorizationResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request authorization endpoint for " + request.getTenantId());
+
+            String authEndpoint = keycloakAuthClient.getAuthorizationEndpoint(String.valueOf(request.getTenantId()));
+
+            AuthorizationResponse response = AuthorizationResponse.newBuilder().setAuthorizationEndpoint(authEndpoint).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }

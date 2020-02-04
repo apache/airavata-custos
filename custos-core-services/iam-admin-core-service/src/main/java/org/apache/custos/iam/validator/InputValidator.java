@@ -31,11 +31,12 @@ public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
+     *
      * @param methodName
      * @param obj
      * @return
      */
-    public  void validate(String methodName, Object obj) {
+    public void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "setUPTenant":
@@ -67,13 +68,15 @@ public class InputValidator implements Validator {
             case "addRoleToUser":
             case "deleteRoleFromUser":
                 validateRoleOperationsRequest(obj);
+            case "configureFederatedIDP":
+                validateConfigureFederatedIDP(obj);
             default:
 
         }
 
     }
 
-    private  boolean validateSetUPTenant(Object obj) {
+    private boolean validateSetUPTenant(Object obj) {
         if (obj instanceof SetUpTenantRequest) {
             SetUpTenantRequest request = (SetUpTenantRequest) obj;
             if (request.getTenantId() == 0) {
@@ -95,16 +98,15 @@ public class InputValidator implements Validator {
             if (request.getAdminUsername() == null || request.getAdminUsername().trim().equals("")) {
                 throw new MissingParameterException("Admin username should not be null", null);
             }
-            if (request.getTenantName()== null || request.getTenantName().trim().equals("")) {
+            if (request.getTenantName() == null || request.getTenantName().trim().equals("")) {
                 throw new MissingParameterException("Tenant name should not be null", null);
             }
-            if (request.getTenantURL()== null || request.getTenantURL().trim().equals("")) {
+            if (request.getTenantURL() == null || request.getTenantURL().trim().equals("")) {
                 throw new MissingParameterException("Tenant URL should not be null", null);
             }
-            if (request.getRequesterEmail()== null || request.getRequesterEmail().trim().equals("")) {
+            if (request.getRequesterEmail() == null || request.getRequesterEmail().trim().equals("")) {
                 throw new MissingParameterException("Tenant requester email should not be null", null);
             }
-
 
 
         } else {
@@ -113,9 +115,9 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateIsUsernameAvailable(Object obj) {
+    private boolean validateIsUsernameAvailable(Object obj) {
         if (obj instanceof IsUsernameAvailableRequest) {
-            IsUsernameAvailableRequest request = (IsUsernameAvailableRequest)obj;
+            IsUsernameAvailableRequest request = (IsUsernameAvailableRequest) obj;
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
@@ -134,9 +136,9 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateRegisterUser(Object obj) {
+    private boolean validateRegisterUser(Object obj) {
         if (obj instanceof RegisterUserRequest) {
-            RegisterUserRequest request = (RegisterUserRequest)obj;
+            RegisterUserRequest request = (RegisterUserRequest) obj;
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
@@ -165,9 +167,9 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateUserAccess(Object obj) {
+    private boolean validateUserAccess(Object obj) {
         if (obj instanceof UserAccessInfo) {
-            UserAccessInfo request = (UserAccessInfo)obj;
+            UserAccessInfo request = (UserAccessInfo) obj;
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
@@ -187,10 +189,10 @@ public class InputValidator implements Validator {
     }
 
 
-    private  boolean validateGetUsers(Object obj) {
+    private boolean validateGetUsers(Object obj) {
         if (obj instanceof GetUsersRequest) {
-        GetUsersRequest request = (GetUsersRequest)obj;
-        UserAccessInfo info =  request.getInfo();
+            GetUsersRequest request = (GetUsersRequest) obj;
+            UserAccessInfo info = request.getInfo();
             if (info.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
@@ -208,7 +210,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateResetPassword(Object obj) {
+    private boolean validateResetPassword(Object obj) {
         if (obj instanceof ResetUserPassword) {
             ResetUserPassword request = (ResetUserPassword) obj;
             UserAccessInfo info = request.getInfo();
@@ -234,7 +236,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateFindUsers(Object obj) {
+    private boolean validateFindUsers(Object obj) {
         if (obj instanceof FindUsersRequest) {
             FindUsersRequest request = (FindUsersRequest) obj;
             UserAccessInfo info = request.getInfo();
@@ -260,9 +262,9 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateUpdateUserProfile(Object obj) {
+    private boolean validateUpdateUserProfile(Object obj) {
         if (obj instanceof UpdateUserProfileRequest) {
-            UpdateUserProfileRequest re = (UpdateUserProfileRequest)obj;
+            UpdateUserProfileRequest re = (UpdateUserProfileRequest) obj;
             User request = re.getUser();
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
@@ -294,11 +296,10 @@ public class InputValidator implements Validator {
     }
 
 
-
-    private  boolean validateRoleOperationsRequest(Object obj) {
+    private boolean validateRoleOperationsRequest(Object obj) {
         if (obj instanceof RoleOperationsUserRequest) {
-            RoleOperationsUserRequest request = (RoleOperationsUserRequest)obj;
-            if (request.getTenantId() ==0) {
+            RoleOperationsUserRequest request = (RoleOperationsUserRequest) obj;
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -320,6 +321,35 @@ public class InputValidator implements Validator {
 
         } else {
             throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
+        }
+        return true;
+    }
+
+    private boolean validateConfigureFederatedIDP(Object obj) {
+        if (obj instanceof ConfigureFederateIDPRequest) {
+            ConfigureFederateIDPRequest request = (ConfigureFederateIDPRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getRequesterEmail() == null || request.getRequesterEmail().trim().equals("")) {
+                throw new MissingParameterException("Requester email should not be null", null);
+            }
+
+            if (request.getClientID() == null || request.getClientID().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSec() == null || request.getClientSec().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+            if (request.getType() == null) {
+                throw new MissingParameterException("Type should not be null", null);
+            }
+
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method configureFederatedIDP");
         }
         return true;
     }

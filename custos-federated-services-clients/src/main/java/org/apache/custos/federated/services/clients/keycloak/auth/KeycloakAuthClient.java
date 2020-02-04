@@ -109,7 +109,6 @@ public class KeycloakAuthClient {
             AuthzClient keycloakClient = AuthzClient.create(configuration);
 
 
-
             AccessTokenResponse accessToken = keycloakClient.obtainAccessToken(username, password);
 
 
@@ -168,10 +167,52 @@ public class KeycloakAuthClient {
         }
     }
 
+    public TokenResponse getAccessToken(String clientId, String clientSecret, String realmId,
+                                        String code, String redirectUri) throws JSONException {
+        JSONObject clientCredentials = null;
+        try {
+            String tokenURL = getTokenEndpoint(realmId);
+            clientCredentials = getTokenFromOAuthCode(tokenURL, clientId, clientSecret, code, redirectUri);
+
+            TokenResponse tokenResponse = new TokenResponse(
+                    clientCredentials.getString("access_token"),
+                    clientCredentials.getDouble("expires_in"),
+                    clientCredentials.getDouble("refresh_expires_in"),
+                    clientCredentials.getString("refresh_token"),
+                    clientCredentials.getString("token_type"),
+                    clientCredentials.getString("id_token"),
+                    clientCredentials.getDouble("not-before-policy"),
+                    clientCredentials.getString("session_state"),
+                    clientCredentials.getString("scope"));
+            return tokenResponse;
+
+
+        } catch (JSONException ex) {
+            if (clientCredentials != null) {
+                String description = clientCredentials.getString("error_description");
+                String error = clientCredentials.getString("error");
+                String errorMsg = description + " and " + error;
+                throw new RuntimeException(errorMsg);
+            }
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+        return null;
+    }
+
     private String getTokenEndpoint(String gatewayId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
         return openIdConnectConfig.getString("token_endpoint");
+    }
+
+    public String getAuthorizationEndpoint(String gatewayId) throws Exception {
+        String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
+        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
+        return openIdConnectConfig.getString("authorization_endpoint");
     }
 
 
@@ -225,6 +266,42 @@ public class KeycloakAuthClient {
         httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
         List<NameValuePair> formParams = new ArrayList<>();
         formParams.add(new BasicNameValuePair("grant_type", "client_credentials"));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
+        httpPost.setEntity(entity);
+        try {
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                JSONObject tokenInfo = new JSONObject(responseBody);
+                return tokenInfo;
+            } finally {
+                response.close();
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private JSONObject getTokenFromOAuthCode(String tokenURL, String clientId, String clientSecret, String code,
+                                             String redirect_uri) {
+
+        CloseableHttpClient httpClient = HttpClients.createSystem();
+
+        HttpPost httpPost = new HttpPost(tokenURL);
+        String encoded = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+        List<NameValuePair> formParams = new ArrayList<>();
+        formParams.add(new BasicNameValuePair("grant_type", "authorization_code"));
+        formParams.add(new BasicNameValuePair("code", code));
+        formParams.add(new BasicNameValuePair("redirect_uri", redirect_uri));
+        formParams.add(new BasicNameValuePair("client_id", clientId));
+        formParams.add(new BasicNameValuePair("client_secret", clientSecret));
         UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
         httpPost.setEntity(entity);
         try {

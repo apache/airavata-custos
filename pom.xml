@@ -164,6 +164,16 @@
              <artifactId>resteasy-jackson2-provider</artifactId>
              <version>${reasteasy.client.version}</version>
          </dependency>
+             <dependency>
+                 <groupId>org.jboss.resteasy</groupId>
+                 <artifactId>resteasy-jaxrs</artifactId>
+                 <version>${reasteasy.client.version}</version>
+             </dependency>
+             <dependency>
+                 <groupId>org.jboss.resteasy</groupId>
+                 <artifactId>resteasy-multipart-provider</artifactId>
+                 <version>${reasteasy.client.version}</version>
+             </dependency>
          </dependencies>
     </dependencyManagement>
 

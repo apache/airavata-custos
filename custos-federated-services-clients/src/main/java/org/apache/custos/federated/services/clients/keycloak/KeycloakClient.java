@@ -20,7 +20,6 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
-import org.apache.http.HttpException;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -45,6 +44,7 @@ import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -82,6 +82,20 @@ public class KeycloakClient {
     @Value("${iam.server.super.admin.realm.id:master}")
     private String superAdminRealmID;
 
+    @Value("${iam.federated.cilogon.authorization.endpoint:https://cilogon.org/authorize}")
+    private String ciLogonAuthorizationEndpoint;
+
+    @Value("${iam.federated.cilogon.token.endpoint:https://cilogon.org/oauth2/token}")
+    private String ciLogonTokenEndpoint;
+
+    @Value("${iam.federated.cilogon.token.userinfo.endpoint:https://cilogon.org/oauth2/userinfo}")
+    private String ciLogonUserInfoEndpoint;
+
+    @Value("${iam.federated.cilogon.issuer:https://cilogon.org}")
+    private String ciLogonIssuerUri;
+
+    @Value("${iam.federated.cilogon.jwksUri:https://cilogon.org/oauth2/certs}")
+    private String jwksUri;
 
     public void createRealm(String realmId, String displayName) {
         Keycloak client = null;
@@ -171,13 +185,13 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret configureClient(String realmId, @NotNull String tenantURL) {
+    public KeycloakClientSecret configureClient(String realmId,String clientName, @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             ClientRepresentation pgaClient = new ClientRepresentation();
-            pgaClient.setName("pga");
-            pgaClient.setClientId("pga");
+            pgaClient.setName(clientName);
+            pgaClient.setClientId(clientName);
             pgaClient.setProtocol("openid-connect");
             pgaClient.setStandardFlowEnabled(true);
             pgaClient.setEnabled(true);
@@ -186,19 +200,25 @@ public class KeycloakClient {
             pgaClient.setServiceAccountsEnabled(true);
             pgaClient.setFullScopeAllowed(true);
             pgaClient.setClientAuthenticatorType("client-secret");
-            List<String> redirectUris = new ArrayList<String>();
+
+            pgaClient.setBaseUrl(tenantURL);
+
 
             // Remove trailing slash from gatewayURL
             if (tenantURL.endsWith("/")) {
                 tenantURL = tenantURL.substring(0, tenantURL.length() - 1);
             }
             // Add redirect URL after login
-            redirectUris.add(tenantURL + "/callback-url"); // PGA
-            redirectUris.add(tenantURL + "/auth/callback*"); // Django
+            // redirectUris.add(tenantURL + "/callback-url"); // PGA
+            // redirectUris.add(tenantURL + "/auth/callback*"); // Django
             // Add redirect URL after logout
-            redirectUris.add(tenantURL);
 
-            pgaClient.setRedirectUris(redirectUris);
+            List<String> newList = new ArrayList<>();
+            newList.addAll(redirectUris);
+            newList.add(tenantURL);
+
+
+            pgaClient.setRedirectUris(newList);
             pgaClient.setPublicClient(false);
             Response httpResponse = client.realms().realm(realmId).clients().create(pgaClient);
             LOGGER.debug("Realm client configuration exited with code : " + httpResponse.getStatus() + " : " + httpResponse.getStatusInfo());
@@ -562,11 +582,9 @@ public class KeycloakClient {
                 realmResource.remove();
             }
 
-        }
-        catch (NotFoundException ex) {
+        } catch (NotFoundException ex) {
             LOGGER.debug("Realm not found", ex);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             String msg = "Error deleting Realm in Keycloak Server, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
@@ -577,6 +595,44 @@ public class KeycloakClient {
         }
         return true;
 
+    }
+
+
+    public boolean configureOIDCFederatedIDP(String realmId, String displayName, String scopes, KeycloakClientSecret secret, Map<String, String> configs) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            RealmResource realmResource = client.realm(realmId);
+
+            IdentityProviderRepresentation idp = new IdentityProviderRepresentation();
+
+            idp.setAlias("oidc");
+            idp.setDisplayName(displayName);
+            idp.setProviderId("oidc");
+            idp.setEnabled(true);
+            if (configs != null) {
+                idp.setConfig(configs);
+            }
+
+            idp.getConfig().put("clientId", secret.getClientId());
+            idp.getConfig().put("clientSecret", secret.getClientSecret());
+            idp.getConfig().put("authorizationUrl", ciLogonAuthorizationEndpoint);
+            idp.getConfig().put("tokenUrl", ciLogonTokenEndpoint);
+            idp.getConfig().put("userInfoUrl", ciLogonUserInfoEndpoint);
+            idp.getConfig().put("defaultScopes",scopes);
+            idp.getConfig().put("issuer",ciLogonIssuerUri);
+            idp.getConfig().put("jwksUri",jwksUri);
+
+            realmResource.identityProviders().create(idp);
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while configuring  IDP in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+        return true;
     }
 
 

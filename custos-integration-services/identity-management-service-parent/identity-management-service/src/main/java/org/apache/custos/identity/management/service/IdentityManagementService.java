@@ -19,12 +19,15 @@
 
 package org.apache.custos.identity.management.service;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.identity.service.AuthToken;
-import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
-import org.apache.custos.identity.service.IsAuthenticateResponse;
-import org.apache.custos.identity.service.User;
+import org.apache.custos.identity.management.utils.Constants;
+import org.apache.custos.identity.service.*;
+import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.GetTenantRequest;
+import org.apache.custos.tenant.profile.service.GetTenantResponse;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +43,9 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private TenantProfileClient tenantProfileClient;
 
     @Override
     public void authenticate(AuthenticationRequest request, StreamObserver<AuthToken> responseObserver) {
@@ -96,6 +102,87 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             responseObserver.onCompleted();
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching authenticated status " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
+
+    @Override
+    public void authorize(AuthorizationRequest request, StreamObserver<AuthorizationResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to authorize " + request.getTenantId());
+
+            GetTenantRequest tenantRequest = GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
+
+            GetTenantResponse tenantResponse = tenantProfileClient.getTenant(tenantRequest);
+
+            Tenant tenant = tenantResponse.getTenant();
+
+            if (tenant.getRedirectUrisList() == null || tenant.getRedirectUrisCount() == 0) {
+                responseObserver.onError(Status.INVALID_ARGUMENT.
+                        withDescription("Wrong redirect_uri").asRuntimeException());
+                return;
+            }
+
+            boolean matched = false;
+
+            for (String redireURI : tenant.getRedirectUrisList()) {
+                if (request.getRedirectUri().equals(redireURI)) {
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                responseObserver.onError(Status.INVALID_ARGUMENT.
+                        withDescription("Wrong redirect_uri").asRuntimeException());
+                return;
+            }
+
+            GetAuthorizationEndpointRequest getAuthorizationEndpointRequest = GetAuthorizationEndpointRequest
+                    .newBuilder()
+                    .setTenantId(request.getTenantId()).build();
+
+            org.apache.custos.identity.service.AuthorizationResponse response =
+                    identityClient.getAuthorizationEndpoint(getAuthorizationEndpointRequest);
+
+            String endpoint = response.getAuthorizationEndpoint();
+
+
+            LOGGER.info("endpoint " + endpoint);
+
+            String loginURL = endpoint + "?" + "client_id=" + request.getClientId() + "&" + "redirect_uri="
+                    + request.getRedirectUri() + "&" + "response_type="
+                    + Constants.AUTHORIZATION_CODE + "&" + "scope=" + request.getScope();
+
+            LOGGER.info("loginURL" + loginURL);
+
+            AuthorizationResponse resp = AuthorizationResponse.newBuilder().setLoginURI(loginURL).build();
+
+            responseObserver.onNext(resp);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Exception occurred while formulating login uri " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
+
+    @Override
+    public void token(GetTokenRequest request, StreamObserver<TokenResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to token endpoint " + request.getTenantId());
+
+            LOGGER.info("Code"+ request.getCode());
+            LOGGER.info("Rediret URI" + request.getRedirectUri());
+
+            TokenResponse response = identityClient.getAccessToken(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  fetching access token " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(ex);
         }

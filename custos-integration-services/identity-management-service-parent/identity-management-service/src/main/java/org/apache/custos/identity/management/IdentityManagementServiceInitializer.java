@@ -24,6 +24,7 @@ import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.identity.management.interceptors.AuthInterceptorImpl;
+import org.apache.custos.identity.management.interceptors.InputValidator;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
@@ -32,8 +33,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Stack;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "org.apache.custos")
@@ -63,17 +63,17 @@ public class IdentityManagementServiceInitializer {
     }
 
     @Bean
-    public Set<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor) {
-        Set<IntegrationServiceInterceptor> interceptors = new HashSet<>();
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator) {
+        Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
+        interceptors.add(validator);
         interceptors.add(authInterceptor);
-
 
         return interceptors;
     }
 
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(Set<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+    ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
 

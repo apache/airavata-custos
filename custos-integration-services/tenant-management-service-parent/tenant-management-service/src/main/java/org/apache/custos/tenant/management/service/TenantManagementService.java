@@ -123,7 +123,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at createTenant " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
         }
     }

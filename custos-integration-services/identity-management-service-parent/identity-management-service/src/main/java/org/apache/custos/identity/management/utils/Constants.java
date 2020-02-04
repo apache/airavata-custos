@@ -17,22 +17,16 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.utils;
+package org.apache.custos.identity.management.utils;
 
 /**
- * Includes operations associated with keycloak
+ * This is constant class use for tenant management service
  */
-public enum IAMOperations {
-
-    SET_UP_TENANT,
-    REGISTER_USER,
-    ENABLE_USER,
-    DELETE_USER,
-    RESET_PASSWORD,
-    UPDATE_USER_PROFILE,
-    ADD_ROLE_TO_USER,
-    DELETE_ROLE_FROM_USER,
-    CONFIGURE_IDP
-
-
+public final class Constants {
+    public static final String SYSTEM = "SYSTEM";
+    public static final String GATEWAY_ADMIN = "GATEWAY_ADMIN";
+    public static final String CLIENT_SECRET_BASIC = "client_secret_basic";
+    public static final String TENANT_BASE_URI = "https://custos.scigap.org:32036/tenant-management/v1.0.0/oauth2/tenant";
+    public static final String AUTHORIZATION_CODE = "code";
+    public static final String AUTHORIZATION_HEADER = "authorization";
 }

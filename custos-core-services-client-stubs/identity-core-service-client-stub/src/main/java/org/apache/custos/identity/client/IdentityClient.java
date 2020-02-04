@@ -96,6 +96,14 @@ public class IdentityClient {
         return identityServiceBlockingStub.getUserManagementServiceAccountAccessToken(request);
     }
 
+    public TokenResponse getAccessToken(GetTokenRequest request) {
+        return identityServiceBlockingStub.getToken(request);
+    }
+
+    public AuthorizationResponse getAuthorizationEndpoint(GetAuthorizationEndpointRequest request) {
+        return identityServiceBlockingStub.getAuthorizeEndpoint(request);
+    }
+
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

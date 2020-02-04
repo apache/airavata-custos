@@ -22,10 +22,7 @@ package org.apache.custos.identity.validator;
 
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
-import org.apache.custos.identity.service.AuthToken;
-import org.apache.custos.identity.service.AuthenticationRequest;
-import org.apache.custos.identity.service.Claim;
-import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.identity.service.*;
 
 
 /**
@@ -53,6 +50,13 @@ public class InputValidator implements Validator {
             case "getUserManagementServiceAccountAccessToken":
                 validateGetUserManagementServiceAccountAccessToken(obj);
                 break;
+            case "getToken":
+                validateTokenRequest(obj);
+                break;
+            case "getAuthorizeEndpoint":
+                validateGetAuthorizationEndpoint(obj);
+                break;
+
             default:
                 throw new RuntimeException("Method not implemented");
         }
@@ -139,5 +143,46 @@ public class InputValidator implements Validator {
         return true;
     }
 
+
+    private boolean validateTokenRequest(Object obj) {
+        if (obj instanceof GetTokenRequest) {
+            GetTokenRequest request = (GetTokenRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+            if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
+                throw new MissingParameterException("Redirect Uri should not be null", null);
+            }
+
+            if (request.getCode() == null || request.getCode().trim().equals("")) {
+                throw new MissingParameterException("code should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method userAccess");
+        }
+        return true;
+    }
+
+    private boolean validateGetAuthorizationEndpoint(Object obj) {
+        if (obj instanceof GetAuthorizationEndpointRequest) {
+            GetAuthorizationEndpointRequest request = (GetAuthorizationEndpointRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateGetAuthorizationEndpoint");
+        }
+        return true;
+    }
 
 }
