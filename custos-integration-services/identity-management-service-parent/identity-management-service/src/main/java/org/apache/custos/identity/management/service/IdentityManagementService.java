@@ -149,13 +149,9 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             String endpoint = response.getAuthorizationEndpoint();
 
 
-            LOGGER.info("endpoint " + endpoint);
-
             String loginURL = endpoint + "?" + "client_id=" + request.getClientId() + "&" + "redirect_uri="
                     + request.getRedirectUri() + "&" + "response_type="
-                    + Constants.AUTHORIZATION_CODE + "&" + "scope=" + request.getScope();
-
-            LOGGER.info("loginURL" + loginURL);
+                    + Constants.AUTHORIZATION_CODE + "&" + "scope=" + request.getScope() +"&"+"state="+ request.getState();
 
             AuthorizationResponse resp = AuthorizationResponse.newBuilder().setLoginURI(loginURL).build();
 
@@ -172,9 +168,6 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     public void token(GetTokenRequest request, StreamObserver<TokenResponse> responseObserver) {
         try {
             LOGGER.debug("Request received  to token endpoint " + request.getTenantId());
-
-            LOGGER.info("Code"+ request.getCode());
-            LOGGER.info("Rediret URI" + request.getRedirectUri());
 
             TokenResponse response = identityClient.getAccessToken(request);
 

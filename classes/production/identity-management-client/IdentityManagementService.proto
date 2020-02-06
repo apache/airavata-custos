@@ -38,7 +38,6 @@ message AuthorizationRequest {
     string redirect_uri = 4;
     string response_type = 5;
     string scope = 6;
-    string state = 7;
 }
 
 message AuthorizationResponse {

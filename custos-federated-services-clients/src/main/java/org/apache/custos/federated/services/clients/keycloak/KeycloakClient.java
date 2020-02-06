@@ -190,8 +190,8 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             ClientRepresentation pgaClient = new ClientRepresentation();
-            pgaClient.setName(clientName);
-            pgaClient.setClientId(clientName);
+            pgaClient.setName("custos");
+            pgaClient.setClientId("custos");
             pgaClient.setProtocol("openid-connect");
             pgaClient.setStandardFlowEnabled(true);
             pgaClient.setEnabled(true);

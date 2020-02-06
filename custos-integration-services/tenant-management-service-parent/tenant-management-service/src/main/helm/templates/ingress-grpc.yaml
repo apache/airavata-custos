@@ -10,7 +10,8 @@ spec:
      - host: custos.scigap.org
        http:
         paths:
-          - backend:
+          - path: /org.apache.custos.identity.management.service.TenantManagementService(/|$)(.*)
+            backend:
               serviceName: tenant-management-service
               servicePort: grpc
 
