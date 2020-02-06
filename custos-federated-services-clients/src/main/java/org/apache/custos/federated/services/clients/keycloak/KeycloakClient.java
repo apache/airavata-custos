@@ -185,7 +185,7 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret configureClient(String realmId,String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+    public KeycloakClientSecret configureClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -620,9 +620,9 @@ public class KeycloakClient {
             idp.getConfig().put("authorizationUrl", ciLogonAuthorizationEndpoint);
             idp.getConfig().put("tokenUrl", ciLogonTokenEndpoint);
             idp.getConfig().put("userInfoUrl", ciLogonUserInfoEndpoint);
-            idp.getConfig().put("defaultScopes",scopes);
-            idp.getConfig().put("issuer",ciLogonIssuerUri);
-            idp.getConfig().put("jwksUri",jwksUri);
+            idp.getConfig().put("defaultScope", scopes);
+            idp.getConfig().put("issuer", ciLogonIssuerUri);
+            idp.getConfig().put("jwksUri", jwksUri);
 
             realmResource.identityProviders().create(idp);
 
