@@ -1,0 +1,92 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.identity.management.service;
+
+import "google/api/annotations.proto";
+import "IdentityService.proto";
+
+
+message AuthenticationRequest {
+    org.apache.custos.identity.service.AuthenticationRequest authRequest = 1;
+}
+
+message AuthorizationRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    string client_secret = 3;
+    string redirect_uri = 4;
+    string response_type = 5;
+    string scope = 6;
+}
+
+message AuthorizationResponse {
+    string loginURI = 1;
+}
+
+service IdentityManagementService {
+
+    rpc authenticate (AuthenticationRequest) returns (org.apache.custos.identity.service.AuthToken) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/authenticate"
+           body: "authRequest"
+         };
+    }
+
+    rpc isAuthenticated (org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.IsAuthenticateResponse) {
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/authenticate/status"
+         };
+    }
+
+    rpc getUser (org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.User) {
+
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/user"
+         };
+
+
+    }
+    rpc getUserManagementServiceAccountAccessToken (org.apache.custos.identity.service.GetUserManagementSATokenRequest) returns (org.apache.custos.identity.service.AuthToken) {
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/account/token"
+
+         };
+
+    }
+
+    rpc authorize (AuthorizationRequest) returns (AuthorizationResponse) {
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/authorize"
+
+         };
+    }
+
+    rpc token (org.apache.custos.identity.service.GetTokenRequest) returns (org.apache.custos.identity.service.TokenResponse) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/token"
+
+         };
+    }
+
+}

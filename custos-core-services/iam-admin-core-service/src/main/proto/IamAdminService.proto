@@ -1,0 +1,220 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.iam.service;
+
+import "google/protobuf/empty.proto";
+
+
+enum FederatedIDPs {
+    CILOGON = 0;
+    FACEBOOK = 1;
+    GOOGLE = 2;
+    LINKEDIN = 3;
+    TWITTER = 4;
+    CUSTOM_OIDC = 5;
+}
+
+message User {
+    string internalUserId = 1;
+    string username = 2;
+    int64 tenantId = 3;
+    string firstName = 4;
+    string lastName = 5;
+    string email = 6;
+    float creationTime = 7;
+    string state = 8;
+}
+
+message SetUpTenantRequest {
+    int64 tenantId = 1;
+    string tenantName = 2;
+    string adminUsername = 3;
+    string adminFirstname = 4;
+    string adminLastname = 5;
+    string adminEmail = 6;
+    string adminPassword = 7;
+    string tenantURL = 8;
+    string requesterEmail = 9;
+    repeated string redirectURIs = 10;
+    string custosClientId = 11;
+
+}
+
+message ConfigureFederateIDPRequest {
+    int64 tenantId = 1;
+    FederatedIDPs type = 2;
+    string clientID = 3;
+    string clientSec = 4;
+    map<string, string> configMap = 5;
+    string requesterEmail = 6;
+    string idpId = 7;
+    string scope = 8;
+}
+
+
+message FederateIDPResponse {
+    bool status = 1;
+}
+
+message SetUpTenantResponse {
+    string clientId = 1;
+    string clientSecret = 2;
+}
+
+message IsUsernameAvailableRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string userName = 3;
+
+}
+
+message CheckingResponse {
+    bool isExist = 1;
+}
+
+
+message UserRepresentation {
+    string username = 3;
+    string first_name = 4;
+    string last_name = 5;
+    string password = 6;
+    string email = 7;
+    bool temporary_password = 8;
+}
+
+
+message RegisterUserRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string clientId = 3;
+    string clientSec = 4;
+    UserRepresentation user = 5;
+}
+
+
+message RegisterUsersRequest {
+    repeated UserRepresentation users = 1;
+    int64 tenantId = 2;
+    string accessToken = 3;
+    string clientId = 4;
+    string clientSecret = 5;
+}
+
+message RegisterUserResponse {
+    bool isRegistered = 1;
+}
+
+message RegisterUsersResponse {
+    bool allUseresRegistered = 1;
+    repeated UserRepresentation failedUsers = 2;
+}
+
+
+message UserAccessInfo {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string username = 3;
+
+}
+
+message GetUsersRequest {
+    UserAccessInfo info = 1;
+    int32 offset = 3;
+    int32 limit = 4;
+    string search = 5;
+
+}
+
+message GetUsersResponse {
+    repeated User user = 1;
+}
+
+message ResetUserPassword {
+    UserAccessInfo info = 1;
+    string password = 2;
+}
+
+message FindUsersRequest {
+    UserAccessInfo info = 1;
+    string email = 2;
+}
+
+message RoleOperationsUserRequest {
+    int64 tenantId = 1;
+    string username = 2;
+    string role = 3;
+    string adminUsername = 4;
+    string password = 5;
+
+}
+
+message UpdateUserProfileRequest {
+    string accessToken = 1;
+    User user = 2;
+}
+
+message AddUserResponse {
+    string code = 1;
+}
+
+message GetOperationsMetadataRequest {
+    int64 traceId = 1;
+}
+
+message OperationMetadata {
+    string event = 1;
+    string status = 2;
+    string timeStamp = 3;
+    string performedBy = 4;
+}
+message GetOperationsMetadataResponse {
+    repeated OperationMetadata metadata = 1;
+}
+
+message DeleteTenantRequest {
+    int64 tenantId = 1;
+}
+
+
+service IamAdminService {
+    rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty);
+    rpc isUsernameAvailable (IsUsernameAvailableRequest) returns (CheckingResponse);
+    rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc enableUser (UserAccessInfo) returns (User);
+    rpc isUserEnabled (UserAccessInfo) returns (CheckingResponse);
+    rpc isUserExist (UserAccessInfo) returns (CheckingResponse);
+    rpc getUser (UserAccessInfo) returns (User);
+    rpc getUsers (GetUsersRequest) returns (GetUsersResponse);
+    rpc resetPassword (ResetUserPassword) returns (CheckingResponse);
+    rpc findUsers (FindUsersRequest) returns (GetUsersResponse);
+    rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
+    rpc deleteUser (UserAccessInfo) returns (CheckingResponse);
+    rpc addRoleToUser (RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
+    rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+    rpc configureFederatedIDP (ConfigureFederateIDPRequest) returns (FederateIDPResponse);
+    rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
+
+}

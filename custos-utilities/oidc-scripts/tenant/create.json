@@ -1,0 +1,19 @@
+{
+  "client_name":"sampletenant30",
+  "requester_email":"irjanith@gmail.com",
+  "admin_username":"isjarana",
+  "admin_first_name":"Janith",
+  "admin_last_name":"Ranawaka",
+  "admin_email":"isjarana@iu.edu",
+  "contacts":["+18123915386"],
+  "redirect_uris":["http://tenantsample.com/callback"],
+  "scope":"email",
+  "domain":"tenantsample.com",
+  "admin_password":"1234",
+  "client_uri":"https://custos.lk",
+  "scope":"openId",
+  "domain":"custos.scigap.org",
+  "logo_uri":"https://custos/lk/logo",
+  "application_type":"web",
+  "comment":"Custos For comment"
+}

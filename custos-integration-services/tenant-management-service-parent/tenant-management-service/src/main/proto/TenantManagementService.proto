@@ -1,0 +1,189 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.tenant.management.service;
+
+import "google/api/annotations.proto";
+import "TenantProfileService.proto";
+import "google/rpc/error_details.proto";
+import "google/protobuf/empty.proto";
+
+
+message CreateTenantResponse {
+    string client_id = 1;
+    string client_secret = 2;
+    bool is_activated = 3;
+    double client_id_issued_at = 4;
+    double client_secret_expires_at = 5;
+    string registration_client_uri = 6;
+    string token_endpoint_auth_method = 17;
+    string msg = 7;
+}
+
+message GetTenantResponse {
+    string client_id = 1;
+    string client_name = 2;
+    string requester_email = 3;
+    string admin_first_name = 4;
+    string admin_last_name = 5;
+    string admin_email = 6;
+    repeated string contacts = 7;
+    repeated string redirect_uris = 8;
+    repeated string grant_types = 9;
+    double client_id_issued_at = 10;
+    string client_uri = 11;
+    string scope = 12;
+    string domain = 13;
+    string comment = 14;
+    string logo_uri = 15;
+    string application_type = 16;
+    string jwks_uri = 17;
+    string example_extension_parameter = 18;
+    string tos_uri = 19;
+    string policy_uri = 20;
+    map<string, string> jwks = 21;
+    string software_id = 22;
+    string software_version = 23;
+}
+
+
+message GetTenantRequest {
+    string client_id = 1;
+    int64 tenant_id = 2;
+    org.apache.custos.tenant.profile.service.Tenant tenant = 4;
+    Credentials credentials = 5;
+}
+
+
+message Credentials {
+    string iam_client_id = 1;
+    string iam_client_secret = 2;
+    string ci_logon_client_id = 3;
+    string ci_logon_client_secret = 4;
+    string custos_client_id = 5;
+    string custos_client_secret = 6;
+    double custos_client_id_issued_at = 7;
+    double custos_client_secret_expired_at = 8;
+}
+
+
+message UpdateStatusRequest {
+    org.apache.custos.tenant.profile.service.UpdateStatusRequest status = 1;
+}
+
+
+message UpdateTenantRequest {
+    string client_id = 1;
+    int64 tenant_id = 2;
+    Credentials credentials = 3;
+    org.apache.custos.tenant.profile.service.Tenant body = 4;
+}
+
+
+message DeleteTenantRequest {
+    string client_id = 1;
+    int64 tenant_id = 2;
+    Credentials credentials = 3;
+    org.apache.custos.tenant.profile.service.Tenant body = 4;
+}
+
+
+
+
+message GetCredentialsRequest {
+    int64 tenantId = 1;
+}
+
+message GetCredentialsResponse {
+    string iamClientId = 1;
+    string iamClientSecret = 2;
+    string ciLogonClientId = 3;
+    string ciLogonClientSecret = 4;
+}
+
+service TenantManagementService {
+
+    rpc createTenant (org.apache.custos.tenant.profile.service.Tenant) returns (CreateTenantResponse) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/oauth2/tenant"
+         };
+    }
+
+    rpc getTenant (GetTenantRequest) returns (GetTenantResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/oauth2/tenant"
+        };
+    }
+
+    rpc updateTenant (UpdateTenantRequest) returns (GetTenantResponse) {
+        option (google.api.http) = {
+           put: "/tenant-management/v1.0.0/oauth2/tenant"
+           body: "body"
+        };
+    }
+
+
+    rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+           delete: "/tenant-management/v1.0.0/oauth2/tenant"
+        };
+    }
+
+    rpc getCredentials (GetCredentialsRequest) returns (GetCredentialsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/credentials"
+        };
+    }
+
+
+    rpc updateTenantStatus (UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/status"
+           body: "status"
+        };
+    }
+
+    rpc getAllTenants (org.apache.custos.tenant.profile.service.Empty) returns (org.apache.custos.tenant.profile.service.GetAllTenantsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/tenants"
+        };
+    }
+
+    rpc getAllTenantsForUser (org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest) returns (org.apache.custos.tenant.profile.service.GetAllTenantsForUserResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/tenants/{requesterUserName}"
+        };
+    }
+    rpc getTenantStatusUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetStatusUpdateAuditTrailResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/audit/status/{tenantId}"
+        };
+    }
+    rpc getTenantAttributeUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/audit/attributes/{tenantId}"
+        };
+    }
+
+
+}

@@ -1,0 +1,98 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.federated.authentication.service;
+
+
+message ClientMetadata {
+    int64 tenantId = 1;
+    string tenantName = 2;
+    repeated string scope = 3;
+    string tenantURI = 4;
+    repeated string contacts = 5;
+    string comment = 6;
+    repeated string redirectURIs = 7;
+    string clientId = 8;
+    string performedBy = 9;
+}
+
+
+message RegisterClientResponse {
+    string clientId = 1;
+    string clientSecret = 2;
+    int64 clientIdIssuedAt = 3;
+    int64 clientSecretExpiresAt = 4;
+    string clientRegistrationUri = 5;
+}
+
+
+message GetClientRequest {
+    int64 tenantId = 1;
+    string clientId = 2;
+}
+
+message GetClientResponse {
+    string clientId = 1;
+    string clientName = 2;
+    repeated string redirectURIs = 3;
+    repeated string grantTypes = 4;
+    repeated string scope = 5;
+     int64 clientIdIssuedAt = 6;
+    string comment = 7;
+    string clientSecret = 8;
+    int64 clientSecretExpiresAt = 9;
+    string clientRegistrationUri = 10;
+}
+
+message DeleteClientRequest {
+    int64 tenantId = 1;
+    string clientId = 2;
+    string performedBy = 3;
+}
+
+message Empty {
+
+}
+
+message GetOperationsMetadataRequest {
+    int64 traceId = 1;
+}
+
+message OperationMetadata {
+    string event = 1;
+    string status = 2;
+    string timeStamp = 3;
+    string performedBy = 4;
+}
+message GetOperationsMetadataResponse {
+    repeated OperationMetadata metadata = 1;
+}
+
+
+service FederatedAuthenticationService {
+    rpc addClient (ClientMetadata) returns (RegisterClientResponse);
+    rpc updateClient (ClientMetadata) returns (Empty);
+    rpc getClient (GetClientRequest) returns (GetClientResponse);
+    rpc deleteClient (DeleteClientRequest) returns (Empty);
+    rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+}
