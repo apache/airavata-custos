@@ -29,7 +29,7 @@ static_resources:
                       services: ["org.apache.custos.identity.management.service.IdentityManagementService"]
                       convert_grpc_status: true
                       print_options:
-                        add_whitespace: true
+                        add_whitespace: false
                         always_print_primitive_fields: true
                         always_print_enums_as_ints: false
                         preserve_proto_field_names: true

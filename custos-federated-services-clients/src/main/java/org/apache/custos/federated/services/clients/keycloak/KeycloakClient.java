@@ -24,9 +24,7 @@ import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.resource.RealmResource;
-import org.keycloak.admin.client.resource.RoleResource;
-import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,8 +188,8 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             ClientRepresentation pgaClient = new ClientRepresentation();
-            pgaClient.setName("custos");
-            pgaClient.setClientId("custos");
+            pgaClient.setName(clientName);
+            pgaClient.setClientId(clientName);
             pgaClient.setProtocol("openid-connect");
             pgaClient.setStandardFlowEnabled(true);
             pgaClient.setEnabled(true);
@@ -200,6 +198,7 @@ public class KeycloakClient {
             pgaClient.setServiceAccountsEnabled(true);
             pgaClient.setFullScopeAllowed(true);
             pgaClient.setClientAuthenticatorType("client-secret");
+
 
             pgaClient.setBaseUrl(tenantURL);
 
@@ -275,7 +274,7 @@ public class KeycloakClient {
 
 
     public boolean createUser(String realmId, String username, String newPassword, String firstName,
-                              String lastName, String emailAddress, String accessToken) {
+                              String lastName, String emailAddress, boolean tempPassowrd, String accessToken) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -296,7 +295,7 @@ public class KeycloakClient {
                 CredentialRepresentation credential = new CredentialRepresentation();
                 credential.setType(CredentialRepresentation.PASSWORD);
                 credential.setValue(newPassword);
-                credential.setTemporary(false);
+                credential.setTemporary(tempPassowrd);
                 retrievedUser.resetPassword(credential);
                 return true;
             } else {
@@ -631,6 +630,173 @@ public class KeycloakClient {
             String msg = "Error occurred while configuring  IDP in Keycloak Server, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * Add user level roles
+     *
+     * @param realmId
+     * @param roles
+     * @param users
+     * @return
+     */
+    public boolean addUserRoles(String realmId, String clientId, List<RoleRepresentation> roles, List<String> users, boolean isClientLevel) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+
+            users.forEach(user -> {
+                UserResource resource = realmResource.users().get(user);
+
+                UserRepresentation representation = resource.toRepresentation();
+
+                if (isClientLevel) {
+                    resource.roles().clientLevel(clientId).add(roles);
+                } else {
+                    resource.roles().realmLevel().add(roles);
+                }
+
+            });
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding user attributes in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+
+    }
+
+
+    /**
+     * This adds user attributes to users
+     *
+     * @param realmId
+     * @param attributeMap
+     * @param users
+     * @return
+     */
+    public boolean addUserAttributes(String realmId, Map<String, List<String>> attributeMap, List<String> users) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            for (String user : users) {
+                UserResource resource = realmResource.users().get(user);
+
+                UserRepresentation representation = resource.toRepresentation();
+
+                representation.setAttributes(attributeMap);
+
+                resource.update(representation);
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding user attributes in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+
+    }
+
+
+    /**
+     * Create protocol mapper representation in given client
+     *
+     * @param protocolMapperRepresentations
+     * @param realmId
+     * @param clientId
+     * @return
+     */
+    public boolean addProtocolMapper(List<ProtocolMapperRepresentation> protocolMapperRepresentations,
+                                     String realmId, String clientId) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            ProtocolMappersResource resource = realmResource.clients().get(clientId).getProtocolMappers();
+
+            resource.createMapper(protocolMapperRepresentations);
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding protocol mappers in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * Configure Roles in keycloak Realm or Client
+     * @param roleRepresentations
+     * @param realmId
+     * @param clientScope  if true add roles to client else to realm
+     * @return
+     */
+    public boolean addRoles(List<RoleRepresentation> roleRepresentations, String realmId, String clientId, boolean clientScope) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (clientScope) {
+
+                ClientResource resource = realmResource.clients().get(clientId);
+
+                for (RoleRepresentation representation : roleRepresentations) {
+                    resource.roles().create(representation);
+                }
+
+            } else {
+
+                for (RoleRepresentation representation : roleRepresentations) {
+                    realmResource.roles().create(representation);
+                }
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding roles in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
         }
         return true;
     }
@@ -694,7 +860,7 @@ public class KeycloakClient {
     }
 
 
-    public RealmRepresentation createDefaultRoles(RealmRepresentation realmDetails) {
+    private RealmRepresentation createDefaultRoles(RealmRepresentation realmDetails) {
         List<RoleRepresentation> defaultRoles = new ArrayList<RoleRepresentation>();
         RoleRepresentation adminRole = new RoleRepresentation();
         adminRole.setName("admin");

@@ -41,12 +41,12 @@ message User {
     int64 tenantId = 3;
     string firstName = 4;
     string lastName = 5;
-     string email = 6;
+    string email = 6;
     float creationTime = 7;
     string state = 8;
 }
 
-message  SetUpTenantRequest {
+message SetUpTenantRequest {
     int64 tenantId = 1;
     string tenantName = 2;
     string adminUsername = 3;
@@ -56,7 +56,8 @@ message  SetUpTenantRequest {
     string adminPassword = 7;
     string tenantURL = 8;
     string requesterEmail = 9;
-    repeated  string redirectURIs = 10;
+    repeated string redirectURIs = 10;
+    string custosClientId = 11;
 
 }
 
@@ -72,7 +73,7 @@ message ConfigureFederateIDPRequest {
 }
 
 
-message  FederateIDPResponse {
+message FederateIDPResponse {
     bool status = 1;
 }
 
@@ -92,19 +93,41 @@ message CheckingResponse {
     bool isExist = 1;
 }
 
-message RegisterUserRequest {
-    int64 tenantId = 1;
-    string accessToken = 2;
+
+message UserRepresentation {
     string username = 3;
-    string firstName = 4;
-    string lastName = 5;
+    string first_name = 4;
+    string last_name = 5;
     string password = 6;
     string email = 7;
+    bool temporary_password = 8;
 }
 
 
+message RegisterUserRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string clientId = 3;
+    string clientSec = 4;
+    UserRepresentation user = 5;
+}
+
+
+message RegisterUsersRequest {
+    repeated UserRepresentation users = 1;
+    int64 tenantId = 2;
+    string accessToken = 3;
+    string clientId = 4;
+    string clientSecret = 5;
+}
+
 message RegisterUserResponse {
     bool isRegistered = 1;
+}
+
+message RegisterUsersResponse {
+    bool allUseresRegistered = 1;
+    repeated UserRepresentation failedUsers = 2;
 }
 
 
@@ -117,13 +140,13 @@ message UserAccessInfo {
 
 message GetUsersRequest {
     UserAccessInfo info = 1;
-    int32 offset =3;
-    int32 limit =4;
+    int32 offset = 3;
+    int32 limit = 4;
     string search = 5;
 
 }
 
-message GetUsersResponse{
+message GetUsersResponse {
     repeated User user = 1;
 }
 
@@ -133,8 +156,8 @@ message ResetUserPassword {
 }
 
 message FindUsersRequest {
-   UserAccessInfo info = 1;
-   string email = 2;
+    UserAccessInfo info = 1;
+    string email = 2;
 }
 
 message RoleOperationsUserRequest {
@@ -147,8 +170,8 @@ message RoleOperationsUserRequest {
 }
 
 message UpdateUserProfileRequest {
-     string accessToken = 1;
-     User user = 2;
+    string accessToken = 1;
+    User user = 2;
 }
 
 message AddUserResponse {
@@ -174,9 +197,9 @@ message DeleteTenantRequest {
 }
 
 
-service  IamAdminService {
+service IamAdminService {
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
-    rpc deleteTenant(DeleteTenantRequest) returns (google.protobuf.Empty);
+    rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty);
     rpc isUsernameAvailable (IsUsernameAvailableRequest) returns (CheckingResponse);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc enableUser (UserAccessInfo) returns (User);
@@ -192,5 +215,6 @@ service  IamAdminService {
     rpc deleteRoleFromUser (RoleOperationsUserRequest) returns (CheckingResponse);
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
     rpc configureFederatedIDP (ConfigureFederateIDPRequest) returns (FederateIDPResponse);
+    rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
 
 }

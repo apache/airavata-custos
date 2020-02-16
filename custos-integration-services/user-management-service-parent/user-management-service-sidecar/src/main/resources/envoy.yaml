@@ -27,11 +27,12 @@ static_resources:
                     config:
                       proto_descriptor: "/data/user-management-service.pb"
                       services: ["org.apache.custos.user.management.service.UserManagementService"]
+                      convert_grpc_status: true
                       print_options:
                         add_whitespace: true
                         always_print_primitive_fields: true
                         always_print_enums_as_ints: false
-                        preserve_proto_field_names: false
+                        preserve_proto_field_names: true
                   - name: envoy.router
 
   clusters:

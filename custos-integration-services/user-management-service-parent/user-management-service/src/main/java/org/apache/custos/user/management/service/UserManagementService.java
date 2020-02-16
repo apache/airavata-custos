@@ -57,15 +57,15 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         try {
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getUserRequest().getTenantId())
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
             if (token != null && token.getAccessToken() != null) {
 
-                org.apache.custos.iam.service.RegisterUserRequest registerUserRequest = request.getUserRequest().
+                org.apache.custos.iam.service.RegisterUserRequest registerUserRequest = request.
                         toBuilder()
                         .setAccessToken(token.getAccessToken())
                         .build();
@@ -91,6 +91,39 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
     }
 
+
+    @Override
+    public void registerAndEnableUsers(RegisterUsersRequest request, StreamObserver<RegisterUsersResponse> responseObserver) {
+        try {
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSecret())
+                    .setTenantId(request.getTenantId())
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+            if (token != null && token.getAccessToken() != null) {
+
+                RegisterUsersResponse registerUsersResponse = iamAdminServiceClient.registerAndEnableUsers(request.toBuilder().setAccessToken(token.getAccessToken()).build());
+
+                responseObserver.onNext(registerUsersResponse);
+                responseObserver.onCompleted();
+
+            } else {
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at registerUser " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
 
     @Override
     public void enableUser(UserIdentificationRequest request, StreamObserver<User> responseObserver) {

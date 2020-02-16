@@ -19,6 +19,9 @@
 
 package org.apache.custos.identity.service;
 
+
+import com.google.protobuf.Struct;
+import com.google.protobuf.util.JsonFormat;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.federated.services.clients.keycloak.auth.KeycloakAuthClient;
@@ -29,6 +32,7 @@ import org.apache.custos.identity.authzcache.DefaultAuthzCacheManager;
 import org.apache.custos.identity.exceptions.CustosSecurityException;
 import org.apache.custos.identity.service.IdentityServiceGrpc.IdentityServiceImplBase;
 import org.apache.http.HttpStatus;
+import org.json.JSONObject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -242,32 +246,23 @@ public class IdentityService extends IdentityServiceImplBase {
 
 
     @Override
-    public void getToken(GetTokenRequest request, StreamObserver<TokenResponse> responseObserver) {
+    public void getToken(GetTokenRequest request, StreamObserver<Struct> responseObserver) {
         try {
             LOGGER.debug("Request token for " + request.getTenantId());
 
-            org.apache.custos.federated.services.clients.keycloak.auth.TokenResponse tokenResponse = keycloakAuthClient.
+            JSONObject object = keycloakAuthClient.
                     getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
                             request.getCode(), request.getRedirectUri());
 
-            if (tokenResponse != null) {
-                TokenResponse response = TokenResponse.newBuilder()
-                        .setAccessToken(tokenResponse.getAccessToken())
-                        .setExpiresIn(tokenResponse.getExpiresIn())
-                        .setRefreshExpiresIn(tokenResponse.getRefreshExpiresIn())
-                        .setRefreshToken(tokenResponse.getRefreshToken())
-                        .setIdToken(tokenResponse.getIdToken())
-                        .setScope(tokenResponse.getScope())
-                        .setNotBeforePolicy(tokenResponse.getNotBeforePolicy())
-                        .setSessionState(tokenResponse.getSessionState())
-                        .setTokenType(tokenResponse.getTokenType())
-                        .build();
-                responseObserver.onNext(response);
-                responseObserver.onCompleted();
-            } else {
-                responseObserver.onError(Status.
-                        INTERNAL.withDescription("Error occurred while fetching token").asRuntimeException());
-            }
+            Struct.Builder structBuilder = Struct.newBuilder();
+             LOGGER.info(object.toString());
+
+            Struct struct = structBuilder.build();
+            struct.
+
+            JsonFormat.parser().merge(object.toString(), structBuilder);
+            responseObserver.onNext(struct);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();
@@ -287,6 +282,29 @@ public class IdentityService extends IdentityServiceImplBase {
             AuthorizationResponse response = AuthorizationResponse.newBuilder().setAuthorizationEndpoint(authEndpoint).build();
 
             responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getOIDCConfiguration(GetOIDCConfiguration request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request for fetch OIDC configuration " + request.getTenantId());
+
+
+            JSONObject object = keycloakAuthClient.getOIDCConfiguration(String.valueOf(request.getTenantId()),
+                    request.getClientId());
+
+            Struct.Builder structBuilder = Struct.newBuilder();
+
+            JsonFormat.parser().merge(object.toString(), structBuilder);
+
+            responseObserver.onNext(structBuilder.build());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {

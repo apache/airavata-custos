@@ -24,6 +24,9 @@ import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.iam.exceptions.MissingParameterException;
 import org.apache.custos.iam.service.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * This class validates the  requests
  */
@@ -47,6 +50,9 @@ public class InputValidator implements Validator {
                 break;
             case "registerUser":
                 validateRegisterUser(obj);
+                break;
+            case "registerAndEnableUsers":
+                validateRegisterUsers(obj);
                 break;
             case "enableUser":
             case "isUserEnabled":
@@ -147,18 +153,67 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (request.getUsername() == null || request.getUsername().trim().equals("")) {
+            if (request.getUser() == null || request.getUser().getUsername() == null ||
+                    request.getUser().getUsername().trim().equals("")) {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
-            if (request.getFirstName() == null || request.getFirstName().trim().equals("")) {
+            if (request.getUser() == null || request.getUser().getFirstName() == null ||
+                    request.getUser().getFirstName().trim().equals("")) {
                 throw new MissingParameterException("Firstname should not be null", null);
             }
-            if (request.getLastName() == null || request.getLastName().trim().equals("")) {
+            if (request.getUser() == null || request.getUser().getLastName() == null ||
+                    request.getUser().getLastName().trim().equals("")) {
                 throw new MissingParameterException("Lastname should not be null", null);
             }
-            if (request.getEmail() == null || request.getEmail().trim().equals("")) {
+            if (request.getUser() == null || request.getUser().getEmail() == null ||
+                    request.getUser().getEmail().trim().equals("")) {
                 throw new MissingParameterException("Email should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method registerUser");
+        }
+        return true;
+    }
+
+    private boolean validateRegisterUsers(Object obj) {
+        if (obj instanceof RegisterUsersRequest) {
+            RegisterUsersRequest usersRequest = (RegisterUsersRequest) obj;
+
+            if (usersRequest.getUsersList().isEmpty()) {
+                throw new MissingParameterException("You need to have at least one User", null);
+            }
+
+            if (usersRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (usersRequest.getAccessToken() == null) {
+                throw new MissingParameterException("Access Token  should not be null", null);
+            }
+
+            List<UserRepresentation> userRepresentationList = usersRequest.getUsersList();
+
+            for (UserRepresentation user : userRepresentationList) {
+                if (user.getUsername() == null ||
+                        user.getUsername().trim().equals("")) {
+                    throw new MissingParameterException("Username should not be null", null);
+                }
+
+                if (user.getFirstName() == null ||
+                        user.getFirstName().trim().equals("")) {
+                    throw new MissingParameterException("Firstname should not be null", null);
+                }
+                if (user.getLastName() == null ||
+                        user.getLastName().trim().equals("")) {
+                    throw new MissingParameterException("Lastname should not be null", null);
+                }
+                if (user.getEmail() == null ||
+                        user.getEmail().trim().equals("")) {
+                    throw new MissingParameterException("Email should not be null", null);
+                }
+
             }
 
         } else {

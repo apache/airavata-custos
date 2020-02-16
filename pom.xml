@@ -176,6 +176,11 @@
                  <artifactId>resteasy-multipart-provider</artifactId>
                  <version>${reasteasy.client.version}</version>
              </dependency>
+             <dependency>
+                 <groupId>com.google.protobuf</groupId>
+                 <artifactId>protobuf-java-util</artifactId>
+                 <version>${com.google.protobuf.util}</version>
+             </dependency>
          </dependencies>
     </dependencyManagement>
 
@@ -334,6 +339,8 @@
         <keycloak.admin.version>7.0.0</keycloak.admin.version>
 
         <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
+
+        <com.google.protobuf.util>3.11.3</com.google.protobuf.util>
 
     </properties>
 

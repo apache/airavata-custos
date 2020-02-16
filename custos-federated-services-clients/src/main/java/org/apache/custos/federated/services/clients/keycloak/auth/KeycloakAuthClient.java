@@ -72,6 +72,30 @@ public class KeycloakAuthClient {
     @Value("${iam.server.truststore.password:keycloak}")
     private String trustStorePassword;
 
+    @Value("${introspection.endpoint}")
+    private String introEndpoint;
+
+    @Value("${issuer}")
+    private String issuer;
+
+    @Value("${authorization.endpoint}")
+    private String authorizationEndpoint;
+
+    @Value("${token.endpoint}")
+    private String tokenEndpoint;
+
+    @Value("${end.session.endpoint}")
+    private String sessionEndpoint;
+
+    @Value("${jwks_uri}")
+    private String jwksUri;
+
+    @Value("${registration.endpoint}")
+    private String registrationEndpoint;
+
+    @Value("${user.info.endpoint}")
+    private String userInfoEndpoint;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakAuthClient.class);
 
     public KeycloakAuthClient() {
@@ -167,40 +191,18 @@ public class KeycloakAuthClient {
         }
     }
 
-    public TokenResponse getAccessToken(String clientId, String clientSecret, String realmId,
-                                        String code, String redirectUri) throws JSONException {
-        JSONObject clientCredentials = null;
+    public JSONObject getAccessToken(String clientId, String clientSecret, String realmId,
+                                     String code, String redirectUri) throws JSONException {
         try {
             String tokenURL = getTokenEndpoint(realmId);
-            clientCredentials = getTokenFromOAuthCode(tokenURL, clientId, clientSecret, code, redirectUri);
+            return getTokenFromOAuthCode(tokenURL, clientId, clientSecret, code, redirectUri);
 
-            TokenResponse tokenResponse = new TokenResponse(
-                    clientCredentials.getString("access_token"),
-                    clientCredentials.getDouble("expires_in"),
-                    clientCredentials.getDouble("refresh_expires_in"),
-                    clientCredentials.getString("refresh_token"),
-                    clientCredentials.getString("token_type"),
-                    clientCredentials.getString("id_token"),
-                    clientCredentials.getDouble("not-before-policy"),
-                    clientCredentials.getString("session_state"),
-                    clientCredentials.getString("scope"));
-            return tokenResponse;
-
-
-        } catch (JSONException ex) {
-            if (clientCredentials != null) {
-                String description = clientCredentials.getString("error_description");
-                String error = clientCredentials.getString("error");
-                String errorMsg = description + " and " + error;
-                throw new RuntimeException(errorMsg);
-            }
         } catch (Exception e) {
             String msg = "Error occurred while retrieving  access token  " + e;
             LOGGER.error(msg);
             throw new RuntimeException(msg, e);
         }
 
-        return null;
     }
 
     private String getTokenEndpoint(String gatewayId) throws Exception {
@@ -215,6 +217,24 @@ public class KeycloakAuthClient {
         return openIdConnectConfig.getString("authorization_endpoint");
     }
 
+
+    public JSONObject getOIDCConfiguration(String tenantId, String clientId) throws Exception {
+        String openIdConnectUrl = getOpenIDConfigurationUrl(tenantId);
+        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
+
+        openIdConnectConfig.put("introspection_endpoint", introEndpoint);
+        openIdConnectConfig.put("issuer", issuer);
+        openIdConnectConfig.put("token_endpoint", tokenEndpoint);
+        openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
+        openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
+        openIdConnectConfig.put("userinfo_endpoint", userInfoEndpoint);
+        openIdConnectConfig.put("jwks_uri", jwksUri);
+        openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
+        openIdConnectConfig.remove("check_session_iframe");
+
+
+        return openIdConnectConfig;
+    }
 
     private User getUserInfo(String realmId, String token) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(realmId);

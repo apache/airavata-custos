@@ -51,7 +51,10 @@ public class AuthInterceptorImpl extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-        LOGGER.info("In authinterceptorImpl");
+        if (method.equals("getOIDCConfiguration") || method.equals("authorize") || method.equals("authorizetest")) {
+
+            return reqT;
+        }
 
         AuthClaim claim = authorize(headers);
         if (claim == null) {
@@ -59,7 +62,6 @@ public class AuthInterceptorImpl extends AuthInterceptor {
         }
         if (method.equals("authenticate")) {
 
-            LOGGER.info("Inside authenticate");
             String userName = ((AuthenticationRequest) reqT).getAuthRequest().getUsername();
             String password = ((AuthenticationRequest) reqT).getAuthRequest().getPassword();
             org.apache.custos.identity.service.AuthenticationRequest reqCore =
@@ -108,16 +110,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                             .build();
             return (ReqT) request;
 
-        } else if (method.equals("authorize")) {
-
-            AuthorizationRequest request = ((AuthorizationRequest) reqT).toBuilder()
-                    .setTenantId(claim.getTenantId())
-                    .setClientId(claim.getIamAuthId())
-                    .setClientSecret(claim.getIamAuthSecret())
-                    .build();
-            return (ReqT) request;
-
-        } else if (method.equals("token")) {
+        }  else if (method.equals("token")) {
 
             GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
                     .setTenantId(claim.getTenantId())

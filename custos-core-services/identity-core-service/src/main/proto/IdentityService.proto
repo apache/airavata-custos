@@ -22,7 +22,7 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 package org.apache.custos.identity.service;
-
+import "google/protobuf/struct.proto";
 
 
 message AuthToken {
@@ -76,7 +76,7 @@ message AuthenticationRequest {
 }
 
 message IsAuthenticateResponse {
-    bool authenticated  = 1;
+    bool authenticated = 1;
 }
 
 message GetUserManagementSATokenRequest {
@@ -93,12 +93,19 @@ message AuthorizationResponse {
     string authorizationEndpoint = 2;
 }
 
-service  IdentityService {
+message GetOIDCConfiguration {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+}
+
+service IdentityService {
     rpc authenticate (AuthenticationRequest) returns (AuthToken);
     rpc isAuthenticate (AuthToken) returns (IsAuthenticateResponse);
     rpc getUser (AuthToken) returns (User);
     rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthToken);
-    rpc getToken(GetTokenRequest) returns (TokenResponse);
-    rpc getAuthorizeEndpoint(GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
+    rpc getToken (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getAuthorizeEndpoint (GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
+    rpc getOIDCConfiguration (GetOIDCConfiguration) returns (google.protobuf.Struct);
 
 }

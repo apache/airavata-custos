@@ -63,7 +63,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getAdminEmail(), request.getAdminPassword());
 
             KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(request.getTenantId()),
-                    request.getTenantName(),
+                    request.getCustosClientId(),
                     request.getTenantURL(), request.getRedirectURIsList());
 
             SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
@@ -196,11 +196,12 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to registerUser for " + request.getTenantId());
 
             boolean registered = keycloakClient.createUser(String.valueOf(request.getTenantId()),
-                    request.getUsername(),
-                    request.getPassword(),
-                    request.getFirstName(),
-                    request.getLastName(),
-                    request.getEmail(),
+                    request.getUser().getUsername(),
+                    request.getUser().getPassword(),
+                    request.getUser().getFirstName(),
+                    request.getUser().getLastName(),
+                    request.getUser().getEmail(),
+                    false,
                     request.getAccessToken());
 
 
@@ -539,8 +540,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to configureFederatedIDP for " + request.getTenantId());
 
 
-
-          keycloakClient.configureOIDCFederatedIDP(String.valueOf(request.getTenantId()), "CILogon",request.getScope(),
+            keycloakClient.configureOIDCFederatedIDP(String.valueOf(request.getTenantId()), "CILogon", request.getScope(),
                     new KeycloakClientSecret(request.getClientID(), request.getClientSec()), null);
 
 
@@ -555,6 +555,69 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         } catch (Exception ex) {
             String msg = " Configure Federated IDP failed for " + request.getTenantId();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void registerAndEnableUsers(RegisterUsersRequest request, StreamObserver<RegisterUsersResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to registerMultipleUsers for " + request.getTenantId());
+
+            List<org.apache.custos.iam.service.UserRepresentation> userRepresentations = request.getUsersList();
+
+            List<org.apache.custos.iam.service.UserRepresentation> failedList = new ArrayList<>();
+
+            for (org.apache.custos.iam.service.UserRepresentation userRepresentation : userRepresentations) {
+
+                try {
+                    keycloakClient.createUser(String.valueOf(request.getTenantId()),
+                            userRepresentation.getUsername(),
+                            userRepresentation.getPassword(),
+                            userRepresentation.getFirstName(),
+                            userRepresentation.getLastName(),
+                            userRepresentation.getEmail(),
+                            userRepresentation.getTemporaryPassword(),
+                            request.getAccessToken());
+
+                    keycloakClient.enableUserAccount
+                            (String.valueOf(request.getTenantId()),
+                                    request.getAccessToken(), userRepresentation.getUsername());
+                } catch (Exception ex) {
+
+                    LOGGER.error(" Error occurred while adding user " + userRepresentation.getUsername() +
+                            " to realm" + request.getTenantId());
+                    failedList.add(userRepresentation);
+                    statusUpdater.updateStatus(IAMOperations.REGISTER_ENABLE_USERS.name(),
+                            OperationStatus.FAILED,
+                            request.getTenantId(),
+                            userRepresentation.getUsername());
+                }
+            }
+
+            if (failedList.isEmpty()) {
+                statusUpdater.updateStatus(IAMOperations.REGISTER_ENABLE_USERS.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
+            }
+
+
+            RegisterUsersResponse response = RegisterUsersResponse.newBuilder()
+                    .setAllUseresRegistered(failedList.isEmpty())
+                    .addAllFailedUsers(failedList).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.REGISTER_ENABLE_USERS.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()));
+            String msg = " Register  multiple users  failed for " + request.getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

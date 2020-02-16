@@ -22,6 +22,7 @@ package org.apache.custos.identity.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.identity.management.service.AuthorizationRequest;
 import org.apache.custos.identity.management.utils.Constants;
+import org.apache.custos.identity.service.GetOIDCConfiguration;
 import org.apache.custos.integration.core.exceptions.MissingParameterException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.slf4j.Logger;
@@ -39,6 +40,8 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "authorize":
                 validateAuthorize(headers, msg, method);
                 break;
+            case "getOIDCConfiguration":
+                validationGetOIDCConfiguration(headers, msg, method);
             default:
         }
         return msg;
@@ -46,7 +49,6 @@ public class InputValidator implements IntegrationServiceInterceptor {
 
 
     private boolean validateAuthorize(Metadata headers, Object body, String method) {
-        validationAuthorizationHeader(headers);
 
         if (body == null || !(body instanceof AuthorizationRequest)) {
 
@@ -54,6 +56,9 @@ public class InputValidator implements IntegrationServiceInterceptor {
 
             if (request.getResponseType() == null || !request.getResponseType().trim().equals(Constants.AUTHORIZATION_CODE)) {
                 throw new MissingParameterException("Incorrect response type", null);
+            }
+            if (request.getClientId() == null || !request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("ClientId is not available", null);
             }
             if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
                 throw new MissingParameterException("redirectUri is not available", null);
@@ -71,6 +76,18 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private boolean validationAuthorizationHeader(Metadata headers) {
         if (headers.get(Metadata.Key.of(Constants.AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER)) == null) {
             throw new MissingParameterException("authorization header not available", null);
+        }
+
+        return true;
+    }
+
+
+    private boolean validationGetOIDCConfiguration(Metadata headers, Object body, String method) {
+        if (body instanceof GetOIDCConfiguration) {
+            GetOIDCConfiguration configuration = (GetOIDCConfiguration) body;
+            if (configuration.getClientId() == null || configuration.getClientId().equals("")) {
+                throw new MissingParameterException("Client Id  is not available", null);
+            }
         }
 
         return true;

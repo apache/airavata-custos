@@ -21,6 +21,8 @@ package org.apache.custos.user.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.iam.service.RegisterUserRequest;
+import org.apache.custos.iam.service.RegisterUsersRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -72,17 +74,23 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         } else if (method.equals("registerUser")) {
             org.apache.custos.iam.service.RegisterUserRequest registerUserRequest =
-                    ((RegisterUserRequest) reqT).getUserRequest().toBuilder().setTenantId(tenantId).build();
+                    ((RegisterUserRequest) reqT).toBuilder()
+                            .setTenantId(tenantId)
+                            .setClientId(oauthId)
+                            .setClientSec(oauthSec)
+                            .build();
 
+            return (ReqT) registerUserRequest;
+        } else if (method.equals("registerAndEnableUsers")) {
+            org.apache.custos.iam.service.RegisterUsersRequest registerUserRequest =
+                    ((RegisterUsersRequest) reqT).toBuilder()
+                            .setTenantId(tenantId)
+                            .setClientId(oauthId)
+                            .setClientSecret(oauthSec)
+                            .build();
+            return (ReqT) registerUserRequest;
 
-            RegisterUserRequest pr = ((RegisterUserRequest) reqT).toBuilder()
-                    .setIamClientId(oauthId)
-                    .setIamClientSecret(oauthSec)
-                    .setUserRequest(registerUserRequest)
-                    .build();
-
-            return (ReqT) pr;
-        } else if (method.equals("enableUser") || method.equals("deleteUser")) {
+        }  else if (method.equals("enableUser") || method.equals("deleteUser")) {
 
             UserIdentificationRequest info = ((UserIdentificationRequest) reqT)
                     .toBuilder()

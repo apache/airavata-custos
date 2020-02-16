@@ -104,7 +104,7 @@ public class IdentityManagementClient {
                 .setRedirectUri(redirectUri)
                 .build();
 
-        return blockingStub.token(request);
+        return null;
     }
 
 

@@ -143,7 +143,7 @@ public class IamAdminServiceClient {
 
     public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
         StreamObserver observer = getObserver(callback, "get operations metadata");
-        iamAdminServiceStub.getOperationMetadata(request,observer);
+        iamAdminServiceStub.getOperationMetadata(request, observer);
     }
 
     public SetUpTenantResponse setUPTenant(SetUpTenantRequest request) {
@@ -224,11 +224,16 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.getOperationMetadata(request);
     }
 
-    public FederateIDPResponse configureFederatedIDP (ConfigureFederateIDPRequest request) {
+    public FederateIDPResponse configureFederatedIDP(ConfigureFederateIDPRequest request) {
         return iamAdminServiceBlockingStub.configureFederatedIDP(request);
     }
 
-    public String getIamServerURL(){
+
+    public RegisterUsersResponse registerAndEnableUsers(RegisterUsersRequest registerUsersRequest) {
+        return iamAdminServiceBlockingStub.registerAndEnableUsers(registerUsersRequest);
+    }
+
+    public String getIamServerURL() {
         return iamServerURL;
     }
 

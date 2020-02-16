@@ -25,6 +25,9 @@ package org.apache.custos.identity.management.service;
 
 import "google/api/annotations.proto";
 import "IdentityService.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/any.proto";
+
 
 
 message AuthenticationRequest {
@@ -44,6 +47,7 @@ message AuthorizationRequest {
 message AuthorizationResponse {
     string loginURI = 1;
 }
+
 
 service IdentityManagementService {
 
@@ -83,10 +87,19 @@ service IdentityManagementService {
          };
     }
 
-    rpc token (org.apache.custos.identity.service.GetTokenRequest) returns (org.apache.custos.identity.service.TokenResponse) {
+
+
+
+    rpc token (org.apache.custos.identity.service.GetTokenRequest) returns (google.protobuf.Struct) {
         option (google.api.http) = {
            post: "/identity-management/v1.0.0/token"
 
+         };
+    }
+
+    rpc getOIDCConfiguration(org.apache.custos.identity.service.GetOIDCConfiguration) returns (google.protobuf.Struct) {
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/.well-known/openid-configuration"
          };
     }
 

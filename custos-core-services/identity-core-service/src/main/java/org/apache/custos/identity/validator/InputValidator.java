@@ -56,6 +56,9 @@ public class InputValidator implements Validator {
             case "getAuthorizeEndpoint":
                 validateGetAuthorizationEndpoint(obj);
                 break;
+            case "getOIDCConfiguration":
+                validateGetOIDCConfiguration(obj);
+                break;
 
             default:
                 throw new RuntimeException("Method not implemented");
@@ -184,5 +187,16 @@ public class InputValidator implements Validator {
         }
         return true;
     }
+    private boolean validateGetOIDCConfiguration(Object obj) {
+        if (obj instanceof GetOIDCConfiguration) {
+            GetOIDCConfiguration request = (GetOIDCConfiguration) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
 
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateGetOIDCConfiguration");
+        }
+        return true;
+    }
 }

@@ -41,7 +41,7 @@ public class CredentialManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CredentialManager.class);
 
-    private String credentialPrefix = "custos/";
+    private String credentialPrefix = "custos-";
 
     private static final Random RANDOM = new SecureRandom();
 
@@ -58,7 +58,7 @@ public class CredentialManager {
     public Credential generateCredential(long ownerId, CredentialTypes type, long validTime) {
         try {
 
-            String clientId = credentialPrefix + generateRandomClientId(ID_LENGTH) + "/" + ownerId;
+            String clientId = credentialPrefix + generateRandomClientId(ID_LENGTH).toLowerCase() + "-" + ownerId;
 
             String secret = generateSecret(SECRET_LENGTH);
 

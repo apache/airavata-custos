@@ -41,13 +41,6 @@ message DeleteProfileRequest {
 }
 
 
-message RegisterUserRequest {
-    org.apache.custos.iam.service.RegisterUserRequest userRequest = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
-}
-
-
 message UserIdentificationRequest {
     org.apache.custos.iam.service.UserAccessInfo info = 1;
     string iamClientId = 2;
@@ -86,20 +79,31 @@ message ResetPasswordRequest {
 }
 
 
+
 message RoleOperationRequest {
     org.apache.custos.iam.service.RoleOperationsUserRequest role = 1;
     string iamClientId = 2;
     string iamClientSecret = 3;
 }
 
+
+
 service UserManagementService {
 
-    rpc registerUser (RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
+    rpc registerUser (org.apache.custos.iam.service.RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
         option (google.api.http) = {
            post: "/user-management/v1.0.0/user"
-           body: "userRequest"
+           body: "user"
          };
     }
+
+    rpc registerAndEnableUsers (org.apache.custos.iam.service.RegisterUsersRequest) returns (org.apache.custos.iam.service.RegisterUsersResponse) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users"
+           body: "users"
+         };
+    }
+
 
     rpc enableUser (UserIdentificationRequest) returns (org.apache.custos.iam.service.User) {
         option (google.api.http) = {

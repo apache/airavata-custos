@@ -19,8 +19,14 @@
 
 package org.apache.custos.identity.management.service;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Struct;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.credential.store.service.CredentialMetadata;
+import org.apache.custos.credential.store.service.GetCredentialRequest;
+import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.*;
@@ -46,6 +52,9 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
     @Autowired
     private TenantProfileClient tenantProfileClient;
+
+    @Autowired
+    private CredentialStoreServiceClient credentialStoreServiceClient;
 
     @Override
     public void authenticate(AuthenticationRequest request, StreamObserver<AuthToken> responseObserver) {
@@ -110,9 +119,20 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     @Override
     public void authorize(AuthorizationRequest request, StreamObserver<AuthorizationResponse> responseObserver) {
         try {
-            LOGGER.debug("Request received  to authorize " + request.getTenantId());
+            LOGGER.debug("Request received  to authorize " + request.getClientId());
 
-            GetTenantRequest tenantRequest = GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
+
+            GetCredentialRequest req = GetCredentialRequest.newBuilder().setId(request.getClientId()).build();
+
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(req);
+
+
+            req = req.toBuilder().setType(Type.IAM).setOwnerId(metadata.getOwnerId()).build();
+
+            CredentialMetadata iamMetadata = credentialStoreServiceClient.getCredential(req);
+
+
+            GetTenantRequest tenantRequest = GetTenantRequest.newBuilder().setTenantId(metadata.getOwnerId()).build();
 
             GetTenantResponse tenantResponse = tenantProfileClient.getTenant(tenantRequest);
 
@@ -141,7 +161,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
             GetAuthorizationEndpointRequest getAuthorizationEndpointRequest = GetAuthorizationEndpointRequest
                     .newBuilder()
-                    .setTenantId(request.getTenantId()).build();
+                    .setTenantId(metadata.getOwnerId()).build();
 
             org.apache.custos.identity.service.AuthorizationResponse response =
                     identityClient.getAuthorizationEndpoint(getAuthorizationEndpointRequest);
@@ -149,9 +169,9 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             String endpoint = response.getAuthorizationEndpoint();
 
 
-            String loginURL = endpoint + "?" + "client_id=" + request.getClientId() + "&" + "redirect_uri="
+            String loginURL = endpoint + "?" + "client_id=" + iamMetadata.getId() + "&" + "redirect_uri="
                     + request.getRedirectUri() + "&" + "response_type="
-                    + Constants.AUTHORIZATION_CODE + "&" + "scope=" + request.getScope() +"&"+"state="+ request.getState();
+                    + Constants.AUTHORIZATION_CODE + "&" + "scope=" + request.getScope() + "&" + "state=" + request.getState();
 
             AuthorizationResponse resp = AuthorizationResponse.newBuilder().setLoginURI(loginURL).build();
 
@@ -165,11 +185,11 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     }
 
     @Override
-    public void token(GetTokenRequest request, StreamObserver<TokenResponse> responseObserver) {
+    public void token(GetTokenRequest request, StreamObserver<Struct> responseObserver) {
         try {
             LOGGER.debug("Request received  to token endpoint " + request.getTenantId());
 
-            TokenResponse response = identityClient.getAccessToken(request);
+            Struct response = identityClient.getAccessToken(request);
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -180,4 +200,42 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             responseObserver.onError(ex);
         }
     }
+
+    @Override
+    public void getOIDCConfiguration(GetOIDCConfiguration request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to fetch OIDC configuration " + request.getTenantId());
+
+            String clientId = request.getClientId();
+
+            GetCredentialRequest req = GetCredentialRequest.newBuilder().setId(clientId).build();
+
+
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(req);
+
+
+            GetCredentialRequest iamCredentialRequest = GetCredentialRequest.newBuilder().setType(Type.IAM).
+                    setOwnerId(metadata.getOwnerId())
+                    .setId(request.getClientId()).build();
+
+            CredentialMetadata iamCredential = credentialStoreServiceClient.getCredential(iamCredentialRequest);
+
+
+            request = request.toBuilder().setTenantId(metadata.getOwnerId()).setClientId(iamCredential.getId()).build();
+
+            Struct struct = identityClient.getOIDCConfiguration(request);
+
+            responseObserver.onNext(struct);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  retrieving OIDC configuration " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
+
+
+
 }

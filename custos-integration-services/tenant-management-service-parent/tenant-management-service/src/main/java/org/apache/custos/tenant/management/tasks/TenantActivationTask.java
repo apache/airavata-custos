@@ -124,6 +124,14 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
     public UpdateStatusResponse activateTenant(Tenant tenant, String performedBy) {
 
+
+        GetCredentialRequest getCreRe = GetCredentialRequest.newBuilder().
+                setOwnerId(tenant.getTenantId())
+                .setType(Type.CUSTOS)
+                .build();
+
+       CredentialMetadata metadata =  credentialStoreServiceClient.getCredential(getCreRe);
+
         SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
                 .newBuilder()
                 .setTenantId(tenant.getTenantId())
@@ -136,6 +144,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 .setAdminUsername(tenant.getAdminUsername())
                 .setRequesterEmail(tenant.getRequesterEmail())
                 .setTenantURL(tenant.getClientUri())
+                .setCustosClientId(metadata.getId())
                 .build();
 
         SetUpTenantResponse iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);

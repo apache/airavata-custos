@@ -28,7 +28,7 @@ import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
+import com.google.protobuf.Struct;
 import java.util.List;
 
 /**
@@ -96,12 +96,16 @@ public class IdentityClient {
         return identityServiceBlockingStub.getUserManagementServiceAccountAccessToken(request);
     }
 
-    public TokenResponse getAccessToken(GetTokenRequest request) {
+    public Struct getAccessToken(GetTokenRequest request) {
         return identityServiceBlockingStub.getToken(request);
     }
 
     public AuthorizationResponse getAuthorizationEndpoint(GetAuthorizationEndpointRequest request) {
         return identityServiceBlockingStub.getAuthorizeEndpoint(request);
+    }
+
+    public Struct getOIDCConfiguration(GetOIDCConfiguration request) {
+        return identityServiceBlockingStub.getOIDCConfiguration(request);
     }
 
 
