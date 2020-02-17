@@ -258,7 +258,6 @@ public class IdentityService extends IdentityServiceImplBase {
              LOGGER.info(object.toString());
 
             Struct struct = structBuilder.build();
-            struct.
 
             JsonFormat.parser().merge(object.toString(), structBuilder);
             responseObserver.onNext(struct);
