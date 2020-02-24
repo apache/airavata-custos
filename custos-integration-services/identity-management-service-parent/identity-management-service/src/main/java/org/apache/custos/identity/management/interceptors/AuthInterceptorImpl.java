@@ -21,8 +21,9 @@ package org.apache.custos.identity.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.management.service.AuthenticationRequest;
-import org.apache.custos.identity.management.service.AuthorizationRequest;
+import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
 import org.apache.custos.identity.service.GetTokenRequest;
@@ -51,7 +52,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-        if (method.equals("getOIDCConfiguration") || method.equals("authorize") || method.equals("authorizetest")) {
+        if (method.equals("getOIDCConfiguration") || method.equals("authorize")) {
 
             return reqT;
         }
@@ -110,7 +111,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                             .build();
             return (ReqT) request;
 
-        }  else if (method.equals("token")) {
+        } else if (method.equals("token")) {
 
             GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
                     .setTenantId(claim.getTenantId())
@@ -119,9 +120,23 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                     .build();
             return (ReqT) request;
 
+        } else if (method.equals("getCredentials")) {
+
+            Credentials credentials = Credentials.newBuilder()
+                    .setCustosClientId(claim.getCustosId())
+                    .setCustosClientSecret(claim.getCustosSecret())
+                    .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
+                    .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
+                    .setCiLogonClientId(claim.getCiLogonId())
+                    .setCiLogonClientSecret(claim.getCiLogonSecret())
+                    .setIamClientId(claim.getIamAuthId())
+                    .setIamClientSecret(claim.getIamAuthSecret())
+                    .build();
+
+            return (ReqT) ((GetCredentialsRequest) reqT).toBuilder().setCredentials(credentials).build();
+
         }
+
         return reqT;
     }
-
-
 }

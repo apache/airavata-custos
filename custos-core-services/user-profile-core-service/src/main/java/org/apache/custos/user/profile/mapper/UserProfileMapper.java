@@ -41,7 +41,7 @@ public class UserProfileMapper {
 
         entity.setId(userProfile.getUserId());
         entity.setUsername(userProfile.getUsername());
-        entity.setEmailAddress(userProfile.getEmailAddress());
+        entity.setEmailAddress(userProfile.getEmail());
         entity.setFirstName(userProfile.getFirstName());
         entity.setLastName(userProfile.getLastName());
         entity.setTenantId(userProfile.getTenantId());
@@ -62,7 +62,7 @@ public class UserProfileMapper {
 
         return org.apache.custos.user.profile.service.UserProfile.newBuilder()
                 .setUsername(profileEntity.getUsername())
-                .setEmailAddress(profileEntity.getEmailAddress())
+                .setEmail(profileEntity.getEmailAddress())
                 .setFirstName(profileEntity.getFirstName())
                 .setLastName(profileEntity.getLastName())
                 .setTenantId(profileEntity.getTenantId())
@@ -79,7 +79,7 @@ public class UserProfileMapper {
         buffer.append("\n");
         buffer.append("tenantId : " + userProfile.getTenantId());
         buffer.append("\n");
-        buffer.append("emailAddress : " + userProfile.getEmailAddress());
+        buffer.append("emailAddress : " + userProfile.getEmail());
         buffer.append("\n");
         buffer.append("firstName : " + userProfile.getFirstName());
         buffer.append("\n");

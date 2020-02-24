@@ -30,8 +30,9 @@ import "IamAdminService.proto";
 
 message UserProfileRequest {
     org.apache.custos.user.profile.service.UserProfile userProfile = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
+    string clientId = 2;
+    int64 tenantId = 3;
+    string accessToken = 4;
 }
 
 message DeleteProfileRequest {
@@ -40,18 +41,9 @@ message DeleteProfileRequest {
     string iamClientSecret = 3;
 }
 
-
-message UserIdentificationRequest {
-    org.apache.custos.iam.service.UserAccessInfo info = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
-}
-
 message GetUserRequest {
     string username = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
-    int64 tenantId = 4;
+    org.apache.custos.iam.service.UserSearchRequest userSearchRequest = 2;
 }
 
 message GetUsersRequest {
@@ -80,13 +72,6 @@ message ResetPasswordRequest {
 
 
 
-message RoleOperationRequest {
-    org.apache.custos.iam.service.RoleOperationsUserRequest role = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
-}
-
-
 
 service UserManagementService {
 
@@ -104,45 +89,63 @@ service UserManagementService {
          };
     }
 
-
-    rpc enableUser (UserIdentificationRequest) returns (org.apache.custos.iam.service.User) {
+    rpc addUserAttributes (org.apache.custos.iam.service.AddUserAttributesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
-           post: "/user-management/v1.0.0/user/activation"
-           body: "info"
+           post: "/user-management/v1.0.0/attributes"
          };
     }
 
-    rpc isUserEnabled (GetUserRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc enableUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/activation"
+           body: "user"
+         };
+    }
+
+    rpc addRolesToUsers ( org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users/roles"
+         };
+    }
+
+    rpc isUserEnabled (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/activation/status"
          };
 
     }
 
-    rpc getUser (GetUserRequest) returns (org.apache.custos.iam.service.User) {
+    rpc isUsernameAvailable(org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/availability"
+         };
+    }
+
+
+
+    rpc getUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user"
          };
 
     }
 
-    rpc getUsers (GetUsersRequest) returns (org.apache.custos.iam.service.GetUsersResponse) {
+    rpc findUsers (org.apache.custos.iam.service.FindUsersRequest) returns (org.apache.custos.iam.service.FindUsersResponse) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/users"
          };
 
     }
 
-    rpc resetPassword (ResetPasswordRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc resetPassword (org.apache.custos.iam.service.ResetUserPassword) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
            put: "/user-management/v1.0.0/user/password"
-           body: "passwordMetadata"
          };
 
     }
 
 
-    rpc deleteUser (UserIdentificationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user"
            body: "info"
@@ -150,18 +153,10 @@ service UserManagementService {
 
     }
 
-    rpc addRoleToUser (RoleOperationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
-        option (google.api.http) = {
-           post: "/user-management/v1.0.0/user/role"
-           body: "role"
-         };
-    }
 
-
-    rpc deleteRoleFromUser (RoleOperationRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc deleteUserRoles (org.apache.custos.iam.service.DeleteUserRolesRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
-           delete: "/user-management/v1.0.0/user/role"
-           body: "role"
+           delete: "/user-management/v1.0.0/user/roles"
          };
     }
 

@@ -40,6 +40,8 @@ public class AuthClaim {
 
     private long custosSecretExpiredAt;
 
+    private String performedBy;
+
 
     public AuthClaim() {
     }
@@ -120,5 +122,13 @@ public class AuthClaim {
 
     public void setCustosSecretExpiredAt(long custosSecretExpiredAt) {
         this.custosSecretExpiredAt = custosSecretExpiredAt;
+    }
+
+    public String getPerformedBy() {
+        return performedBy;
+    }
+
+    public void setPerformedBy(String performedBy) {
+        this.performedBy = performedBy;
     }
 }

@@ -24,7 +24,6 @@ import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.iam.exceptions.MissingParameterException;
 import org.apache.custos.iam.service.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,9 +44,6 @@ public class InputValidator implements Validator {
             case "setUPTenant":
                 validateSetUPTenant(obj);
                 break;
-            case "isUsernameAvailable":
-                validateIsUsernameAvailable(obj);
-                break;
             case "registerUser":
                 validateRegisterUser(obj);
                 break;
@@ -59,23 +55,34 @@ public class InputValidator implements Validator {
             case "isUserExist":
             case "getUser":
             case "deleteUser":
+            case "isUsernameAvailable":
                 validateUserAccess(obj);
-                break;
-            case "getUsers":
-                validateGetUsers(obj);
                 break;
             case "resetPassword":
                 validateResetPassword(obj);
                 break;
             case "findUsers":
                 validateFindUsers(obj);
+                break;
             case "updateUserProfile":
                 validateUpdateUserProfile(obj);
+                break;
             case "addRoleToUser":
-            case "deleteRoleFromUser":
-                validateRoleOperationsRequest(obj);
+            case "deleteRolesFromUser":
+                validateDeleteRolesFromUser(obj);
+                break;
             case "configureFederatedIDP":
                 validateConfigureFederatedIDP(obj);
+                break;
+            case "addRolesToTenant":
+                validateAddRoleToTenant(obj);
+                break;
+            case "addProtocolMapper":
+                validateAddProtocolMapper(obj);
+                break;
+            case "addUserAttributes":
+                validateAddUserAttributes(obj);
+                break;
             default:
 
         }
@@ -121,26 +128,6 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private boolean validateIsUsernameAvailable(Object obj) {
-        if (obj instanceof IsUsernameAvailableRequest) {
-            IsUsernameAvailableRequest request = (IsUsernameAvailableRequest) obj;
-            if (request.getTenantId() == 0) {
-                throw new MissingParameterException("Tenant Id should not be null", null);
-            }
-
-            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
-                throw new MissingParameterException("Access token should not be null", null);
-            }
-
-            if (request.getUserName() == null || request.getUserName().trim().equals("")) {
-                throw new MissingParameterException("Username should not be null", null);
-            }
-
-        } else {
-            throw new RuntimeException("Unexpected input type for method isUsernameAvailable");
-        }
-        return true;
-    }
 
     private boolean validateRegisterUser(Object obj) {
         if (obj instanceof RegisterUserRequest) {
@@ -193,6 +180,10 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access Token  should not be null", null);
             }
 
+            if (usersRequest.getClientId() == null) {
+                throw new MissingParameterException("Client Id  should not be null", null);
+            }
+
             List<UserRepresentation> userRepresentationList = usersRequest.getUsersList();
 
             for (UserRepresentation user : userRepresentationList) {
@@ -217,14 +208,14 @@ public class InputValidator implements Validator {
             }
 
         } else {
-            throw new RuntimeException("Unexpected input type for method registerUser");
+            throw new RuntimeException("Unexpected input type for method registerUsers");
         }
         return true;
     }
 
     private boolean validateUserAccess(Object obj) {
-        if (obj instanceof UserAccessInfo) {
-            UserAccessInfo request = (UserAccessInfo) obj;
+        if (obj instanceof UserSearchRequest) {
+            UserSearchRequest request = (UserSearchRequest) obj;
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
@@ -233,7 +224,7 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (request.getUsername() == null || request.getUsername().trim().equals("")) {
+            if (request.getUser().getUsername() == null || request.getUser().getUsername().trim().equals("")) {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
@@ -244,40 +235,19 @@ public class InputValidator implements Validator {
     }
 
 
-    private boolean validateGetUsers(Object obj) {
-        if (obj instanceof GetUsersRequest) {
-            GetUsersRequest request = (GetUsersRequest) obj;
-            UserAccessInfo info = request.getInfo();
-            if (info.getTenantId() == 0) {
-                throw new MissingParameterException("Tenant Id should not be null", null);
-            }
-
-            if (info.getAccessToken() == null || info.getAccessToken().trim().equals("")) {
-                throw new MissingParameterException("Access token should not be null", null);
-            }
-
-            if (request.getSearch() == null || request.getSearch().trim().equals("")) {
-                throw new MissingParameterException("Search parameter should not be null", null);
-            }
-        } else {
-            throw new RuntimeException("Unexpected input type for method getUsers");
-        }
-        return true;
-    }
-
     private boolean validateResetPassword(Object obj) {
         if (obj instanceof ResetUserPassword) {
             ResetUserPassword request = (ResetUserPassword) obj;
-            UserAccessInfo info = request.getInfo();
-            if (info.getTenantId() == 0) {
+
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (info.getAccessToken() == null || info.getAccessToken().trim().equals("")) {
+            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (info.getUsername() == null || info.getUsername().trim().equals("")) {
+            if (request.getUsername() == null || request.getUsername().trim().equals("")) {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
@@ -294,21 +264,16 @@ public class InputValidator implements Validator {
     private boolean validateFindUsers(Object obj) {
         if (obj instanceof FindUsersRequest) {
             FindUsersRequest request = (FindUsersRequest) obj;
-            UserAccessInfo info = request.getInfo();
-            if (info.getTenantId() == 0) {
+            if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (info.getAccessToken() == null || info.getAccessToken().trim().equals("")) {
+            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (info.getUsername() == null || info.getUsername().trim().equals("")) {
-                throw new MissingParameterException("Username should not be null", null);
-            }
-
-            if (request.getEmail() == null || request.getEmail().trim().equals("")) {
-                throw new MissingParameterException("Email should not be null", null);
+            if (request.getUser() == null) {
+                throw new MissingParameterException("Atleast one user search string is required", null);
             }
 
         } else {
@@ -320,8 +285,8 @@ public class InputValidator implements Validator {
     private boolean validateUpdateUserProfile(Object obj) {
         if (obj instanceof UpdateUserProfileRequest) {
             UpdateUserProfileRequest re = (UpdateUserProfileRequest) obj;
-            User request = re.getUser();
-            if (request.getTenantId() == 0) {
+            UserRepresentation request = re.getUser();
+            if (re.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
@@ -351,28 +316,33 @@ public class InputValidator implements Validator {
     }
 
 
-    private boolean validateRoleOperationsRequest(Object obj) {
-        if (obj instanceof RoleOperationsUserRequest) {
-            RoleOperationsUserRequest request = (RoleOperationsUserRequest) obj;
+    private boolean validateDeleteRolesFromUser(Object obj) {
+        if (obj instanceof DeleteUserRolesRequest) {
+            DeleteUserRolesRequest request = (DeleteUserRolesRequest) obj;
+
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
-            }
-
-            if (request.getAdminUsername() == null || request.getAdminUsername().trim().equals("")) {
-                throw new MissingParameterException("Admin username should not be null", null);
             }
 
             if (request.getUsername() == null || request.getUsername().trim().equals("")) {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
-            if (request.getPassword() == null || request.getPassword().trim().equals("")) {
-                throw new MissingParameterException("Password should not be null", null);
-            }
-            if (request.getRole() == null || request.getRole().trim().equals("")) {
-                throw new MissingParameterException("Role should not be null", null);
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
             }
 
+            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+
+            if (request.getClientRolesList().isEmpty() && request.getRealmRolesList().isEmpty()) {
+                throw new MissingParameterException("At least client roles or realm roles should not be null", null);
+            }
+
+            if (request.getPerformedBy() == null || request.getPerformedBy().equals("")) {
+                throw new MissingParameterException("Performed By should not be null", null);
+            }
 
         } else {
             throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
@@ -405,6 +375,103 @@ public class InputValidator implements Validator {
 
         } else {
             throw new RuntimeException("Unexpected input type for method configureFederatedIDP");
+        }
+        return true;
+    }
+
+    private boolean validateAddRoleToTenant(Object obj) {
+        if (obj instanceof AddRolesRequest) {
+            AddRolesRequest request = (AddRolesRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getRolesCount() == 0) {
+                throw new MissingParameterException("There should be at least one role", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+    }
+
+
+    private boolean validateAddProtocolMapper(Object obj) {
+        if (obj instanceof AddProtocolMapperRequest) {
+            AddProtocolMapperRequest request = (AddProtocolMapperRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClaimName() == null || request.getClaimName().trim().equals("")) {
+                throw new MissingParameterException("Claim name should not be null", null);
+            }
+
+            if (request.getAttributeName() == null || request.getAttributeName().trim().equals("")) {
+                throw new MissingParameterException("Attribute name should not be null", null);
+            }
+
+
+            if (request.getName() == null || request.getName().trim().equals("")) {
+                throw new MissingParameterException("Name should not be null", null);
+            }
+
+
+            if (request.getClaimType() == null) {
+                throw new MissingParameterException("Claim Type should not be null", null);
+            }
+
+            if (request.getMapperType() == null) {
+                throw new MissingParameterException("Mapper Type should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+    }
+
+    private boolean validateAddUserAttributes(Object obj) {
+        if (obj instanceof AddUserAttributesRequest) {
+            AddUserAttributesRequest request = (AddUserAttributesRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getAttributesList().isEmpty()) {
+                throw new MissingParameterException("Attributes should not be null", null);
+            }
+
+            if (request.getUsersList().isEmpty()) {
+                throw new MissingParameterException("Users should not be null", null);
+            }
+
+
+            for (UserAttribute attribute : request.getAttributesList()) {
+                if (attribute.getKey() == null || attribute.getKey().equals("")) {
+                    throw new MissingParameterException("Attribute Key should not be null", null);
+                }
+
+                if (attribute.getValuesList().isEmpty()) {
+                    throw new MissingParameterException("Attribute value should not be null", null);
+                }
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }

@@ -65,14 +65,50 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
 
         GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialFromToken(request);
+        return getAuthClaim(response);
+
+    }
+
+    public AuthClaim authorizeUsingUserToken(Metadata headers) {
+        String formattedToken = getToken(headers);
+
+        if (formattedToken == null) {
+            return null;
+        }
+
+        TokenRequest request = TokenRequest
+                .newBuilder()
+                .setToken(formattedToken)
+                .build();
 
 
+        GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialsFromJWTToken(request);
+
+        return getAuthClaim(response);
+    }
+
+
+    public String getToken(Metadata headers) {
+        String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
+        if (tokenWithBearer == null) {
+            tokenWithBearer = headers.get(Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER));
+        }
+        if (tokenWithBearer == null) {
+            return null;
+        }
+        String prefix = "Bearer";
+        String token = tokenWithBearer.substring(prefix.length());
+        return token.trim();
+    }
+
+    private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
             return null;
         }
 
         AuthClaim authClaim = new AuthClaim();
 
+        authClaim.setPerformedBy(response.getRequestedUserEmail());
         response.getSecretListList().forEach(metadata -> {
 
                     if (metadata.getType() == Type.CUSTOS) {
@@ -106,17 +142,6 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             return authClaim;
         }
         return null;
-    }
-
-
-    private String getToken(Metadata headers) {
-        String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
-        if (tokenWithBearer == null) {
-            return null;
-        }
-        String prefix = "Bearer";
-        String token = tokenWithBearer.substring(prefix.length());
-        return token.trim();
     }
 
 

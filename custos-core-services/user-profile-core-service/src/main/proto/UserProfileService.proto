@@ -45,15 +45,15 @@ enum UserStatus {
 message UserProfile {
     int64 tenantId = 1;
     string username = 2;
-    string emailAddress = 3;
-    string firstName = 4;
-    string lastName = 5;
-    string createAt = 6;
-    string lastAccessAt = 7;
-    int32 validTill = 8;
+    string email = 3;
+    string first_name = 4;
+    string last_name = 5;
+    string created_at = 6;
+    string last_access_at = 7;
+    int32 valid_till = 8;
     UserStatus status = 9;
-    string userId = 10;
-    string updatedBy = 11;
+    string user_id = 10;
+    string updated_by = 11;
 }
 
 message GetUserProfileRequest {

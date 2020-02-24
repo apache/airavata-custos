@@ -95,64 +95,76 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void registerAndEnableUsers(RegisterUsersRequest request, StreamObserver<RegisterUsersResponse> responseObserver) {
         try {
+
+            RegisterUsersResponse registerUsersResponse = iamAdminServiceClient.
+                    registerAndEnableUsers(request);
+
+
+            responseObserver.onNext(registerUsersResponse);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at registerAndEnableUsers " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+
+    }
+
+
+    @Override
+    public void addUserAttributes(AddUserAttributesRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+
+            OperationStatus status = iamAdminServiceClient.addUserAttributes(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addUserAttributes " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void enableUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
+        try {
+
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
                     .setClientId(request.getClientId())
-                    .setClientSecret(request.getClientSecret())
+                    .setClientSecret(request.getClientSec())
                     .setTenantId(request.getTenantId())
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
             if (token != null && token.getAccessToken() != null) {
 
-                RegisterUsersResponse registerUsersResponse = iamAdminServiceClient.registerAndEnableUsers(request.toBuilder().setAccessToken(token.getAccessToken()).build());
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
-                responseObserver.onNext(registerUsersResponse);
-                responseObserver.onCompleted();
-
-            } else {
-                LOGGER.error("Cannot find service token");
-                responseObserver.onError(Status.CANCELLED.
-                        withDescription("Cannot find service token").asRuntimeException());
-            }
-
-
-        } catch (Exception ex) {
-            String msg = "Error occurred at registerUser " + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-
-    }
-
-    @Override
-    public void enableUser(UserIdentificationRequest request, StreamObserver<User> responseObserver) {
-        try {
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getInfo().getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-
-                UserAccessInfo info = request.getInfo()
-                        .toBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .build();
-
-                User user = iamAdminServiceClient.enableUser(info);
+                UserRepresentation user = iamAdminServiceClient.enableUser(request);
 
                 if (user != null) {
 
                     UserProfile profile = UserProfile.newBuilder()
                             .setFirstName(user.getFirstName())
                             .setLastName(user.getLastName())
-                            .setEmailAddress(user.getEmail())
+                            .setEmail(user.getEmail())
                             .setStatus(UserStatus.valueOf(user.getState()))
-                            .setTenantId(request.getInfo().getTenantId())
+                            .setTenantId(request.getTenantId())
                             .setUsername(user.getUsername())
                             .build();
 
@@ -175,14 +187,12 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
 
                 }
-
             } else {
-
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
             }
+
 
         } catch (Exception ex) {
             String msg = "Error occurred at enableUser " + ex.getMessage();
@@ -192,68 +202,46 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void deleteUser(UserIdentificationRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void deleteUser(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
 
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+            GetUserProfileRequest req = GetUserProfileRequest
                     .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getInfo().getTenantId())
+                    .setTenantId(request.getTenantId())
+                    .setUsername(request.getUser().getUsername())
                     .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-            if (token != null && token.getAccessToken() != null) {
+            UserProfile profile = userProfileClient.getUser(req);
 
-                UserAccessInfo info = request.getInfo()
-                        .toBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .build();
+            if (profile != null) {
 
-                GetUserProfileRequest req = GetUserProfileRequest
+                DeleteUserProfileRequest deleteUserProfileRequest = DeleteUserProfileRequest
                         .newBuilder()
-                        .setTenantId(request.getInfo().getTenantId())
-                        .setUsername(request.getInfo().getUsername())
+                        .setTenantId(request.getTenantId())
+                        .setUsername(request.getUser().getUsername())
                         .build();
+                UserProfile deletedProfile = userProfileClient.deleteUser(deleteUserProfileRequest);
 
-                UserProfile profile = userProfileClient.getUser(req);
+                if (deletedProfile != null) {
 
-                if (profile != null) {
-
-                    DeleteUserProfileRequest deleteUserProfileRequest = DeleteUserProfileRequest
-                            .newBuilder()
-                            .setTenantId(request.getInfo().getTenantId())
-                            .setUsername(request.getInfo().getUsername())
-                            .build();
-                    UserProfile deletedProfile = userProfileClient.deleteUser(deleteUserProfileRequest);
-
-                    if (deletedProfile != null) {
-
-                        CheckingResponse response = iamAdminServiceClient.deleteUser(info);
-
-                        responseObserver.onNext(response);
-                        responseObserver.onCompleted();
-
-
-                    } else {
-                        String msg = "User profile deletion failed for " + request.getInfo().getUsername();
-                        LOGGER.error(msg);
-                        responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-                    }
-
-                } else {
-                    CheckingResponse response = iamAdminServiceClient.deleteUser(info);
+                    CheckingResponse response = iamAdminServiceClient.deleteUser(request);
 
                     responseObserver.onNext(response);
                     responseObserver.onCompleted();
+
+
+                } else {
+                    String msg = "User profile deletion failed for " + request.getUser().getUsername();
+                    LOGGER.error(msg);
+                    responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
                 }
 
-
             } else {
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
+                CheckingResponse response = iamAdminServiceClient.deleteUser(request);
+
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
             }
 
         } catch (Exception ex) {
@@ -264,131 +252,69 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void getUser(GetUserRequest request, StreamObserver<User> responseObserver) {
+    public void getUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
         try {
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+            UserRepresentation user = iamAdminServiceClient.getUser(request);
 
-            if (token != null && token.getAccessToken() != null) {
-
-                UserAccessInfo info = UserAccessInfo.newBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .setUsername(request.getUsername())
-                        .setTenantId(request.getTenantId())
-                        .build();
-
-                User user = iamAdminServiceClient.getUser(info);
-
-                responseObserver.onNext(user);
-                responseObserver.onCompleted();
-
-
-            } else {
-
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-            }
-
+            responseObserver.onNext(user);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred at getUser " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
     @Override
-    public void getUsers(GetUsersRequest request, StreamObserver<GetUsersResponse> responseObserver) {
+    public void findUsers(FindUsersRequest request, StreamObserver<FindUsersResponse> responseObserver) {
         try {
+
+
+            FindUsersResponse user = iamAdminServiceClient.getUsers(request);
+            responseObserver.onNext(user);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getUsers " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
+        try {
+
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
                     .setTenantId(request.getTenantId())
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
             if (token != null && token.getAccessToken() != null) {
 
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
-                UserAccessInfo info = UserAccessInfo.newBuilder()
-                        .setUsername(request.getUsername())
-                        .setTenantId(request.getTenantId())
-                        .setAccessToken(token.getAccessToken())
-                        .build();
-
-
-                org.apache.custos.iam.service.GetUsersRequest getUsersRequest =
-
-                        org.apache.custos.iam.service.GetUsersRequest
-                                .newBuilder()
-                                .setLimit(request.getLimit())
-                                .setOffset(request.getOffset())
-                                .setSearch(request.getSearch())
-                                .setInfo(info)
-                                .build();
-
-                GetUsersResponse user = iamAdminServiceClient.getUsers(getUsersRequest);
-                responseObserver.onNext(user);
-                responseObserver.onCompleted();
-
-            } else {
-
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-            }
-
-        } catch (Exception ex) {
-            String msg = "Error occurred at getUsers " + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
-
-    @Override
-    public void resetPassword(ResetPasswordRequest request, StreamObserver<CheckingResponse> responseObserver) {
-        try {
-
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(request.getPasswordMetadata().getIamClientId())
-                    .setClientSecret(request.getPasswordMetadata().getIamClientSecret())
-                    .setTenantId(request.getPasswordMetadata().getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-
-                UserAccessInfo info = UserAccessInfo.newBuilder()
-                        .setUsername(request.getPasswordMetadata().getUsername())
-                        .setTenantId(request.getPasswordMetadata().getTenantId())
-                        .setAccessToken(token.getAccessToken())
-                        .build();
-
-                ResetUserPassword resetUserPassword = ResetUserPassword
-                        .newBuilder()
-                        .setPassword(request.getPasswordMetadata().getPassword())
-                        .setInfo(info)
-                        .build();
-
-                CheckingResponse response = iamAdminServiceClient.resetPassword(resetUserPassword);
+                CheckingResponse response = iamAdminServiceClient.resetPassword(request);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
-
             } else {
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
             }
-
 
         } catch (Exception ex) {
             String msg = "Error occurred at resetPassword " + ex.getMessage();
@@ -398,69 +324,68 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void addRoleToUser(RoleOperationRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void addRolesToUsers(AddUserRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
-            CheckingResponse response = iamAdminServiceClient.addRoleToUser(request.getRole());
+
+            OperationStatus response = iamAdminServiceClient.addRolesToUsers(request);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at addRoleToUser " + ex.getMessage();
+            String msg = "Error occurred at addRolesToUsers " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
 
     @Override
-    public void deleteRoleFromUser(RoleOperationRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void deleteUserRoles(DeleteUserRolesRequest
+                                           request, StreamObserver<CheckingResponse> responseObserver) {
         try {
-            CheckingResponse response = iamAdminServiceClient.deleteRoleFromUser(request.getRole());
+            CheckingResponse response = iamAdminServiceClient.deleteUserRoles(request);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred at deleteRoleFromUser " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
     @Override
-    public void isUserEnabled(GetUserRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUserEnabled(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
-
-
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
                     .setTenantId(request.getTenantId())
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
             if (token != null && token.getAccessToken() != null) {
-
-
-                UserAccessInfo info = UserAccessInfo.newBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .setUsername(request.getUsername())
-                        .setTenantId(request.getTenantId())
-                        .build();
-
-
-                CheckingResponse response = iamAdminServiceClient.isUserEnabled(info);
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
+                CheckingResponse response = iamAdminServiceClient.isUserEnabled(request);
 
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
-
-
             } else {
-                String msg = "Cannot find service account";
-                LOGGER.error(msg);
-                responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
 
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
             }
+
 
         } catch (Exception ex) {
             String msg = "Error occurred at isUserEnabled " + ex.getMessage();
@@ -469,49 +394,73 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    @Override
+    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+        try {
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+            if (token != null && token.getAccessToken() != null) {
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
+                CheckingResponse response = iamAdminServiceClient.isUsernameAvailable(request);
+
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at isUsernameAvailable " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    //TODO: this is not updated
     @Override
     public void updateUserProfile(UserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
         try {
             LOGGER.debug("Request received to updateUserProfile " + request.getUserProfile().getUsername() +
                     " at" + request.getUserProfile().getTenantId());
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getUserProfile().getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-
-            if (token != null && token.getAccessToken() != null) {
-
-                User user = User.newBuilder()
+                UserRepresentation.Builder builder = UserRepresentation.newBuilder()
                         .setFirstName(request.getUserProfile().getFirstName())
                         .setLastName(request.getUserProfile().getLastName())
-                        .setEmail(request.getUserProfile().getEmailAddress())
-                        .setUsername(request.getUserProfile().getUsername())
-                        .setTenantId(request.getUserProfile().getTenantId())
-                        .setInternalUserId(request.getUserProfile().getUserId())
-                        .setCreationTime(System.currentTimeMillis())
-                        .setState(request.getUserProfile().getStatus().name())
-                        .build();
+                        .setEmail(request.getUserProfile().getEmail())
+                        .setUsername(request.getUserProfile().getUsername());
+
+                if (request.getUserProfile().getStatus() != null) {
+                    builder.setState(request.getUserProfile().getStatus().name());
+                }
+
 
                 UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
                         .newBuilder()
-                        .setUser(user)
-                        .setAccessToken(token.getAccessToken())
+                        .setUser(builder.build())
+                        .setAccessToken(request.getAccessToken())
+                        .setTenantId(request.getTenantId())
                         .build();
 
 
-                UserAccessInfo info = UserAccessInfo
+                UserSearchRequest info = UserSearchRequest
                         .newBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .setTenantId(request.getUserProfile().getTenantId())
-                        .setUsername(request.getUserProfile().getUsername())
+                        .setAccessToken(request.getAccessToken())
+                        .setTenantId(request.getTenantId())
                         .build();
 
-                User exUser = iamAdminServiceClient.getUser(info);
+                UserRepresentation exUser = iamAdminServiceClient.getUser(info);
 
                 CheckingResponse response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
 
@@ -525,7 +474,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                         UpdateUserProfileRequest rollingRequest = UpdateUserProfileRequest
                                 .newBuilder()
                                 .setUser(exUser)
-                                .setAccessToken(token.getAccessToken())
+                                .setAccessToken(request.getAccessToken())
                                 .build();
                         iamAdminServiceClient.updateUserProfile(rollingRequest);
                     }
@@ -534,11 +483,6 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     responseObserver.onError(Status.CANCELLED.
                             withDescription("IAM server failed to update user profile").asRuntimeException());
                 }
-            } else {
-                LOGGER.error("Error occurred retreving service account");
-                responseObserver.onError(Status.CANCELLED.
-                        withDescription("Service account not  found").asRuntimeException());
-            }
 
         } catch (Exception ex) {
             String msg = "Error occurred while updating user profile " + ex.getMessage();
@@ -547,6 +491,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    //TODO: this is not updated
 
     @Override
     public void deleteUserProfile(DeleteProfileRequest request, StreamObserver<UserProfile> responseObserver) {
@@ -567,11 +513,11 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             if (token != null && token.getAccessToken() != null) {
 
 
-                UserAccessInfo info = UserAccessInfo
+                UserSearchRequest info = UserSearchRequest
                         .newBuilder()
                         .setAccessToken(token.getAccessToken())
                         .setTenantId(request.getDeleteRequest().getTenantId())
-                        .setUsername(request.getDeleteRequest().getUsername())
+                        // .setUsername(request.getDeleteRequest().getUsername())
                         .build();
 
 
@@ -629,7 +575,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
-    public void getAllUserProfilesInTenant(GetAllUserProfilesRequest request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
+    public void getAllUserProfilesInTenant(GetAllUserProfilesRequest
+                                                   request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to getAllUserProfilesInTenant " + request.getTenantId() +
                     " at" + request.getTenantId());
@@ -647,7 +594,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void getUserProfileAuditTrails(GetUpdateAuditTrailRequest request, StreamObserver<GetUpdateAuditTrailResponse> responseObserver) {
+    public void getUserProfileAuditTrails(GetUpdateAuditTrailRequest
+                                                  request, StreamObserver<GetUpdateAuditTrailResponse> responseObserver) {
         try {
 
             LOGGER.debug("Request received to getUserProfileAuditTrails " + request.getUsername() +

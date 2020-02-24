@@ -39,10 +39,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -274,7 +271,7 @@ public class KeycloakClient {
 
 
     public boolean createUser(String realmId, String username, String newPassword, String firstName,
-                              String lastName, String emailAddress, boolean tempPassowrd, String accessToken) {
+                              String lastName, String emailAddress, boolean tempPassowrd, String accessToken) throws UnauthorizedException {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -285,6 +282,7 @@ public class KeycloakClient {
             user.setEmail(emailAddress);
             user.setEnabled(false);
             Response httpResponse = client.realm(realmId).users().create(user);
+
             if (httpResponse.getStatus() == HttpStatus.SC_CREATED) { //HTTP code for record creation: HTTP 201
                 List<UserRepresentation> retrieveCreatedUserList = client.realm(realmId).users().search(user.getUsername(),
                         user.getFirstName(),
@@ -302,12 +300,8 @@ public class KeycloakClient {
                 String msg = "Reason for user account creation failure : " + httpResponse.getStatusInfo();
                 LOGGER.error("Request for user Account Creation failed with HTTP code : " + httpResponse.getStatus());
                 LOGGER.error(msg);
-                throw new RuntimeException(msg, null);
+                throw new UnauthorizedException(msg, null);
             }
-        } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new RuntimeException(msg, null);
         } finally {
             if (client != null) {
                 client.close();
@@ -320,7 +314,9 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
+
             UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
             UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
             UserRepresentation profile = userResource.toRepresentation();
             profile.setEnabled(true);
@@ -379,7 +375,7 @@ public class KeycloakClient {
             client = getClient(iamServerURL, realmId, accessToken);
             return getUserByUsername(client, realmId, username);
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error retrieving user, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
@@ -390,15 +386,16 @@ public class KeycloakClient {
     }
 
 
-    public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit, String search) {
+    public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
+                                             String username, String firstName, String lastName, String email) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
-            return client.realm(realmId).users().search(search, offset, limit);
+            return searchUsers(client, realmId, username, firstName, lastName, email, offset, limit);
 
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
-            LOGGER.error("Error getting values from property file, reason: " + ex.getMessage(), ex);
+            String msg = "Error occurred while searching for user, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
@@ -474,6 +471,7 @@ public class KeycloakClient {
                 userRepresentation.setLastName(lastName);
                 userRepresentation.setEmail(email);
                 UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
+
                 userResource.update(userRepresentation);
             } else {
                 throw new RuntimeException("User [" + username + "] wasn't found in Keycloak!");
@@ -513,24 +511,41 @@ public class KeycloakClient {
     }
 
 
-    public boolean addRoleToUser(String adminUsername, String adminPassword, String realmId, String username, String roleName) {
+    public boolean addRolesToUsers(String accessToken, String realmId, List<String> users, List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, adminUsername, adminPassword);
-            List<UserRepresentation> retrieveCreatedUserList = client.realm(realmId).users().search(username,
-                    null,
-                    null,
-                    null,
-                    0, 1);
-            UserResource retrievedUser = client.realm(realmId).users().get(retrieveCreatedUserList.get(0).getId());
+            client = getClient(iamServerURL, realmId, accessToken);
 
-            // Add user to the role
-            RoleResource roleResource = client.realm(realmId).roles().get(roleName);
-            retrievedUser.roles().realmLevel().add(Arrays.asList(roleResource.toRepresentation()));
+            for (String username : users) {
+
+                UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
+                ClientRepresentation clientRepresentation = client.realm(realmId).clients().findByClientId(clientId).get(0);
+                if (representation != null) {
+                    RealmResource realmResource = client.realm(realmId);
+                    UserResource resource = client.realm(realmId).users().get(representation.getId());
+                    List<RoleRepresentation> roleRepresentations = new ArrayList<>();
+                    if (clientLevel) {
+                        for (String role : roles) {
+                            RoleResource roleResource = realmResource.clients().get(clientRepresentation.getId()).roles().get(role);
+                            roleRepresentations.add(roleResource.toRepresentation());
+                        }
+                        resource.roles().clientLevel(clientRepresentation.getId()).add(roleRepresentations);
+
+                    } else {
+
+                        for (String role : roles) {
+                            RoleResource roleResource = client.realm(realmId).roles().get(role);
+                            roleRepresentations.add(roleResource.toRepresentation());
+                        }
+                        resource.roles().realmLevel().add(roleRepresentations);
+                    }
+
+                }
+            }
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error while adding roles to user " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
@@ -541,24 +556,53 @@ public class KeycloakClient {
     }
 
 
-    public boolean removeRoleFromUser(String adminUsername, String password, String realmId, String username, String roleName) {
+    public boolean removeRoleFromUser(String accessToken, String realmId, String username, List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, adminUsername, password);
-            List<UserRepresentation> retrieveCreatedUserList = client.realm(realmId).users().search(username,
-                    null,
-                    null,
-                    null,
-                    0, 1);
-            UserResource retrievedUser = client.realm(realmId).users().get(retrieveCreatedUserList.get(0).getId());
+            client =  getClient(iamServerURL, realmId, accessToken);
+            UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
 
-            // Remove role from user
-            RoleResource roleResource = client.realm(realmId).roles().get(roleName);
-            retrievedUser.roles().realmLevel().remove(Arrays.asList(roleResource.toRepresentation()));
+            if (representation != null) {
+                UserResource retrievedUser = client.realm(realmId).users().get(representation.getId());
+
+                if (clientLevel) {
+                    List<ClientRepresentation> clientRepresentationList =
+                            client.realm(realmId).clients().findByClientId(clientId);
+
+                    if (clientRepresentationList != null && !clientRepresentationList.isEmpty()) {
+                        ClientRepresentation clientRep = clientRepresentationList.get(0);
+                        List<RoleRepresentation> roleRepresentations = new ArrayList<>();
+                        for (String roleName : roles) {
+                            RoleResource roleResource = client.realm(realmId).
+                                    clients().get(clientRep.getId()).roles().get(roleName);
+                            LOGGER.info("Roles Representatioin "+ roleName+ " roles resource " + roleResource);
+                            if (roleResource != null) {
+                                roleRepresentations.add(roleResource.toRepresentation());
+                            }
+                        }
+                        if (!roleRepresentations.isEmpty()) {
+                            retrievedUser.roles().clientLevel(clientRep.getId()).remove(roleRepresentations);
+                        }
+
+
+                    }
+                } else {
+                    List<RoleRepresentation> roleRepresentations = new ArrayList<>();
+                    for (String roleName : roles) {
+                        RoleResource roleResource = client.realm(realmId).roles().get(roleName);
+                        if (roleResource != null) {
+                            roleRepresentations.add(roleResource.toRepresentation());
+                        }
+                    }
+                    if (!roleRepresentations.isEmpty()) {
+                        retrievedUser.roles().realmLevel().remove(roleRepresentations);
+                    }
+                }
+            }
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason " + ex.getMessage();
+            String msg = "Error removing roles from user , reason " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
@@ -640,49 +684,6 @@ public class KeycloakClient {
 
 
     /**
-     * Add user level roles
-     *
-     * @param realmId
-     * @param roles
-     * @param users
-     * @return
-     */
-    public boolean addUserRoles(String realmId, String clientId, List<RoleRepresentation> roles, List<String> users, boolean isClientLevel) {
-        Keycloak client = null;
-        try {
-            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
-
-            RealmResource realmResource = client.realm(realmId);
-
-
-            users.forEach(user -> {
-                UserResource resource = realmResource.users().get(user);
-
-                UserRepresentation representation = resource.toRepresentation();
-
-                if (isClientLevel) {
-                    resource.roles().clientLevel(clientId).add(roles);
-                } else {
-                    resource.roles().realmLevel().add(roles);
-                }
-
-            });
-        } catch (Exception ex) {
-            String msg = "Error occurred while adding user attributes in Keycloak Server, reason: " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new RuntimeException(msg, ex);
-
-        } finally {
-            if (client != null) {
-                client.close();
-            }
-        }
-        return true;
-
-    }
-
-
-    /**
      * This adds user attributes to users
      *
      * @param realmId
@@ -690,21 +691,20 @@ public class KeycloakClient {
      * @param users
      * @return
      */
-    public boolean addUserAttributes(String realmId, Map<String, List<String>> attributeMap, List<String> users) {
+    public boolean addUserAttributes(String realmId, String accessToken, Map<String, List<String>> attributeMap, List<String> users) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            client = getClient(iamServerURL, realmId, accessToken);
 
             RealmResource realmResource = client.realm(realmId);
 
             for (String user : users) {
-                UserResource resource = realmResource.users().get(user);
 
-                UserRepresentation representation = resource.toRepresentation();
+                UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
+                UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                representation.setAttributes(attributeMap);
-
-                resource.update(representation);
+                userRepresentation.setAttributes(attributeMap);
+                resource.update(userRepresentation);
             }
 
 
@@ -731,7 +731,7 @@ public class KeycloakClient {
      * @param clientId
      * @return
      */
-    public boolean addProtocolMapper(List<ProtocolMapperRepresentation> protocolMapperRepresentations,
+    public boolean addProtocolMapper(ProtocolMapperRepresentation protocolMapperRepresentations,
                                      String realmId, String clientId) {
         Keycloak client = null;
         try {
@@ -739,9 +739,30 @@ public class KeycloakClient {
 
             RealmResource realmResource = client.realm(realmId);
 
-            ProtocolMappersResource resource = realmResource.clients().get(clientId).getProtocolMappers();
+            ClientRepresentation representation = realmResource.clients().findByClientId(clientId).get(0);
 
+
+            ProtocolMappersResource resource = realmResource.clients().get(representation.getId()).getProtocolMappers();
             resource.createMapper(protocolMapperRepresentations);
+
+            ProtocolMappersResource resource2 = realmResource.clients().get(representation.getId()).getProtocolMappers();
+
+            List<ProtocolMapperRepresentation> mapperRepresentations = resource2.getMappers();
+
+            for (ProtocolMapperRepresentation protocolMapperRepresentation : mapperRepresentations) {
+
+                LOGGER.info("Id " + protocolMapperRepresentation.getId());
+                LOGGER.info("Name " + protocolMapperRepresentation.getName());
+                LOGGER.info("Protocol " + protocolMapperRepresentation.getProtocol());
+                LOGGER.info("Protocol Mapper " + protocolMapperRepresentation.getProtocolMapper());
+                Map<String, String> config = protocolMapperRepresentation.getConfig();
+
+                for (String key : config.keySet()) {
+                    LOGGER.info("Key " + key + " value" + config.get(key));
+
+                }
+
+            }
 
 
         } catch (Exception ex) {
@@ -760,9 +781,10 @@ public class KeycloakClient {
 
     /**
      * Configure Roles in keycloak Realm or Client
+     *
      * @param roleRepresentations
      * @param realmId
-     * @param clientScope  if true add roles to client else to realm
+     * @param clientScope         if true add roles to client else to realm
      * @return
      */
     public boolean addRoles(List<RoleRepresentation> roleRepresentations, String realmId, String clientId, boolean clientScope) {
@@ -773,11 +795,10 @@ public class KeycloakClient {
             RealmResource realmResource = client.realm(realmId);
 
             if (clientScope) {
+                ClientRepresentation representation = realmResource.clients().findByClientId(clientId).get(0);
 
-                ClientResource resource = realmResource.clients().get(clientId);
-
-                for (RoleRepresentation representation : roleRepresentations) {
-                    resource.roles().create(representation);
+                for (RoleRepresentation roleRepresentation : roleRepresentations) {
+                    realmResource.clients().get(representation.getId()).roles().create(roleRepresentation);
                 }
 
             } else {
@@ -801,6 +822,44 @@ public class KeycloakClient {
         return true;
     }
 
+
+    /**
+     * Provides all Roles belongs to client, if clientId not present, provides all
+     * Roles related to Realm
+     *
+     * @param realmId
+     * @param clientId
+     */
+    public List<RoleRepresentation> getAllRoles(String realmId, String clientId) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (clientId != null) {
+
+                ClientRepresentation representation = realmResource.clients().findByClientId(clientId).get(0);
+
+                return realmResource.clients().get(representation.getId()).roles().list();
+
+            } else {
+                return realmResource.roles().list();
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding roles in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
 
     private ResteasyClient getRestClient() {
         return new ResteasyClientBuilder()
@@ -905,13 +964,41 @@ public class KeycloakClient {
 
         // Searching for users by username returns also partial matches, so need to filter down to an exact match if it exists
         List<UserRepresentation> userResourceList = client.realm(tenantId).users().search(
-                username, null, null, null, null, null);
+                username.toLowerCase(), null, null, null, null, null);
         for (UserRepresentation userRepresentation : userResourceList) {
-            if (userRepresentation.getUsername().equals(username)) {
+            if (userRepresentation.getUsername().equals(username.toLowerCase())) {
+                RoleMappingResource resource = client.realm(tenantId).users().get(userRepresentation.getId()).roles();
+                MappingsRepresentation representation = resource.getAll();
+                if (representation != null && representation.getRealmMappings() != null) {
+                    List<String> roleRepresentations = new ArrayList<>();
+                    representation.getRealmMappings().forEach(t -> roleRepresentations.add(t.getName()));
+                    userRepresentation.setRealmRoles(roleRepresentations);
+                }
+                if (representation != null && representation.getClientMappings() != null) {
+                    Map<String, List<String>> roleRepresentations = new HashMap<>();
+                    representation.getClientMappings().keySet().forEach(key -> {
+                        if (representation.getClientMappings().get(key).getMappings() != null) {
+                            List<String> roleList = new ArrayList<>();
+                            representation.getClientMappings().get(key).getMappings().forEach(t -> roleList.add(t.getName()));
+                            roleRepresentations.put(key, roleList);
+                        }
+                    });
+                    userRepresentation.setClientRoles(roleRepresentations);
+                }
+
                 return userRepresentation;
             }
         }
         return null;
+    }
+
+    private List<UserRepresentation> searchUsers(Keycloak client, String tenantId, String username,
+                                                 String firstName, String lastName, String email, int offset, int limit) {
+
+        // Searching for users by username returns also partial matches, so need to filter down to an exact match if it exists
+        return client.realm(tenantId).users().search(
+                username.toLowerCase(), firstName, lastName, email, offset, limit);
+
     }
 
 

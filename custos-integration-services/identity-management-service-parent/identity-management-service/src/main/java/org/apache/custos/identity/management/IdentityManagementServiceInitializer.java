@@ -78,10 +78,6 @@ public class IdentityManagementServiceInitializer {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
 
-    @Bean
-    @GRpcGlobalInterceptor
-    ResponseInterceptor responseInterceptor() {
-        return new ResponseInterceptor();
-    }
+
 
 }

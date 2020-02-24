@@ -19,6 +19,8 @@
 
 package org.apache.custos.credential.store.credential;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.custos.credential.store.exceptions.CredentialGenerationException;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -105,6 +108,34 @@ public class CredentialManager {
 
         }
         return null;
+    }
+
+
+    public Credential decodeJWTToken(String token) {
+        try {
+            java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+            String[] parts = token.split("\\."); // split out the "parts" (header, payload and signature)
+
+            String headerJson = new String(decoder.decode(parts[0]));
+            String payloadJson = new String(decoder.decode(parts[1]));
+            String signatureJson = new String(decoder.decode(parts[2]));
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> jsonMap = mapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {
+            });
+            LOGGER.info("Decoded clientId" + jsonMap.get("azp").toString());
+
+            Credential credential = new Credential();
+            credential.setId(jsonMap.get("azp").toString());
+            credential.setEmail(jsonMap.get("email").toString());
+
+            return credential;
+        } catch (Exception ex) {
+            throw new CredentialGenerationException
+                    ("Error occurred while decoding token ", ex);
+
+        }
+
     }
 
 
