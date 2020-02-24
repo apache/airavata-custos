@@ -65,22 +65,19 @@ public class IamAdminServiceClient {
     }
 
 
-    public void isUsernameAvailableAsync(IsUsernameAvailableRequest request, final ServiceCallback callback) {
+    public void isUsernameAvailableAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "isUsernameAvailable task failed");
         iamAdminServiceStub.isUsernameAvailable(request, observer);
     }
 
 
-    public void isUserEnabledAsync(UserAccessInfo request, final ServiceCallback callback) {
+    public void isUserEnabledAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "isUserEnabled task failed");
         iamAdminServiceStub.isUserEnabled(request, observer);
     }
 
 
-    public void addRoleToUserAsync(RoleOperationsUserRequest request, final ServiceCallback callback) {
-        StreamObserver observer = this.getObserver(callback, "addRoleToUser task failed");
-        iamAdminServiceStub.addRoleToUser(request, observer);
-    }
+
 
 
     public void registerUserAsync(RegisterUserRequest request, final ServiceCallback callback) {
@@ -89,27 +86,27 @@ public class IamAdminServiceClient {
     }
 
 
-    public void enableUserAsync(UserAccessInfo request, final ServiceCallback callback) {
+    public void enableUserAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "enableUser task failed");
         iamAdminServiceStub.enableUser(request, observer);
     }
 
 
-    public void isUserExistAsync(UserAccessInfo request, final ServiceCallback callback) {
+    public void isUserExistAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "isUserExist task failed");
         iamAdminServiceStub.isUserExist(request, observer);
     }
 
 
-    public void getUserAsync(UserAccessInfo request, final ServiceCallback callback) {
+    public void getUserAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "getUser task failed");
         iamAdminServiceStub.getUser(request, observer);
     }
 
 
-    public void getUsersAsync(GetUsersRequest request, final ServiceCallback callback) {
+    public void getUsersAsync(FindUsersRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "getUsers task failed");
-        iamAdminServiceStub.getUsers(request, observer);
+        iamAdminServiceStub.findUsers(request, observer);
     }
 
 
@@ -130,15 +127,15 @@ public class IamAdminServiceClient {
         iamAdminServiceStub.updateUserProfile(request, observer);
     }
 
-    public void deleteUserAsync(UserAccessInfo request, final ServiceCallback callback) {
+    public void deleteUserAsync(UserSearchRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "deleteUser task failed");
         iamAdminServiceStub.deleteUser(request, observer);
     }
 
 
-    public void deleteRoleFromUserAsync(RoleOperationsUserRequest request, final ServiceCallback callback) {
+    public void deleteRoleFromUserAsync(DeleteUserRolesRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "deleteRoleFromUser task failed");
-        iamAdminServiceStub.deleteRoleFromUser(request, observer);
+        iamAdminServiceStub.deleteRolesFromUser(request, observer);
     }
 
     public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
@@ -151,18 +148,18 @@ public class IamAdminServiceClient {
     }
 
 
-    public CheckingResponse isUsernameAvailable(IsUsernameAvailableRequest request) {
+    public CheckingResponse isUsernameAvailable(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.isUsernameAvailable(request);
     }
 
 
-    public CheckingResponse isUserEnabled(UserAccessInfo request) {
+    public CheckingResponse isUserEnabled(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.isUserEnabled(request);
     }
 
 
-    public CheckingResponse addRoleToUser(RoleOperationsUserRequest request) {
-        return iamAdminServiceBlockingStub.addRoleToUser(request);
+    public OperationStatus addRolesToUsers(AddUserRolesRequest request) {
+        return iamAdminServiceBlockingStub.addRolesToUsers(request);
     }
 
 
@@ -172,26 +169,26 @@ public class IamAdminServiceClient {
     }
 
 
-    public User enableUser(UserAccessInfo request) {
+    public UserRepresentation enableUser(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.enableUser(request);
 
     }
 
 
-    public CheckingResponse isUserExist(UserAccessInfo request) {
+    public CheckingResponse isUserExist(UserSearchRequest request) {
 
         return iamAdminServiceBlockingStub.isUserExist(request);
     }
 
 
-    public User getUser(UserAccessInfo request) {
+    public UserRepresentation getUser(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getUser(request);
 
     }
 
 
-    public GetUsersResponse getUsers(GetUsersRequest request) {
-        return iamAdminServiceBlockingStub.getUsers(request);
+    public  FindUsersResponse getUsers(FindUsersRequest request) {
+        return iamAdminServiceBlockingStub.findUsers(request);
 
     }
 
@@ -202,22 +199,19 @@ public class IamAdminServiceClient {
     }
 
 
-    public GetUsersResponse findUsers(FindUsersRequest request) {
-        return iamAdminServiceBlockingStub.findUsers(request);
-    }
 
 
     public CheckingResponse updateUserProfile(UpdateUserProfileRequest request) {
         return iamAdminServiceBlockingStub.updateUserProfile(request);
     }
 
-    public CheckingResponse deleteUser(UserAccessInfo request) {
+    public CheckingResponse deleteUser(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.deleteUser(request);
     }
 
 
-    public CheckingResponse deleteRoleFromUser(RoleOperationsUserRequest request) {
-        return iamAdminServiceBlockingStub.deleteRoleFromUser(request);
+    public CheckingResponse deleteUserRoles(DeleteUserRolesRequest request) {
+        return iamAdminServiceBlockingStub.deleteRolesFromUser(request);
     }
 
     public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
@@ -231,6 +225,18 @@ public class IamAdminServiceClient {
 
     public RegisterUsersResponse registerAndEnableUsers(RegisterUsersRequest registerUsersRequest) {
         return iamAdminServiceBlockingStub.registerAndEnableUsers(registerUsersRequest);
+    }
+
+    public AllRoles addRolesToTenant(AddRolesRequest rolesRequest) {
+        return iamAdminServiceBlockingStub.addRolesToTenant(rolesRequest);
+    }
+
+    public OperationStatus addProtocolMapper (AddProtocolMapperRequest addProtocolMapper) {
+        return iamAdminServiceBlockingStub.addProtocolMapper(addProtocolMapper);
+    }
+
+    public OperationStatus addUserAttributes (AddUserAttributesRequest addUserAttributesRequest) {
+        return iamAdminServiceBlockingStub.addUserAttributes(addUserAttributesRequest);
     }
 
     public String getIamServerURL() {

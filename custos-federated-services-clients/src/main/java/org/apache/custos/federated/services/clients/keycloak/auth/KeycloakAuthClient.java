@@ -222,15 +222,15 @@ public class KeycloakAuthClient {
         String openIdConnectUrl = getOpenIDConfigurationUrl(tenantId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
 
-        openIdConnectConfig.put("introspection_endpoint", introEndpoint);
-        openIdConnectConfig.put("issuer", issuer);
-        openIdConnectConfig.put("token_endpoint", tokenEndpoint);
-        openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
-        openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
+       // openIdConnectConfig.put("introspection_endpoint", introEndpoint);
+       // openIdConnectConfig.put("issuer", issuer);
+        openIdConnectConfig.put("custos_token_endpoint", tokenEndpoint);
+      //  openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
+      //  openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
         openIdConnectConfig.put("userinfo_endpoint", userInfoEndpoint);
-        openIdConnectConfig.put("jwks_uri", jwksUri);
+       // openIdConnectConfig.put("jwks_uri", jwksUri);
         openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
-        openIdConnectConfig.remove("check_session_iframe");
+       // openIdConnectConfig.remove("check_session_iframe");
 
 
         return openIdConnectConfig;

@@ -21,6 +21,8 @@ package org.apache.custos.tenant.management.interceptors;
 
 
 import io.grpc.Metadata;
+import org.apache.custos.iam.service.AddRolesRequest;
+import org.apache.custos.iam.service.RoleRepresentation;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
@@ -30,6 +32,8 @@ import org.apache.custos.tenant.management.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * This class validates the  request input parameters
@@ -61,6 +65,10 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "deleteTenant":
                 validateDeleteTenant(headers, body, methodName);
                 break;
+            case "addTenantRoles":
+                validateAddRoleToTenant(headers, body, methodName);
+
+
             default:
         }
     }
@@ -113,8 +121,34 @@ public class InputValidator implements IntegrationServiceInterceptor {
         return true;
     }
 
+    private boolean validateAddRoleToTenant(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+
+        AddRolesRequest addRolesRequest = ((AddRolesRequest) body);
+
+        List<RoleRepresentation> rolesList = addRolesRequest.getRolesList();
+
+        if (rolesList == null || rolesList.isEmpty()) {
+            throw new MissingParameterException("Roles should not be null", null);
+        }
+
+        for (RoleRepresentation roleRepresentation : rolesList) {
+            if (roleRepresentation.getName() == null || roleRepresentation.getName().trim().equals("")) {
+                throw new MissingParameterException("Roles name should not be null", null);
+            }
+            if (roleRepresentation.getDescription() == null || roleRepresentation.getDescription().trim().equals("")) {
+                throw new MissingParameterException("Description should not be null", null);
+            }
+        }
+
+
+        return true;
+    }
+
     private boolean validationAuthorizationHeader(Metadata headers) {
-        if (headers.get(Metadata.Key.of(Constants.AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER)) == null) {
+        if (headers.get(Metadata.Key.of(Constants.AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER)) == null
+        || headers.get(Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
             throw new MissingParameterException("authorization header not available", null);
         }
 

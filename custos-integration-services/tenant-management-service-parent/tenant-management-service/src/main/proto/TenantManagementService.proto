@@ -27,6 +27,7 @@ import "google/api/annotations.proto";
 import "TenantProfileService.proto";
 import "google/rpc/error_details.proto";
 import "google/protobuf/empty.proto";
+import "IamAdminService.proto";
 
 
 message CreateTenantResponse {
@@ -108,8 +109,6 @@ message DeleteTenantRequest {
 }
 
 
-
-
 message GetCredentialsRequest {
     int64 tenantId = 1;
 }
@@ -146,6 +145,18 @@ service TenantManagementService {
     rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
            delete: "/tenant-management/v1.0.0/oauth2/tenant"
+        };
+    }
+
+    rpc addTenantRoles (org.apache.custos.iam.service.AddRolesRequest) returns (org.apache.custos.iam.service.AllRoles) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/roles"
+        };
+    }
+
+    rpc addProtocolMapper (org.apache.custos.iam.service.AddProtocolMapperRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/protocol/mapper"
         };
     }
 

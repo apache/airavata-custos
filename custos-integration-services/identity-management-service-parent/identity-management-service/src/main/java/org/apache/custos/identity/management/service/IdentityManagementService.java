@@ -19,12 +19,12 @@
 
 package org.apache.custos.identity.management.service;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
+import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.credential.store.service.GetCredentialRequest;
 import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.identity.client.IdentityClient;
@@ -236,6 +236,23 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
         }
     }
 
+    @Override
+    public void getCredentials(GetCredentialsRequest request, StreamObserver<Credentials> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to get Credentials for token " + request.getCredentials().getCustosClientId());
+
+            if (request.getClientId().equals(request.getCredentials().getCustosClientId())) {
+                responseObserver.onNext(request.getCredentials());
+                responseObserver.onCompleted();
+            } else {
+                //TODO : check for child tenant under super tenant
 
 
+            }
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  retrieving Credentials " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
 }

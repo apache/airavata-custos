@@ -157,6 +157,11 @@
                  <version>${keycloak.admin.version}</version>
              </dependency>
              <dependency>
+                 <groupId>org.keycloak</groupId>
+                 <artifactId>keycloak-authz-client</artifactId>
+                 <version>${keycloak.admin.version}</version>
+             </dependency>
+             <dependency>
                  <groupId>org.jboss.resteasy</groupId>
                  <artifactId>resteasy-client</artifactId>
                  <version>${reasteasy.client.version}</version>

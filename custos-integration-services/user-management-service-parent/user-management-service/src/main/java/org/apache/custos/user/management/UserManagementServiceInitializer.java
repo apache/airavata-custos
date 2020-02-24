@@ -25,15 +25,14 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
-import org.apache.custos.user.management.interceptors.AuthInterceptorImpl;
+import org.apache.custos.user.management.interceptors.ClientAuthInterceptorImpl;
+import org.apache.custos.user.management.interceptors.UserAuthInterceptorImpl;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Stack;
 
 @SpringBootApplication
@@ -63,9 +62,10 @@ public class UserManagementServiceInitializer {
     }
 
     @Bean
-    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor) {
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(ClientAuthInterceptorImpl authInterceptor, UserAuthInterceptorImpl userAuthInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(authInterceptor);
+        interceptors.add(userAuthInterceptor);
 
 
         return interceptors;

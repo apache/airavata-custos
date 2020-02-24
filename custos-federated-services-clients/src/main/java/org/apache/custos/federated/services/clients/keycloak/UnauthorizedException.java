@@ -17,46 +17,14 @@
  *  under the License.
  */
 
-package org.apache.custos.credential.store.model;
+package org.apache.custos.federated.services.clients.keycloak;
 
 /**
- * Representation of Secret at Vault
+ * UnAuthorized Exception
  */
-public class Credential {
+public class UnauthorizedException extends Exception {
 
-    private String id;
-    private String secret;
-    private String email;
-
-    public Credential(String id, String secret) {
-        this.id = id;
-        this.secret = secret;
-    }
-
-    public Credential() {
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getSecret() {
-        return secret;
-    }
-
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
+    public UnauthorizedException(String msg, Throwable throwable) {
+        super(msg, throwable);
     }
 }

@@ -69,7 +69,7 @@ public class InputValidator implements Validator {
             if (profile.getLastName() == null || profile.getLastName().equals("")) {
                 throw new MissingParameterException("lastName should not be null", null);
             }
-            if (profile.getEmailAddress() == null || profile.getEmailAddress().equals("")) {
+            if (profile.getEmail() == null || profile.getEmail().equals("")) {
                 throw new MissingParameterException("emailAddress should not be null", null);
             }
         } else {

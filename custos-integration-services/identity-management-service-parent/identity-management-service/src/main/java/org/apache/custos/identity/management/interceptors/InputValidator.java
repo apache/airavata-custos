@@ -21,6 +21,7 @@ package org.apache.custos.identity.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.identity.management.service.AuthorizationRequest;
+import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.GetOIDCConfiguration;
 import org.apache.custos.integration.core.exceptions.MissingParameterException;
@@ -42,6 +43,9 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 break;
             case "getOIDCConfiguration":
                 validationGetOIDCConfiguration(headers, msg, method);
+
+            case "getCredentials":
+                validationGetCredentials(headers, msg, method);
             default:
         }
         return msg;
@@ -85,6 +89,17 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private boolean validationGetOIDCConfiguration(Metadata headers, Object body, String method) {
         if (body instanceof GetOIDCConfiguration) {
             GetOIDCConfiguration configuration = (GetOIDCConfiguration) body;
+            if (configuration.getClientId() == null || configuration.getClientId().equals("")) {
+                throw new MissingParameterException("Client Id  is not available", null);
+            }
+        }
+
+        return true;
+    }
+
+    private boolean validationGetCredentials(Metadata headers, Object body, String method) {
+        if (body instanceof GetCredentialsRequest) {
+            GetCredentialsRequest configuration = (GetCredentialsRequest) body;
             if (configuration.getClientId() == null || configuration.getClientId().equals("")) {
                 throw new MissingParameterException("Client Id  is not available", null);
             }

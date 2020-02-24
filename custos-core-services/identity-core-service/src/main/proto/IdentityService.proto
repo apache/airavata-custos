@@ -99,6 +99,8 @@ message GetOIDCConfiguration {
     int64 tenant_id = 3;
 }
 
+
+
 service IdentityService {
     rpc authenticate (AuthenticationRequest) returns (AuthToken);
     rpc isAuthenticate (AuthToken) returns (IsAuthenticateResponse);

@@ -504,6 +504,141 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
         }
     }
 
+
+    @Override
+    public void getBasicCredentials(TokenRequest request, StreamObserver<Credentials> responseObserver) {
+        try {
+
+            String token = request.getToken();
+            Credential credential = credentialManager.decodeToken(token);
+
+            if (credential == null || credential.getId() == null) {
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity entity = repository.findByClientId(credential.getId());
+
+            if (entity == null) {
+                LOGGER.error("User not found");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+            String subPath = BASE_PATH + entity.getOwnerId();
+            List<String> paths = vaultTemplate.list(subPath);
+
+
+            Credentials.Builder credentialsBuilder = Credentials.newBuilder();
+
+
+            if (entity == null) {
+                LOGGER.error("User not found");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                    if (key.equals(Type.CUSTOS)) {
+
+                        credentialsBuilder.setCustosClientId(crRe.getData().getId())
+                                .setCustosClientSecret(crRe.getData().getSecret())
+                                .setCustosClientIdIssuedAt(entity.getIssuedAt().getTime())
+                                .setCustosClientSecretExpiredAt(entity.getClientSecretExpiredAt());
+
+                    } else if (key.equals(Type.IAM)) {
+                        credentialsBuilder.setIamClientId(crRe.getData().getId())
+                                .setIamClientSecret(crRe.getData().getSecret());
+
+
+                    } else if (key.equals(Type.CILOGON)) {
+
+                        credentialsBuilder.setCiLogonClientId(crRe.getData().getId())
+                                .setCiLogonClientSecret(crRe.getData().getSecret());
+
+                    }
+
+                }
+            }
+
+            Credentials credentials = credentialsBuilder.build();
+
+            responseObserver.onNext(credentials);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed failed " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getAllCredentialsFromJWTToken(TokenRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+            String token = request.getToken();
+
+            LOGGER.info("TOken "+ token );
+            Credential credential = credentialManager.decodeJWTToken(token);
+
+            if (credential == null || credential.getId() == null) {
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity entity = repository.findByClientId(credential.getId());
+
+            if (entity == null) {
+                LOGGER.error("User not found");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            String subPath = BASE_PATH + entity.getOwnerId();
+            List<String> paths = vaultTemplate.list(subPath);
+
+
+            List<CredentialMetadata> credentialMetadata = new ArrayList<>();
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+
+
+                    if (key.equals(Type.CUSTOS)) {
+                        metadata = metadata.toBuilder()
+                                .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                                .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                                .build();
+                    }
+                    credentialMetadata.add(metadata);
+                }
+            }
+            GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
+                    .addAllSecretList(credentialMetadata)
+                    .setRequestedUserEmail(credential.getEmail())
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     private OperationMetadata convertFromEntity(StatusEntity entity) {
         return OperationMetadata.newBuilder()
                 .setEvent(entity.getEvent())

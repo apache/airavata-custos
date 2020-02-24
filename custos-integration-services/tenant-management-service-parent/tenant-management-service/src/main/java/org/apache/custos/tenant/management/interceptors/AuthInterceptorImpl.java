@@ -21,6 +21,8 @@ package org.apache.custos.tenant.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.iam.service.AddProtocolMapperRequest;
+import org.apache.custos.iam.service.AddRolesRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -108,6 +110,28 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) tenantRequest.toBuilder()
                     .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
+        } else if (method.equals("addTenantRoles")) {
+
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            AddRolesRequest rolesRequest = ((AddRolesRequest) msg);
+
+            return (ReqT) rolesRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+        } else if (method.equals("addProtocolMapper")) {
+
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            AddProtocolMapperRequest rolesRequest = ((AddProtocolMapperRequest) msg);
+
+            return (ReqT) rolesRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
         }
 
         return msg;

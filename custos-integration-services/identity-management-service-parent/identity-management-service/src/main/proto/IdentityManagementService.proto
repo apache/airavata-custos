@@ -27,6 +27,8 @@ import "google/api/annotations.proto";
 import "IdentityService.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/any.proto";
+import "CredentialStoreService.proto";
+
 
 
 
@@ -46,6 +48,11 @@ message AuthorizationRequest {
 
 message AuthorizationResponse {
     string loginURI = 1;
+}
+
+message GetCredentialsRequest {
+    string client_id = 1;
+    org.apache.custos.credential.store.service.Credentials credentials = 2;
 }
 
 
@@ -96,6 +103,14 @@ service IdentityManagementService {
 
          };
     }
+
+    rpc getCredentials (GetCredentialsRequest) returns (org.apache.custos.credential.store.service.Credentials) {
+        option (google.api.http) = {
+           get: "/identity-management/v1.0.0/credentials"
+        };
+    }
+
+
 
     rpc getOIDCConfiguration(org.apache.custos.identity.service.GetOIDCConfiguration) returns (google.protobuf.Struct) {
         option (google.api.http) = {

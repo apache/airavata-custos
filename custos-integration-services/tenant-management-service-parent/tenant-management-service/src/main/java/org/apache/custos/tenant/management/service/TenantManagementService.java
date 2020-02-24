@@ -27,6 +27,10 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
+import org.apache.custos.iam.service.AddProtocolMapperRequest;
+import org.apache.custos.iam.service.AddRolesRequest;
+import org.apache.custos.iam.service.AllRoles;
+import org.apache.custos.iam.service.OperationStatus;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
@@ -123,7 +127,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at createTenant " + ex.getMessage();
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
         }
     }
@@ -342,6 +346,38 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
         }
     }
 
+
+    @Override
+    public void addTenantRoles(AddRolesRequest request, StreamObserver<AllRoles> responseObserver) {
+        try {
+            AllRoles allRoles = iamAdminServiceClient.addRolesToTenant(request);
+
+            responseObserver.onNext(allRoles);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addTenantRoles " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void addProtocolMapper(AddProtocolMapperRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            OperationStatus allRoles = iamAdminServiceClient.addProtocolMapper(request);
+
+            responseObserver.onNext(allRoles);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addProtocolMapper " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     @Override
     public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         GetAllTenantsResponse response = profileClient.getAllTenants();
@@ -452,6 +488,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
 
     @Override
     public void getTenantStatusUpdateAuditTrail(GetAuditTrailRequest request, StreamObserver<GetStatusUpdateAuditTrailResponse> responseObserver) {

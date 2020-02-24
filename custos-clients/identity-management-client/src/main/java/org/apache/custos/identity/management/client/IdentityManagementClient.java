@@ -24,8 +24,10 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
+import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.management.service.AuthorizationRequest;
 import org.apache.custos.identity.management.service.AuthorizationResponse;
+import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
 import org.apache.custos.identity.service.GetTokenRequest;
 import org.apache.custos.identity.service.TokenResponse;
@@ -105,6 +107,16 @@ public class IdentityManagementClient {
                 .build();
 
         return null;
+    }
+
+    /**
+     * Returns Custos Id, Custos client secret, IAM Id, IAM Client Secret, CILogon Id, CILogon Client Secret
+     *
+     * @return
+     */
+    public Credentials getCredentials(String clientId) {
+        GetCredentialsRequest request = GetCredentialsRequest.newBuilder().setClientId(clientId).build();
+        return blockingStub.getCredentials(request);
     }
 
 

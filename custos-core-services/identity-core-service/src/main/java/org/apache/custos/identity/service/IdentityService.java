@@ -254,14 +254,24 @@ public class IdentityService extends IdentityServiceImplBase {
                     getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
                             request.getCode(), request.getRedirectUri());
 
-            Struct.Builder structBuilder = Struct.newBuilder();
-             LOGGER.info(object.toString());
+            LOGGER.info(object.toString());
 
-            Struct struct = structBuilder.build();
+            try {
+                if (object != null && object.getString("access_token") != null) {
+                    Struct.Builder structBuilder = Struct.newBuilder();
 
-            JsonFormat.parser().merge(object.toString(), structBuilder);
-            responseObserver.onNext(struct);
-            responseObserver.onCompleted();
+                    JsonFormat.parser().merge(object.toString(), structBuilder);
+                    responseObserver.onNext(structBuilder.build());
+                    responseObserver.onCompleted();
+                }
+            } catch (Exception ex) {
+
+                String error = object.getString("error") + " " + object.getString("error_description");
+                responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
+                return;
+
+            }
+
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();

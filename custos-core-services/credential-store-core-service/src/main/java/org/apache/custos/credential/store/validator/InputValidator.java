@@ -36,7 +36,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public  void validate(String methodName, Object obj) {
+    public void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "putCredential":
@@ -56,16 +56,18 @@ public class InputValidator implements Validator {
                 break;
             case "getOwnerIdFromToken":
             case "getCredentialFromToken":
+            case "getAllCredentialsFromJWTToken":
+            case "getAllCredentialsFromToken":
                 validateTokenRequest(obj, methodName);
                 break;
             case "getCredentialFromClientId":
-                validateGetCredentialFromClientId(obj,methodName);
+                validateGetCredentialFromClientId(obj, methodName);
                 break;
             default:
         }
     }
 
-    private  boolean validatePutCredential(Object obj, String method) {
+    private boolean validatePutCredential(Object obj, String method) {
         if (obj instanceof CredentialMetadata) {
             CredentialMetadata metadata = (CredentialMetadata) obj;
 
@@ -91,7 +93,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateDeleteCredential(Object obj, String method) {
+    private boolean validateDeleteCredential(Object obj, String method) {
         if (obj instanceof DeleteCredentialRequest) {
             DeleteCredentialRequest metadata = (DeleteCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -110,7 +112,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateGetCredential(Object obj, String method) {
+    private boolean validateGetCredential(Object obj, String method) {
         if (obj instanceof GetCredentialRequest) {
             GetCredentialRequest metadata = (GetCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -128,7 +130,7 @@ public class InputValidator implements Validator {
 
     }
 
-    private  boolean validateGetNewCustosCredential (Object obj, String method) {
+    private boolean validateGetNewCustosCredential(Object obj, String method) {
         if (obj instanceof GetNewCustosCredentialRequest) {
             GetNewCustosCredentialRequest metadata = (GetNewCustosCredentialRequest) obj;
             if (metadata.getOwnerId() == 0) {
@@ -142,11 +144,11 @@ public class InputValidator implements Validator {
 
     }
 
-    private  boolean validateTokenRequest(Object obj, String method) {
+    private boolean validateTokenRequest(Object obj, String method) {
         if (obj instanceof TokenRequest) {
             TokenRequest metadata = (TokenRequest) obj;
-            if (metadata.getToken() == null || metadata.getToken().trim().equals("") ){
-                throw new MissingParameterException("OwnerId cannot be null at " + method, null);
+            if (metadata.getToken() == null || metadata.getToken().trim().equals("")) {
+                throw new MissingParameterException("Token cannot be null at " + method, null);
             }
 
         } else {
@@ -156,7 +158,7 @@ public class InputValidator implements Validator {
 
     }
 
-    private  boolean validateGetAllCredentials(Object obj, String method) {
+    private boolean validateGetAllCredentials(Object obj, String method) {
         if (obj instanceof GetAllCredentialsRequest) {
             GetAllCredentialsRequest request = (GetAllCredentialsRequest) obj;
             if (request.getOwnerId() == 0) {
@@ -170,7 +172,7 @@ public class InputValidator implements Validator {
 
     }
 
-    private boolean validateGetCredentialFromClientId (Object obj, String method) {
+    private boolean validateGetCredentialFromClientId(Object obj, String method) {
         if (obj instanceof GetCredentialRequest) {
             GetCredentialRequest request = (GetCredentialRequest) obj;
             if (request.getId() == null || request.getId().equals("")) {
