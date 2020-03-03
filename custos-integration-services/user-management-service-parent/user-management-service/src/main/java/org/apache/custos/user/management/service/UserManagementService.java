@@ -303,8 +303,6 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
 
-
-
     @Override
     public void enableUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
         try {
@@ -896,10 +894,17 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                             .build();
 
 
-            GetAllUserProfilesResponse response = userProfileClient.getAllUserProfilesInTenant(userProfileRequest);
+            if (request.getUserProfile().getAttributesList() == null || request.getUserProfile().getAttributesList().isEmpty()) {
+                GetAllUserProfilesResponse response = userProfileClient.getAllUserProfilesInTenant(userProfileRequest);
 
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                GetAllUserProfilesResponse response = userProfileClient.findUserProfilesByUserAttributes(userProfileRequest);
+
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();

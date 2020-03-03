@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @GRpcService
 public class UserProfileService extends UserProfileServiceGrpc.UserProfileServiceImplBase {
@@ -239,6 +241,80 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
+    }
+
+
+    @Override
+    public void findUserProfilesByAttributes(UserProfileRequest request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to findUserProfilesByAttributes at " + request.getTenantId());
+
+
+            List<UserAttribute> attributeList = request.getProfile().getAttributesList();
+
+            List<UserProfile> selectedProfiles = new ArrayList<>();
+            List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
+            attributeList.forEach(atr -> {
+
+                List<String> values = atr.getValueList();
+                values.forEach(val -> {
+                    List<UserProfile>
+                            userAttributes = userAttributeRepository.findFilteredUserProfiles(atr.getKey(), val);
+                    if (userAttributes == null || userAttributes.isEmpty()) {
+                        GetAllUserProfilesResponse response = GetAllUserProfilesResponse
+                                .newBuilder()
+                                .build();
+                        responseObserver.onNext(response);
+                        responseObserver.onCompleted();
+                        return;
+                    }
+                    if (selectedProfiles.isEmpty()) {
+                        selectedProfiles.addAll(userAttributes);
+                    } else {
+                        List<UserProfile> profiles = userAttributes.stream().filter(newProf -> {
+                            AtomicBoolean matched = new AtomicBoolean(false);
+                            selectedProfiles.forEach(selectedProfile -> {
+                                if (selectedProfile.getId().equals(newProf.getId())) {
+                                    matched.set(true);
+                                }
+                            });
+                            return matched.get();
+                        }).collect(Collectors.toList());
+                        selectedProfiles.clear();
+                        selectedProfiles.addAll(profiles);
+                    }
+                });
+            });
+
+            if (!selectedProfiles.isEmpty()) {
+
+                selectedProfiles.forEach(userProfile -> {
+                    org.apache.custos.user.profile.service.UserProfile prof =
+                            UserProfileMapper.createUserProfileFromUserProfileEntity(userProfile);
+                    userProfileList.add(prof);
+
+                });
+                GetAllUserProfilesResponse response = GetAllUserProfilesResponse
+                        .newBuilder()
+                        .addAllProfiles(userProfileList)
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+
+            } else {
+                GetAllUserProfilesResponse response = GetAllUserProfilesResponse
+                        .newBuilder()
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
     @Override

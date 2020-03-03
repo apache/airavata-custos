@@ -20,7 +20,9 @@
 package org.apache.custos.user.profile.persistance.repository;
 
 import org.apache.custos.user.profile.persistance.model.UserAttribute;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -31,4 +33,7 @@ public interface UserAttributeRepository extends JpaRepository<UserAttribute, Lo
     public void deleteAllByUserProfileId(String userProfileEntityId);
 
     public List<UserAttribute> findAllByUserProfileId(String userProfileEntityId);
+
+    @Query("SELECT DISTINCT atr.userProfile from UserAttribute atr where atr.keyValue = ?1 and atr.value =?2")
+    public List<UserProfile> findFilteredUserProfiles(String key, String value);
 }

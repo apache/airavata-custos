@@ -194,6 +194,7 @@ service UserManagementService {
     }
 
 
+
     rpc getUserProfileAuditTrails (org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest) returns (org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse) {
 
         option (google.api.http) = {

@@ -735,8 +735,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to add protocol mapper " + request.getTenantId());
 
-
-            if (!request.getMapperType().equals(MapperTypes.USER_ATTRIBUTE)) {
+            String mapperModel = "oidc-usermodel-attribute-mapper";
+            Map<String, String> configMap = new HashMap<>();
+            if (request.getMapperType().equals(MapperTypes.USER_ATTRIBUTE)) {
+                mapperModel = "oidc-usermodel-attribute-mapper";
+                configMap.put("user.attribute", request.getAttributeName());
+            } else if (request.getMapperType().equals(MapperTypes.USER_REALM_ROLE)) {
+                mapperModel = "oidc-usermodel-realm-role-mapper";
+            } else if (request.getMapperType().equals(MapperTypes.USER_CLIENT_ROLE)) {
+                mapperModel = "oidc-usermodel-client-role-mapper";
+                configMap.put("usermodel.clientRoleMapping.clientId",request.getClientId());
+            } else {
                 responseObserver.onError(io.grpc.Status.UNIMPLEMENTED.
                         withDescription("Mapping type not supported").asRuntimeException());
                 return;
@@ -745,9 +754,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             ProtocolMapperRepresentation protocolMapperRepresentation = new ProtocolMapperRepresentation();
             protocolMapperRepresentation.setName(request.getName());
             protocolMapperRepresentation.setProtocol("openid-connect");
-            protocolMapperRepresentation.setProtocolMapper("oidc-usermodel-attribute-mapper");
-
-            Map<String, String> configMap = new HashMap<>();
+            protocolMapperRepresentation.setProtocolMapper(mapperModel);
 
             configMap.put("user.session.note", request.getClaimName());
             configMap.put("id.token.claim", String.valueOf(request.getAddToIdToken()));
@@ -779,7 +786,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             configMap.put("aggregate.attrs", String.valueOf(request.getAggregateAttributeValues()));
             configMap.put("userinfo.token.claim", String.valueOf(request.getAddToUserInfo()));
             configMap.put("multivalued", String.valueOf(request.getMultiValued()));
-            configMap.put("user.attribute", request.getAttributeName());
+
 
 
             protocolMapperRepresentation.setConfig(configMap);

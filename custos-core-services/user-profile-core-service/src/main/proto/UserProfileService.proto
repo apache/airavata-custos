@@ -102,4 +102,5 @@ service UserProfileService {
     rpc deleteUserProfile (UserProfileRequest) returns (UserProfile);
     rpc getAllUserProfilesInTenant (UserProfileRequest) returns (GetAllUserProfilesResponse);
     rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
+    rpc findUserProfilesByAttributes(UserProfileRequest) returns (GetAllUserProfilesResponse);
 }

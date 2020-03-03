@@ -253,6 +253,8 @@ message AddProtocolMapperRequest {
 
 enum MapperTypes {
     USER_ATTRIBUTE = 0;
+    USER_REALM_ROLE = 1;
+    USER_CLIENT_ROLE = 2;
 }
 
 enum ClaimJSONTypes {
