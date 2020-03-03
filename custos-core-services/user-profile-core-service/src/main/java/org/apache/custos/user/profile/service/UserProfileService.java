@@ -26,10 +26,8 @@ import org.apache.custos.user.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.user.profile.mapper.UserProfileMapper;
 import org.apache.custos.user.profile.persistance.model.AttributeUpdateMetadata;
 import org.apache.custos.user.profile.persistance.model.StatusUpdateMetadata;
-import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
-import org.apache.custos.user.profile.persistance.repository.AttributeUpdateMetadataRepository;
-import org.apache.custos.user.profile.persistance.repository.StatusUpdateMetadataRepository;
-import org.apache.custos.user.profile.persistance.repository.UserRepository;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
+import org.apache.custos.user.profile.persistance.repository.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,30 +52,36 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
     @Autowired
     private AttributeUpdateMetadataRepository attributeUpdateMetadataRepository;
 
+    @Autowired
+    private UserAttributeRepository userAttributeRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
 
     @Override
-    public void createUserProfile(UserProfile request, StreamObserver<UserProfile> responseObserver) {
+    public void createUserProfile(UserProfileRequest request, StreamObserver<org.apache.custos.user.profile.service.UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to createUserProfile for " + request.getUsername() + "at " + request.getTenantId());
+            LOGGER.debug("Request received to createUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
 
-            String userId = request.getUsername() + "@" + request.getTenantId();
+            String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
 
-            UserProfile profile = request.toBuilder().setUserId(userId).build();
-
-            Optional<UserProfileEntity> op = repository.findById(userId);
+            Optional<UserProfile> op = repository.findById(userId);
 
             if (op.isEmpty()) {
 
-                UserProfileEntity entity = UserProfileMapper.createUserProfileEntityFromUserProfile(profile);
-
+                UserProfile entity = UserProfileMapper.createUserProfileEntityFromUserProfile(request.getProfile());
+                entity.setId(userId);
+                entity.setTenantId(request.getTenantId());
                 repository.save(entity);
             }
 
-            responseObserver.onNext(profile);
+            responseObserver.onNext(request.getProfile());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while creating user profile for " + request.getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while creating user profile for " + request.getProfile().getUsername() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -85,86 +89,109 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
     }
 
     @Override
-    public void updateUserProfile(UserProfile request, StreamObserver<UserProfile> responseObserver) {
+    public void updateUserProfile(UserProfileRequest request, StreamObserver<org.apache.custos.user.profile.service.UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to updateUserProfile for " + request.getUsername() + "at " + request.getTenantId());
+            LOGGER.debug("Request received to updateUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
 
-          Optional<UserProfileEntity> exEntity  =   repository.findById(request.getUserId());
+            String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
 
-
-          if (exEntity.isPresent()) {
-
-
-              UserProfileEntity entity = UserProfileMapper.createUserProfileEntityFromUserProfile(request);
+            Optional<UserProfile> exEntity = repository.findById(userId);
 
 
-              Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
-                      createAttributeUpdateMetadataEntity(exEntity.get(), entity, request.getUpdatedBy());
-
-              entity.setAttributeUpdateMetadata(metadata);
-
-              repository.save(entity);
-
-              responseObserver.onNext(request);
-              responseObserver.onCompleted();
-          } else  {
+            if (exEntity.isPresent()) {
 
 
-          }
+                UserProfile entity = UserProfileMapper.createUserProfileEntityFromUserProfile(request.getProfile());
+
+
+                Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
+                        createAttributeUpdateMetadataEntity(exEntity.get(), entity, request.getPerformedBy());
+
+
+                entity.setAttributeUpdateMetadata(metadata);
+                entity.setId(userId);
+                entity.setTenantId(request.getTenantId());
+                entity.setCreatedAt(exEntity.get().getCreatedAt());
+
+                UserProfile exProfile = exEntity.get();
+
+                if (exProfile.getUserAttribute() != null) {
+                    exProfile.getUserAttribute().forEach(atr -> {
+                        userAttributeRepository.delete(atr);
+
+                    });
+                }
+
+                if (exProfile.getUserRole() != null) {
+                    exProfile.getUserRole().forEach(role -> {
+                        roleRepository.delete(role);
+                    });
+                }
+
+                repository.save(entity);
+
+                responseObserver.onNext(request.getProfile());
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Cannot find a user profile for " + userId;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while updating user profile for " + request.getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while updating user profile for " + request.getProfile().getUsername() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void getUserProfile(GetUserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
+    public void getUserProfile(UserProfileRequest request, StreamObserver<org.apache.custos.user.profile.service.UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to getUserProfile for " + request.getUsername() + "at " + request.getTenantId());
+            LOGGER.debug("Request received to getUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
 
-            String userId = request.getUsername() + "@" + request.getTenantId();
+            String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
 
-            Optional<UserProfileEntity> entity = repository.findById(userId);
+            Optional<UserProfile> entity = repository.findById(userId);
 
             if (entity.isPresent()) {
-                UserProfileEntity profileEntity = entity.get();
-
-                UserProfile profile = UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity);
+                UserProfile profileEntity = entity.get();
+                org.apache.custos.user.profile.service.UserProfile profile = UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity);
 
                 responseObserver.onNext(profile);
                 responseObserver.onCompleted();
 
             } else {
 
-                responseObserver.onError(Status.NOT_FOUND.withDescription("User not found").asRuntimeException());
+                responseObserver.onNext(null);
+                responseObserver.onCompleted();
             }
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching user profile for " + request.getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while fetching user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void deleteUserProfile(DeleteUserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
+    public void deleteUserProfile(UserProfileRequest request, StreamObserver<org.apache.custos.user.profile.service.UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to deleteUserProfile for " + request.getUsername() + "at " + request.getTenantId());
+            LOGGER.debug("Request received to deleteUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
             long tenantId = request.getTenantId();
 
-            String username = request.getUsername();
+            String username = request.getProfile().getUsername();
 
             String userId = username + "@" + tenantId;
 
-            Optional<UserProfileEntity> profileEntity = repository.findById(userId);
+            Optional<UserProfile> profileEntity = repository.findById(userId);
 
             if (profileEntity.isPresent()) {
-                UserProfileEntity entity = profileEntity.get();
+                UserProfile entity = profileEntity.get();
 
-                UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
+                org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
 
                 repository.delete(profileEntity.get());
                 responseObserver.onNext(prof);
@@ -175,26 +202,26 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while deleting user profile for " + request.getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while deleting user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void getAllUserProfilesInTenant(GetAllUserProfilesRequest request,
+    public void getAllUserProfilesInTenant(UserProfileRequest request,
                                            StreamObserver<GetAllUserProfilesResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to getAllUserProfilesInTenant for " + request.getTenantId());
             long tenantId = request.getTenantId();
 
-            List<UserProfileEntity> profileList = repository.findByTenantId(tenantId);
+            List<UserProfile> profileList = repository.findByTenantId(tenantId);
 
-            List<UserProfile> userProfileList = new ArrayList<>();
+            List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
 
             if (profileList != null && profileList.size() > 0) {
-                for (UserProfileEntity entity : profileList) {
-                    UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
+                for (UserProfile entity : profileList) {
+                    org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
                     userProfileList.add(prof);
                 }
             }
@@ -226,9 +253,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             String userId = username + "@" + tenantId;
 
-            List<StatusUpdateMetadata> statusUpdateMetadata = statusUpdaterRepository.findAllByUserProfileEntityId(userId);
+            List<StatusUpdateMetadata> statusUpdateMetadata = statusUpdaterRepository.findAllByUserProfileId(userId);
 
-            List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileEntityId(userId);
+            List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileId(userId);
 
             List<UserProfileStatusUpdateMetadata> userProfileStatusUpdateMetadata = new ArrayList<>();
             List<UserProfileAttributeUpdateMetadata> userProfileAttributeUpdateMetadata = new ArrayList<>();

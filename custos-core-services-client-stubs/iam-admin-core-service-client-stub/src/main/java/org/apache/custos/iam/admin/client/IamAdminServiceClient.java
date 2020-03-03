@@ -239,6 +239,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.addUserAttributes(addUserAttributesRequest);
     }
 
+    public OperationStatus deleteUserAttributes (DeleteUserAttributeRequest deleteUserAttributeRequest) {
+        return iamAdminServiceBlockingStub.deleteUserAttributes(deleteUserAttributeRequest);
+    }
+
     public String getIamServerURL() {
         return iamServerURL;
     }

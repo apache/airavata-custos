@@ -21,7 +21,9 @@ package org.apache.custos.user.profile.validators;
 
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
-import org.apache.custos.user.profile.service.*;
+import org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest;
+import org.apache.custos.user.profile.service.UserProfile;
+import org.apache.custos.user.profile.service.UserProfileRequest;
 
 /**
  * Validate inputs
@@ -49,31 +51,30 @@ public class InputValidator implements Validator {
 
 
     private boolean validateUserProfile(Object obj, String method) {
-        if (obj instanceof UserProfile) {
-            UserProfile profile = (UserProfile) obj;
-            if (method.equals("updateUserProfile")) {
-                if (profile.getUserId() == null || profile.getUserId().equals("")) {
-                    throw new MissingParameterException("userId should not be null", null);
-                }
-            }
+        if (obj instanceof UserProfileRequest) {
+            UserProfileRequest profile = (UserProfileRequest) obj;
+
             if (profile.getTenantId() == 0) {
                 throw new MissingParameterException("tenantId should be valid ", null);
             }
-            if (profile.getUsername() == null || profile.getUsername().equals("")) {
+            if (profile.getProfile() == null) {
+                throw new MissingParameterException("Profile should be valid ", null);
+            }
+            if (profile.getProfile().getUsername() == null || profile.getProfile().getUsername().equals("")) {
                 throw new MissingParameterException("username should not be null", null);
             }
 
-            if (profile.getFirstName() == null || profile.getFirstName().equals("")) {
+            if (profile.getProfile().getFirstName() == null || profile.getProfile().getFirstName().equals("")) {
                 throw new MissingParameterException("firstName should not be null", null);
             }
-            if (profile.getLastName() == null || profile.getLastName().equals("")) {
+            if (profile.getProfile().getLastName() == null || profile.getProfile().getLastName().equals("")) {
                 throw new MissingParameterException("lastName should not be null", null);
             }
-            if (profile.getEmail() == null || profile.getEmail().equals("")) {
+            if (profile.getProfile().getEmail() == null || profile.getProfile().getEmail().equals("")) {
                 throw new MissingParameterException("emailAddress should not be null", null);
             }
         } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
+            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
     }
@@ -81,20 +82,26 @@ public class InputValidator implements Validator {
 
     private boolean validateUsernameAndTenantId(Object obj, String method) {
         if (method.equals("getUserProfile")) {
-            GetUserProfileRequest profileRequest = (GetUserProfileRequest) obj;
+            UserProfileRequest profileRequest = (UserProfileRequest) obj;
             if (profileRequest.getTenantId() == 0) {
                 throw new MissingParameterException("tenantId should be valid ", null);
             }
-            if (profileRequest.getUsername() == null || profileRequest.getUsername().equals("")) {
+            if (profileRequest.getProfile() == null) {
+                throw new MissingParameterException("Profile should be valid ", null);
+            }
+            if (profileRequest.getProfile().getUsername() == null || profileRequest.getProfile().getUsername().equals("")) {
                 throw new MissingParameterException("username should not be null", null);
             }
         } else if (method.equals("deleteUserProfile")) {
 
-            DeleteUserProfileRequest profileRequest = (DeleteUserProfileRequest) obj;
+            UserProfileRequest profileRequest = (UserProfileRequest) obj;
             if (profileRequest.getTenantId() == 0) {
                 throw new MissingParameterException("tenantId should be valid ", null);
             }
-            if (profileRequest.getUsername() == null || profileRequest.getUsername().equals("")) {
+            if (profileRequest.getProfile() == null) {
+                throw new MissingParameterException("Profile should be valid ", null);
+            }
+            if (profileRequest.getProfile().getUsername() == null || profileRequest.getProfile().getUsername().equals("")) {
                 throw new MissingParameterException("username should not be null", null);
             }
 
@@ -115,8 +122,8 @@ public class InputValidator implements Validator {
     }
 
     private boolean validateGetAllUserProfiles(Object obj, String method) {
-        if (obj instanceof GetAllUserProfilesRequest) {
-            GetAllUserProfilesRequest profileReq = (GetAllUserProfilesRequest) obj;
+        if (obj instanceof UserProfileRequest) {
+            UserProfileRequest profileReq = (UserProfileRequest) obj;
             if (profileReq.getTenantId() == 0) {
                 throw new MissingParameterException("tenantId should be valid ", null);
             }

@@ -560,7 +560,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client =  getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, realmId, accessToken);
             UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
 
             if (representation != null) {
@@ -576,7 +576,7 @@ public class KeycloakClient {
                         for (String roleName : roles) {
                             RoleResource roleResource = client.realm(realmId).
                                     clients().get(clientRep.getId()).roles().get(roleName);
-                            LOGGER.info("Roles Representatioin "+ roleName+ " roles resource " + roleResource);
+                            LOGGER.info("Roles Representatioin " + roleName + " roles resource " + roleResource);
                             if (roleResource != null) {
                                 roleRepresentations.add(roleResource.toRepresentation());
                             }
@@ -703,7 +703,17 @@ public class KeycloakClient {
                 UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
                 UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                userRepresentation.setAttributes(attributeMap);
+                Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+
+                if (exAtrMap != null && !exAtrMap.isEmpty()) {
+                    attributeMap.keySet().forEach(key -> {
+                        exAtrMap.put(key, attributeMap.get(key));
+                    });
+                    userRepresentation.setAttributes(exAtrMap);
+                } else {
+                    userRepresentation.setAttributes(attributeMap);
+                }
+
                 resource.update(userRepresentation);
             }
 
@@ -722,6 +732,57 @@ public class KeycloakClient {
 
     }
 
+
+    /**
+     * This deletes user attributes of users
+     *
+     * @param realmId
+     * @param attributeMap
+     * @param users
+     * @return
+     */
+    public boolean deleteUserAttributes(String realmId, String accessToken, Map<String, List<String>> attributeMap, List<String> users) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            for (String user : users) {
+
+                UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
+                UserResource resource = realmResource.users().get(userRepresentation.getId());
+
+                Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+
+                if (exAtrMap != null && !exAtrMap.isEmpty()) {
+                    attributeMap.keySet().forEach(key -> {
+                       List<String> stringList =  exAtrMap.get(key);
+                       if (stringList != null && !stringList.isEmpty()) {
+                           stringList.removeAll(attributeMap.get(key));
+                           exAtrMap.put(key,stringList);
+                       }
+                    });
+                    userRepresentation.setAttributes(exAtrMap);
+                }
+
+                resource.update(userRepresentation);
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting user attributes in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+
+    }
 
     /**
      * Create protocol mapper representation in given client
@@ -744,25 +805,6 @@ public class KeycloakClient {
 
             ProtocolMappersResource resource = realmResource.clients().get(representation.getId()).getProtocolMappers();
             resource.createMapper(protocolMapperRepresentations);
-
-            ProtocolMappersResource resource2 = realmResource.clients().get(representation.getId()).getProtocolMappers();
-
-            List<ProtocolMapperRepresentation> mapperRepresentations = resource2.getMappers();
-
-            for (ProtocolMapperRepresentation protocolMapperRepresentation : mapperRepresentations) {
-
-                LOGGER.info("Id " + protocolMapperRepresentation.getId());
-                LOGGER.info("Name " + protocolMapperRepresentation.getName());
-                LOGGER.info("Protocol " + protocolMapperRepresentation.getProtocol());
-                LOGGER.info("Protocol Mapper " + protocolMapperRepresentation.getProtocolMapper());
-                Map<String, String> config = protocolMapperRepresentation.getConfig();
-
-                for (String key : config.keySet()) {
-                    LOGGER.info("Key " + key + " value" + config.get(key));
-
-                }
-
-            }
 
 
         } catch (Exception ex) {

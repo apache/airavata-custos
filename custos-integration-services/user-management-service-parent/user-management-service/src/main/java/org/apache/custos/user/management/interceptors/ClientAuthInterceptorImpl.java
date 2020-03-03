@@ -21,6 +21,7 @@ package org.apache.custos.user.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.iam.service.FindUsersRequest;
 import org.apache.custos.iam.service.RegisterUserRequest;
 import org.apache.custos.iam.service.ResetUserPassword;
 import org.apache.custos.iam.service.UserSearchRequest;
@@ -28,9 +29,8 @@ import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
-import org.apache.custos.user.management.service.DeleteProfileRequest;
 import org.apache.custos.user.management.service.UserProfileRequest;
-import org.apache.custos.user.profile.service.*;
+import org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +53,7 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
 
-       if (method.equals("deleteUserProfile")) {
+        if (method.equals("deleteUserProfile")) {
             AuthClaim claim = authorize(headers);
 
             if (claim == null) {
@@ -64,9 +64,11 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
-            DeleteUserProfileRequest pr = ((DeleteProfileRequest) reqT).getDeleteRequest().toBuilder().setTenantId(tenantId).build();
-            return (ReqT) ((DeleteProfileRequest) reqT).toBuilder()
-                    .setIamClientId(oauthId).setDeleteRequest(pr).setIamClientSecret(oauthSec).build();
+            return (ReqT) ((UserProfileRequest) reqT).toBuilder()
+                    .setClientId(oauthId)
+                    .setClientSecret(oauthSec)
+                    .setTenantId(tenantId)
+                    .build();
 
         } else if (method.equals("registerUser")) {
             AuthClaim claim = authorize(headers);
@@ -118,7 +120,7 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
-            GetUserProfileRequest request = ((GetUserProfileRequest) reqT)
+            UserProfileRequest request = ((UserProfileRequest) reqT)
                     .toBuilder()
                     .setTenantId(tenantId).build();
 
@@ -134,7 +136,7 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
-            GetAllUserProfilesRequest request = ((GetAllUserProfilesRequest) reqT)
+            UserProfileRequest request = ((UserProfileRequest) reqT)
                     .toBuilder().setTenantId(tenantId).build();
 
             return (ReqT) request;
@@ -173,6 +175,44 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
                     .setClientSec(oauthSec)
                     .setTenantId(tenantId)
                     .build();
+
+            return (ReqT) request;
+        } else if (method.equals("getUser")) {
+            AuthClaim claim = authorize(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            UserSearchRequest request = ((UserSearchRequest) reqT)
+                    .toBuilder()
+                    .setClientId(oauthId)
+                    .setTenantId(tenantId)
+                    .setClientSec(oauthSec)
+                    .build();
+            return (ReqT) request;
+
+        } else if (method.equals("findUsers")) {
+            AuthClaim claim = authorize(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            FindUsersRequest request = ((FindUsersRequest) reqT)
+                    .toBuilder()
+                    .setClientId(oauthId)
+                    .setClientSec(oauthSec)
+                    .setTenantId(tenantId).build();
+
 
             return (ReqT) request;
         }

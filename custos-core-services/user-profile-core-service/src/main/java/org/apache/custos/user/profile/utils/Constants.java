@@ -17,15 +17,9 @@
  *  under the License.
  */
 
-package org.apache.custos.user.profile.persistance.repository;
+package org.apache.custos.user.profile.utils;
 
-import org.apache.custos.user.profile.persistance.model.StatusUpdateMetadata;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
-
-public interface StatusUpdateMetadataRepository extends JpaRepository<StatusUpdateMetadata, Long> {
-
-
-    public List<StatusUpdateMetadata> findAllByUserProfileId(String  userId);
+public final class Constants {
+    public static final String ROLE_TYPE_REALM = "realm";
+    public static final  String ROLE_TYPE_CLIENT = "client";
 }

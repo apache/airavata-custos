@@ -21,8 +21,7 @@ package org.apache.custos.user.profile.mapper;
 
 
 import org.apache.custos.user.profile.persistance.model.AttributeUpdateMetadata;
-import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
-import org.apache.custos.user.profile.service.UserProfile;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.apache.custos.user.profile.service.UserProfileAttributeUpdateMetadata;
 
 import java.util.HashSet;
@@ -36,15 +35,16 @@ public class AttributeUpdateMetadataMapper {
 
     /**
      * This creates Attribute update entity List from comparing oldTenant and newTenant
+     *
      * @param updatedBy
      * @return
      */
-    public static Set<AttributeUpdateMetadata> createAttributeUpdateMetadataEntity(UserProfileEntity oldProf, UserProfileEntity newProf, String updatedBy) {
+    public static Set<AttributeUpdateMetadata> createAttributeUpdateMetadataEntity(UserProfile oldProf, UserProfile newProf, String updatedBy) {
 
         Set<AttributeUpdateMetadata> metadataSet = new HashSet<>();
         if (!(oldProf.getTenantId() == newProf.getTenantId())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfileEntity(newProf);
+            attributeUpdateMetadata.setUserProfile(newProf);
             attributeUpdateMetadata.setUpdatedFieldKey("tenanId");
             attributeUpdateMetadata.setUpdatedFieldValue(String.valueOf(newProf.getTenantId()));
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
@@ -53,7 +53,7 @@ public class AttributeUpdateMetadataMapper {
 
         if (!oldProf.getUsername().equals(newProf.getUsername())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfileEntity(newProf);
+            attributeUpdateMetadata.setUserProfile(newProf);
             attributeUpdateMetadata.setUpdatedFieldKey("username");
             attributeUpdateMetadata.setUpdatedFieldValue(newProf.getUsername());
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
@@ -62,7 +62,7 @@ public class AttributeUpdateMetadataMapper {
 
         if (!oldProf.getEmailAddress().equals(newProf.getEmailAddress())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfileEntity(newProf);
+            attributeUpdateMetadata.setUserProfile(newProf);
             attributeUpdateMetadata.setUpdatedFieldKey("emailAddress");
             attributeUpdateMetadata.setUpdatedFieldValue(newProf.getEmailAddress());
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
@@ -71,7 +71,7 @@ public class AttributeUpdateMetadataMapper {
 
         if (!oldProf.getFirstName().equals(newProf.getFirstName())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfileEntity(newProf);
+            attributeUpdateMetadata.setUserProfile(newProf);
             attributeUpdateMetadata.setUpdatedFieldKey("firstName");
             attributeUpdateMetadata.setUpdatedFieldValue(newProf.getFirstName());
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
@@ -80,7 +80,7 @@ public class AttributeUpdateMetadataMapper {
 
         if (!oldProf.getLastName().equals(newProf.getLastName())) {
             AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfileEntity(newProf);
+            attributeUpdateMetadata.setUserProfile(newProf);
             attributeUpdateMetadata.setUpdatedFieldKey("lastName");
             attributeUpdateMetadata.setUpdatedFieldValue(newProf.getLastName());
             attributeUpdateMetadata.setUpdatedBy(updatedBy);
@@ -93,19 +93,19 @@ public class AttributeUpdateMetadataMapper {
 
     /**
      * create attribute update metadata from db entity
+     *
      * @param metadata
      * @return
      */
-    public static UserProfileAttributeUpdateMetadata createAttributeUpdateMetadataFromEntity (AttributeUpdateMetadata metadata) {
+    public static UserProfileAttributeUpdateMetadata createAttributeUpdateMetadataFromEntity(AttributeUpdateMetadata metadata) {
 
         return UserProfileAttributeUpdateMetadata.newBuilder()
-                 .setUpdatedAt(metadata.getUpdatedAt().toString())
+                .setUpdatedAt(metadata.getUpdatedAt().toString())
                 .setUpdatedBy(metadata.getUpdatedBy())
                 .setUpdatedAttributeValue(metadata.getUpdatedFieldValue())
                 .setUpdatedAttribute(metadata.getUpdatedFieldKey())
                 .build();
     }
-
 
 
 }

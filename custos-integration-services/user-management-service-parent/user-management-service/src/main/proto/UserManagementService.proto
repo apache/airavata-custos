@@ -29,16 +29,12 @@ import "IamAdminService.proto";
 
 
 message UserProfileRequest {
-    org.apache.custos.user.profile.service.UserProfile userProfile = 1;
+    org.apache.custos.user.profile.service.UserProfile user_profile = 1;
     string clientId = 2;
     int64 tenantId = 3;
     string accessToken = 4;
-}
-
-message DeleteProfileRequest {
-    org.apache.custos.user.profile.service.DeleteUserProfileRequest deleteRequest = 1;
-    string iamClientId = 2;
-    string iamClientSecret = 3;
+    string  clientSecret = 5;
+    string performedBy = 6;
 }
 
 message GetUserRequest {
@@ -95,6 +91,12 @@ service UserManagementService {
          };
     }
 
+    rpc deleteUserAttributes (org.apache.custos.iam.service.DeleteUserAttributeRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/attributes"
+         };
+    }
+
     rpc enableUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
         option (google.api.http) = {
            post: "/user-management/v1.0.0/user/activation"
@@ -148,7 +150,7 @@ service UserManagementService {
     rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user"
-           body: "info"
+           body: "user"
          };
 
     }
@@ -165,23 +167,24 @@ service UserManagementService {
 
         option (google.api.http) = {
            put: "/user-management/v1.0.0/user/profile"
-           body: "userProfile"
+           body: "user_profile"
          };
     }
-    rpc getUserProfile (org.apache.custos.user.profile.service.GetUserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+    rpc getUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
 
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/profile"
          };
     }
-    rpc deleteUserProfile (DeleteProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+    rpc deleteUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
 
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user/profile"
          };
 
     }
-    rpc getAllUserProfilesInTenant (org.apache.custos.user.profile.service.GetAllUserProfilesRequest) returns (org.apache.custos.user.profile.service.GetAllUserProfilesResponse) {
+    rpc getAllUserProfilesInTenant (UserProfileRequest) returns (org.apache.custos.user.profile.service.GetAllUserProfilesResponse) {
 
         option (google.api.http) = {
            get: "/user-management/v1.0.0/users/profile"
