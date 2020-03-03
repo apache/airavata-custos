@@ -415,9 +415,14 @@ public class InputValidator implements Validator {
             if (request.getClaimName() == null || request.getClaimName().trim().equals("")) {
                 throw new MissingParameterException("Claim name should not be null", null);
             }
+            if (request.getMapperType() == null) {
+                throw new MissingParameterException("Mapper Type should not be null", null);
+            }
 
-            if (request.getAttributeName() == null || request.getAttributeName().trim().equals("")) {
-                throw new MissingParameterException("Attribute name should not be null", null);
+            if (request.getMapperType().equals(MapperTypes.USER_ATTRIBUTE)) {
+                if (request.getAttributeName() == null || request.getAttributeName().trim().equals("")) {
+                    throw new MissingParameterException("Attribute name should not be null", null);
+                }
             }
 
 
@@ -430,9 +435,6 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Claim Type should not be null", null);
             }
 
-            if (request.getMapperType() == null) {
-                throw new MissingParameterException("Mapper Type should not be null", null);
-            }
 
         } else {
             throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");

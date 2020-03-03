@@ -806,7 +806,6 @@ public class KeycloakClient {
             ProtocolMappersResource resource = realmResource.clients().get(representation.getId()).getProtocolMappers();
             resource.createMapper(protocolMapperRepresentations);
 
-
         } catch (Exception ex) {
             String msg = "Error occurred while adding protocol mappers in Keycloak Server, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);

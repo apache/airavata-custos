@@ -139,6 +139,10 @@ public class UserProfileClient {
         return userProfileServiceBlockingStub.getAllUserProfilesInTenant(request);
     }
 
+    public GetAllUserProfilesResponse findUserProfilesByUserAttributes(UserProfileRequest request) {
+        return userProfileServiceBlockingStub.findUserProfilesByAttributes(request);
+    }
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {
