@@ -14,8 +14,8 @@ _sym_db = _symbol_database.Default()
 
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
-import UserProfileService_pb2 as UserProfileService__pb2
-import IamAdminService_pb2 as IamAdminService__pb2
+import custos.core.UserProfileService_pb2 as UserProfileService__pb2
+import custos.core.IamAdminService_pb2 as IamAdminService__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

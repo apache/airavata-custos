@@ -22,18 +22,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>custos-core-services-client-stubs</artifactId>
+        <artifactId>custos-client</artifactId>
         <groupId>org.apache.custos</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>federated-authentication-core-service-client-stub</artifactId>
+    <artifactId>user-management-client</artifactId>
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
@@ -47,16 +43,16 @@
             <artifactId>grpc-netty</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>user-management-service</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>custos-integration-core</artifactId>
+            <artifactId>custos-clients-core</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
-
     <build>
         <extensions>
             <extension>
@@ -72,11 +68,14 @@
                     <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}</pluginArtifact>
-                    <protoSourceRoot>../../custos-core-services/federated-authentication-core-service/src/main/proto</protoSourceRoot>
+                    <protoSourceRoot>
+                        ../../custos-integration-services/user-management-service-parent/user-management-service/src/main/proto
+                    </protoSourceRoot>
                 </configuration>
                 <executions>
                     <execution>
                         <goals>
+
                             <goal>compile</goal>
                             <goal>compile-python</goal>
                             <goal>compile-custom</goal>
@@ -86,7 +85,4 @@
             </plugin>
         </plugins>
     </build>
-
-
-
 </project>
