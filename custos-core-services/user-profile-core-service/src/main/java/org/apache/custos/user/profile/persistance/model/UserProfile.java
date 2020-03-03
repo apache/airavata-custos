@@ -30,9 +30,9 @@ import java.util.Set;
  * User profile entity model
  */
 @Entity
-@Table(name = "user_profile_entity")
+@Table(name = "user_profile")
 @EntityListeners(AuditingEntityListener.class)
-public class UserProfileEntity {
+public class UserProfile {
 
     @Id
     private String id;
@@ -61,10 +61,16 @@ public class UserProfileEntity {
     private Date createdAt;
 
 
-    @OneToMany(mappedBy = "userProfileEntity", cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval=true, cascade = CascadeType.ALL)
+    private Set<UserRole> userRole;
+
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile",orphanRemoval=true, cascade = CascadeType.ALL)
+    private Set<UserAttribute> userAttribute;
+
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
     private Set<AttributeUpdateMetadata> attributeUpdateMetadata;
 
-    @OneToMany(mappedBy = "userProfileEntity", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
     private Set<StatusUpdateMetadata> statusUpdateMetadata;
 
 
@@ -147,5 +153,21 @@ public class UserProfileEntity {
 
     public void setStatusUpdateMetadata(Set<StatusUpdateMetadata> statusUpdateMetadata) {
         this.statusUpdateMetadata = statusUpdateMetadata;
+    }
+
+    public Set<UserAttribute> getUserAttribute() {
+        return userAttribute;
+    }
+
+    public void setUserAttribute(Set<UserAttribute> userAttribute) {
+        this.userAttribute = userAttribute;
+    }
+
+    public Set<UserRole> getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(Set<UserRole> userRole) {
+        this.userRole = userRole;
     }
 }

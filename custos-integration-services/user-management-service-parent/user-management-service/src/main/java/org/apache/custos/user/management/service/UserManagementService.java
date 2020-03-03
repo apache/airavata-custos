@@ -22,6 +22,7 @@ package org.apache.custos.user.management.service;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
+import org.apache.custos.iam.service.UserAttribute;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
@@ -32,6 +33,9 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Service class of User Management Service
@@ -85,7 +89,11 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         } catch (Exception ex) {
             String msg = "Error occurred at registerUser " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("CredentialGenerationException")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
 
 
@@ -100,9 +108,73 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     registerAndEnableUsers(request);
 
 
+            if (request.getUsersList() != null && !request.getUsersList().isEmpty() &&
+                    registerUsersResponse.getAllUseresRegistered()) {
+                try {
+
+
+                    request.getUsersList().forEach(user -> {
+                        List<org.apache.custos.user.profile.service.UserAttribute> userAtrList = new ArrayList<>();
+                        if (user.getAttributesList() != null && !user.getAttributesList().isEmpty()) {
+
+                            user.getAttributesList().forEach(atr -> {
+                                org.apache.custos.user.profile.service.UserAttribute userAttribute =
+                                        org.apache.custos.user.profile.service.UserAttribute
+                                                .newBuilder()
+                                                .setKey(atr.getKey())
+                                                .addAllValue(atr.getValuesList())
+                                                .build();
+
+                                userAtrList.add(userAttribute);
+                            });
+                        }
+
+
+                        UserProfile profile = UserProfile.newBuilder()
+                                .setFirstName(user.getFirstName())
+                                .setLastName(user.getLastName())
+                                .setEmail(user.getEmail())
+                                .setStatus(UserStatus.valueOf("ACTIVE"))
+                                .addAllAttributes(userAtrList)
+                                .addAllRealmRoles(user.getRealmRolesList())
+                                .addAllClientRoles(user.getClientRolesList())
+                                .setUsername(user.getUsername().toLowerCase())
+                                .build();
+                        org.apache.custos.user.profile.service.UserProfileRequest profileRequest =
+                                org.apache.custos.user.profile.service.UserProfileRequest.newBuilder()
+                                        .setProfile(profile)
+                                        .setTenantId(request.getTenantId())
+                                        .build();
+
+                        userProfileClient.createUserProfile(profileRequest);
+
+
+                    });
+                } catch (Exception ex) {
+
+                    request.getUsersList().forEach(user -> {
+
+                        UserSearchMetadata metadata = UserSearchMetadata
+                                .newBuilder()
+                                .setUsername(user.getUsername())
+                                .build();
+                        UserSearchRequest searchRequest = UserSearchRequest
+                                .newBuilder()
+                                .setTenantId(request.getTenantId())
+                                .setClientId(request.getClientId())
+                                .setAccessToken(request.getAccessToken())
+                                .setUser(metadata)
+                                .build();
+                        iamAdminServiceClient.deleteUser(searchRequest);
+
+                    });
+
+                }
+
+            }
+
             responseObserver.onNext(registerUsersResponse);
             responseObserver.onCompleted();
-
 
         } catch (Exception ex) {
             String msg = "Error occurred at registerAndEnableUsers " + ex.getMessage();
@@ -121,12 +193,46 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     public void addUserAttributes(AddUserAttributesRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
 
-
             OperationStatus status = iamAdminServiceClient.addUserAttributes(request);
 
+
+            for (String user : request.getUsersList()) {
+
+                UserSearchMetadata metadata = UserSearchMetadata
+                        .newBuilder()
+                        .setUsername(user).build();
+
+                UserSearchRequest searchRequest = UserSearchRequest
+                        .newBuilder()
+                        .setClientId(request.getClientId())
+                        .setTenantId(request.getTenantId())
+                        .setAccessToken(request.getAccessToken())
+                        .setUser(metadata)
+                        .build();
+
+                UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+
+                if (representation != null) {
+
+                    UserProfile profile = this.convertToProfile(representation);
+
+                    org.apache.custos.user.profile.service.UserProfileRequest req =
+                            org.apache.custos.user.profile.service.UserProfileRequest
+                                    .newBuilder()
+                                    .setTenantId(request.getTenantId())
+                                    .setProfile(profile)
+                                    .build();
+
+
+                    userProfileClient.updateUserProfile(req);
+
+
+                }
+
+            }
             responseObserver.onNext(status);
             responseObserver.onCompleted();
-
 
         } catch (Exception ex) {
             String msg = "Error occurred at addUserAttributes " + ex.getMessage();
@@ -138,6 +244,66 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
         }
     }
+
+
+    @Override
+    public void deleteUserAttributes(DeleteUserAttributeRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            OperationStatus status = iamAdminServiceClient.deleteUserAttributes(request);
+
+
+            for (String user : request.getUsersList()) {
+
+                UserSearchMetadata metadata = UserSearchMetadata
+                        .newBuilder()
+                        .setUsername(user).build();
+
+                UserSearchRequest searchRequest = UserSearchRequest
+                        .newBuilder()
+                        .setClientId(request.getClientId())
+                        .setTenantId(request.getTenantId())
+                        .setAccessToken(request.getAccessToken())
+                        .setUser(metadata)
+                        .build();
+
+                UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+
+                if (representation != null) {
+
+                    UserProfile profile = this.convertToProfile(representation);
+
+                    org.apache.custos.user.profile.service.UserProfileRequest req =
+                            org.apache.custos.user.profile.service.UserProfileRequest
+                                    .newBuilder()
+                                    .setTenantId(request.getTenantId())
+                                    .setProfile(profile)
+                                    .build();
+
+
+                    userProfileClient.updateUserProfile(req);
+
+
+                }
+
+            }
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at deleteUserAttributes " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+
 
     @Override
     public void enableUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
@@ -159,27 +325,26 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 if (user != null) {
 
-                    UserProfile profile = UserProfile.newBuilder()
-                            .setFirstName(user.getFirstName())
-                            .setLastName(user.getLastName())
-                            .setEmail(user.getEmail())
-                            .setStatus(UserStatus.valueOf(user.getState()))
-                            .setTenantId(request.getTenantId())
-                            .setUsername(user.getUsername())
-                            .build();
+                    UserProfile profile = this.convertToProfile(user);
 
-                    UserProfile userProfile = userProfileClient.createUserProfile(profile);
+                    org.apache.custos.user.profile.service.UserProfileRequest profileRequest =
+                            org.apache.custos.user.profile.service.UserProfileRequest.newBuilder()
+                                    .setProfile(profile)
+                                    .setTenantId(request.getTenantId())
+                                    .build();
 
-                    if (userProfile != null && userProfile.getUserId() != null) {
-                        responseObserver.onNext(user);
-                        responseObserver.onCompleted();
+                    UserProfile exProfile = userProfileClient.getUser(profileRequest);
 
+                    if (exProfile.getUsername().equals("")) {
+                        userProfileClient.createUserProfile(profileRequest);
                     } else {
-                        String msg = "User enabling failed at user profile creation";
-                        LOGGER.error(msg);
-                        responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-
+                        userProfileClient.updateUserProfile(profileRequest);
                     }
+
+
+                    responseObserver.onNext(user);
+                    responseObserver.onCompleted();
+
 
                 } else {
                     String msg = "User enabling failed at IDP server";
@@ -204,24 +369,21 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void deleteUser(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
+            UserProfile profileReq = UserProfile.newBuilder().setUsername(request.getUser().getUsername().toLowerCase()).build();
 
 
-            GetUserProfileRequest req = GetUserProfileRequest
-                    .newBuilder()
-                    .setTenantId(request.getTenantId())
-                    .setUsername(request.getUser().getUsername())
-                    .build();
+            org.apache.custos.user.profile.service.UserProfileRequest req =
+                    org.apache.custos.user.profile.service.UserProfileRequest
+                            .newBuilder()
+                            .setTenantId(request.getTenantId())
+                            .setProfile(profileReq)
+                            .build();
 
             UserProfile profile = userProfileClient.getUser(req);
 
             if (profile != null) {
 
-                DeleteUserProfileRequest deleteUserProfileRequest = DeleteUserProfileRequest
-                        .newBuilder()
-                        .setTenantId(request.getTenantId())
-                        .setUsername(request.getUser().getUsername())
-                        .build();
-                UserProfile deletedProfile = userProfileClient.deleteUser(deleteUserProfileRequest);
+                UserProfile deletedProfile = userProfileClient.deleteUser(req);
 
                 if (deletedProfile != null) {
 
@@ -255,10 +417,27 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     public void getUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
         try {
 
-            UserRepresentation user = iamAdminServiceClient.getUser(request);
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-            responseObserver.onNext(user);
-            responseObserver.onCompleted();
+            if (token != null && token.getAccessToken() != null) {
+
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
+
+                UserRepresentation user = iamAdminServiceClient.getUser(request);
+
+                responseObserver.onNext(user);
+                responseObserver.onCompleted();
+            } else {
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred at getUser " + ex.getMessage();
@@ -274,11 +453,25 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void findUsers(FindUsersRequest request, StreamObserver<FindUsersResponse> responseObserver) {
         try {
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
+            if (token != null && token.getAccessToken() != null) {
 
-            FindUsersResponse user = iamAdminServiceClient.getUsers(request);
-            responseObserver.onNext(user);
-            responseObserver.onCompleted();
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
+                FindUsersResponse user = iamAdminServiceClient.getUsers(request);
+                responseObserver.onNext(user);
+                responseObserver.onCompleted();
+            } else {
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred at getUsers " + ex.getMessage();
@@ -328,6 +521,43 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         try {
 
             OperationStatus response = iamAdminServiceClient.addRolesToUsers(request);
+
+            for (String user : request.getUsernamesList()) {
+
+                UserSearchMetadata metadata = UserSearchMetadata
+                        .newBuilder()
+                        .setUsername(user).build();
+
+                UserSearchRequest searchRequest = UserSearchRequest
+                        .newBuilder()
+                        .setClientId(request.getClientId())
+                        .setTenantId(request.getTenantId())
+                        .setAccessToken(request.getAccessToken())
+                        .setUser(metadata)
+                        .build();
+
+                UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+
+                if (representation != null) {
+
+                    UserProfile profile = this.convertToProfile(representation);
+
+                    org.apache.custos.user.profile.service.UserProfileRequest req =
+                            org.apache.custos.user.profile.service.UserProfileRequest
+                                    .newBuilder()
+                                    .setTenantId(request.getTenantId())
+                                    .setProfile(profile)
+                                    .build();
+
+
+                    userProfileClient.updateUserProfile(req);
+
+
+                }
+
+            }
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
@@ -345,13 +575,49 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
     @Override
     public void deleteUserRoles(DeleteUserRolesRequest
-                                           request, StreamObserver<CheckingResponse> responseObserver) {
+                                        request, StreamObserver<CheckingResponse> responseObserver) {
         try {
             CheckingResponse response = iamAdminServiceClient.deleteUserRoles(request);
+
+
+            UserSearchMetadata metadata = UserSearchMetadata
+                    .newBuilder()
+                    .setUsername(request.getUsername()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .setUser(metadata)
+                    .build();
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+
+            if (representation != null) {
+
+                UserProfile profile = this.convertToProfile(representation);
+
+                org.apache.custos.user.profile.service.UserProfileRequest req =
+                        org.apache.custos.user.profile.service.UserProfileRequest
+                                .newBuilder()
+                                .setTenantId(request.getTenantId())
+                                .setProfile(profile)
+                                .build();
+
+
+                userProfileClient.updateUserProfile(req);
+
+
+            }
+
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
-        } catch (Exception ex) {
+        } catch (
+                Exception ex) {
             String msg = "Error occurred at deleteRoleFromUser " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
@@ -360,6 +626,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
         }
+
     }
 
     @Override
@@ -427,141 +694,180 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
-    //TODO: this is not updated
+
     @Override
     public void updateUserProfile(UserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
         try {
             LOGGER.debug("Request received to updateUserProfile " + request.getUserProfile().getUsername() +
-                    " at" + request.getUserProfile().getTenantId());
+                    " at" + request.getTenantId());
 
 
-                UserRepresentation.Builder builder = UserRepresentation.newBuilder()
-                        .setFirstName(request.getUserProfile().getFirstName())
-                        .setLastName(request.getUserProfile().getLastName())
-                        .setEmail(request.getUserProfile().getEmail())
-                        .setUsername(request.getUserProfile().getUsername());
+            UserRepresentation.Builder builder = UserRepresentation.newBuilder()
+                    .setFirstName(request.getUserProfile().getFirstName())
+                    .setLastName(request.getUserProfile().getLastName())
+                    .setEmail(request.getUserProfile().getEmail())
+                    .setUsername(request.getUserProfile().getUsername());
 
-                if (request.getUserProfile().getStatus() != null) {
-                    builder.setState(request.getUserProfile().getStatus().name());
-                }
-
-
-                UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
-                        .newBuilder()
-                        .setUser(builder.build())
-                        .setAccessToken(request.getAccessToken())
-                        .setTenantId(request.getTenantId())
-                        .build();
+            if (request.getUserProfile().getStatus() != null) {
+                builder.setState(request.getUserProfile().getStatus().name());
+            }
 
 
-                UserSearchRequest info = UserSearchRequest
-                        .newBuilder()
-                        .setAccessToken(request.getAccessToken())
-                        .setTenantId(request.getTenantId())
-                        .build();
+            UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
+                    .newBuilder()
+                    .setUser(builder.build())
+                    .setAccessToken(request.getAccessToken())
+                    .setTenantId(request.getTenantId())
+                    .build();
 
-                UserRepresentation exUser = iamAdminServiceClient.getUser(info);
+            UserSearchMetadata metadata = UserSearchMetadata
+                    .newBuilder()
+                    .setUsername(request.getUserProfile().getUsername()).build();
 
-                CheckingResponse response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+            UserSearchRequest info = UserSearchRequest
+                    .newBuilder()
+                    .setAccessToken(request.getAccessToken())
+                    .setTenantId(request.getTenantId())
+                    .setUser(metadata)
+                    .build();
 
-                if (response != null && response.getIsExist()) {
-                    try {
-                        UserProfile userProfile = userProfileClient.updateUserProfile(request.getUserProfile());
-                        responseObserver.onNext(userProfile);
+            UserRepresentation exUser = iamAdminServiceClient.getUser(info);
+
+            CheckingResponse response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+
+            if (response != null && response.getIsExist()) {
+                try {
+                    org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
+                            org.apache.custos.user.profile.service.UserProfileRequest.
+                                    newBuilder()
+                                    .setProfile(request.getUserProfile())
+                                    .setTenantId(request.getTenantId())
+                                    .build();
+
+                    UserProfile profile = userProfileClient.getUser(userProfileRequest);
+
+                    if (profile != null && !profile.getUsername().equals("")) {
+                        profile = profile.toBuilder()
+                                .setEmail(request.getUserProfile().getEmail())
+                                .setFirstName(request.getUserProfile().getFirstName())
+                                .setLastName(request.getUserProfile().getLastName())
+                                .setUsername(request.getUserProfile().getUsername())
+                                .build();
+
+                        userProfileClient.
+                                updateUserProfile(userProfileRequest.toBuilder().setProfile(profile).build());
+
+                        responseObserver.onNext(profile);
                         responseObserver.onCompleted();
-                    } catch (Exception ex) {
-                        LOGGER.error("Error occurred while saving user profile in local DB, rolling back IAM service");
+
+                    } else {
+                        String msg = "Error occurred while saving user profile in local DB, " +
+                                "rolling back IAM service" + "User profile not found";
+                        LOGGER.error(msg);
                         UpdateUserProfileRequest rollingRequest = UpdateUserProfileRequest
                                 .newBuilder()
                                 .setUser(exUser)
                                 .setAccessToken(request.getAccessToken())
+                                .setTenantId(request.getTenantId())
                                 .build();
                         iamAdminServiceClient.updateUserProfile(rollingRequest);
+                        responseObserver.onError(Status.CANCELLED.
+                                withDescription(msg).asRuntimeException());
                     }
-                } else {
-                    LOGGER.error("User profile  not found in IDP server");
+
+
+                } catch (Exception ex) {
+                    String msg = "Error occurred while saving user profile in local DB, " +
+                            "rolling back IAM service" + ex.getMessage();
+                    LOGGER.error(msg);
+                    UpdateUserProfileRequest rollingRequest = UpdateUserProfileRequest
+                            .newBuilder()
+                            .setUser(exUser)
+                            .setAccessToken(request.getAccessToken())
+                            .setTenantId(request.getTenantId())
+                            .build();
+                    iamAdminServiceClient.updateUserProfile(rollingRequest);
                     responseObserver.onError(Status.CANCELLED.
-                            withDescription("IAM server failed to update user profile").asRuntimeException());
+                            withDescription(msg).asRuntimeException());
                 }
+            } else {
+                LOGGER.error("User profile  not found in IDP server");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("IAM server failed to update user profile").asRuntimeException());
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred while updating user profile " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
 
-    //TODO: this is not updated
-
     @Override
-    public void deleteUserProfile(DeleteProfileRequest request, StreamObserver<UserProfile> responseObserver) {
+    public void deleteUserProfile(UserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to deleteUserProfile " + request.getDeleteRequest().getUsername() +
-                    " at" + request.getDeleteRequest().getTenantId());
+            LOGGER.debug("Request received to deleteUserProfile " + request.getUserProfile().getUsername() +
+                    " at" + request.getTenantId());
 
-
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+            UserSearchMetadata metadata = UserSearchMetadata
                     .newBuilder()
-                    .setClientId(request.getIamClientId())
-                    .setClientSecret(request.getIamClientSecret())
-                    .setTenantId(request.getDeleteRequest().getTenantId())
+                    .setUsername(request.getUserProfile().getUsername()).build();
+
+            UserSearchRequest info = UserSearchRequest
+                    .newBuilder()
+                    .setAccessToken(request.getAccessToken())
+                    .setTenantId(request.getTenantId())
+                    .setUser(metadata)
                     .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
 
-            if (token != null && token.getAccessToken() != null) {
+            org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
 
+                    org.apache.custos.user.profile.service.UserProfileRequest
+                            .newBuilder()
+                            .setProfile(request.getUserProfile())
+                            .setTenantId(request.getTenantId())
+                            .build();
+            UserProfile userProfile = userProfileClient.deleteUser(userProfileRequest);
 
-                UserSearchRequest info = UserSearchRequest
-                        .newBuilder()
-                        .setAccessToken(token.getAccessToken())
-                        .setTenantId(request.getDeleteRequest().getTenantId())
-                        // .setUsername(request.getDeleteRequest().getUsername())
-                        .build();
+            responseObserver.onNext(userProfile);
+            responseObserver.onCompleted();
 
-
-                UserProfile userProfile = userProfileClient.deleteUser(request.getDeleteRequest());
-
-                responseObserver.onNext(userProfile);
-                responseObserver.onCompleted();
-
-
-                try {
-                    iamAdminServiceClient.deleteUser(info);
-
-                } catch (Exception ex) {
-                    String msg = "Error occurred while deleting user profile in IDP , rolling back local DB";
-                    LOGGER.error(msg);
-                    userProfileClient.createUserProfile(userProfile);
-                    responseObserver.onError(Status.CANCELLED.
-                            withDescription("IAM server failed to update user profile").asRuntimeException());
-
-                }
-
-            } else {
-                LOGGER.error("Error occurred retreving service account");
-                responseObserver.onError(Status.CANCELLED.
-                        withDescription("Service account not  found").asRuntimeException());
-            }
+            iamAdminServiceClient.deleteUser(info);
 
 
         } catch (Exception ex) {
             String msg = "Error occurred while delete user profile " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
 
     @Override
-    public void getUserProfile(GetUserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
+    public void getUserProfile(UserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to getUserProfile " + request.getUsername() +
+            LOGGER.debug("Request received to getUserProfile " + request.getUserProfile().getUsername() +
                     " at" + request.getTenantId());
 
+            org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
 
-            UserProfile userProfile = userProfileClient.getUser(request);
+                    org.apache.custos.user.profile.service.UserProfileRequest
+                            .newBuilder()
+                            .setProfile(request.getUserProfile())
+                            .setTenantId(request.getTenantId())
+                            .build();
+
+            UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
 
             responseObserver.onNext(userProfile);
             responseObserver.onCompleted();
@@ -575,13 +881,22 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
-    public void getAllUserProfilesInTenant(GetAllUserProfilesRequest
+    public void getAllUserProfilesInTenant(UserProfileRequest
                                                    request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to getAllUserProfilesInTenant " + request.getTenantId() +
                     " at" + request.getTenantId());
 
-            GetAllUserProfilesResponse response = userProfileClient.getAllUserProfilesInTenant(request);
+            org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
+
+                    org.apache.custos.user.profile.service.UserProfileRequest
+                            .newBuilder()
+                            .setProfile(request.getUserProfile())
+                            .setTenantId(request.getTenantId())
+                            .build();
+
+
+            GetAllUserProfilesResponse response = userProfileClient.getAllUserProfilesInTenant(userProfileRequest);
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -612,4 +927,48 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+    private UserProfile convertToProfile(UserRepresentation representation) {
+        UserProfile.Builder profileBuilder = UserProfile.newBuilder();
+
+
+        if (representation.getRealmRolesCount() > 0) {
+            profileBuilder.addAllRealmRoles(representation.getRealmRolesList());
+
+        }
+
+        if (representation.getClientRolesCount() > 0) {
+            profileBuilder.addAllClientRoles(representation.getClientRolesList());
+
+        }
+
+        if (representation.getAttributesCount() > 0) {
+            List<UserAttribute> attributeList = representation.getAttributesList();
+
+            List<org.apache.custos.user.profile.service.UserAttribute> userAtrList = new ArrayList<>();
+            attributeList.forEach(atr -> {
+                org.apache.custos.user.profile.service.UserAttribute userAttribute =
+                        org.apache.custos.user.profile.service.UserAttribute
+                                .newBuilder()
+                                .setKey(atr.getKey())
+                                .addAllValue(atr.getValuesList())
+                                .build();
+
+                userAtrList.add(userAttribute);
+            });
+            profileBuilder.addAllAttributes(userAtrList);
+
+
+        }
+
+        profileBuilder.setUsername(representation.getUsername().toLowerCase());
+        profileBuilder.setFirstName(representation.getFirstName());
+        profileBuilder.setLastName(representation.getLastName());
+        profileBuilder.setEmail(representation.getEmail());
+
+        return profileBuilder.build();
+
+    }
+
+
 }

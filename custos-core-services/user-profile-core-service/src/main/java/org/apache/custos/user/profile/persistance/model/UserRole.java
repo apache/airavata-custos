@@ -19,38 +19,26 @@
 
 package org.apache.custos.user.profile.persistance.model;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import javax.persistence.*;
-import java.util.Date;
 
-/**
- * Keeps the track of status updated metadata
- */
 @Entity
-@Table(name = "status_update_metadata")
-@EntityListeners(AuditingEntityListener.class)
-public class StatusUpdateMetadata {
+@Table(name = "user_role")
+public class UserRole {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @Column(nullable = false)
-    private String updatedStatus;
+    private String type;
 
     @Column(nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    @CreatedDate
-    private Date updatedAt;
+    private String value;
 
-    @Column(nullable = false)
-    private String updatedBy;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_profile_id")
     private UserProfile userProfile;
+
 
     public Long getId() {
         return id;
@@ -60,29 +48,20 @@ public class StatusUpdateMetadata {
         this.id = id;
     }
 
-    public String getUpdatedStatus() {
-        return updatedStatus;
+    public String getType() {
+        return type;
     }
 
-    public void setUpdatedStatus(String updatedStatus) {
-        this.updatedStatus = updatedStatus;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public Date getUpdatedAt() {
-        return updatedAt;
+    public String getValue() {
+        return value;
     }
 
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setValue(String value) {
+        this.value = value;
     }
 
     public UserProfile getUserProfile() {

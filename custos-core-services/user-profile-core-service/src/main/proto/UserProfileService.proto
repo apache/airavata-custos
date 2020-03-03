@@ -43,32 +43,30 @@ enum UserStatus {
 
 
 message UserProfile {
-    int64 tenantId = 1;
-    string username = 2;
-    string email = 3;
-    string first_name = 4;
-    string last_name = 5;
-    string created_at = 6;
-    string last_access_at = 7;
-    int32 valid_till = 8;
-    UserStatus status = 9;
-    string user_id = 10;
-    string updated_by = 11;
+    string username = 1;
+    string email = 2;
+    string first_name = 3;
+    string last_name = 4;
+    string created_at = 5;
+    UserStatus status = 6;
+    repeated UserAttribute attributes = 7;
+    repeated string client_roles = 8;
+    repeated string realm_roles = 9;
 }
 
-message GetUserProfileRequest {
+message UserProfileRequest {
     int64 tenantId = 1;
-    string username = 2;
+    UserProfile profile = 2;
+    string performedBy = 3;
 }
 
-message DeleteUserProfileRequest {
-    int64 tenantId = 1;
-    string username = 2;
+
+message UserAttribute {
+    int64 id = 1;
+    string key = 2;
+    repeated string value = 3;
 }
 
-message GetAllUserProfilesRequest {
-    int64 tenantId = 1;
-}
 
 message GetAllUserProfilesResponse {
     repeated UserProfile profiles = 1;
@@ -98,10 +96,10 @@ message GetUpdateAuditTrailResponse {
 }
 
 service UserProfileService {
-    rpc createUserProfile (UserProfile) returns (UserProfile);
-    rpc updateUserProfile (UserProfile) returns (UserProfile);
-    rpc getUserProfile (GetUserProfileRequest) returns (UserProfile);
-    rpc deleteUserProfile (DeleteUserProfileRequest) returns (UserProfile);
-    rpc getAllUserProfilesInTenant (GetAllUserProfilesRequest) returns (GetAllUserProfilesResponse);
+    rpc createUserProfile (UserProfileRequest) returns (UserProfile);
+    rpc updateUserProfile (UserProfileRequest) returns (UserProfile);
+    rpc getUserProfile (UserProfileRequest) returns (UserProfile);
+    rpc deleteUserProfile (UserProfileRequest) returns (UserProfile);
+    rpc getAllUserProfilesInTenant (UserProfileRequest) returns (GetAllUserProfilesResponse);
     rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
 }

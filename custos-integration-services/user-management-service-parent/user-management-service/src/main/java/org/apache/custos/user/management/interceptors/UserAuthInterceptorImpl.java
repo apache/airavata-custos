@@ -27,7 +27,6 @@ import org.apache.custos.integration.services.commons.interceptors.AuthIntercept
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.user.management.service.UserProfileRequest;
-import org.apache.custos.user.profile.service.UserProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +64,27 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
 
             return (ReqT) ((AddUserAttributesRequest) msg).toBuilder()
+                    .setClientId(oauthId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token)
+                    .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+        }  else if (method.equals("deleteUserAttributes")) {
+            String token = getToken(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+
+            long tenantId = claim.getTenantId();
+
+
+            return (ReqT) ((DeleteUserAttributeRequest) msg).toBuilder()
                     .setClientId(oauthId)
                     .setTenantId(tenantId)
                     .setAccessToken(token)
@@ -112,42 +132,6 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                             .setPerformedBy(claim.getPerformedBy())
                             .build();
             return (ReqT) registerUserRequest;
-        } else if (method.equals("getUser")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
-
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            String oauthId = claim.getIamAuthId();
-            long tenantId = claim.getTenantId();
-            UserSearchRequest request = ((UserSearchRequest) msg)
-                    .toBuilder()
-                    .setAccessToken(token)
-                    .setClientId(oauthId)
-                    .setTenantId(tenantId)
-                    .build();
-            return (ReqT) request;
-
-        } else if (method.equals("findUsers")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
-
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-            String oauthId = claim.getIamAuthId();
-            long tenantId = claim.getTenantId();
-
-            FindUsersRequest request = ((FindUsersRequest) msg)
-                    .toBuilder()
-                    .setClientId(oauthId)
-                    .setAccessToken(token)
-                    .setTenantId(tenantId).build();
-
-
-            return (ReqT) request;
         } else if (method.equals("deleteUserRoles")) {
             String token = getToken(headers);
             AuthClaim claim = authorizeUsingUserToken(headers);
@@ -171,7 +155,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) operationRequest;
 
         }
-        if (method.equals("updateUserProfile")) {
+        else if (method.equals("updateUserProfile")) {
             String token = getToken(headers);
             AuthClaim claim = authorizeUsingUserToken(headers);
 
@@ -183,16 +167,39 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
-            UserProfile profile = ((UserProfileRequest) msg).getUserProfile().toBuilder().setUpdatedBy(claim.getPerformedBy()).build();
 
             return (ReqT) ((UserProfileRequest) msg).toBuilder()
                     .setAccessToken(token)
                     .setTenantId(tenantId)
                     .setClientId(oauthId)
-                    .setUserProfile(profile)
+                    .setClientSecret(oauthSec)
+                    .setPerformedBy(claim.getPerformedBy())
                     .build();
 
-        } else
+        } else if (method.equals("deleteUser")) {
+            String token = getToken(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            UserSearchRequest operationRequest = ((UserSearchRequest) msg)
+                    .toBuilder()
+                    .setClientId(oauthId)
+                    .setClientSec(oauthId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token)
+                    .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+            return (ReqT) operationRequest;
+
+        }
 
             return msg;
     }

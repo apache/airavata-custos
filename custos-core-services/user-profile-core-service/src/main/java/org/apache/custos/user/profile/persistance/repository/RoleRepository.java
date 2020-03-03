@@ -19,13 +19,14 @@
 
 package org.apache.custos.user.profile.persistance.repository;
 
-import org.apache.custos.user.profile.persistance.model.StatusUpdateMetadata;
+import org.apache.custos.user.profile.persistance.model.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+public interface RoleRepository extends JpaRepository<UserRole,Long> {
 
-public interface StatusUpdateMetadataRepository extends JpaRepository<StatusUpdateMetadata, Long> {
+    @Transactional
+    public void deleteAllByUserProfileId(String  userProfileEntityId);
 
 
-    public List<StatusUpdateMetadata> findAllByUserProfileId(String  userId);
 }

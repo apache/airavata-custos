@@ -19,14 +19,14 @@
 
 package org.apache.custos.user.profile.persistance.repository;
 
-import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface UserRepository extends JpaRepository<UserProfileEntity, String> {
+public interface UserRepository extends JpaRepository<UserProfile, String> {
 
-    public List<UserProfileEntity> findByTenantId(long tenantId);
+    public List<UserProfile> findByTenantId(long tenantId);
 
 
 }

@@ -52,8 +52,8 @@ public class AttributeUpdateMetadata {
     private String updatedBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_profile_entity_id")
-    private UserProfileEntity userProfileEntity;
+    @JoinColumn(name = "user_profile_id")
+    private UserProfile userProfile;
 
 
     public Long getId() {
@@ -96,11 +96,11 @@ public class AttributeUpdateMetadata {
         this.updatedAt = updatedAt;
     }
 
-    public UserProfileEntity getUserProfileEntity() {
-        return userProfileEntity;
+    public UserProfile getUserProfile() {
+        return userProfile;
     }
 
-    public void setUserProfileEntity(UserProfileEntity userProfileEntity) {
-        this.userProfileEntity = userProfileEntity;
+    public void setUserProfile(UserProfile userProfile) {
+        this.userProfile = userProfile;
     }
 }

@@ -168,7 +168,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUser().getFirstName(),
                     request.getUser().getLastName(),
                     request.getUser().getEmail(),
-                    false,
+                    request.getUser().getTemporaryPassword(),
                     request.getAccessToken());
 
 
@@ -404,8 +404,6 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void deleteUser(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
 
-        String userId = request.getUser().getUsername() + "@" + request.getTenantId();
-
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
 
@@ -414,9 +412,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUpdated).build();
 
-            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+            statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
                     OperationStatus.SUCCESS,
-                    request.getTenantId(), userId);
+                    request.getTenantId(), request.getPerformedBy());
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -424,9 +422,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = "Error occurred during deleteUser" + ex;
             LOGGER.error(msg, ex);
 
-            statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+            statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
                     OperationStatus.FAILED,
-                    request.getTenantId(), userId);
+                    request.getTenantId(), request.getPerformedBy());
 
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -804,7 +802,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(),
                     String.valueOf(request.getTenantId()));
-            String msg = " Add roles   failed for " + request.getTenantId() + " " + ex.getMessage();
+            String msg = " Add protocol mapper   failed for " + request.getTenantId() + " " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -836,6 +834,46 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         } catch (Exception ex) {
             statusUpdater.updateStatus(IAMOperations.ADD_USER_ATTRIBUTE.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Add attributes   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void deleteUserAttributes(DeleteUserAttributeRequest request,
+                                     StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to delete user attributes " + request.getTenantId());
+
+            List<UserAttribute> attributes = request.getAttributesList();
+
+            Map<String, List<String>> attributeMap = new HashMap<>();
+            for (UserAttribute attribute : attributes) {
+                attributeMap.put(attribute.getKey(), attribute.getValuesList());
+            }
+
+            keycloakClient.deleteUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getUsersList());
+
+            statusUpdater.updateStatus(IAMOperations.DELETE_USER_ATTRIBUTES.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus status =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.DELETE_USER_ATTRIBUTES.name(),
                     OperationStatus.FAILED,
                     request.getTenantId(),
                     request.getPerformedBy());

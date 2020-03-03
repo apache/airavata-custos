@@ -21,7 +21,7 @@ package org.apache.custos.user.profile.mapper;
 
 
 import org.apache.custos.user.profile.persistance.model.StatusUpdateMetadata;
-import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.apache.custos.user.profile.service.UserProfileStatusUpdateMetadata;
 import org.apache.custos.user.profile.service.UserStatus;
 
@@ -41,12 +41,12 @@ public class StatusUpdateMetadataMapper {
      * @param updatedBy
      * @return
      */
-    public static Set<StatusUpdateMetadata> createStatusUpdateMetadataEntity(UserProfileEntity tenant, String updatedBy) {
+    public static Set<StatusUpdateMetadata> createStatusUpdateMetadataEntity(UserProfile tenant, String updatedBy) {
 
         Set<StatusUpdateMetadata> metaDataSet = new HashSet<>();
 
         StatusUpdateMetadata metadata = new StatusUpdateMetadata();
-        metadata.setUserProfileEntity(tenant);
+        metadata.setUserProfile(tenant);
         metadata.setUpdatedBy(updatedBy);
         metadata.setUpdatedStatus(tenant.getStatus());
 

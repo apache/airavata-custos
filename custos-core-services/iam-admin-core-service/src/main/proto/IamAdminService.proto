@@ -140,6 +140,7 @@ message FindUsersRequest {
     int64 tenantId = 1;
     string accessToken = 2;
     string client_id = 6;
+    string client_sec = 7;
 
 }
 
@@ -149,6 +150,7 @@ message UserSearchRequest {
     string accessToken = 3;
     string client_id = 4;
     string client_sec = 5;
+    string performedBy = 6;
 }
 
 message FindUsersResponse {
@@ -273,7 +275,15 @@ message AddUserAttributesRequest {
     string client_id = 4;
     string access_token = 5;
     string performedBy = 6;
+}
 
+message DeleteUserAttributeRequest {
+    repeated UserAttribute attributes = 1;
+    repeated string users = 2;
+    int64 tenant_id = 3;
+    string client_id = 4;
+    string access_token = 5;
+    string performedBy = 6;
 }
 
 message UserAttribute {
@@ -295,19 +305,18 @@ service IamAdminService {
     rpc enableUser (UserSearchRequest) returns (UserRepresentation);
     rpc isUserEnabled (UserSearchRequest) returns (CheckingResponse);
     rpc isUserExist (UserSearchRequest) returns (CheckingResponse);
-
     rpc getUser (UserSearchRequest) returns (UserRepresentation);
     rpc findUsers (FindUsersRequest) returns (FindUsersResponse);
     rpc resetPassword (ResetUserPassword) returns (CheckingResponse);
+
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);
+    rpc deleteUserAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
     rpc addRolesToUsers (AddUserRolesRequest) returns (OperationStatus);
 
     rpc deleteUser (UserSearchRequest) returns (CheckingResponse);
 
     rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (CheckingResponse);
-
-
 
     rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
 

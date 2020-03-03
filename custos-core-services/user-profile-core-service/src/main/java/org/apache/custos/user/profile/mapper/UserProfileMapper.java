@@ -20,7 +20,15 @@
 package org.apache.custos.user.profile.mapper;
 
 
-import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
+import org.apache.custos.user.profile.persistance.model.UserAttribute;
+import org.apache.custos.user.profile.persistance.model.UserProfile;
+import org.apache.custos.user.profile.persistance.model.UserRole;
+import org.apache.custos.user.profile.service.UserStatus;
+import org.apache.custos.user.profile.utils.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 
 /**
@@ -28,6 +36,7 @@ import org.apache.custos.user.profile.persistance.model.UserProfileEntity;
  */
 public class UserProfileMapper {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserProfileMapper.class);
 
     /**
      * Maps gRPC UserProfile Model to DB Layer UserProfile Entity
@@ -35,20 +44,63 @@ public class UserProfileMapper {
      * @param {@link org.apache.custos.user.profile.service.UserProfile} tenant
      * @return Tenant
      */
-    public static UserProfileEntity createUserProfileEntityFromUserProfile(org.apache.custos.user.profile.service.UserProfile userProfile) {
+    public static UserProfile createUserProfileEntityFromUserProfile(org.apache.custos.user.profile.service.UserProfile userProfile) {
 
-        UserProfileEntity entity = new UserProfileEntity();
+        UserProfile entity = new UserProfile();
 
-        entity.setId(userProfile.getUserId());
         entity.setUsername(userProfile.getUsername());
         entity.setEmailAddress(userProfile.getEmail());
         entity.setFirstName(userProfile.getFirstName());
         entity.setLastName(userProfile.getLastName());
-        entity.setTenantId(userProfile.getTenantId());
         entity.setStatus(userProfile.getStatus().name());
 
-        return entity;
 
+        if (userProfile.getAttributesList() != null && !userProfile.getAttributesList().isEmpty()) {
+            Set<UserAttribute> attributeSet = new HashSet<>();
+
+            userProfile.getAttributesList().forEach(atr -> {
+                if (atr.getValueList() != null && !atr.getValueList().isEmpty()) {
+                    for (String value : atr.getValueList()) {
+                        UserAttribute userAttribute = new UserAttribute();
+                        userAttribute.setKey(atr.getKey());
+                        userAttribute.setValue(value);
+                        userAttribute.setUserProfile(entity);
+                        attributeSet.add(userAttribute);
+                    }
+                }
+
+            });
+
+            entity.setUserAttribute(attributeSet);
+        }
+        Set<UserRole> userRoleSet = new HashSet<>();
+        if (userProfile.getRealmRolesList() != null && !userProfile.getRealmRolesList().isEmpty()) {
+
+
+            userProfile.getRealmRolesList().forEach(role -> {
+                UserRole userRole = new UserRole();
+                userRole.setValue(role);
+                userRole.setType(Constants.ROLE_TYPE_REALM);
+                userRole.setUserProfile(entity);
+                userRoleSet.add(userRole);
+            });
+
+            entity.setUserRole(userRoleSet);
+        }
+
+        if (userProfile.getClientRolesList() != null && !userProfile.getClientRolesList().isEmpty()) {
+            userProfile.getClientRolesList().forEach(role -> {
+                UserRole userRole = new UserRole();
+                userRole.setValue(role);
+                userRole.setType(Constants.ROLE_TYPE_CLIENT);
+                userRole.setUserProfile(entity);
+                userRoleSet.add(userRole);
+            });
+
+            entity.setUserRole(userRoleSet);
+        }
+
+        return entity;
     }
 
 
@@ -58,15 +110,59 @@ public class UserProfileMapper {
      * @param profileEntity
      * @return tenant
      */
-    public static org.apache.custos.user.profile.service.UserProfile createUserProfileFromUserProfileEntity(UserProfileEntity profileEntity) {
+    public static org.apache.custos.user.profile.service.UserProfile createUserProfileFromUserProfileEntity(UserProfile profileEntity) {
 
-        return org.apache.custos.user.profile.service.UserProfile.newBuilder()
+
+        org.apache.custos.user.profile.service.UserProfile.Builder builder =
+                org.apache.custos.user.profile.service.UserProfile.newBuilder();
+
+
+        if (profileEntity.getUserRole() != null && !profileEntity.getUserRole().isEmpty()) {
+
+            profileEntity.getUserRole().forEach(role -> {
+                if (role.getType().equals(Constants.ROLE_TYPE_CLIENT)) {
+                    builder.addClientRoles(role.getValue());
+                } else {
+                    builder.addRealmRoles(role.getValue());
+                }
+            });
+        }
+
+        List<org.apache.custos.user.profile.service.UserAttribute> attributeList = new ArrayList<>();
+        if (profileEntity.getUserAttribute() != null && !profileEntity.getUserAttribute().isEmpty()) {
+
+            Map<String, List<String>> atrMap = new HashMap<>();
+
+            profileEntity.getUserAttribute().forEach(atr -> {
+
+                if (atrMap.get(atr.getKey()) == null) {
+                    atrMap.put(atr.getKey(), new ArrayList<String>());
+                }
+                atrMap.get(atr.getKey()).add(atr.getValue());
+
+            });
+
+
+              atrMap.keySet().forEach(key-> {
+                  org.apache.custos.user.profile.service.UserAttribute attribute = org.apache.custos.user.profile.service
+                          .UserAttribute
+                          .newBuilder()
+                          .setKey(key)
+                          .addAllValue(atrMap.get(key))
+                          .build();
+                  attributeList.add(attribute);
+              });
+            }
+
+
+        return builder
                 .setUsername(profileEntity.getUsername())
                 .setEmail(profileEntity.getEmailAddress())
                 .setFirstName(profileEntity.getFirstName())
                 .setLastName(profileEntity.getLastName())
-                .setTenantId(profileEntity.getTenantId())
-                .setUserId(profileEntity.getId())
+                .setCreatedAt(profileEntity.getCreatedAt().toString())
+                .setStatus(UserStatus.valueOf(profileEntity.getStatus()))
+                .addAllAttributes(attributeList)
                 .build();
 
 
@@ -76,8 +172,6 @@ public class UserProfileMapper {
     public static String getUserInfoInfoAsString(org.apache.custos.user.profile.service.UserProfile userProfile) {
         StringBuffer buffer = new StringBuffer();
         buffer.append("username : " + userProfile.getUsername());
-        buffer.append("\n");
-        buffer.append("tenantId : " + userProfile.getTenantId());
         buffer.append("\n");
         buffer.append("emailAddress : " + userProfile.getEmail());
         buffer.append("\n");

@@ -56,7 +56,7 @@ public class UserProfileClient {
     }
 
 
-    public void createUserProfileAsync(UserProfile profile, final ServiceCallback callback) {
+    public void createUserProfileAsync(UserProfileRequest profile, final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "Create user profile task failed");
 
@@ -64,7 +64,7 @@ public class UserProfileClient {
     }
 
 
-    public void updateUserProfileAsync(UserProfile profile, final ServiceCallback callback) {
+    public void updateUserProfileAsync(UserProfileRequest profile, final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "Update user profile task failed");
 
@@ -72,7 +72,7 @@ public class UserProfileClient {
     }
 
 
-    public void getUserAsync(GetUserProfileRequest request, final ServiceCallback callback) {
+    public void getUserAsync(UserProfileRequest request, final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "get user profile task failed");
 
@@ -80,7 +80,7 @@ public class UserProfileClient {
     }
 
 
-    public void deleteUserAsync(DeleteUserProfileRequest request, final ServiceCallback callback) {
+    public void deleteUserAsync(UserProfileRequest request, final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "delete user profile task failed");
 
@@ -97,7 +97,7 @@ public class UserProfileClient {
     }
 
 
-    public void getAllUserProfilesInTenantAsync(org.apache.custos.user.profile.service.GetAllUserProfilesRequest request,
+    public void getAllUserProfilesInTenantAsync(UserProfileRequest request,
                                                 final ServiceCallback callback) {
 
         StreamObserver observer = this.getObserver(callback, "get all user profiles in tenant async");
@@ -105,24 +105,24 @@ public class UserProfileClient {
         userProfileServiceStub.getAllUserProfilesInTenant(request, observer);
     }
 
-    public UserProfile createUserProfile(UserProfile profile) {
+    public UserProfile createUserProfile(UserProfileRequest profile) {
         return userProfileServiceBlockingStub.createUserProfile(profile);
     }
 
 
-    public UserProfile updateUserProfile(UserProfile profile) {
+    public UserProfile updateUserProfile(UserProfileRequest profile) {
 
         return userProfileServiceBlockingStub.updateUserProfile(profile);
     }
 
 
-    public UserProfile getUser(GetUserProfileRequest request) {
+    public UserProfile getUser(UserProfileRequest request) {
 
         return userProfileServiceBlockingStub.getUserProfile(request);
     }
 
 
-    public UserProfile deleteUser(DeleteUserProfileRequest request) {
+    public UserProfile deleteUser(UserProfileRequest request) {
 
         return userProfileServiceBlockingStub.deleteUserProfile(request);
     }
@@ -135,7 +135,7 @@ public class UserProfileClient {
     }
 
 
-    public GetAllUserProfilesResponse getAllUserProfilesInTenant(org.apache.custos.user.profile.service.GetAllUserProfilesRequest request) {
+    public GetAllUserProfilesResponse getAllUserProfilesInTenant(UserProfileRequest request) {
         return userProfileServiceBlockingStub.getAllUserProfilesInTenant(request);
     }
 
