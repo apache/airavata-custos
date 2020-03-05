@@ -22,6 +22,7 @@ package org.apache.custos.user.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.*;
+import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -41,8 +42,8 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
-    public UserAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient) {
-        super(credentialStoreServiceClient, tenantProfileClient);
+    public UserAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+        super(credentialStoreServiceClient, tenantProfileClient, identityClient);
     }
 
     @Override

@@ -24,6 +24,10 @@ import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.GetAllCredentialsResponse;
 import org.apache.custos.credential.store.service.TokenRequest;
 import org.apache.custos.credential.store.service.Type;
+import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.AuthToken;
+import org.apache.custos.identity.service.Claim;
+import org.apache.custos.identity.service.IsAuthenticateResponse;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -32,6 +36,9 @@ import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.TenantStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Responsible for managing auth flow
@@ -45,10 +52,13 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     private TenantProfileClient tenantProfileClient;
 
+    private IdentityClient identityClient;
 
-    public AuthInterceptor(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient) {
+
+    public AuthInterceptor(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         this.credentialStoreServiceClient = credentialStoreServiceClient;
         this.tenantProfileClient = tenantProfileClient;
+        this.identityClient = identityClient;
     }
 
     public AuthClaim authorize(Metadata headers) {
@@ -81,10 +91,43 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                 .setToken(formattedToken)
                 .build();
 
-
         GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialsFromJWTToken(request);
 
-        return getAuthClaim(response);
+        AuthClaim claim = getAuthClaim(response);
+
+        if (claim != null) {
+
+            Claim userNameClaim = Claim.newBuilder()
+                    .setKey("username")
+                    .setValue(claim.getUsername()).build();
+
+            Claim tenantClaim = Claim.newBuilder()
+                    .setKey("tenantId")
+                    .setValue(String.valueOf(claim.getTenantId()))
+                    .build();
+
+
+            List<Claim> claimList = new ArrayList<>();
+            claimList.add(userNameClaim);
+            claimList.add(tenantClaim);
+
+
+            AuthToken token = AuthToken.newBuilder().
+                    setAccessToken(formattedToken)
+                    .addAllClaims(claimList)
+                    .build();
+
+
+            IsAuthenticateResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
+            if (isAuthenticateResponse.getAuthenticated()) {
+                return claim;
+            }
+
+
+        }
+
+        return null;
+
     }
 
 
@@ -108,7 +151,8 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         AuthClaim authClaim = new AuthClaim();
 
-        authClaim.setPerformedBy(response.getRequestedUserEmail());
+        authClaim.setPerformedBy(response.getRequesterUserEmail());
+        authClaim.setUsername(response.getRequesterUsername());
         response.getSecretListList().forEach(metadata -> {
 
                     if (metadata.getType() == Type.CUSTOS) {
@@ -117,6 +161,8 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                         authClaim.setCustosSecret(metadata.getSecret());
                         authClaim.setCustosIdIssuedAt(metadata.getClientIdIssuedAt());
                         authClaim.setCustosSecretExpiredAt(metadata.getClientSecretExpiredAt());
+                        authClaim.setAdmin(metadata.getSuperAdmin());
+                        authClaim.setSuperTenant(metadata.getSuperTenant());
                     } else if (metadata.getType() == Type.IAM) {
                         authClaim.setIamAuthId(metadata.getId());
                         authClaim.setIamAuthSecret(metadata.getSecret());

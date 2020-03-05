@@ -27,6 +27,9 @@ public class Credential {
     private String id;
     private String secret;
     private String email;
+    private boolean superTenant;
+    private  boolean isAdmin;
+    private String username;
 
     public Credential(String id, String secret) {
         this.id = id;
@@ -58,5 +61,29 @@ public class Credential {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isSuperTenant() {
+        return superTenant;
+    }
+
+    public void setSuperTenant(boolean superTenant) {
+        this.superTenant = superTenant;
+    }
+
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

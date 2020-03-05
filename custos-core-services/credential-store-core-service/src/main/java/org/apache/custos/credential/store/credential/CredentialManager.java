@@ -20,7 +20,11 @@
 package org.apache.custos.credential.store.credential;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.apache.custos.credential.store.exceptions.CredentialGenerationException;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
@@ -123,11 +127,28 @@ public class CredentialManager {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> jsonMap = mapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {
             });
-            LOGGER.info("Decoded clientId" + jsonMap.get("azp").toString());
 
             Credential credential = new Credential();
             credential.setId(jsonMap.get("azp").toString());
             credential.setEmail(jsonMap.get("email").toString());
+            credential.setUsername(jsonMap.get("preferred_username").toString());
+
+           if (jsonMap.get("realm_access") !=null) {
+               ObjectMapper reader = new ObjectMapper();
+              JsonNode node = reader.readValue(payloadJson, JsonNode.class);
+               JsonNode  realmAccess = node.get("realm_access");
+               if (realmAccess instanceof JsonNode) {
+                   JsonNode jsonArray = (realmAccess).get("roles");
+                   if (jsonArray != null && jsonArray.isArray()) {
+
+                       jsonArray.forEach(json -> {
+                           if (json.asText().equals("admin")) {
+                               credential.setAdmin(true);
+                           }
+                       });
+                   }
+               }
+           }
 
             return credential;
         } catch (Exception ex) {

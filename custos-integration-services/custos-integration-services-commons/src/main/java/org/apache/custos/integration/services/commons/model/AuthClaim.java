@@ -42,6 +42,12 @@ public class AuthClaim {
 
     private String performedBy;
 
+    private boolean superTenant;
+
+    private boolean admin;
+
+    private String username;
+
 
     public AuthClaim() {
     }
@@ -130,5 +136,29 @@ public class AuthClaim {
 
     public void setPerformedBy(String performedBy) {
         this.performedBy = performedBy;
+    }
+
+    public boolean isSuperTenant() {
+        return superTenant;
+    }
+
+    public void setSuperTenant(boolean superTenant) {
+        this.superTenant = superTenant;
+    }
+
+    public boolean isAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(boolean admin) {
+        this.admin = admin;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

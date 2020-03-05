@@ -28,6 +28,7 @@ import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.apache.custos.tenant.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.tenant.management.interceptors.DynamicRegistrationValidator;
 import org.apache.custos.tenant.management.interceptors.InputValidator;
+import org.apache.custos.tenant.management.interceptors.SuperAdminOperationsInterceptorImpl;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -65,10 +66,12 @@ public class TenantManagementServiceInitializer {
 
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
-                                                                  DynamicRegistrationValidator registrationValidator, InputValidator validator) {
+                                                                  DynamicRegistrationValidator registrationValidator,
+                                                                  InputValidator validator, SuperAdminOperationsInterceptorImpl adminOperationsInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
+        interceptors.add(adminOperationsInterceptor);
         interceptors.add(registrationValidator);
 
         return interceptors;

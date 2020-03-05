@@ -2,3 +2,4 @@ google
 protobuf
 google-api-python-client
 googleapis-common-protos
+grpcio

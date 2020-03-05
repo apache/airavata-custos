@@ -25,6 +25,7 @@ import org.apache.custos.iam.service.FindUsersRequest;
 import org.apache.custos.iam.service.RegisterUserRequest;
 import org.apache.custos.iam.service.ResetUserPassword;
 import org.apache.custos.iam.service.UserSearchRequest;
+import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -45,8 +46,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
-    public ClientAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient) {
-        super(credentialStoreServiceClient, tenantProfileClient);
+    public ClientAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+        super(credentialStoreServiceClient, tenantProfileClient, identityClient);
     }
 
     @Override

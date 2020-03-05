@@ -57,6 +57,9 @@ public class InputValidator implements Validator {
             case "getAllTenantsForUser":
                 validateGetAllTenantsForUser(obj);
                 break;
+            case "getAllTenants":
+                validateGetAllTenants(obj);
+                break;
             default:
 
         }
@@ -128,7 +131,6 @@ public class InputValidator implements Validator {
             }
 
 
-
             if (tenant.getClientName() == null || tenant.getClientName().trim() == "") {
                 throw new MissingParameterException("Client name should not be null", null);
             }
@@ -181,8 +183,8 @@ public class InputValidator implements Validator {
         if (obj instanceof GetAllTenantsForUserRequest) {
             GetAllTenantsForUserRequest req = (GetAllTenantsForUserRequest) obj;
 
-            if (req.getRequesterUserName() == null || req.getRequesterUserName().trim().equals("")) {
-                throw new MissingParameterException("Requester username should not be null", null);
+            if (req.getRequesterEmail() == null || req.getRequesterEmail().trim().equals("")) {
+                throw new MissingParameterException("Requester email should not be null", null);
             }
         } else {
             throw new RuntimeException("Unexpected input type for method updateTenant");
@@ -210,6 +212,21 @@ public class InputValidator implements Validator {
 
             if (req.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id  should not be null", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method getMetadata");
+        }
+        return true;
+
+    }
+
+
+    private boolean validateGetAllTenants(Object obj) {
+        if (obj instanceof GetTenantsRequest) {
+            GetTenantsRequest req = (GetTenantsRequest) obj;
+
+            if (req.getLimit() == 0) {
+                throw new MissingParameterException("Limit should greater than 0", null);
             }
         } else {
             throw new RuntimeException("Unexpected input type for method getMetadata");
