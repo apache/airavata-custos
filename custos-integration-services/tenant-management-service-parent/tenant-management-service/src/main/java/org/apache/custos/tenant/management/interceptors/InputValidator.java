@@ -29,6 +29,8 @@ import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.apache.custos.tenant.management.service.UpdateTenantRequest;
 import org.apache.custos.tenant.management.utils.Constants;
+import org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest;
+import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -67,8 +69,10 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 break;
             case "addTenantRoles":
                 validateAddRoleToTenant(headers, body, methodName);
-
-
+            case "addProtocolMapper":
+                validateAddProtocolMapper(headers, body, methodName);
+            case "updateTenantStatus":
+                validateUpdateTenantStatus(headers, body, methodName);
             default:
         }
     }
@@ -146,9 +150,28 @@ public class InputValidator implements IntegrationServiceInterceptor {
         return true;
     }
 
+    private boolean validateAddProtocolMapper(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+        return true;
+    }
+
+    private boolean validateUpdateTenantStatus(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+        UpdateStatusRequest updateStatusRequest = ((UpdateStatusRequest) body);
+
+        if (updateStatusRequest.getClientId() == null || updateStatusRequest.getClientId().trim().equals("")) {
+            throw new MissingParameterException("Client Id should not be null", null);
+        }
+        return true;
+    }
+
+
+
     private boolean validationAuthorizationHeader(Metadata headers) {
         if (headers.get(Metadata.Key.of(Constants.AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER)) == null
-        || headers.get(Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
+                || headers.get(Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)) == null) {
             throw new MissingParameterException("authorization header not available", null);
         }
 

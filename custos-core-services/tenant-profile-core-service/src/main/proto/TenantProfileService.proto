@@ -108,7 +108,7 @@ message IsTenantExistResponse {
 }
 
 message GetAllTenantsForUserRequest {
-    string requesterUserName = 1;
+    string requesterEmail = 1;
 }
 
 message GetAllTenantsForUserResponse {
@@ -116,9 +116,10 @@ message GetAllTenantsForUserResponse {
 }
 
 message UpdateStatusRequest {
-    int64 tenantId = 1;
+    string client_id = 1;
     TenantStatus status = 2;
     string updatedBy = 3;
+    int64 tenantId = 4;
 }
 
 message UpdateStatusResponse {
@@ -138,9 +139,11 @@ message GetAttributeUpdateAuditTrailResponse {
     repeated TenantAttributeUpdateMetadata metadata = 2;
 }
 
-
-message Empty {
-
+message GetTenantsRequest {
+ int32 offset = 1;
+ int32 limit = 2;
+ int64 parent_id = 3;
+ TenantStatus status = 4;
 }
 
 service TenantProfileService {
@@ -148,7 +151,7 @@ service TenantProfileService {
     rpc updateTenant (Tenant) returns (Tenant);
     rpc getTenant (GetTenantRequest) returns (GetTenantResponse);
     rpc updateTenantStatus (UpdateStatusRequest) returns (UpdateStatusResponse);
-    rpc getAllTenants (Empty) returns (GetAllTenantsResponse);
+    rpc getAllTenants (GetTenantsRequest) returns (GetAllTenantsResponse);
     rpc isTenantExist (IsTenantExistRequest) returns (IsTenantExistResponse);
     rpc getAllTenantsForUser (GetAllTenantsForUserRequest) returns (GetAllTenantsForUserResponse);
     rpc getTenantStatusUpdateAuditTrail (GetAuditTrailRequest) returns (GetStatusUpdateAuditTrailResponse);

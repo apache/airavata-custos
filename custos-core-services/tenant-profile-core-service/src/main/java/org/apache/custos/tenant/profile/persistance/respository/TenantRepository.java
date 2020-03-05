@@ -21,6 +21,7 @@ package org.apache.custos.tenant.profile.persistance.respository;
 
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -29,4 +30,16 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     public List<Tenant> findByRequesterEmail(String requesterEmail);
 
     public List<Tenant> findByDomainAndName(String domain, String name);
+
+    @Query(value = "select * from tenant t where t.status LIKE ?1 order by t.id limit ?2 offset ?3", nativeQuery = true)
+    public List<Tenant> findByStatusWithPaginate(String status, int limit, int offset);
+
+    @Query(value = "select * from tenant order by id limit ?1  offset ?2", nativeQuery = true)
+    public List<Tenant> getAllWithPaginate(int limit, int offset);
+
+    @Query(value = "select * from tenant t where t.status LIKE ?1 and t.parent_id LIKE ?2 order by t.id limit ?3 offset ?4", nativeQuery = true)
+    public List<Tenant> findChildTenantsByStatusWithPaginate(String status, long parentId, int limit, int offset);
+
+    @Query(value = "select * from tenant t where t.parent_id LIKE ?1 order by t.id limit ?2  offset ?3", nativeQuery = true)
+    public List<Tenant> getAllChildTenantsWithPaginate(long parentId, int limit, int offset);
 }

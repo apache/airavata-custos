@@ -23,6 +23,8 @@ package org.apache.custos.identity.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.identity.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -30,6 +32,7 @@ import org.apache.custos.identity.service.*;
  */
 public class InputValidator implements Validator {
 
+private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
     /**
      * Input parameter validater
      *
@@ -98,7 +101,9 @@ public class InputValidator implements Validator {
             String username = null;
             String tenantId = null;
 
+
             for (Claim claim : request.getClaimsList()) {
+                LOGGER.info("Key "+ claim.getKey() + "Value "+ claim.getValue());
                 if (claim.getKey().equals("username")) {
                     username = claim.getValue();
                 } else if (claim.getKey().equals("tenantId")) {

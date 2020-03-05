@@ -14,6 +14,7 @@
         <module>identity-management-client</module>
         <module>tenant-management-client</module>
         <module>custos-clients-core</module>
+        <module>user-management-client</module>
     </modules>
 
     <build>

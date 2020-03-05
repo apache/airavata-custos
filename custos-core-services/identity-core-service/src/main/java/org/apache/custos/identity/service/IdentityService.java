@@ -178,6 +178,7 @@ public class IdentityService extends IdentityServiceImplBase {
                 } else if (AuthzCachedStatus.NOT_CACHED.equals(authzCachedStatus)) {
                     LOGGER.debug("Authz decision for: (" + username + ", " + accessToken + ") is not in the cache. " +
                             "Generating decision based on group membership.");
+                    LOGGER.info("Executing is User AUthenticated");
                     isAuthenticated = keycloakAuthClient.isUserAuthenticated(username, tenantId, accessToken);
                     //cache the authorization decision
                     long currentTime = System.currentTimeMillis();

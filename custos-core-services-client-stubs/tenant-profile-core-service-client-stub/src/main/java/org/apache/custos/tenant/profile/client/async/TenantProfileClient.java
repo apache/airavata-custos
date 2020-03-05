@@ -80,21 +80,11 @@ public class TenantProfileClient {
 
     public Tenant updateTenant(Tenant updateTenantRequest) {
         return profileServiceBlockingStub.updateTenant(updateTenantRequest);
-
-
     }
 
 
-    public void getAllTenantsAsync(final ServiceCallback callback) {
-        StreamObserver observer = this.getObserver(callback, "Get all tenants task failed");
-
-        Empty empty = Empty.newBuilder().build();
-        profileServiceStub.getAllTenants(empty, observer);
-    }
-
-    public GetAllTenantsResponse getAllTenants() {
-        Empty empty = Empty.newBuilder().build();
-        return profileServiceBlockingStub.getAllTenants(empty);
+    public GetAllTenantsResponse getAllTenants(GetTenantsRequest request) {
+        return profileServiceBlockingStub.getAllTenants(request);
     }
 
 

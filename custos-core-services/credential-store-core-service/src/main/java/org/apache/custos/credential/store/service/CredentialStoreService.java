@@ -436,6 +436,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     .setOwnerId(entity.getOwnerId())
                     .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
                     .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                    .setSuperTenant(response.getData().isSuperTenant())
                     .setType(Type.CUSTOS).build();
             responseObserver.onNext(metadata);
             responseObserver.onCompleted();
@@ -584,9 +585,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
         try {
             String token = request.getToken();
 
-            LOGGER.info("TOken "+ token );
             Credential credential = credentialManager.decodeJWTToken(token);
-
             if (credential == null || credential.getId() == null) {
                 LOGGER.error("Invalid access token");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
@@ -614,18 +613,24 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
 
 
-                    if (key.equals(Type.CUSTOS)) {
+                    if (key.equals(Type.CUSTOS.name())) {
+
                         metadata = metadata.toBuilder()
                                 .setClientIdIssuedAt(entity.getIssuedAt().getTime())
                                 .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                                .setSuperAdmin(credential.isAdmin())
+                                .setSuperTenant(crRe.getData().isSuperTenant())
                                 .build();
                     }
                     credentialMetadata.add(metadata);
                 }
             }
+
+
             GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
                     .addAllSecretList(credentialMetadata)
-                    .setRequestedUserEmail(credential.getEmail())
+                    .setRequesterUserEmail(credential.getEmail())
+                    .setRequesterUsername(credential.getUsername())
                     .build();
 
             responseObserver.onNext(response);
@@ -634,6 +639,37 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
         } catch (Exception ex) {
             String msg = " Operation failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getMasterCredentials(GetCredentialRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+
+            String subPath = BASE_PATH + "master";
+            List<String> paths = vaultTemplate.list(subPath);
+
+            List<CredentialMetadata> credentialMetadata = new ArrayList<>();
+
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), 0, key);
+                    credentialMetadata.add(metadata);
+                }
+            }
+            GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
+                    .addAllSecretList(credentialMetadata).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed failed " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -654,6 +690,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 .setOwnerId(ownerId)
                 .setType(Type.valueOf(type))
                 .setId(credential.getId())
+                .setSuperTenant(credential.isSuperTenant())
                 .setSecret(credential.getSecret())
                 .build();
     }

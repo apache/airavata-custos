@@ -87,12 +87,6 @@ message Credentials {
     double custos_client_secret_expired_at = 8;
 }
 
-
-message UpdateStatusRequest {
-    org.apache.custos.tenant.profile.service.UpdateStatusRequest status = 1;
-}
-
-
 message UpdateTenantRequest {
     string client_id = 1;
     int64 tenant_id = 2;
@@ -167,16 +161,21 @@ service TenantManagementService {
     }
 
 
-    rpc updateTenantStatus (UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {
+    rpc updateTenantStatus (org.apache.custos.tenant.profile.service.UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/status"
-           body: "status"
         };
     }
 
-    rpc getAllTenants (org.apache.custos.tenant.profile.service.Empty) returns (org.apache.custos.tenant.profile.service.GetAllTenantsResponse) {
+    rpc getAllTenants (org.apache.custos.tenant.profile.service.GetTenantsRequest) returns (org.apache.custos.tenant.profile.service.GetAllTenantsResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/tenants"
+        };
+    }
+
+    rpc getChildTenants (org.apache.custos.tenant.profile.service.GetTenantsRequest) returns (org.apache.custos.tenant.profile.service.GetAllTenantsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/child/tenants"
         };
     }
 

@@ -379,60 +379,100 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
     @Override
-    public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
-        GetAllTenantsResponse response = profileClient.getAllTenants();
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+    public void getAllTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
+        try {
+            GetAllTenantsResponse response = profileClient.getAllTenants(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllTenants " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
     @Override
+    public void getChildTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
+        try {
+            GetAllTenantsResponse response = profileClient.getAllTenants(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred at getChildTenants " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
     public void getAllTenantsForUser(GetAllTenantsForUserRequest request, StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
-        GetAllTenantsForUserResponse response = profileClient.getAllTenantsForUser(request);
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+        try {
+            GetAllTenantsForUserResponse response = profileClient.getAllTenantsForUser(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllTenantsForUser " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
 
     @Override
     public void updateTenantStatus(UpdateStatusRequest request, StreamObserver<UpdateStatusResponse> responseObserver) {
         try {
-            org.apache.custos.tenant.profile.service.UpdateStatusRequest req = request.getStatus();
-            UpdateStatusResponse response = profileClient.updateTenantStatus(req);
 
-            Context ctx = Context.current().fork();
-            // Set ctx as the current context within the Runnable
-            ctx.run(() -> {
-                ServiceCallback callback = new ServiceCallback() {
-                    @Override
-                    public void onCompleted(Object obj) {
-                        LOGGER.debug(" Tenant Activate task finished " + obj.toString());
-                        responseObserver.onNext(response);
-                        responseObserver.onCompleted();
-                    }
+            GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder().
+                    setId(request.getClientId())
+                    .setType(Type.CUSTOS)
+                    .build();
 
-                    @Override
-                    public void onError(ServiceException ex) {
-                        String msg = "Tenant Activation task failed " + ex;
-                        LOGGER.error(msg);
-                        org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
-                                org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
-                                        .setTenantId(req.getTenantId())
-                                        .setStatus(TenantStatus.CANCELLED)
-                                        .setUpdatedBy(Constants.SYSTEM)
-                                        .build();
-                        profileClient.updateTenantStatus(updateTenantRequest);
-                        responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
-                    }
-                };
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(credentialRequest);
 
-                ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
+            if (metadata != null) {
+                request = request.toBuilder().setTenantId(metadata.getOwnerId()).build();
+                UpdateStatusResponse response = profileClient.updateTenantStatus(request);
 
-                chain.serve(response);
-            });
+                Context ctx = Context.current().fork();
+                // Set ctx as the current context within the Runnable
+                UpdateStatusRequest finalRequest = request;
+                ctx.run(() -> {
+                    ServiceCallback callback = new ServiceCallback() {
+                        @Override
+                        public void onCompleted(Object obj) {
+                            LOGGER.debug(" Tenant Activate task finished " + obj.toString());
+                            responseObserver.onNext(response);
+                            responseObserver.onCompleted();
+                        }
 
+                        @Override
+                        public void onError(ServiceException ex) {
+                            String msg = "Tenant Activation task failed " + ex;
+                            LOGGER.error(msg);
+                            org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
+                                    org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
+                                            .setTenantId(finalRequest.getTenantId())
+                                            .setStatus(TenantStatus.CANCELLED)
+                                            .setUpdatedBy(Constants.SYSTEM)
+                                            .build();
+                            profileClient.updateTenantStatus(updateTenantRequest);
+                            responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
+                        }
+                    };
+
+                    ServiceChain chain = ServiceChain.newBuilder(tenantActivationTask, callback).build();
+
+                    chain.serve(response);
+                });
+            } else {
+                String msg = "Cannot find a Tenant with given client id " + request.getTenantId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
 
         } catch (Exception ex) {
-            String msg = "Tenant update task failed for tenant " + request.getStatus().getTenantId();
+            String msg = "Tenant update task failed for tenant " + request.getTenantId();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

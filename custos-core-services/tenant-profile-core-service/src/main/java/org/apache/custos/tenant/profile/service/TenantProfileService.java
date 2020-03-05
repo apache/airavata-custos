@@ -157,11 +157,32 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     }
 
     @Override
-    public void getAllTenants(Empty request, StreamObserver<GetAllTenantsResponse> responseObserver) {
+    public void getAllTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             LOGGER.debug("Get all tenants request received");
 
-            List<Tenant> tenants = tenantRepository.findAll();
+            String status = null;
+
+            if (request.getStatus() != null && !request.getStatus().name().equals("")){
+                status = request.getStatus().name();
+            }
+
+            int offset = request.getOffset();
+            int limit = request.getLimit();
+            long parentId = request.getParentId();
+
+            List<Tenant> tenants = null;
+
+            if (status == null && parentId == 0) {
+                tenants = tenantRepository.getAllWithPaginate(limit,offset);
+            } else if (status != null && parentId == 0){
+                tenants = tenantRepository.findByStatusWithPaginate(status,limit,offset);
+            } else if (status == null && parentId > 0) {
+                tenants = tenantRepository.getAllChildTenantsWithPaginate(parentId,limit,offset);
+            } else if (status != null && parentId >0 ) {
+                tenants = tenantRepository.findChildTenantsByStatusWithPaginate(status,parentId,limit,offset);
+            }
+
 
             List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
 
@@ -176,6 +197,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Exception occurred while retrieving  tenants " + ex;
+            ex.printStackTrace();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -185,9 +207,9 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     public void getAllTenantsForUser(GetAllTenantsForUserRequest request,
                                      StreamObserver<GetAllTenantsForUserResponse> responseObserver) {
         try {
-            LOGGER.debug("Get all tenants for user " + request.getRequesterUserName() + " received");
+            LOGGER.debug("Get all tenants for user " + request.getRequesterEmail() + " received");
 
-            String username = request.getRequesterUserName();
+            String username = request.getRequesterEmail();
 
             List<Tenant> tenants = tenantRepository.findByRequesterEmail(username);
 
