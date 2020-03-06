@@ -74,13 +74,6 @@ public class IdentityService extends IdentityServiceImplBase {
                 AuthToken.Builder authzBuilder = AuthToken.newBuilder()
                         .setAccessToken(accessToken);
 
-                Claim userClaim = Claim.newBuilder().setKey("username").setValue(request.getUsername()).build();
-
-                Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(request.getTenantId())).build();
-
-                authzBuilder.addClaims(userClaim);
-                authzBuilder.addClaims(tenantClaim);
-
                 AuthToken token = authzBuilder.build();
 
                 responseObserver.onNext(token);
