@@ -23,9 +23,9 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.identity.management.service.AuthenticationRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.service.AuthToken;
+import org.apache.custos.identity.service.AuthenticationRequest;
 import org.apache.custos.identity.service.Claim;
 import org.apache.custos.identity.service.GetTokenRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
@@ -63,20 +63,14 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             throw new NotAuthorizedException("Request is not authorized", null);
         }
         if (method.equals("authenticate")) {
-
-            String userName = ((AuthenticationRequest) reqT).getAuthRequest().getUsername();
-            String password = ((AuthenticationRequest) reqT).getAuthRequest().getPassword();
-            org.apache.custos.identity.service.AuthenticationRequest reqCore =
-                    org.apache.custos.identity.service.AuthenticationRequest
-                            .newBuilder()
+            AuthenticationRequest reqCore =
+                    ((AuthenticationRequest) reqT).toBuilder()
                             .setTenantId(claim.getTenantId())
                             .setClientId(claim.getIamAuthId())
                             .setClientSecret(claim.getIamAuthSecret())
-                            .setUsername(userName)
-                            .setPassword(password)
                             .build();
 
-            return (ReqT) AuthenticationRequest.newBuilder().setAuthRequest(reqCore).build();
+            return (ReqT) reqCore;
         } else if (method.equals("isAuthenticated") || method.equals("getUser")) {
 
             String accessToken = ((AuthToken) reqT).getAccessToken();

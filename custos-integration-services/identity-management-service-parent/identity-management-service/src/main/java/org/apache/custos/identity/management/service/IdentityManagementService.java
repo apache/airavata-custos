@@ -59,9 +59,9 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     @Override
     public void authenticate(AuthenticationRequest request, StreamObserver<AuthToken> responseObserver) {
         try {
-            LOGGER.debug("Request received  to authenticate for " + request.getAuthRequest().getUsername());
+            LOGGER.debug("Request received  to authenticate for " + request.getUsername());
 
-            AuthToken authzToken = identityClient.authenticate(request.getAuthRequest());
+            AuthToken authzToken = identityClient.authenticate(request);
 
             responseObserver.onNext(authzToken);
             responseObserver.onCompleted();

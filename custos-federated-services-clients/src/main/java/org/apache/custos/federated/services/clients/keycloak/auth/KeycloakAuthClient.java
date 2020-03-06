@@ -136,6 +136,7 @@ public class KeycloakAuthClient {
             AccessTokenResponse accessToken = keycloakClient.obtainAccessToken(username, password);
 
 
+
             if (accessToken != null) {
                 return accessToken.getToken();
             }

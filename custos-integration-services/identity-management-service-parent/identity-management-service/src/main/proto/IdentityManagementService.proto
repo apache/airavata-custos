@@ -31,11 +31,6 @@ import "CredentialStoreService.proto";
 
 
 
-
-message AuthenticationRequest {
-    org.apache.custos.identity.service.AuthenticationRequest authRequest = 1;
-}
-
 message AuthorizationRequest {
     int64 tenant_id = 1;
     string client_id = 2;
@@ -58,10 +53,9 @@ message GetCredentialsRequest {
 
 service IdentityManagementService {
 
-    rpc authenticate (AuthenticationRequest) returns (org.apache.custos.identity.service.AuthToken) {
+    rpc authenticate (org.apache.custos.identity.service.AuthenticationRequest) returns (org.apache.custos.identity.service.AuthToken) {
         option (google.api.http) = {
            post: "/identity-management/v1.0.0/authenticate"
-           body: "authRequest"
          };
     }
 
