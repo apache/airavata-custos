@@ -17,7 +17,7 @@
 import logging
 import grpc
 from custos.integration.TenantManagementService_pb2_grpc import TenantManagementServiceStub;
-from custos.core.TenantProfileService_pb2 import Tenant
+from custos.core.TenantProfileService_pb2 import Tenant, GetTenantsRequest, GetAllTenantsForUserRequest
 from custos.core.IamAdminService_pb2 import AddRolesRequest, RoleRepresentation, AddProtocolMapperRequest, \
     ClaimJSONTypes, MapperTypes
 from custos.integration.TenantManagementService_pb2 import GetCredentialsRequest, GetTenantRequest, \
@@ -237,3 +237,44 @@ class TenantManagementClient(object):
         except Exception:
             logger.exception("Error occurred in add_protocol_mapper, probably due to invalid parameters")
             raise
+
+    def get_child_tenants(self, token, offset, limit, status):
+        """
+        Get child tenants of the calling tenant
+        :param token
+        :param: offset omit initial number of results equalt to offset
+        :param limit results should contain  maximum number of entries
+        :param status (ACTIVE, REQUESTED, DENIED, CANCELLED, DEACTIVATED)
+        :return:  Tenants
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            request = GetTenantsRequest(offset=offset, limit=limit, status=status)
+
+            return self.tenant_stub.getChildTenants(request, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred in get_child_tenants, probably due to invalid parameters")
+            raise
+
+    def get_all_tenants(self, token, email):
+        """
+        Get all tenants requested by given user
+        :param token
+        :param email get all tenants requested by email
+        :return:  Tenants
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            request = GetAllTenantsForUserRequest(email=email)
+
+            return self.tenant_stub.getAllTenantsForUser(request, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred in get_all_tenants, probably due to invalid parameters")
+            raise
+

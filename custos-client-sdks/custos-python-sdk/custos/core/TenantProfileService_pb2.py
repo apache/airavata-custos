@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='TenantProfileService.proto',
   package='org.apache.custos.tenant.profile.service',
   syntax='proto3',
-  serialized_pb=_b('\n\x1aTenantProfileService.proto\x12(org.apache.custos.tenant.profile.service\"\x88\x06\n\x06Tenant\x12\x11\n\ttenant_id\x18\x01 \x01(\x03\x12\x13\n\x0b\x63lient_name\x18\x02 \x01(\t\x12\x17\n\x0frequester_email\x18\x04 \x01(\t\x12\x18\n\x10\x61\x64min_first_name\x18\x05 \x01(\t\x12\x17\n\x0f\x61\x64min_last_name\x18\x06 \x01(\t\x12\x13\n\x0b\x61\x64min_email\x18\x07 \x01(\t\x12\x16\n\x0e\x61\x64min_username\x18\x08 \x01(\t\x12\x16\n\x0e\x61\x64min_password\x18\t \x01(\t\x12M\n\rtenant_status\x18\n \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x10\n\x08\x63ontacts\x18\x0b \x03(\t\x12\x15\n\rredirect_uris\x18\x0c \x03(\t\x12\x12\n\nclient_uri\x18\r \x01(\t\x12\r\n\x05scope\x18\x0e \x01(\t\x12\x0e\n\x06\x64omain\x18\x0f \x01(\t\x12\x0f\n\x07\x63omment\x18\x10 \x01(\t\x12\x10\n\x08logo_uri\x18\x11 \x01(\t\x12\x18\n\x10parent_tenant_id\x18\x12 \x01(\x03\x12\x18\n\x10\x61pplication_type\x18\x13 \x01(\t\x12\"\n\x1atoken_endpoint_auth_method\x18\x14 \x01(\t\x12\x10\n\x08jwks_uri\x18\x15 \x01(\t\x12#\n\x1b\x65xample_extension_parameter\x18\x16 \x01(\t\x12\x0f\n\x07tos_uri\x18\x17 \x01(\t\x12\x12\n\npolicy_uri\x18\x18 \x01(\t\x12H\n\x04jwks\x18\x19 \x03(\x0b\x32:.org.apache.custos.tenant.profile.service.Tenant.JwksEntry\x12\x13\n\x0bsoftware_id\x18\x1a \x01(\t\x12\x18\n\x10software_version\x18\x1b \x01(\t\x12\x1d\n\x15refesh_token_lifetime\x18\x1c \x01(\x03\x1a+\n\tJwksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"~\n\x1dTenantAttributeUpdateMetadata\x12\x18\n\x10updatedAttribute\x18\x01 \x01(\t\x12\x1d\n\x15updatedAttributeValue\x18\x02 \x01(\t\x12\x11\n\tupdatedBy\x18\x03 \x01(\t\x12\x11\n\tupdatedAt\x18\x04 \x01(\t\"\x91\x01\n\x1aTenantStatusUpdateMetadata\x12M\n\rupdatedStatus\x18\x01 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x11\n\tupdatedBy\x18\x02 \x01(\t\x12\x11\n\tupdatedAt\x18\x03 \x01(\t\"%\n\x11\x41\x64\x64TenantResponse\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"X\n\x14UpdateTenantResponse\x12@\n\x06tenant\x18\x01 \x01(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"$\n\x10GetTenantRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"U\n\x11GetTenantResponse\x12@\n\x06tenant\x18\x01 \x01(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"Y\n\x15GetAllTenantsResponse\x12@\n\x06tenant\x18\x01 \x03(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"(\n\x14IsTenantExistRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"(\n\x15IsTenantExistResponse\x12\x0f\n\x07isExist\x18\x01 \x01(\x08\"8\n\x1bGetAllTenantsForUserRequest\x12\x19\n\x11requesterUserName\x18\x01 \x01(\t\"`\n\x1cGetAllTenantsForUserResponse\x12@\n\x06tenant\x18\x01 \x03(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"\x82\x01\n\x13UpdateStatusRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\x46\n\x06status\x18\x02 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x11\n\tupdatedBy\x18\x03 \x01(\t\"p\n\x14UpdateStatusResponse\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\x46\n\x06status\x18\x02 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\"(\n\x14GetAuditTrailRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"{\n!GetStatusUpdateAuditTrailResponse\x12V\n\x08metadata\x18\x01 \x03(\x0b\x32\x44.org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata\"\x81\x01\n$GetAttributeUpdateAuditTrailResponse\x12Y\n\x08metadata\x18\x02 \x03(\x0b\x32G.org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata\"\x07\n\x05\x45mpty*c\n\x0cTenantStatus\x12\r\n\tREQUESTED\x10\x00\x12\x0c\n\x08\x41PPROVED\x10\x01\x12\n\n\x06\x44\x45NIED\x10\x02\x12\r\n\tCANCELLED\x10\x03\x12\n\n\x06\x41\x43TIVE\x10\x04\x12\x0f\n\x0b\x44\x45\x41\x43TIVATED\x10\x05\x32\xbf\n\n\x14TenantProfileService\x12o\n\taddTenant\x12\x30.org.apache.custos.tenant.profile.service.Tenant\x1a\x30.org.apache.custos.tenant.profile.service.Tenant\x12r\n\x0cupdateTenant\x12\x30.org.apache.custos.tenant.profile.service.Tenant\x1a\x30.org.apache.custos.tenant.profile.service.Tenant\x12\x84\x01\n\tgetTenant\x12:.org.apache.custos.tenant.profile.service.GetTenantRequest\x1a;.org.apache.custos.tenant.profile.service.GetTenantResponse\x12\x93\x01\n\x12updateTenantStatus\x12=.org.apache.custos.tenant.profile.service.UpdateStatusRequest\x1a>.org.apache.custos.tenant.profile.service.UpdateStatusResponse\x12\x81\x01\n\rgetAllTenants\x12/.org.apache.custos.tenant.profile.service.Empty\x1a?.org.apache.custos.tenant.profile.service.GetAllTenantsResponse\x12\x90\x01\n\risTenantExist\x12>.org.apache.custos.tenant.profile.service.IsTenantExistRequest\x1a?.org.apache.custos.tenant.profile.service.IsTenantExistResponse\x12\xa5\x01\n\x14getAllTenantsForUser\x12\x45.org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest\x1a\x46.org.apache.custos.tenant.profile.service.GetAllTenantsForUserResponse\x12\xae\x01\n\x1fgetTenantStatusUpdateAuditTrail\x12>.org.apache.custos.tenant.profile.service.GetAuditTrailRequest\x1aK.org.apache.custos.tenant.profile.service.GetStatusUpdateAuditTrailResponse\x12\xb4\x01\n\"getTenantAttributeUpdateAuditTrail\x12>.org.apache.custos.tenant.profile.service.GetAuditTrailRequest\x1aN.org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponseB\x02P\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x1aTenantProfileService.proto\x12(org.apache.custos.tenant.profile.service\"\x88\x06\n\x06Tenant\x12\x11\n\ttenant_id\x18\x01 \x01(\x03\x12\x13\n\x0b\x63lient_name\x18\x02 \x01(\t\x12\x17\n\x0frequester_email\x18\x04 \x01(\t\x12\x18\n\x10\x61\x64min_first_name\x18\x05 \x01(\t\x12\x17\n\x0f\x61\x64min_last_name\x18\x06 \x01(\t\x12\x13\n\x0b\x61\x64min_email\x18\x07 \x01(\t\x12\x16\n\x0e\x61\x64min_username\x18\x08 \x01(\t\x12\x16\n\x0e\x61\x64min_password\x18\t \x01(\t\x12M\n\rtenant_status\x18\n \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x10\n\x08\x63ontacts\x18\x0b \x03(\t\x12\x15\n\rredirect_uris\x18\x0c \x03(\t\x12\x12\n\nclient_uri\x18\r \x01(\t\x12\r\n\x05scope\x18\x0e \x01(\t\x12\x0e\n\x06\x64omain\x18\x0f \x01(\t\x12\x0f\n\x07\x63omment\x18\x10 \x01(\t\x12\x10\n\x08logo_uri\x18\x11 \x01(\t\x12\x18\n\x10parent_tenant_id\x18\x12 \x01(\x03\x12\x18\n\x10\x61pplication_type\x18\x13 \x01(\t\x12\"\n\x1atoken_endpoint_auth_method\x18\x14 \x01(\t\x12\x10\n\x08jwks_uri\x18\x15 \x01(\t\x12#\n\x1b\x65xample_extension_parameter\x18\x16 \x01(\t\x12\x0f\n\x07tos_uri\x18\x17 \x01(\t\x12\x12\n\npolicy_uri\x18\x18 \x01(\t\x12H\n\x04jwks\x18\x19 \x03(\x0b\x32:.org.apache.custos.tenant.profile.service.Tenant.JwksEntry\x12\x13\n\x0bsoftware_id\x18\x1a \x01(\t\x12\x18\n\x10software_version\x18\x1b \x01(\t\x12\x1d\n\x15refesh_token_lifetime\x18\x1c \x01(\x03\x1a+\n\tJwksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"~\n\x1dTenantAttributeUpdateMetadata\x12\x18\n\x10updatedAttribute\x18\x01 \x01(\t\x12\x1d\n\x15updatedAttributeValue\x18\x02 \x01(\t\x12\x11\n\tupdatedBy\x18\x03 \x01(\t\x12\x11\n\tupdatedAt\x18\x04 \x01(\t\"\x91\x01\n\x1aTenantStatusUpdateMetadata\x12M\n\rupdatedStatus\x18\x01 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x11\n\tupdatedBy\x18\x02 \x01(\t\x12\x11\n\tupdatedAt\x18\x03 \x01(\t\"%\n\x11\x41\x64\x64TenantResponse\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"X\n\x14UpdateTenantResponse\x12@\n\x06tenant\x18\x01 \x01(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"$\n\x10GetTenantRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"U\n\x11GetTenantResponse\x12@\n\x06tenant\x18\x01 \x01(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"Y\n\x15GetAllTenantsResponse\x12@\n\x06tenant\x18\x01 \x03(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"(\n\x14IsTenantExistRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"(\n\x15IsTenantExistResponse\x12\x0f\n\x07isExist\x18\x01 \x01(\x08\"5\n\x1bGetAllTenantsForUserRequest\x12\x16\n\x0erequesterEmail\x18\x01 \x01(\t\"`\n\x1cGetAllTenantsForUserResponse\x12@\n\x06tenant\x18\x01 \x03(\x0b\x32\x30.org.apache.custos.tenant.profile.service.Tenant\"\x95\x01\n\x13UpdateStatusRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x46\n\x06status\x18\x02 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\x12\x11\n\tupdatedBy\x18\x03 \x01(\t\x12\x10\n\x08tenantId\x18\x04 \x01(\x03\"p\n\x14UpdateStatusResponse\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\x46\n\x06status\x18\x02 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus\"(\n\x14GetAuditTrailRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\"{\n!GetStatusUpdateAuditTrailResponse\x12V\n\x08metadata\x18\x01 \x03(\x0b\x32\x44.org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata\"\x81\x01\n$GetAttributeUpdateAuditTrailResponse\x12Y\n\x08metadata\x18\x02 \x03(\x0b\x32G.org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata\"\x8d\x01\n\x11GetTenantsRequest\x12\x0e\n\x06offset\x18\x01 \x01(\x05\x12\r\n\x05limit\x18\x02 \x01(\x05\x12\x11\n\tparent_id\x18\x03 \x01(\x03\x12\x46\n\x06status\x18\x04 \x01(\x0e\x32\x36.org.apache.custos.tenant.profile.service.TenantStatus*c\n\x0cTenantStatus\x12\r\n\tREQUESTED\x10\x00\x12\x0c\n\x08\x41PPROVED\x10\x01\x12\n\n\x06\x44\x45NIED\x10\x02\x12\r\n\tCANCELLED\x10\x03\x12\n\n\x06\x41\x43TIVE\x10\x04\x12\x0f\n\x0b\x44\x45\x41\x43TIVATED\x10\x05\x32\xcb\n\n\x14TenantProfileService\x12o\n\taddTenant\x12\x30.org.apache.custos.tenant.profile.service.Tenant\x1a\x30.org.apache.custos.tenant.profile.service.Tenant\x12r\n\x0cupdateTenant\x12\x30.org.apache.custos.tenant.profile.service.Tenant\x1a\x30.org.apache.custos.tenant.profile.service.Tenant\x12\x84\x01\n\tgetTenant\x12:.org.apache.custos.tenant.profile.service.GetTenantRequest\x1a;.org.apache.custos.tenant.profile.service.GetTenantResponse\x12\x93\x01\n\x12updateTenantStatus\x12=.org.apache.custos.tenant.profile.service.UpdateStatusRequest\x1a>.org.apache.custos.tenant.profile.service.UpdateStatusResponse\x12\x8d\x01\n\rgetAllTenants\x12;.org.apache.custos.tenant.profile.service.GetTenantsRequest\x1a?.org.apache.custos.tenant.profile.service.GetAllTenantsResponse\x12\x90\x01\n\risTenantExist\x12>.org.apache.custos.tenant.profile.service.IsTenantExistRequest\x1a?.org.apache.custos.tenant.profile.service.IsTenantExistResponse\x12\xa5\x01\n\x14getAllTenantsForUser\x12\x45.org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest\x1a\x46.org.apache.custos.tenant.profile.service.GetAllTenantsForUserResponse\x12\xae\x01\n\x1fgetTenantStatusUpdateAuditTrail\x12>.org.apache.custos.tenant.profile.service.GetAuditTrailRequest\x1aK.org.apache.custos.tenant.profile.service.GetStatusUpdateAuditTrailResponse\x12\xb4\x01\n\"getTenantAttributeUpdateAuditTrail\x12>.org.apache.custos.tenant.profile.service.GetAuditTrailRequest\x1aN.org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponseB\x02P\x01\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -57,8 +57,8 @@ _TENANTSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2267,
-  serialized_end=2366,
+  serialized_start=2418,
+  serialized_end=2517,
 )
 _sym_db.RegisterEnumDescriptor(_TENANTSTATUS)
 
@@ -644,7 +644,7 @@ _GETALLTENANTSFORUSERREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='requesterUserName', full_name='org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest.requesterUserName', index=0,
+      name='requesterEmail', full_name='org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest.requesterEmail', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -663,7 +663,7 @@ _GETALLTENANTSFORUSERREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1556,
-  serialized_end=1612,
+  serialized_end=1609,
 )
 
 
@@ -693,8 +693,8 @@ _GETALLTENANTSFORUSERRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1614,
-  serialized_end=1710,
+  serialized_start=1611,
+  serialized_end=1707,
 )
 
 
@@ -706,9 +706,9 @@ _UPDATESTATUSREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='tenantId', full_name='org.apache.custos.tenant.profile.service.UpdateStatusRequest.tenantId', index=0,
-      number=1, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
+      name='client_id', full_name='org.apache.custos.tenant.profile.service.UpdateStatusRequest.client_id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -726,6 +726,13 @@ _UPDATESTATUSREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='tenantId', full_name='org.apache.custos.tenant.profile.service.UpdateStatusRequest.tenantId', index=3,
+      number=4, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -738,8 +745,8 @@ _UPDATESTATUSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1713,
-  serialized_end=1843,
+  serialized_start=1710,
+  serialized_end=1859,
 )
 
 
@@ -776,8 +783,8 @@ _UPDATESTATUSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1845,
-  serialized_end=1957,
+  serialized_start=1861,
+  serialized_end=1973,
 )
 
 
@@ -807,8 +814,8 @@ _GETAUDITTRAILREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1959,
-  serialized_end=1999,
+  serialized_start=1975,
+  serialized_end=2015,
 )
 
 
@@ -838,8 +845,8 @@ _GETSTATUSUPDATEAUDITTRAILRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2001,
-  serialized_end=2124,
+  serialized_start=2017,
+  serialized_end=2140,
 )
 
 
@@ -869,18 +876,46 @@ _GETATTRIBUTEUPDATEAUDITTRAILRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2127,
-  serialized_end=2256,
+  serialized_start=2143,
+  serialized_end=2272,
 )
 
 
-_EMPTY = _descriptor.Descriptor(
-  name='Empty',
-  full_name='org.apache.custos.tenant.profile.service.Empty',
+_GETTENANTSREQUEST = _descriptor.Descriptor(
+  name='GetTenantsRequest',
+  full_name='org.apache.custos.tenant.profile.service.GetTenantsRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
+    _descriptor.FieldDescriptor(
+      name='offset', full_name='org.apache.custos.tenant.profile.service.GetTenantsRequest.offset', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='limit', full_name='org.apache.custos.tenant.profile.service.GetTenantsRequest.limit', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='parent_id', full_name='org.apache.custos.tenant.profile.service.GetTenantsRequest.parent_id', index=2,
+      number=3, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='status', full_name='org.apache.custos.tenant.profile.service.GetTenantsRequest.status', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -893,8 +928,8 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2258,
-  serialized_end=2265,
+  serialized_start=2275,
+  serialized_end=2416,
 )
 
 _TENANT_JWKSENTRY.containing_type = _TENANT
@@ -909,6 +944,7 @@ _UPDATESTATUSREQUEST.fields_by_name['status'].enum_type = _TENANTSTATUS
 _UPDATESTATUSRESPONSE.fields_by_name['status'].enum_type = _TENANTSTATUS
 _GETSTATUSUPDATEAUDITTRAILRESPONSE.fields_by_name['metadata'].message_type = _TENANTSTATUSUPDATEMETADATA
 _GETATTRIBUTEUPDATEAUDITTRAILRESPONSE.fields_by_name['metadata'].message_type = _TENANTATTRIBUTEUPDATEMETADATA
+_GETTENANTSREQUEST.fields_by_name['status'].enum_type = _TENANTSTATUS
 DESCRIPTOR.message_types_by_name['Tenant'] = _TENANT
 DESCRIPTOR.message_types_by_name['TenantAttributeUpdateMetadata'] = _TENANTATTRIBUTEUPDATEMETADATA
 DESCRIPTOR.message_types_by_name['TenantStatusUpdateMetadata'] = _TENANTSTATUSUPDATEMETADATA
@@ -926,7 +962,7 @@ DESCRIPTOR.message_types_by_name['UpdateStatusResponse'] = _UPDATESTATUSRESPONSE
 DESCRIPTOR.message_types_by_name['GetAuditTrailRequest'] = _GETAUDITTRAILREQUEST
 DESCRIPTOR.message_types_by_name['GetStatusUpdateAuditTrailResponse'] = _GETSTATUSUPDATEAUDITTRAILRESPONSE
 DESCRIPTOR.message_types_by_name['GetAttributeUpdateAuditTrailResponse'] = _GETATTRIBUTEUPDATEAUDITTRAILRESPONSE
-DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
+DESCRIPTOR.message_types_by_name['GetTenantsRequest'] = _GETTENANTSREQUEST
 DESCRIPTOR.enum_types_by_name['TenantStatus'] = _TENANTSTATUS
 
 Tenant = _reflection.GeneratedProtocolMessageType('Tenant', (_message.Message,), dict(
@@ -1056,12 +1092,12 @@ GetAttributeUpdateAuditTrailResponse = _reflection.GeneratedProtocolMessageType(
   ))
 _sym_db.RegisterMessage(GetAttributeUpdateAuditTrailResponse)
 
-Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), dict(
-  DESCRIPTOR = _EMPTY,
+GetTenantsRequest = _reflection.GeneratedProtocolMessageType('GetTenantsRequest', (_message.Message,), dict(
+  DESCRIPTOR = _GETTENANTSREQUEST,
   __module__ = 'TenantProfileService_pb2'
-  # @@protoc_insertion_point(class_scope:org.apache.custos.tenant.profile.service.Empty)
+  # @@protoc_insertion_point(class_scope:org.apache.custos.tenant.profile.service.GetTenantsRequest)
   ))
-_sym_db.RegisterMessage(Empty)
+_sym_db.RegisterMessage(GetTenantsRequest)
 
 
 DESCRIPTOR.has_options = True

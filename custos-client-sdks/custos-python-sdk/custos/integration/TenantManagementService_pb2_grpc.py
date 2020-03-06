@@ -54,12 +54,17 @@ class TenantManagementServiceStub(object):
         )
     self.updateTenantStatus = channel.unary_unary(
         '/org.apache.custos.tenant.management.service.TenantManagementService/updateTenantStatus',
-        request_serializer=TenantManagementService__pb2.UpdateStatusRequest.SerializeToString,
+        request_serializer=TenantProfileService__pb2.UpdateStatusRequest.SerializeToString,
         response_deserializer=TenantProfileService__pb2.UpdateStatusResponse.FromString,
         )
     self.getAllTenants = channel.unary_unary(
         '/org.apache.custos.tenant.management.service.TenantManagementService/getAllTenants',
-        request_serializer=TenantProfileService__pb2.Empty.SerializeToString,
+        request_serializer=TenantProfileService__pb2.GetTenantsRequest.SerializeToString,
+        response_deserializer=TenantProfileService__pb2.GetAllTenantsResponse.FromString,
+        )
+    self.getChildTenants = channel.unary_unary(
+        '/org.apache.custos.tenant.management.service.TenantManagementService/getChildTenants',
+        request_serializer=TenantProfileService__pb2.GetTenantsRequest.SerializeToString,
         response_deserializer=TenantProfileService__pb2.GetAllTenantsResponse.FromString,
         )
     self.getAllTenantsForUser = channel.unary_unary(
@@ -146,6 +151,13 @@ class TenantManagementServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def getChildTenants(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def getAllTenantsForUser(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -207,12 +219,17 @@ def add_TenantManagementServiceServicer_to_server(servicer, server):
       ),
       'updateTenantStatus': grpc.unary_unary_rpc_method_handler(
           servicer.updateTenantStatus,
-          request_deserializer=TenantManagementService__pb2.UpdateStatusRequest.FromString,
+          request_deserializer=TenantProfileService__pb2.UpdateStatusRequest.FromString,
           response_serializer=TenantProfileService__pb2.UpdateStatusResponse.SerializeToString,
       ),
       'getAllTenants': grpc.unary_unary_rpc_method_handler(
           servicer.getAllTenants,
-          request_deserializer=TenantProfileService__pb2.Empty.FromString,
+          request_deserializer=TenantProfileService__pb2.GetTenantsRequest.FromString,
+          response_serializer=TenantProfileService__pb2.GetAllTenantsResponse.SerializeToString,
+      ),
+      'getChildTenants': grpc.unary_unary_rpc_method_handler(
+          servicer.getChildTenants,
+          request_deserializer=TenantProfileService__pb2.GetTenantsRequest.FromString,
           response_serializer=TenantProfileService__pb2.GetAllTenantsResponse.SerializeToString,
       ),
       'getAllTenantsForUser': grpc.unary_unary_rpc_method_handler(
