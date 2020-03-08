@@ -68,7 +68,7 @@ class TenantManagementClient(object):
             logger.exception("Error occurred in create_admin_tenant, probably due to invalid parameters")
             raise
 
-    def create_tenant(self, client_token, client_name, requester_email, admin_frist_name,
+    def create_tenant(self, token, client_name, requester_email, admin_frist_name,
                       admin_last_name, admin_email, admin_username, admin_password,
                       contacts, redirect_uris, client_uri, scope, domain, logo_uri, comment):
         """
@@ -91,41 +91,41 @@ class TenantManagementClient(object):
                             logo_uri=logo_uri,
                             comment=comment,
                             application_type="web")
-            token = "Bearer " + client_token
+            token = "Bearer " + token
             metadata = (('authorization', token),)
             return self.tenant_stub.createTenant(tenant, metadata=metadata)
         except Exception:
             logger.exception("Error occurred in create_tenant, probably due to invalid parameters")
             raise
 
-    def get_credentials(self, client_token):
+    def get_credentials(self, token):
         """
         :return: IAM credentials and CILogon credentials
         """
         try:
             request = GetCredentialsRequest()
-            token = "Bearer " + client_token
+            token = "Bearer " + token
             metadata = (('authorization', token),)
             return self.tenant_stub.getCredentials(request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred in get_credentials, probably due to invalid parameters")
             raise
 
-    def get_tenant(self, client_token, client_id):
+    def get_tenant(self, token, client_id):
         """
         Fetch tenant
         :return: Tenant
         """
         try:
             request = GetTenantRequest(client_id=client_id)
-            token = "Bearer " + client_token
+            token = "Bearer " + token
             metadata = (('authorization', token),)
             return self.tenant_stub.getTenant(request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred in get_tenant, probably due to invalid parameters")
             raise
 
-    def update_tenant(self, client_token, client_id, client_name, requester_email, admin_frist_name,
+    def update_tenant(self, token, client_id, client_name, requester_email, admin_frist_name,
                       admin_last_name, admin_email, admin_username, admin_password,
                       contacts, redirect_uris, client_uri, scope, domain, logo_uri, comment):
         """
@@ -148,7 +148,7 @@ class TenantManagementClient(object):
                             logo_uri=logo_uri,
                             comment=comment,
                             application_type="web")
-            token = "Bearer " + client_token
+            token = "Bearer " + token
             metadata = (('authorization', token),)
 
             request = UpdateTenantRequest(client_id=client_id, body=tenant)
@@ -277,6 +277,4 @@ class TenantManagementClient(object):
         except Exception:
             logger.exception("Error occurred in get_all_tenants, probably due to invalid parameters")
             raise
-
-
 

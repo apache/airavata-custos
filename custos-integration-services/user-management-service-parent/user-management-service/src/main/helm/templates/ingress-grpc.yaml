@@ -7,10 +7,11 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - host: custos.scigap.org
-       http:
+    - host: custos.scigap.org
+      http:
         paths:
-          - backend:
+          - path: /org.apache.custos.user.management.service.UserManagementService(/|$)(.*)
+            backend:
               serviceName: user-management-service
               servicePort: grpc
 

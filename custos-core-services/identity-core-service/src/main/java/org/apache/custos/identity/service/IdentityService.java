@@ -220,10 +220,10 @@ public class IdentityService extends IdentityServiceImplBase {
 
 
             Claim userClaim = Claim.newBuilder().setKey("username").setValue(request.getClientId()).build();
-            Claim tenantId = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(request.getTenantId())).build();
+          //  Claim tenantId = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(request.getTenantId())).build();
 
             builder.addClaims(userClaim);
-            builder.addClaims(tenantId);
+           // builder.addClaims(tenantId);
 
             AuthToken token = builder.build();
 
