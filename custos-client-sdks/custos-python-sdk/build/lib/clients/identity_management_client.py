@@ -154,7 +154,7 @@ class IdentityManagementClient(object):
             logger.exception("Error occurred in get_credentials, probably due to invalid parameters")
             raise
 
-    def get_oidc_configuration(self, token, client_id):
+    def get_OIDC_Configuration(self, token, client_id):
         """
         send the OIDC config
         :param token client credentials

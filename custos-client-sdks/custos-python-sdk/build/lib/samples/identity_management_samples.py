@@ -67,5 +67,5 @@ def get_credentials():
 
 def get_OIDC_config():
     token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = client.get_oidc_configuration(token, "custos-xgect9otrwawa8uwztym-10000006")
+    response = client.get_OIDC_Configuration(token, "custos-xgect9otrwawa8uwztym-10000006")
     print(response)
