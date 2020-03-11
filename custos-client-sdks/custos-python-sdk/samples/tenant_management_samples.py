@@ -30,14 +30,14 @@ admin_client = SuperTenantManagementClient()
 
 
 def create_tenant():
-    contacts = ["+18652445882"]
-    redirect_uris = ["https://idp.htrc.indiana.edu/playground2/oauth2client", "https://ag.vagrant.vm/callback?client_name=OidcClient"]
-    response = client.create_admin_tenant("HTRC",
-                                          "shliyana@indiana.edu", "HTRC", "D2I", "sharc@indiana.edu", "htrc-admin",
+    contacts = ["2345634324"]
+    redirect_uris = ["http://localhost:8080,http://localhost:8080/user/external_ids"]
+    response = client.create_admin_tenant("SAMPLE",
+                                          "XXX@iu.edu", "First Name", "LastName", "email", "admin",
                                           "1234",
-                                          contacts, redirect_uris, "https://custos.scigap.org/",
-                                          "openid profile email org.cilogon.userinfo", "idp.htrc.indiana.edu",
-                                          "https://idp.htrc.indiana.edu/playground2", "HTRC Portal")
+                                          contacts, redirect_uris, "https://domain.org/",
+                                          "openid profile email org.cilogon.userinfo", "domain.org",
+                                          "https://domain.org/static/favicon.png", " Portal")
 
     print(response)
 
