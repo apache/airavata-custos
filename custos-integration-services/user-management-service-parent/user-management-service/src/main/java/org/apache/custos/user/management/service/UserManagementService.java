@@ -933,6 +933,22 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    @Override
+    public void linkUserProfile(LinkUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to linkUserProfile "+
+                    " at " + request.getTenantId());
+
+            
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
 

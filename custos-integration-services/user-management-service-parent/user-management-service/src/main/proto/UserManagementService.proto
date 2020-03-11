@@ -66,6 +66,20 @@ message ResetPasswordRequest {
     ResetPassword passwordMetadata = 1;
 }
 
+message LinkUserProfileRequest {
+    string username = 1;
+    int64 tenantId = 2;
+    bool search_by_email = 3;
+    bool search_by_name = 4;
+    bool search_by_username = 6;
+    repeated  string linking_attributes = 7;
+    string iamClientId = 8;
+    string iamClientSecret = 9;
+    string accessToken = 10;
+    string performedBy = 11;
+}
+
+
 
 
 
@@ -188,6 +202,15 @@ service UserManagementService {
 
         option (google.api.http) = {
            get: "/user-management/v1.0.0/users/profile"
+         };
+
+
+    }
+
+    rpc linkUserProfile(LinkUserProfileRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/profile/mapper"
          };
 
 
