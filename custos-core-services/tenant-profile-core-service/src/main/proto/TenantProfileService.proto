@@ -120,6 +120,7 @@ message UpdateStatusRequest {
     TenantStatus status = 2;
     string updatedBy = 3;
     int64 tenantId = 4;
+    bool super_tenant = 5;
 }
 
 message UpdateStatusResponse {

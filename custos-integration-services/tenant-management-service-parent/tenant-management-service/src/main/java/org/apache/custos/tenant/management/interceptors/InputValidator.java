@@ -157,7 +157,10 @@ public class InputValidator implements IntegrationServiceInterceptor {
     }
 
     private boolean validateUpdateTenantStatus(Metadata headers, Object body, String method) {
-        validationAuthorizationHeader(headers);
+       boolean isSuperTenant =  ((UpdateStatusRequest)body).getSuperTenant();
+       if (!isSuperTenant) {
+           validationAuthorizationHeader(headers);
+       }
 
         UpdateStatusRequest updateStatusRequest = ((UpdateStatusRequest) body);
 

@@ -29,8 +29,8 @@ client = IdentityManagementClient()
 
 
 def authenticate():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = client.authenticate(token, "issa", "1234")
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    response = client.authenticate(token, "isjarana", "Custos1234")
     print(response)
 
 
@@ -66,6 +66,8 @@ def get_credentials():
 
 
 def get_OIDC_config():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = client.get_oidc_configuration(token, "custos-xgect9otrwawa8uwztym-10000006")
+    token = "Y3VzdG9zLXB2M2ZxZnM5ejFocHMweGlseTJ0LTEwMDAwMDAwOmRYUzJZYllManJjVEs4b2NlWUtHQk9NQzIyWjFJVXpoQW5hM1lyMlg="
+    response = client.get_oidc_configuration(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
+
+authenticate()

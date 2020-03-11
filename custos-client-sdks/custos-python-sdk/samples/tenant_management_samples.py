@@ -30,14 +30,14 @@ admin_client = SuperTenantManagementClient()
 
 
 def create_tenant():
-    contacts = ["8123345687"]
-    redirect_uris = ["https://cutos.python/callback"]
-    response = client.create_admin_tenant("Custos  Tenant",
-                                          "irjanith@gmail.com", "Isuru", "Ranawaka", "irjanith@gmail.com", "Issa",
+    contacts = ["+18652445882"]
+    redirect_uris = ["https://idp.htrc.indiana.edu/playground2/oauth2client", "https://ag.vagrant.vm/callback?client_name=OidcClient"]
+    response = client.create_admin_tenant("HTRC",
+                                          "shliyana@indiana.edu", "HTRC", "D2I", "sharc@indiana.edu", "htrc-admin",
                                           "1234",
-                                          contacts, redirect_uris, "http://custos.lk",
-                                          "openid profile email org.cilogon.userinfo", "custos.python",
-                                          "http://custos.lk", "Creating for test python SDK")
+                                          contacts, redirect_uris, "https://custos.scigap.org/",
+                                          "openid profile email org.cilogon.userinfo", "idp.htrc.indiana.edu",
+                                          "https://idp.htrc.indiana.edu/playground2", "HTRC Portal")
 
     print(response)
 
@@ -98,4 +98,11 @@ def get_all_tenants():
     response = admin_client.get_all_tenants(token, 0, 5, "ACTIVE")
     print(response)
 
-get_all_tenants()
+
+def delete_tenant():
+    token = "Y3VzdG9zLXB2M2ZxZnM5ejFocHMweGlseTJ0LTEwMDAwMDAwOmRYUzJZYllManJjVEs4b2NlWUtHQk9NQzIyWjFJVXpoQW5hM1lyMlg="
+    response = client.delete_tenant(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
+    print(response)
+
+
+create_tenant()

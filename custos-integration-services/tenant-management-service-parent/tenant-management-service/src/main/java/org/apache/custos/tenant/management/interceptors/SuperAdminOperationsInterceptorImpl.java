@@ -50,18 +50,21 @@ public class SuperAdminOperationsInterceptorImpl extends AuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
         if (method.equals("updateTenantStatus")) {
-            AuthClaim claim = null;
-            try {
-                claim = authorizeUsingUserToken(headers);
-            } catch (Exception ex) {
-                LOGGER.error(" Authorizing error "+ ex.getMessage());
-                throw new NotAuthorizedException("Request is not authorized", ex);
-            }
-            if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
+            if ( !((UpdateStatusRequest)msg).getSuperTenant() ) {
+                AuthClaim claim = null;
+                try {
+                    claim = authorizeUsingUserToken(headers);
+                } catch (Exception ex) {
+                    LOGGER.error(" Authorizing error " + ex.getMessage());
+                    throw new NotAuthorizedException("Request is not authorized", ex);
+                }
+                if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
+                    throw new NotAuthorizedException("Request is not authorized", null);
+                }
 
-            return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy()).build();
+                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy()).build();
+            }
+            return msg;
 
         } else if (method.equals("getAllTenants")) {
             AuthClaim claim = null;

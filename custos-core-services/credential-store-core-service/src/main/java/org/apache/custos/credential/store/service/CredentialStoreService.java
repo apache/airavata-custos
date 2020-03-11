@@ -198,9 +198,19 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             LOGGER.debug("Calling deleteSecret API for owner " + request.getOwnerId());
 
 
-            String path = BASE_PATH + request.getOwnerId() + (request.getType() != null ? "/" +
+            String subPath = BASE_PATH + request.getOwnerId() + (request.getType() != null ? "/" +
                     request.getType().name() : "");
-            vaultTemplate.delete(path);
+
+            List<String> paths = vaultTemplate.list(subPath);
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    vaultTemplate.delete(path);
+
+                }
+            }
+
             OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
             statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
