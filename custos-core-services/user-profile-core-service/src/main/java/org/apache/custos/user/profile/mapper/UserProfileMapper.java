@@ -54,9 +54,9 @@ public class UserProfileMapper {
         entity.setLastName(userProfile.getLastName());
         entity.setStatus(userProfile.getStatus().name());
 
-
+        Set<UserAttribute> attributeSet = new HashSet<>();
         if (userProfile.getAttributesList() != null && !userProfile.getAttributesList().isEmpty()) {
-            Set<UserAttribute> attributeSet = new HashSet<>();
+
 
             userProfile.getAttributesList().forEach(atr -> {
                 if (atr.getValueList() != null && !atr.getValueList().isEmpty()) {
@@ -71,8 +71,9 @@ public class UserProfileMapper {
 
             });
 
-            entity.setUserAttribute(attributeSet);
+
         }
+        entity.setUserAttribute(attributeSet);
         Set<UserRole> userRoleSet = new HashSet<>();
         if (userProfile.getRealmRolesList() != null && !userProfile.getRealmRolesList().isEmpty()) {
 
@@ -85,7 +86,7 @@ public class UserProfileMapper {
                 userRoleSet.add(userRole);
             });
 
-            entity.setUserRole(userRoleSet);
+
         }
 
         if (userProfile.getClientRolesList() != null && !userProfile.getClientRolesList().isEmpty()) {
@@ -97,8 +98,9 @@ public class UserProfileMapper {
                 userRoleSet.add(userRole);
             });
 
-            entity.setUserRole(userRoleSet);
+
         }
+        entity.setUserRole(userRoleSet);
 
         return entity;
     }

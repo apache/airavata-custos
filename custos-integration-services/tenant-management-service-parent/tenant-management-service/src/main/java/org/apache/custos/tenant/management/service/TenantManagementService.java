@@ -472,7 +472,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             }
 
         } catch (Exception ex) {
-            String msg = "Tenant update task failed for tenant " + request.getTenantId();
+            String msg = "Tenant update task failed for tenant " + request.getTenantId() + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

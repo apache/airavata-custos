@@ -12,6 +12,8 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
+      annotations:
+        linkerd.io/inject: enabled
       labels:
         app.kubernetes.io/name: {{ include "helm.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}

@@ -29,6 +29,7 @@ client = UserManagementClient()
 id_client = IdentityManagementClient()
 
 
+
 def register_user():
     token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU=";
     response = client.register_user(token, "TestingUser", "Jhon", "Smith", "12345", "jhon@iu.edu", True)
@@ -36,8 +37,8 @@ def register_user():
 
 
 def register_and_enable_users():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = id_client.authenticate(token, "issa", "1234")
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1Z"
+    response = id_client.authenticate(token, "isjarana", "Custos1234")
 
     users = [
         {
@@ -45,23 +46,16 @@ def register_and_enable_users():
             "first_name": "Isuru",
             "last_name": "Ranawaka",
             "password": "1234",
-            "email": "irjanith@gmail.com",
+            "email": "irjanith1@gmail.com",
             "temporary_password": True,
             "realm_roles": [
-                "testing"
+
             ],
             "client_roles": [
-                "owner"
+
             ],
             "attributes": [
-                {
-                    "key": "phone",
-                    "values": ["8123915386"]
-                },
-                {
-                    "key": "email",
-                    "values": ["isjarana@iu.edu"]
-                }
+
             ]
         }
     ]
@@ -71,12 +65,12 @@ def register_and_enable_users():
 
 
 def add_user_attributes():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = id_client.authenticate(token, "issa", "1234")
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9Q"
+    response = id_client.authenticate(token, "isjarana", "Custos1234")
     attributes = [
         {
-            "key": "home_phone",
-            "values": ["12345678"]
+            "key": "phone",
+            "values": ["8123915386"]
         }
     ]
     users = ["janith"]
@@ -85,12 +79,12 @@ def add_user_attributes():
 
 
 def delete_user_attributes():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    response = id_client.authenticate(token, "issa", "1234")
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd"
+    response = id_client.authenticate(token, "isjarana", "Custos1234")
     attributes = [
         {
-            "key": "home_phone",
-            "values": ["12345678"]
+            "key": "phone",
+            "values": ["8123915386"]
         }
     ]
     users = ["janith"]
@@ -108,9 +102,16 @@ def add_roles_to_user():
 
 
 def find_users():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1Z"
     response = client.find_users(token, 0, 3, username="janith")
     print(response)
 
 
-find_users()
+x = 0;
+#register_and_enable_users()
+add_user_attributes()
+while x <= 50:
+    delete_user_attributes()
+    find_users()
+    add_user_attributes()
+    x = x + 1
