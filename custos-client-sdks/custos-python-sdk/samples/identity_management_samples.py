@@ -29,13 +29,13 @@ client = IdentityManagementClient()
 
 
 def authenticate():
-    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
     response = client.authenticate(token, "isjarana", "Custos1234")
     print(response)
 
 
 def is_authenticated():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
+    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
     access_token = client.authenticate(token, "issa", "1234")
     response = client.is_authenticated(token, access_token.accessToken, "issa")
     print(response)

@@ -37,7 +37,7 @@ def register_user():
 
 
 def register_and_enable_users():
-    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1Z"
     response = id_client.authenticate(token, "isjarana", "Custos1234")
 
     users = [
@@ -65,7 +65,7 @@ def register_and_enable_users():
 
 
 def add_user_attributes():
-    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9Q"
     response = id_client.authenticate(token, "isjarana", "Custos1234")
     attributes = [
         {
@@ -79,7 +79,7 @@ def add_user_attributes():
 
 
 def delete_user_attributes():
-    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd"
     response = id_client.authenticate(token, "isjarana", "Custos1234")
     attributes = [
         {
@@ -102,7 +102,7 @@ def add_roles_to_user():
 
 
 def find_users():
-    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+    token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1Z"
     response = client.find_users(token, 0, 3, username="janith")
     print(response)
 
