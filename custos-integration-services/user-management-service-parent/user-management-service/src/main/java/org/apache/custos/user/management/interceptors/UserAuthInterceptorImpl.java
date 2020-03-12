@@ -27,6 +27,7 @@ import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.user.management.service.LinkUserProfileRequest;
 import org.apache.custos.user.management.service.UserProfileRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,6 +194,29 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .toBuilder()
                     .setClientId(oauthId)
                     .setClientSec(oauthId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token)
+                    .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+            return (ReqT) operationRequest;
+
+        } else if (method.equals("linkUserProfile")) {
+            String token = getToken(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            LinkUserProfileRequest operationRequest = ((LinkUserProfileRequest) msg)
+                    .toBuilder()
+                    .setIamClientId(oauthId)
+                    .setIamClientSecret(oauthSec)
                     .setTenantId(tenantId)
                     .setAccessToken(token)
                     .setPerformedBy(claim.getPerformedBy())
