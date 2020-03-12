@@ -28,6 +28,7 @@ handler.setLevel(logging.DEBUG)
 client = TenantManagementClient()
 admin_client = SuperTenantManagementClient()
 
+token = "XXXX"
 
 def create_tenant():
     contacts = ["2345634324"]
@@ -37,72 +38,64 @@ def create_tenant():
                                           "1234",
                                           contacts, redirect_uris, "https://domain.org/",
                                           "openid profile email org.cilogon.userinfo", "domain.org",
-                                          "https://domain.org/static/favicon.png", " Portal")
-
+                                          "https://domain.org/static/favicon.png", "Galaxy Portal")
     print(response)
 
 
 def get_credentials():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
     response = client.get_credentials(token=token)
     print(response)
 
 
 def get_tenant():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
     client_id = "custos-xgect9otrwawa8uwztym-10000006"
     response = client.get_tenant(token=token, client_id=client_id)
     print(response)
 
 
 def update_tenant():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
-    client_id = "custos-xgect9otrwawa8uwztym-10000006"
-    contacts = ["8123345687"]
-    redirect_uris = ["https://cutos.python/callback"]
-    response = client.update_tenant(token, client_id, "Custos Python Tenant",
-                                    "irjanith@gmail.com", "Janith", "Ranawaka", "irjanith@gmail.com", "Issa",
+    client_id = "custos-wnjs3klilb93hgdrpwuu-10000103"
+    contacts = ["amahmoud@jhu.edu"]
+    redirect_uris = ["http://localhost:8080",
+                     "http://localhost:8080/user/external_ids",
+                     "https://usegalaxy.org/",
+                     " https://usegalaxy.org/user/external_ids",
+                     "http://localhost:8080/authnz/custos/callback",
+                      "http://usegalaxy.org/authnz/custos/callback"]
+    response = client.update_tenant(token, client_id, "Galaxy",
+                                    "jgraham@jhu.edu", "Juleen", "Graham", "jgraham@jhu.edu", "galaxyadmin",
                                     "1234",
-                                    contacts, redirect_uris, "http://custos.lk",
-                                    "openid profile email org.cilogon.userinfo", "custos.python",
-                                    "http://custos.lk", "Creating for test python SDK")
-
+                                    contacts, redirect_uris, "https://usegalaxy.org/",
+                                    "openid profile email org.cilogon.userinfo", "usegalaxy.org",
+                                    "https://usegalaxy.org/static/favicon.png", "Galaxy Parent Tenant")
     print(response)
 
 
 def add_tenant_roles():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
     roles = [{"name": "testing", "composite": False, "description": "testing realm"}]
     response = client.add_tenant_roles(token, roles, False)
-
     print(response)
 
 
 def add_protocol_mapper():
-    token = "Y3VzdG9zLXhnZWN0OW90cndhd2E4dXd6dHltLTEwMDAwMDA2Ok9wUWljMWlBNXVOcldJUDNRRGFwa2x6WXZPUDNCeXA1V3ZjZGMyVDU="
     response = client.add_protocol_mapper(token, "phone_atr", "phone", "phone", "STRING", "USER_ATTRIBUTE", True, True,
                                           True, False, False)
-
     print(response)
 
 
 def get_child_tenants():
-    token = "Y3VzdG9zLWNzOGp5Y2M4Y3U2NmpuYzJ0c3UzLTEwMDAwMDAyOnNZaDVKSXVuUVEzYU5zRzUzdkMxWlpLckNUOE1KbVJLemJSbXdmbGE="
     response = client.get_child_tenants(token, 0, 5, "ACTIVE")
-
     print(response)
 
 
 def get_all_tenants():
-    token = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJpQmtlN0c1RHBYU0pKZjAyRWswRElHaXNyc1BHOEF5d0dXSURyRE80WVNFIn0.eyJqdGkiOiI1OWI4ZTFhZC01MjViLTRmOWMtYjQwMi0xMTdiNjg0Njk5ODYiLCJleHAiOjE1ODM1MjczOTcsIm5iZiI6MCwiaWF0IjoxNTgzNTI1NTk3LCJpc3MiOiJodHRwczovL2tleWNsb2FrLmN1c3Rvcy5zY2lnYXAub3JnOjMxMDAwL2F1dGgvcmVhbG1zLzEwMDAwMDA2IiwiYXVkIjpbInJlYWxtLW1hbmFnZW1lbnQiLCJhY2NvdW50Il0sInN1YiI6ImE5MTc2YjdiLTNlZDQtNDc2Ny1hMzI3LTQ4MmY0YWZjNWRhNSIsInR5cCI6IkJlYXJlciIsImF6cCI6ImN1c3Rvcy14Z2VjdDlvdHJ3YXdhOHV3enR5bS0xMDAwMDAwNiIsImF1dGhfdGltZSI6MTU4MzUyNTU3MSwic2Vzc2lvbl9zdGF0ZSI6ImQ4YTZjZGFlLTYyYzItNGU3Mi1hYTVlLTMzNWYzZmVkNmY3OCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9jdXRvcy5weXRob24iLCJodHRwOi8vY3VzdG9zLmxrIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImFkbWluIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbInZpZXctcmVhbG0iLCJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsIm1hbmFnZS1pZGVudGl0eS1wcm92aWRlcnMiLCJpbXBlcnNvbmF0aW9uIiwicmVhbG0tYWRtaW4iLCJjcmVhdGUtY2xpZW50IiwibWFuYWdlLXVzZXJzIiwicXVlcnktcmVhbG1zIiwidmlldy1hdXRob3JpemF0aW9uIiwicXVlcnktY2xpZW50cyIsInF1ZXJ5LXVzZXJzIiwibWFuYWdlLWV2ZW50cyIsIm1hbmFnZS1yZWFsbSIsInZpZXctZXZlbnRzIiwidmlldy11c2VycyIsInZpZXctY2xpZW50cyIsIm1hbmFnZS1hdXRob3JpemF0aW9uIiwibWFuYWdlLWNsaWVudHMiLCJxdWVyeS1ncm91cHMiXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoib3BlbmlkIGVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ikphbml0aCBSYW5hd2FrYSIsInByZWZlcnJlZF91c2VybmFtZSI6Imlzc2EiLCJnaXZlbl9uYW1lIjoiSmFuaXRoIiwiZmFtaWx5X25hbWUiOiJSYW5hd2FrYSIsImVtYWlsIjoiaXJqYW5pdGhAZ21haWwuY29tIn0.DldRtDOypXVjmXjttJYjHucaHjmzDu5DXNqK-xEgAyY5dpnhmsNpqIHmd5nxS1YAQ7wSt-exc8_ZPiZbtOw6GBdzajo81oa6yc2j6fdLZBdnEOfhmb0sH9u2IEFds9W5gpjqOjNZ04BmtwA8Kp3_CTO6k4j6jdlKJDbW0k30niTWf2T-Y-a4H9Xvs8AnrLbj8sjEj7hxNi9yenquObtvfPBR5sUOCZV8Wfbsl_HKp0pt-LjhO9CXR3dnNue8tD5SYUE1Z5rG2ERIiRbPT4ESBWfKJMIbglzcDMhZKz6XEGYzHycxVbTEShvisLqLFNeH_M1qroBT7zJ5IoXLoR9fvQ"
     response = admin_client.get_all_tenants(token, 0, 5, "ACTIVE")
     print(response)
 
 
 def delete_tenant():
-    token = "Y3VzdG9zLXB2M2ZxZnM5ejFocHMweGlseTJ0LTEwMDAwMDAwOmRYUzJZYllManJjVEs4b2NlWUtHQk9NQzIyWjFJVXpoQW5hM1lyMlg="
     response = client.delete_tenant(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
 
 
-create_tenant()
+update_tenant()

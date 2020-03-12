@@ -36,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service class of User Management Service
@@ -937,10 +938,136 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void linkUserProfile(LinkUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
-            LOGGER.debug("Request received to linkUserProfile "+
-                    " at " + request.getTenantId());
+            LOGGER.debug("Request received to linkUserProfile   at " + request.getTenantId());
 
-            
+            UserSearchMetadata metadata = UserSearchMetadata
+                    .newBuilder()
+                    .setUsername(request.getUsername()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setClientId(request.getIamClientId())
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .setUser(metadata)
+                    .build();
+
+            UserRepresentation userTobeLinked = iamAdminServiceClient.getUser(searchRequest);
+
+
+            if (userTobeLinked != null && !userTobeLinked.getUsername().equals("")) {
+
+                UserSearchMetadata.Builder exMetadata = UserSearchMetadata
+                        .newBuilder();
+
+                if (request.getSearchByEmail()) {
+                    exMetadata.setEmail(userTobeLinked.getEmail());
+                }
+
+                if (request.getSearchByUsername()) {
+                    exMetadata.setUsername(userTobeLinked.getUsername());
+                }
+
+                if (request.getSearchByName()) {
+                    exMetadata.setFirstName(userTobeLinked.getFirstName());
+                    exMetadata.setLastName(userTobeLinked.getLastName());
+                }
+
+
+                UserSearchRequest exSearchRequest = UserSearchRequest
+                        .newBuilder()
+                        .setClientId(request.getIamClientId())
+                        .setTenantId(request.getTenantId())
+                        .setAccessToken(request.getAccessToken())
+                        .setUser(metadata)
+                        .build();
+
+                UserRepresentation exRep = iamAdminServiceClient.getUser(exSearchRequest);
+
+                if (exRep != null && !exRep.getUsername().equals("")) {
+
+                    boolean profileUpdate = false;
+
+                    List<UserAttribute> userAttributeList = new ArrayList<>();
+
+                    for (String attribute : request.getLinkingAttributesList()) {
+
+                        if ("name".equals(attribute)) {
+                            profileUpdate = true;
+                            userTobeLinked = userTobeLinked.toBuilder()
+                                    .setFirstName(exRep.getFirstName())
+                                    .setLastName(exRep.getLastName())
+                                    .build();
+
+                        } else if (("email").equals(attribute)) {
+                            profileUpdate = true;
+                            userTobeLinked = userTobeLinked.toBuilder().setEmail(exRep.getEmail()).build();
+
+                        } else {
+                            List<UserAttribute> userAttributes = exRep.getAttributesList().stream().
+                                    filter(atr -> atr.getKey().equals(attribute)).collect(Collectors.toList());
+
+                            if (!userAttributes.isEmpty()) {
+                                UserAttribute userAttribute = userAttributes.get(0);
+                                userAttributeList.add(userAttribute);
+                            }
+                        }
+                    }
+
+                    if (profileUpdate) {
+                        UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
+                                .newBuilder()
+                                .setUser(userTobeLinked)
+                                .setAccessToken(request.getAccessToken())
+                                .setTenantId(request.getTenantId())
+                                .build();
+                        iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+                    }
+
+                    if (!userAttributeList.isEmpty()) {
+
+                        AddUserAttributesRequest addUserAttributesRequest = AddUserAttributesRequest
+                                .newBuilder()
+                                .addUsers(request.getUsername())
+                                .addAllAttributes(userAttributeList)
+                                .setTenantId(request.getTenantId())
+                                .setAccessToken(request.getAccessToken())
+                                .setClientId(request.getIamClientId())
+                                .setPerformedBy(request.getPerformedBy())
+                                .build();
+                        iamAdminServiceClient.addUserAttributes(addUserAttributesRequest);
+
+                    }
+
+
+                    UserRepresentation updatedUser = iamAdminServiceClient.getUser(searchRequest);
+
+                    if (updatedUser != null) {
+
+                        UserProfile profile = this.convertToProfile(updatedUser);
+
+                        org.apache.custos.user.profile.service.UserProfileRequest req =
+                                org.apache.custos.user.profile.service.UserProfileRequest
+                                        .newBuilder()
+                                        .setTenantId(request.getTenantId())
+                                        .setProfile(profile)
+                                        .build();
+
+                        userProfileClient.updateUserProfile(req);
+
+                    }
+
+                    CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
+                    responseObserver.onNext(response);
+                    responseObserver.onCompleted();
+
+                } else {
+                    String msg = "Cannot found existing user ";
+                    LOGGER.error(msg);
+                    responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                }
+
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
