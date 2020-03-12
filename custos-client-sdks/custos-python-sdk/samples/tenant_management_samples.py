@@ -30,6 +30,7 @@ admin_client = SuperTenantManagementClient()
 
 token = "XXXX"
 
+
 def create_tenant():
     contacts = ["2345634324"]
     redirect_uris = ["http://localhost:8080,http://localhost:8080/user/external_ids"]
@@ -55,19 +56,14 @@ def get_tenant():
 
 def update_tenant():
     client_id = "custos-wnjs3klilb93hgdrpwuu-10000103"
-    contacts = ["amahmoud@jhu.edu"]
-    redirect_uris = ["http://localhost:8080",
-                     "http://localhost:8080/user/external_ids",
-                     "https://usegalaxy.org/",
-                     " https://usegalaxy.org/user/external_ids",
-                     "http://localhost:8080/authnz/custos/callback",
-                      "http://usegalaxy.org/authnz/custos/callback"]
-    response = client.update_tenant(token, client_id, "Galaxy",
-                                    "jgraham@jhu.edu", "Juleen", "Graham", "jgraham@jhu.edu", "galaxyadmin",
+    contacts = ["2345634324"]
+    redirect_uris = ["http://localhost:8080,http://localhost:8080/user/external_ids"]
+    response = client.update_tenant(token, client_id, "SAMPLE",
+                                    "XXX@iu.edu", "First Name", "LastName", "email", "admin",
                                     "1234",
-                                    contacts, redirect_uris, "https://usegalaxy.org/",
-                                    "openid profile email org.cilogon.userinfo", "usegalaxy.org",
-                                    "https://usegalaxy.org/static/favicon.png", "Galaxy Parent Tenant")
+                                    contacts, redirect_uris, "https://domain.org/",
+                                    "openid profile email org.cilogon.userinfo", "domain.org",
+                                    "https://domain.org/static/favicon.png", "Galaxy Portal")
     print(response)
 
 
