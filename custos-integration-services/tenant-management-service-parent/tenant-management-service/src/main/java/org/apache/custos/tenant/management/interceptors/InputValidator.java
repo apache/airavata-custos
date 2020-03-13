@@ -69,10 +69,13 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 break;
             case "addTenantRoles":
                 validateAddRoleToTenant(headers, body, methodName);
+                break;
             case "addProtocolMapper":
                 validateAddProtocolMapper(headers, body, methodName);
+                break;
             case "updateTenantStatus":
                 validateUpdateTenantStatus(headers, body, methodName);
+                break;
             default:
         }
     }

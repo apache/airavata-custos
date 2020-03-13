@@ -58,11 +58,11 @@ public class InputValidator implements IntegrationServiceInterceptor {
         validationAuthorizationHeader(headers);
         LinkUserProfileRequest request = ((LinkUserProfileRequest) body);
 
-        if (request.getUsername() == null || request.getUsername().equals("")) {
-            throw new MissingParameterException("Username should not be null", null);
+        if (request.getPreviousUsername() == null || request.getPreviousUsername().equals("")) {
+            throw new MissingParameterException("Previous Username should not be null", null);
         }
-        if (!(request.getSearchByName() || request.getSearchByEmail() || request.getSearchByUsername())) {
-            throw new MissingParameterException("At least one search parameter should ne true", null);
+        if (request.getCurrentUsername() == null || request.getCurrentUsername().equals("")) {
+            throw new MissingParameterException("Current username  should not be null", null);
         }
         if (request.getLinkingAttributesList().isEmpty()) {
             throw new MissingParameterException("Linking attributes should not be empty", null);
