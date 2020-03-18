@@ -426,7 +426,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     OperationStatus.FAILED,
                     request.getTenantId(), request.getPerformedBy());
 
-            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
