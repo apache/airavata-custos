@@ -757,11 +757,11 @@ public class KeycloakClient {
 
                 if (exAtrMap != null && !exAtrMap.isEmpty()) {
                     attributeMap.keySet().forEach(key -> {
-                       List<String> stringList =  exAtrMap.get(key);
-                       if (stringList != null && !stringList.isEmpty()) {
-                           stringList.removeAll(attributeMap.get(key));
-                           exAtrMap.put(key,stringList);
-                       }
+                        List<String> stringList = exAtrMap.get(key);
+                        if (stringList != null && !stringList.isEmpty()) {
+                            stringList.removeAll(attributeMap.get(key));
+                            exAtrMap.put(key, stringList);
+                        }
                     });
                     userRepresentation.setAttributes(exAtrMap);
                 }
@@ -1037,10 +1037,36 @@ public class KeycloakClient {
                                                  String firstName, String lastName, String email, int offset, int limit) {
 
         // Searching for users by username returns also partial matches, so need to filter down to an exact match if it exists
-        return client.realm(tenantId).users().search(
+        List<UserRepresentation> userResourceList = client.realm(tenantId).users().search(
                 username.toLowerCase(), firstName, lastName, email, offset, limit);
 
-    }
+        if (userResourceList != null && !userResourceList.isEmpty()) {
+            List<UserRepresentation> newList = new ArrayList<>();
+            for (UserRepresentation userRepresentation : userResourceList) {
+                RoleMappingResource resource = client.realm(tenantId).users().get(userRepresentation.getId()).roles();
+                MappingsRepresentation representation = resource.getAll();
+                if (representation != null && representation.getRealmMappings() != null) {
+                    List<String> roleRepresentations = new ArrayList<>();
+                    representation.getRealmMappings().forEach(t -> roleRepresentations.add(t.getName()));
+                    userRepresentation.setRealmRoles(roleRepresentations);
+                }
+                if (representation != null && representation.getClientMappings() != null) {
+                    Map<String, List<String>> roleRepresentations = new HashMap<>();
+                    representation.getClientMappings().keySet().forEach(key -> {
+                        if (representation.getClientMappings().get(key).getMappings() != null) {
+                            List<String> roleList = new ArrayList<>();
+                            representation.getClientMappings().get(key).getMappings().forEach(t -> roleList.add(t.getName()));
+                            roleRepresentations.put(key, roleList);
+                        }
+                    });
+                    userRepresentation.setClientRoles(roleRepresentations);
+                }
+                newList.add(userRepresentation);
+            }
+            return userResourceList;
+        }
 
+        return userResourceList;
+    }
 
 }
