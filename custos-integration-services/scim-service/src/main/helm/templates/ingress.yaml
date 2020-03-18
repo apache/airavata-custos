@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: ${artifactId}-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /identity-management/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /scim/$2
 spec:
   rules:
     - host: custos.scigap.org

@@ -226,7 +226,14 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                     .build();
 
 
-                    userProfileClient.updateUserProfile(req);
+                    UserProfile existingProfile = userProfileClient.getUser(req);
+
+                    if (existingProfile == null || existingProfile.getUsername().trim().equals("")) {
+                        userProfileClient.createUserProfile(req);
+                    } else {
+
+                        userProfileClient.updateUserProfile(req);
+                    }
 
 
                 }
@@ -380,7 +387,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             UserProfile profile = userProfileClient.getUser(req);
 
-            if (profile != null) {
+            if (profile != null || !profile.getUsername().trim().equals("")) {
 
                 UserProfile deletedProfile = userProfileClient.deleteUser(req);
 
@@ -550,9 +557,14 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                     .build();
 
 
-                    userProfileClient.updateUserProfile(req);
+                    UserProfile exsistingProfile = userProfileClient.getUser(req);
 
+                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().equals("")) {
+                        userProfileClient.createUserProfile(req);
+                    } else {
 
+                        userProfileClient.updateUserProfile(req);
+                    }
                 }
 
             }
