@@ -312,7 +312,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             representation.stream().forEach(r -> users.add(this.getUser(r, request.getClientId())));
 
 
-            FindUsersResponse response = FindUsersResponse.newBuilder().addAllUser(users).build();
+            FindUsersResponse response = FindUsersResponse.newBuilder().addAllUsers(users).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
