@@ -79,8 +79,6 @@ message LinkUserProfileRequest {
 
 
 
-
-
 service UserManagementService {
 
     rpc registerUser (org.apache.custos.iam.service.RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
@@ -159,7 +157,7 @@ service UserManagementService {
     }
 
 
-    rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user"
            body: "user"
@@ -168,7 +166,7 @@ service UserManagementService {
     }
 
 
-    rpc deleteUserRoles (org.apache.custos.iam.service.DeleteUserRolesRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc deleteUserRoles (org.apache.custos.iam.service.DeleteUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user/roles"
          };
@@ -205,7 +203,7 @@ service UserManagementService {
 
     }
 
-    rpc linkUserProfile(LinkUserProfileRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc linkUserProfile(LinkUserProfileRequest) returns (org.apache.custos.iam.service.OperationStatus) {
 
         option (google.api.http) = {
            post: "/user-management/v1.0.0/user/profile/mapper"

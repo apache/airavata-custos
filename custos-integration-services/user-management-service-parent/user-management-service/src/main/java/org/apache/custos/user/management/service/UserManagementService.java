@@ -373,7 +373,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void deleteUser(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void deleteUser(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             UserProfile profileReq = UserProfile.newBuilder().setUsername(request.getUser().getUsername().toLowerCase()).build();
 
@@ -387,7 +387,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             UserProfile profile = userProfileClient.getUser(req);
 
-            if (profile != null || !profile.getUsername().trim().equals("")) {
+            if (profile != null && !profile.getUsername().trim().equals("")) {
+
 
                 UserProfile deletedProfile = userProfileClient.deleteUser(req);
 
@@ -395,7 +396,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                     CheckingResponse response = iamAdminServiceClient.deleteUser(request);
 
-                    responseObserver.onNext(response);
+                    OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
+                    responseObserver.onNext(status);
                     responseObserver.onCompleted();
 
 
@@ -408,14 +410,19 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             } else {
                 CheckingResponse response = iamAdminServiceClient.deleteUser(request);
 
-                responseObserver.onNext(response);
+                OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
+                responseObserver.onNext(status);
                 responseObserver.onCompleted();
             }
 
         } catch (Exception ex) {
             String msg = "Error occurred at deleteUser " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
         }
     }
 
@@ -586,7 +593,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
     @Override
     public void deleteUserRoles(DeleteUserRolesRequest
-                                        request, StreamObserver<CheckingResponse> responseObserver) {
+                                        request, StreamObserver<OperationStatus> responseObserver) {
         try {
             CheckingResponse response = iamAdminServiceClient.deleteUserRoles(request);
 
@@ -624,7 +631,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
 
-            responseObserver.onNext(response);
+            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
+            responseObserver.onNext(status);
             responseObserver.onCompleted();
 
         } catch (
@@ -948,7 +956,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
-    public void linkUserProfile(LinkUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void linkUserProfile(LinkUserProfileRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to linkUserProfile   at " + request.getTenantId());
 
@@ -1068,7 +1076,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                         }
 
                         CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
-                        responseObserver.onNext(response);
+                        OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
+                        responseObserver.onNext(status);
                         responseObserver.onCompleted();
 
                     } else {
