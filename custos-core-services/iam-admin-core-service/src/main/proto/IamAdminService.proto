@@ -154,7 +154,7 @@ message UserSearchRequest {
 }
 
 message FindUsersResponse {
-    repeated UserRepresentation user = 1;
+    repeated UserRepresentation users = 1;
 }
 
 message ResetUserPassword {
