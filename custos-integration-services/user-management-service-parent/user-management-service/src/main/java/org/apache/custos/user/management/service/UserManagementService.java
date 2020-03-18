@@ -380,7 +380,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             UserProfile profile = userProfileClient.getUser(req);
 
-            if (profile != null) {
+            if (profile != null || !profile.getUsername().trim().equals("")) {
 
                 UserProfile deletedProfile = userProfileClient.deleteUser(req);
 
