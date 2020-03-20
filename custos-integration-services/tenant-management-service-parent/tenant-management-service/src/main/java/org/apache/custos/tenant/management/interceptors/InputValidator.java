@@ -29,7 +29,6 @@ import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.apache.custos.tenant.management.service.UpdateTenantRequest;
 import org.apache.custos.tenant.management.utils.Constants;
-import org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest;
 import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +70,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 validateAddRoleToTenant(headers, body, methodName);
                 break;
             case "addProtocolMapper":
+            case "configureEventPersistence":
                 validateAddProtocolMapper(headers, body, methodName);
                 break;
             case "updateTenantStatus":
@@ -160,10 +160,10 @@ public class InputValidator implements IntegrationServiceInterceptor {
     }
 
     private boolean validateUpdateTenantStatus(Metadata headers, Object body, String method) {
-       boolean isSuperTenant =  ((UpdateStatusRequest)body).getSuperTenant();
-       if (!isSuperTenant) {
-           validationAuthorizationHeader(headers);
-       }
+        boolean isSuperTenant = ((UpdateStatusRequest) body).getSuperTenant();
+        if (!isSuperTenant) {
+            validationAuthorizationHeader(headers);
+        }
 
         UpdateStatusRequest updateStatusRequest = ((UpdateStatusRequest) body);
 
@@ -172,7 +172,6 @@ public class InputValidator implements IntegrationServiceInterceptor {
         }
         return true;
     }
-
 
 
     private boolean validationAuthorizationHeader(Metadata headers) {

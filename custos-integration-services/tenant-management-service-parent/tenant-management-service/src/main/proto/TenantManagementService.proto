@@ -154,6 +154,12 @@ service TenantManagementService {
         };
     }
 
+    rpc configureEventPersistence (org.apache.custos.iam.service.EventPersistenceRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/events"
+        };
+    }
+
     rpc getCredentials (GetCredentialsRequest) returns (GetCredentialsResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/credentials"

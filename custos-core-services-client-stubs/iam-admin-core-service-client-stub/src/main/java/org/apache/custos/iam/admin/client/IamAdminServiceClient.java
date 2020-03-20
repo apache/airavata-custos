@@ -174,6 +174,11 @@ public class IamAdminServiceClient {
 
     }
 
+    public UserRepresentation disableUser(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.disableUser(request);
+
+    }
+
 
     public CheckingResponse isUserExist(UserSearchRequest request) {
 
@@ -241,6 +246,10 @@ public class IamAdminServiceClient {
 
     public OperationStatus deleteUserAttributes (DeleteUserAttributeRequest deleteUserAttributeRequest) {
         return iamAdminServiceBlockingStub.deleteUserAttributes(deleteUserAttributeRequest);
+    }
+
+    public OperationStatus configureEventPersistence (EventPersistenceRequest persistenceRequest) {
+        return iamAdminServiceBlockingStub.configureEventPersistence(persistenceRequest);
     }
 
     public String getIamServerURL() {

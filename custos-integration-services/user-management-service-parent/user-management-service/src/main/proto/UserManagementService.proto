@@ -114,6 +114,15 @@ service UserManagementService {
          };
     }
 
+    rpc disableUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/deactivation"
+           body: "user"
+         };
+    }
+
+
+
     rpc addRolesToUsers ( org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            post: "/user-management/v1.0.0/users/roles"

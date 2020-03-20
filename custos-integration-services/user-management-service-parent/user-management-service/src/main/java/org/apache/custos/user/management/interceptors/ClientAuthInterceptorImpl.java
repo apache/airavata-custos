@@ -90,7 +90,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
                             .build();
 
             return (ReqT) registerUserRequest;
-        } else if (method.equals("enableUser") || method.equals("isUserEnabled") || method.equals("isUsernameAvailable")) {
+        } else if (method.equals("enableUser")|| method.equals("disableUser") ||
+                method.equals("isUserEnabled") || method.equals("isUsernameAvailable")) {
             AuthClaim claim = authorize(headers);
 
             if (claim == null) {

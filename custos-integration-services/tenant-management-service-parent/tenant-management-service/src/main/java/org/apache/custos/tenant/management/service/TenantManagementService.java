@@ -27,9 +27,7 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
-import org.apache.custos.iam.service.AddProtocolMapperRequest;
-import org.apache.custos.iam.service.AddRolesRequest;
-import org.apache.custos.iam.service.AllRoles;
+import org.apache.custos.iam.service.*;
 import org.apache.custos.iam.service.OperationStatus;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
@@ -373,6 +371,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at addProtocolMapper " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void configureEventPersistence(EventPersistenceRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            OperationStatus allRoles = iamAdminServiceClient.configureEventPersistence(request);
+
+            responseObserver.onNext(allRoles);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at configureEventPersistence " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

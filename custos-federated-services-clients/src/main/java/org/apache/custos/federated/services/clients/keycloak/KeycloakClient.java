@@ -335,6 +335,32 @@ public class KeycloakClient {
         }
     }
 
+
+    public boolean disableUserAccount(String realmId, String accessToken, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
+            UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
+            UserRepresentation profile = userResource.toRepresentation();
+            profile.setEnabled(false);
+            // We require that a user verify their email before enabling the account
+            // profile.setEmailVerified(true);
+            userResource.update(profile);
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException();
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
     public boolean isUserAccountEnabled(String realmId, String accessToken, String username) {
         Keycloak client = null;
         try {
@@ -902,6 +928,136 @@ public class KeycloakClient {
 
     }
 
+    /**
+     * Configure event persistance for Keycloak Realms.
+     * @param realmId
+     * @param eventType
+     * @param time
+     * @param enabelEvents
+     * @param isAdminEvent
+     * @return
+     */
+    public boolean configureEventPersistence(String realmId, String eventType, long time, boolean enabelEvents, boolean isAdminEvent) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmEventsConfigRepresentation representation = client.realm(realmId).getRealmEventsConfig();
+
+            if (isAdminEvent) {
+                representation.setAdminEventsEnabled(true);
+            } else {
+                representation.setEventsEnabled(enabelEvents);
+                representation.setEventsExpiration(time);
+                List<String> eventTypes = representation.getEnabledEventTypes();
+                if (eventTypes != null && !eventTypes.isEmpty() && !eventTypes.contains(eventType)) {
+                    eventTypes.add(eventType);
+
+                } else {
+                    eventTypes = new ArrayList<>();
+                    eventTypes.add(eventType);
+                }
+
+                representation.setEnabledEventTypes(eventTypes);
+
+                client.realm(realmId).updateRealmEventsConfig(representation);
+
+            }
+
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while configuring event persistence events, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    /**
+     * Get Last login event of given user
+     *
+     * @param realmId
+     * @param clientId
+     * @return
+     */
+    public EventRepresentation getLastLoginEvent(String realmId, String clientId, String username) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            List<EventRepresentation> eventRepresentations = client.realm(realmId).getEvents();
+
+            for (EventRepresentation representation : eventRepresentations) {
+                Map<String, String> map = representation.getDetails();
+
+
+                if (map != null && !map.isEmpty()) {
+                    for (String key : map.keySet()) {
+                        if (key.equals("username") && map.get(key).equals(username)) {
+                            return representation;
+                        }
+                    }
+                }
+            }
+
+            return null;
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while pulling events, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    public UserSessionRepresentation getLatestSession(String realmId, String clientId, String accessToken, String username) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
+                    username.toLowerCase(), null, null, null, null, null);
+
+            if (!userResourceList.isEmpty() && userResourceList.get(0).getUsername().equals(username.toLowerCase())) {
+                UserRepresentation userRepresentation = userResourceList.get(0);
+                List<UserSessionRepresentation> userSessionRepresentations = client.realm(realmId).users().get(userRepresentation.getId()).getUserSessions();
+
+                if (!userSessionRepresentations.isEmpty()) {
+                    return userSessionRepresentations.get(userSessionRepresentations.size() - 1);
+                }
+
+            }
+
+            return null;
+        } catch (Exception ex) {
+            String msg = "Error occurred while pulling active user sessions, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
     private ResteasyClient getRestClient() {
         return new ResteasyClientBuilder()
                 .connectionPoolSize(POOL_SIZE)
@@ -1006,6 +1162,7 @@ public class KeycloakClient {
         // Searching for users by username returns also partial matches, so need to filter down to an exact match if it exists
         List<UserRepresentation> userResourceList = client.realm(tenantId).users().search(
                 username.toLowerCase(), null, null, null, null, null);
+
         for (UserRepresentation userRepresentation : userResourceList) {
             if (userRepresentation.getUsername().equals(username.toLowerCase())) {
                 RoleMappingResource resource = client.realm(tenantId).users().get(userRepresentation.getId()).roles();
