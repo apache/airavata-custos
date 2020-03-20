@@ -96,6 +96,7 @@ message UserRepresentation {
     repeated UserAttribute attributes = 11;
     string state = 12;
     double creation_time = 13;
+    double last_login_at = 14;
 }
 
 
@@ -293,6 +294,19 @@ message UserAttribute {
     repeated string values = 2;
 }
 
+message EventPersistenceRequest {
+int64 tenantId = 1;
+bool admin_event = 2;
+string event = 3;
+bool enable = 4;
+int64 persistence_time = 5;
+string  performedBy = 6;
+}
+
+
+
+
+
 service IamAdminService {
 
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
@@ -305,6 +319,7 @@ service IamAdminService {
     rpc isUsernameAvailable (UserSearchRequest) returns (CheckingResponse);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc enableUser (UserSearchRequest) returns (UserRepresentation);
+    rpc disableUser(UserSearchRequest) returns (UserRepresentation);
     rpc isUserEnabled (UserSearchRequest) returns (CheckingResponse);
     rpc isUserExist (UserSearchRequest) returns (CheckingResponse);
     rpc getUser (UserSearchRequest) returns (UserRepresentation);
@@ -323,4 +338,8 @@ service IamAdminService {
     rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
 
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+
+    rpc configureEventPersistence (EventPersistenceRequest) returns (OperationStatus);
+
+
 }

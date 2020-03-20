@@ -23,6 +23,7 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.AddProtocolMapperRequest;
 import org.apache.custos.iam.service.AddRolesRequest;
+import org.apache.custos.iam.service.EventPersistenceRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
@@ -114,6 +115,15 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) rolesRequest.toBuilder()
                     .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+        } else if (method.equals("configureEventPersistence")) {
+
+            AuthClaim claim = validateAuth(headers);
+
+            EventPersistenceRequest rolesRequest = ((EventPersistenceRequest) msg);
+
+            return (ReqT) rolesRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setPerformedBy("Tenant Admin")
+                    .build();
         } else if (method.equals("getChildTenants")) {
 
             AuthClaim claim = validateAuth(headers);

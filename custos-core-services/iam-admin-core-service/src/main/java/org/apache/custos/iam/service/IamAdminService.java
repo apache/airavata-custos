@@ -30,8 +30,10 @@ import org.apache.custos.federated.services.clients.keycloak.UnauthorizedExcepti
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
 import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
+import org.keycloak.representations.idm.EventRepresentation;
 import org.keycloak.representations.idm.ProtocolMapperRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.UserSessionRepresentation;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,6 +252,54 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+
+    @Override
+    public void disableUser(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.UserRepresentation> responseObserver) {
+        try {
+            LOGGER.debug("Request received to disable for " + request.getTenantId());
+
+            boolean accountDisabled = keycloakClient.disableUserAccount(String.valueOf(request.getTenantId()),
+                    request.getAccessToken(), request.getUser().getUsername());
+            if (accountDisabled) {
+
+                UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
+                        request.getAccessToken(), request.getUser().getUsername());
+
+                org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
+
+
+                statusUpdater.updateStatus(IAMOperations.DISABLE_USER.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
+
+
+                responseObserver.onNext(user);
+                responseObserver.onCompleted();
+
+            } else {
+
+                statusUpdater.updateStatus(IAMOperations.DISABLE_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
+
+                String msg = "Account enabling failed ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred during disabling user" + ex;
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DISABLE_USER.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    String.valueOf(request.getTenantId()));
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     @Override
     public void isUserExist(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
         try {
@@ -280,6 +330,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             if (representation != null) {
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
+
+                UserSessionRepresentation sessionRepresentation = keycloakClient.getLatestSession(String.valueOf(request.getTenantId()),
+                        request.getClientId(), request.getAccessToken(), request.getUser().getUsername());
+
+                if (sessionRepresentation != null) {
+                    user = user.toBuilder().setLastLoginAt(sessionRepresentation.getLastAccess()).build();
+                } else {
+                    EventRepresentation eventRepresentation = keycloakClient.
+                            getLastLoginEvent(String.valueOf(request.getTenantId()), request.getClientId()
+                                    , request.getUser().getUsername());
+                    if (eventRepresentation != null) {
+                        user = user.toBuilder().setLastLoginAt(eventRepresentation.getTime()).build();
+                    }
+                }
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
@@ -748,7 +812,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 mapperModel = "oidc-usermodel-realm-role-mapper";
             } else if (request.getMapperType().equals(MapperTypes.USER_CLIENT_ROLE)) {
                 mapperModel = "oidc-usermodel-client-role-mapper";
-                configMap.put("usermodel.clientRoleMapping.clientId",request.getClientId());
+                configMap.put("usermodel.clientRoleMapping.clientId", request.getClientId());
             } else {
                 responseObserver.onError(io.grpc.Status.UNIMPLEMENTED.
                         withDescription("Mapping type not supported").asRuntimeException());
@@ -790,7 +854,6 @@ public class IamAdminService extends IamAdminServiceImplBase {
             configMap.put("aggregate.attrs", String.valueOf(request.getAggregateAttributeValues()));
             configMap.put("userinfo.token.claim", String.valueOf(request.getAddToUserInfo()));
             configMap.put("multivalued", String.valueOf(request.getMultiValued()));
-
 
 
             protocolMapperRepresentation.setConfig(configMap);
@@ -889,6 +952,40 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getTenantId(),
                     request.getPerformedBy());
             String msg = " Add attributes   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void configureEventPersistence(EventPersistenceRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to configureEventPersistence " + request.getTenantId());
+
+            keycloakClient.configureEventPersistence(
+                    String.valueOf(request.getTenantId()),
+                    request.getEvent(),
+                    request.getPersistenceTime(),
+                    request.getEnable(),
+                    request.getAdminEvent()
+            );
+            org.apache.custos.iam.service.OperationStatus status =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.CONFIGURE_PERSISTANCE.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Configure Event Persistence   failed for " + request.getTenantId() + " " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
