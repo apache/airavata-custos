@@ -1,0 +1,19 @@
+[{
+  "attributeURI":"urn:scim:schemas:extension:custos:1.0:custos.realm_roles",
+  "attributeName":"realm_roles",
+  "dataType":"string",
+  "multiValued":"false",
+  "multiValuedAttributeChildName":"null",
+  "description":"The uid of the user",
+  "schemaURI":"urn:scim:schemas:extension:custos:1.0",
+  "readOnly":"false",
+  "required":"false",
+  "caseExact":"false",
+  "subAttributes":"null",
+  "mutability": "readWrite",
+  "returned": "default",
+  "uniqueness": "none",
+  "canonicalValues": [],
+  "referenceTypes": []
+
+}]

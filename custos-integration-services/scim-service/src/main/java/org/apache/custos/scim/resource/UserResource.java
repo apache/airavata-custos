@@ -19,15 +19,18 @@
 
 package org.apache.custos.scim.resource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.*;
 import org.apache.custos.scim.resource.manager.ResourceManager;
 import org.apache.custos.scim.utils.Constants;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.wso2.charon3.core.protocol.SCIMResponse;
+import org.wso2.charon3.core.protocol.endpoints.SchemaResourceManager;
 import org.wso2.charon3.core.protocol.endpoints.UserResourceManager;
 
 import java.net.URI;
@@ -37,7 +40,7 @@ import java.util.Map;
 @RestController
 @RequestMapping(value = {"/v2/Users"})
 @Api(value = "User Resource Management")
-public class UserResource {
+public class UserResource extends AbstractResource{
 
     private final static Logger LOGGER = LoggerFactory.getLogger(UserResource.class);
 
@@ -79,28 +82,20 @@ public class UserResource {
                                      @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                      @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
                                      @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
-                                     String resourceString) {
+                                     @RequestBody Map<String, Object> payload) {
 
-        LOGGER.info("Request Received "+ resourceString);
+        JSONObject object = new JSONObject(payload);
+
 
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
 
-        SCIMResponse response = userResourceManager.create(resourceString, resourceManager,
+
+        SCIMResponse response = userResourceManager.create(object.toString(), resourceManager,
                 attribute, excludedAttributes);
 
 
-        LOGGER.info("Status" + response.getResponseStatus());
-        LOGGER.info("Message" + response.getResponseMessage());
-        Map<String, String> headerMap = response.getHeaderParamMap();
-
-        for (String key : headerMap.keySet()) {
-            LOGGER.info("Key: " + key);
-            LOGGER.info("Value: " + headerMap.get(key));
-        }
-
-        ResponseEntity responseEntity = ResponseEntity.created(URI.create("http://lcoalhost:8080")).build();
-        return responseEntity;
+        return buildResponse(response);
     }
 
     @ApiOperation(

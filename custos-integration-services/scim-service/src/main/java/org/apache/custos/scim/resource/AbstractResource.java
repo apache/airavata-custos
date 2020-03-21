@@ -17,28 +17,34 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.utils;
+package org.apache.custos.scim.resource;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.wso2.charon3.core.protocol.SCIMResponse;
+
+import java.util.Map;
 
 /**
- * Includes operations associated with keycloak
+ * Parent class of all resources
  */
-public enum IAMOperations {
+public class AbstractResource {
 
-    SET_UP_TENANT,
-    REGISTER_USER,
-    ENABLE_USER,
-    DISABLE_USER,
-    DELETE_USER,
-    RESET_PASSWORD,
-    UPDATE_USER_PROFILE,
-    ADD_ROLE_TO_USER,
-    DELETE_ROLE_FROM_USER,
-    CONFIGURE_IDP,
-    REGISTER_ENABLE_USERS,
-    ADD_ROLES_TO_TENANT,
-    ADD_PROTOCOL_MAPPER,
-    ADD_USER_ATTRIBUTE,
-    ADD_ROLES_TO_USERS,
-    DELETE_USER_ATTRIBUTES,
-    CONFIGURE_PERSISTANCE;
+
+    public ResponseEntity buildResponse(SCIMResponse response) {
+
+        ResponseEntity.BodyBuilder builder = ResponseEntity
+                .status(response.getResponseStatus());
+
+        Map<String, String> headerMap = response.getHeaderParamMap();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        for (String key : headerMap.keySet()) {
+            httpHeaders.set(key, headerMap.get(key));
+        }
+
+        return builder.headers(httpHeaders).body(response.getResponseMessage());
+
+    }
+
 }

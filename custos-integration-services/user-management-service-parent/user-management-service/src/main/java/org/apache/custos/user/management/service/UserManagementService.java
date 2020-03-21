@@ -372,6 +372,68 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    @Override
+    public void disableUser(UserSearchRequest request, StreamObserver<UserRepresentation> responseObserver) {
+        try {
+
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+            if (token != null && token.getAccessToken() != null) {
+
+                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
+
+                UserRepresentation user = iamAdminServiceClient.disableUser(request);
+
+                if (user != null) {
+
+                    UserProfile profile = this.convertToProfile(user);
+
+                    org.apache.custos.user.profile.service.UserProfileRequest profileRequest =
+                            org.apache.custos.user.profile.service.UserProfileRequest.newBuilder()
+                                    .setProfile(profile)
+                                    .setTenantId(request.getTenantId())
+                                    .build();
+
+                    UserProfile exProfile = userProfileClient.getUser(profileRequest);
+
+                    if (exProfile.getUsername().equals("")) {
+                        userProfileClient.createUserProfile(profileRequest);
+                    } else {
+                        userProfileClient.updateUserProfile(profileRequest);
+                    }
+
+
+                    responseObserver.onNext(user);
+                    responseObserver.onCompleted();
+
+
+                } else {
+                    String msg = "User enabling failed at IDP server";
+                    LOGGER.error(msg);
+                    responseObserver.onError(Status.CANCELLED.withDescription(msg).asRuntimeException());
+
+                }
+            } else {
+                LOGGER.error("Cannot find service token");
+                responseObserver.onError(Status.CANCELLED.
+                        withDescription("Cannot find service token").asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at enableUser " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
     @Override
     public void deleteUser(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {

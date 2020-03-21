@@ -21,14 +21,23 @@ package org.apache.custos.scim.resource.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.wso2.charon3.core.attributes.Attribute;
+import org.wso2.charon3.core.attributes.SimpleAttribute;
+import org.wso2.charon3.core.config.SCIMUserSchemaExtensionBuilder;
 import org.wso2.charon3.core.exceptions.*;
 import org.wso2.charon3.core.extensions.UserManager;
 import org.wso2.charon3.core.objects.Group;
 import org.wso2.charon3.core.objects.User;
+import org.wso2.charon3.core.protocol.endpoints.AbstractResourceManager;
+import org.wso2.charon3.core.schema.SCIMConstants;
+import org.wso2.charon3.core.schema.SCIMResourceSchemaManager;
 import org.wso2.charon3.core.utils.CopyUtil;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,14 +53,49 @@ public class ResourceManager implements UserManager {
     //in memory user manager stores users
     ConcurrentHashMap<String, User> inMemoryUserList = new ConcurrentHashMap<String, User>();
     ConcurrentHashMap<String, Group> inMemoryGroupList = new ConcurrentHashMap<String, Group>();
+
+    public ResourceManager(@Value("${scim.resource.user.endpoint}") String userEndpoint,
+                           @Value("${scim.resource.group.endpoint}") String groupEndpoint) {
+
+        Map<String, String> endpointMap = new HashMap<>();
+        endpointMap.put(SCIMConstants.USER_ENDPOINT, userEndpoint);
+        endpointMap.put(SCIMConstants.GROUP_ENDPOINT, groupEndpoint);
+        AbstractResourceManager.setEndpointURLMap(endpointMap);
+
+        try {
+            SCIMUserSchemaExtensionBuilder.getInstance()
+                    .buildUserSchemaExtension("/home/ubuntu/schemas/custos_user_schema_extention.json");
+        } catch (CharonException e) {
+            e.printStackTrace();
+        } catch (InternalErrorException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
     @Override
     public User createUser(User user, Map<String, Boolean> map) throws CharonException, ConflictException, BadRequestException {
+
+         Map<String, Attribute>  attrs =   user.getAttributeList();
+
+         for (String key: attrs.keySet()) {
+             logger.info("key "+key + "value "+ attrs.get(key).getName());
+             logger.info("Property"+ attrs.get(key).getAttributeProperty(key));
+             logger.info("Attribute"+( (SimpleAttribute)attrs.get(key)).getStringValue());
+         }
+
+
+
+
         if (inMemoryUserList.get(user.getId()) != null) {
             throw new ConflictException("User with the id : " + user.getId() + "already exists");
         } else {
             inMemoryUserList.put(user.getId(), user);
             return (User) CopyUtil.deepCopy(user);
         }
+
+
     }
 
     @Override
