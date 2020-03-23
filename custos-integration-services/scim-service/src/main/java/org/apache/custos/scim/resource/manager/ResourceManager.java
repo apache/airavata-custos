@@ -32,10 +32,8 @@ import org.wso2.charon3.core.objects.Group;
 import org.wso2.charon3.core.objects.User;
 import org.wso2.charon3.core.protocol.endpoints.AbstractResourceManager;
 import org.wso2.charon3.core.schema.SCIMConstants;
-import org.wso2.charon3.core.schema.SCIMResourceSchemaManager;
 import org.wso2.charon3.core.utils.CopyUtil;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
-
 
 import java.util.HashMap;
 import java.util.List;
@@ -77,15 +75,15 @@ public class ResourceManager implements UserManager {
     @Override
     public User createUser(User user, Map<String, Boolean> map) throws CharonException, ConflictException, BadRequestException {
 
-         Map<String, Attribute>  attrs =   user.getAttributeList();
+        Map<String, Attribute> attrs = user.getAttributeList();
 
-         for (String key: attrs.keySet()) {
-             logger.info("key "+key + "value "+ attrs.get(key).getName());
-             logger.info("Property"+ attrs.get(key).getAttributeProperty(key));
-             logger.info("Attribute"+( (SimpleAttribute)attrs.get(key)).getStringValue());
-         }
-
-
+        for (String key : attrs.keySet()) {
+            logger.info("key " + key + "value " + attrs.get(key).getName());
+            logger.info("Property" + attrs.get(key).getAttributeProperty(key));
+            if (attrs.get(key) instanceof SimpleAttribute) {
+                logger.info("Attribute" + ((SimpleAttribute) attrs.get(key)).getStringValue());
+            }
+        }
 
 
         if (inMemoryUserList.get(user.getId()) != null) {
