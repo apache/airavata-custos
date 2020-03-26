@@ -28,10 +28,10 @@ handler.setLevel(logging.DEBUG)
 client = UserManagementClient()
 id_client = IdentityManagementClient()
 
-token = "XXXX";
+token = "XXX";
+
 
 def register_user():
-
     response = client.register_user(token, "TestingUser", "Jhon", "Smith", "12345", "jhon@iu.edu", True)
     print(response)
 
@@ -103,10 +103,14 @@ def find_users():
 
 
 x = 0;
-#register_and_enable_users()
-#add_user_attributes()
-while x <= 50:
-    delete_user_attributes()
-    find_users()
-    add_user_attributes()
-    x = x + 1
+# #register_and_enable_users()
+# #add_user_attributes()
+# while x <= 50:
+#     # delete_user_attributes()
+#     #     # find_users()
+#     #     # add_user_attributes()
+#     #     # x = x + 1
+#     id_client.authenticate(token, "isjarana", "Custos1234")
+
+response = id_client.authenticate(token, "isjarana", "Custos1234")
+print(response)

@@ -252,6 +252,12 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.configureEventPersistence(persistenceRequest);
     }
 
+    public GroupsResponse createGroup ( GroupsRequest groupsRequest) {
+        return iamAdminServiceBlockingStub.createGroups(groupsRequest);
+    }
+
+
+
     public String getIamServerURL() {
         return iamServerURL;
     }

@@ -28,7 +28,7 @@ handler.setLevel(logging.DEBUG)
 client = TenantManagementClient()
 admin_client = SuperTenantManagementClient()
 
-token = "XXXX"
+token = "XXX"
 
 
 def create_tenant():
@@ -55,15 +55,15 @@ def get_tenant():
 
 
 def update_tenant():
-    client_id = "custos-wnjs3klilb93hgdrpwuu-10000103"
-    contacts = ["2345634324"]
-    redirect_uris = ["http://localhost:8080,http://localhost:8080/user/external_ids"]
-    response = client.update_tenant(token, client_id, "SAMPLE",
-                                    "XXX@iu.edu", "First Name", "LastName", "email", "admin",
-                                    "1234",
-                                    contacts, redirect_uris, "https://domain.org/",
+    client_id = "custos-6nwoqodstpe5mvcq09lh-10000101"
+    contacts = ["8123915386"]
+    redirect_uris = ["https://custos.scigap.org/callback ","http://127.0.0.1:8000/auth/callback/", "http://127.0.0.1:8000/"]
+    response = client.update_tenant(token, client_id, "Custos Portal",
+                                    "irjanith@gmail.com", "Isuru", "Ranawaka", "irjanith@gmail.com", "isjarana",
+                                    "Custos1234",
+                                    contacts, redirect_uris, "https://custos.scigap.org/",
                                     "openid profile email org.cilogon.userinfo", "domain.org",
-                                    "https://domain.org/static/favicon.png", "Galaxy Portal")
+                                    "https://custos.scigap.org/", "Custos Portal")
     print(response)
 
 
