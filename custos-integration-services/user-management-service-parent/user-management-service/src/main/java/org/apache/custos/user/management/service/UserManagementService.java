@@ -1169,7 +1169,19 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             LOGGER.debug("Request received to createGroups " + request.getTenantId() +
                     " at" + request.getTenantId());
 
-            GroupsResponse response = iamAdminServiceClient.createGroup(request);
+           // GroupsResponse response = iamAdminServiceClient.createGroup(request);
+
+            GroupRequest groupRequest = GroupRequest.newBuilder()
+                    .setAccessToken(request.getAccessToken())
+                    .setPerformedBy(request.getPerformedBy())
+                    .setTenantId(request.getTenantId())
+                    .setClientId(request.getClientId())
+                    .setGroup(request.getGroupsList().get(0))
+                    .build();
+
+           GroupRepresentation representation = iamAdminServiceClient.updateGroup(groupRequest);
+
+           GroupsResponse response = GroupsResponse.newBuilder().addGroups(representation).build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();

@@ -77,9 +77,6 @@ public class IamAdminServiceClient {
     }
 
 
-
-
-
     public void registerUserAsync(RegisterUserRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "registerUser task failed");
         iamAdminServiceStub.registerUser(request, observer);
@@ -192,7 +189,7 @@ public class IamAdminServiceClient {
     }
 
 
-    public  FindUsersResponse getUsers(FindUsersRequest request) {
+    public FindUsersResponse getUsers(FindUsersRequest request) {
         return iamAdminServiceBlockingStub.findUsers(request);
 
     }
@@ -202,8 +199,6 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.resetPassword(request);
 
     }
-
-
 
 
     public CheckingResponse updateUserProfile(UpdateUserProfileRequest request) {
@@ -236,26 +231,37 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.addRolesToTenant(rolesRequest);
     }
 
-    public OperationStatus addProtocolMapper (AddProtocolMapperRequest addProtocolMapper) {
+    public OperationStatus addProtocolMapper(AddProtocolMapperRequest addProtocolMapper) {
         return iamAdminServiceBlockingStub.addProtocolMapper(addProtocolMapper);
     }
 
-    public OperationStatus addUserAttributes (AddUserAttributesRequest addUserAttributesRequest) {
+    public OperationStatus addUserAttributes(AddUserAttributesRequest addUserAttributesRequest) {
         return iamAdminServiceBlockingStub.addUserAttributes(addUserAttributesRequest);
     }
 
-    public OperationStatus deleteUserAttributes (DeleteUserAttributeRequest deleteUserAttributeRequest) {
+    public OperationStatus deleteUserAttributes(DeleteUserAttributeRequest deleteUserAttributeRequest) {
         return iamAdminServiceBlockingStub.deleteUserAttributes(deleteUserAttributeRequest);
     }
 
-    public OperationStatus configureEventPersistence (EventPersistenceRequest persistenceRequest) {
+    public OperationStatus configureEventPersistence(EventPersistenceRequest persistenceRequest) {
         return iamAdminServiceBlockingStub.configureEventPersistence(persistenceRequest);
     }
 
-    public GroupsResponse createGroup ( GroupsRequest groupsRequest) {
+    public GroupsResponse createGroup(GroupsRequest groupsRequest) {
         return iamAdminServiceBlockingStub.createGroups(groupsRequest);
     }
 
+    public GroupRepresentation updateGroup(GroupRequest groupsRequest) {
+        return iamAdminServiceBlockingStub.updateGroup(groupsRequest);
+    }
+
+    public OperationStatus deleteGroup(GroupRequest groupsRequest) {
+        return iamAdminServiceBlockingStub.deleteGroup(groupsRequest);
+    }
+
+    public GroupRepresentation findGroup(GroupRequest groupsRequest) {
+        return iamAdminServiceBlockingStub.findGroup(groupsRequest);
+    }
 
 
     public String getIamServerURL() {

@@ -39,10 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @GRpcService
 public class IamAdminService extends IamAdminServiceImplBase {
@@ -1012,6 +1009,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), representations);
 
+            statusUpdater.updateStatus(IAMOperations.CREATE_GROUP.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+
             GroupsResponse response = GroupsResponse.newBuilder().addAllGroups(groups).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -1022,6 +1024,42 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getTenantId(),
                     request.getPerformedBy());
             String msg = " Create Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void updateGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
+        try {
+            LOGGER.debug("Request received to updateGroup " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+            List<GroupRepresentation> representations = new ArrayList<>();
+            representations.add(request.getGroup());
+            List<org.keycloak.representations.idm.GroupRepresentation> groupRepresentations =
+                    transformToKeycloakGroups(request.getClientId(), representations);
+
+            org.keycloak.representations.idm.GroupRepresentation groupRepresentation =
+                    keycloakClient.updateGroup(String.valueOf(tenantId),request.getClientId(), accessToken, groupRepresentations.get(0));
+
+             GroupRepresentation group = transformKeycloakGroupToGroup(request.getClientId(), groupRepresentation, null);
+
+            responseObserver.onNext(group);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.UPDATE_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Update Group   failed for " + request.getTenantId() + " " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());

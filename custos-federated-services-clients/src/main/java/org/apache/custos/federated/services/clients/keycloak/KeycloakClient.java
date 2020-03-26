@@ -1067,7 +1067,15 @@ public class KeycloakClient {
 
     }
 
-
+    /**
+     * creates groups and child groups in Keycloak
+     *
+     * @param realmId
+     * @param clientId
+     * @param accessToken
+     * @param groupRepresentations
+     * @return
+     */
     public List<GroupRepresentation> createGroups(String realmId, String clientId, String accessToken, List<GroupRepresentation> groupRepresentations) {
         Keycloak client = null;
         try {
@@ -1145,6 +1153,90 @@ public class KeycloakClient {
             }
         }
         return null;
+    }
+
+
+    /**
+     * Update given group
+     *
+     * @param realmId
+     * @param accessToken
+     * @param groupRepresentation
+     * @return
+     */
+    public GroupRepresentation updateGroup(String realmId, String clientId, String accessToken, GroupRepresentation groupRepresentation) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            client.realm(realmId).groups().
+                    group(groupRepresentation.getId()).update(groupRepresentation);
+
+            List<RoleRepresentation> exRoles =
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().listAll();
+
+            if (exRoles != null && !exRoles.isEmpty()) {
+                client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().remove(exRoles);
+            }
+
+            if (groupRepresentation.getRealmRoles() != null && !groupRepresentation.getRealmRoles().isEmpty()) {
+                List<RoleRepresentation> roleRepresentation = new ArrayList<>();
+                for (String role : groupRepresentation.getRealmRoles()) {
+                    RoleResource resource = client.realm(realmId).roles().get(role);
+                    if (resource != null) {
+                        roleRepresentation.add(resource.toRepresentation());
+                    }
+                }
+                if (!roleRepresentation.isEmpty()) {
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().add(roleRepresentation);
+                }
+
+            }
+
+            ClientRepresentation clientRepresentation =
+                    client.realm(realmId).clients().findByClientId(clientId).get(0);
+
+            List<RoleRepresentation> exClientRoles =
+                    client.realm(realmId).groups().group(groupRepresentation.getId())
+                            .roles().clientLevel(clientRepresentation.getId()).listAll();
+
+            if (exClientRoles != null && !exClientRoles.isEmpty()) {
+                client.realm(realmId).groups().group(groupRepresentation.getId())
+                        .roles().clientLevel(clientRepresentation.getId()).remove(exClientRoles);
+            }
+
+            if (groupRepresentation.getClientRoles() != null && !groupRepresentation.getClientRoles().isEmpty()) {
+                List<RoleRepresentation> clientRepresentations = new ArrayList<>();
+
+                for (String role : groupRepresentation.getClientRoles().get(clientId)) {
+
+                    RoleResource resource = client.realm(realmId).clients().get(clientRepresentation.getId()).roles().get(role);
+
+                    if (resource != null) {
+                        clientRepresentations.add(resource.toRepresentation());
+                    }
+                }
+                if (!clientRepresentations.isEmpty()) {
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().
+                            clientLevel(clientRepresentation.getId()).add(clientRepresentations);
+                }
+
+            }
+
+            return client.realm(realmId).groups().group(groupRepresentation.getId()).toRepresentation();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while creating group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
     }
 
 
