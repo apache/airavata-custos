@@ -33,7 +33,7 @@ message UserProfileRequest {
     string clientId = 2;
     int64 tenantId = 3;
     string accessToken = 4;
-    string  clientSecret = 5;
+    string clientSecret = 5;
     string performedBy = 6;
 }
 
@@ -69,14 +69,13 @@ message ResetPasswordRequest {
 message LinkUserProfileRequest {
     string current_username = 1;
     string previous_username = 2;
-    repeated  string linking_attributes = 3;
+    repeated string linking_attributes = 3;
     int64 tenantId = 4;
     string iamClientId = 5;
     string iamClientSecret = 6;
     string accessToken = 7;
     string performedBy = 8;
 }
-
 
 
 service UserManagementService {
@@ -122,8 +121,7 @@ service UserManagementService {
     }
 
 
-
-    rpc addRolesToUsers ( org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc addRolesToUsers (org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            post: "/user-management/v1.0.0/users/roles"
          };
@@ -136,12 +134,11 @@ service UserManagementService {
 
     }
 
-    rpc isUsernameAvailable(org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc isUsernameAvailable (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/availability"
          };
     }
-
 
 
     rpc getUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
@@ -212,7 +209,7 @@ service UserManagementService {
 
     }
 
-    rpc linkUserProfile(LinkUserProfileRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc linkUserProfile (LinkUserProfileRequest) returns (org.apache.custos.iam.service.OperationStatus) {
 
         option (google.api.http) = {
            post: "/user-management/v1.0.0/user/profile/mapper"
@@ -222,11 +219,19 @@ service UserManagementService {
     }
 
 
-
     rpc getUserProfileAuditTrails (org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest) returns (org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse) {
 
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/profile/audit"
+         };
+
+    }
+
+
+    rpc createGroups (org.apache.custos.iam.service.GroupsRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
+
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/groups"
          };
 
     }

@@ -995,6 +995,42 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+
+    @Override
+    public void createGroups(GroupsRequest request, StreamObserver<GroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to createGroup " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+            List<org.keycloak.representations.idm.GroupRepresentation> groupRepresentations =
+                    transformToKeycloakGroups(request.getClientId(), request.getGroupsList());
+
+            List<org.keycloak.representations.idm.GroupRepresentation> representations =
+                    keycloakClient.createGroups(String.valueOf(tenantId),request.getClientId(), accessToken, groupRepresentations);
+
+            List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), representations);
+
+            GroupsResponse response = GroupsResponse.newBuilder().addAllGroups(groups).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.CREATE_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Create Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
     private OperationMetadata convertFromEntity(StatusEntity entity) {
         return OperationMetadata.newBuilder()
                 .setEvent(entity.getEvent())
@@ -1052,4 +1088,138 @@ public class IamAdminService extends IamAdminServiceImplBase {
         return builder.build();
 
     }
+
+    private List<org.keycloak.representations.idm.GroupRepresentation> transformToKeycloakGroups(String clientId, List<GroupRepresentation> groupRepresentations) {
+        List<org.keycloak.representations.idm.GroupRepresentation> groupsList = new ArrayList<>();
+        for (GroupRepresentation groupRepresentation : groupRepresentations) {
+            groupsList.add(transformSingleGroupToKeycloakGroup(clientId, groupRepresentation, null));
+        }
+        return groupsList;
+    }
+
+    private org.keycloak.representations.idm.GroupRepresentation
+    transformSingleGroupToKeycloakGroup(String clientId, GroupRepresentation groupRepresentation,
+                                        org.keycloak.representations.idm.GroupRepresentation parentGroup) {
+        String name = groupRepresentation.getName();
+        String id = groupRepresentation.getId();
+        List<UserAttribute> attributeList = groupRepresentation.getAttributesList();
+        List<String> realmRoles = groupRepresentation.getRealmRolesList();
+        List<String> clientRoles = groupRepresentation.getClientRolesList();
+
+        org.keycloak.representations.idm.GroupRepresentation keycloakGroup =
+                new org.keycloak.representations.idm.GroupRepresentation();
+
+        keycloakGroup.setName(name);
+
+        if (id != null && !id.trim().equals("")) {
+            keycloakGroup.setId(id);
+        }
+
+        Map<String, List<String>> map = new HashMap<>();
+        if (attributeList != null && !attributeList.isEmpty()) {
+            for (UserAttribute attribute : attributeList) {
+                map.put(attribute.getKey(), attribute.getValuesList());
+            }
+            keycloakGroup.setAttributes(map);
+        }
+
+
+        if (realmRoles != null && !realmRoles.isEmpty()) {
+            keycloakGroup.setRealmRoles(realmRoles);
+
+        }
+
+        Map<String, List<String>> clientMap = new HashMap<>();
+        if (clientRoles != null && !clientRoles.isEmpty()) {
+            clientMap.put(clientId, clientRoles);
+            keycloakGroup.setClientRoles(clientMap);
+        }
+
+        if (groupRepresentation.getSubGroupsList() != null && !groupRepresentation.getSubGroupsList().isEmpty()) {
+            for (GroupRepresentation representation : groupRepresentation.getSubGroupsList()) {
+                transformSingleGroupToKeycloakGroup(clientId, representation, keycloakGroup);
+            }
+
+        }
+
+        if (parentGroup != null) {
+            List<org.keycloak.representations.idm.GroupRepresentation> groupRepList = parentGroup.getSubGroups();
+            if (groupRepList == null) {
+                groupRepList = new ArrayList<>();
+            }
+            String path = parentGroup.getPath() + "/" + keycloakGroup.getName();
+            keycloakGroup.setPath(path);
+            groupRepList.add(keycloakGroup);
+            parentGroup.setSubGroups(groupRepList);
+            return parentGroup;
+        }
+
+        String path = "/" + keycloakGroup.getName();
+        keycloakGroup.setPath(path);
+        return keycloakGroup;
+    }
+
+    private List<GroupRepresentation> transformKeycloakGroupsToGroups
+            (String clientId, List<org.keycloak.representations.idm.GroupRepresentation> groupRepresentations) {
+        List<GroupRepresentation> groupsList = new ArrayList<>();
+        for (org.keycloak.representations.idm.GroupRepresentation groupRepresentation : groupRepresentations) {
+            groupsList.add(transformKeycloakGroupToGroup(clientId, groupRepresentation, null));
+        }
+        return groupsList;
+    }
+
+    private GroupRepresentation transformKeycloakGroupToGroup(String clientId,
+                                                              org.keycloak.representations.idm.GroupRepresentation group,
+                                                              GroupRepresentation parent) {
+        String name = group.getName();
+        String id = group.getId();
+        List<String> realmRoles = group.getRealmRoles();
+        Map<String, List<String>> clientRoles = group.getClientRoles();
+        Map<String, List<String>> atrs = group.getAttributes();
+
+        GroupRepresentation representation = GroupRepresentation.newBuilder()
+                .setName(name)
+                .setId(id)
+                .build();
+
+        if (realmRoles != null && !realmRoles.isEmpty()) {
+            representation = representation.toBuilder().addAllRealmRoles(realmRoles).build();
+        }
+
+        if (clientRoles != null && !clientRoles.isEmpty() && !clientRoles.get(clientId).isEmpty()) {
+
+            representation = representation.toBuilder().addAllClientRoles(clientRoles.get(clientId)).build();
+        }
+
+        if (!atrs.isEmpty()) {
+            List<UserAttribute> attributeList = new ArrayList<>();
+            for (String key : atrs.keySet()) {
+                UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
+                attributeList.add(attribute);
+            }
+            representation = representation.toBuilder().addAllAttributes(attributeList).build();
+
+        }
+
+        if (!group.getSubGroups().isEmpty()) {
+            for (org.keycloak.representations.idm.GroupRepresentation subGroup : group.getSubGroups()) {
+               representation = transformKeycloakGroupToGroup(clientId, subGroup, representation);
+            }
+
+        }
+
+
+        if (parent != null) {
+           parent = parent.toBuilder().addSubGroups(representation).build();
+        }
+
+        if (parent != null) {
+            return parent;
+        } else {
+            return representation;
+        }
+
+    }
+
+
 }

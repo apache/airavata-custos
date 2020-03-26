@@ -224,6 +224,25 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) operationRequest;
 
+        } else if (method.equals("createGroups")) {
+            String token = getToken(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            long tenantId = claim.getTenantId();
+            GroupsRequest operationRequest = ((GroupsRequest) msg)
+                    .toBuilder()
+                    .setTenantId(tenantId)
+                    .setAccessToken(token)
+                    .setClientId(claim.getIamAuthId())
+                    .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+            return (ReqT) operationRequest;
+
         }
 
             return msg;
