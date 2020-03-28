@@ -264,6 +264,11 @@ public class IamAdminServiceClient {
     }
 
 
+    public GroupsResponse getAllGroups(GroupRequest request) {
+        return iamAdminServiceBlockingStub.getAllGroups(request);
+    }
+
+
     public String getIamServerURL() {
         return iamServerURL;
     }

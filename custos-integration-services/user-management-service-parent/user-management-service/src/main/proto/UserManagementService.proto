@@ -228,14 +228,6 @@ service UserManagementService {
     }
 
 
-    rpc createGroups (org.apache.custos.iam.service.GroupsRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
-
-        option (google.api.http) = {
-           post: "/user-management/v1.0.0/groups"
-         };
-
-    }
-
 
 }
 

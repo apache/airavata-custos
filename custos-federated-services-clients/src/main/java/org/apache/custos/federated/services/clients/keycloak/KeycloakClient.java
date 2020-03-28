@@ -1227,7 +1227,7 @@ public class KeycloakClient {
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred while creating group, reason: " + ex.getMessage();
+            String msg = "Error occurred while updating group, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
 
@@ -1237,6 +1237,108 @@ public class KeycloakClient {
             }
         }
 
+    }
+
+
+    /**
+     * Delete given group
+     *
+     * @param realmId
+     * @param clientId
+     * @param accessToken
+     * @param groupId
+     * @return
+     */
+    public boolean deleteGroup(String realmId, String accessToken, String groupId) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            client.realm(realmId).groups().
+                    group(groupId).remove();
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+    /**
+     * find group by group Id or group name
+     *
+     * @param realmId
+     * @param accessToken
+     * @return
+     */
+    public GroupRepresentation findGroup(String realmId, String accessToken, String id, String name) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            if (id != null && ! id.trim().equals("")) {
+                GroupResource resource = client.realm(realmId).groups().group(id);
+                if (resource != null) {
+                    return resource.toRepresentation();
+                }
+            } else {
+                List<GroupRepresentation> groupRepresentations = client.
+                        realm(realmId).groups().groups(name, 0, 1);
+                if (groupRepresentations != null && !groupRepresentations.isEmpty()) {
+                    return groupRepresentations.get(0);
+                }
+            }
+
+        } catch (Exception ex) {
+            if (ex.getMessage().contains("HTTP 404")) {
+                return null;
+            } else {
+                String msg = "Error occurred finding groups, reason: " + ex.getMessage();
+                LOGGER.error(msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * pull all groups related to given realm
+     * @param realmId
+     * @param accessToken
+     * @return
+     */
+    public List<GroupRepresentation> getAllGroups(String realmId, String accessToken) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            return client.realm(realmId).groups().groups();
+
+
+        } catch (Exception ex) {
+            if (ex.getMessage().contains("HTTP 404")) {
+                return null;
+            } else {
+                String msg = "Error occurred finding groups, reason: " + ex.getMessage();
+                LOGGER.error(msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
     }
 
 

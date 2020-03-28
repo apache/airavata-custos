@@ -28,6 +28,7 @@ import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
 import org.apache.custos.identity.service.IsAuthenticateResponse;
+import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -62,71 +63,80 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
     public AuthClaim authorize(Metadata headers) {
-        String formattedToken = getToken(headers);
+        try {
+            String formattedToken = getToken(headers);
 
-        if (formattedToken == null) {
-            return null;
+            if (formattedToken == null) {
+                return null;
+            }
+
+            TokenRequest request = TokenRequest
+                    .newBuilder()
+                    .setToken(formattedToken)
+                    .build();
+
+
+            GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialFromToken(request);
+            return getAuthClaim(response);
+        } catch (Exception ex) {
+            throw new NotAuthorizedException("Wrong credentials " + ex.getMessage(), ex);
         }
-
-        TokenRequest request = TokenRequest
-                .newBuilder()
-                .setToken(formattedToken)
-                .build();
-
-
-        GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialFromToken(request);
-        return getAuthClaim(response);
 
     }
 
     public AuthClaim authorizeUsingUserToken(Metadata headers) {
-        String formattedToken = getToken(headers);
 
-        if (formattedToken == null) {
-            return null;
-        }
+        try {
+            String formattedToken = getToken(headers);
 
-        TokenRequest request = TokenRequest
-                .newBuilder()
-                .setToken(formattedToken)
-                .build();
-
-        GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialsFromJWTToken(request);
-
-        AuthClaim claim = getAuthClaim(response);
-
-        if (claim != null) {
-
-            Claim userNameClaim = Claim.newBuilder()
-                    .setKey("username")
-                    .setValue(claim.getUsername()).build();
-
-            Claim tenantClaim = Claim.newBuilder()
-                    .setKey("tenantId")
-                    .setValue(String.valueOf(claim.getTenantId()))
-                    .build();
-
-
-            List<Claim> claimList = new ArrayList<>();
-            claimList.add(userNameClaim);
-            claimList.add(tenantClaim);
-
-
-            AuthToken token = AuthToken.newBuilder().
-                    setAccessToken(formattedToken)
-                    .addAllClaims(claimList)
-                    .build();
-
-
-            IsAuthenticateResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
-            if (isAuthenticateResponse.getAuthenticated()) {
-                return claim;
+            if (formattedToken == null) {
+                return null;
             }
 
+            TokenRequest request = TokenRequest
+                    .newBuilder()
+                    .setToken(formattedToken)
+                    .build();
 
+            GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialsFromJWTToken(request);
+
+            AuthClaim claim = getAuthClaim(response);
+
+            if (claim != null) {
+
+                Claim userNameClaim = Claim.newBuilder()
+                        .setKey("username")
+                        .setValue(claim.getUsername()).build();
+
+                Claim tenantClaim = Claim.newBuilder()
+                        .setKey("tenantId")
+                        .setValue(String.valueOf(claim.getTenantId()))
+                        .build();
+
+
+                List<Claim> claimList = new ArrayList<>();
+                claimList.add(userNameClaim);
+                claimList.add(tenantClaim);
+
+
+                AuthToken token = AuthToken.newBuilder().
+                        setAccessToken(formattedToken)
+                        .addAllClaims(claimList)
+                        .build();
+
+
+                IsAuthenticateResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
+                if (isAuthenticateResponse.getAuthenticated()) {
+                    return claim;
+                }
+
+
+            }
+
+            return null;
+        } catch (Exception ex) {
+            throw new NotAuthorizedException("Wrong credentials " + ex.getMessage(), ex);
         }
-
-        return null;
 
     }
 
