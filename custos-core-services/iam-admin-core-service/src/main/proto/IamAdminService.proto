@@ -320,7 +320,18 @@ message GroupsRequest {
     string accessToken = 2;
     string performedBy = 3;
     string clientId = 4;
-    repeated GroupRepresentation groups = 5;
+    string clientSec = 5;
+    repeated GroupRepresentation groups = 6;
+}
+
+message GroupRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string id = 6;
+     GroupRepresentation group = 7;
 }
 
 message GroupsResponse {
@@ -363,9 +374,10 @@ service IamAdminService {
     rpc configureEventPersistence (EventPersistenceRequest) returns (OperationStatus);
 
     rpc createGroups(GroupsRequest) returns (GroupsResponse);
-    rpc updateGroup(GroupsRequest) returns (GroupRepresentation);
-    rpc deleteGroup(GroupsRequest) returns (OperationStatus);
-    rpc findGroup(GroupsRequest) returns (GroupRepresentation);
+    rpc updateGroup(GroupRequest) returns (GroupRepresentation);
+    rpc deleteGroup(GroupRequest) returns (OperationStatus);
+    rpc findGroup(GroupRequest) returns (GroupRepresentation);
+    rpc getAllGroups(GroupRequest) returns (GroupsResponse);
 
 
 }

@@ -1163,28 +1163,6 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
 
-    @Override
-    public void createGroups(GroupsRequest request, StreamObserver<GroupsResponse> responseObserver) {
-        try {
-            LOGGER.debug("Request received to createGroups " + request.getTenantId() +
-                    " at" + request.getTenantId());
-
-            GroupsResponse response = iamAdminServiceClient.createGroup(request);
-
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
-            LOGGER.error(msg);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
-        }
-    }
-
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
 

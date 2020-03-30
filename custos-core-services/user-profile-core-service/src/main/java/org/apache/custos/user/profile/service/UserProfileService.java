@@ -22,6 +22,7 @@ package org.apache.custos.user.profile.service;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.user.profile.mapper.AttributeUpdateMetadataMapper;
+import org.apache.custos.user.profile.mapper.GroupMapper;
 import org.apache.custos.user.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.user.profile.mapper.UserProfileMapper;
 import org.apache.custos.user.profile.persistance.model.AttributeUpdateMetadata;
@@ -59,6 +60,15 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private GroupRoleRepository groupRoleRepository;
+
+    @Autowired
+    private GroupAttributeRepository groupAttributeRepository;
 
 
     @Override
@@ -373,4 +383,220 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         }
 
     }
+
+
+    @Override
+    public void createGroup(GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to createGroup from tenant" + request.getTenantId());
+
+            String groupId = request.getGroup().getId();
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(groupId);
+
+            if (op.isEmpty()) {
+
+                org.apache.custos.user.profile.persistance.model.Group entity =
+                        GroupMapper.createGroupEntity(request.getGroup(), request.getTenantId());
+                groupRepository.save(entity);
+            }
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
+                    groupRepository.findById(request.getGroup().getId());
+
+            if (exOP.isPresent()) {
+                Group exGroup = GroupMapper.createGroup(exOP.get());
+                responseObserver.onNext(exGroup);
+                responseObserver.onCompleted();
+            } else {
+
+                String msg = "Error occurred while creating Group for " + request.getTenantId()
+                        + " reason : DB error";
+                LOGGER.error(msg);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while creating Group for " + request.getTenantId() +
+                    " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
+    public void updateGroup(GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to updateGroup for group with id  " + request.getGroup().getId() +
+                    "at tenant " + request.getTenantId());
+
+            String groupId = request.getGroup().getId();
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> exEntity =
+                    groupRepository.findById(groupId);
+
+
+            if (exEntity.isPresent()) {
+
+
+                org.apache.custos.user.profile.persistance.model.Group entity = GroupMapper.
+                        createGroupEntity(request.getGroup(), request.getTenantId());
+
+
+                entity.setCreatedAt(exEntity.get().getCreatedAt());
+
+                org.apache.custos.user.profile.persistance.model.Group exGroup = exEntity.get();
+
+                if (exGroup.getGroupAttribute() != null) {
+                    exGroup.getGroupAttribute().forEach(atr -> {
+                        groupAttributeRepository.delete(atr);
+
+                    });
+                }
+
+                if (exGroup.getGroupRole() != null) {
+                    exGroup.getGroupRole().forEach(role -> {
+                        groupRoleRepository.delete(role);
+                    });
+                }
+
+                groupRepository.save(entity);
+
+                Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
+                        groupRepository.findById(request.getGroup().getId());
+
+                if (exOP.isPresent()) {
+                    Group exNewGroup = GroupMapper.createGroup(exOP.get());
+                    responseObserver.onNext(exNewGroup);
+                    responseObserver.onCompleted();
+                } else {
+
+                    String msg = "Error occurred while creating Group for " + request.getTenantId()
+                            + " reason : DB error";
+                    LOGGER.error(msg);
+
+                    responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                }
+
+            } else {
+                String msg = "Cannot find a group for " + groupId;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while creating user profile for " + request.getGroup().getId() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
+    public void deleteGroup(GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteGroup for " + request.getGroup().getId() + "at " + request.getTenantId());
+
+            String userId = request.getGroup().getId();
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(userId);
+
+            if (op.isPresent()) {
+                org.apache.custos.user.profile.persistance.model.Group entity = op.get();
+
+                Group prof = GroupMapper.createGroup(entity);
+
+                groupRepository.delete(op.get());
+
+                List<org.apache.custos.user.profile.persistance.model.Group> groupList = groupRepository.findByParentId(entity.getId());
+
+                if (groupList != null && !groupList.isEmpty()) {
+                    for (org.apache.custos.user.profile.persistance.model.Group group : groupList) {
+                        groupRepository.delete(group);
+                    }
+
+                }
+
+                responseObserver.onNext(prof);
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(Status.NOT_FOUND.withDescription("Group not found")
+                        .asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while creating group for " + request.getGroup() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
+    public void getGroup(GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getGroup for group " + request.getGroup().getId() + "at " + request.getTenantId());
+
+            String userId = request.getGroup().getId();
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(userId);
+
+            if (op.isPresent()) {
+
+                Group entity = GroupMapper.createGroup(op.get());
+                responseObserver.onNext(entity);
+                responseObserver.onCompleted();
+
+            } else {
+                responseObserver.onNext(null);
+                responseObserver.onCompleted();
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching group " + request.getGroup().getId() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
+    public void getAllGroups(GroupRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroups for " + request.getTenantId());
+
+            List<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository.findAll();
+
+            List<Group> groupList = new ArrayList<>();
+
+            if (groups != null && groups.isEmpty()) {
+
+                for (org.apache.custos.user.profile.persistance.model.Group group : groups) {
+
+                    groupList.add(GroupMapper.createGroup(group));
+                }
+
+            }
+            GetAllGroupsResponse response = GetAllGroupsResponse.newBuilder().addAllGroups(groupList).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+
 }

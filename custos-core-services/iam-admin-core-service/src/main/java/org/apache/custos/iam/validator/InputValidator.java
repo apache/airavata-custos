@@ -83,6 +83,26 @@ public class InputValidator implements Validator {
             case "addUserAttributes":
                 validateAddUserAttributes(obj);
                 break;
+
+            case "createGroups":
+                validateCreateGroups(obj);
+                break;
+
+            case "updateGroup":
+                validateUpdateGroup(obj);
+                break;
+            case "deleteGroup":
+                validateDeleteGroup(obj);
+                break;
+
+            case "findGroup":
+                validateFindGroup(obj);
+                break;
+
+            case "getAllGroups":
+                validateGetAllGroups(obj);
+                break;
+
             default:
 
         }
@@ -476,6 +496,119 @@ public class InputValidator implements Validator {
             throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
+    }
+
+
+    private boolean validateCreateGroups(Object obj) {
+        if (obj instanceof GroupsRequest) {
+            GroupsRequest request = (GroupsRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getGroupsList().isEmpty()) {
+                throw new MissingParameterException("There should be at least one group representation", null);
+            }
+
+            for (GroupRepresentation groupRepresentation : request.getGroupsList()) {
+                if (groupRepresentation.getName() == null || groupRepresentation.getName().trim().equals("")) {
+                    throw new MissingParameterException("Name should not be null", null);
+                }
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateCreateGroups");
+        }
+        return true;
+
+    }
+
+
+    private boolean validateUpdateGroup(Object obj) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest request = (GroupRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getGroup() == null || request.getGroup().getId() == null ||
+                    request.getGroup().getName().trim().equals("")) {
+                throw new MissingParameterException("Group id and name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+    }
+
+
+    private boolean validateDeleteGroup(Object obj) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest request = (GroupRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getGroup() == null || request.getGroup().getId() == null) {
+                throw new MissingParameterException("Group id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+    }
+
+
+    private boolean validateFindGroup(Object obj) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest request = (GroupRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getGroup() == null || !(request.getGroup().getId().trim().equals("") ||
+                    request.getGroup().getName().trim().equals(""))) {
+                throw new MissingParameterException("Group id or name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+
+    }
+
+
+    private boolean validateGetAllGroups(Object obj) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest request = (GroupRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+
     }
 
 }

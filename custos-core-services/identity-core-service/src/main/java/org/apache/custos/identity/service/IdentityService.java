@@ -57,7 +57,7 @@ public class IdentityService extends IdentityServiceImplBase {
     @Autowired
     private DefaultAuthzCacheManager authzCacheManager;
 
-    @Value("${custos.identity.auth.cache.enabled:true}")
+    @Value("${custos.identity.auth.cache.enabled:false}")
     private boolean isAuthzCacheEnabled;
 
 

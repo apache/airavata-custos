@@ -73,7 +73,7 @@ public class ServiceInterceptor implements ServerInterceptor {
                         serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), metadata);
                 } catch (Exception ex) {
                     String msg = "Error while validating method " + methodName + ", " + ex.getMessage();
-                    LOGGER.error(msg);
+                    LOGGER.error(msg, ex);
                     serverCall.close(Status.INVALID_ARGUMENT.withDescription(msg), metadata);
                 }
             }

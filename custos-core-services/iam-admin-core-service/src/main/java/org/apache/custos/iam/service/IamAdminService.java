@@ -1008,9 +1008,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     transformToKeycloakGroups(request.getClientId(), request.getGroupsList());
 
             List<org.keycloak.representations.idm.GroupRepresentation> representations =
-                    keycloakClient.createGroups(String.valueOf(tenantId),request.getClientId(), accessToken, groupRepresentations);
+                    keycloakClient.createGroups(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations);
 
             List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), representations);
+
+            statusUpdater.updateStatus(IAMOperations.CREATE_GROUP.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
 
             GroupsResponse response = GroupsResponse.newBuilder().addAllGroups(groups).build();
             responseObserver.onNext(response);
@@ -1022,6 +1027,157 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getTenantId(),
                     request.getPerformedBy());
             String msg = " Create Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void updateGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
+        try {
+            LOGGER.debug("Request received to updateGroup " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+            List<GroupRepresentation> representations = new ArrayList<>();
+            representations.add(request.getGroup());
+            List<org.keycloak.representations.idm.GroupRepresentation> groupRepresentations =
+                    transformToKeycloakGroups(request.getClientId(), representations);
+
+            org.keycloak.representations.idm.GroupRepresentation groupRepresentation =
+                    keycloakClient.updateGroup(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations.get(0));
+
+            GroupRepresentation group = transformKeycloakGroupToGroup(request.getClientId(), groupRepresentation, null);
+
+            statusUpdater.updateStatus(IAMOperations.UPDATE_GROUP.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+
+            responseObserver.onNext(group);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.UPDATE_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Update Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void deleteGroup(GroupRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteGroup " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+            keycloakClient.deleteGroup(String.valueOf(tenantId)
+                    , accessToken, request.getGroup().getId());
+
+
+            statusUpdater.updateStatus(IAMOperations.DELETE_GROUP.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus operationStatus = org.apache.custos.iam.service.OperationStatus
+                    .newBuilder().setStatus(true).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.DELETE_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Delete Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void findGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
+        try {
+            LOGGER.debug("Request received to findGroup " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+
+            org.keycloak.representations.idm.GroupRepresentation groupRepresentation =
+                    keycloakClient.findGroup(String.valueOf(tenantId)
+                            , accessToken, request.getGroup().getId(), request.getGroup().getName());
+
+            if (groupRepresentation != null) {
+                GroupRepresentation group = transformKeycloakGroupToGroup(request.getClientId(), groupRepresentation, null);
+                responseObserver.onNext(group);
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onNext(null);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            String msg = " find Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void getAllGroups(GroupRequest request, StreamObserver<GroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroups " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+
+            List<org.keycloak.representations.idm.GroupRepresentation> groupRepresentation =
+                    keycloakClient.getAllGroups(String.valueOf(tenantId)
+                            , accessToken);
+
+            List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), groupRepresentation);
+
+
+            if (groups != null && !groups.isEmpty()) {
+                GroupsResponse response = GroupsResponse.newBuilder().addAllGroups(groups).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            } else {
+                GroupsResponse response = GroupsResponse.newBuilder().build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            String msg = " Get Groups   failed for " + request.getTenantId() + " " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -1191,7 +1347,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             representation = representation.toBuilder().addAllClientRoles(clientRoles.get(clientId)).build();
         }
 
-        if (!atrs.isEmpty()) {
+        if (atrs != null && !atrs.isEmpty()) {
             List<UserAttribute> attributeList = new ArrayList<>();
             for (String key : atrs.keySet()) {
                 UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
@@ -1201,16 +1357,16 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         }
 
-        if (!group.getSubGroups().isEmpty()) {
+        if (group.getSubGroups() != null && !group.getSubGroups().isEmpty()) {
             for (org.keycloak.representations.idm.GroupRepresentation subGroup : group.getSubGroups()) {
-               representation = transformKeycloakGroupToGroup(clientId, subGroup, representation);
+                representation = transformKeycloakGroupToGroup(clientId, subGroup, representation);
             }
 
         }
 
 
         if (parent != null) {
-           parent = parent.toBuilder().addSubGroups(representation).build();
+            parent = parent.toBuilder().addSubGroups(representation).build();
         }
 
         if (parent != null) {

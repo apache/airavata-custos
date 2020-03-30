@@ -143,6 +143,27 @@ public class UserProfileClient {
         return userProfileServiceBlockingStub.findUserProfilesByAttributes(request);
     }
 
+    public Group createGroup(GroupRequest request) {
+        return userProfileServiceBlockingStub.createGroup(request);
+    }
+
+    public Group updateGroup(GroupRequest request) {
+        return userProfileServiceBlockingStub.updateGroup(request);
+    }
+
+    public Group deleteGroup(GroupRequest request) {
+        return userProfileServiceBlockingStub.deleteGroup(request);
+    }
+
+    public Group getGroup(GroupRequest request) {
+        return userProfileServiceBlockingStub.getGroup(request);
+    }
+
+
+    public GetAllGroupsResponse getAllGroups(GroupRequest request) {
+        return userProfileServiceBlockingStub.getAllGroups(request);
+    }
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {
