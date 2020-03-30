@@ -247,7 +247,7 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.configureEventPersistence(persistenceRequest);
     }
 
-    public GroupsResponse createGroup(GroupsRequest groupsRequest) {
+    public GroupsResponse createGroups(GroupsRequest groupsRequest) {
         return iamAdminServiceBlockingStub.createGroups(groupsRequest);
     }
 

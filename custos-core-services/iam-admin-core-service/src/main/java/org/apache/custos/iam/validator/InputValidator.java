@@ -89,8 +89,10 @@ public class InputValidator implements Validator {
                 break;
 
             case "updateGroup":
-            case "deleteGroup":
                 validateUpdateGroup(obj);
+                break;
+            case "deleteGroup":
+                validateDeleteGroup(obj);
                 break;
 
             case "findGroup":
@@ -539,6 +541,28 @@ public class InputValidator implements Validator {
 
             if (request.getGroup() == null || request.getGroup().getId() == null ||
                     request.getGroup().getName().trim().equals("")) {
+                throw new MissingParameterException("Group id and name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+    }
+
+
+    private boolean validateDeleteGroup(Object obj) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest request = (GroupRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getGroup() == null || request.getGroup().getId() == null) {
                 throw new MissingParameterException("Group id should not be null", null);
             }
 
