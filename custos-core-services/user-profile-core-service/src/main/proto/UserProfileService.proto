@@ -121,6 +121,16 @@ message GroupAttribute {
     repeated string value = 3;
 }
 
+message GroupMembership{
+    int64 tenantId = 1;
+    string group_id = 2;
+    string username = 3;
+}
+
+message Status {
+    bool status = 1;
+}
+
 
 service UserProfileService {
     rpc createUserProfile (UserProfileRequest) returns (UserProfile);
@@ -138,5 +148,10 @@ service UserProfileService {
 
 
     rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
+
+    rpc addUserToGroup(GroupMembership) returns (Status);
+    rpc removeUserFromGroup(GroupMembership) returns (Status);
+
+
 
 }

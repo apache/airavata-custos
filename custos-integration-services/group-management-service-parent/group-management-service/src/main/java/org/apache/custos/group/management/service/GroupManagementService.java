@@ -30,11 +30,11 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.Group;
 import org.apache.custos.user.profile.service.GroupAttribute;
+import org.apache.custos.user.profile.service.GroupMembership;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.apache.custos.group.management.service.GroupManagementServiceGrpc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +76,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
         } catch (Exception ex) {
             String msg = "Error occurred at createGroups " + ex.getMessage();
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -173,7 +173,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     @Override
     public void findGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
         try {
-            LOGGER.info("Request received findGroup for group Id " + request.getGroup().getId() + " of  tenant "
+            LOGGER.debug("Request received findGroup for group Id " + request.getGroup().getId() + " of  tenant "
                     + request.getTenantId());
 
 
@@ -193,7 +193,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                 responseObserver.onNext(representation);
                 responseObserver.onCompleted();
             } else {
-                String msg = "Error occurred at findGroup, authentication token not found " ;
+                String msg = "Error occurred at findGroup, authentication token not found ";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
@@ -212,7 +212,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     @Override
     public void getAllGroups(GroupRequest request, StreamObserver<GroupsResponse> responseObserver) {
         try {
-            LOGGER.info("Request received getAllGroups for  tenant "
+            LOGGER.debug("Request received getAllGroups for  tenant "
                     + request.getTenantId());
 
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
@@ -231,14 +231,14 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
-                String msg = "Error occurred at findGroup, authentication token not found " ;
+                String msg = "Error occurred at findGroup, authentication token not found ";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
 
         } catch (Exception ex) {
             String msg = "Error occurred at getAllGroups " + ex.getMessage();
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -247,6 +247,81 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         }
     }
 
+    @Override
+    public void addUserToGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addUserToGroup for  user  " + request.getUsername() + " of tenant "
+                    + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.addUserToGroup(request);
+
+
+            if (status.getStatus()) {
+
+                GroupMembership membership = GroupMembership
+                        .newBuilder()
+                        .setGroupId(request.getGroupId())
+                        .setUsername(request.getUsername())
+                        .setTenantId(request.getTenantId())
+                        .build();
+
+                userProfileClient.addUserToGroup(membership);
+
+
+            }
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addUserToGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void removeUserFromGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserFromGroup for  user  " + request.getUsername() + " of tenant "
+                    + request.getTenantId());
+
+
+            OperationStatus status = iamAdminServiceClient.removeUserFromGroup(request);
+
+
+            if (status.getStatus()) {
+
+                GroupMembership membership = GroupMembership
+                        .newBuilder()
+                        .setGroupId(request.getGroupId())
+                        .setUsername(request.getUsername())
+                        .setTenantId(request.getTenantId())
+                        .build();
+
+                userProfileClient.removeUserFromGroup(membership);
+
+            }
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
 
     private org.apache.custos.user.profile.service.GroupRequest createGroup(GroupRepresentation representation,
                                                                             String parentId,

@@ -41,9 +41,9 @@ def register_and_enable_users():
 
     users = [
         {
-            "username": "Janith",
-            "first_name": "Isuru",
-            "last_name": "Ranawaka",
+            "username": "test123",
+            "first_name": "user1",
+            "last_name": "last",
             "password": "1234",
             "email": "irjanith1@gmail.com",
             "temporary_password": True,
@@ -114,3 +114,4 @@ x = 0;
 
 response = id_client.authenticate(token, "isjarana", "Custos1234")
 print(response)
+# register_and_enable_users()

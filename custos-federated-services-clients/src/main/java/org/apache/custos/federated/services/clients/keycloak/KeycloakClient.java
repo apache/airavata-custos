@@ -1244,7 +1244,6 @@ public class KeycloakClient {
      * Delete given group
      *
      * @param realmId
-     * @param clientId
      * @param accessToken
      * @param groupId
      * @return
@@ -1282,7 +1281,7 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, realmId, accessToken);
 
-            if (id != null && ! id.trim().equals("")) {
+            if (id != null && !id.trim().equals("")) {
                 GroupResource resource = client.realm(realmId).groups().group(id);
                 if (resource != null) {
                     return resource.toRepresentation();
@@ -1314,6 +1313,7 @@ public class KeycloakClient {
 
     /**
      * pull all groups related to given realm
+     *
      * @param realmId
      * @param accessToken
      * @return
@@ -1334,6 +1334,53 @@ public class KeycloakClient {
                 LOGGER.error(msg, ex);
                 throw new RuntimeException(msg, ex);
             }
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean addUserToGroup(String realmId, String username, String groupId, String accessToken) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+
+            UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
+            client.realm(realmId).users().get(userRepresentation.getId()).joinGroup(groupId);
+            return true;
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding user to group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean removeUserFromGroup(String realmId, String username, String groupId, String accessToken) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
+            client.realm(realmId).users().get(userRepresentation.getId()).leaveGroup(groupId);
+            return true;
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();

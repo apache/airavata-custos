@@ -164,6 +164,15 @@ public class UserProfileClient {
         return userProfileServiceBlockingStub.getAllGroups(request);
     }
 
+    public Status addUserToGroup(GroupMembership request) {
+        return userProfileServiceBlockingStub.addUserToGroup(request);
+    }
+
+    public Status removeUserFromGroup(GroupMembership request) {
+        return userProfileServiceBlockingStub.removeUserFromGroup(request);
+    }
+    
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {

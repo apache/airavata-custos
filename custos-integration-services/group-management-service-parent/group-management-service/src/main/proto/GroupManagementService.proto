@@ -28,7 +28,6 @@ import "UserProfileService.proto";
 import "IamAdminService.proto";
 
 
-
 service GroupManagementService {
 
     rpc createGroups (org.apache.custos.iam.service.GroupsRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
@@ -68,6 +67,21 @@ service GroupManagementService {
 
         option (google.api.http) = {
            get: "/group-management/v1.0.0/groups"
+         };
+    }
+
+    rpc addUserToGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/user"
+         };
+    }
+
+
+    rpc removeUserFromGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/user"
          };
     }
 }

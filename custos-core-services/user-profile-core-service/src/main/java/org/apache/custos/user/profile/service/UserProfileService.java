@@ -70,6 +70,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
     @Autowired
     private GroupAttributeRepository groupAttributeRepository;
 
+    @Autowired
+    private GroupMembershipRepository groupMembershipRepository;
+
 
     @Override
     public void createUserProfile(UserProfileRequest request, StreamObserver<org.apache.custos.user.profile.service.UserProfile> responseObserver) {
@@ -577,15 +580,11 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             List<Group> groupList = new ArrayList<>();
 
             if (groups != null && groups.isEmpty()) {
-
                 for (org.apache.custos.user.profile.persistance.model.Group group : groups) {
-
                     groupList.add(GroupMapper.createGroup(group));
                 }
-
             }
             GetAllGroupsResponse response = GetAllGroupsResponse.newBuilder().addAllGroups(groupList).build();
-
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
@@ -595,8 +594,79 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
-
     }
 
+    @Override
+    public void addUserToGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addUserToGroup for " + request.getTenantId());
 
+            String group_id = request.getGroupId();
+            String username = request.getUsername();
+            long tenantId = request.getTenantId();
+            String userId = username + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> group = groupRepository.findById(group_id);
+            Optional<UserProfile> userProfile = repository.findById(userId);
+
+            if (group.isPresent() && userProfile.isPresent()) {
+
+                org.apache.custos.user.profile.persistance.model.GroupMembership groupMembership = new
+                        org.apache.custos.user.profile.persistance.model.GroupMembership();
+                groupMembership.setGroup(group.get());
+                groupMembership.setUserProfile(userProfile.get());
+                groupMembershipRepository.save(groupMembership);
+
+                org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
+                        .newBuilder()
+                        .setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Group or user not available";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeUserFromGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserFromGroup for " + request.getTenantId());
+
+            String group_id = request.getGroupId();
+            String username = request.getUsername();
+            long tenantId = request.getTenantId();
+            String userId = username + "@" + tenantId;
+
+            List<org.apache.custos.user.profile.persistance.model.GroupMembership> memberships =
+                    groupMembershipRepository.findAllByGroupIdAndUserProfileId(group_id, userId);
+
+            if (memberships != null && !memberships.isEmpty()) {
+
+                memberships.forEach(membership -> {
+                    groupMembershipRepository.delete(membership);
+                });
+            }
+            org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
+                    .newBuilder()
+                    .setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
+                    + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }
