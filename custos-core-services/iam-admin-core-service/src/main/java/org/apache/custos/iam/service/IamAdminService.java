@@ -1187,6 +1187,109 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+
+    @Override
+    public void addUserToGroup(UserGroupMappingRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroups " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+
+            boolean status = keycloakClient.
+                    addUserToGroup(String.valueOf(tenantId), request.getUsername(), request.getGroupId(), accessToken);
+
+            if (status) {
+                statusUpdater.updateStatus(IAMOperations.ADD_USER_TO_GROUP.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(),
+                        request.getPerformedBy());
+            } else {
+                statusUpdater.updateStatus(IAMOperations.ADD_USER_TO_GROUP.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        request.getPerformedBy());
+            }
+
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus
+                    .newBuilder()
+                    .setStatus(status)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.ADD_USER_TO_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = "  Groups   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+
+
+    }
+
+    @Override
+    public void removeUserFromGroup(UserGroupMappingRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroups " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String accessToken = request.getAccessToken();
+
+
+            boolean status = keycloakClient.
+                    removeUserFromGroup(String.valueOf(tenantId), request.getUsername(), request.getGroupId(), accessToken);
+
+
+            if (status) {
+                statusUpdater.updateStatus(IAMOperations.REMOVE_USER_FROM_GROUP.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(),
+                        request.getPerformedBy());
+            } else {
+                statusUpdater.updateStatus(IAMOperations.REMOVE_USER_FROM_GROUP.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        request.getPerformedBy());
+            }
+
+
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus
+                    .newBuilder()
+                    .setStatus(status)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+
+            statusUpdater.updateStatus(IAMOperations.REMOVE_USER_FROM_GROUP.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+
+            String msg = "  Remove user from Group   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+
+
+    }
+
     private OperationMetadata convertFromEntity(StatusEntity entity) {
         return OperationMetadata.newBuilder()
                 .setEvent(entity.getEvent())

@@ -59,13 +59,15 @@ public class Group {
     private String parentId;
 
 
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "group", orphanRemoval=true, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "group", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<GroupRole> groupRole;
 
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "group",orphanRemoval=true, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "group", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<GroupAttribute> groupAttribute;
 
 
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    Set<GroupMembership> groupMemberships;
 
 
     public String getId() {
@@ -84,7 +86,13 @@ public class Group {
         this.tenantId = tenantId;
     }
 
+    public Set<GroupMembership> getGroupMemberships() {
+        return groupMemberships;
+    }
 
+    public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
+        this.groupMemberships = groupMemberships;
+    }
 
     public Date getCreatedAt() {
         return createdAt;

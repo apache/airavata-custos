@@ -17,33 +17,20 @@
  *  under the License.
  */
 
-package org.apache.custos.iam.utils;
+package org.apache.custos.user.profile.persistance.repository;
 
-/**
- * Includes operations associated with keycloak
- */
-public enum IAMOperations {
+import org.apache.custos.user.profile.persistance.model.GroupMembership;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-    SET_UP_TENANT,
-    REGISTER_USER,
-    ENABLE_USER,
-    DISABLE_USER,
-    DELETE_USER,
-    RESET_PASSWORD,
-    UPDATE_USER_PROFILE,
-    ADD_ROLE_TO_USER,
-    DELETE_ROLE_FROM_USER,
-    CONFIGURE_IDP,
-    REGISTER_ENABLE_USERS,
-    ADD_ROLES_TO_TENANT,
-    ADD_PROTOCOL_MAPPER,
-    ADD_USER_ATTRIBUTE,
-    ADD_ROLES_TO_USERS,
-    DELETE_USER_ATTRIBUTES,
-    CONFIGURE_PERSISTANCE,
-    CREATE_GROUP,
-    UPDATE_GROUP,
-    DELETE_GROUP,
-    ADD_USER_TO_GROUP,
-    REMOVE_USER_FROM_GROUP
+import java.util.List;
+
+public interface GroupMembershipRepository extends JpaRepository<GroupMembership, String> {
+
+
+    public List<GroupMembership> findAllByGroupId(String id);
+
+    public List<GroupMembership> findAllByUserProfileId(String id);
+
+    public List<GroupMembership> findAllByGroupIdAndUserProfileId(String groupEntityId, String userProfileId);
+
 }

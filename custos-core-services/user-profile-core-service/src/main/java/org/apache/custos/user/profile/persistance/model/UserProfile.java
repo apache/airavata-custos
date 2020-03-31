@@ -61,10 +61,10 @@ public class UserProfile {
     private Date createdAt;
 
 
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval=true, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<UserRole> userRole;
 
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile",orphanRemoval=true, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<UserAttribute> userAttribute;
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
@@ -72,6 +72,10 @@ public class UserProfile {
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
     private Set<StatusUpdateMetadata> statusUpdateMetadata;
+
+
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
+    Set<GroupMembership> groupMemberships;
 
 
     public String getId() {
@@ -169,5 +173,13 @@ public class UserProfile {
 
     public void setUserRole(Set<UserRole> userRole) {
         this.userRole = userRole;
+    }
+
+    public Set<GroupMembership> getGroupMemberships() {
+        return groupMemberships;
+    }
+
+    public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
+        this.groupMemberships = groupMemberships;
     }
 }

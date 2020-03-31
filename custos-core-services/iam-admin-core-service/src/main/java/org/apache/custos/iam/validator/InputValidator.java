@@ -103,6 +103,10 @@ public class InputValidator implements Validator {
                 validateGetAllGroups(obj);
                 break;
 
+            case "validateUserGroupMapping":
+                validateUserGroupMapping(obj);
+                break;
+
             default:
 
         }
@@ -606,6 +610,30 @@ public class InputValidator implements Validator {
 
         } else {
             throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
+        }
+        return true;
+
+    }
+
+    private boolean validateUserGroupMapping(Object obj) {
+        if (obj instanceof UserGroupMappingRequest) {
+            UserGroupMappingRequest request = (UserGroupMappingRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getGroupId() == null || request.getGroupId().equals("")) {
+                throw new MissingParameterException("Group Id should not be null", null);
+            }
+            if (request.getUsername() == null || request.getUsername().equals("")) {
+                throw new MissingParameterException("Username should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
 

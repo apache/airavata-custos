@@ -22,7 +22,8 @@ package org.apache.custos.user.profile.validators;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest;
-import org.apache.custos.user.profile.service.UserProfile;
+import org.apache.custos.user.profile.service.GroupMembership;
+import org.apache.custos.user.profile.service.GroupRequest;
 import org.apache.custos.user.profile.service.UserProfileRequest;
 
 /**
@@ -44,6 +45,24 @@ public class InputValidator implements Validator {
             case "validateGetAllUserProfiles":
                 validateGetAllUserProfiles(obj, methodName);
                 break;
+
+            case "createGroup":
+                validateCreateGroup(obj, methodName);
+                break;
+            case "updateGroup":
+                validateUpdateGroup(obj, methodName);
+                break;
+            case "deleteGroup":
+                validateDeleteGroup(obj, methodName);
+                break;
+            case "getGroup":
+                validateFindGroup(obj, methodName);
+                break;
+            case "addUserToGroup":
+            case "removeUserFromGroup":
+                validateGroupMembership(obj, methodName);
+                break;
+
             default:
 
         }
@@ -120,6 +139,123 @@ public class InputValidator implements Validator {
         return true;
 
     }
+
+
+    private boolean validateCreateGroup(Object obj, String method) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest profile = (GroupRequest) obj;
+
+            if (profile.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+            if (profile.getGroup() == null) {
+                throw new MissingParameterException("Group should be valid ", null);
+            }
+            if (profile.getGroup().getName() == null || profile.getGroup().getName().equals("")) {
+                throw new MissingParameterException("Name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + method);
+        }
+        return true;
+
+    }
+
+    private boolean validateUpdateGroup(Object obj, String method) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest profile = (GroupRequest) obj;
+
+            if (profile.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+            if (profile.getGroup() == null) {
+                throw new MissingParameterException("Group should be valid ", null);
+            }
+            if (profile.getGroup().getName() == null || profile.getGroup().getName().equals("")) {
+                throw new MissingParameterException("Name should not be null", null);
+            }
+
+            if (profile.getGroup().getId() == null || profile.getGroup().getId().equals("")) {
+                throw new MissingParameterException("Id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + method);
+        }
+        return true;
+
+    }
+
+    private boolean validateDeleteGroup(Object obj, String method) {
+
+        if (obj instanceof GroupRequest) {
+            GroupRequest profile = (GroupRequest) obj;
+
+            if (profile.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+            if (profile.getGroup() == null) {
+                throw new MissingParameterException("Group should be valid ", null);
+            }
+            if (profile.getGroup().getId() == null) {
+                throw new MissingParameterException("Group Id be valid ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + method);
+        }
+        return true;
+    }
+
+    private boolean validateFindGroup(Object obj, String method) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest profile = (GroupRequest) obj;
+
+            if (profile.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+            if (profile.getGroup() == null) {
+                throw new MissingParameterException("Group should be valid ", null);
+            }
+
+            if ((profile.getGroup().getName() == null || profile.getGroup().getName().equals("")) &&
+                    (profile.getGroup().getId() == null || profile.getGroup().getId().equals(""))) {
+                throw new MissingParameterException("Name or Id should not be null", null);
+            }
+
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + method);
+        }
+        return true;
+
+    }
+
+    private boolean validateGroupMembership(Object obj, String method) {
+        if (obj instanceof GroupMembership) {
+            GroupMembership profile = (GroupMembership) obj;
+
+            if (profile.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+
+            if (profile.getGroupId() == null || profile.getGroupId().equals("")) {
+                throw new MissingParameterException("Group Id be valid ", null);
+            }
+
+            if (profile.getUsername() == null || profile.getUsername().equals("")) {
+
+
+                throw new MissingParameterException("Username should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + method);
+        }
+        return true;
+
+    }
+
 
     private boolean validateGetAllUserProfiles(Object obj, String method) {
         if (obj instanceof UserProfileRequest) {

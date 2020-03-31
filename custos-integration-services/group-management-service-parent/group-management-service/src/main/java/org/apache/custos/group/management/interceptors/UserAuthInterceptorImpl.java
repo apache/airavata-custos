@@ -23,6 +23,7 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.GroupRequest;
 import org.apache.custos.iam.service.GroupsRequest;
+import org.apache.custos.iam.service.UserGroupMappingRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
@@ -108,6 +109,29 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) ((GroupRequest) msg).toBuilder()
                     .setClientId(oauthId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token)
+                    .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+        } else if (method.equals("addUserToGroup") || method.equals("removeUserFromGroup") ) {
+            String token = getToken(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+
+
+            return (ReqT) ((UserGroupMappingRequest) msg).toBuilder()
+                    .setClientId(oauthId)
+                    .setClientSec(oauthSec)
                     .setTenantId(tenantId)
                     .setAccessToken(token)
                     .setPerformedBy(claim.getPerformedBy())

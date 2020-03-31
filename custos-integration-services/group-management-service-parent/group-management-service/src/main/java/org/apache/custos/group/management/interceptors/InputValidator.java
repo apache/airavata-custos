@@ -50,6 +50,8 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "deleteGroup":
             case "findGroup":
             case "getAllGroups":
+            case "addUserToGroup":
+            case "removeUserFromGroup":
                 validateMethods(methodName, body, headers);
                 break;
             default:

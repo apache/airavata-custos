@@ -269,6 +269,15 @@ public class IamAdminServiceClient {
     }
 
 
+    public OperationStatus addUserToGroup(UserGroupMappingRequest request) {
+        return iamAdminServiceBlockingStub.addUserToGroup(request);
+    }
+
+    public OperationStatus removeUserFromGroup(UserGroupMappingRequest request) {
+        return iamAdminServiceBlockingStub.removeUserFromGroup(request);
+    }
+
+
     public String getIamServerURL() {
         return iamServerURL;
     }
