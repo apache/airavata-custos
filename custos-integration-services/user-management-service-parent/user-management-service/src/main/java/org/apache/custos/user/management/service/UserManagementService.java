@@ -456,10 +456,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 if (deletedProfile != null) {
 
-                    CheckingResponse response = iamAdminServiceClient.deleteUser(request);
+                    OperationStatus response = iamAdminServiceClient.deleteUser(request);
 
-                    OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-                    responseObserver.onNext(status);
+                    responseObserver.onNext(response);
                     responseObserver.onCompleted();
 
 
@@ -470,10 +469,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                 }
 
             } else {
-                CheckingResponse response = iamAdminServiceClient.deleteUser(request);
+                OperationStatus response = iamAdminServiceClient.deleteUser(request);
 
-                OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-                responseObserver.onNext(status);
+                responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
 
@@ -560,7 +558,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
+    public void resetPassword(ResetUserPassword request, StreamObserver<OperationStatus> responseObserver) {
         try {
 
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
@@ -575,7 +573,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
-                CheckingResponse response = iamAdminServiceClient.resetPassword(request);
+                OperationStatus response = iamAdminServiceClient.resetPassword(request);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
@@ -657,7 +655,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     public void deleteUserRoles(DeleteUserRolesRequest
                                         request, StreamObserver<OperationStatus> responseObserver) {
         try {
-            CheckingResponse response = iamAdminServiceClient.deleteUserRoles(request);
+            OperationStatus response = iamAdminServiceClient.deleteUserRoles(request);
 
 
             UserSearchMetadata metadata = UserSearchMetadata
@@ -692,9 +690,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             }
 
-
-            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-            responseObserver.onNext(status);
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (
@@ -711,7 +707,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void isUserEnabled(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUserEnabled(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
@@ -723,7 +719,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             if (token != null && token.getAccessToken() != null) {
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                CheckingResponse response = iamAdminServiceClient.isUserEnabled(request);
+                OperationStatus response = iamAdminServiceClient.isUserEnabled(request);
 
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
@@ -744,7 +740,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
-    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
@@ -756,7 +752,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             if (token != null && token.getAccessToken() != null) {
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                CheckingResponse response = iamAdminServiceClient.isUsernameAvailable(request);
+                OperationStatus response = iamAdminServiceClient.isUsernameAvailable(request);
 
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
@@ -814,9 +810,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             UserRepresentation exUser = iamAdminServiceClient.getUser(info);
 
-            CheckingResponse response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+            OperationStatus response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
 
-            if (response != null && response.getIsExist()) {
+            if (response != null && response.getStatus()) {
                 try {
                     org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
                             org.apache.custos.user.profile.service.UserProfileRequest.

@@ -117,7 +117,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to isUsernameAvailable at " + request.getTenantId());
 
@@ -125,7 +125,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUser().getUsername(),
                     request.getAccessToken());
 
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isAvailable).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(isAvailable).build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -138,14 +139,15 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void isUserEnabled(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUserEnabled(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to isUserEnabled at " + request.getTenantId());
 
             boolean isAvailable = keycloakClient.isUserAccountEnabled(String.valueOf(request.getTenantId()),
                     request.getAccessToken(),
                     request.getUser().getUsername());
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isAvailable).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(isAvailable).build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -392,7 +394,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
+    public void resetPassword(ResetUserPassword request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         String userId = request.getUsername() + "@" + request.getTenantId();
         try {
             LOGGER.debug("Request received to resetPassword for " + request.getUsername());
@@ -402,7 +404,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUsername(),
                     request.getPassword());
 
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isChanged).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(isChanged).build();
 
 
             statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(),
@@ -428,7 +431,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
-    public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         String userId = request.getUser().getUsername() + "@" + request.getTenantId();
 
         try {
@@ -441,7 +444,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUser().getLastName(),
                     request.getUser().getEmail());
 
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(true).build();
 
 
             statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
@@ -466,7 +470,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void deleteUser(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void deleteUser(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
 
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
@@ -474,7 +478,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
             boolean isUpdated = keycloakClient.deleteUser(request.getAccessToken(),
                     String.valueOf(request.getTenantId()), request.getUser().getUsername());
 
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUpdated).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(isUpdated).build();
 
             statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
                     OperationStatus.SUCCESS,
@@ -499,7 +504,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void deleteRolesFromUser(DeleteUserRolesRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void deleteRolesFromUser(DeleteUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
 
         try {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
@@ -518,7 +523,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                         request.getClientRolesList(), request.getClientId(), true);
 
             }
-            CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(true).build();
 
 
             statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_USER.name(),
@@ -1288,6 +1294,349 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
 
 
+    }
+
+
+    @Override
+    public void createAgentClient(AgentClientMetadata request, StreamObserver<SetUpTenantResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to configureAgentClient " + request.getTenantId());
+
+            KeycloakClientSecret secret = keycloakClient.configureClient(
+                    String.valueOf(request.getTenantId()),
+                    request.getClientName(),
+                    request.getTenantURL(),
+                    request.getRedirectURIsList());
+
+            if (secret != null) {
+
+                statusUpdater.updateStatus(IAMOperations.CONFIGURE_AGENT_CLIENT.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(),
+                        request.getPerformedBy());
+
+                SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
+                        .setClientId(secret.getClientSecret())
+                        .setClientId(secret.getClientId())
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                String msg = " Configure agent client  failed for " + request.getTenantId();
+                LOGGER.error(msg);
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        } catch (Exception ex) {
+            statusUpdater.updateStatus(IAMOperations.CONFIGURE_AGENT_CLIENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getPerformedBy());
+            String msg = " Configure agent client  failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void configureAgentClient(AgentClientMetadata request,
+                                     StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+    @Override
+    public void registerAndEnableAgent(RegisterUserRequest request, StreamObserver<RegisterUserResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to registerAndEnableAgent " + request.getTenantId());
+
+            boolean status = keycloakClient.createUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getId(),
+                    request.getUser().getPassword(),
+                    null,
+                    null,
+                    null,
+                    false,
+                    request.getAccessToken());
+
+            if (status) {
+
+                status = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
+                        request.getAccessToken(), request.getUser().getId());
+                statusUpdater.updateStatus(IAMOperations.REGISTER_AGENT.name(),
+                        OperationStatus.SUCCESS,
+                        request.getTenantId(), request.getPerformedBy());
+
+                RegisterUserResponse response = RegisterUserResponse.newBuilder().setIsRegistered(status).build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = " Register and enable user   failed for  user " + request.getUser().getId() + "of tenant"
+                        + request.getTenantId();
+                LOGGER.error(msg);
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = " Register and enable user   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.REGISTER_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void deleteAgent(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteAgent " + request.getTenantId());
+
+            boolean status = keycloakClient.deleteUser(request.getAccessToken(),
+                    String.valueOf(request.getTenantId()), request.getUser().getId());
+
+            statusUpdater.updateStatus(IAMOperations.DELETE_AGENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Delete agent  failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DELETE_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void disableAgent(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to disableAgent " + request.getTenantId());
+            boolean status = keycloakClient.disableUserAccount(
+                    String.valueOf(request.getTenantId()), request.getAccessToken(), request.getUser().getId());
+
+            statusUpdater.updateStatus(IAMOperations.DISABLE_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Disable agent   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void isAgentNameAvailable(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to isAgentNameAvailable " + request.getTenantId());
+            boolean status = keycloakClient.isUsernameAvailable(
+                    String.valueOf(request.getTenantId()), request.getUser().getId(), request.getAccessToken());
+
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Is agent name available   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void addAgentAttributes(AddUserAttributesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addAgentAttributes " + request.getTenantId());
+
+            List<UserAttribute> attributes = request.getAttributesList();
+
+            Map<String, List<String>> attributeMap = new HashMap<>();
+            for (UserAttribute attribute : attributes) {
+                attributeMap.put(attribute.getKey(), attribute.getValuesList());
+            }
+
+            boolean status = keycloakClient.addUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(),
+                    attributeMap, request.getUsersList());
+
+            statusUpdater.updateStatus(IAMOperations.ADD_AGENT_ATTRIBUTES.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            org.apache.custos.iam.service.OperationStatus response =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Add agent attributes   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.ADD_AGENT_ATTRIBUTES.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void deleteAgentAttributes(DeleteUserAttributeRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+            List<UserAttribute> attributes = request.getAttributesList();
+
+            Map<String, List<String>> attributeMap = new HashMap<>();
+            for (UserAttribute attribute : attributes) {
+                attributeMap.put(attribute.getKey(), attribute.getValuesList());
+            }
+
+            boolean status = keycloakClient.deleteUserAttributes
+                    (String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getUsersList());
+            statusUpdater.updateStatus(IAMOperations.DELETE_AGENT_ATTRIBUTES.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus response =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Delete agent attributes   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DELETE_AGENT_ATTRIBUTES.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void addRolesToAgent(AddUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addRolesToAgent " + request.getTenantId());
+            boolean status = keycloakClient.addRolesToUsers(request.getAccessToken(), String.valueOf(request.getTenantId()),
+                    request.getIdsList(), request.getRolesList(), request.getClientId(), request.getClientLevel());
+            statusUpdater.updateStatus(IAMOperations.ADD_ROLE_TO_AGENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(status).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Add roles to agent   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.ADD_ROLE_TO_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void deleteRolesFromAgent(DeleteUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteRolesFromAgent " + request.getTenantId());
+            if (!request.getRealmRolesList().isEmpty()) {
+
+                keycloakClient.removeRoleFromUser(request.getAccessToken(),
+                        String.valueOf(request.getTenantId()), request.getId(),
+                        request.getRealmRolesList(), request.getClientId(), false);
+            }
+
+            if (!request.getClientRolesList().isEmpty()) {
+                keycloakClient.removeRoleFromUser(request.getAccessToken(),
+                        String.valueOf(request.getTenantId()), request.getId(),
+                        request.getClientRolesList(), request.getClientId(), true);
+
+            }
+            statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_AGENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            org.apache.custos.iam.service.OperationStatus response = org.apache.custos.iam.service.OperationStatus.
+                    newBuilder().setStatus(true).build();
+
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Delete roles from agent   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
     }
 
     private OperationMetadata convertFromEntity(StatusEntity entity) {

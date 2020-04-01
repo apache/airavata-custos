@@ -19,6 +19,7 @@
 
 package org.apache.custos.identity.client;
 
+import com.google.protobuf.Struct;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -28,7 +29,7 @@ import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.google.protobuf.Struct;
+
 import java.util.List;
 
 /**
@@ -106,6 +107,10 @@ public class IdentityClient {
 
     public Struct getOIDCConfiguration(GetOIDCConfiguration request) {
         return identityServiceBlockingStub.getOIDCConfiguration(request);
+    }
+
+    public Struct getTokenByPasswordGrantType(GetTokenRequest request) {
+        return identityServiceBlockingStub.getTokenByPasswordGrantType(request);
     }
 
 

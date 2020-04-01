@@ -34,6 +34,7 @@
         <module>federated-authentication-core-service-client-stub</module>
         <module>identity-core-service-client-stub</module>
         <module>user-profile-core-service-client-stub</module>
+        <module>agent-profile-core-service-client-stub</module>
     </modules>
     <artifactId>custos-core-services-client-stubs</artifactId>
 

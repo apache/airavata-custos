@@ -1389,6 +1389,33 @@ public class KeycloakClient {
     }
 
 
+    public boolean isClientConfigured(String realmId, String clientId, String accessToken) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            List<ClientRepresentation> clientRepresentationList = client.realm(realmId).clients().findByClientId(clientId);
+
+            Map<String, String> attributes = client.realm(realmId).clients().findByClientId(clientId).get(0).getAttributes();
+
+            for (String key : attributes.keySet()) {
+                LOGGER.info("Attribute key " + key + " value " + attributes.get(key));
+            }
+
+            return !clientRepresentationList.isEmpty();
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
     private ResteasyClient getRestClient() {
         return new ResteasyClientBuilder()
                 .connectionPoolSize(POOL_SIZE)

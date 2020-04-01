@@ -1,0 +1,96 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.agent.management.service;
+
+import "google/api/annotations.proto";
+import "google/rpc/error_details.proto";
+import "google/protobuf/empty.proto";
+import "IamAdminService.proto";
+
+
+message AgentSearchRequest {
+    int64 tenantId = 2;
+    string accessToken = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string performedBy = 6;
+    string id = 7;
+}
+
+
+service AgentManagementService {
+
+    rpc enableAgents (org.apache.custos.iam.service.AgentClientMetadata) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/enable"
+         };
+    }
+    rpc configureAgentClient (org.apache.custos.iam.service.AgentClientMetadata) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/token/configuration"
+         };
+    }
+
+    rpc registerAndEnableAgent (org.apache.custos.iam.service.RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/agent"
+         };
+    }
+
+
+    rpc deleteAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/agent-management/v1.0.0/agent/{id}"
+         };
+    }
+    rpc disableAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/agent/deactivation/{id}"
+         };
+
+    }
+    rpc addAgentAttributes (org.apache.custos.iam.service.AddUserAttributesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/agent/attributes"
+         };
+    }
+    rpc deleteAgentAttributes (org.apache.custos.iam.service.DeleteUserAttributeRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/agent-management/v1.0.0/agent/attributes"
+         };
+    }
+    rpc addRolesToAgent (org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/agent/roles"
+         };
+    }
+    rpc deleteRolesFromAgent (org.apache.custos.iam.service.DeleteUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/agent-management/v1.0.0/agent/roles"
+         };
+    }
+
+}
+
+

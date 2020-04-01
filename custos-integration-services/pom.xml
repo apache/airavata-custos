@@ -35,6 +35,7 @@
         <module>custos-integration-services-commons</module>
         <module>user-management-service-parent</module>
         <module>group-management-service-parent</module>
+        <module>agent-management-service-parent</module>
     </modules>
 
 </project>

@@ -85,6 +85,7 @@ message CheckingResponse {
 
 
 message UserRepresentation {
+    string id = 1;
     string username = 3;
     string first_name = 4;
     string last_name = 5;
@@ -117,6 +118,7 @@ message RegisterUserRequest {
     string clientId = 3;
     string clientSec = 4;
     UserRepresentation user = 5;
+    string performedBy = 6;
 }
 
 
@@ -143,6 +145,7 @@ message UserSearchMetadata {
     string first_name = 2;
     string last_name = 3;
     string email = 4;
+    string id = 5;
 }
 
 message FindUsersRequest {
@@ -187,6 +190,7 @@ message DeleteUserRolesRequest {
     string access_token = 5;
     string client_id = 6;
     string performed_by = 7;
+     string id = 8;
 }
 
 message AddUserRolesRequest {
@@ -197,6 +201,7 @@ message AddUserRolesRequest {
     string client_id = 5;
     bool client_level = 6;
     string performed_by = 7;
+    repeated string ids = 8;
 }
 
 message UpdateUserProfileRequest {
@@ -289,6 +294,7 @@ message AddUserAttributesRequest {
     string client_id = 4;
     string access_token = 5;
     string performedBy = 6;
+    repeated string agents = 7;
 }
 
 message DeleteUserAttributeRequest {
@@ -298,6 +304,7 @@ message DeleteUserAttributeRequest {
     string client_id = 4;
     string access_token = 5;
     string performedBy = 6;
+    repeated string agents = 7;
 }
 
 message UserAttribute {
@@ -348,6 +355,16 @@ message UserGroupMappingRequest {
     string group_id = 7;
 }
 
+message AgentClientMetadata {
+    int64 tenantId = 1;
+    string tenantURL = 2;
+    repeated string redirectURIs = 3;
+    string clientName = 4;
+    int64 access_token_life_time = 5;
+    string performedBy = 6;
+    string access_token = 7;
+}
+
 
 service IamAdminService {
 
@@ -358,26 +375,26 @@ service IamAdminService {
     rpc addProtocolMapper (AddProtocolMapperRequest) returns (OperationStatus);
 
 
-    rpc isUsernameAvailable (UserSearchRequest) returns (CheckingResponse);
+    rpc isUsernameAvailable (UserSearchRequest) returns (OperationStatus);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc enableUser (UserSearchRequest) returns (UserRepresentation);
     rpc disableUser (UserSearchRequest) returns (UserRepresentation);
-    rpc isUserEnabled (UserSearchRequest) returns (CheckingResponse);
+    rpc isUserEnabled (UserSearchRequest) returns (OperationStatus);
     rpc isUserExist (UserSearchRequest) returns (CheckingResponse);
     rpc getUser (UserSearchRequest) returns (UserRepresentation);
     rpc findUsers (FindUsersRequest) returns (FindUsersResponse);
-    rpc resetPassword (ResetUserPassword) returns (CheckingResponse);
+    rpc resetPassword (ResetUserPassword) returns (OperationStatus);
 
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);
     rpc deleteUserAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
     rpc addRolesToUsers (AddUserRolesRequest) returns (OperationStatus);
 
-    rpc deleteUser (UserSearchRequest) returns (CheckingResponse);
+    rpc deleteUser (UserSearchRequest) returns (OperationStatus);
 
-    rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (CheckingResponse);
+    rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (OperationStatus);
 
-    rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
+    rpc updateUserProfile (UpdateUserProfileRequest) returns (OperationStatus);
 
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
 
@@ -391,6 +408,20 @@ service IamAdminService {
 
     rpc addUserToGroup (UserGroupMappingRequest) returns (OperationStatus);
     rpc removeUserFromGroup (UserGroupMappingRequest) returns (OperationStatus);
+
+    rpc createAgentClient (AgentClientMetadata) returns (SetUpTenantResponse);
+    rpc configureAgentClient (AgentClientMetadata) returns (OperationStatus);
+
+
+    rpc isAgentNameAvailable (UserSearchRequest) returns (OperationStatus);
+    rpc registerAndEnableAgent (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc deleteAgent(UserSearchRequest) returns (OperationStatus);
+    rpc disableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc addAgentAttributes (AddUserAttributesRequest) returns (OperationStatus);
+    rpc deleteAgentAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
+    rpc addRolesToAgent (AddUserRolesRequest) returns (OperationStatus);
+    rpc deleteRolesFromAgent (DeleteUserRolesRequest) returns (OperationStatus);
+
 
 
 }

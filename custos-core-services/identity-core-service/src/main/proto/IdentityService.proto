@@ -52,6 +52,8 @@ message GetTokenRequest {
     string client_secret = 3;
     string redirect_uri = 4;
     string code = 6;
+    string username = 7;
+    string password = 8;
 }
 
 message TokenResponse {
@@ -109,5 +111,6 @@ service IdentityService {
     rpc getToken (GetTokenRequest) returns (google.protobuf.Struct);
     rpc getAuthorizeEndpoint (GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
     rpc getOIDCConfiguration (GetOIDCConfiguration) returns (google.protobuf.Struct);
+    rpc getTokenByPasswordGrantType (GetTokenRequest) returns (google.protobuf.Struct);
 
 }
