@@ -29,4 +29,6 @@ public final class Constants {
     public static final String TENANT_BASE_URI = "https://custos.scigap.org:32036/tenant-management/v1.0.0/oauth2/tenant";
     public static final String AUTHORIZATION_CODE = "code";
     public static final String AUTHORIZATION_HEADER = "authorization";
+    public static final String CLIENT_CREDENTIALS = "client_credentials";
+    public static final String REFERESH_TOKEN = "refresh_token";
 }

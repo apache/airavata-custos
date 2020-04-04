@@ -219,6 +219,23 @@ public class KeycloakAuthClient {
         }
 
     }
+
+    public JSONObject getAccessTokenFromRefreshTokenGrantType(String clientId, String clientSecret, String realmId,
+                                                          String refreshToken) throws JSONException {
+        try {
+            String tokenURL = getTokenEndpoint(realmId);
+            return getTokenFromRefreshToken(tokenURL, clientId, clientSecret, refreshToken);
+
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+    }
+
+
+
     private String getTokenEndpoint(String gatewayId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
@@ -371,6 +388,41 @@ public class KeycloakAuthClient {
         formParams.add(new BasicNameValuePair("grant_type", "password"));
         formParams.add(new BasicNameValuePair("username", username));
         formParams.add(new BasicNameValuePair("password", password));
+        formParams.add(new BasicNameValuePair("client_id", clientId));
+        formParams.add(new BasicNameValuePair("client_secret", clientSecret));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
+        httpPost.setEntity(entity);
+        try {
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                JSONObject tokenInfo = new JSONObject(responseBody);
+                return tokenInfo;
+            } finally {
+                response.close();
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+
+    private JSONObject getTokenFromRefreshToken(String tokenURL, String clientId, String clientSecret, String refreshToken) {
+
+        CloseableHttpClient httpClient = HttpClients.createSystem();
+
+        HttpPost httpPost = new HttpPost(tokenURL);
+        String encoded = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+        List<NameValuePair> formParams = new ArrayList<>();
+        formParams.add(new BasicNameValuePair("grant_type", "refresh_token"));
+        formParams.add(new BasicNameValuePair("refresh_token", refreshToken));
         formParams.add(new BasicNameValuePair("client_id", clientId));
         formParams.add(new BasicNameValuePair("client_secret", clientSecret));
         UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);

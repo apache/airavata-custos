@@ -114,6 +114,11 @@ public class IdentityClient {
     }
 
 
+    public Struct getTokenByRefreshTokenGrantType(GetTokenRequest request) {
+       return identityServiceBlockingStub.getTokenByRefreshTokenGrantType(request);
+    }
+
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {

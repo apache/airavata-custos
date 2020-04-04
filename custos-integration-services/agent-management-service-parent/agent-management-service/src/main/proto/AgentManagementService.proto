@@ -38,6 +38,11 @@ message AgentSearchRequest {
     string id = 7;
 }
 
+message AgentRegistrationResponse {
+    string id = 1;
+    string secret = 2;
+}
+
 
 service AgentManagementService {
 
@@ -52,12 +57,18 @@ service AgentManagementService {
          };
     }
 
-    rpc registerAndEnableAgent (org.apache.custos.iam.service.RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
+    rpc registerAndEnableAgent (org.apache.custos.iam.service.RegisterUserRequest) returns (AgentRegistrationResponse) {
         option (google.api.http) = {
            post: "/agent-management/v1.0.0/agent"
+           body: "user"
          };
     }
 
+    rpc getAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           get: "/agent-management/v1.0.0/agent/{id}"
+         };
+    }
 
     rpc deleteAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {

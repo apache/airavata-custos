@@ -19,9 +19,22 @@
 
 package org.apache.custos.agent.management;
 
+import brave.Tracing;
+import brave.grpc.GrpcTracing;
+import io.grpc.ClientInterceptor;
+import io.grpc.ServerInterceptor;
+import org.apache.custos.agent.management.interceptors.ClientAuthInterceptorImpl;
+import org.apache.custos.agent.management.interceptors.InputValidator;
+import org.apache.custos.agent.management.interceptors.UserAuthInterceptorImpl;
+import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+
+import java.util.Stack;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "org.apache.custos")
@@ -29,5 +42,43 @@ public class AgentManagementServiceInitializer {
 
     public static void main(String[] args) {
         SpringApplication.run(AgentManagementServiceInitializer.class, args);
+    }
+
+    @Bean
+    public GrpcTracing grpcTracing(Tracing tracing) {
+        //   Tracing tracing1 =  Tracing.newBuilder().build();
+        return GrpcTracing.create(tracing);
+    }
+
+    //We also create a client-side interceptor and put that in the context, this interceptor can then be injected into gRPC clients and
+    //then applied to the managed channel.
+    @Bean
+    ClientInterceptor grpcClientSleuthInterceptor(GrpcTracing grpcTracing) {
+        return grpcTracing.newClientInterceptor();
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
+        return grpcTracing.newServerInterceptor();
+    }
+
+    @Bean
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
+                                                                  ClientAuthInterceptorImpl authInterceptor,
+                                                                  UserAuthInterceptorImpl userAuthInterceptor) {
+        Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
+        interceptors.add(inputValidator);
+        interceptors.add(authInterceptor);
+        interceptors.add(userAuthInterceptor);
+
+
+        return interceptors;
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+        return new ServiceInterceptor(integrationServiceInterceptors);
     }
 }

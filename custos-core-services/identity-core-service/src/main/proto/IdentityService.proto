@@ -54,6 +54,8 @@ message GetTokenRequest {
     string code = 6;
     string username = 7;
     string password = 8;
+    string refresh_token = 9;
+    string grant_type = 10;
 }
 
 message TokenResponse {
@@ -112,5 +114,6 @@ service IdentityService {
     rpc getAuthorizeEndpoint (GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
     rpc getOIDCConfiguration (GetOIDCConfiguration) returns (google.protobuf.Struct);
     rpc getTokenByPasswordGrantType (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getTokenByRefreshTokenGrantType (GetTokenRequest) returns (google.protobuf.Struct);
 
 }

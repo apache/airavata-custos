@@ -24,12 +24,15 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
 import java.util.Date;
-import java.util.Set;
 
 @Entity
-@Table(name = "custos_credentials")
+@Table(name = "agent_credentials")
 @EntityListeners(AuditingEntityListener.class)
-public class CredentialEntity {
+public class AgentCredentialEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
     @Column(nullable = false)
     private String clientId;
@@ -40,18 +43,19 @@ public class CredentialEntity {
     @CreatedDate
     private Date issuedAt;
 
-     @Column(nullable = false)
+    @Column(nullable = false)
     private long clientSecretExpiredAt;
 
-    @Id
+
     @Column(nullable = false)
     private long ownerId;
 
-     @Column(nullable = false)
-     private String type;
+    @Column(nullable = false)
+    private String type;
 
-    @OneToMany(mappedBy = "credentialEntity", cascade = CascadeType.ALL)
-    Set<AgentCredentialEntity> agentCredentialEntities;
+    @ManyToOne
+    @JoinColumn(name = "custos_credentials_id")
+    private CredentialEntity credentialEntity;
 
 
     public String getClientId() {
@@ -94,12 +98,19 @@ public class CredentialEntity {
         this.type = type;
     }
 
-
-    public Set<AgentCredentialEntity> getAgentCredentialEntities() {
-        return agentCredentialEntities;
+    public CredentialEntity getCredentialEntity() {
+        return credentialEntity;
     }
 
-    public void setAgentCredentialEntities(Set<AgentCredentialEntity> agentCredentialEntities) {
-        this.agentCredentialEntities = agentCredentialEntities;
+    public void setCredentialEntity(CredentialEntity credentialEntity) {
+        this.credentialEntity = credentialEntity;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

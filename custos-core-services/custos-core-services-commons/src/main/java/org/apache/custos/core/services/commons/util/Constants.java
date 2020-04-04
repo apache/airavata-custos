@@ -17,12 +17,9 @@
  *  under the License.
  */
 
-package org.apache.custos.credential.store.utils;
+package org.apache.custos.core.services.commons.util;
 
-public enum Operations {
-    PUT_CREDENTIAL,
-    DELETE_CREDENTIAL,
-    GENERATE_CUSTOS_CREDENTIAL,
-    GENERATE_AGENT_CREDENTIAL,
-    DELETE_AGENT_CREDENTIAL
+public final class Constants {
+
+    public static final String  CUSTOS_REALM_AGENT  = "custos-realm-agent";
 }

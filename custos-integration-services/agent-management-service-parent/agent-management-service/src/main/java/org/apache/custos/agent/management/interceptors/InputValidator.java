@@ -44,12 +44,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
      */
     private void validate(String methodName, Object body, Metadata headers) {
 
-        switch (methodName) {
-            case "linkUserProfile":
-
-                break;
-            default:
-        }
+        validationAuthorizationHeader(headers);
     }
 
 

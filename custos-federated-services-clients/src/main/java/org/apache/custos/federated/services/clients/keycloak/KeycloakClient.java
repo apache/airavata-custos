@@ -20,6 +20,7 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
+import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -1389,20 +1390,28 @@ public class KeycloakClient {
     }
 
 
-    public boolean isClientConfigured(String realmId, String clientId, String accessToken) {
+    public boolean configureAgentClient(String realmId, String clientId, long accessTokenLifeTime) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
 
-            List<ClientRepresentation> clientRepresentationList = client.realm(realmId).clients().findByClientId(clientId);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
-            Map<String, String> attributes = client.realm(realmId).clients().findByClientId(clientId).get(0).getAttributes();
+            ClientRepresentation representation = client.realm(realmId).clients().findByClientId(clientId).get(0);
 
-            for (String key : attributes.keySet()) {
-                LOGGER.info("Attribute key " + key + " value " + attributes.get(key));
+            if (representation != null) {
+                Map<String, String> attributes = representation.getAttributes();
+
+                if (attributes == null || attributes.isEmpty()) {
+                    attributes = new HashMap<>();
+                }
+                attributes.put("access.token.lifespan", String.valueOf(accessTokenLifeTime));
+
+                client.realm(realmId).clients().get(representation.getId()).update(representation);
+                return true;
+
             }
 
-            return !clientRepresentationList.isEmpty();
+            return false;
         } catch (Exception ex) {
             String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
@@ -1412,6 +1421,45 @@ public class KeycloakClient {
                 client.close();
             }
         }
+
+    }
+
+
+    public boolean isValidEndUser(String realmId, String username) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+
+            if (representation == null) {
+                return false;
+            }
+
+            Map<String, List<String>> attributes = representation.getAttributes();
+
+            if (attributes != null && !attributes.isEmpty()) {
+
+                for (String key : attributes.keySet()) {
+                    if (key.equals(Constants.CUSTOS_REALM_AGENT)) {
+                        return false;
+                    }
+
+                }
+            }
+
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred end user validity: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
 
     }
 

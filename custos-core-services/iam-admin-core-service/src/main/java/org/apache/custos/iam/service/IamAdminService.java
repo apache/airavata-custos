@@ -24,6 +24,7 @@ import io.grpc.stub.StreamObserver;
 import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
 import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
+import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakClientSecret;
 import org.apache.custos.federated.services.clients.keycloak.UnauthorizedException;
@@ -212,6 +213,19 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to enableUser for " + request.getTenantId());
 
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
+
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             boolean accountEnabled = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUser().getUsername());
             if (accountEnabled) {
@@ -260,6 +274,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to disable for " + request.getTenantId());
 
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.DISABLE_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(),
+                        String.valueOf(request.getTenantId()));
+
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
             boolean accountDisabled = keycloakClient.disableUserAccount(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUser().getUsername());
             if (accountDisabled) {
@@ -307,6 +335,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to isUserExist for " + request.getTenantId());
 
+
             boolean isUserExist = keycloakClient.isUserExist(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUser().getUsername());
             CheckingResponse response = CheckingResponse.newBuilder().setIsExist(isUserExist).build();
@@ -326,6 +355,15 @@ public class IamAdminService extends IamAdminServiceImplBase {
     public void getUser(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.UserRepresentation> responseObserver) {
         try {
             LOGGER.debug("Request received to getUser for " + request.getTenantId());
+
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            if (!status) {
+                responseObserver.onNext(null);
+                responseObserver.onCompleted();
+                return;
+            }
+
 
             UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
                     request.getAccessToken(), request.getUser().getUsername());
@@ -375,7 +413,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUser().getLastName(),
                     request.getUser().getEmail());
             List<org.apache.custos.iam.service.UserRepresentation> users = new ArrayList<>();
-            representation.stream().forEach(r -> users.add(this.getUser(r, request.getClientId())));
+            representation.stream().forEach(r -> {
+
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), r.getUsername());
+
+                if (status) {
+                    users.add(this.getUser(r, request.getClientId()));
+                }
+            });
 
 
             FindUsersResponse response = FindUsersResponse.newBuilder().addAllUsers(users).build();
@@ -398,6 +443,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
         String userId = request.getUsername() + "@" + request.getTenantId();
         try {
             LOGGER.debug("Request received to resetPassword for " + request.getUsername());
+
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), userId);
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
 
             boolean isChanged = keycloakClient.resetUserPassword(request.getAccessToken(),
                     String.valueOf(request.getTenantId()),
@@ -437,6 +493,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to updateUserProfile for " + request.getUser().getUsername());
 
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), userId);
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             keycloakClient.updateUserRepresentation(request.getAccessToken(),
                     String.valueOf(request.getTenantId()),
                     request.getUser().getUsername(),
@@ -475,6 +542,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
 
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), request.getPerformedBy());
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             boolean isUpdated = keycloakClient.deleteUser(request.getAccessToken(),
                     String.valueOf(request.getTenantId()), request.getUser().getUsername());
 
@@ -508,6 +586,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         try {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
+
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUsername());
+
+            if (!status) {
+                statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_USER.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), request.getPerformedBy());
+                String msg = "User not valid ";
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
 
 
             if (!request.getRealmRolesList().isEmpty()) {
@@ -649,6 +738,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
                         Map<String, List<String>> map = new HashMap<>();
                         for (UserAttribute attribute : userRepresentation.getAttributesList()) {
+
+                            if (attribute.getKey().equals(Constants.CUSTOS_REALM_AGENT)) {
+                                // Constants.CUSTOS_REALM_AGENT + " cannot be used as a valid attribute";
+                                continue;
+                            }
                             map.put(attribute.getKey(), attribute.getValuesList());
                         }
 
@@ -708,8 +802,17 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to addRolesToUsers for " + request.getTenantId());
 
+            List<String> validUserNames = new ArrayList<>();
+
+            for (String username : request.getUsernamesList()) {
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                if (status) {
+                    validUserNames.add(username);
+                }
+            }
+
             keycloakClient.addRolesToUsers(request.getAccessToken(), String.valueOf(request.getTenantId()),
-                    request.getUsernamesList(), request.getRolesList(), request.getClientId(), request.getClientLevel());
+                    validUserNames, request.getRolesList(), request.getClientId(), request.getClientLevel());
 
             statusUpdater.updateStatus(IAMOperations.ADD_ROLES_TO_USERS.name(),
                     OperationStatus.SUCCESS,
@@ -891,16 +994,31 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void addUserAttributes(AddUserAttributesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
-            LOGGER.debug("Request received to add protocol mapper " + request.getTenantId());
+            LOGGER.debug("Request received to addUserAttributes " + request.getTenantId());
 
             List<UserAttribute> attributes = request.getAttributesList();
 
+            List<String> validUserNames = new ArrayList<>();
+
+            for (String username : request.getUsersList()) {
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                if (status) {
+                    validUserNames.add(username);
+                }
+            }
+
             Map<String, List<String>> attributeMap = new HashMap<>();
             for (UserAttribute attribute : attributes) {
+                if (attribute.getKey().equals(Constants.CUSTOS_REALM_AGENT)) {
+                    String msg = Constants.CUSTOS_REALM_AGENT + " cannot be used as a valid attribute";
+                    LOGGER.error(msg);
+                    responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                }
+
                 attributeMap.put(attribute.getKey(), attribute.getValuesList());
             }
 
-            keycloakClient.addUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getUsersList());
+            keycloakClient.addUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, validUserNames);
 
             statusUpdater.updateStatus(IAMOperations.ADD_USER_ATTRIBUTE.name(),
                     OperationStatus.SUCCESS,
@@ -933,14 +1051,25 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to delete user attributes " + request.getTenantId());
 
+            List<String> validUserNames = new ArrayList<>();
+
+            for (String username : request.getUsersList()) {
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                if (status) {
+                    validUserNames.add(username);
+                }
+            }
+
+
             List<UserAttribute> attributes = request.getAttributesList();
 
             Map<String, List<String>> attributeMap = new HashMap<>();
             for (UserAttribute attribute : attributes) {
                 attributeMap.put(attribute.getKey(), attribute.getValuesList());
+
             }
 
-            keycloakClient.deleteUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getUsersList());
+            keycloakClient.deleteUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, validUserNames);
 
             statusUpdater.updateStatus(IAMOperations.DELETE_USER_ATTRIBUTES.name(),
                     OperationStatus.SUCCESS,
@@ -1316,8 +1445,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                         request.getPerformedBy());
 
                 SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
-                        .setClientId(secret.getClientSecret())
                         .setClientId(secret.getClientId())
+                        .setClientSecret(secret.getClientSecret())
                         .build();
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
@@ -1344,17 +1473,29 @@ public class IamAdminService extends IamAdminServiceImplBase {
     @Override
     public void configureAgentClient(AgentClientMetadata request,
                                      StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to configureAgentClient " + request.getTenantId());
 
+            boolean status = keycloakClient.configureAgentClient(String.valueOf(request.getTenantId()), request.getClientName(),
+                    request.getAccessTokenLifeTime());
 
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
 
-
-
-
-
-
-
-
-
+        } catch (Exception ex) {
+            String msg = " Register and configureAgentClient user   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.REGISTER_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
     }
 
     @Override

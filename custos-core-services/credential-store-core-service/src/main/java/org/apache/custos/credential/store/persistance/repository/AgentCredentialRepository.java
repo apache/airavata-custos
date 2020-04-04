@@ -17,12 +17,15 @@
  *  under the License.
  */
 
-package org.apache.custos.credential.store.utils;
+package org.apache.custos.credential.store.persistance.repository;
 
-public enum Operations {
-    PUT_CREDENTIAL,
-    DELETE_CREDENTIAL,
-    GENERATE_CUSTOS_CREDENTIAL,
-    GENERATE_AGENT_CREDENTIAL,
-    DELETE_AGENT_CREDENTIAL
+import org.apache.custos.credential.store.persistance.model.AgentCredentialEntity;
+import org.apache.custos.credential.store.persistance.model.CredentialEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
+
+public interface AgentCredentialRepository extends JpaRepository<AgentCredentialEntity, Long> {
+
+    @Transactional
+    public AgentCredentialEntity findByClientIdAndOwnerId(String clientId, long ownerId);
 }

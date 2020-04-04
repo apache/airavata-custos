@@ -30,9 +30,11 @@ import org.apache.custos.agent.profile.service.OperationStatus;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class AgentProfileClient {
 
     private ManagedChannel managedChannel;

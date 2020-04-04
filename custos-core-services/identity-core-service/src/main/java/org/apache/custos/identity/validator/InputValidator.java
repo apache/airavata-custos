@@ -23,6 +23,7 @@ package org.apache.custos.identity.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.identity.service.*;
+import org.apache.custos.identity.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory;
  */
 public class InputValidator implements Validator {
 
-private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
+
     /**
      * Input parameter validater
      *
@@ -61,6 +63,12 @@ private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.cla
                 break;
             case "getOIDCConfiguration":
                 validateGetOIDCConfiguration(obj);
+                break;
+            case "getTokenByPasswordGrantType":
+                validatePasswordGrantTypeTokenRequest(obj);
+                break;
+            case "getTokenByRefreshTokenGrantType":
+                validateRefreshGrantTokenRequest(obj);
                 break;
 
             default:
@@ -103,7 +111,7 @@ private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.cla
 
 
             for (Claim claim : request.getClaimsList()) {
-                LOGGER.info("Key "+ claim.getKey() + "Value "+ claim.getValue());
+                LOGGER.info("Key " + claim.getKey() + "Value " + claim.getValue());
                 if (claim.getKey().equals("username")) {
                     username = claim.getValue();
                 } else if (claim.getKey().equals("tenantId")) {
@@ -166,16 +174,92 @@ private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.cla
             if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
                 throw new MissingParameterException("Client secret should not be null", null);
             }
-            if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
-                throw new MissingParameterException("Redirect Uri should not be null", null);
-            }
 
-            if (request.getCode() == null || request.getCode().trim().equals("")) {
-                throw new MissingParameterException("code should not be null", null);
+            if (request.getGrantType() != null && request.getGrantType().equals(Constants.PASSWORD_GRANT_TYPE)) {
+                if (request.getUsername() == null || request.getUsername().trim().equals("")) {
+                    throw new MissingParameterException("Username should not be null", null);
+                }
+
+                if (request.getPassword() == null || request.getPassword().trim().equals("")) {
+                    throw new MissingParameterException("Password should not be null", null);
+                }
+
+            } else if (request.getGrantType() != null && request.getGrantType().equals(Constants.REFERESH_TOKEN)) {
+                if (request.getRefreshToken() == null || request.getRefreshToken().trim().equals("")) {
+                    throw new MissingParameterException("Refresh token should not be null", null);
+                }
+
+                if (request.getPassword() == null || request.getPassword().trim().equals("")) {
+                    throw new MissingParameterException("Password should not be null", null);
+                }
+            } else {
+
+                if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
+                    throw new MissingParameterException("Redirect Uri should not be null", null);
+                }
+
+                if (request.getCode() == null || request.getCode().trim().equals("")) {
+                    throw new MissingParameterException("code should not be null", null);
+                }
             }
 
         } else {
             throw new RuntimeException("Unexpected input type for method userAccess");
+        }
+        return true;
+    }
+
+
+    private boolean validatePasswordGrantTypeTokenRequest(Object obj) {
+        if (obj instanceof GetTokenRequest) {
+            GetTokenRequest request = (GetTokenRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+            if (request.getUsername() == null || request.getUsername().trim().equals("")) {
+                throw new MissingParameterException("Username should not be null", null);
+            }
+
+            if (request.getPassword() == null || request.getPassword().trim().equals("")) {
+                throw new MissingParameterException("Password should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method getTokenByPasswordGrantType");
+        }
+        return true;
+    }
+
+
+    private boolean validateRefreshGrantTokenRequest(Object obj) {
+        if (obj instanceof GetTokenRequest) {
+            GetTokenRequest request = (GetTokenRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+            if (request.getRefreshToken() == null || request.getRefreshToken().trim().equals("")) {
+                throw new MissingParameterException("Refresh token should not be null", null);
+            }
+
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
         }
         return true;
     }
@@ -192,6 +276,7 @@ private  static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.cla
         }
         return true;
     }
+
     private boolean validateGetOIDCConfiguration(Object obj) {
         if (obj instanceof GetOIDCConfiguration) {
             GetOIDCConfiguration request = (GetOIDCConfiguration) obj;

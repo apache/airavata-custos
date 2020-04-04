@@ -23,6 +23,7 @@ import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
+import org.apache.custos.identity.management.interceptors.AgentAuthInterceptor;
 import org.apache.custos.identity.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.identity.management.interceptors.InputValidator;
 import org.apache.custos.identity.management.interceptors.ResponseInterceptor;
@@ -64,10 +65,12 @@ public class IdentityManagementServiceInitializer {
     }
 
     @Bean
-    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator) {
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator,
+                                                                  AgentAuthInterceptor agentAuthInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
+        interceptors.add(agentAuthInterceptor);
 
         return interceptors;
     }
