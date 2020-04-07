@@ -24,6 +24,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Table(name = "custos_credentials")
@@ -42,12 +43,15 @@ public class CredentialEntity {
      @Column(nullable = false)
     private long clientSecretExpiredAt;
 
-     @Id
-     @Column(nullable = false)
-     private long ownerId;
+    @Id
+    @Column(nullable = false)
+    private long ownerId;
 
      @Column(nullable = false)
      private String type;
+
+    @OneToMany(mappedBy = "credentialEntity", cascade = CascadeType.ALL)
+    Set<AgentCredentialEntity> agentCredentialEntities;
 
 
     public String getClientId() {
@@ -88,5 +92,14 @@ public class CredentialEntity {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+
+    public Set<AgentCredentialEntity> getAgentCredentialEntities() {
+        return agentCredentialEntities;
+    }
+
+    public void setAgentCredentialEntities(Set<AgentCredentialEntity> agentCredentialEntities) {
+        this.agentCredentialEntities = agentCredentialEntities;
     }
 }

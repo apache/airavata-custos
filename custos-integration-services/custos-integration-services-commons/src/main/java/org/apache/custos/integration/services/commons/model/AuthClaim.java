@@ -48,6 +48,14 @@ public class AuthClaim {
 
     private String username;
 
+    private String agentClientId;
+
+    private String agentClientSecret;
+
+    private String agentPassword;
+
+    private String agentId;
+
 
     public AuthClaim() {
     }
@@ -160,5 +168,38 @@ public class AuthClaim {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+
+    public String getAgentClientId() {
+        return agentClientId;
+    }
+
+    public void setAgentClientId(String agentClientId) {
+        this.agentClientId = agentClientId;
+    }
+
+    public String getAgentClientSecret() {
+        return agentClientSecret;
+    }
+
+    public void setAgentClientSecret(String agentClientSecret) {
+        this.agentClientSecret = agentClientSecret;
+    }
+
+    public String getAgentPassword() {
+        return agentPassword;
+    }
+
+    public void setAgentPassword(String agentPassword) {
+        this.agentPassword = agentPassword;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
     }
 }

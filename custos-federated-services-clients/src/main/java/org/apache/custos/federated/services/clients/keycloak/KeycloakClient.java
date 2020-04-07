@@ -20,6 +20,7 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
+import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -322,13 +323,13 @@ public class KeycloakClient {
             UserRepresentation profile = userResource.toRepresentation();
             profile.setEnabled(true);
             // We require that a user verify their email before enabling the account
-            profile.setEmailVerified(true);
+           // profile.setEmailVerified(true);
             userResource.update(profile);
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error occurred enableUserAccount, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -344,17 +345,20 @@ public class KeycloakClient {
 
             UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
 
-            UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
-            UserRepresentation profile = userResource.toRepresentation();
-            profile.setEnabled(false);
-            // We require that a user verify their email before enabling the account
-            // profile.setEmailVerified(true);
-            userResource.update(profile);
+            if (userRepresentation != null) {
+
+                UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
+                UserRepresentation profile = userResource.toRepresentation();
+                profile.setEnabled(false);
+                // We require that a user verify their email before enabling the account
+                // profile.setEmailVerified(true);
+                userResource.update(profile);
+            }
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error in disableUserAccount at keycloak, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -603,7 +607,6 @@ public class KeycloakClient {
                         for (String roleName : roles) {
                             RoleResource roleResource = client.realm(realmId).
                                     clients().get(clientRep.getId()).roles().get(roleName);
-                            LOGGER.info("Roles Representatioin " + roleName + " roles resource " + roleResource);
                             if (roleResource != null) {
                                 roleRepresentations.add(roleResource.toRepresentation());
                             }
@@ -728,20 +731,23 @@ public class KeycloakClient {
             for (String user : users) {
 
                 UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
-                UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+                if (userRepresentation != null) {
+                    UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                if (exAtrMap != null && !exAtrMap.isEmpty()) {
-                    attributeMap.keySet().forEach(key -> {
-                        exAtrMap.put(key, attributeMap.get(key));
-                    });
-                    userRepresentation.setAttributes(exAtrMap);
-                } else {
-                    userRepresentation.setAttributes(attributeMap);
+                    Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+
+                    if (exAtrMap != null && !exAtrMap.isEmpty()) {
+                        attributeMap.keySet().forEach(key -> {
+                            exAtrMap.put(key, attributeMap.get(key));
+                        });
+                        userRepresentation.setAttributes(exAtrMap);
+                    } else {
+                        userRepresentation.setAttributes(attributeMap);
+                    }
+
+                    resource.update(userRepresentation);
                 }
-
-                resource.update(userRepresentation);
             }
 
 
@@ -1386,6 +1392,79 @@ public class KeycloakClient {
                 client.close();
             }
         }
+    }
+
+
+    public boolean configureAgentClient(String realmId, String clientId, long accessTokenLifeTime) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            ClientRepresentation representation = client.realm(realmId).clients().findByClientId(clientId).get(0);
+
+            if (representation != null) {
+                Map<String, String> attributes = representation.getAttributes();
+
+                if (attributes == null || attributes.isEmpty()) {
+                    attributes = new HashMap<>();
+                }
+                attributes.put("access.token.lifespan", String.valueOf(accessTokenLifeTime));
+
+                client.realm(realmId).clients().get(representation.getId()).update(representation);
+                return true;
+
+            }
+
+            return false;
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    public boolean isValidEndUser(String realmId, String username, String accessToken) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+
+            if (representation == null) {
+                return false;
+            }
+
+            Map<String, List<String>> attributes = representation.getAttributes();
+
+            if (attributes != null && !attributes.isEmpty()) {
+
+                for (String key : attributes.keySet()) {
+                    if (key.equals(Constants.CUSTOS_REALM_AGENT)) {
+                        return false;
+                    }
+
+                }
+            }
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred end user validity: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+
     }
 
 

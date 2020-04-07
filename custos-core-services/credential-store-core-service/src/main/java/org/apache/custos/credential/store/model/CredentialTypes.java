@@ -24,5 +24,6 @@ package org.apache.custos.credential.store.model;
  */
 public enum  CredentialTypes {
     CUSTOS,
-    EXTERNAL
+    EXTERNAL,
+    AGENT
 }

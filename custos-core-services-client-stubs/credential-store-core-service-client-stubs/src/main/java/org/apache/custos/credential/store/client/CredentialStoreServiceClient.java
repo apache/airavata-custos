@@ -143,13 +143,35 @@ public class CredentialStoreServiceClient {
         return credentialStoreServiceBlockingStub.getAllCredentialsFromToken(request);
     }
 
+    public GetAllCredentialsResponse getAllCredentialsFromJWTToken(TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getAllCredentialsFromJWTToken(request);
+    }
+
+
     public Credentials getBasicCredentials(TokenRequest request) {
         return credentialStoreServiceBlockingStub.getBasicCredentials(request);
     }
 
-    public GetAllCredentialsResponse getAllCredentialsFromJWTToken(TokenRequest request) {
-            return credentialStoreServiceBlockingStub.getAllCredentialsFromJWTToken(request);
+    public CredentialMetadata createAgentCredential(CredentialMetadata request) {
+        return credentialStoreServiceBlockingStub.createAgentCredential(request);
     }
+
+    public CredentialMetadata getAgentCredential(GetCredentialRequest request) {
+        return credentialStoreServiceBlockingStub.getAgentCredential(request);
+    }
+
+    public OperationStatus deleteAgentCredential(CredentialMetadata request) {
+        return credentialStoreServiceBlockingStub.deleteAgentCredential(request);
+    }
+
+    public GetAllCredentialsResponse getCredentialByAgentBasicAuth(TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getCredentialByAgentBasicAuth(request);
+    }
+
+    public GetAllCredentialsResponse getCredentialByAgentJWTToken(TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getCredentialByAgentJWTToken(request);
+    }
+
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

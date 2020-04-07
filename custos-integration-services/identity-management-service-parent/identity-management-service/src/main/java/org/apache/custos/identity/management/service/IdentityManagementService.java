@@ -255,4 +255,41 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             responseObserver.onError(ex);
         }
     }
+
+    @Override
+    public void getAgentToken(GetAgentTokenRequest request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to getAgentToken endpoint " + request.getTenantId());
+
+            if (request.getGrantType().equals(Constants.CLIENT_CREDENTIALS)) {
+                GetTokenRequest getTokenRequest = GetTokenRequest.newBuilder()
+                        .setClientId(request.getAgentClientId())
+                        .setClientSecret(request.getAgentClientSecret())
+                        .setPassword(request.getAgentPassword())
+                        .setUsername(request.getAgentId())
+                        .setTenantId(request.getTenantId())
+                        .build();
+                Struct response = identityClient.getTokenByPasswordGrantType(getTokenRequest);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            } else {
+                GetTokenRequest getTokenRequest = GetTokenRequest.newBuilder()
+                        .setClientId(request.getAgentClientId())
+                        .setClientSecret(request.getAgentClientSecret())
+                        .setRefreshToken(request.getRefreshToken())
+                        .setTenantId(request.getTenantId())
+                        .build();
+                Struct response = identityClient.getTokenByRefreshTokenGrantType(getTokenRequest);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  fetching agent access token " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
 }

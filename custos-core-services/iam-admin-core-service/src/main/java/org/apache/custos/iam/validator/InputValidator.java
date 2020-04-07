@@ -107,6 +107,35 @@ public class InputValidator implements Validator {
                 validateUserGroupMapping(obj);
                 break;
 
+            case "createAgentClient":
+                validateCreateAgentClient(obj);
+                break;
+            case "configureAgentClient":
+                configureAgentClient(obj);
+                break;
+            case "isAgentNameAvailable":
+            case "deleteAgent":
+            case "disableAgent":
+            case "enableAgent":
+                validateUserSearchRequest(obj);
+                break;
+            case "registerAndEnableAgent":
+                validateRegisterAndEnableAgent(obj);
+                break;
+            case "addAgentAttributes":
+                validateAddAgentAttributes(obj);
+                break;
+            case "deleteAgentAttributes":
+                validateDeleteAgentAttributes(obj);
+                break;
+            case "addRolesToAgent":
+                validateAddRolesToAgent(obj);
+                break;
+            case "deleteRolesFromAgent":
+                validateDeleteRolesFromAgent(obj);
+                break;
+
+
             default:
 
         }
@@ -360,7 +389,7 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (request.getClientRolesList().isEmpty() && request.getRealmRolesList().isEmpty()) {
+            if (request.getClientRolesList().isEmpty() && request.getRolesList().isEmpty()) {
                 throw new MissingParameterException("At least client roles or realm roles should not be null", null);
             }
 
@@ -638,5 +667,228 @@ public class InputValidator implements Validator {
         return true;
 
     }
+
+    private boolean validateCreateAgentClient(Object obj) {
+        if (obj instanceof AgentClientMetadata) {
+            AgentClientMetadata request = (AgentClientMetadata) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getRedirectURIsCount() == 0) {
+                throw new MissingParameterException("Atleast one redirect URI should be there", null);
+            }
+            if (request.getClientName() == null || request.getClientName().equals("")) {
+                throw new MissingParameterException("Client name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
+        }
+        return true;
+    }
+
+    private boolean configureAgentClient(Object obj) {
+        if (obj instanceof AgentClientMetadata) {
+            AgentClientMetadata request = (AgentClientMetadata) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientName() == null || request.getClientName().equals("")) {
+                throw new MissingParameterException("Client name should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
+        }
+        return true;
+    }
+
+
+    private boolean   validateUserSearchRequest(Object obj) {
+        if (obj instanceof UserSearchRequest) {
+            UserSearchRequest request = (UserSearchRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getUser() == null) {
+                throw new MissingParameterException("Agent  should not be null", null);
+            }
+            if (request.getUser().getId() == null || request.getUser().getId().equals("")) {
+                throw new MissingParameterException("Agent Id should not be null", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for request UserSearchRequest");
+        }
+        return true;
+    }
+
+    private boolean validateRegisterAndEnableAgent(Object obj) {
+        if (obj instanceof RegisterUserRequest) {
+            RegisterUserRequest request = (RegisterUserRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getUser() == null) {
+                throw new MissingParameterException(" Agent should not be null", null);
+            }
+            if (request.getUser().getId() == null || request.getUser().getId().equals("")) {
+                throw new MissingParameterException("Agent Id should not be null", null);
+            }
+
+            if (request.getUser().getPassword() == null || request.getUser().getPassword().equals("")) {
+                throw new MissingParameterException("Agent password should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateRegisterAndEnableAgent");
+        }
+        return true;
+    }
+
+
+    private boolean validateDeleteAgentAttributes(Object obj) {
+        if (obj instanceof DeleteUserAttributeRequest) {
+            DeleteUserAttributeRequest request = (DeleteUserAttributeRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getAttributesList().isEmpty()) {
+                throw new MissingParameterException("Attributes should not be null", null);
+            }
+
+            if (request.getAgentsList().isEmpty()) {
+                throw new MissingParameterException("Agents should not be null", null);
+            }
+
+
+            for (UserAttribute attribute : request.getAttributesList()) {
+                if (attribute.getKey() == null || attribute.getKey().equals("")) {
+                    throw new MissingParameterException("Attribute Key should not be null", null);
+                }
+
+                if (attribute.getValuesList().isEmpty()) {
+                    throw new MissingParameterException("Attribute value should not be null", null);
+                }
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
+        }
+        return true;
+    }
+
+    private boolean validateAddAgentAttributes(Object obj) {
+        if (obj instanceof AddUserAttributesRequest) {
+            AddUserAttributesRequest request = (AddUserAttributesRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getAccessToken() == null || request.getAccessToken().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+            if (request.getAttributesList().isEmpty()) {
+                throw new MissingParameterException("Attributes should not be null", null);
+            }
+
+            if (request.getAgentsList().isEmpty()) {
+                throw new MissingParameterException("Agents should not be null", null);
+            }
+
+
+            for (UserAttribute attribute : request.getAttributesList()) {
+                if (attribute.getKey() == null || attribute.getKey().equals("")) {
+                    throw new MissingParameterException("Attribute Key should not be null", null);
+                }
+
+                if (attribute.getValuesList().isEmpty()) {
+                    throw new MissingParameterException("Attribute value should not be null", null);
+                }
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
+        }
+        return true;
+    }
+
+
+    private boolean validateAddRolesToAgent(Object obj) {
+        if (obj instanceof AddUserRolesRequest) {
+            AddUserRolesRequest request = (AddUserRolesRequest) obj;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getAgentsCount() == 0) {
+                throw new MissingParameterException("At least one agent id should present", null);
+            }
+
+
+            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+
+            if (request.getRolesList().isEmpty() && request.getRolesList().isEmpty()) {
+                throw new MissingParameterException("At least client roles or realm roles should not be null", null);
+            }
+
+            if (request.getPerformedBy() == null || request.getPerformedBy().equals("")) {
+                throw new MissingParameterException("Performed By should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
+        }
+        return true;
+
+    }
+
+    private boolean validateDeleteRolesFromAgent(Object obj) {
+        if (obj instanceof DeleteUserRolesRequest) {
+            DeleteUserRolesRequest request = (DeleteUserRolesRequest) obj;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getId() == null || request.getId().trim().equals("")) {
+                throw new MissingParameterException("Agent Id should not be null", null);
+            }
+
+
+            if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
+                throw new MissingParameterException("Access token should not be null", null);
+            }
+
+            if (request.getClientRolesList().isEmpty() && request.getRolesList().isEmpty()) {
+                throw new MissingParameterException("At least client roles or realm roles should not be null", null);
+            }
+
+            if (request.getPerformedBy() == null || request.getPerformedBy().equals("")) {
+                throw new MissingParameterException("Performed By should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
+        }
+        return true;
+    }
+
 
 }

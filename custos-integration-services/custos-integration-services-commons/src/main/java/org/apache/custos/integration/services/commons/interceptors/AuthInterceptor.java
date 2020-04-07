@@ -84,6 +84,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     }
 
+
     public AuthClaim authorizeUsingUserToken(Metadata headers) {
 
         try {
@@ -141,6 +142,32 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
+    public AuthClaim authorizeUsingAgentBasicToken(Metadata headers, String parentId) {
+
+        try {
+            String formattedToken = getToken(headers);
+
+            if (formattedToken == null) {
+                return null;
+            }
+
+            TokenRequest request = TokenRequest
+                    .newBuilder()
+                    .setToken(formattedToken)
+                    .setParentClientId(parentId)
+                    .build();
+
+            GetAllCredentialsResponse response = credentialStoreServiceClient.getCredentialByAgentBasicAuth(request);
+
+            return getAuthClaim(response);
+
+        } catch (Exception ex) {
+            throw new NotAuthorizedException("Wrong credentials " + ex.getMessage(), ex);
+        }
+
+    }
+
+
     public String getToken(Metadata headers) {
         String tokenWithBearer = headers.get(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER));
         if (tokenWithBearer == null) {
@@ -156,6 +183,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
+            LOGGER.info("Nulling "+ response.getSecretListCount());
             return null;
         }
 
@@ -180,6 +208,12 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                     } else if (metadata.getType() == Type.CILOGON) {
                         authClaim.setCiLogonId(metadata.getId());
                         authClaim.setCiLogonSecret(metadata.getSecret());
+                    } else if (metadata.getType() == Type.AGENT_CLIENT) {
+                        authClaim.setAgentClientId(metadata.getId());
+                        authClaim.setAgentClientSecret(metadata.getSecret());
+                    } else if (metadata.getType() == Type.AGENT) {
+                        authClaim.setAgentId(metadata.getId());
+                        authClaim.setAgentPassword(metadata.getInternalSec());
                     }
 
                 }

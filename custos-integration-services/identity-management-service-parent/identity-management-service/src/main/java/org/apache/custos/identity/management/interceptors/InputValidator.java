@@ -21,6 +21,7 @@ package org.apache.custos.identity.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.identity.management.service.AuthorizationRequest;
+import org.apache.custos.identity.management.service.GetAgentTokenRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.GetOIDCConfiguration;
@@ -43,9 +44,15 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 break;
             case "getOIDCConfiguration":
                 validationGetOIDCConfiguration(headers, msg, method);
+                break;
 
             case "getCredentials":
                 validationGetCredentials(headers, msg, method);
+                break;
+
+            case "getAgentToken":
+                validateGetAgentToken(headers, msg, method);
+                break;
             default:
         }
         return msg;
@@ -73,6 +80,22 @@ public class InputValidator implements IntegrationServiceInterceptor {
 
 
         }
+        return true;
+    }
+
+
+    private boolean validateGetAgentToken(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+            GetAgentTokenRequest request = (GetAgentTokenRequest) body;
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("ClientId is not available", null);
+            } if (request.getGrantType() == null || !(request.getGrantType().equals(Constants.CLIENT_CREDENTIALS) ||
+                    request.getGrantType().equals(Constants.REFERESH_TOKEN))) {
+                throw new MissingParameterException("Grant type should not be null", null);
+            }
+
         return true;
     }
 

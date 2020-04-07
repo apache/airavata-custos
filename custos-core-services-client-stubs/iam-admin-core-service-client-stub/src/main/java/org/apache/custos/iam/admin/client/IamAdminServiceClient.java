@@ -29,6 +29,7 @@ import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -145,12 +146,12 @@ public class IamAdminServiceClient {
     }
 
 
-    public CheckingResponse isUsernameAvailable(UserSearchRequest request) {
+    public OperationStatus isUsernameAvailable(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.isUsernameAvailable(request);
     }
 
 
-    public CheckingResponse isUserEnabled(UserSearchRequest request) {
+    public OperationStatus isUserEnabled(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.isUserEnabled(request);
     }
 
@@ -195,22 +196,22 @@ public class IamAdminServiceClient {
     }
 
 
-    public CheckingResponse resetPassword(ResetUserPassword request) {
+    public OperationStatus resetPassword(ResetUserPassword request) {
         return iamAdminServiceBlockingStub.resetPassword(request);
 
     }
 
 
-    public CheckingResponse updateUserProfile(UpdateUserProfileRequest request) {
+    public OperationStatus updateUserProfile(UpdateUserProfileRequest request) {
         return iamAdminServiceBlockingStub.updateUserProfile(request);
     }
 
-    public CheckingResponse deleteUser(UserSearchRequest request) {
+    public OperationStatus deleteUser(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.deleteUser(request);
     }
 
 
-    public CheckingResponse deleteUserRoles(DeleteUserRolesRequest request) {
+    public OperationStatus deleteUserRoles(DeleteUserRolesRequest request) {
         return iamAdminServiceBlockingStub.deleteRolesFromUser(request);
     }
 
@@ -277,6 +278,44 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.removeUserFromGroup(request);
     }
 
+    public SetUpTenantResponse createAgentClient(AgentClientMetadata request) {
+        return iamAdminServiceBlockingStub.createAgentClient(request);
+    }
+    public OperationStatus configureAgentClient(AgentClientMetadata request) {
+        return iamAdminServiceBlockingStub.configureAgentClient(request);
+    }
+    public OperationStatus isAgentNameAvailable(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.isAgentNameAvailable(request);
+    }
+    public RegisterUserResponse registerAndEnableAgent(RegisterUserRequest request) {
+        return iamAdminServiceBlockingStub.registerAndEnableAgent(request);
+    }
+    public OperationStatus disableAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.disableAgent(request);
+    }
+    public OperationStatus deleteAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.deleteAgent(request);
+    }
+    public OperationStatus addAgentAttributes(AddUserAttributesRequest request) {
+        return iamAdminServiceBlockingStub.addAgentAttributes(request);
+    }
+    public OperationStatus deleteAgentAttributes(DeleteUserAttributeRequest request) {
+        return iamAdminServiceBlockingStub.deleteAgentAttributes(request);
+    }
+    public OperationStatus addRolesToAgent(AddUserRolesRequest request) {
+        return iamAdminServiceBlockingStub.addRolesToAgent(request);
+    }
+    public OperationStatus deleteAgentRoles(DeleteUserRolesRequest request) {
+        return iamAdminServiceBlockingStub.deleteAgentRoles(request);
+    }
+
+    public OperationStatus enableAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.enableAgent(request);
+    }
+
+    public Agent getAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.getAgent(request);
+    }
 
     public String getIamServerURL() {
         return iamServerURL;

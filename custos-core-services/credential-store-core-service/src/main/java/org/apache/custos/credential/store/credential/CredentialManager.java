@@ -22,13 +22,12 @@ package org.apache.custos.credential.store.credential;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import org.apache.custos.credential.store.exceptions.CredentialGenerationException;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
+import org.apache.custos.credential.store.persistance.model.AgentCredentialEntity;
 import org.apache.custos.credential.store.persistance.model.CredentialEntity;
+import org.apache.custos.credential.store.persistance.repository.AgentCredentialRepository;
 import org.apache.custos.credential.store.persistance.repository.CredentialRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +37,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 
 /**
@@ -60,6 +60,9 @@ public class CredentialManager {
 
     @Autowired
     private CredentialRepository repository;
+
+    @Autowired
+    private AgentCredentialRepository agentCredentialRepository;
 
 
     public Credential generateCredential(long ownerId, CredentialTypes type, long validTime) {
@@ -86,6 +89,46 @@ public class CredentialManager {
         } catch (Exception exception) {
             throw new CredentialGenerationException
                     ("Error occurred while generating credentials for " + ownerId, exception);
+        }
+
+    }
+
+
+    public Credential generateAgentCredential(long ownerId, String id, CredentialTypes type, long validTime) {
+        try {
+
+            Optional<CredentialEntity> exEntity = repository.findById(ownerId);
+
+            if (exEntity.isPresent()) {
+
+                String secret = generateSecret(SECRET_LENGTH);
+                String password = generateSecret(SECRET_LENGTH);
+
+                Credential credential = new Credential();
+                AgentCredentialEntity entity = new AgentCredentialEntity();
+
+                entity.setClientId(id);
+                entity.setClientSecretExpiredAt(0);
+                entity.setOwnerId(ownerId);
+                entity.setType(type.name());
+
+                credential.setId(id);
+                credential.setSecret(secret);
+                credential.setPassword(password);
+
+                agentCredentialRepository.save(entity);
+
+                return credential;
+
+            } else {
+                throw new CredentialGenerationException
+                        ("Cannot find a registered client for  " + ownerId, null);
+            }
+
+
+        } catch (Exception ex) {
+            throw new CredentialGenerationException
+                    ("Error occurred while generating agent credentials for " + ownerId, ex);
         }
 
     }
@@ -133,22 +176,22 @@ public class CredentialManager {
             credential.setEmail(jsonMap.get("email").toString());
             credential.setUsername(jsonMap.get("preferred_username").toString());
 
-           if (jsonMap.get("realm_access") !=null) {
-               ObjectMapper reader = new ObjectMapper();
-              JsonNode node = reader.readValue(payloadJson, JsonNode.class);
-               JsonNode  realmAccess = node.get("realm_access");
-               if (realmAccess instanceof JsonNode) {
-                   JsonNode jsonArray = (realmAccess).get("roles");
-                   if (jsonArray != null && jsonArray.isArray()) {
+            if (jsonMap.get("realm_access") != null) {
+                ObjectMapper reader = new ObjectMapper();
+                JsonNode node = reader.readValue(payloadJson, JsonNode.class);
+                JsonNode realmAccess = node.get("realm_access");
+                if (realmAccess instanceof JsonNode) {
+                    JsonNode jsonArray = (realmAccess).get("roles");
+                    if (jsonArray != null && jsonArray.isArray()) {
 
-                       jsonArray.forEach(json -> {
-                           if (json.asText().equals("admin")) {
-                               credential.setAdmin(true);
-                           }
-                       });
-                   }
-               }
-           }
+                        jsonArray.forEach(json -> {
+                            if (json.asText().equals("admin")) {
+                                credential.setAdmin(true);
+                            }
+                        });
+                    }
+                }
+            }
 
             return credential;
         } catch (Exception ex) {

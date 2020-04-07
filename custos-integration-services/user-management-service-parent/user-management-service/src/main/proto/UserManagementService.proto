@@ -127,14 +127,14 @@ service UserManagementService {
          };
     }
 
-    rpc isUserEnabled (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc isUserEnabled (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/activation/status"
          };
 
     }
 
-    rpc isUsernameAvailable (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc isUsernameAvailable (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            get: "/user-management/v1.0.0/user/availability"
          };
@@ -155,7 +155,7 @@ service UserManagementService {
 
     }
 
-    rpc resetPassword (org.apache.custos.iam.service.ResetUserPassword) returns (org.apache.custos.iam.service.CheckingResponse) {
+    rpc resetPassword (org.apache.custos.iam.service.ResetUserPassword) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            put: "/user-management/v1.0.0/user/password"
          };
