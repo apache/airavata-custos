@@ -313,6 +313,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.enableAgent(request);
     }
 
+    public SetUpTenantResponse updateTenant(SetUpTenantRequest request) {
+        return iamAdminServiceBlockingStub.updateTenant(request);
+    }
+
     public Agent getAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getAgent(request);
     }

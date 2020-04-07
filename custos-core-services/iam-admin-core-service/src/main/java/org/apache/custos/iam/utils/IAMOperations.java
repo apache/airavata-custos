@@ -25,6 +25,7 @@ package org.apache.custos.iam.utils;
 public enum IAMOperations {
 
     SET_UP_TENANT,
+    UPDATE_TENANT,
     REGISTER_USER,
     ENABLE_USER,
     DISABLE_USER,

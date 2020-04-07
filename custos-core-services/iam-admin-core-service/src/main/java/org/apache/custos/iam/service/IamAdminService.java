@@ -101,6 +101,47 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
+    public void updateTenant(SetUpTenantRequest request, StreamObserver<SetUpTenantResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to updateTenant  " + request.getTenantId());
+
+            keycloakClient.updateRealm(String.valueOf(request.getTenantId()), request.getTenantName());
+
+            keycloakClient.updateRealmAdminAccount(String.valueOf(request.getTenantId()), request.getAdminUsername(),
+                    request.getAdminFirstname(), request.getAdminLastname(),
+                    request.getAdminEmail(), request.getAdminPassword());
+
+            KeycloakClientSecret clientSecret = keycloakClient.updateClient(String.valueOf(request.getTenantId()),
+                    request.getCustosClientId(),
+                    request.getTenantURL(), request.getRedirectURIsList());
+
+            SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
+                    .setClientId(clientSecret.getClientId())
+                    .setClientSecret(clientSecret.getClientSecret())
+                    .build();
+
+
+            statusUpdater.updateStatus(IAMOperations.UPDATE_TENANT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(),
+                    request.getRequesterEmail());
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred during updateTenant" + ex;
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.UPDATE_TENANT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(),
+                    request.getRequesterEmail());
+
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void deleteTenant(DeleteTenantRequest request, StreamObserver<Empty> responseObserver) {
         try {
             LOGGER.debug("Request received to delete tenant  " + request.getTenantId());
@@ -1838,7 +1879,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             if (representation != null) {
                 if (representation.getAttributes() == null || representation.getAttributes().isEmpty() ||
-                        representation.getAttributes().get(Constants.CUSTOS_REALM_AGENT).get(0) == null  ||
+                        representation.getAttributes().get(Constants.CUSTOS_REALM_AGENT).get(0) == null ||
                         !representation.getAttributes().get(Constants.CUSTOS_REALM_AGENT).get(0).equals("true")) {
                     responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("Agent not found ").asRuntimeException());
                     return;
