@@ -102,10 +102,10 @@ public class Tenant {
     private long refreshTokenLifetime = 0;
 
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL,orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<Contact> contacts;
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<RedirectURI> redirectURIS;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)

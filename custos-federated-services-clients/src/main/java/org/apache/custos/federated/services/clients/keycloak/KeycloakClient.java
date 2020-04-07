@@ -126,6 +126,40 @@ public class KeycloakClient {
         }
     }
 
+
+    public void updateRealm(String realmId, String displayName) {
+        Keycloak client = null;
+        try {
+            // get client
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            // create realm
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (realmResource != null) {
+
+                RealmRepresentation newRealmDetails = realmResource.toRepresentation();
+                newRealmDetails.setId(realmId);
+                newRealmDetails.setDisplayName(displayName);
+                newRealmDetails.setRealm(realmId);
+                realmResource.update(newRealmDetails);
+            } else {
+                String msg = "Realm not found, reason: ";
+                LOGGER.error(msg);
+                throw new RuntimeException(msg, null);
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error creating Realm in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
     public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
@@ -172,6 +206,36 @@ public class KeycloakClient {
             }
         } catch (Exception ex) {
             String msg = "Error creating Realm Admin Account in keycloak server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, adminUsername);
+            if (representation != null) {
+                UserRepresentation user = representation;
+                user.setUsername(adminUsername);
+                user.setFirstName(adminFirstname);
+                user.setLastName(adminLastname);
+                user.setEmail(adminEmail);
+                user.setEmailVerified(true);
+                user.setEnabled(true);
+                client.realm(realmId).users().get(representation.getId()).update(representation);
+                return true;
+            } else {
+                return createRealmAdminAccount(realmId, adminUsername, adminFirstname, adminLastname, adminEmail, adminPassword);
+            }
+        } catch (Exception ex) {
+            String msg = "Error updating Realm Admin Account in keycloak server, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
@@ -254,6 +318,60 @@ public class KeycloakClient {
     }
 
 
+    public KeycloakClientSecret updateClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            List<ClientRepresentation> clientRepresentations = client.realm(realmId).clients().findByClientId(clientName);
+
+            if (clientRepresentations == null || clientRepresentations.isEmpty()) {
+                String msg = "Cannot find a client with name " + clientName;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+
+            ClientRepresentation pgaClient = clientRepresentations.get(0);
+
+            pgaClient.setBaseUrl(tenantURL);
+
+
+            // Remove trailing slash from gatewayURL
+            if (tenantURL.endsWith("/")) {
+                tenantURL = tenantURL.substring(0, tenantURL.length() - 1);
+            }
+            // Add redirect URL after login
+            // redirectUris.add(tenantURL + "/callback-url"); // PGA
+            // redirectUris.add(tenantURL + "/auth/callback*"); // Django
+            // Add redirect URL after logout
+
+            List<String> newList = new ArrayList<>();
+            newList.addAll(redirectUris);
+            newList.add(tenantURL);
+
+
+            pgaClient.setRedirectUris(newList);
+            pgaClient.setPublicClient(false);
+            client.realms().realm(realmId).clients().get(pgaClient.getId()).update(pgaClient);
+
+            String ClientUUID = client.realms().realm(realmId).clients().findByClientId(pgaClient.getClientId()).get(0).getId();
+            CredentialRepresentation clientSecret = client.realms().realm(realmId).clients().get(ClientUUID).getSecret();
+            KeycloakClientSecret keycloakClientSecret = new KeycloakClientSecret(pgaClient.getClientId(), clientSecret.getValue());
+            return keycloakClientSecret;
+
+        } catch (Exception ex) {
+            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
     public boolean isUsernameAvailable(String realmId, String username, String accessToken) {
         Keycloak client = null;
         try {
@@ -323,7 +441,7 @@ public class KeycloakClient {
             UserRepresentation profile = userResource.toRepresentation();
             profile.setEnabled(true);
             // We require that a user verify their email before enabling the account
-           // profile.setEmailVerified(true);
+            // profile.setEmailVerified(true);
             userResource.update(profile);
             return true;
         } catch (Exception ex) {

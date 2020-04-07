@@ -87,7 +87,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 request = request.toBuilder().setTenantId(tenantId).build();
 
                 //TODO: this is blocking call, improve to non blocking call
-                tenantActivationTask.activateTenant(request, request.getRequesterEmail());
+                tenantActivationTask.activateTenant(request, request.getRequesterEmail(), false);
 
                 isTenantActivated = true;
 
@@ -207,7 +207,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             Tenant updateTenant = profileClient.updateTenant(tenant);
 
-            tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN);
+            tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN, true);
 
             double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
 

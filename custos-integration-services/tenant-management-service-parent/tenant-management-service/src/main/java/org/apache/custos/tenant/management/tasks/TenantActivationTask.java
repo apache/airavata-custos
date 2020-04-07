@@ -39,7 +39,6 @@ import org.apache.custos.tenant.profile.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -95,7 +94,23 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
                         Tenant newTenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
 
-                        UpdateStatusResponse response = this.activateTenant(newTenant, Constants.SYSTEM);
+
+                        GetCredentialRequest iamClientReques = GetCredentialRequest
+                                .newBuilder()
+                                .setOwnerId(tenantId)
+                                .setType(Type.IAM)
+                                .build();
+
+                        CredentialMetadata iamMetadata = credentialStoreServiceClient.getCredential(iamClientReques);
+                        UpdateStatusResponse response = null;
+                        if (iamMetadata == null || iamMetadata.getId() == null || iamMetadata.getId().equals("")) {
+                             response = this.activateTenant(newTenant, Constants.SYSTEM, false);
+                        } else {
+                            response = this.activateTenant(newTenant, Constants.SYSTEM, true);
+                        }
+
+
+
 
                         invokeNextTask((U) response);
 
@@ -122,7 +137,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
     }
 
 
-    public UpdateStatusResponse activateTenant(Tenant tenant, String performedBy) {
+    public UpdateStatusResponse activateTenant(Tenant tenant, String performedBy, boolean update) {
 
 
         GetCredentialRequest getCreRe = GetCredentialRequest.newBuilder().
@@ -130,7 +145,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 .setType(Type.CUSTOS)
                 .build();
 
-       CredentialMetadata metadata =  credentialStoreServiceClient.getCredential(getCreRe);
+        CredentialMetadata metadata = credentialStoreServiceClient.getCredential(getCreRe);
 
         SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
                 .newBuilder()
@@ -147,7 +162,13 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 .setCustosClientId(metadata.getId())
                 .build();
 
-        SetUpTenantResponse iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);
+        SetUpTenantResponse iamResponse = null;
+        if (update) {
+            iamResponse = iamAdminServiceClient.updateTenant(setUpTenantRequest);
+        } else {
+
+            iamResponse = iamAdminServiceClient.setUPTenant(setUpTenantRequest);
+        }
 
         CredentialMetadata credentialMetadata = CredentialMetadata
                 .newBuilder()
