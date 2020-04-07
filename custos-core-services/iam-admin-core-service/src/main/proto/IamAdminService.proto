@@ -186,7 +186,7 @@ message DeleteUserRolesRequest {
     int64 tenant_id = 1;
     string username = 2;
     repeated string client_roles = 3;
-    repeated string realm_roles = 4;
+    repeated string roles = 4;
     string access_token = 5;
     string client_id = 6;
     string performed_by = 7;
@@ -201,7 +201,7 @@ message AddUserRolesRequest {
     string client_id = 5;
     bool client_level = 6;
     string performed_by = 7;
-    repeated string ids = 8;
+    repeated string agents = 8;
 }
 
 message UpdateUserProfileRequest {
@@ -365,6 +365,15 @@ message AgentClientMetadata {
     string access_token = 7;
 }
 
+message Agent {
+    string id = 1;
+    repeated string realm_roles = 2;
+    repeated UserAttribute attributes = 3;
+    bool isEnabled = 4;
+    double creation_time = 5;
+    double last_modified_at = 6;
+}
+
 
 service IamAdminService {
 
@@ -416,11 +425,13 @@ service IamAdminService {
     rpc isAgentNameAvailable (UserSearchRequest) returns (OperationStatus);
     rpc registerAndEnableAgent (RegisterUserRequest) returns (RegisterUserResponse);
     rpc deleteAgent(UserSearchRequest) returns (OperationStatus);
+    rpc getAgent(UserSearchRequest) returns (Agent);
     rpc disableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc enableAgent (UserSearchRequest) returns (OperationStatus);
     rpc addAgentAttributes (AddUserAttributesRequest) returns (OperationStatus);
     rpc deleteAgentAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
     rpc addRolesToAgent (AddUserRolesRequest) returns (OperationStatus);
-    rpc deleteRolesFromAgent (DeleteUserRolesRequest) returns (OperationStatus);
+    rpc deleteAgentRoles (DeleteUserRolesRequest) returns (OperationStatus);
 
 
 

@@ -213,7 +213,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to enableUser for " + request.getTenantId());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getId(), request.getAccessToken());
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
@@ -227,11 +228,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
             }
 
             boolean accountEnabled = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getUsername());
+                    request.getAccessToken(), request.getUser().getId());
             if (accountEnabled) {
 
                 UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                        request.getAccessToken(), request.getUser().getUsername());
+                        request.getAccessToken(), request.getUser().getId());
 
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
 
@@ -274,7 +275,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to disable for " + request.getTenantId());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getId(), request.getAccessToken());
+
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.DISABLE_USER.name(),
@@ -289,11 +292,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             boolean accountDisabled = keycloakClient.disableUserAccount(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getUsername());
+                    request.getAccessToken(), request.getUser().getId());
             if (accountDisabled) {
 
                 UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                        request.getAccessToken(), request.getUser().getUsername());
+                        request.getAccessToken(), request.getUser().getId());
 
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
 
@@ -356,11 +359,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to getUser for " + request.getTenantId());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getUsername(), request.getAccessToken());
+
 
             if (!status) {
-                responseObserver.onNext(null);
-                responseObserver.onCompleted();
+                String msg = "User " + request.getUser().getUsername() + "not found at " + request.getTenantId();
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
                 return;
             }
 
@@ -414,8 +420,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     request.getUser().getEmail());
             List<org.apache.custos.iam.service.UserRepresentation> users = new ArrayList<>();
             representation.stream().forEach(r -> {
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                        r.getUsername(), request.getAccessToken());
 
-                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), r.getUsername());
 
                 if (status) {
                     users.add(this.getUser(r, request.getClientId()));
@@ -444,7 +451,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to resetPassword for " + request.getUsername());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUsername(), request.getAccessToken());
+
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(),
@@ -493,7 +502,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to updateUserProfile for " + request.getUser().getUsername());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getUsername(), request.getAccessToken());
+
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.UPDATE_USER_PROFILE.name(),
@@ -542,7 +553,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to deleteUser for " + request.getTenantId());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getUsername(), request.getAccessToken());
+
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(),
@@ -587,7 +600,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
 
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUsername());
+            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUsername(), request.getAccessToken());
+
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_USER.name(),
@@ -599,11 +614,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
             }
 
 
-            if (!request.getRealmRolesList().isEmpty()) {
+            if (!request.getRolesList().isEmpty()) {
 
                 keycloakClient.removeRoleFromUser(request.getAccessToken(),
                         String.valueOf(request.getTenantId()), request.getUsername(),
-                        request.getRealmRolesList(), request.getClientId(), false);
+                        request.getRolesList(), request.getClientId(), false);
             }
 
             if (!request.getClientRolesList().isEmpty()) {
@@ -805,7 +820,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<String> validUserNames = new ArrayList<>();
 
             for (String username : request.getUsernamesList()) {
-                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                        username, request.getAccessToken());
+
                 if (status) {
                     validUserNames.add(username);
                 }
@@ -1001,7 +1018,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<String> validUserNames = new ArrayList<>();
 
             for (String username : request.getUsersList()) {
-                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                        username, request.getAccessToken());
+
                 if (status) {
                     validUserNames.add(username);
                 }
@@ -1054,7 +1073,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<String> validUserNames = new ArrayList<>();
 
             for (String username : request.getUsersList()) {
-                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), username);
+                boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                        username, request.getAccessToken());
+
                 if (status) {
                     validUserNames.add(username);
                 }
@@ -1514,6 +1535,32 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             if (status) {
 
+                List<String> userList = new ArrayList<>();
+                userList.add(request.getUser().getId());
+                if (!request.getUser().getRealmRolesList().isEmpty()) {
+                    keycloakClient.addRolesToUsers(request.getAccessToken(),
+                            String.valueOf(request.getTenantId()), userList, request.getUser().getRealmRolesList(),
+                            request.getClientId(), false);
+                }
+                if (!request.getUser().getClientRolesList().isEmpty()) {
+                    keycloakClient.addRolesToUsers(request.getAccessToken(),
+                            String.valueOf(request.getTenantId()), userList, request.getUser().getClientRolesList(),
+                            request.getClientId(), true);
+                }
+
+                if (!request.getUser().getAttributesList().isEmpty()) {
+
+                    Map<String, List<String>> map = new HashMap<>();
+                    for (UserAttribute attribute : request.getUser().getAttributesList()) {
+
+                        map.put(attribute.getKey(), attribute.getValuesList());
+                    }
+
+                    keycloakClient.addUserAttributes(String.valueOf(request.getTenantId()),
+                            request.getAccessToken(), map, userList);
+
+                }
+
                 status = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
                         request.getAccessToken(), request.getUser().getId());
                 statusUpdater.updateStatus(IAMOperations.REGISTER_AGENT.name(),
@@ -1642,12 +1689,13 @@ public class IamAdminService extends IamAdminServiceImplBase {
             List<UserAttribute> attributes = request.getAttributesList();
 
             Map<String, List<String>> attributeMap = new HashMap<>();
+
             for (UserAttribute attribute : attributes) {
                 attributeMap.put(attribute.getKey(), attribute.getValuesList());
             }
 
             boolean status = keycloakClient.addUserAttributes(String.valueOf(request.getTenantId()), request.getAccessToken(),
-                    attributeMap, request.getUsersList());
+                    attributeMap, request.getAgentsList());
 
             statusUpdater.updateStatus(IAMOperations.ADD_AGENT_ATTRIBUTES.name(),
                     OperationStatus.SUCCESS,
@@ -1685,7 +1733,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             }
 
             boolean status = keycloakClient.deleteUserAttributes
-                    (String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getUsersList());
+                    (String.valueOf(request.getTenantId()), request.getAccessToken(), attributeMap, request.getAgentsList());
             statusUpdater.updateStatus(IAMOperations.DELETE_AGENT_ATTRIBUTES.name(),
                     OperationStatus.SUCCESS,
                     request.getTenantId(), request.getPerformedBy());
@@ -1715,7 +1763,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         try {
             LOGGER.debug("Request received to addRolesToAgent " + request.getTenantId());
             boolean status = keycloakClient.addRolesToUsers(request.getAccessToken(), String.valueOf(request.getTenantId()),
-                    request.getIdsList(), request.getRolesList(), request.getClientId(), request.getClientLevel());
+                    request.getAgentsList(), request.getRolesList(), request.getClientId(), request.getClientLevel());
             statusUpdater.updateStatus(IAMOperations.ADD_ROLE_TO_AGENT.name(),
                     OperationStatus.SUCCESS,
                     request.getTenantId(), request.getPerformedBy());
@@ -1740,14 +1788,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
-    public void deleteRolesFromAgent(DeleteUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+    public void deleteAgentRoles(DeleteUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to deleteRolesFromAgent " + request.getTenantId());
-            if (!request.getRealmRolesList().isEmpty()) {
+            if (!request.getRolesList().isEmpty()) {
 
                 keycloakClient.removeRoleFromUser(request.getAccessToken(),
                         String.valueOf(request.getTenantId()), request.getId(),
-                        request.getRealmRolesList(), request.getClientId(), false);
+                        request.getRolesList(), request.getClientId(), false);
             }
 
             if (!request.getClientRolesList().isEmpty()) {
@@ -1771,6 +1819,94 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.error(msg, ex);
             statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_AGENT.name(),
                     OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void getAgent(UserSearchRequest request, StreamObserver<Agent> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAgent " + request.getTenantId());
+
+            UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()), request.getAccessToken(),
+                    request.getUser().getId());
+
+            if (representation != null) {
+                if (representation.getAttributes() == null || representation.getAttributes().isEmpty() ||
+                        representation.getAttributes().get(Constants.CUSTOS_REALM_AGENT).get(0) == null  ||
+                        !representation.getAttributes().get(Constants.CUSTOS_REALM_AGENT).get(0).equals("true")) {
+                    responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("Agent not found ").asRuntimeException());
+                    return;
+                } else {
+
+                    Agent.Builder builder = Agent.newBuilder().setId(representation.getUsername())
+                            .setIsEnabled(representation.isEnabled())
+                            .setCreationTime(representation.getCreatedTimestamp());
+
+                    for (String key : representation.getAttributes().keySet()) {
+                        UserAttribute attribute = UserAttribute.newBuilder().setKey(key)
+                                .addAllValues(representation.getAttributes().get(key))
+                                .build();
+                        builder.addAttributes(attribute);
+                    }
+
+                    if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
+                        builder.addAllRealmRoles(representation.getRealmRoles());
+                    }
+
+                    Agent agent = builder.build();
+                    responseObserver.onNext(agent);
+                    responseObserver.onCompleted();
+                }
+            }
+            {
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("Agent not found ").asRuntimeException());
+                return;
+            }
+
+
+        } catch (Exception ex) {
+            String msg = " Delete roles from agent   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.DELETE_ROLE_FROM_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void enableAgent(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to enableAgent " + request.getTenantId());
+            boolean status = keycloakClient.enableUserAccount(
+                    String.valueOf(request.getTenantId()), request.getAccessToken(), request.getUser().getId());
+
+            statusUpdater.updateStatus(IAMOperations.ENABLE_AGENT.name(),
+                    OperationStatus.FAILED,
+                    request.getTenantId(), request.getPerformedBy());
+
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Enable agent   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.ENABLE_AGENT.name(),
+                    OperationStatus.SUCCESS,
                     request.getTenantId(), request.getPerformedBy());
             if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());

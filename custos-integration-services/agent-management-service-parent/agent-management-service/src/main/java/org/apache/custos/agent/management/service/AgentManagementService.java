@@ -28,6 +28,7 @@ import org.apache.custos.agent.profile.service.AgentRequest;
 import org.apache.custos.agent.profile.service.AgentStatus;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
+import org.apache.custos.credential.store.service.GetCredentialRequest;
 import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.*;
@@ -67,7 +68,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
     private static final String AGENT_CLIENT = "agent-client";
 
-    private static final String  CUSTOS_REALM_AGENT  = "custos-realm-agent";
+    private static final String CUSTOS_REALM_AGENT = "custos-realm-agent";
 
 
     @Override
@@ -75,6 +76,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
         try {
 
             LOGGER.debug("Request received to enable agent " + request.getTenantId());
+
 
             GetTenantRequest tenantRequest = GetTenantRequest
                     .newBuilder()
@@ -100,6 +102,21 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                     .addAllRedirectURIs(redirectURIs)
                     .setClientName(AGENT_CLIENT)
                     .build();
+
+            GetCredentialRequest credentialRequest = GetCredentialRequest
+                    .newBuilder()
+                    .setType(Type.AGENT_CLIENT)
+                    .setOwnerId(request.getTenantId())
+                    .build();
+
+            CredentialMetadata credentialMetadata = this.credentialStoreServiceClient.getCredential(credentialRequest);
+            if (credentialMetadata != null && !credentialMetadata.getId().equals("")) {
+                OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(true).build();
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+                return;
+            }
+
 
             SetUpTenantResponse setUpTenantResponse = iamAdminServiceClient.createAgentClient(request);
 
@@ -281,6 +298,470 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at configureAgentClient " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void getAgent(AgentSearchRequest request, StreamObserver<org.apache.custos.iam.service.Agent> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAgent " + request.getTenantId());
+
+            UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getId()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setUser(metadata)
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .build();
+
+            org.apache.custos.iam.service.Agent agent = iamAdminServiceClient.getAgent(searchRequest);
+            List<UserAttribute> attributeList = agent.getAttributesList();
+            List<UserAttribute> userAttributes = new ArrayList<>();
+            for (UserAttribute attribute : attributeList) {
+                if (!attribute.getKey().trim().equals(CUSTOS_REALM_AGENT)) {
+                    userAttributes.add(attribute);
+                }
+            }
+            agent = agent.toBuilder().clearAttributes().addAllAttributes(userAttributes).build();
+
+            responseObserver.onNext(agent);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAgent " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void deleteAgent(AgentSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to deleteAgent " + request.getTenantId());
+
+            UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getId()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setUser(metadata)
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .build();
+
+            OperationStatus status = iamAdminServiceClient.deleteAgent(searchRequest);
+
+            if (status.getStatus()) {
+
+                Agent agent = Agent.newBuilder().setId(request.getId()).build();
+
+                AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                        .setAgent(agent).build();
+                agentProfileClient.deleteAgent(agentRequest);
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at delete Agent at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAgent " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void disableAgent(AgentSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to disableAgent " + request.getTenantId());
+
+            UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getId()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setUser(metadata)
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .build();
+
+            OperationStatus status = iamAdminServiceClient.disableAgent(searchRequest);
+
+            if (status.getStatus()) {
+
+                org.apache.custos.iam.service.Agent agent = iamAdminServiceClient.getAgent(searchRequest);
+
+
+                Agent agentProfile = Agent.newBuilder()
+                        .setId(agent.getId())
+                        .setStatus(AgentStatus.DISABLED)
+                        .addAllRoles(agent.getRealmRolesList())
+                        .build();
+
+                for (UserAttribute atr : agent.getAttributesList()) {
+
+                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                            .setKey(atr.getKey())
+                            .addAllValue(atr.getValuesList())
+                            .build();
+
+                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                }
+
+                AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                        .setAgent(agentProfile).build();
+                agentProfileClient.updateAgent(agentRequest);
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at disable Agent at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at disableAgent " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void addAgentAttributes(AddUserAttributesRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to addAgentAttributes " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.addAgentAttributes(request);
+
+            if (status.getStatus()) {
+
+                for (String agent : request.getAgentsList()) {
+
+                    UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(agent).build();
+
+                    UserSearchRequest searchRequest = UserSearchRequest
+                            .newBuilder()
+                            .setUser(metadata)
+                            .setTenantId(request.getTenantId())
+                            .setAccessToken(request.getAccessToken())
+                            .build();
+
+                    org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
+
+                    Agent agentProfile = Agent.newBuilder()
+                            .setId(iamAgent.getId())
+                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
+                            .addAllRoles(iamAgent.getRealmRolesList())
+                            .build();
+
+                    for (UserAttribute atr : iamAgent.getAttributesList()) {
+
+                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                                .setKey(atr.getKey())
+                                .addAllValue(atr.getValuesList())
+                                .build();
+
+                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                    }
+
+                    AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                            .setAgent(agentProfile).build();
+                    agentProfileClient.updateAgent(agentRequest);
+                }
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at addAgentAttributes at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addAgentAttributes " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+
+    }
+
+
+    @Override
+    public void deleteAgentAttributes(DeleteUserAttributeRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.deleteAgentAttributes(request);
+
+            if (status.getStatus()) {
+
+                for (String agent : request.getAgentsList()) {
+
+                    UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(agent).build();
+
+                    UserSearchRequest searchRequest = UserSearchRequest
+                            .newBuilder()
+                            .setUser(metadata)
+                            .setTenantId(request.getTenantId())
+                            .setAccessToken(request.getAccessToken())
+                            .build();
+
+                    org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
+
+                    Agent agentProfile = Agent.newBuilder()
+                            .setId(iamAgent.getId())
+                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
+                            .addAllRoles(iamAgent.getRealmRolesList())
+                            .build();
+
+                    for (UserAttribute atr : iamAgent.getAttributesList()) {
+
+                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                                .setKey(atr.getKey())
+                                .addAllValue(atr.getValuesList())
+                                .build();
+
+                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                    }
+
+                    AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                            .setAgent(agentProfile).build();
+                    agentProfileClient.updateAgent(agentRequest);
+                }
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at deleteAgentAttributes at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at deleteAgentAttributes " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void addRolesToAgent(AddUserRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.addRolesToAgent(request);
+
+            if (status.getStatus()) {
+
+                for (String agent : request.getAgentsList()) {
+
+                    UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(agent).build();
+
+                    UserSearchRequest searchRequest = UserSearchRequest
+                            .newBuilder()
+                            .setUser(metadata)
+                            .setTenantId(request.getTenantId())
+                            .setAccessToken(request.getAccessToken())
+                            .build();
+
+                    org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
+
+                    Agent agentProfile = Agent.newBuilder()
+                            .setId(iamAgent.getId())
+                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
+                            .addAllRoles(iamAgent.getRealmRolesList())
+                            .build();
+
+                    for (UserAttribute atr : iamAgent.getAttributesList()) {
+
+                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                                .setKey(atr.getKey())
+                                .addAllValue(atr.getValuesList())
+                                .build();
+
+                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                    }
+
+                    AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                            .setAgent(agentProfile).build();
+                    agentProfileClient.updateAgent(agentRequest);
+                }
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at addRolesToAgent at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addRolesToAgent " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void deleteRolesFromAgent(DeleteUserRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.deleteAgentRoles(request);
+
+            if (status.getStatus()) {
+
+
+                UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getId()).build();
+
+                UserSearchRequest searchRequest = UserSearchRequest
+                        .newBuilder()
+                        .setUser(metadata)
+                        .setTenantId(request.getTenantId())
+                        .setAccessToken(request.getAccessToken())
+                        .build();
+
+                org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
+
+                Agent agentProfile = Agent.newBuilder()
+                        .setId(iamAgent.getId())
+                        .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
+                        .addAllRoles(iamAgent.getRealmRolesList())
+                        .build();
+
+                for (UserAttribute atr : iamAgent.getAttributesList()) {
+
+                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                            .setKey(atr.getKey())
+                            .addAllValue(atr.getValuesList())
+                            .build();
+
+                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                }
+
+                AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                        .setAgent(agentProfile).build();
+                agentProfileClient.updateAgent(agentRequest);
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at deleteRolesFromAgent at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at deleteRolesFromAgent " + ex.getMessage();
+            LOGGER.error(msg);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void enableAgent(AgentSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to enableAgent " + request.getTenantId());
+
+            UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getId()).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setUser(metadata)
+                    .setTenantId(request.getTenantId())
+                    .setAccessToken(request.getAccessToken())
+                    .build();
+
+            OperationStatus status = iamAdminServiceClient.enableAgent(searchRequest);
+
+            if (status.getStatus()) {
+
+                org.apache.custos.iam.service.Agent agent = iamAdminServiceClient.getAgent(searchRequest);
+
+
+                Agent agentProfile = Agent.newBuilder()
+                        .setId(agent.getId())
+                        .setStatus(AgentStatus.ENABLED)
+                        .addAllRoles(agent.getRealmRolesList())
+                        .build();
+
+                for (UserAttribute atr : agent.getAttributesList()) {
+
+                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                            .setKey(atr.getKey())
+                            .addAllValue(atr.getValuesList())
+                            .build();
+
+                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+                }
+
+                AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                        .setAgent(agentProfile).build();
+                agentProfileClient.updateAgent(agentRequest);
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = "Error occurred at disable Agent at IAM Server ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at disableAgent " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());

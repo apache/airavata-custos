@@ -22,9 +22,13 @@ package org.apache.custos.agent.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.agent.management.service.AgentSearchRequest;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.credential.store.service.CredentialMetadata;
+import org.apache.custos.credential.store.service.GetCredentialRequest;
+import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -41,23 +45,40 @@ import org.springframework.stereotype.Component;
 public class UserAuthInterceptorImpl extends AuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
+    private CredentialStoreServiceClient credentialStoreServiceClient;
+
     @Autowired
     public UserAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
+        this.credentialStoreServiceClient = credentialStoreServiceClient;
     }
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        if (method.equals("enableAgents") || method.equals("configureAgentClient")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+        String token = getToken(headers);
+        AuthClaim claim = authorizeUsingUserToken(headers);
+        long tenantId = claim.getTenantId();
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+        if (claim == null) {
+            throw new NotAuthorizedException("Request is not authorized", null);
+        }
+
+        if (!method.equals("enableAgents")) {
+
+            GetCredentialRequest request = GetCredentialRequest
+                    .newBuilder()
+                    .setType(Type.AGENT_CLIENT)
+                    .setOwnerId(tenantId)
+                    .build();
+
+            CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
+            if (metadata == null || metadata.getId().equals("")) {
+                throw new NotAuthorizedException("Agent creation is not enabled", null);
             }
 
-            long tenantId = claim.getTenantId();
+        }
 
+        if (method.equals("enableAgents") || method.equals("configureAgentClient")) {
 
             return (ReqT) ((AgentClientMetadata) msg).toBuilder()
                     .setTenantId(tenantId)
@@ -65,14 +86,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
         } else if (method.equals("registerAndEnableAgent")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
 
             return (ReqT) ((RegisterUserRequest) msg).toBuilder()
                     .setTenantId(tenantId)
@@ -80,15 +94,9 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
-        } else if (method.equals("getAgent") || method.equals("deleteAgent") || method.equals("disableAgent")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+        } else if (method.equals("getAgent") || method.equals("deleteAgent") || method.equals("disableAgent") ||
+                method.equals("enableAgent")) {
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
 
             return (ReqT) ((AgentSearchRequest) msg).toBuilder()
                     .setTenantId(tenantId)
@@ -97,14 +105,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
         } else if (method.equals("addAgentAttributes")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
             return (ReqT) ((AddUserAttributesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
@@ -112,14 +113,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
         } else if (method.equals("deleteAgentAttributes")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
             return (ReqT) ((DeleteUserAttributeRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
@@ -127,14 +121,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
         } else if (method.equals("addRolesToAgent")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
             return (ReqT) ((AddUserRolesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
@@ -142,14 +129,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
         } else if (method.equals("deleteRolesFromAgent")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
 
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
             return (ReqT) ((DeleteUserRolesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)

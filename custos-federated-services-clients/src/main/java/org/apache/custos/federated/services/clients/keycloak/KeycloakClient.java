@@ -323,13 +323,13 @@ public class KeycloakClient {
             UserRepresentation profile = userResource.toRepresentation();
             profile.setEnabled(true);
             // We require that a user verify their email before enabling the account
-            profile.setEmailVerified(true);
+           // profile.setEmailVerified(true);
             userResource.update(profile);
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error occurred enableUserAccount, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -345,17 +345,20 @@ public class KeycloakClient {
 
             UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
 
-            UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
-            UserRepresentation profile = userResource.toRepresentation();
-            profile.setEnabled(false);
-            // We require that a user verify their email before enabling the account
-            // profile.setEmailVerified(true);
-            userResource.update(profile);
+            if (userRepresentation != null) {
+
+                UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
+                UserRepresentation profile = userResource.toRepresentation();
+                profile.setEnabled(false);
+                // We require that a user verify their email before enabling the account
+                // profile.setEmailVerified(true);
+                userResource.update(profile);
+            }
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error in disableUserAccount at keycloak, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -604,7 +607,6 @@ public class KeycloakClient {
                         for (String roleName : roles) {
                             RoleResource roleResource = client.realm(realmId).
                                     clients().get(clientRep.getId()).roles().get(roleName);
-                            LOGGER.info("Roles Representatioin " + roleName + " roles resource " + roleResource);
                             if (roleResource != null) {
                                 roleRepresentations.add(roleResource.toRepresentation());
                             }
@@ -729,20 +731,23 @@ public class KeycloakClient {
             for (String user : users) {
 
                 UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
-                UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+                if (userRepresentation != null) {
+                    UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                if (exAtrMap != null && !exAtrMap.isEmpty()) {
-                    attributeMap.keySet().forEach(key -> {
-                        exAtrMap.put(key, attributeMap.get(key));
-                    });
-                    userRepresentation.setAttributes(exAtrMap);
-                } else {
-                    userRepresentation.setAttributes(attributeMap);
+                    Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+
+                    if (exAtrMap != null && !exAtrMap.isEmpty()) {
+                        attributeMap.keySet().forEach(key -> {
+                            exAtrMap.put(key, attributeMap.get(key));
+                        });
+                        userRepresentation.setAttributes(exAtrMap);
+                    } else {
+                        userRepresentation.setAttributes(attributeMap);
+                    }
+
+                    resource.update(userRepresentation);
                 }
-
-                resource.update(userRepresentation);
             }
 
 
@@ -1425,11 +1430,11 @@ public class KeycloakClient {
     }
 
 
-    public boolean isValidEndUser(String realmId, String username) {
+    public boolean isValidEndUser(String realmId, String username, String accessToken) {
         Keycloak client = null;
         try {
 
-            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            client = getClient(iamServerURL, realmId, accessToken);
 
             UserRepresentation representation = getUserByUsername(client, realmId, username);
 
@@ -1448,7 +1453,6 @@ public class KeycloakClient {
 
                 }
             }
-
             return true;
         } catch (Exception ex) {
             String msg = "Error occurred end user validity: " + ex.getMessage();

@@ -116,6 +116,7 @@ public class InputValidator implements Validator {
             case "isAgentNameAvailable":
             case "deleteAgent":
             case "disableAgent":
+            case "enableAgent":
                 validateUserSearchRequest(obj);
                 break;
             case "registerAndEnableAgent":
@@ -388,7 +389,7 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (request.getClientRolesList().isEmpty() && request.getRealmRolesList().isEmpty()) {
+            if (request.getClientRolesList().isEmpty() && request.getRolesList().isEmpty()) {
                 throw new MissingParameterException("At least client roles or realm roles should not be null", null);
             }
 
@@ -707,9 +708,7 @@ public class InputValidator implements Validator {
     }
 
 
-
-
-    private boolean validateUserSearchRequest(Object obj) {
+    private boolean   validateUserSearchRequest(Object obj) {
         if (obj instanceof UserSearchRequest) {
             UserSearchRequest request = (UserSearchRequest) obj;
             if (request.getTenantId() == 0) {
@@ -726,7 +725,7 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Agent Id should not be null", null);
             }
         } else {
-            throw new RuntimeException("Unexpected input type for method validateIsAgentNameAvailable");
+            throw new RuntimeException("Unexpected input type for request UserSearchRequest");
         }
         return true;
     }
@@ -836,13 +835,10 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (request.getIdsCount() == 0) {
+            if (request.getAgentsCount() == 0) {
                 throw new MissingParameterException("At least one agent id should present", null);
             }
 
-            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
-                throw new MissingParameterException("Client Id should not be null", null);
-            }
 
             if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
                 throw new MissingParameterException("Access token should not be null", null);
@@ -875,15 +871,12 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Agent Id should not be null", null);
             }
 
-            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
-                throw new MissingParameterException("Client Id should not be null", null);
-            }
 
             if (request.getAccessToken() == null || request.getAccessToken().trim().equals("")) {
                 throw new MissingParameterException("Access token should not be null", null);
             }
 
-            if (request.getClientRolesList().isEmpty() && request.getRealmRolesList().isEmpty()) {
+            if (request.getClientRolesList().isEmpty() && request.getRolesList().isEmpty()) {
                 throw new MissingParameterException("At least client roles or realm roles should not be null", null);
             }
 

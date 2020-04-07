@@ -64,7 +64,7 @@ service AgentManagementService {
          };
     }
 
-    rpc getAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc getAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.Agent) {
         option (google.api.http) = {
            get: "/agent-management/v1.0.0/agent/{id}"
          };
@@ -81,6 +81,14 @@ service AgentManagementService {
          };
 
     }
+
+    rpc enableAgent (AgentSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/agent/activation/{id}"
+         };
+
+    }
+
     rpc addAgentAttributes (org.apache.custos.iam.service.AddUserAttributesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            post: "/agent-management/v1.0.0/agent/attributes"

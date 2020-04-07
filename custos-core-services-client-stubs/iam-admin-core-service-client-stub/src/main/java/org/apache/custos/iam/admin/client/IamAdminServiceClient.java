@@ -305,10 +305,17 @@ public class IamAdminServiceClient {
     public OperationStatus addRolesToAgent(AddUserRolesRequest request) {
         return iamAdminServiceBlockingStub.addRolesToAgent(request);
     }
-    public OperationStatus addRolesToAgent(DeleteUserRolesRequest request) {
-        return iamAdminServiceBlockingStub.deleteRolesFromAgent(request);
+    public OperationStatus deleteAgentRoles(DeleteUserRolesRequest request) {
+        return iamAdminServiceBlockingStub.deleteAgentRoles(request);
     }
 
+    public OperationStatus enableAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.enableAgent(request);
+    }
+
+    public Agent getAgent(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.getAgent(request);
+    }
 
     public String getIamServerURL() {
         return iamServerURL;

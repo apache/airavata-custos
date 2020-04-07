@@ -517,6 +517,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else if  (ex.getMessage().contains("NOT_FOUND")) {
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             } else {
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
