@@ -246,6 +246,71 @@ public class KeycloakClient {
     }
 
 
+    public boolean grantAdminPrivilege(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+            if (representation != null) {
+
+                UserResource retrievedUser = client.realm(realmId).users().get(representation.getId());
+                RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
+                retrievedUser.roles().realmLevel().add(Arrays.asList(adminRoleResource.toRepresentation()));
+
+                String realmManagementClientId = getRealmManagementClientId(client, realmId);
+
+                retrievedUser.roles().clientLevel(realmManagementClientId).add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
+                return true;
+
+            } else {
+                String msg = "Cannot find existing user with username " + username;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+        } catch (Exception ex) {
+            String msg = "Error granting admin privilege, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+    public boolean removeAdminPrivilege(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+            if (representation != null) {
+
+                UserResource retrievedUser = client.realm(realmId).users().get(representation.getId());
+                RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
+                retrievedUser.roles().realmLevel().remove(Arrays.asList(adminRoleResource.toRepresentation()));
+                String realmManagementClientId = getRealmManagementClientId(client, realmId);
+                List<RoleRepresentation> representations = retrievedUser.roles().clientLevel(realmManagementClientId).listEffective();
+
+                retrievedUser.roles().clientLevel(realmManagementClientId).remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
+                return true;
+
+            } else {
+                String msg = "Cannot find existing user with username " + username;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+        } catch (Exception ex) {
+            String msg = "Error removing admin privilege, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
     public KeycloakClientSecret configureClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
