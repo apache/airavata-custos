@@ -36,6 +36,10 @@ import org.apache.custos.integration.core.ServiceTaskImpl;
 import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.*;
+import org.apache.custos.user.profile.client.UserProfileClient;
+import org.apache.custos.user.profile.service.UserProfile;
+import org.apache.custos.user.profile.service.UserProfileRequest;
+import org.apache.custos.user.profile.service.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,15 +106,13 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                                 .build();
 
                         CredentialMetadata iamMetadata = credentialStoreServiceClient.getCredential(iamClientReques);
+
                         UpdateStatusResponse response = null;
                         if (iamMetadata == null || iamMetadata.getId() == null || iamMetadata.getId().equals("")) {
                              response = this.activateTenant(newTenant, Constants.SYSTEM, false);
                         } else {
                             response = this.activateTenant(newTenant, Constants.SYSTEM, true);
                         }
-
-
-
 
                         invokeNextTask((U) response);
 
@@ -131,7 +133,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
             }
         } catch (Exception ex) {
             String msg = "Error occurred  " + ex.getCause();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             getServiceCallback().onError(new ServiceException(msg, ex.getCause(), null));
         }
     }
@@ -192,12 +194,9 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
         String ciLogonRedirectURI = iamAdminServiceClient.getIamServerURL() + "realms" + "/" + tenant.getTenantId() + "/" + "broker" + "/" + "oidc" + "/" + "endpoint";
 
-        LOGGER.info("redirectURI" + ciLogonRedirectURI);
 
         List<String> arrayList = new ArrayList<>();
         arrayList.add(ciLogonRedirectURI);
-
-        LOGGER.info("scopes ", scopes);
 
         ClientMetadata.Builder clientMetadataBuilder = ClientMetadata
                 .newBuilder()

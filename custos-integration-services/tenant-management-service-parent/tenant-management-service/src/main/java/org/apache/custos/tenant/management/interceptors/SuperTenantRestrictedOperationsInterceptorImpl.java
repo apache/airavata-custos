@@ -33,15 +33,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SuperAdminOperationsInterceptorImpl extends AuthInterceptor {
+public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
     private CredentialStoreServiceClient credentialStoreServiceClient;
 
 
-    public SuperAdminOperationsInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient,
-                                               TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+    public SuperTenantRestrictedOperationsInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient,
+                                                          TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
         this.credentialStoreServiceClient = credentialStoreServiceClient;
     }
@@ -52,6 +52,7 @@ public class SuperAdminOperationsInterceptorImpl extends AuthInterceptor {
         if (method.equals("updateTenantStatus")) {
             if ( !((UpdateStatusRequest)msg).getSuperTenant() ) {
                 AuthClaim claim = null;
+                String token = getToken(headers);
                 try {
                     claim = authorizeUsingUserToken(headers);
                 } catch (Exception ex) {
@@ -59,10 +60,10 @@ public class SuperAdminOperationsInterceptorImpl extends AuthInterceptor {
                     throw new NotAuthorizedException("Request is not authorized", ex);
                 }
                 if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
-                    throw new NotAuthorizedException("Request is not authorized", null);
+                    throw new NotAuthorizedException("Request is cnot authorized", null);
                 }
-
-                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy()).build();
+                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy())
+                        .setAccessToken(token).build();
             }
             return msg;
 

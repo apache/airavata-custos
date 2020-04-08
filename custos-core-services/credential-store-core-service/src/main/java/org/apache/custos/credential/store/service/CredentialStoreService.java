@@ -128,7 +128,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             if (response == null) {
                 String msg = "Cannot find credentials for "
                         + request.getOwnerId() + " for type " + request.getType();
-                LOGGER.error(msg);
+                LOGGER.info(msg);
                 CredentialMetadata secret = CredentialMetadata.newBuilder().build();
                 responseObserver.onNext(secret);
                 responseObserver.onCompleted();

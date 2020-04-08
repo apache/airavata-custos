@@ -121,6 +121,7 @@ message UpdateStatusRequest {
     string updatedBy = 3;
     int64 tenantId = 4;
     bool super_tenant = 5;
+    string accessToken = 6;
 }
 
 message UpdateStatusResponse {
