@@ -255,7 +255,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to enableUser for " + request.getTenantId());
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUser().getId(), request.getAccessToken());
+                    request.getUser().getUsername(), request.getAccessToken());
 
             if (!status) {
                 statusUpdater.updateStatus(IAMOperations.ENABLE_USER.name(),
@@ -317,7 +317,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to disable for " + request.getTenantId());
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUser().getId(), request.getAccessToken());
+                    request.getUser().getUsername(), request.getAccessToken());
 
 
             if (!status) {
@@ -1947,6 +1947,90 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String msg = " Enable agent   failed for " + request.getTenantId() + " " + ex.getMessage();
             LOGGER.error(msg, ex);
             statusUpdater.updateStatus(IAMOperations.ENABLE_AGENT.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void grantAdminPrivilege(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to grantAdminPrivilege " + request.getTenantId());
+
+            boolean validationStatus = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getUsername(), request.getAccessToken());
+
+            if (validationStatus) {
+
+                boolean status = keycloakClient.grantAdminPrivilege(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+                statusUpdater.updateStatus(IAMOperations.GRANT_ADMIN_PRIVILEGE.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), request.getPerformedBy());
+
+                org.apache.custos.iam.service.OperationStatus operationStatus =
+                        org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+            } else {
+                String msg = " Not a valid user";
+                LOGGER.error(msg);
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = " Grant admin privilege " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.GRANT_ADMIN_PRIVILEGE.name(),
+                    OperationStatus.SUCCESS,
+                    request.getTenantId(), request.getPerformedBy());
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void removeAdminPrivilege(UserSearchRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeAdminPrivilege " + request.getTenantId());
+
+            boolean validationStatus = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                    request.getUser().getUsername(), request.getAccessToken());
+
+            if (validationStatus) {
+
+                boolean status = keycloakClient.removeAdminPrivilege(String.valueOf(request.getTenantId()), request.getUser().getUsername());
+
+                statusUpdater.updateStatus(IAMOperations.REMOVE_ADMIN_PRIVILEGE.name(),
+                        OperationStatus.FAILED,
+                        request.getTenantId(), request.getPerformedBy());
+
+                org.apache.custos.iam.service.OperationStatus operationStatus =
+                        org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build();
+
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+            } else {
+                String msg = " Not a valid user";
+                LOGGER.error(msg);
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = " Remove admin privilege " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            statusUpdater.updateStatus(IAMOperations.REMOVE_ADMIN_PRIVILEGE.name(),
                     OperationStatus.SUCCESS,
                     request.getTenantId(), request.getPerformedBy());
             if (ex.getMessage().contains("HTTP 401 Unauthorized")) {

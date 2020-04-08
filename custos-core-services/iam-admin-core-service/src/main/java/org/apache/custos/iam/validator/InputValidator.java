@@ -56,6 +56,7 @@ public class InputValidator implements Validator {
             case "getUser":
             case "deleteUser":
             case "isUsernameAvailable":
+            case "grantAdminPrivilege":
                 validateUserAccess(obj);
                 break;
             case "resetPassword":
@@ -117,7 +118,7 @@ public class InputValidator implements Validator {
             case "deleteAgent":
             case "disableAgent":
             case "enableAgent":
-                validateUserSearchRequest(obj);
+                validateUserSearchRequestForAgent(obj);
                 break;
             case "registerAndEnableAgent":
                 validateRegisterAndEnableAgent(obj);
@@ -708,7 +709,7 @@ public class InputValidator implements Validator {
     }
 
 
-    private boolean   validateUserSearchRequest(Object obj) {
+    private boolean validateUserSearchRequestForAgent(Object obj) {
         if (obj instanceof UserSearchRequest) {
             UserSearchRequest request = (UserSearchRequest) obj;
             if (request.getTenantId() == 0) {

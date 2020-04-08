@@ -120,6 +120,19 @@ service UserManagementService {
          };
     }
 
+    rpc grantAdminPrivileges (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/admin"
+           body: "user"
+         };
+    }
+
+    rpc removeAdminPrivileges (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/admin"
+           body: "user"
+         };
+    }
 
     rpc addRolesToUsers (org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {

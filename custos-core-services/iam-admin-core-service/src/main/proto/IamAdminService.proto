@@ -394,6 +394,8 @@ service IamAdminService {
     rpc getUser (UserSearchRequest) returns (UserRepresentation);
     rpc findUsers (FindUsersRequest) returns (FindUsersResponse);
     rpc resetPassword (ResetUserPassword) returns (OperationStatus);
+    rpc grantAdminPrivilege (UserSearchRequest) returns (OperationStatus);
+    rpc removeAdminPrivilege (UserSearchRequest) returns (OperationStatus);
 
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);

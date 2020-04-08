@@ -313,6 +313,14 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.enableAgent(request);
     }
 
+    public OperationStatus grantAdminPrivilege(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.grantAdminPrivilege(request);
+    }
+
+    public OperationStatus removeAdminPrivilege(UserSearchRequest request) {
+        return iamAdminServiceBlockingStub.removeAdminPrivilege(request);
+    }
+
     public SetUpTenantResponse updateTenant(SetUpTenantRequest request) {
         return iamAdminServiceBlockingStub.updateTenant(request);
     }

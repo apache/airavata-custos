@@ -517,7 +517,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else if  (ex.getMessage().contains("NOT_FOUND")) {
+            } else if (ex.getMessage().contains("NOT_FOUND")) {
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             } else {
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
@@ -1131,8 +1131,13 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                             .setProfile(profile)
                                             .build();
 
-                            userProfileClient.updateUserProfile(req);
+                            UserProfile exsistingProfile = userProfileClient.getUser(req);
 
+                            if (exsistingProfile == null || exsistingProfile.getUsername().equals("")) {
+                                userProfileClient.createUserProfile(req);
+                            } else {
+                                userProfileClient.updateUserProfile(req);
+                            }
                         }
 
                         CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
@@ -1150,8 +1155,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while linking user profile in tenant " + ex.getMessage();
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -1160,6 +1165,103 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    @Override
+    public void grantAdminPrivileges(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to grantAdminPrivileges " + request.getUser().getUsername() +
+                    " at" + request.getTenantId());
+
+            iamAdminServiceClient.grantAdminPrivilege(request);
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(request);
+
+            if (representation != null) {
+
+                UserProfile profile = convertToProfile(representation);
+
+                org.apache.custos.user.profile.service.UserProfileRequest profileRequest = org.apache.custos.user.profile.service.UserProfileRequest
+                        .newBuilder()
+                        .setTenantId(request.getTenantId())
+                        .setPerformedBy(request.getPerformedBy())
+                        .setProfile(profile)
+                        .build();
+
+
+                UserProfile exProfile = userProfileClient.getUser(profileRequest);
+
+                if (exProfile == null || exProfile.getUsername().equals("")) {
+
+                    userProfileClient.createUserProfile(profileRequest);
+                } else {
+                    userProfileClient.updateUserProfile(profileRequest);
+
+                }
+
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "User  not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeAdminPrivileges(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+
+        try {
+            LOGGER.debug("Request received to removeAdminPrivileges " + request.getUser().getUsername() +
+                    " at" + request.getTenantId());
+
+            iamAdminServiceClient.removeAdminPrivilege(request);
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(request);
+
+            if (representation != null) {
+
+                UserProfile profile = convertToProfile(representation);
+
+                org.apache.custos.user.profile.service.UserProfileRequest profileRequest = org.apache.custos.user.profile.service.UserProfileRequest
+                        .newBuilder()
+                        .setTenantId(request.getTenantId())
+                        .setPerformedBy(request.getPerformedBy())
+                        .setProfile(profile)
+                        .build();
+
+                UserProfile exProfile = userProfileClient.getUser(profileRequest);
+
+                if (exProfile == null || exProfile.getUsername().equals("")) {
+                    userProfileClient.createUserProfile(profileRequest);
+                } else {
+                    userProfileClient.updateUserProfile(profileRequest);
+                }
+
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "User  not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
 
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();

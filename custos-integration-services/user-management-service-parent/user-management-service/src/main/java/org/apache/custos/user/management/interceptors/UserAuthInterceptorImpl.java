@@ -178,7 +178,8 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
-        } else if (method.equals("deleteUser")) {
+        } else if (method.equals("deleteUser") || method.equals("grantAdminPrivileges") ||
+                method.equals("removeAdminPrivileges")) {
             String token = getToken(headers);
             AuthClaim claim = authorizeUsingUserToken(headers);
 
