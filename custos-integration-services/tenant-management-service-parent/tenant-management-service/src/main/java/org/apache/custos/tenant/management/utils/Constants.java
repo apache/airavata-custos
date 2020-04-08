@@ -27,6 +27,10 @@ public final class Constants {
     public static final String GATEWAY_ADMIN = "GATEWAY_ADMIN";
     public static final String CLIENT_SECRET_BASIC = "client_secret_basic";
     public static final String TENANT_BASE_URI = "https://custos.scigap.org:32036/tenant-management/v1.0.0/oauth2/tenant";
-    public static final String AUTHORIZATION_CODE = "authorization_code";
+    public static final String AUTHORIZATION_CODE = "code";
+    public static final String CLIENT_CREDENTIALS = "client-credentials";
+    public static final String PASSWORD_GRANT_TYPE = "password";
+    public static final String REFRESH_TOKEN = "refresh-token";
+
     public static final String AUTHORIZATION_HEADER = "authorization";
 }
