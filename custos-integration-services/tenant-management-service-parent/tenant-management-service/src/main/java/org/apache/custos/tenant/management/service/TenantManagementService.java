@@ -466,6 +466,27 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void getAllTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
+
+            if (response != null && !response.getTenantList().isEmpty()) {
+                List<Tenant> tenantList = new ArrayList<>();
+
+                for (Tenant tenant : response.getTenantList()) {
+
+                    GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                            .setOwnerId(tenant.getTenantId())
+                            .setType(Type.CUSTOS).build();
+
+                    CredentialMetadata metadata = credentialStoreServiceClient.
+                            getCredential(credentialRequest);
+
+                    tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
+                    tenantList.add(tenant);
+
+                }
+
+                response = response.toBuilder().clearTenant().addAllTenant(tenantList).build();
+            }
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -628,57 +649,6 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Tenant update task failed for tenant " + request.getTenantId() + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
-
-
-    @Override
-    public void getCredentials(GetCredentialsRequest request, StreamObserver<GetCredentialsResponse> responseObserver) {
-        try {
-
-            org.apache.custos.tenant.profile.service.GetTenantRequest req =
-                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder().setTenantId(request.getTenantId()).build();
-
-            org.apache.custos.tenant.profile.service.GetTenantResponse tenantRes = profileClient.getTenant(req);
-
-            if (tenantRes.getTenant() == null) {
-                responseObserver.onError(Status.NOT_FOUND.withDescription("Invalid Request ").asRuntimeException());
-            } else if (!tenantRes.getTenant().getTenantStatus().equals(TenantStatus.ACTIVE)) {
-
-                responseObserver.onError(Status.PERMISSION_DENIED.
-                        withDescription("Tenant not yet approved or invalidated").asRuntimeException());
-            } else {
-
-                GetAllCredentialsRequest allReq = GetAllCredentialsRequest
-                        .newBuilder()
-                        .setOwnerId(request.getTenantId())
-                        .build();
-
-                GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentials(allReq);
-
-
-                if (response != null && response.getSecretListCount() > 0) {
-                    GetCredentialsResponse.Builder builder = GetCredentialsResponse.newBuilder();
-                    for (CredentialMetadata metadata : response.getSecretListList()) {
-                        if (metadata.getType().name().equals(Type.CILOGON.name())) {
-                            builder.setCiLogonClientId(metadata.getId());
-                            builder.setCiLogonClientSecret(metadata.getSecret());
-                        } else if (metadata.getType().name().equals(Type.IAM.name())) {
-                            builder.setIamClientId(metadata.getId());
-                            builder.setIamClientSecret(metadata.getSecret());
-                        }
-                    }
-                    GetCredentialsResponse res = builder.build();
-                    responseObserver.onNext(res);
-                    responseObserver.onCompleted();
-                } else {
-                    responseObserver.onError(Status.NOT_FOUND.withDescription("Cannot find credentials ").asRuntimeException());
-                }
-            }
-        } catch (Exception ex) {
-            String msg = "Error occurred while getting credentials " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
