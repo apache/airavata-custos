@@ -28,7 +28,6 @@ import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -134,6 +133,24 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .setTenantId(tenantId)
                     .setAccessToken(token)
                     .setPerformedBy(claim.getPerformedBy())
+                    .build();
+
+        } else if (method.equals("addProtocolMapper")) {
+
+            GetCredentialRequest request = GetCredentialRequest
+                    .newBuilder()
+                    .setType(Type.AGENT_CLIENT)
+                    .setOwnerId(tenantId)
+                    .build();
+
+            CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
+            if (metadata == null || metadata.getId().equals("")) {
+                throw new NotAuthorizedException("Agent creation is not enabled", null);
+            }
+
+            return (ReqT) ((AddProtocolMapperRequest) msg).toBuilder()
+                    .setTenantId(tenantId)
+                    .setClientId(metadata.getId())
                     .build();
 
         }

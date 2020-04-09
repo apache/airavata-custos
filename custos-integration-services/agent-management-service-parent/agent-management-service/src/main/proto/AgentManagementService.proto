@@ -110,6 +110,13 @@ service AgentManagementService {
          };
     }
 
+    rpc addProtocolMapper (org.apache.custos.iam.service.AddProtocolMapperRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/protocol/mapper"
+        };
+    }
+
+
 }
 
 
