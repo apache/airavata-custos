@@ -34,8 +34,12 @@
         <module>identity-management-service-parent</module>
         <module>custos-integration-services-commons</module>
         <module>user-management-service-parent</module>
+
+        <module>scim-service</module>
+
         <module>group-management-service-parent</module>
         <module>agent-management-service-parent</module>
+
     </modules>
 
 </project>

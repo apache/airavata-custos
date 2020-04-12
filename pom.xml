@@ -186,6 +186,37 @@
                  <artifactId>protobuf-java-util</artifactId>
                  <version>${com.google.protobuf.util}</version>
              </dependency>
+             <dependency>
+                 <groupId>io.springfox</groupId>
+                 <artifactId>springfox-swagger2</artifactId>
+                 <version>${springfox.swagger.version}</version>
+             </dependency>
+
+
+             <!--Swagger -->
+             <dependency>
+                 <groupId>io.springfox</groupId>
+                 <artifactId>springfox-swagger-ui</artifactId>
+                 <version>${springfox.swagger.version}</version>
+             </dependency>
+             <dependency>
+                 <groupId>io.springfox</groupId>
+                 <artifactId>springfox-bean-validators</artifactId>
+                 <version>${springfox.swagger.version}</version>
+             </dependency>
+             <dependency>
+                 <groupId>javax.xml</groupId>
+                 <artifactId>jaxb-api</artifactId>
+                 <version>${jaxb.version}</version>
+             </dependency>
+
+             <!-- SCIM-->
+             <dependency>
+                 <groupId>org.wso2.charon</groupId>
+                 <artifactId>org.wso2.charon3.core</artifactId>
+                 <version>${org.wso2.charon}</version>
+             </dependency>
+
          </dependencies>
     </dependencyManagement>
 
@@ -346,6 +377,10 @@
         <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
 
         <com.google.protobuf.util>3.11.3</com.google.protobuf.util>
+
+        <springfox.swagger.version>2.9.2</springfox.swagger.version>
+        <org.wso2.charon>3.3.16</org.wso2.charon>
+        <jaxb.version>2.1</jaxb.version>
 
     </properties>
 

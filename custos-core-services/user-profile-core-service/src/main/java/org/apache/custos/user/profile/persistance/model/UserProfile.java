@@ -20,6 +20,7 @@
 package org.apache.custos.user.profile.persistance.model;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
@@ -59,6 +60,11 @@ public class UserProfile {
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
     private Date createdAt;
+
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @LastModifiedDate
+    private Date lastModifiedAt;
 
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
@@ -181,5 +187,14 @@ public class UserProfile {
 
     public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
         this.groupMemberships = groupMemberships;
+    }
+
+
+    public Date getLastModifiedAt() {
+        return lastModifiedAt;
+    }
+
+    public void setLastModifiedAt(Date lastModifiedAt) {
+        this.lastModifiedAt = lastModifiedAt;
     }
 }

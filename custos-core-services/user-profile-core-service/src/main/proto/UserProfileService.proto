@@ -52,6 +52,7 @@ message UserProfile {
     repeated UserAttribute attributes = 7;
     repeated string client_roles = 8;
     repeated string realm_roles = 9;
+    string last_modified_at = 10;
 }
 
 message UserProfileRequest {

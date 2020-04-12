@@ -69,13 +69,19 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             if (formattedToken == null) {
                 return null;
             }
+            return authorize(formattedToken);
+        } catch (Exception ex) {
+            throw new NotAuthorizedException("Wrong credentials " + ex.getMessage(), ex);
+        }
 
+    }
+
+    public AuthClaim authorize(String formattedToken) {
+        try {
             TokenRequest request = TokenRequest
                     .newBuilder()
                     .setToken(formattedToken)
                     .build();
-
-
             GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialFromToken(request);
             return getAuthClaim(response);
         } catch (Exception ex) {
@@ -93,6 +99,17 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             if (formattedToken == null) {
                 return null;
             }
+
+            return authorizeUsingUserToken(formattedToken);
+        } catch (Exception ex) {
+            throw new NotAuthorizedException("Wrong credentials " + ex.getMessage(), ex);
+        }
+
+    }
+
+    public AuthClaim authorizeUsingUserToken(String formattedToken) {
+
+        try {
 
             TokenRequest request = TokenRequest
                     .newBuilder()
@@ -130,8 +147,6 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                 if (isAuthenticateResponse.getAuthenticated()) {
                     return claim;
                 }
-
-
             }
 
             return null;
@@ -183,7 +198,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
-            LOGGER.info("Nulling "+ response.getSecretListCount());
+            LOGGER.info("Nulling " + response.getSecretListCount());
             return null;
         }
 

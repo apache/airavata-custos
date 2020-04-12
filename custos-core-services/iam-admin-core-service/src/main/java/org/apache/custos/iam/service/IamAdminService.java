@@ -269,11 +269,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
             }
 
             boolean accountEnabled = keycloakClient.enableUserAccount(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getId());
+                    request.getAccessToken(), request.getUser().getUsername());
             if (accountEnabled) {
 
                 UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                        request.getAccessToken(), request.getUser().getId());
+                        request.getAccessToken(), request.getUser().getUsername());
 
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
 
@@ -333,11 +333,11 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             boolean accountDisabled = keycloakClient.disableUserAccount(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getId());
+                    request.getAccessToken(), request.getUser().getUsername());
             if (accountDisabled) {
 
                 UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                        request.getAccessToken(), request.getUser().getId());
+                        request.getAccessToken(), request.getUser().getUsername());
 
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
 
