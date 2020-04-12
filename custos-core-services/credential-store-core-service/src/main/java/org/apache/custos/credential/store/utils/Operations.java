@@ -22,5 +22,7 @@ package org.apache.custos.credential.store.utils;
 public enum Operations {
     PUT_CREDENTIAL,
     DELETE_CREDENTIAL,
-    GENERATE_CUSTOS_CREDENTIAL
+    GENERATE_CUSTOS_CREDENTIAL,
+    GENERATE_AGENT_CREDENTIAL,
+    DELETE_AGENT_CREDENTIAL
 }

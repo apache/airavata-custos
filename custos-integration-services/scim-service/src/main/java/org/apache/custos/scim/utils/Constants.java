@@ -33,6 +33,7 @@ public final class Constants {
     public static final String ACCEPT_HEADER = "Accept";
     public static final String ID = "id";
     public static final String DOMAIN = "domain";
+    public static final String AUTHORIZATION = "Authorization";
 
     public static final String RESOURCE_STRING = "RESOURCE_STRING";
     public static final String HTTP_VERB = "HTTP_VERB";
@@ -52,4 +53,23 @@ public final class Constants {
     public static final String SORT_ORDER_DESC = "The order in which the \"sortBy\" parameter is applied.";
     public static final String START_INDEX_DESC = "The 1-based index of the first query result";
     public static final String DOMAIN_DESC = "Domain of the provisioning user";
+
+    public static final String USER_SCHEMA_EXTENTION_LOCATION = "/home/ubuntu/schemas/custos_user_schema_extention.json";
+
+    public static final String CUSTOS_EXTENSION = "custosExtension";
+    public static final String CUSOTS_CLIENT_ROLES = "clientRoles";
+    public static final String CUSTOS_ATTRIBUTES = "attributes";
+    public static final String CUSTOS_ATTRIBUTES_KEY = "key";
+    public static final String CUSTOS_ATTRIBUTES_VALUE = "value";
+    public static final String CLIENT_ID = "clientId";
+    public static final String CLIENT_SEC = "clientSec";
+    public static final String ACCESS_TOKEN = "accessToken";
+    public static final String TENANT_ID = "tenantId";
+
+    public static final String EXTERNAL_ID = "externalId";
+
+    public static final String MEMBERS = "members";
+
+    public static final String VALUE = "value";
+
 }

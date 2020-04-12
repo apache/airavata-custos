@@ -20,6 +20,7 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
+import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -38,6 +39,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.KeyStore;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -124,6 +126,40 @@ public class KeycloakClient {
         }
     }
 
+
+    public void updateRealm(String realmId, String displayName) {
+        Keycloak client = null;
+        try {
+            // get client
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            // create realm
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (realmResource != null) {
+
+                RealmRepresentation newRealmDetails = realmResource.toRepresentation();
+                newRealmDetails.setId(realmId);
+                newRealmDetails.setDisplayName(displayName);
+                newRealmDetails.setRealm(realmId);
+                realmResource.update(newRealmDetails);
+            } else {
+                String msg = "Realm not found, reason: ";
+                LOGGER.error(msg);
+                throw new RuntimeException(msg, null);
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error creating Realm in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
     public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
@@ -170,6 +206,101 @@ public class KeycloakClient {
             }
         } catch (Exception ex) {
             String msg = "Error creating Realm Admin Account in keycloak server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, adminUsername);
+            if (representation != null) {
+                UserRepresentation user = representation;
+                user.setUsername(adminUsername);
+                user.setFirstName(adminFirstname);
+                user.setLastName(adminLastname);
+                user.setEmail(adminEmail);
+                user.setEmailVerified(true);
+                user.setEnabled(true);
+                client.realm(realmId).users().get(representation.getId()).update(representation);
+                return true;
+            } else {
+                return createRealmAdminAccount(realmId, adminUsername, adminFirstname, adminLastname, adminEmail, adminPassword);
+            }
+        } catch (Exception ex) {
+            String msg = "Error updating Realm Admin Account in keycloak server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean grantAdminPrivilege(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+            if (representation != null) {
+
+                UserResource retrievedUser = client.realm(realmId).users().get(representation.getId());
+                RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
+                retrievedUser.roles().realmLevel().add(Arrays.asList(adminRoleResource.toRepresentation()));
+
+                String realmManagementClientId = getRealmManagementClientId(client, realmId);
+
+                retrievedUser.roles().clientLevel(realmManagementClientId).add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
+                return true;
+
+            } else {
+                String msg = "Cannot find existing user with username " + username;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+        } catch (Exception ex) {
+            String msg = "Error granting admin privilege, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+    public boolean removeAdminPrivilege(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+            if (representation != null) {
+
+                UserResource retrievedUser = client.realm(realmId).users().get(representation.getId());
+                RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
+                retrievedUser.roles().realmLevel().remove(Arrays.asList(adminRoleResource.toRepresentation()));
+                String realmManagementClientId = getRealmManagementClientId(client, realmId);
+                List<RoleRepresentation> representations = retrievedUser.roles().clientLevel(realmManagementClientId).listEffective();
+
+                retrievedUser.roles().clientLevel(realmManagementClientId).remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
+                return true;
+
+            } else {
+                String msg = "Cannot find existing user with username " + username;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+        } catch (Exception ex) {
+            String msg = "Error removing admin privilege, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
         } finally {
@@ -252,6 +383,60 @@ public class KeycloakClient {
     }
 
 
+    public KeycloakClientSecret updateClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            List<ClientRepresentation> clientRepresentations = client.realm(realmId).clients().findByClientId(clientName);
+
+            if (clientRepresentations == null || clientRepresentations.isEmpty()) {
+                String msg = "Cannot find a client with name " + clientName;
+                LOGGER.error(msg);
+                throw new RuntimeException(msg);
+            }
+
+            ClientRepresentation pgaClient = clientRepresentations.get(0);
+
+            pgaClient.setBaseUrl(tenantURL);
+
+
+            // Remove trailing slash from gatewayURL
+            if (tenantURL.endsWith("/")) {
+                tenantURL = tenantURL.substring(0, tenantURL.length() - 1);
+            }
+            // Add redirect URL after login
+            // redirectUris.add(tenantURL + "/callback-url"); // PGA
+            // redirectUris.add(tenantURL + "/auth/callback*"); // Django
+            // Add redirect URL after logout
+
+            List<String> newList = new ArrayList<>();
+            newList.addAll(redirectUris);
+            newList.add(tenantURL);
+
+
+            pgaClient.setRedirectUris(newList);
+            pgaClient.setPublicClient(false);
+            client.realms().realm(realmId).clients().get(pgaClient.getId()).update(pgaClient);
+
+            String ClientUUID = client.realms().realm(realmId).clients().findByClientId(pgaClient.getClientId()).get(0).getId();
+            CredentialRepresentation clientSecret = client.realms().realm(realmId).clients().get(ClientUUID).getSecret();
+            KeycloakClientSecret keycloakClientSecret = new KeycloakClientSecret(pgaClient.getClientId(), clientSecret.getValue());
+            return keycloakClientSecret;
+
+        } catch (Exception ex) {
+            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
     public boolean isUsernameAvailable(String realmId, String username, String accessToken) {
         Keycloak client = null;
         try {
@@ -321,13 +506,13 @@ public class KeycloakClient {
             UserRepresentation profile = userResource.toRepresentation();
             profile.setEnabled(true);
             // We require that a user verify their email before enabling the account
-            profile.setEmailVerified(true);
+            // profile.setEmailVerified(true);
             userResource.update(profile);
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error occurred enableUserAccount, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -343,17 +528,20 @@ public class KeycloakClient {
 
             UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
 
-            UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
-            UserRepresentation profile = userResource.toRepresentation();
-            profile.setEnabled(false);
-            // We require that a user verify their email before enabling the account
-            // profile.setEmailVerified(true);
-            userResource.update(profile);
+            if (userRepresentation != null) {
+
+                UserResource userResource = client.realm(realmId).users().get(userRepresentation.getId());
+                UserRepresentation profile = userResource.toRepresentation();
+                profile.setEnabled(false);
+                // We require that a user verify their email before enabling the account
+                // profile.setEmailVerified(true);
+                userResource.update(profile);
+            }
             return true;
         } catch (Exception ex) {
-            String msg = "Error getting values from property file, reason: " + ex.getMessage();
+            String msg = "Error in disableUserAccount at keycloak, reason: " + ex.getMessage();
             LOGGER.error(msg, ex);
-            throw new RuntimeException();
+            throw new RuntimeException(msg, ex);
         } finally {
             if (client != null) {
                 client.close();
@@ -602,7 +790,6 @@ public class KeycloakClient {
                         for (String roleName : roles) {
                             RoleResource roleResource = client.realm(realmId).
                                     clients().get(clientRep.getId()).roles().get(roleName);
-                            LOGGER.info("Roles Representatioin " + roleName + " roles resource " + roleResource);
                             if (roleResource != null) {
                                 roleRepresentations.add(roleResource.toRepresentation());
                             }
@@ -727,20 +914,23 @@ public class KeycloakClient {
             for (String user : users) {
 
                 UserRepresentation userRepresentation = getUserByUsername(client, realmId, user.toLowerCase());
-                UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+                if (userRepresentation != null) {
+                    UserResource resource = realmResource.users().get(userRepresentation.getId());
 
-                if (exAtrMap != null && !exAtrMap.isEmpty()) {
-                    attributeMap.keySet().forEach(key -> {
-                        exAtrMap.put(key, attributeMap.get(key));
-                    });
-                    userRepresentation.setAttributes(exAtrMap);
-                } else {
-                    userRepresentation.setAttributes(attributeMap);
+                    Map<String, List<String>> exAtrMap = userRepresentation.getAttributes();
+
+                    if (exAtrMap != null && !exAtrMap.isEmpty()) {
+                        attributeMap.keySet().forEach(key -> {
+                            exAtrMap.put(key, attributeMap.get(key));
+                        });
+                        userRepresentation.setAttributes(exAtrMap);
+                    } else {
+                        userRepresentation.setAttributes(attributeMap);
+                    }
+
+                    resource.update(userRepresentation);
                 }
-
-                resource.update(userRepresentation);
             }
 
 
@@ -930,6 +1120,7 @@ public class KeycloakClient {
 
     /**
      * Configure event persistance for Keycloak Realms.
+     *
      * @param realmId
      * @param eventType
      * @param time
@@ -1023,7 +1214,15 @@ public class KeycloakClient {
 
     }
 
-
+    /**
+     * provides last active session of given user
+     *
+     * @param realmId
+     * @param clientId
+     * @param accessToken
+     * @param username
+     * @return
+     */
     public UserSessionRepresentation getLatestSession(String realmId, String clientId, String accessToken, String username) {
 
         Keycloak client = null;
@@ -1054,6 +1253,400 @@ public class KeycloakClient {
                 client.close();
             }
         }
+
+    }
+
+    /**
+     * creates groups and child groups in Keycloak
+     *
+     * @param realmId
+     * @param clientId
+     * @param accessToken
+     * @param groupRepresentations
+     * @return
+     */
+    public List<GroupRepresentation> createGroups(String realmId, String clientId, String accessToken, List<GroupRepresentation> groupRepresentations) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            List<GroupRepresentation> representationList = new ArrayList<>();
+
+            for (GroupRepresentation representation : groupRepresentations) {
+
+
+                Response response = client.realm(realmId).groups().add(representation);
+
+
+                if (response.getStatus() == HttpStatus.SC_CREATED) {
+                    String id = getCreatedId(response);
+
+                    if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
+                        List<RoleRepresentation> roleRepresentation = new ArrayList<>();
+                        for (String role : representation.getRealmRoles()) {
+                            RoleResource resource = client.realm(realmId).roles().get(role);
+                            if (resource != null) {
+                                roleRepresentation.add(resource.toRepresentation());
+                            }
+                        }
+                        if (!roleRepresentation.isEmpty()) {
+                            client.realm(realmId).groups().group(id).roles().realmLevel().add(roleRepresentation);
+                        }
+
+                    }
+
+                    if (representation.getClientRoles() != null && !representation.getClientRoles().isEmpty()) {
+                        List<RoleRepresentation> clientRepresentations = new ArrayList<>();
+                        ClientRepresentation clientRepresentation =
+                                client.realm(realmId).clients().findByClientId(clientId).get(0);
+                        for (String role : representation.getClientRoles().get(clientId)) {
+
+                            RoleResource resource = client.realm(realmId).clients().get(clientRepresentation.getId()).roles().get(role);
+
+                            if (resource != null) {
+                                clientRepresentations.add(resource.toRepresentation());
+                            }
+                        }
+                        if (!clientRepresentations.isEmpty()) {
+                            client.realm(realmId).groups().group(id).roles().
+                                    clientLevel(clientRepresentation.getId()).add(clientRepresentations);
+                        }
+
+                    }
+
+                    representation.setId(id);
+                    this.createGroup(client, realmId, clientId, representation);
+                    response.close();
+                    GroupRepresentation savedRep =
+                            client.realm(realmId).groups().group(representation.getId()).toRepresentation();
+                    representationList.add(savedRep);
+                    return representationList;
+                } else if (response.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
+                    String msg = "Error occurred while creating group, reason: HTTP " + response.getStatus() + " Unauthorized";
+                    LOGGER.error(msg);
+                    throw new RuntimeException(msg);
+                } else {
+                    String msg = "Error occurred while creating group, reason: HTTP  " + response.getStatus();
+                    LOGGER.error(msg);
+                    throw new RuntimeException(msg);
+                }
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while creating group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * Update given group
+     *
+     * @param realmId
+     * @param accessToken
+     * @param groupRepresentation
+     * @return
+     */
+    public GroupRepresentation updateGroup(String realmId, String clientId, String accessToken, GroupRepresentation groupRepresentation) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            client.realm(realmId).groups().
+                    group(groupRepresentation.getId()).update(groupRepresentation);
+
+            List<RoleRepresentation> exRoles =
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().listAll();
+
+            if (exRoles != null && !exRoles.isEmpty()) {
+                client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().remove(exRoles);
+            }
+
+            if (groupRepresentation.getRealmRoles() != null && !groupRepresentation.getRealmRoles().isEmpty()) {
+                List<RoleRepresentation> roleRepresentation = new ArrayList<>();
+                for (String role : groupRepresentation.getRealmRoles()) {
+                    RoleResource resource = client.realm(realmId).roles().get(role);
+                    if (resource != null) {
+                        roleRepresentation.add(resource.toRepresentation());
+                    }
+                }
+                if (!roleRepresentation.isEmpty()) {
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().realmLevel().add(roleRepresentation);
+                }
+
+            }
+
+            ClientRepresentation clientRepresentation =
+                    client.realm(realmId).clients().findByClientId(clientId).get(0);
+
+            List<RoleRepresentation> exClientRoles =
+                    client.realm(realmId).groups().group(groupRepresentation.getId())
+                            .roles().clientLevel(clientRepresentation.getId()).listAll();
+
+            if (exClientRoles != null && !exClientRoles.isEmpty()) {
+                client.realm(realmId).groups().group(groupRepresentation.getId())
+                        .roles().clientLevel(clientRepresentation.getId()).remove(exClientRoles);
+            }
+
+            if (groupRepresentation.getClientRoles() != null && !groupRepresentation.getClientRoles().isEmpty()) {
+                List<RoleRepresentation> clientRepresentations = new ArrayList<>();
+
+                for (String role : groupRepresentation.getClientRoles().get(clientId)) {
+
+                    RoleResource resource = client.realm(realmId).clients().get(clientRepresentation.getId()).roles().get(role);
+
+                    if (resource != null) {
+                        clientRepresentations.add(resource.toRepresentation());
+                    }
+                }
+                if (!clientRepresentations.isEmpty()) {
+                    client.realm(realmId).groups().group(groupRepresentation.getId()).roles().
+                            clientLevel(clientRepresentation.getId()).add(clientRepresentations);
+                }
+
+            }
+
+            return client.realm(realmId).groups().group(groupRepresentation.getId()).toRepresentation();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while updating group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    /**
+     * Delete given group
+     *
+     * @param realmId
+     * @param accessToken
+     * @param groupId
+     * @return
+     */
+    public boolean deleteGroup(String realmId, String accessToken, String groupId) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            client.realm(realmId).groups().
+                    group(groupId).remove();
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+    /**
+     * find group by group Id or group name
+     *
+     * @param realmId
+     * @param accessToken
+     * @return
+     */
+    public GroupRepresentation findGroup(String realmId, String accessToken, String id, String name) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            if (id != null && !id.trim().equals("")) {
+                GroupResource resource = client.realm(realmId).groups().group(id);
+                if (resource != null) {
+                    return resource.toRepresentation();
+                }
+            } else {
+                List<GroupRepresentation> groupRepresentations = client.
+                        realm(realmId).groups().groups(name, 0, 1);
+                if (groupRepresentations != null && !groupRepresentations.isEmpty()) {
+                    return groupRepresentations.get(0);
+                }
+            }
+
+        } catch (Exception ex) {
+            if (ex.getMessage().contains("HTTP 404")) {
+                return null;
+            } else {
+                String msg = "Error occurred finding groups, reason: " + ex.getMessage();
+                LOGGER.error(msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * pull all groups related to given realm
+     *
+     * @param realmId
+     * @param accessToken
+     * @return
+     */
+    public List<GroupRepresentation> getAllGroups(String realmId, String accessToken) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            return client.realm(realmId).groups().groups();
+
+
+        } catch (Exception ex) {
+            if (ex.getMessage().contains("HTTP 404")) {
+                return null;
+            } else {
+                String msg = "Error occurred finding groups, reason: " + ex.getMessage();
+                LOGGER.error(msg, ex);
+                throw new RuntimeException(msg, ex);
+            }
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean addUserToGroup(String realmId, String username, String groupId, String accessToken) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+
+            UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
+            client.realm(realmId).users().get(userRepresentation.getId()).joinGroup(groupId);
+            return true;
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding user to group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean removeUserFromGroup(String realmId, String username, String groupId, String accessToken) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);
+
+            client.realm(realmId).users().get(userRepresentation.getId()).leaveGroup(groupId);
+            return true;
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
+
+    public boolean configureAgentClient(String realmId, String clientId, long accessTokenLifeTime) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            ClientRepresentation representation = client.realm(realmId).clients().findByClientId(clientId).get(0);
+
+            if (representation != null) {
+                Map<String, String> attributes = representation.getAttributes();
+
+                if (attributes == null || attributes.isEmpty()) {
+                    attributes = new HashMap<>();
+                }
+                attributes.put("access.token.lifespan", String.valueOf(accessTokenLifeTime));
+
+                client.realm(realmId).clients().get(representation.getId()).update(representation);
+                return true;
+
+            }
+
+            return false;
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove user from group, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    public boolean isValidEndUser(String realmId, String username, String accessToken) {
+        Keycloak client = null;
+        try {
+
+            client = getClient(iamServerURL, realmId, accessToken);
+
+            UserRepresentation representation = getUserByUsername(client, realmId, username);
+
+            if (representation == null) {
+                return false;
+            }
+
+            Map<String, List<String>> attributes = representation.getAttributes();
+
+            if (attributes != null && !attributes.isEmpty()) {
+
+                for (String key : attributes.keySet()) {
+                    if (key.equals(Constants.CUSTOS_REALM_AGENT)) {
+                        return false;
+                    }
+
+                }
+            }
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred end user validity: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
 
     }
 
@@ -1190,6 +1783,61 @@ public class KeycloakClient {
         return null;
     }
 
+
+    private boolean createGroup(Keycloak client, String realmId, String clientId, GroupRepresentation parentRepresentation) {
+
+        if (parentRepresentation.getSubGroups() != null && !parentRepresentation.getSubGroups().isEmpty()) {
+            List<GroupRepresentation> groupRepresentations = parentRepresentation.getSubGroups();
+            if (groupRepresentations != null && !groupRepresentations.isEmpty()) {
+                for (GroupRepresentation representation : groupRepresentations) {
+                    Response createdRes = client.realm(realmId).groups().add(representation);
+                    String id = getCreatedId(createdRes);
+                    if (id != null) {
+                        representation.setId(id);
+                        Response response = client.realm(realmId).groups().group(parentRepresentation.getId()).subGroup(representation);
+                        if (response.getStatus() == HttpStatus.SC_CREATED || response.getStatus() == HttpStatus.SC_NO_CONTENT) {
+                            if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
+                                List<RoleRepresentation> roleRepresentation = new ArrayList<>();
+                                for (String role : representation.getRealmRoles()) {
+                                    RoleResource resource = client.realm(realmId).roles().get(role);
+                                    if (resource != null) {
+                                        roleRepresentation.add(resource.toRepresentation());
+                                    }
+                                }
+                                if (!roleRepresentation.isEmpty()) {
+                                    client.realm(realmId).groups().group(id).roles().realmLevel().add(roleRepresentation);
+                                }
+
+                            }
+
+                            if (representation.getClientRoles() != null && !representation.getClientRoles().isEmpty()) {
+                                List<RoleRepresentation> clientRepresentations = new ArrayList<>();
+                                ClientRepresentation clientRepresentation =
+                                        client.realm(realmId).clients().findByClientId(clientId).get(0);
+                                for (String role : representation.getClientRoles().get(clientId)) {
+                                    RoleResource resource = client.realm(realmId).clients().get(clientRepresentation.getId()).roles().get(role);
+
+                                    if (resource != null) {
+                                        clientRepresentations.add(resource.toRepresentation());
+                                    }
+                                }
+                                if (!clientRepresentations.isEmpty()) {
+                                    client.realm(realmId).groups().group(id).roles().
+                                            clientLevel(clientRepresentation.getId()).add(clientRepresentations);
+                                }
+
+                            }
+                            createGroup(client, realmId, clientId, representation);
+                        }
+                        response.close();
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+
     private List<UserRepresentation> searchUsers(Keycloak client, String tenantId, String username,
                                                  String firstName, String lastName, String email, int offset, int limit) {
 
@@ -1225,5 +1873,15 @@ public class KeycloakClient {
 
         return userResourceList;
     }
+
+    private String getCreatedId(Response response) {
+        URI location = response.getLocation();
+        if (location == null) {
+            return null;
+        }
+        String path = location.getPath();
+        return path.substring(path.lastIndexOf('/') + 1);
+    }
+
 
 }

@@ -26,7 +26,9 @@ import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.credential.store.credential.CredentialManager;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
+import org.apache.custos.credential.store.persistance.model.AgentCredentialEntity;
 import org.apache.custos.credential.store.persistance.model.CredentialEntity;
+import org.apache.custos.credential.store.persistance.repository.AgentCredentialRepository;
 import org.apache.custos.credential.store.persistance.repository.CredentialRepository;
 import org.apache.custos.credential.store.service.CredentialStoreServiceGrpc.CredentialStoreServiceImplBase;
 import org.apache.custos.credential.store.utils.Operations;
@@ -62,6 +64,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
     @Autowired
     private CredentialRepository repository;
+
+    @Autowired
+    private AgentCredentialRepository agentCredentialRepository;
 
     @Override
     public void putCredential(CredentialMetadata request, StreamObserver<OperationStatus> responseObserver) {
@@ -123,7 +128,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             if (response == null) {
                 String msg = "Cannot find credentials for "
                         + request.getOwnerId() + " for type " + request.getType();
-                LOGGER.error(msg);
+                LOGGER.info(msg);
                 CredentialMetadata secret = CredentialMetadata.newBuilder().build();
                 responseObserver.onNext(secret);
                 responseObserver.onCompleted();
@@ -171,10 +176,12 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
             if (paths != null && !paths.isEmpty()) {
                 for (String key : paths) {
-                    String path = subPath + "/" + key;
-                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), request.getOwnerId(), key);
-                    credentialMetadata.add(metadata);
+                    if (isMainType(key)) {
+                        String path = subPath + "/" + key;
+                        VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                        CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), request.getOwnerId(), key);
+                        credentialMetadata.add(metadata);
+                    }
                 }
             }
             GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
@@ -488,18 +495,20 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
             if (paths != null && !paths.isEmpty()) {
                 for (String key : paths) {
-                    String path = subPath + "/" + key;
-                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+                    if (isMainType(key)) {
+                        String path = subPath + "/" + key;
+                        VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                        CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
 
 
-                    if (key.equals(Type.CUSTOS)) {
-                        metadata = metadata.toBuilder()
-                                .setClientIdIssuedAt(entity.getIssuedAt().getTime())
-                                .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
-                                .build();
+                        if (key.equals(Type.CUSTOS)) {
+                            metadata = metadata.toBuilder()
+                                    .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                                    .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                                    .build();
+                        }
+                        credentialMetadata.add(metadata);
                     }
-                    credentialMetadata.add(metadata);
                 }
             }
             GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
@@ -618,21 +627,23 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
             if (paths != null && !paths.isEmpty()) {
                 for (String key : paths) {
-                    String path = subPath + "/" + key;
-                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+                    if (isMainType(key)) {
+                        String path = subPath + "/" + key;
+                        VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                        CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
 
 
-                    if (key.equals(Type.CUSTOS.name())) {
+                        if (key.equals(Type.CUSTOS.name())) {
 
-                        metadata = metadata.toBuilder()
-                                .setClientIdIssuedAt(entity.getIssuedAt().getTime())
-                                .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
-                                .setSuperAdmin(credential.isAdmin())
-                                .setSuperTenant(crRe.getData().isSuperTenant())
-                                .build();
+                            metadata = metadata.toBuilder()
+                                    .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                                    .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                                    .setSuperAdmin(credential.isAdmin())
+                                    .setSuperTenant(crRe.getData().isSuperTenant())
+                                    .build();
+                        }
+                        credentialMetadata.add(metadata);
                     }
-                    credentialMetadata.add(metadata);
                 }
             }
 
@@ -666,10 +677,12 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
             if (paths != null && !paths.isEmpty()) {
                 for (String key : paths) {
-                    String path = subPath + "/" + key;
-                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), 0, key);
-                    credentialMetadata.add(metadata);
+                    if (isMainType(key)) {
+                        String path = subPath + "/" + key;
+                        VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                        CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), 0, key);
+                        credentialMetadata.add(metadata);
+                    }
                 }
             }
             GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
@@ -679,7 +692,307 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " Operation failed failed " + ex;
+            String msg = " Operation failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void createAgentCredential(CredentialMetadata request, StreamObserver<CredentialMetadata> responseObserver) {
+        try {
+            LOGGER.debug(" Request received for createAgentCredential " + request.getOwnerId());
+
+            Credential credential = credentialManager.generateAgentCredential(request.getOwnerId(), request.getId(),
+                    CredentialTypes.AGENT, 0);
+
+            String path = BASE_PATH + request.getOwnerId() + "/" + request.getId();
+
+            vaultTemplate.write(path, credential);
+
+            VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
+
+            if (response == null || response.getData() == null || response.getData().getId() == null) {
+                String msg = "Get new agent credentials operation failed for "
+                        + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(request.getId(),
+                    request.getOwnerId());
+
+            if (entity == null) {
+                String msg = "Credential is not persisted for "
+                        + request.getId() + "at tenant " + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    request.getOwnerId(),
+                    null);
+
+            CredentialMetadata rep = CredentialMetadata
+                    .newBuilder()
+                    .setOwnerId(request.getOwnerId())
+                    .setSecret(credential.getSecret())
+                    .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+                    .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+                    .setId(credential.getId())
+                    .setInternalSec(credential.getPassword())
+                    .build();
+            responseObserver.onNext(rep);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Create Agent credential operation is failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteAgentCredential(CredentialMetadata request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received for deleteAgentCredential for  " + request.getId() + " at tenant "
+                    + request.getOwnerId());
+
+            String subPath = BASE_PATH + request.getOwnerId() + "/" + request.getId();
+
+            List<String> paths = vaultTemplate.list(subPath);
+
+            if (paths != null && !paths.isEmpty()) {
+                for (String key : paths) {
+                    String path = subPath + "/" + key;
+                    vaultTemplate.delete(path);
+
+                }
+            }
+
+            AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(request.getId(), request.getOwnerId());
+
+            if (entity != null) {
+                agentCredentialRepository.delete(entity);
+            }
+
+            OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
+
+            statusUpdater.updateStatus(Operations.DELETE_AGENT_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    request.getOwnerId(),
+                    null);
+            responseObserver.onNext(secretStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Delete agent credential failed  " + ex;
+            LOGGER.error(msg);
+            statusUpdater.updateStatus(Operations.DELETE_AGENT_CREDENTIAL.name(),
+                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    request.getOwnerId(),
+                    null);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAgentCredential(GetCredentialRequest request, StreamObserver<CredentialMetadata> responseObserver) {
+        try {
+            LOGGER.debug(" Request received for getAgentCredential " + request.getOwnerId());
+
+            String clientId = request.getId();
+
+            AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(request.getId(),
+                    request.getOwnerId());
+
+            if (entity == null) {
+                String msg = " Credentials not found for user " + clientId;
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            String path = BASE_PATH + entity.getOwnerId() + "/" + request.getId();
+
+            VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
+
+            if (response == null || response.getData() == null) {
+                String msg = "Cannot find credentials for "
+                        + entity.getClientId() + " at tenant " + request.getOwnerId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            CredentialMetadata metadata = CredentialMetadata.newBuilder()
+                    .setSecret(response.getData().getSecret())
+                    .setId(request.getId())
+                    .setInternalSec(response.getData().getPassword())
+                    .setOwnerId(entity.getOwnerId())
+                    .setType(Type.AGENT).build();
+            responseObserver.onNext(metadata);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Operation failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCredentialByAgentBasicAuth(TokenRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+            LOGGER.debug(" Request received for getCredentialByAgentBasicAuth ");
+
+            String token = request.getToken();
+
+            Credential credential = credentialManager.decodeToken(token);
+
+            if (credential == null || credential.getId() == null) {
+                LOGGER.error("Invalid access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity exEntity = repository.findByClientId(request.getParentClientId());
+
+            if (exEntity != null) {
+
+                AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(credential.getId(),
+                        exEntity.getOwnerId());
+
+                if (entity == null) {
+                    LOGGER.error("Agent not found");
+                    responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                    return;
+                }
+                String subPath = BASE_PATH + entity.getOwnerId();
+                List<String> paths = vaultTemplate.list(subPath);
+
+               List<CredentialMetadata> metadataList = new ArrayList<>();
+
+
+                if (paths != null && !paths.isEmpty()) {
+                    for (String key : paths) {
+                        String path = subPath + "/" + key;
+                        LOGGER.info("key "+ key);
+                        VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+                       if (isMainType(key)) {
+                           CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+                           metadataList.add(metadata);
+
+                       } else if (key.equals(credential.getId())) {
+                           CredentialMetadata metadata = CredentialMetadata
+                                   .newBuilder()
+                                   .setType(Type.AGENT)
+                                   .setId(credential.getId())
+                                   .setSecret(crRe.getData().getSecret())
+                                   .setInternalSec(crRe.getData().getPassword())
+                                   .build();
+                           metadataList.add(metadata);
+                       }
+                    }
+                }
+
+                GetAllCredentialsResponse response = GetAllCredentialsResponse
+                        .newBuilder()
+                        .addAllSecretList(metadataList)
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = " Cannot find a valid  client Id for tenant ";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+        } catch (Exception ex) {
+            String msg = " Operation failed  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCredentialByAgentJWTToken(TokenRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+            LOGGER.debug(" Request received for getCredentialByAgentJWTToken ");
+
+//            String token = request.getToken();
+//
+//            Credential credential = credentialManager.decodeJWTToken(token);
+//            if (credential == null || credential.getId() == null) {
+//                LOGGER.error("Invalid access token");
+//                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+//                return;
+//            }
+//
+//            CredentialEntity entity = agentCredentialRepository.fi(credential.getId());
+//
+//            if (entity == null) {
+//                LOGGER.error("User not found");
+//                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+//                return;
+//            }
+//
+//            String subPath = BASE_PATH + entity.getOwnerId();
+//            List<String> paths = vaultTemplate.list(subPath);
+//
+//
+//            List<CredentialMetadata> credentialMetadata = new ArrayList<>();
+//
+//            if (paths != null && !paths.isEmpty()) {
+//                for (String key : paths) {
+//                    String path = subPath + "/" + key;
+//                    VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+//                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+//
+//
+//                    if (key.equals(Type.CUSTOS.name())) {
+//
+//                        metadata = metadata.toBuilder()
+//                                .setClientIdIssuedAt(entity.getIssuedAt().getTime())
+//                                .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
+//                                .setSuperAdmin(credential.isAdmin())
+//                                .setSuperTenant(crRe.getData().isSuperTenant())
+//                                .build();
+//                    }
+//                    credentialMetadata.add(metadata);
+//                }
+//            }
+//
+//
+//            GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
+//                    .addAllSecretList(credentialMetadata)
+//                    .setRequesterUserEmail(credential.getEmail())
+//                    .setRequesterUsername(credential.getUsername())
+//                    .build();
+//
+//            responseObserver.onNext(response);
+//            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Operation failed  " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -706,4 +1019,11 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     }
 
 
+    private boolean isMainType(String str) {
+        for (Type type : Type.values()) {
+            if (type.name().equalsIgnoreCase(str))
+                return true;
+        }
+        return false;
+    }
 }

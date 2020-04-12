@@ -31,6 +31,7 @@ import org.apache.custos.identity.authzcache.AuthzCachedStatus;
 import org.apache.custos.identity.authzcache.DefaultAuthzCacheManager;
 import org.apache.custos.identity.exceptions.CustosSecurityException;
 import org.apache.custos.identity.service.IdentityServiceGrpc.IdentityServiceImplBase;
+import org.apache.custos.identity.utils.Constants;
 import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 import org.lognet.springboot.grpc.GRpcService;
@@ -57,7 +58,7 @@ public class IdentityService extends IdentityServiceImplBase {
     @Autowired
     private DefaultAuthzCacheManager authzCacheManager;
 
-    @Value("${custos.identity.auth.cache.enabled:true}")
+    @Value("${custos.identity.auth.cache.enabled:false}")
     private boolean isAuthzCacheEnabled;
 
 
@@ -220,10 +221,10 @@ public class IdentityService extends IdentityServiceImplBase {
 
 
             Claim userClaim = Claim.newBuilder().setKey("username").setValue(request.getClientId()).build();
-          //  Claim tenantId = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(request.getTenantId())).build();
+            //  Claim tenantId = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(request.getTenantId())).build();
 
             builder.addClaims(userClaim);
-           // builder.addClaims(tenantId);
+            // builder.addClaims(tenantId);
 
             AuthToken token = builder.build();
 
@@ -244,12 +245,22 @@ public class IdentityService extends IdentityServiceImplBase {
         try {
             LOGGER.debug("Request token for " + request.getTenantId());
 
-            JSONObject object = keycloakAuthClient.
-                    getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
-                            request.getCode(), request.getRedirectUri());
+            JSONObject object = null;
 
-            LOGGER.info(object.toString());
+            if (request.getGrantType().equals(Constants.PASSWORD_GRANT_TYPE)) {
+                object = keycloakAuthClient.
+                        getAccessTokenFromPasswordGrantType(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
+                                request.getUsername(), request.getPassword());
+            } else if (request.getGrantType().equals(Constants.REFERESH_TOKEN)) {
+                object = keycloakAuthClient.
+                        getAccessTokenFromRefreshTokenGrantType(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
+                                request.getRefreshToken());
+            } else {
+                object = keycloakAuthClient.
+                        getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
+                                request.getCode(), request.getRedirectUri());
 
+            }
             try {
                 if (object != null && object.getString("access_token") != null) {
                     Struct.Builder structBuilder = Struct.newBuilder();
@@ -312,6 +323,72 @@ public class IdentityService extends IdentityServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching access token for  user " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getTokenByPasswordGrantType(GetTokenRequest request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request token for " + request.getUsername() + " at " + request.getTenantId());
+
+            JSONObject object = keycloakAuthClient.getAccessTokenFromPasswordGrantType(request.getClientId(),
+                    request.getClientSecret(),
+                    String.valueOf(request.getTenantId()),
+                    request.getUsername(),
+                    request.getPassword());
+
+            try {
+                if (object != null && object.getString("access_token") != null) {
+                    Struct.Builder structBuilder = Struct.newBuilder();
+
+                    JsonFormat.parser().merge(object.toString(), structBuilder);
+                    responseObserver.onNext(structBuilder.build());
+                    responseObserver.onCompleted();
+                }
+            } catch (Exception ex) {
+
+                String error = object.getString("error") + " " + object.getString("error_description");
+                responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
+                return;
+
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching access token for  user " + request.getUsername() + " " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getTokenByRefreshTokenGrantType(GetTokenRequest request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request token for " + request.getUsername() + " at " + request.getTenantId());
+
+            JSONObject object = keycloakAuthClient.getAccessTokenFromRefreshTokenGrantType(request.getClientId(),
+                    request.getClientSecret(),
+                    String.valueOf(request.getTenantId()),
+                    request.getRefreshToken());
+
+            try {
+                if (object != null && object.getString("access_token") != null) {
+                    Struct.Builder structBuilder = Struct.newBuilder();
+
+                    JsonFormat.parser().merge(object.toString(), structBuilder);
+                    responseObserver.onNext(structBuilder.build());
+                    responseObserver.onCompleted();
+                }
+            } catch (Exception ex) {
+
+                String error = object.getString("error") + " " + object.getString("error_description");
+                responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
+                return;
+
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching access token for  user " + request.getUsername() + " " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

@@ -20,15 +20,33 @@
 package org.apache.custos.scim.resource;
 
 import io.swagger.annotations.*;
+import org.apache.custos.integration.services.commons.model.AuthClaim;
+import org.apache.custos.scim.resource.manager.ResourceManager;
+import org.apache.custos.scim.utils.AuthHandler;
 import org.apache.custos.scim.utils.Constants;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.wso2.charon3.core.protocol.SCIMResponse;
+import org.wso2.charon3.core.protocol.endpoints.GroupResourceManager;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = {"/v2/Groups"})
 @Api(value = "Group Resource Management")
-public class GroupResource {
+public class GroupResource extends AbstractResource {
+    private final static Logger LOGGER = LoggerFactory.getLogger(GroupResource.class);
 
+    @Autowired
+    private ResourceManager resourceManager;
+
+    @Autowired
+    private AuthHandler authHandler;
 
     @ApiOperation(
             value = "Return the group with the given id",
@@ -42,11 +60,31 @@ public class GroupResource {
     public ResponseEntity getGroup(@ApiParam(value = Constants.ID_DESC, required = true)
                                    @PathVariable(Constants.ID) String id,
                                    @ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                   @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                   @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                    @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                   @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes) {
+                                   @RequestParam(value =Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                   @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+        JSONObject newObj = new JSONObject();
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        JSONObject custosExtention = new JSONObject();
+        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+
+        SCIMResponse response = groupResourceManager.get(custosExtention.toString(), resourceManager, attribute, excludedAttributes);
+
+        return buildResponse(response);
 
     }
 
@@ -59,11 +97,50 @@ public class GroupResource {
 
     @PostMapping(produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
     public ResponseEntity createGroup(@ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                      @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                      @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                       @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                      @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes,
-                                      String resourceString) {
-        return null;
+                                      @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                      @RequestBody Map<String, Object> payload,
+                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+        JSONObject object = new JSONObject(payload);
+
+//        Object custosExtension = object.get(Constants.MEMBERS);
+//
+//        JSONArray cust = null;
+//        if (custosExtension == null) {
+        JSONArray    cust = new JSONArray();
+//        } else if (custosExtension instanceof JSONArray) {
+//            cust = (JSONArray) custosExtension;
+//        }
+
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        jsonObject.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        jsonObject.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        jsonObject.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+
+        JSONObject member = new JSONObject();
+
+        member.put(Constants.VALUE, jsonObject.toString());
+        member.put("display",Constants.CUSTOS_EXTENSION);
+
+        cust.put(member);
+
+        object.put(Constants.MEMBERS, cust);
+
+
+        SCIMResponse response = groupResourceManager.create(object.toString(), resourceManager,
+                attribute, excludedAttributes);
+
+
+        return buildResponse(response);
     }
 
     @ApiOperation(
@@ -76,9 +153,31 @@ public class GroupResource {
 
     @DeleteMapping(value = {"/{id}"}, produces = {"application/json", "application/scim+json"})
     public ResponseEntity deleteGroup(@ApiParam(value = Constants.ID_DESC, required = true)
-                                      @PathVariable(Constants.ID) String id) {
+                                      @PathVariable(Constants.ID) String id,
+                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+
+        JSONObject newObj = new JSONObject();
+
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        JSONObject custosExtention = new JSONObject();
+        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+        LOGGER.info("Id Before  " + custosExtention.toString());
+        SCIMResponse response = groupResourceManager.delete(custosExtention.toString(), resourceManager);
+
+        return buildResponse(response);
     }
 
     @ApiOperation(
@@ -93,12 +192,69 @@ public class GroupResource {
     public ResponseEntity updateGroup(@ApiParam(value = Constants.ID_DESC, required = true)
                                       @PathVariable(Constants.ID) String id,
                                       @ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                      @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                      @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                       @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                      @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes,
-                                      String resourceString) {
+                                      @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                      @RequestBody Map<String, Object> payload,
+                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+        JSONObject object = new JSONObject(payload);
+
+
+
+
+//        Object custosExtension = object.get(Constants.MEMBERS);
+//
+//        JSONArray cust = null;
+//        if (custosExtension == null) {
+        JSONArray    cust = new JSONArray();
+//        } else if (custosExtension instanceof JSONArray) {
+//            cust = (JSONArray) custosExtension;
+//        }
+
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        jsonObject.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        jsonObject.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        jsonObject.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+
+
+        JSONObject member = new JSONObject();
+
+        member.put(Constants.VALUE, jsonObject.toString());
+        member.put("display",Constants.CUSTOS_EXTENSION);
+
+        cust.put(member);
+
+        object.put(Constants.MEMBERS, cust);
+
+
+        JSONObject newObj = new JSONObject();
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        JSONObject custosExt = new JSONObject();
+        custosExt.put(Constants.CUSTOS_EXTENSION, newObj);
+
+
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+
+
+        SCIMResponse response = groupResourceManager.updateWithPUT(custosExt.toString(), object.toString(), resourceManager,
+                attribute, excludedAttributes);
+
+
+        return buildResponse(response);
     }
 
     @ApiOperation(
@@ -110,9 +266,15 @@ public class GroupResource {
             @ApiResponse(code = 404, message = "Valid groups are not found")})
 
     @PostMapping(value = ("/.search"), produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
-    public ResponseEntity getGroupsByPost(String resourceString) {
+    public ResponseEntity getGroupsByPost(String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        authHandler.validateAndConfigure(authorizationHeader, false);
+
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+
+        SCIMResponse response = groupResourceManager.listWithPOST(resourceString, resourceManager);
+
+        return buildResponse(response);
     }
 
     @ApiOperation(
@@ -125,23 +287,31 @@ public class GroupResource {
 
     @GetMapping(produces = {"application/json", "application/scim+json"})
     public ResponseEntity getGroup(@ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                   @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                   @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                    @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                   @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes,
+                                   @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
                                    @ApiParam(value = Constants.FILTER_DESC, required = false)
-                                   @RequestParam(Constants.FILTER) String filter,
+                                   @RequestParam(value = Constants.FILTER, required = false) String filter,
                                    @ApiParam(value = Constants.START_INDEX_DESC, required = false)
-                                   @RequestParam(Constants.START_INDEX) int startIndex,
+                                   @RequestParam(value = Constants.START_INDEX, required = false) int startIndex,
                                    @ApiParam(value = Constants.COUNT_DESC, required = false)
-                                   @RequestParam(Constants.COUNT) int count,
+                                   @RequestParam(value = Constants.COUNT, required = false) int count,
                                    @ApiParam(value = Constants.SORT_BY_DESC, required = false)
-                                   @RequestParam(Constants.SORT_BY) String sortBy,
+                                   @RequestParam(value = Constants.SORT_BY, required = false) String sortBy,
                                    @ApiParam(value = Constants.SORT_ORDER_DESC, required = false)
-                                   @RequestParam(Constants.SORT_ORDER) String sortOrder,
+                                   @RequestParam(value = Constants.SORT_ORDER, required = false) String sortOrder,
                                    @ApiParam(value = Constants.DOMAIN_DESC, required = false)
-                                   @RequestParam(value = Constants.DOMAIN) String domainName) {
+                                   @RequestParam(value = Constants.DOMAIN, required = false) String domainName,
+                                   @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        authHandler.validateAndConfigure(authorizationHeader, false);
+
+        GroupResourceManager groupResourceManager = new GroupResourceManager();
+
+        SCIMResponse response = groupResourceManager.listWithGET(resourceManager,
+                filter, startIndex, count, sortBy, sortOrder, domainName, attribute, excludedAttributes);
+
+        return buildResponse(response);
 
     }
 

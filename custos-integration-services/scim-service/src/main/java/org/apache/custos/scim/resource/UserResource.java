@@ -19,9 +19,10 @@
 
 package org.apache.custos.scim.resource;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.*;
+import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.scim.resource.manager.ResourceManager;
+import org.apache.custos.scim.utils.AuthHandler;
 import org.apache.custos.scim.utils.Constants;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -30,23 +31,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.wso2.charon3.core.protocol.SCIMResponse;
-import org.wso2.charon3.core.protocol.endpoints.SchemaResourceManager;
 import org.wso2.charon3.core.protocol.endpoints.UserResourceManager;
 
-import java.net.URI;
 import java.util.Map;
 
 
 @RestController
 @RequestMapping(value = {"/v2/Users"})
 @Api(value = "User Resource Management")
-public class UserResource extends AbstractResource{
+public class UserResource extends AbstractResource {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(UserResource.class);
 
 
     @Autowired
     private ResourceManager resourceManager;
+
+    @Autowired
+    private AuthHandler authHandler;
 
 
     @ApiOperation(
@@ -61,11 +63,31 @@ public class UserResource extends AbstractResource{
     public ResponseEntity getUser(@ApiParam(value = Constants.ID_DESC, required = true)
                                   @PathVariable(Constants.ID) String id,
                                   @ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                  @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                  @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                   @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                  @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes) {
+                                  @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                  @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+        JSONObject newObj = new JSONObject();
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        JSONObject custosExtention = new JSONObject();
+        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        UserResourceManager userResourceManager = new UserResourceManager();
+        LOGGER.info("Id Before  " + custosExtention.toString());
+        SCIMResponse response = userResourceManager.get(custosExtention.toString(), resourceManager, attribute, excludedAttributes);
+
+        return buildResponse(response);
     }
 
 
@@ -82,14 +104,26 @@ public class UserResource extends AbstractResource{
                                      @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                      @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
                                      @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
-                                     @RequestBody Map<String, Object> payload) {
+                                     @RequestBody Map<String, Object> payload,
+                                     @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
         JSONObject object = new JSONObject(payload);
 
+        JSONObject custosExtension = new JSONObject();
+
+        custosExtension.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        custosExtension.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        custosExtension.put(Constants.TENANT_ID, claim.getTenantId());
+        custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+        object.put(Constants.CUSTOS_EXTENSION, custosExtension);
 
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
 
+        LOGGER.info(object.toString());
 
         SCIMResponse response = userResourceManager.create(object.toString(), resourceManager,
                 attribute, excludedAttributes);
@@ -108,8 +142,30 @@ public class UserResource extends AbstractResource{
 
     @DeleteMapping(path = {"/{id}"}, produces = {"application/json", "application/scim+json"})
     public ResponseEntity deleteUser(@ApiParam(value = Constants.ID_DESC, required = true)
-                                     @PathVariable(Constants.ID) String id) {
-        return null;
+                                     @PathVariable(Constants.ID) String id,
+                                     @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+
+        JSONObject newObj = new JSONObject();
+
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+        JSONObject custosExtention = new JSONObject();
+        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        UserResourceManager userResourceManager = new UserResourceManager();
+        LOGGER.info("Id Before  " + custosExtention.toString());
+        SCIMResponse response = userResourceManager.delete(custosExtention.toString(), resourceManager);
+
+        return buildResponse(response);
 
     }
 
@@ -126,20 +182,28 @@ public class UserResource extends AbstractResource{
     public ResponseEntity getUser(@ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
                                   @RequestParam(Constants.ATTRIBUTES) String attribute,
                                   @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                  @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes,
+                                  @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
                                   @ApiParam(value = Constants.FILTER_DESC, required = false)
-                                  @RequestParam(Constants.FILTER) String filter,
+                                  @RequestParam(value = Constants.FILTER, required = false) String filter,
                                   @ApiParam(value = Constants.START_INDEX_DESC, required = false)
-                                  @RequestParam(Constants.START_INDEX) int startIndex,
+                                  @RequestParam(value =Constants.START_INDEX, required = false) int startIndex,
                                   @ApiParam(value = Constants.COUNT_DESC, required = false)
-                                  @RequestParam(Constants.COUNT) int count,
+                                  @RequestParam(value= Constants.COUNT, required = false) int count,
                                   @ApiParam(value = Constants.SORT_BY_DESC, required = false)
-                                  @RequestParam(Constants.SORT_BY) String sortBy,
+                                  @RequestParam(value =Constants.SORT_BY, required = false) String sortBy,
                                   @ApiParam(value = Constants.SORT_ORDER_DESC, required = false)
-                                  @RequestParam(Constants.SORT_ORDER) String sortOrder,
+                                  @RequestParam(value = Constants.SORT_ORDER, required = false) String sortOrder,
                                   @ApiParam(value = Constants.DOMAIN_DESC, required = false)
-                                  @RequestParam(Constants.DOMAIN) String domainName) {
-        return null;
+                                  @RequestParam(value= Constants.DOMAIN, required = false) String domainName,
+                                  @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+        authHandler.validateAndConfigure(authorizationHeader, false);
+
+        UserResourceManager userResourceManager = new UserResourceManager();
+
+        SCIMResponse response = userResourceManager.listWithGET(resourceManager,
+                filter, startIndex, count, sortBy, sortOrder, domainName, attribute, excludedAttributes);
+
+        return buildResponse(response);
 
     }
 
@@ -153,9 +217,16 @@ public class UserResource extends AbstractResource{
             @ApiResponse(code = 404, message = "Valid users are not found")})
 
     @PostMapping(value = {"/.search"}, produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
-    public ResponseEntity getUsersByPost(String resourceString) {
+    public ResponseEntity getUsersByPost(String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        authHandler.validateAndConfigure(authorizationHeader, false);
+
+        UserResourceManager userResourceManager = new UserResourceManager();
+
+        SCIMResponse response = userResourceManager.listWithPOST(resourceString, resourceManager);
+
+        return buildResponse(response);
+
     }
 
 
@@ -171,12 +242,49 @@ public class UserResource extends AbstractResource{
     public ResponseEntity updateUser(@ApiParam(value = Constants.ID_DESC, required = true)
                                      @PathVariable(Constants.ID) String id,
                                      @ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
-                                     @RequestParam(Constants.ATTRIBUTES) String attribute,
+                                     @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                      @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                     @RequestParam(Constants.EXCLUDE_ATTRIBUTES) String excludedAttributes,
-                                     String resourceString) {
+                                     @RequestParam(value =Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                     @RequestBody Map<String, Object> payload,
+                                     @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        return null;
+        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+        JSONObject object = new JSONObject(payload);
+
+        JSONObject custosExtension = new JSONObject();
+
+        custosExtension.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        custosExtension.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        custosExtension.put(Constants.TENANT_ID, claim.getTenantId());
+        object.put(Constants.CUSTOS_EXTENSION, custosExtension);
+
+
+
+        JSONObject newObj = new JSONObject();
+
+        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
+        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
+        newObj.put(Constants.ID, id);
+        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
+        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        JSONObject custosExt = new JSONObject();
+        custosExt.put(Constants.CUSTOS_EXTENSION, newObj);
+
+
+        // create charon-SCIM user endpoint and hand-over the request.
+        UserResourceManager userResourceManager = new UserResourceManager();
+
+
+        SCIMResponse response = userResourceManager.updateWithPUT(custosExt.toString(), object.toString(), resourceManager,
+                attribute, excludedAttributes);
+
+
+        return buildResponse(response);
     }
+
 
 }

@@ -52,6 +52,7 @@ message UserProfile {
     repeated UserAttribute attributes = 7;
     repeated string client_roles = 8;
     repeated string realm_roles = 9;
+    string last_modified_at = 10;
 }
 
 message UserProfileRequest {
@@ -95,12 +96,63 @@ message GetUpdateAuditTrailResponse {
     repeated UserProfileStatusUpdateMetadata statusAudit = 2;
 }
 
+message GroupRequest {
+    int64 tenantId = 1;
+    Group group = 2;
+    string performedBy = 3;
+}
+
+message GetAllGroupsResponse {
+    repeated Group groups = 1;
+}
+message Group {
+    string id = 1;
+    string name = 2;
+    repeated string realm_roles = 3;
+    repeated string client_roles = 4;
+    string parent_id = 5;
+    int64 created_time = 6;
+    int64 last_modified_time = 7;
+    repeated GroupAttribute attributes = 8;
+}
+
+message GroupAttribute {
+    int64 id = 1;
+    string key = 2;
+    repeated string value = 3;
+}
+
+message GroupMembership{
+    int64 tenantId = 1;
+    string group_id = 2;
+    string username = 3;
+}
+
+message Status {
+    bool status = 1;
+}
+
+
 service UserProfileService {
     rpc createUserProfile (UserProfileRequest) returns (UserProfile);
     rpc updateUserProfile (UserProfileRequest) returns (UserProfile);
     rpc getUserProfile (UserProfileRequest) returns (UserProfile);
     rpc deleteUserProfile (UserProfileRequest) returns (UserProfile);
     rpc getAllUserProfilesInTenant (UserProfileRequest) returns (GetAllUserProfilesResponse);
+    rpc findUserProfilesByAttributes (UserProfileRequest) returns (GetAllUserProfilesResponse);
+
+    rpc createGroup (GroupRequest) returns (Group);
+    rpc updateGroup (GroupRequest) returns (Group);
+    rpc deleteGroup (GroupRequest) returns (Group);
+    rpc getGroup (GroupRequest) returns (Group);
+    rpc getAllGroups (GroupRequest) returns (GetAllGroupsResponse);
+
+
     rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
-    rpc findUserProfilesByAttributes(UserProfileRequest) returns (GetAllUserProfilesResponse);
+
+    rpc addUserToGroup(GroupMembership) returns (Status);
+    rpc removeUserFromGroup(GroupMembership) returns (Status);
+
+
+
 }

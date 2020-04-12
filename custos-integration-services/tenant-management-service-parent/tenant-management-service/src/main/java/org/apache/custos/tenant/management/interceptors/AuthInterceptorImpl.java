@@ -60,11 +60,15 @@ public class AuthInterceptorImpl extends AuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
 
-        if (method.equals("getCredentials")) {
+        if (method.equals("createTenant")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorize(headers);
+            if (claim == null) {
+                return msg;
+            } else {
 
-            return (ReqT) ((Tenant) msg).toBuilder().setParentTenantId(claim.getTenantId()).build();
+                return (ReqT) ((Tenant) msg).toBuilder().setParentTenantId(claim.getTenantId()).build();
+            }
 
         } else if (method.equals("getTenant")) {
 

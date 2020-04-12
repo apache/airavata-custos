@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "helm.name" . }}
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.service.grpcport }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    - port: {{ .Values.proxy.port }}
+      targetPort: envoyhttp
+      protocol: TCP
+      name: envoyhttp
+  selector:
+    app.kubernetes.io/name: {{ include "helm.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

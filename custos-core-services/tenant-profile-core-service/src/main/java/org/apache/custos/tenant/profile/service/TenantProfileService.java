@@ -120,6 +120,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Optional<Tenant> opt = tenantRepository.findById(tenantId);
             Tenant exTenant = opt.get();
+            tenant = tenant.toBuilder().setParentTenantId(exTenant.getParentId()).build();
             Tenant tenantEntity = TenantMapper.createTenantEntityFromTenant(tenant);
 
             //Do not update the tenant status

@@ -145,16 +145,16 @@ public class UserProfileMapper {
             });
 
 
-              atrMap.keySet().forEach(key-> {
-                  org.apache.custos.user.profile.service.UserAttribute attribute = org.apache.custos.user.profile.service
-                          .UserAttribute
-                          .newBuilder()
-                          .setKey(key)
-                          .addAllValue(atrMap.get(key))
-                          .build();
-                  attributeList.add(attribute);
-              });
-            }
+            atrMap.keySet().forEach(key -> {
+                org.apache.custos.user.profile.service.UserAttribute attribute = org.apache.custos.user.profile.service
+                        .UserAttribute
+                        .newBuilder()
+                        .setKey(key)
+                        .addAllValue(atrMap.get(key))
+                        .build();
+                attributeList.add(attribute);
+            });
+        }
 
 
         return builder
@@ -163,6 +163,7 @@ public class UserProfileMapper {
                 .setFirstName(profileEntity.getFirstName())
                 .setLastName(profileEntity.getLastName())
                 .setCreatedAt(profileEntity.getCreatedAt().toString())
+                .setLastModifiedAt(profileEntity.getLastModifiedAt() != null ? profileEntity.getLastModifiedAt().toString() : "")
                 .setStatus(UserStatus.valueOf(profileEntity.getStatus()))
                 .addAllAttributes(attributeList)
                 .build();

@@ -85,6 +85,7 @@ message CheckingResponse {
 
 
 message UserRepresentation {
+    string id = 1;
     string username = 3;
     string first_name = 4;
     string last_name = 5;
@@ -100,12 +101,24 @@ message UserRepresentation {
 }
 
 
+message GroupRepresentation {
+    string name = 1;
+    string id = 2;
+    repeated string realm_roles = 3;
+    repeated string client_roles = 4;
+    repeated UserAttribute attributes = 5;
+    repeated UserRepresentation users = 6;
+    repeated GroupRepresentation sub_groups = 7;
+}
+
+
 message RegisterUserRequest {
     int64 tenantId = 1;
     string accessToken = 2;
     string clientId = 3;
     string clientSec = 4;
     UserRepresentation user = 5;
+    string performedBy = 6;
 }
 
 
@@ -132,6 +145,7 @@ message UserSearchMetadata {
     string first_name = 2;
     string last_name = 3;
     string email = 4;
+    string id = 5;
 }
 
 message FindUsersRequest {
@@ -146,7 +160,7 @@ message FindUsersRequest {
 }
 
 message UserSearchRequest {
-    UserSearchMetadata  user = 1;
+    UserSearchMetadata user = 1;
     int64 tenantId = 2;
     string accessToken = 3;
     string client_id = 4;
@@ -169,23 +183,25 @@ message ResetUserPassword {
 
 
 message DeleteUserRolesRequest {
-    int64 tenant_id= 1;
+    int64 tenant_id = 1;
     string username = 2;
     repeated string client_roles = 3;
-    repeated string realm_roles = 4;
+    repeated string roles = 4;
     string access_token = 5;
     string client_id = 6;
     string performed_by = 7;
+    string id = 8;
 }
 
 message AddUserRolesRequest {
-    int64 tenant_id= 1;
+    int64 tenant_id = 1;
     repeated string usernames = 2;
     repeated string roles = 3;
     string access_token = 4;
     string client_id = 5;
     bool client_level = 6;
     string performed_by = 7;
+    repeated string agents = 8;
 }
 
 message UpdateUserProfileRequest {
@@ -278,6 +294,7 @@ message AddUserAttributesRequest {
     string client_id = 4;
     string access_token = 5;
     string performedBy = 6;
+    repeated string agents = 7;
 }
 
 message DeleteUserAttributeRequest {
@@ -287,6 +304,7 @@ message DeleteUserAttributeRequest {
     string client_id = 4;
     string access_token = 5;
     string performedBy = 6;
+    repeated string agents = 7;
 }
 
 message UserAttribute {
@@ -295,51 +313,128 @@ message UserAttribute {
 }
 
 message EventPersistenceRequest {
-int64 tenantId = 1;
-bool admin_event = 2;
-string event = 3;
-bool enable = 4;
-int64 persistence_time = 5;
-string  performedBy = 6;
+    int64 tenantId = 1;
+    bool admin_event = 2;
+    string event = 3;
+    bool enable = 4;
+    int64 persistence_time = 5;
+    string performedBy = 6;
 }
 
 
+message GroupsRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    repeated GroupRepresentation groups = 6;
+}
 
+message GroupRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string id = 6;
+    GroupRepresentation group = 7;
+}
+
+message GroupsResponse {
+    repeated GroupRepresentation groups = 1;
+}
+
+message UserGroupMappingRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string username = 6;
+    string group_id = 7;
+}
+
+message AgentClientMetadata {
+    int64 tenantId = 1;
+    string tenantURL = 2;
+    repeated string redirectURIs = 3;
+    string clientName = 4;
+    int64 access_token_life_time = 5;
+    string performedBy = 6;
+    string access_token = 7;
+}
+
+message Agent {
+    string id = 1;
+    repeated string realm_roles = 2;
+    repeated UserAttribute attributes = 3;
+    bool isEnabled = 4;
+    double creation_time = 5;
+    double last_modified_at = 6;
+}
 
 
 service IamAdminService {
 
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc updateTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
     rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty);
     rpc configureFederatedIDP (ConfigureFederateIDPRequest) returns (FederateIDPResponse);
     rpc addRolesToTenant (AddRolesRequest) returns (AllRoles);
     rpc addProtocolMapper (AddProtocolMapperRequest) returns (OperationStatus);
 
 
-    rpc isUsernameAvailable (UserSearchRequest) returns (CheckingResponse);
+    rpc isUsernameAvailable (UserSearchRequest) returns (OperationStatus);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
     rpc enableUser (UserSearchRequest) returns (UserRepresentation);
-    rpc disableUser(UserSearchRequest) returns (UserRepresentation);
-    rpc isUserEnabled (UserSearchRequest) returns (CheckingResponse);
+    rpc disableUser (UserSearchRequest) returns (UserRepresentation);
+    rpc isUserEnabled (UserSearchRequest) returns (OperationStatus);
     rpc isUserExist (UserSearchRequest) returns (CheckingResponse);
     rpc getUser (UserSearchRequest) returns (UserRepresentation);
     rpc findUsers (FindUsersRequest) returns (FindUsersResponse);
-    rpc resetPassword (ResetUserPassword) returns (CheckingResponse);
+    rpc resetPassword (ResetUserPassword) returns (OperationStatus);
+    rpc grantAdminPrivilege (UserSearchRequest) returns (OperationStatus);
+    rpc removeAdminPrivilege (UserSearchRequest) returns (OperationStatus);
 
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);
     rpc deleteUserAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
     rpc addRolesToUsers (AddUserRolesRequest) returns (OperationStatus);
 
-    rpc deleteUser (UserSearchRequest) returns (CheckingResponse);
+    rpc deleteUser (UserSearchRequest) returns (OperationStatus);
 
-    rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (CheckingResponse);
+    rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (OperationStatus);
 
-    rpc updateUserProfile (UpdateUserProfileRequest) returns (CheckingResponse);
+    rpc updateUserProfile (UpdateUserProfileRequest) returns (OperationStatus);
 
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
 
     rpc configureEventPersistence (EventPersistenceRequest) returns (OperationStatus);
+
+    rpc createGroups (GroupsRequest) returns (GroupsResponse);
+    rpc updateGroup (GroupRequest) returns (GroupRepresentation);
+    rpc deleteGroup (GroupRequest) returns (OperationStatus);
+    rpc findGroup (GroupRequest) returns (GroupRepresentation);
+    rpc getAllGroups (GroupRequest) returns (GroupsResponse);
+
+    rpc addUserToGroup (UserGroupMappingRequest) returns (OperationStatus);
+    rpc removeUserFromGroup (UserGroupMappingRequest) returns (OperationStatus);
+
+    rpc createAgentClient (AgentClientMetadata) returns (SetUpTenantResponse);
+    rpc configureAgentClient (AgentClientMetadata) returns (OperationStatus);
+
+
+    rpc isAgentNameAvailable (UserSearchRequest) returns (OperationStatus);
+    rpc registerAndEnableAgent (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc deleteAgent (UserSearchRequest) returns (OperationStatus);
+    rpc getAgent (UserSearchRequest) returns (Agent);
+    rpc disableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc enableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc addAgentAttributes (AddUserAttributesRequest) returns (OperationStatus);
+    rpc deleteAgentAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
+    rpc addRolesToAgent (AddUserRolesRequest) returns (OperationStatus);
+    rpc deleteAgentRoles (DeleteUserRolesRequest) returns (OperationStatus);
 
 
 }

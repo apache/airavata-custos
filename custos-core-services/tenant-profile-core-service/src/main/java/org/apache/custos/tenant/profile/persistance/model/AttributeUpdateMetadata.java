@@ -40,6 +40,7 @@ public class AttributeUpdateMetadata {
     @Column(nullable = false)
     private String updatedFieldKey;
 
+    @Lob
     @Column(nullable = false)
     private String updatedFieldValue;
 

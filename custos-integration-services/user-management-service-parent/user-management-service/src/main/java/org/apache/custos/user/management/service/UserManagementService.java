@@ -456,10 +456,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 if (deletedProfile != null) {
 
-                    CheckingResponse response = iamAdminServiceClient.deleteUser(request);
+                    OperationStatus response = iamAdminServiceClient.deleteUser(request);
 
-                    OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-                    responseObserver.onNext(status);
+                    responseObserver.onNext(response);
                     responseObserver.onCompleted();
 
 
@@ -470,10 +469,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                 }
 
             } else {
-                CheckingResponse response = iamAdminServiceClient.deleteUser(request);
+                OperationStatus response = iamAdminServiceClient.deleteUser(request);
 
-                OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-                responseObserver.onNext(status);
+                responseObserver.onNext(response);
                 responseObserver.onCompleted();
             }
 
@@ -519,6 +517,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else if (ex.getMessage().contains("NOT_FOUND")) {
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             } else {
                 responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
             }
@@ -560,7 +560,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void resetPassword(ResetUserPassword request, StreamObserver<CheckingResponse> responseObserver) {
+    public void resetPassword(ResetUserPassword request, StreamObserver<OperationStatus> responseObserver) {
         try {
 
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
@@ -575,7 +575,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
-                CheckingResponse response = iamAdminServiceClient.resetPassword(request);
+                OperationStatus response = iamAdminServiceClient.resetPassword(request);
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
@@ -657,7 +657,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     public void deleteUserRoles(DeleteUserRolesRequest
                                         request, StreamObserver<OperationStatus> responseObserver) {
         try {
-            CheckingResponse response = iamAdminServiceClient.deleteUserRoles(request);
+            OperationStatus response = iamAdminServiceClient.deleteUserRoles(request);
 
 
             UserSearchMetadata metadata = UserSearchMetadata
@@ -692,9 +692,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             }
 
-
-            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getIsExist()).build();
-            responseObserver.onNext(status);
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (
@@ -711,7 +709,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
-    public void isUserEnabled(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUserEnabled(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
@@ -723,7 +721,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             if (token != null && token.getAccessToken() != null) {
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                CheckingResponse response = iamAdminServiceClient.isUserEnabled(request);
+                OperationStatus response = iamAdminServiceClient.isUserEnabled(request);
 
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
@@ -744,7 +742,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
-    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<CheckingResponse> responseObserver) {
+    public void isUsernameAvailable(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
@@ -756,7 +754,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             if (token != null && token.getAccessToken() != null) {
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                CheckingResponse response = iamAdminServiceClient.isUsernameAvailable(request);
+                OperationStatus response = iamAdminServiceClient.isUsernameAvailable(request);
 
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
@@ -814,9 +812,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
             UserRepresentation exUser = iamAdminServiceClient.getUser(info);
 
-            CheckingResponse response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+            OperationStatus response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
 
-            if (response != null && response.getIsExist()) {
+            if (response != null && response.getStatus()) {
                 try {
                     org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
                             org.apache.custos.user.profile.service.UserProfileRequest.
@@ -1133,8 +1131,13 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                             .setProfile(profile)
                                             .build();
 
-                            userProfileClient.updateUserProfile(req);
+                            UserProfile exsistingProfile = userProfileClient.getUser(req);
 
+                            if (exsistingProfile == null || exsistingProfile.getUsername().equals("")) {
+                                userProfileClient.createUserProfile(req);
+                            } else {
+                                userProfileClient.updateUserProfile(req);
+                            }
                         }
 
                         CheckingResponse response = CheckingResponse.newBuilder().setIsExist(true).build();
@@ -1152,9 +1155,111 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
+            String msg = "Error occurred while linking user profile in tenant " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void grantAdminPrivileges(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to grantAdminPrivileges " + request.getUser().getUsername() +
+                    " at" + request.getTenantId());
+
+            iamAdminServiceClient.grantAdminPrivilege(request);
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(request);
+
+            if (representation != null) {
+
+                UserProfile profile = convertToProfile(representation);
+
+                org.apache.custos.user.profile.service.UserProfileRequest profileRequest = org.apache.custos.user.profile.service.UserProfileRequest
+                        .newBuilder()
+                        .setTenantId(request.getTenantId())
+                        .setPerformedBy(request.getPerformedBy())
+                        .setProfile(profile)
+                        .build();
+
+
+                UserProfile exProfile = userProfileClient.getUser(profileRequest);
+
+                if (exProfile == null || exProfile.getUsername().equals("")) {
+
+                    userProfileClient.createUserProfile(profileRequest);
+                } else {
+                    userProfileClient.updateUserProfile(profileRequest);
+
+                }
+
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "User  not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeAdminPrivileges(UserSearchRequest request, StreamObserver<OperationStatus> responseObserver) {
+
+        try {
+            LOGGER.debug("Request received to removeAdminPrivileges " + request.getUser().getUsername() +
+                    " at" + request.getTenantId());
+
+            iamAdminServiceClient.removeAdminPrivilege(request);
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(request);
+
+            if (representation != null) {
+
+                UserProfile profile = convertToProfile(representation);
+
+                org.apache.custos.user.profile.service.UserProfileRequest profileRequest = org.apache.custos.user.profile.service.UserProfileRequest
+                        .newBuilder()
+                        .setTenantId(request.getTenantId())
+                        .setPerformedBy(request.getPerformedBy())
+                        .setProfile(profile)
+                        .build();
+
+                UserProfile exProfile = userProfileClient.getUser(profileRequest);
+
+                if (exProfile == null || exProfile.getUsername().equals("")) {
+                    userProfileClient.createUserProfile(profileRequest);
+                } else {
+                    userProfileClient.updateUserProfile(profileRequest);
+                }
+
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "User  not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 

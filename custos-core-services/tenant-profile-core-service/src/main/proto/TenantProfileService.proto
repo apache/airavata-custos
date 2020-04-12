@@ -51,6 +51,7 @@ message Tenant {
     string software_id = 26;
     string software_version = 27;
     int64 refesh_token_lifetime = 28;
+    string client_id = 29;
 }
 
 enum TenantStatus {
@@ -121,6 +122,7 @@ message UpdateStatusRequest {
     string updatedBy = 3;
     int64 tenantId = 4;
     bool super_tenant = 5;
+    string accessToken = 6;
 }
 
 message UpdateStatusResponse {

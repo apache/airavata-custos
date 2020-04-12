@@ -45,6 +45,16 @@
           </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
+            <artifactId>identity-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>user-profile-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
             <artifactId>federated-authentication-core-service-client-stub</artifactId>
             <version>${project.version}</version>
         </dependency>

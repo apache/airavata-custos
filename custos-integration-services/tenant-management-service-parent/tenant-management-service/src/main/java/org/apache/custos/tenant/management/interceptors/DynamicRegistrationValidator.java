@@ -23,8 +23,11 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
 import org.apache.custos.credential.store.service.GetCredentialRequest;
+import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
+import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.apache.custos.tenant.management.service.UpdateTenantRequest;
@@ -38,7 +41,7 @@ import org.springframework.stereotype.Component;
  * This class validates the  conditions that should be satisfied by the Dynamic Registration Protocol
  */
 @Component
-public class DynamicRegistrationValidator implements IntegrationServiceInterceptor {
+public class DynamicRegistrationValidator extends AuthInterceptor implements IntegrationServiceInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicRegistrationValidator.class);
 
@@ -46,7 +49,8 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
     private TenantProfileClient tenantProfileClient;
 
     public DynamicRegistrationValidator(CredentialStoreServiceClient credentialStoreServiceClient,
-                                        TenantProfileClient tenantProfileClient) {
+                                        TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+        super(credentialStoreServiceClient, tenantProfileClient, identityClient);
         this.credentialStoreServiceClient = credentialStoreServiceClient;
         this.tenantProfileClient = tenantProfileClient;
     }
@@ -70,7 +74,7 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
                 throw new NotAuthorizedException("Invalid client_id", null);
             }
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId());
+            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant != null ? tenant.getTenantId() :
                     tenantRequest.getTenantId()).setTenant(tenant).build();
 
@@ -79,7 +83,7 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
             Tenant tenantRequest = ((Tenant) msg);
 
             if (tenantRequest.getParentTenantId() > 0) {
-                validateTenant(tenantRequest.getParentTenantId(), tenantRequest.getParentTenantId());
+                validateTenant(tenantRequest.getParentTenantId(), tenantRequest.getParentTenantId(), headers);
             }
 
         } else if (method.equals("updateTenant")) {
@@ -99,7 +103,7 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
             }
 
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId());
+            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
@@ -120,7 +124,7 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
             }
 
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId());
+            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
@@ -129,7 +133,7 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
     }
 
 
-    private Tenant validateTenant(long ownerId, long parentTenant) {
+    private Tenant validateTenant(long ownerId, long parentTenant, Metadata headers) {
 
         org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
                 org.apache.custos.tenant.profile.service.GetTenantRequest
@@ -139,6 +143,12 @@ public class DynamicRegistrationValidator implements IntegrationServiceIntercept
                 tenantProfileClient.getTenant(tenantReq);
 
         Tenant tenant = response.getTenant();
+
+        AuthClaim authClaim = authorize(headers);
+
+        if (authClaim != null && authClaim.isSuperTenant()) {
+            return tenant;
+        }
 
         if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
             throw new NotAuthorizedException("Not a valid admin client", null);

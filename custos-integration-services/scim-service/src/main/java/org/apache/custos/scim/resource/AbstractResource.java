@@ -20,6 +20,7 @@
 package org.apache.custos.scim.resource;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.wso2.charon3.core.protocol.SCIMResponse;
 
@@ -33,17 +34,29 @@ public class AbstractResource {
 
     public ResponseEntity buildResponse(SCIMResponse response) {
 
-        ResponseEntity.BodyBuilder builder = ResponseEntity
-                .status(response.getResponseStatus());
+        if (response != null) {
+            ResponseEntity.BodyBuilder builder = ResponseEntity
+                    .status(response.getResponseStatus());
 
-        Map<String, String> headerMap = response.getHeaderParamMap();
+            Map<String, String> headerMap = response.getHeaderParamMap();
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        for (String key : headerMap.keySet()) {
-            httpHeaders.set(key, headerMap.get(key));
+            if (headerMap != null && !headerMap.isEmpty()) {
+                HttpHeaders httpHeaders = new HttpHeaders();
+                for (String key : headerMap.keySet()) {
+                    httpHeaders.set(key, headerMap.get(key));
+                }
+                return builder.headers(httpHeaders).body(response.getResponseMessage());
+            } else {
+                return builder.build();
+            }
+
+
+        } else {
+            ResponseEntity.BodyBuilder builder = ResponseEntity
+                    .status(HttpStatus.ACCEPTED);
+            return builder.build();
+
         }
-
-        return builder.headers(httpHeaders).body(response.getResponseMessage());
 
     }
 

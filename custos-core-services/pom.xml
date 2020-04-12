@@ -41,6 +41,7 @@
         <module>custos-core-services-commons</module>
         <module>identity-core-service</module>
         <module>user-profile-core-service</module>
+        <module>agent-profile-core-service</module>
     </modules>
 
 

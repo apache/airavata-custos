@@ -160,11 +160,6 @@ service TenantManagementService {
         };
     }
 
-    rpc getCredentials (GetCredentialsRequest) returns (GetCredentialsResponse) {
-        option (google.api.http) = {
-           get: "/tenant-management/v1.0.0/credentials"
-        };
-    }
 
 
     rpc updateTenantStatus (org.apache.custos.tenant.profile.service.UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {

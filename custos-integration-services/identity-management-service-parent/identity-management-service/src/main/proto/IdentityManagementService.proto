@@ -51,6 +51,18 @@ message GetCredentialsRequest {
 }
 
 
+message GetAgentTokenRequest {
+    int64 tenant_id = 1;
+    string agent_client_id = 2;
+    string agent_client_secret = 3;
+    string agentId = 4;
+    string agentPassword = 5;
+    string  client_id = 6;
+    string grant_type = 7;
+    string refresh_token = 8;
+}
+
+
 service IdentityManagementService {
 
     rpc authenticate (org.apache.custos.identity.service.AuthenticationRequest) returns (org.apache.custos.identity.service.AuthToken) {
@@ -112,4 +124,10 @@ service IdentityManagementService {
          };
     }
 
+
+    rpc getAgentToken(GetAgentTokenRequest) returns (google.protobuf.Struct) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/agent/token/{client_id}"
+         };
+    }
 }

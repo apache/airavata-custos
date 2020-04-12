@@ -28,10 +28,10 @@ handler.setLevel(logging.DEBUG)
 client = UserManagementClient()
 id_client = IdentityManagementClient()
 
-token = "XXXX";
+token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+
 
 def register_user():
-
     response = client.register_user(token, "TestingUser", "Jhon", "Smith", "12345", "jhon@iu.edu", True)
     print(response)
 
@@ -41,9 +41,9 @@ def register_and_enable_users():
 
     users = [
         {
-            "username": "Janith",
-            "first_name": "Isuru",
-            "last_name": "Ranawaka",
+            "username": "test123",
+            "first_name": "user1",
+            "last_name": "last",
             "password": "1234",
             "email": "irjanith1@gmail.com",
             "temporary_password": True,
@@ -103,10 +103,19 @@ def find_users():
 
 
 x = 0;
-#register_and_enable_users()
-#add_user_attributes()
-while x <= 50:
-    delete_user_attributes()
-    find_users()
-    add_user_attributes()
-    x = x + 1
+# #register_and_enable_users()
+# #add_user_attributes()
+# while x <= 50:
+#     # delete_user_attributes()
+#     #     # find_users()
+#     #     # add_user_attributes()
+#     #     # x = x + 1
+#     id_client.authenticate(token, "isjarana", "Custos1234")
+
+response = id_client.authenticate(token, "isjarana", "Custos1234")
+
+print(response.accessToken)
+response = client.is_user_enabled(token, "test_2")
+
+print(response)
+# register_and_enable_users()
