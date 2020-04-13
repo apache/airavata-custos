@@ -861,6 +861,16 @@ public class KeycloakClient {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             RealmResource realmResource = client.realm(realmId);
 
+            List<IdentityProviderRepresentation> representations = realmResource.identityProviders().findAll();
+
+
+            for (IdentityProviderRepresentation representation : representations) {
+
+                realmResource.identityProviders().get(representation.getInternalId()).remove();
+
+            }
+
+
             IdentityProviderRepresentation idp = new IdentityProviderRepresentation();
 
             idp.setAlias("oidc");
@@ -879,6 +889,7 @@ public class KeycloakClient {
             idp.getConfig().put("defaultScope", scopes);
             idp.getConfig().put("issuer", ciLogonIssuerUri);
             idp.getConfig().put("jwksUri", jwksUri);
+            idp.getConfig().put("forwardParameters","idphint");
 
             realmResource.identityProviders().create(idp);
 
