@@ -39,6 +39,7 @@
 
         <module>group-management-service-parent</module>
         <module>agent-management-service-parent</module>
+        <module>resource-secret-management-service-parent</module>
 
     </modules>
 

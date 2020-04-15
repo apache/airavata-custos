@@ -217,6 +217,14 @@
                  <version>${org.wso2.charon}</version>
              </dependency>
 
+
+             <!--Kube -->
+             <dependency>
+                 <groupId>io.kubernetes</groupId>
+                 <artifactId>client-java</artifactId>
+                 <version>${kube.java.client.version}</version>
+             </dependency>
+
          </dependencies>
     </dependencyManagement>
 
@@ -231,6 +239,7 @@
             <artifactId>mariadb-java-client</artifactId>
             <version>2.0.2</version>
         </dependency>
+
     </dependencies>
     <build>
         <extensions>
@@ -381,6 +390,8 @@
         <springfox.swagger.version>2.9.2</springfox.swagger.version>
         <org.wso2.charon>3.3.16</org.wso2.charon>
         <jaxb.version>2.1</jaxb.version>
+
+        <kube.java.client.version>5.0.0</kube.java.client.version>
 
     </properties>
 

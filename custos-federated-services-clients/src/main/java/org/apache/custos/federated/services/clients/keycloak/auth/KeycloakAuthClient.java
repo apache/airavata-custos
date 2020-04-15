@@ -390,6 +390,7 @@ public class KeycloakAuthClient {
         formParams.add(new BasicNameValuePair("password", password));
         formParams.add(new BasicNameValuePair("client_id", clientId));
         formParams.add(new BasicNameValuePair("client_secret", clientSecret));
+        formParams.add(new BasicNameValuePair("scope", "openid"));
         UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
         httpPost.setEntity(entity);
         try {

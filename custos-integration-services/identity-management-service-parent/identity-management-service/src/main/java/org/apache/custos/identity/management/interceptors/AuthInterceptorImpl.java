@@ -53,7 +53,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-        if (method.equals("getOIDCConfiguration") || method.equals("authorize") ||method.equals("getAgentToken") ) {
+        if (method.equals("authorize") ||method.equals("getAgentToken") ) {
 
             return reqT;
         }
