@@ -115,7 +115,7 @@ x = 0;
 response = id_client.authenticate(token, "isjarana", "Custos1234")
 
 print(response.accessToken)
-response = client.is_user_enabled(token, "test_2")
+#response = client.is_user_enabled(token, "test_2")
 
-print(response)
+#print(response)
 # register_and_enable_users()

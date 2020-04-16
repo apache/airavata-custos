@@ -41,9 +41,10 @@ public class AgentMapper {
 
         Agent persistenceModel = new Agent();
 
-        persistenceModel.setId(agent.getId());
         persistenceModel.setTenantId(tenantId);
         persistenceModel.setStatus(agent.getStatus().name());
+        persistenceModel.setAgentId(agent.getId());
+
 
 
         Set<AgentAttribute> attributeSet = new HashSet<>();
@@ -85,7 +86,7 @@ public class AgentMapper {
         org.apache.custos.agent.profile.service.Agent serviceAgent =
                 org.apache.custos.agent.profile.service.Agent
                         .newBuilder()
-                        .setId(agent.getId())
+                        .setId(agent.getAgentId() == null? agent.getId():agent.getAgentId())
                         .setCreatedAt(agent.getCreatedAt().getTime())
                         .setLastModifiedAt(agent.getLast_modified_at().getTime())
                         .setStatus(AgentStatus.valueOf(agent.getStatus()))

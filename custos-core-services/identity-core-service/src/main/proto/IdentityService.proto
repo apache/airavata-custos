@@ -103,7 +103,22 @@ message GetOIDCConfiguration {
     int64 tenant_id = 3;
 }
 
+message GetJWKSRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+}
 
+message EndSessionRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+    string refresh_token = 4;
+}
+
+message OperationStatus {
+    bool status = 1;
+}
 
 service IdentityService {
     rpc authenticate (AuthenticationRequest) returns (AuthToken);
@@ -115,5 +130,7 @@ service IdentityService {
     rpc getOIDCConfiguration (GetOIDCConfiguration) returns (google.protobuf.Struct);
     rpc getTokenByPasswordGrantType (GetTokenRequest) returns (google.protobuf.Struct);
     rpc getTokenByRefreshTokenGrantType (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getJWKS (GetJWKSRequest) returns (google.protobuf.Struct);
+    rpc endSession(EndSessionRequest) returns (OperationStatus);
 
 }

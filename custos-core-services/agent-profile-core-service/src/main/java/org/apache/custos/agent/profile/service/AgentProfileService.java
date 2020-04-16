@@ -53,7 +53,7 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
         try {
             LOGGER.debug("Request received to createAgent for " + request.getAgent().getId() + "at " + request.getTenantId());
 
-            String agentId = request.getAgent().getId();
+            String agentId = request.getAgent().getId() + "@" + request.getTenantId();
 
             Optional<org.apache.custos.agent.profile.persistance.model.Agent> op = agentRepository.findById(agentId);
 
@@ -61,6 +61,7 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
 
                 org.apache.custos.agent.profile.persistance.model.Agent entity =
                         AgentMapper.createAgent(request.getAgent(), request.getTenantId());
+                entity.setId(agentId);
                 agentRepository.save(entity);
 
                 Optional<org.apache.custos.agent.profile.persistance.model.Agent> optionalAgent =
@@ -84,8 +85,6 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
                 String msg = "Error occurred while creating agent already exists";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
-
-
             }
 
         } catch (Exception ex) {
@@ -102,18 +101,24 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
         try {
             LOGGER.debug("Request received to updateAgent for " + request.getAgent().getId() + "at " + request.getTenantId());
 
-            String userId = request.getAgent().getId();
+            String userId = request.getAgent().getId() + "@" + request.getTenantId();
 
             Optional<org.apache.custos.agent.profile.persistance.model.Agent>
                     exEntity = agentRepository.findById(userId);
 
+            Optional<org.apache.custos.agent.profile.persistance.model.Agent>
+                    preEntity = agentRepository.findById(request.getAgent().getId());
+            if (exEntity.isEmpty()) {
+                exEntity = preEntity;
+                userId = request.getAgent().getId();
+            }
 
             if (exEntity.isPresent()) {
 
 
                 org.apache.custos.agent.profile.persistance.model.Agent entity =
                         AgentMapper.createAgent(request.getAgent(), request.getTenantId());
-
+                entity.setId(exEntity.get().getId());
                 entity.setCreatedAt(exEntity.get().getCreatedAt());
 
                 org.apache.custos.agent.profile.persistance.model.Agent exProfile = exEntity.get();
@@ -168,9 +173,15 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
         try {
             LOGGER.debug("Request received to deleteAgent for " + request.getAgent().getId() + "at " + request.getTenantId());
 
-            String id = request.getAgent().getId();
+            String id = request.getAgent().getId() + "@" + request.getTenantId();
 
             Optional<org.apache.custos.agent.profile.persistance.model.Agent> agentOptional = agentRepository.findById(id);
+            Optional<org.apache.custos.agent.profile.persistance.model.Agent>
+                    preEntity = agentRepository.findById(request.getAgent().getId());
+            if (agentOptional.isEmpty()) {
+                agentOptional = preEntity;
+            }
+
 
             if (agentOptional.isPresent()) {
 
@@ -196,9 +207,15 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
         try {
             LOGGER.debug("Request received to getAgent for " + request.getAgent().getId() + "at " + request.getTenantId());
 
-            String id = request.getAgent().getId();
+            String id = request.getAgent().getId() + "@" + request.getTenantId();
 
             Optional<org.apache.custos.agent.profile.persistance.model.Agent> agentOptional = agentRepository.findById(id);
+
+            Optional<org.apache.custos.agent.profile.persistance.model.Agent>
+                    preEntity = agentRepository.findById(request.getAgent().getId());
+            if (agentOptional.isEmpty()) {
+                agentOptional = preEntity;
+            }
 
             if (agentOptional.isPresent()) {
 

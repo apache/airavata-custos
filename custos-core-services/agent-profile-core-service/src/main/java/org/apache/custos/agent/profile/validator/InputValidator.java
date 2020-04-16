@@ -19,7 +19,9 @@
 
 package org.apache.custos.agent.profile.validator;
 
+import org.apache.custos.agent.profile.service.AgentRequest;
 import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 
 /**
  * This class validates the  requests
@@ -36,77 +38,34 @@ public class InputValidator implements Validator {
     public void validate(String methodName, Object obj) {
 
         switch (methodName) {
-            case "addTenant":
-                validateAddTenant(obj);
-                break;
-            case "updateTenant":
-                validateUpdateTenant(obj);
-                break;
-            case "getTenant":
-                validateGetTenant(obj);
-                break;
-            case "getTenantAttributeUpdateAuditTrail":
-            case "getTenantStatusUpdateAuditTrail":
-                validateGetMetadata(obj);
-                break;
-            case "updateTenantStatus":
-                validateUpdateTenantStatus(obj);
-                break;
-            case "getAllTenantsForUser":
-                validateGetAllTenantsForUser(obj);
-                break;
-            case "getAllTenants":
-                validateGetAllTenants(obj);
+            case "createAgent":
+            case "updateAgent":
+            case "deleteAgent":
+            case "getAgent":
+                validateAgentRequest(obj);
                 break;
             default:
 
         }
 
-
     }
 
-    private boolean validateAddTenant(Object obj) {
+    private boolean validateAgentRequest(Object obj) {
+        if (obj instanceof AgentRequest) {
+            AgentRequest request = (AgentRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("TenantId should not be null", null);
+            }
+            if (request.getAgent() == null) {
+                throw new MissingParameterException("Agent should not be null", null);
+            }
 
+            if (request.getAgent().getId() == null || request.getAgent().getId().equals("")) {
+                throw new MissingParameterException("AgentId should not be null", null);
+            }
+
+        }
         return true;
-    }
-
-
-    private boolean validateUpdateTenant(Object obj) {
-
-        return true;
-    }
-
-
-    private boolean validateGetAllTenantsForUser(Object obj) {
-
-        return true;
-    }
-
-    private boolean validateGetTenant(Object obj) {
-
-        return true;
-    }
-
-
-    private boolean validateGetMetadata(Object obj) {
-
-        return true;
-
-    }
-
-
-    private boolean validateGetAllTenants(Object obj) {
-
-        return true;
-
-    }
-
-
-    private boolean validateUpdateTenantStatus(Object obj) {
-
-        return true;
-
-
     }
 
 

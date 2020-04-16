@@ -70,6 +70,10 @@ public class InputValidator implements Validator {
             case "getTokenByRefreshTokenGrantType":
                 validateRefreshGrantTokenRequest(obj);
                 break;
+            case "getJWKS":
+                validateJWKSRequest(obj);
+                break;
+
 
             default:
                 throw new RuntimeException("Method not implemented");
@@ -286,6 +290,26 @@ public class InputValidator implements Validator {
 
         } else {
             throw new RuntimeException("Unexpected input type for method validateGetOIDCConfiguration");
+        }
+        return true;
+    }
+
+    private boolean validateJWKSRequest(Object obj) {
+        if (obj instanceof GetJWKSRequest) {
+            GetJWKSRequest request = (GetJWKSRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
         }
         return true;
     }

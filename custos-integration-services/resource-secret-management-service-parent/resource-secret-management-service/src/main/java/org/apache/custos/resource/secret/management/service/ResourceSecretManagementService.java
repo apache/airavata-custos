@@ -19,11 +19,14 @@
 
 package org.apache.custos.resource.secret.management.service;
 
+import com.google.protobuf.Struct;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.cluster.management.client.ClusterManagementClient;
 import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
 import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
+import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceImplBase;
 import org.apache.custos.resource.secret.service.GetSecretRequest;
 import org.apache.custos.resource.secret.service.ResourceOwnerType;
@@ -42,10 +45,13 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     @Autowired
     private ClusterManagementClient clusterManagementClient;
 
+    @Autowired
+    private IdentityClient identityClient;
+
     @Override
     public void getSecret(GetSecretRequest request,
                           StreamObserver<SecretMetadata> responseObserver) {
-        LOGGER.info("Request received to getSecret");
+        LOGGER.debug("Request received to getSecret ");
         try {
 
             if (request.getMetadata().getOwnerType() == ResourceOwnerType.CUSTOS &&
@@ -63,6 +69,24 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling secretes " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getJWKS(GetJWKSRequest request, StreamObserver<Struct> responseObserver) {
+        LOGGER.debug("Request received to getJWKS " + request.getTenantId());
+        try {
+
+            Struct struct = identityClient.getJWKS(request);
+
+            responseObserver.onNext(struct);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while pulling JWKS " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

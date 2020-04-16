@@ -722,6 +722,35 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
         try {
             LOGGER.debug(" Request received for createAgentCredential " + request.getOwnerId());
 
+            AgentCredentialEntity exEntity = agentCredentialRepository.findByClientIdAndOwnerId(request.getId(),
+                    request.getOwnerId());
+
+            if (exEntity != null) {
+                String msg = "Duplicate client Id " + request.getId() + " for "
+                        + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            if (isMainType(request.getId())) {
+                String msg = "Prohibited agent Id  " + request.getId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             Credential credential = credentialManager.generateAgentCredential(request.getOwnerId(), request.getId(),
                     CredentialTypes.AGENT, 0);
 

@@ -22,6 +22,7 @@ package org.apache.custos.resource.secret.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -62,6 +63,23 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((GetSecretRequest) reqT).toBuilder()
                     .setClientId(oauthId)
                     .setClientSec(oauthSec)
+                    .setTenantId(tenantId)
+                    .build();
+
+        } else if (method.equals("getJWKS")) {
+            AuthClaim claim = authorize(headers);
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            return (ReqT) ((GetJWKSRequest) reqT).toBuilder()
+                    .setClientId(oauthId)
+                    .setClientSecret(oauthSec)
                     .setTenantId(tenantId)
                     .build();
 

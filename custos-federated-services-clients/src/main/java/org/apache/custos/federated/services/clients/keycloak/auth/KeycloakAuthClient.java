@@ -25,6 +25,7 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -136,7 +137,6 @@ public class KeycloakAuthClient {
             AccessTokenResponse accessToken = keycloakClient.obtainAccessToken(username, password);
 
 
-
             if (accessToken != null) {
                 return accessToken.getToken();
             }
@@ -207,7 +207,7 @@ public class KeycloakAuthClient {
     }
 
     public JSONObject getAccessTokenFromPasswordGrantType(String clientId, String clientSecret, String realmId,
-                                     String username, String password) throws JSONException {
+                                                          String username, String password) throws JSONException {
         try {
             String tokenURL = getTokenEndpoint(realmId);
             return getTokenFromPasswordType(tokenURL, clientId, clientSecret, username, password);
@@ -221,7 +221,7 @@ public class KeycloakAuthClient {
     }
 
     public JSONObject getAccessTokenFromRefreshTokenGrantType(String clientId, String clientSecret, String realmId,
-                                                          String refreshToken) throws JSONException {
+                                                              String refreshToken) throws JSONException {
         try {
             String tokenURL = getTokenEndpoint(realmId);
             return getTokenFromRefreshToken(tokenURL, clientId, clientSecret, refreshToken);
@@ -234,12 +234,43 @@ public class KeycloakAuthClient {
 
     }
 
+    public JSONObject getJWTVerificationCerts(String clientId, String clientSecret, String realmId
+    ) throws JSONException {
+        try {
+            String tokenURL = getJwksUri(realmId);
+            return getJWKSResponse(tokenURL, clientId, clientSecret);
 
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+    }
+
+    public boolean revokeRefreshToken(String clientId, String clientSecret, String realmId, String refreshToken) throws JSONException {
+        try {
+            String tokenURL = getEndSessionEndpoint(realmId);
+            endSession(tokenURL, clientId, clientSecret, refreshToken);
+            return true;
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+    }
 
     private String getTokenEndpoint(String gatewayId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
         return openIdConnectConfig.getString("token_endpoint");
+    }
+
+    private String getJwksUri(String gatewayId) throws Exception {
+        String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
+        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
+        return openIdConnectConfig.getString("jwks_uri");
     }
 
     public String getAuthorizationEndpoint(String gatewayId) throws Exception {
@@ -248,20 +279,25 @@ public class KeycloakAuthClient {
         return openIdConnectConfig.getString("authorization_endpoint");
     }
 
+    public String getEndSessionEndpoint(String gatewayId) throws Exception {
+        String openIdConnectUrl = getOpenIDConfigurationUrl(gatewayId);
+        JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
+        return openIdConnectConfig.getString("end_session_endpoint");
+    }
 
     public JSONObject getOIDCConfiguration(String tenantId, String clientId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(tenantId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
 
-       // openIdConnectConfig.put("introspection_endpoint", introEndpoint);
-       // openIdConnectConfig.put("issuer", issuer);
+        // openIdConnectConfig.put("introspection_endpoint", introEndpoint);
+        // openIdConnectConfig.put("issuer", issuer);
         openIdConnectConfig.put("custos_token_endpoint", tokenEndpoint);
-      //  openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
-      //  openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
+        //  openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
+        //  openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
         openIdConnectConfig.put("userinfo_endpoint", userInfoEndpoint);
-       // openIdConnectConfig.put("jwks_uri", jwksUri);
+        // openIdConnectConfig.put("jwks_uri", jwksUri);
         openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
-       // openIdConnectConfig.remove("check_session_iframe");
+        // openIdConnectConfig.remove("check_session_iframe");
 
 
         return openIdConnectConfig;
@@ -375,9 +411,69 @@ public class KeycloakAuthClient {
         }
     }
 
+    private JSONObject endSession(String endSessionEndpoint, String clientId, String clientSecret, String refreshToken) {
+
+        CloseableHttpClient httpClient = HttpClients.createSystem();
+
+        HttpPost httpPost = new HttpPost(endSessionEndpoint);
+        String encoded = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+        List<NameValuePair> formParams = new ArrayList<>();
+        formParams.add(new BasicNameValuePair("refresh_token", refreshToken));
+        formParams.add(new BasicNameValuePair("client_id", clientId));
+        formParams.add(new BasicNameValuePair("client_secret", clientSecret));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
+        httpPost.setEntity(entity);
+        try {
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                JSONObject tokenInfo = new JSONObject(responseBody);
+                return tokenInfo;
+            } finally {
+                response.close();
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private JSONObject getJWKSResponse(String jwksUri, String clientId, String clientSecret) {
+
+        CloseableHttpClient httpClient = HttpClients.createSystem();
+
+        HttpGet httpPost = new HttpGet(jwksUri);
+        String encoded = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        httpPost.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
+        try {
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                JSONObject tokenInfo = new JSONObject(responseBody);
+                return tokenInfo;
+            } finally {
+                response.close();
+            }
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
 
     private JSONObject getTokenFromPasswordType(String tokenURL, String clientId, String clientSecret, String username,
-                                                 String password) {
+                                                String password) {
 
         CloseableHttpClient httpClient = HttpClients.createSystem();
 
@@ -426,6 +522,7 @@ public class KeycloakAuthClient {
         formParams.add(new BasicNameValuePair("refresh_token", refreshToken));
         formParams.add(new BasicNameValuePair("client_id", clientId));
         formParams.add(new BasicNameValuePair("client_secret", clientSecret));
+        formParams.add(new BasicNameValuePair("scope", "openid"));
         UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8);
         httpPost.setEntity(entity);
         try {
