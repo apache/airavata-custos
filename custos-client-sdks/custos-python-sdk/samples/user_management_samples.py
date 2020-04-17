@@ -28,7 +28,7 @@ handler.setLevel(logging.DEBUG)
 client = UserManagementClient()
 id_client = IdentityManagementClient()
 
-token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+token = "XXX"
 
 
 def register_user():
@@ -115,7 +115,7 @@ x = 0;
 response = id_client.authenticate(token, "isjarana", "Custos1234")
 
 print(response.accessToken)
-response = client.is_user_enabled(token, "test_2")
+#response = client.is_user_enabled(token, "test_2")
 
-print(response)
+#print(response)
 # register_and_enable_users()

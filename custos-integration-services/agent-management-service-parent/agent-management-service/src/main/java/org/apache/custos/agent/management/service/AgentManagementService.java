@@ -143,7 +143,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at enableAgents " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -168,6 +168,8 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                     .setAccessToken(request.getAccessToken()).build();
 
             OperationStatus status = iamAdminServiceClient.isAgentNameAvailable(userSearchRequest);
+
+
             if (status.getStatus()) {
 
 
@@ -183,15 +185,16 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
 
                 List<UserAttribute> attributeList = request.toBuilder().getUser().getAttributesList();
-                if (attributeList == null || attributeList.isEmpty()) {
-                    attributeList = new ArrayList<>();
+                List<UserAttribute> newAtrList = new ArrayList<>();
+                if (attributeList != null && !attributeList.isEmpty()) {
+                    newAtrList.addAll(attributeList);
 
                 }
 
                 UserAttribute attribute = UserAttribute.newBuilder()
                         .setKey(CUSTOS_REALM_AGENT).addValues("true").build();
-                attributeList.add(attribute);
-                representation = representation.toBuilder().addAllAttributes(attributeList).build();
+                newAtrList.add(attribute);
+                representation = representation.toBuilder().addAllAttributes(newAtrList).build();
 
                 request = request.toBuilder().setUser(representation).build();
 
@@ -249,7 +252,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 }
 
             } else {
-                String msg = "Agent name not valid ";
+                String msg = "Agent name is not valid ";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.ALREADY_EXISTS.
                         withDescription(msg).asRuntimeException());
@@ -257,7 +260,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at registerAndEnableAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -298,7 +301,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at configureAgentClient " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -338,7 +341,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at getAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -367,6 +370,13 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
             if (status.getStatus()) {
 
+                CredentialMetadata credentialMetadata = CredentialMetadata.newBuilder()
+                        .setOwnerId(request.getTenantId())
+                        .setId(request.getId())
+                        .build();
+
+                credentialStoreServiceClient.deleteAgentCredential(credentialMetadata);
+
                 Agent agent = Agent.newBuilder().setId(request.getId()).build();
 
                 AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
@@ -374,6 +384,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 agentProfileClient.deleteAgent(agentRequest);
                 responseObserver.onNext(status);
                 responseObserver.onCompleted();
+
 
             } else {
                 String msg = "Error occurred at delete Agent at IAM Server ";
@@ -383,7 +394,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at getAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -446,7 +457,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at disableAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -511,7 +522,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at addAgentAttributes " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -576,7 +587,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at deleteAgentAttributes " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -640,7 +651,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at addRolesToAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -701,7 +712,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at deleteRolesFromAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -762,7 +773,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at disableAgent " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -782,8 +793,10 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
         } catch (Exception ex) {
             String msg = "Error occurred at addProtocolMapper " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+
 }

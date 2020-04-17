@@ -393,4 +393,54 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+    @Override
+    public void getJWKS(GetJWKSRequest request, StreamObserver<Struct> responseObserver) {
+        try {
+            LOGGER.debug("Request JWT certificates for " + request.getTenantId());
+
+            JSONObject object = keycloakAuthClient.getJWTVerificationCerts(request.getClientId(),
+                    request.getClientSecret(), String.valueOf(request.getTenantId()));
+
+            try {
+                if (object != null && object.getString("keys") != null) {
+                    Struct.Builder structBuilder = Struct.newBuilder();
+
+                    JsonFormat.parser().merge(object.toString(), structBuilder);
+                    responseObserver.onNext(structBuilder.build());
+                    responseObserver.onCompleted();
+                }
+            } catch (Exception ex) {
+
+                String error = object.getString("error") + " " + object.getString("error_description");
+                responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
+                return;
+
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while pulling certs" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void endSession(EndSessionRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request to end session for " + request.getTenantId());
+
+            boolean status = keycloakAuthClient.revokeRefreshToken(request.getClientId(),
+                    request.getClientSecret(), String.valueOf(request.getTenantId()), request.getRefreshToken());
+
+            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while revoking refresh token" + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }

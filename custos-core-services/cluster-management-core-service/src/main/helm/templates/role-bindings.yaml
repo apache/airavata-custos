@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.role.binding }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "helm.serviceAccountName" . }}
+roleRef:
+  kind: Role
+  name: {{ .Values.role.name }}
+  apiGroup: rbac.authorization.k8s.io

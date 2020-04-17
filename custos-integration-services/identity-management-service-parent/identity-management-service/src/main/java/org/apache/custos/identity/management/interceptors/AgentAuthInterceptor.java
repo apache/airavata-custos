@@ -22,12 +22,14 @@ package org.apache.custos.identity.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.management.service.EndSessionRequest;
 import org.apache.custos.identity.management.service.GetAgentTokenRequest;
-import org.apache.custos.identity.service.AuthenticationRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AgentAuthInterceptor extends AuthInterceptor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentAuthInterceptor.class);
 
     public AgentAuthInterceptor(CredentialStoreServiceClient credentialStoreServiceClient,
                                 TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
@@ -45,9 +48,7 @@ public class AgentAuthInterceptor extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
         if (method.equals("getAgentToken")) {
-
-
-            AuthClaim claim = authorizeUsingAgentBasicToken(headers,((GetAgentTokenRequest) msg).getClientId());
+            AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((GetAgentTokenRequest) msg).getClientId());
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
             }
@@ -61,6 +62,22 @@ public class AgentAuthInterceptor extends AuthInterceptor {
                             .build();
 
             return (ReqT) reqCore;
+        } else if (method.equals("endAgentSession")) {
+            LOGGER.info("ClientId " + ((EndSessionRequest) msg).getClientId());
+            AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((EndSessionRequest) msg).getClientId());
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+
+            org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
+                    ((EndSessionRequest) msg).getBody().toBuilder()
+                            .setClientId(claim.getAgentClientId())
+                            .setClientSecret(claim.getAgentClientSecret())
+                            .setTenantId(claim.getTenantId())
+                            .build();
+            return (ReqT) ((EndSessionRequest) msg).toBuilder().setBody(endSessionRequest).build();
+
         }
         return msg;
 

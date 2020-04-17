@@ -42,6 +42,8 @@
         <module>identity-core-service</module>
         <module>user-profile-core-service</module>
         <module>agent-profile-core-service</module>
+        <module>cluster-management-core-service</module>
+        <module>resource-secret-core-service</module>
     </modules>
 
 

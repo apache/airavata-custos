@@ -56,6 +56,8 @@ public class Agent {
     private Date last_modified_at;
 
 
+    private String agentId;
+
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "agent", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<AgentRole> agentRole;
 
@@ -117,5 +119,13 @@ public class Agent {
 
     public void setAgentAttribute(Set<AgentAttribute> agentAttribute) {
         this.agentAttribute = agentAttribute;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
     }
 }

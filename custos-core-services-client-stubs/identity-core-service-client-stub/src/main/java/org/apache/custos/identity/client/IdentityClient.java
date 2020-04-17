@@ -118,6 +118,12 @@ public class IdentityClient {
        return identityServiceBlockingStub.getTokenByRefreshTokenGrantType(request);
     }
 
+    public OperationStatus endSession(EndSessionRequest request) {
+        return identityServiceBlockingStub.endSession(request);
+    }
+    public Struct getJWKS(GetJWKSRequest request) {
+        return identityServiceBlockingStub.getJWKS(request);
+    }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

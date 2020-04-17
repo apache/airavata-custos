@@ -128,7 +128,6 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             if (response == null) {
                 String msg = "Cannot find credentials for "
                         + request.getOwnerId() + " for type " + request.getType();
-                LOGGER.info(msg);
                 CredentialMetadata secret = CredentialMetadata.newBuilder().build();
                 responseObserver.onNext(secret);
                 responseObserver.onCompleted();
@@ -488,6 +487,18 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             }
 
             String subPath = BASE_PATH + entity.getOwnerId();
+
+            String validatingPath = BASE_PATH + entity.getOwnerId() + "/" + Type.CUSTOS.name();
+            VaultResponseSupport<Credential> validationResponse = vaultTemplate.read(validatingPath, Credential.class);
+
+            if (validationResponse == null || validationResponse.getData() == null || !validationResponse.getData().getSecret().equals(credential.getSecret())) {
+                String msg = "Invalid secret for id"
+                        + credential.getId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             List<String> paths = vaultTemplate.list(subPath);
 
             List<CredentialMetadata> credentialMetadata = new ArrayList<>();
@@ -564,6 +575,13 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     String path = subPath + "/" + key;
                     VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
                     if (key.equals(Type.CUSTOS)) {
+                        if (!crRe.getData().getSecret().equals(credential.getSecret())) {
+                            String msg = "Invalid secret for id"
+                                    + credential.getId();
+                            LOGGER.error(msg);
+                            responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+                            return;
+                        }
 
                         credentialsBuilder.setCustosClientId(crRe.getData().getId())
                                 .setCustosClientSecret(crRe.getData().getSecret())
@@ -703,6 +721,35 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     public void createAgentCredential(CredentialMetadata request, StreamObserver<CredentialMetadata> responseObserver) {
         try {
             LOGGER.debug(" Request received for createAgentCredential " + request.getOwnerId());
+
+            AgentCredentialEntity exEntity = agentCredentialRepository.findByClientIdAndOwnerId(request.getId(),
+                    request.getOwnerId());
+
+            if (exEntity != null) {
+                String msg = "Duplicate client Id " + request.getId() + " for "
+                        + request.getOwnerId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            if (isMainType(request.getId())) {
+                String msg = "Prohibited agent Id  " + request.getId();
+                LOGGER.error(msg);
+                statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
+                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        request.getOwnerId(),
+                        null);
+
+                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                return;
+            }
 
             Credential credential = credentialManager.generateAgentCredential(request.getOwnerId(), request.getId(),
                     CredentialTypes.AGENT, 0);
@@ -888,28 +935,35 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 String subPath = BASE_PATH + entity.getOwnerId();
                 List<String> paths = vaultTemplate.list(subPath);
 
-               List<CredentialMetadata> metadataList = new ArrayList<>();
+                List<CredentialMetadata> metadataList = new ArrayList<>();
 
 
                 if (paths != null && !paths.isEmpty()) {
                     for (String key : paths) {
                         String path = subPath + "/" + key;
-                        LOGGER.info("key "+ key);
                         VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
-                       if (isMainType(key)) {
-                           CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
-                           metadataList.add(metadata);
 
-                       } else if (key.equals(credential.getId())) {
-                           CredentialMetadata metadata = CredentialMetadata
-                                   .newBuilder()
-                                   .setType(Type.AGENT)
-                                   .setId(credential.getId())
-                                   .setSecret(crRe.getData().getSecret())
-                                   .setInternalSec(crRe.getData().getPassword())
-                                   .build();
-                           metadataList.add(metadata);
-                       }
+                        if (isMainType(key)) {
+                            CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+                            metadataList.add(metadata);
+
+                        } else if (key.equals(credential.getId())) {
+                            if (!crRe.getData().getSecret().equals(credential.getSecret())) {
+                                String msg = "Invalid secret for id"
+                                        + credential.getId();
+                                LOGGER.error(msg);
+                                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+                                return;
+                            }
+                            CredentialMetadata metadata = CredentialMetadata
+                                    .newBuilder()
+                                    .setType(Type.AGENT)
+                                    .setId(credential.getId())
+                                    .setSecret(crRe.getData().getSecret())
+                                    .setInternalSec(crRe.getData().getPassword())
+                                    .build();
+                            metadataList.add(metadata);
+                        }
                     }
                 }
 
