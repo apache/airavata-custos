@@ -28,7 +28,7 @@ handler.setLevel(logging.DEBUG)
 client = TenantManagementClient()
 admin_client = SuperTenantManagementClient()
 
-token = "Y3VzdG9zLTZud29xb2RzdHBlNW12Y3EwOWxoLTEwMDAwMTAxOkdpS3JHR1ZMVzd6RG9QWnd6Z0NpRk03V1V6M1BoSXVtVG1GeEFrcjc="
+token = "XXX"
 
 
 def create_tenant():
