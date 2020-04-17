@@ -254,8 +254,8 @@ public class KeycloakAuthClient {
             endSession(tokenURL, clientId, clientSecret, refreshToken);
             return true;
         } catch (Exception e) {
-            String msg = "Error occurred while retrieving  access token  " + e;
-            LOGGER.error(msg);
+            String msg = "Error occurred while  revoking refresh token  " + e;
+            LOGGER.error(msg, e);
             throw new RuntimeException(msg, e);
         }
 
@@ -411,7 +411,7 @@ public class KeycloakAuthClient {
         }
     }
 
-    private JSONObject endSession(String endSessionEndpoint, String clientId, String clientSecret, String refreshToken) {
+    private void endSession(String endSessionEndpoint, String clientId, String clientSecret, String refreshToken) {
 
         CloseableHttpClient httpClient = HttpClients.createSystem();
 
@@ -426,14 +426,8 @@ public class KeycloakAuthClient {
         httpPost.setEntity(entity);
         try {
             CloseableHttpResponse response = httpClient.execute(httpPost);
-            try {
-                String responseBody = EntityUtils.toString(response.getEntity());
-                JSONObject tokenInfo = new JSONObject(responseBody);
-                return tokenInfo;
-            } finally {
-                response.close();
-            }
-        } catch (IOException | JSONException e) {
+            response.close();
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             try {

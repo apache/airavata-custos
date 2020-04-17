@@ -53,6 +53,8 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "getAgentToken":
                 validateGetAgentToken(headers, msg, method);
                 break;
+            case "endAgentSession":
+                validationAuthorizationHeader(headers);
             default:
         }
         return msg;

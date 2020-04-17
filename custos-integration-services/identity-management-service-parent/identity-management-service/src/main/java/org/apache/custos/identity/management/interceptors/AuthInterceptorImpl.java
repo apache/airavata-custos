@@ -23,6 +23,7 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.management.service.EndSessionRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.AuthenticationRequest;
@@ -53,7 +54,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-        if (method.equals("authorize") ||method.equals("getAgentToken") ) {
+        if (method.equals("authorize") ||method.equals("getAgentToken") || method.equals("endAgentSession")) {
 
             return reqT;
         }
@@ -129,6 +130,15 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
             return (ReqT) ((GetCredentialsRequest) reqT).toBuilder().setCredentials(credentials).build();
+
+        }else if (method.equals("endUserSession")) {
+            org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
+                    ((EndSessionRequest) reqT).getBody().toBuilder()
+                            .setClientId(claim.getIamAuthId())
+                            .setClientSecret(claim.getIamAuthSecret())
+                            .setTenantId(claim.getTenantId())
+                            .build();
+            return (ReqT) ((EndSessionRequest) reqT).toBuilder().setBody(endSessionRequest).build();
 
         }
 

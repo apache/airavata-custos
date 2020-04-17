@@ -62,6 +62,13 @@ message GetAgentTokenRequest {
     string refresh_token = 8;
 }
 
+message EndSessionRequest {
+    string client_id = 1;
+    org.apache.custos.identity.service.EndSessionRequest body = 2;
+}
+
+
+
 
 service IdentityManagementService {
 
@@ -93,14 +100,19 @@ service IdentityManagementService {
 
     }
 
+    rpc endUserSession(EndSessionRequest) returns (org.apache.custos.identity.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/user/logout"
+           body: "body"
+         };
+    }
+
     rpc authorize (AuthorizationRequest) returns (AuthorizationResponse) {
         option (google.api.http) = {
            get: "/identity-management/v1.0.0/authorize"
 
          };
     }
-
-
 
 
     rpc token (org.apache.custos.identity.service.GetTokenRequest) returns (google.protobuf.Struct) {
@@ -128,6 +140,13 @@ service IdentityManagementService {
     rpc getAgentToken(GetAgentTokenRequest) returns (google.protobuf.Struct) {
         option (google.api.http) = {
            post: "/identity-management/v1.0.0/agent/token/{client_id}"
+         };
+    }
+
+    rpc endAgentSession(EndSessionRequest) returns (org.apache.custos.identity.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/agent/logout/{client_id}"
+           body: "body"
          };
     }
 }

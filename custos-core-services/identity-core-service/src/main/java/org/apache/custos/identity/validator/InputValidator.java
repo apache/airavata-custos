@@ -73,7 +73,9 @@ public class InputValidator implements Validator {
             case "getJWKS":
                 validateJWKSRequest(obj);
                 break;
-
+            case "endSession":
+                validateEndSessionRequest(obj);
+                break;
 
             default:
                 throw new RuntimeException("Method not implemented");
@@ -307,6 +309,31 @@ public class InputValidator implements Validator {
 
             if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
                 throw new MissingParameterException("Client secret should not be null", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
+        }
+        return true;
+    }
+
+
+    private boolean validateEndSessionRequest(Object obj) {
+        if (obj instanceof EndSessionRequest) {
+            EndSessionRequest request = (EndSessionRequest) obj;
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
+                throw new MissingParameterException("Client secret should not be null", null);
+            }
+
+            if (request.getRefreshToken() == null || request.getRefreshToken().trim().equals("")) {
+                throw new MissingParameterException("Refresh token should not be null", null);
             }
         } else {
             throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");

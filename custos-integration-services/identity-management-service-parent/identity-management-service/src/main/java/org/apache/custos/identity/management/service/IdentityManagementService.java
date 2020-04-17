@@ -292,4 +292,36 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             responseObserver.onError(ex);
         }
     }
+
+    @Override
+    public void endAgentSession(EndSessionRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to endAgentSession endpoint " + request.getBody().getTenantId());
+
+            OperationStatus status = identityClient.endSession(request.getBody());
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  fetching agent access token " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
+
+    @Override
+    public void endUserSession(EndSessionRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received  to endUserSession endpoint " + request.getBody().getTenantId());
+
+            OperationStatus status = identityClient.endSession(request.getBody());
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  fetching agent access token " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(ex);
+        }
+    }
 }

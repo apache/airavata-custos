@@ -438,8 +438,8 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while pulling certs" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while revoking refresh token" + ex.getMessage();
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
