@@ -41,6 +41,21 @@ class UserManagementServiceStub(object):
         request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
         response_deserializer=IamAdminService__pb2.UserRepresentation.FromString,
         )
+    self.disableUser = channel.unary_unary(
+        '/org.apache.custos.user.management.service.UserManagementService/disableUser',
+        request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
+        response_deserializer=IamAdminService__pb2.UserRepresentation.FromString,
+        )
+    self.grantAdminPrivileges = channel.unary_unary(
+        '/org.apache.custos.user.management.service.UserManagementService/grantAdminPrivileges',
+        request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
+        )
+    self.removeAdminPrivileges = channel.unary_unary(
+        '/org.apache.custos.user.management.service.UserManagementService/removeAdminPrivileges',
+        request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
+        )
     self.addRolesToUsers = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/addRolesToUsers',
         request_serializer=IamAdminService__pb2.AddUserRolesRequest.SerializeToString,
@@ -49,12 +64,12 @@ class UserManagementServiceStub(object):
     self.isUserEnabled = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/isUserEnabled',
         request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
-        response_deserializer=IamAdminService__pb2.CheckingResponse.FromString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.isUsernameAvailable = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/isUsernameAvailable',
         request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
-        response_deserializer=IamAdminService__pb2.CheckingResponse.FromString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.getUser = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/getUser',
@@ -69,17 +84,17 @@ class UserManagementServiceStub(object):
     self.resetPassword = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/resetPassword',
         request_serializer=IamAdminService__pb2.ResetUserPassword.SerializeToString,
-        response_deserializer=IamAdminService__pb2.CheckingResponse.FromString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.deleteUser = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/deleteUser',
         request_serializer=IamAdminService__pb2.UserSearchRequest.SerializeToString,
-        response_deserializer=IamAdminService__pb2.CheckingResponse.FromString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.deleteUserRoles = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/deleteUserRoles',
         request_serializer=IamAdminService__pb2.DeleteUserRolesRequest.SerializeToString,
-        response_deserializer=IamAdminService__pb2.CheckingResponse.FromString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.updateUserProfile = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/updateUserProfile',
@@ -100,6 +115,11 @@ class UserManagementServiceStub(object):
         '/org.apache.custos.user.management.service.UserManagementService/getAllUserProfilesInTenant',
         request_serializer=UserManagementService__pb2.UserProfileRequest.SerializeToString,
         response_deserializer=UserProfileService__pb2.GetAllUserProfilesResponse.FromString,
+        )
+    self.linkUserProfile = channel.unary_unary(
+        '/org.apache.custos.user.management.service.UserManagementService/linkUserProfile',
+        request_serializer=UserManagementService__pb2.LinkUserProfileRequest.SerializeToString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.getUserProfileAuditTrails = channel.unary_unary(
         '/org.apache.custos.user.management.service.UserManagementService/getUserProfileAuditTrails',
@@ -141,6 +161,27 @@ class UserManagementServiceServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def enableUser(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def disableUser(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def grantAdminPrivileges(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def removeAdminPrivileges(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -231,6 +272,13 @@ class UserManagementServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def linkUserProfile(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def getUserProfileAuditTrails(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -266,6 +314,21 @@ def add_UserManagementServiceServicer_to_server(servicer, server):
           request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
           response_serializer=IamAdminService__pb2.UserRepresentation.SerializeToString,
       ),
+      'disableUser': grpc.unary_unary_rpc_method_handler(
+          servicer.disableUser,
+          request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
+          response_serializer=IamAdminService__pb2.UserRepresentation.SerializeToString,
+      ),
+      'grantAdminPrivileges': grpc.unary_unary_rpc_method_handler(
+          servicer.grantAdminPrivileges,
+          request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
+      ),
+      'removeAdminPrivileges': grpc.unary_unary_rpc_method_handler(
+          servicer.removeAdminPrivileges,
+          request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
+      ),
       'addRolesToUsers': grpc.unary_unary_rpc_method_handler(
           servicer.addRolesToUsers,
           request_deserializer=IamAdminService__pb2.AddUserRolesRequest.FromString,
@@ -274,12 +337,12 @@ def add_UserManagementServiceServicer_to_server(servicer, server):
       'isUserEnabled': grpc.unary_unary_rpc_method_handler(
           servicer.isUserEnabled,
           request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
-          response_serializer=IamAdminService__pb2.CheckingResponse.SerializeToString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'isUsernameAvailable': grpc.unary_unary_rpc_method_handler(
           servicer.isUsernameAvailable,
           request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
-          response_serializer=IamAdminService__pb2.CheckingResponse.SerializeToString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'getUser': grpc.unary_unary_rpc_method_handler(
           servicer.getUser,
@@ -294,17 +357,17 @@ def add_UserManagementServiceServicer_to_server(servicer, server):
       'resetPassword': grpc.unary_unary_rpc_method_handler(
           servicer.resetPassword,
           request_deserializer=IamAdminService__pb2.ResetUserPassword.FromString,
-          response_serializer=IamAdminService__pb2.CheckingResponse.SerializeToString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'deleteUser': grpc.unary_unary_rpc_method_handler(
           servicer.deleteUser,
           request_deserializer=IamAdminService__pb2.UserSearchRequest.FromString,
-          response_serializer=IamAdminService__pb2.CheckingResponse.SerializeToString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'deleteUserRoles': grpc.unary_unary_rpc_method_handler(
           servicer.deleteUserRoles,
           request_deserializer=IamAdminService__pb2.DeleteUserRolesRequest.FromString,
-          response_serializer=IamAdminService__pb2.CheckingResponse.SerializeToString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'updateUserProfile': grpc.unary_unary_rpc_method_handler(
           servicer.updateUserProfile,
@@ -325,6 +388,11 @@ def add_UserManagementServiceServicer_to_server(servicer, server):
           servicer.getAllUserProfilesInTenant,
           request_deserializer=UserManagementService__pb2.UserProfileRequest.FromString,
           response_serializer=UserProfileService__pb2.GetAllUserProfilesResponse.SerializeToString,
+      ),
+      'linkUserProfile': grpc.unary_unary_rpc_method_handler(
+          servicer.linkUserProfile,
+          request_deserializer=UserManagementService__pb2.LinkUserProfileRequest.FromString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'getUserProfileAuditTrails': grpc.unary_unary_rpc_method_handler(
           servicer.getUserProfileAuditTrails,

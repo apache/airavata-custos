@@ -325,7 +325,7 @@ class UserManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = DeleteUserRolesRequest(username=username, client_roles=client_roles, realm_roles=realm_roles)
+            request = DeleteUserRolesRequest(username=username, client_roles=client_roles, roles=realm_roles)
             return self.user_stub.deleteUserRoles(request, metadata=metadata)
 
         except Exception:

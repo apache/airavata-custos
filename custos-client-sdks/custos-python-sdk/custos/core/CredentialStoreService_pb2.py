@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='org.apache.custos.credential.store.service',
   syntax='proto3',
   serialized_options=b'P\001',
-  serialized_pb=b'\n\x1c\x43redentialStoreService.proto\x12*org.apache.custos.credential.store.service\"\xe5\x01\n\x12\x43redentialMetadata\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\t\x12\x0e\n\x06secret\x18\x03 \x01(\t\x12\x1d\n\x15\x63lientSecretExpiredAt\x18\x04 \x01(\x03\x12\x18\n\x10\x63lientIdIssuedAt\x18\x05 \x01(\x03\x12>\n\x04type\x18\x06 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\x12\x14\n\x0csuper_tenant\x18\x07 \x01(\x08\x12\x13\n\x0bsuper_admin\x18\x08 \x01(\x08\"s\n\x14GetCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\t\x12>\n\x04type\x18\x03 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\"+\n\x18GetAllCredentialsRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\"\xa6\x01\n\x19GetAllCredentialsResponse\x12R\n\nsecretList\x18\x01 \x03(\x0b\x32>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x1a\n\x12requesterUserEmail\x18\x02 \x01(\t\x12\x19\n\x11requesterUsername\x18\x03 \x01(\t\" \n\x0fOperationStatus\x12\r\n\x05state\x18\x01 \x01(\x08\"j\n\x17\x44\x65leteCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12>\n\x04type\x18\x02 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\"/\n\x1cGetOperationsMetadataRequest\x12\x0f\n\x07traceId\x18\x01 \x01(\x03\"Z\n\x11OperationMetadata\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x11\n\ttimeStamp\x18\x03 \x01(\t\x12\x13\n\x0bperformedBy\x18\x04 \x01(\t\"p\n\x1dGetOperationsMetadataResponse\x12O\n\x08metadata\x18\x01 \x03(\x0b\x32=.org.apache.custos.credential.store.service.OperationMetadata\"E\n\x1dGetNewCustosCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\x13\n\x0bperformedBy\x18\x02 \x01(\t\"H\n\x1eGetNewCustosCredentialResponse\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x14\n\x0c\x63lientSecret\x18\x02 \x01(\t\"\x1d\n\x0cTokenRequest\x12\r\n\x05token\x18\x01 \x01(\t\"%\n\x12GetOwnerIdResponse\x12\x0f\n\x07ownerId\x18\x02 \x01(\x03\"\x80\x02\n\x0b\x43redentials\x12\x15\n\riam_client_id\x18\x01 \x01(\t\x12\x19\n\x11iam_client_secret\x18\x02 \x01(\t\x12\x1a\n\x12\x63i_logon_client_id\x18\x03 \x01(\t\x12\x1e\n\x16\x63i_logon_client_secret\x18\x04 \x01(\t\x12\x18\n\x10\x63ustos_client_id\x18\x05 \x01(\t\x12\x1c\n\x14\x63ustos_client_secret\x18\x06 \x01(\t\x12\"\n\x1a\x63ustos_client_id_issued_at\x18\x07 \x01(\x01\x12\'\n\x1f\x63ustos_client_secret_expired_at\x18\x08 \x01(\x01*8\n\x04Type\x12\n\n\x06\x43USTOS\x10\x00\x12\x07\n\x03IAM\x10\x01\x12\x0b\n\x07\x43ILOGON\x10\x02\x12\x0e\n\nINDIVIDUAL\x10\x03\x32\x8c\x10\n\x16\x43redentialStoreService\x12\x8c\x01\n\rputCredential\x12>.org.apache.custos.credential.store.service.CredentialMetadata\x1a;.org.apache.custos.credential.store.service.OperationStatus\x12\x94\x01\n\x10\x64\x65leteCredential\x12\x43.org.apache.custos.credential.store.service.DeleteCredentialRequest\x1a;.org.apache.custos.credential.store.service.OperationStatus\x12\x91\x01\n\rgetCredential\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\xa0\x01\n\x11getAllCredentials\x12\x44.org.apache.custos.credential.store.service.GetAllCredentialsRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\xab\x01\n\x14getOperationMetadata\x12H.org.apache.custos.credential.store.service.GetOperationsMetadataRequest\x1aI.org.apache.custos.credential.store.service.GetOperationsMetadataResponse\x12\xa3\x01\n\x16getNewCustosCredential\x12I.org.apache.custos.credential.store.service.GetNewCustosCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x8f\x01\n\x13getOwnerIdFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a>.org.apache.custos.credential.store.service.GetOwnerIdResponse\x12\x98\x01\n\x1cgetCustosCredentialFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\xa3\x01\n\x1fgetCustosCredentialFromClientId\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x9d\x01\n\x1agetAllCredentialsFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\x9f\x01\n\x14getMasterCredentials\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\xa0\x01\n\x1dgetAllCredentialsFromJWTToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\x88\x01\n\x13getBasicCredentials\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x37.org.apache.custos.credential.store.service.CredentialsB\x02P\x01\x62\x06proto3'
+  serialized_pb=b'\n\x1c\x43redentialStoreService.proto\x12*org.apache.custos.credential.store.service\"\xfb\x01\n\x12\x43redentialMetadata\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\t\x12\x0e\n\x06secret\x18\x03 \x01(\t\x12\x1d\n\x15\x63lientSecretExpiredAt\x18\x04 \x01(\x03\x12\x18\n\x10\x63lientIdIssuedAt\x18\x05 \x01(\x03\x12>\n\x04type\x18\x06 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\x12\x14\n\x0csuper_tenant\x18\x07 \x01(\x08\x12\x13\n\x0bsuper_admin\x18\x08 \x01(\x08\x12\x14\n\x0cinternal_sec\x18\x0b \x01(\t\"s\n\x14GetCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\n\n\x02id\x18\x02 \x01(\t\x12>\n\x04type\x18\x03 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\"+\n\x18GetAllCredentialsRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\"\xa6\x01\n\x19GetAllCredentialsResponse\x12R\n\nsecretList\x18\x01 \x03(\x0b\x32>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x1a\n\x12requesterUserEmail\x18\x02 \x01(\t\x12\x19\n\x11requesterUsername\x18\x03 \x01(\t\" \n\x0fOperationStatus\x12\r\n\x05state\x18\x01 \x01(\x08\"j\n\x17\x44\x65leteCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12>\n\x04type\x18\x02 \x01(\x0e\x32\x30.org.apache.custos.credential.store.service.Type\"/\n\x1cGetOperationsMetadataRequest\x12\x0f\n\x07traceId\x18\x01 \x01(\x03\"Z\n\x11OperationMetadata\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x11\n\ttimeStamp\x18\x03 \x01(\t\x12\x13\n\x0bperformedBy\x18\x04 \x01(\t\"p\n\x1dGetOperationsMetadataResponse\x12O\n\x08metadata\x18\x01 \x03(\x0b\x32=.org.apache.custos.credential.store.service.OperationMetadata\"E\n\x1dGetNewCustosCredentialRequest\x12\x0f\n\x07ownerId\x18\x01 \x01(\x03\x12\x13\n\x0bperformedBy\x18\x02 \x01(\t\"H\n\x1eGetNewCustosCredentialResponse\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x14\n\x0c\x63lientSecret\x18\x02 \x01(\t\"5\n\x0cTokenRequest\x12\r\n\x05token\x18\x01 \x01(\t\x12\x16\n\x0eparentClientId\x18\x02 \x01(\t\"%\n\x12GetOwnerIdResponse\x12\x0f\n\x07ownerId\x18\x02 \x01(\x03\"\x80\x02\n\x0b\x43redentials\x12\x15\n\riam_client_id\x18\x01 \x01(\t\x12\x19\n\x11iam_client_secret\x18\x02 \x01(\t\x12\x1a\n\x12\x63i_logon_client_id\x18\x03 \x01(\t\x12\x1e\n\x16\x63i_logon_client_secret\x18\x04 \x01(\t\x12\x18\n\x10\x63ustos_client_id\x18\x05 \x01(\t\x12\x1c\n\x14\x63ustos_client_secret\x18\x06 \x01(\t\x12\"\n\x1a\x63ustos_client_id_issued_at\x18\x07 \x01(\x01\x12\'\n\x1f\x63ustos_client_secret_expired_at\x18\x08 \x01(\x01*U\n\x04Type\x12\n\n\x06\x43USTOS\x10\x00\x12\x07\n\x03IAM\x10\x01\x12\x0b\n\x07\x43ILOGON\x10\x02\x12\x0e\n\nINDIVIDUAL\x10\x03\x12\x10\n\x0c\x41GENT_CLIENT\x10\x04\x12\t\n\x05\x41GENT\x10\x05\x32\x9b\x16\n\x16\x43redentialStoreService\x12\x8c\x01\n\rputCredential\x12>.org.apache.custos.credential.store.service.CredentialMetadata\x1a;.org.apache.custos.credential.store.service.OperationStatus\x12\x94\x01\n\x10\x64\x65leteCredential\x12\x43.org.apache.custos.credential.store.service.DeleteCredentialRequest\x1a;.org.apache.custos.credential.store.service.OperationStatus\x12\x91\x01\n\rgetCredential\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\xa0\x01\n\x11getAllCredentials\x12\x44.org.apache.custos.credential.store.service.GetAllCredentialsRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\xab\x01\n\x14getOperationMetadata\x12H.org.apache.custos.credential.store.service.GetOperationsMetadataRequest\x1aI.org.apache.custos.credential.store.service.GetOperationsMetadataResponse\x12\xa3\x01\n\x16getNewCustosCredential\x12I.org.apache.custos.credential.store.service.GetNewCustosCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x8f\x01\n\x13getOwnerIdFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a>.org.apache.custos.credential.store.service.GetOwnerIdResponse\x12\x98\x01\n\x1cgetCustosCredentialFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\xa3\x01\n\x1fgetCustosCredentialFromClientId\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x9d\x01\n\x1agetAllCredentialsFromToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\x9f\x01\n\x14getMasterCredentials\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\xa0\x01\n\x1dgetAllCredentialsFromJWTToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\x88\x01\n\x13getBasicCredentials\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x37.org.apache.custos.credential.store.service.Credentials\x12\x97\x01\n\x15\x63reateAgentCredential\x12>.org.apache.custos.credential.store.service.CredentialMetadata\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x96\x01\n\x12getAgentCredential\x12@.org.apache.custos.credential.store.service.GetCredentialRequest\x1a>.org.apache.custos.credential.store.service.CredentialMetadata\x12\x94\x01\n\x15\x64\x65leteAgentCredential\x12>.org.apache.custos.credential.store.service.CredentialMetadata\x1a;.org.apache.custos.credential.store.service.OperationStatus\x12\xa0\x01\n\x1dgetCredentialByAgentBasicAuth\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponse\x12\x9f\x01\n\x1cgetCredentialByAgentJWTToken\x12\x38.org.apache.custos.credential.store.service.TokenRequest\x1a\x45.org.apache.custos.credential.store.service.GetAllCredentialsResponseB\x02P\x01\x62\x06proto3'
 )
 
 _TYPE = _descriptor.EnumDescriptor(
@@ -44,11 +44,19 @@ _TYPE = _descriptor.EnumDescriptor(
       name='INDIVIDUAL', index=3, number=3,
       serialized_options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='AGENT_CLIENT', index=4, number=4,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='AGENT', index=5, number=5,
+      serialized_options=None,
+      type=None),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1510,
-  serialized_end=1566,
+  serialized_start=1556,
+  serialized_end=1641,
 )
 _sym_db.RegisterEnumDescriptor(_TYPE)
 
@@ -57,6 +65,8 @@ CUSTOS = 0
 IAM = 1
 CILOGON = 2
 INDIVIDUAL = 3
+AGENT_CLIENT = 4
+AGENT = 5
 
 
 
@@ -123,6 +133,13 @@ _CREDENTIALMETADATA = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='internal_sec', full_name='org.apache.custos.credential.store.service.CredentialMetadata.internal_sec', index=8,
+      number=11, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -136,7 +153,7 @@ _CREDENTIALMETADATA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=77,
-  serialized_end=306,
+  serialized_end=328,
 )
 
 
@@ -180,8 +197,8 @@ _GETCREDENTIALREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=308,
-  serialized_end=423,
+  serialized_start=330,
+  serialized_end=445,
 )
 
 
@@ -211,8 +228,8 @@ _GETALLCREDENTIALSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=425,
-  serialized_end=468,
+  serialized_start=447,
+  serialized_end=490,
 )
 
 
@@ -256,8 +273,8 @@ _GETALLCREDENTIALSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=471,
-  serialized_end=637,
+  serialized_start=493,
+  serialized_end=659,
 )
 
 
@@ -287,8 +304,8 @@ _OPERATIONSTATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=639,
-  serialized_end=671,
+  serialized_start=661,
+  serialized_end=693,
 )
 
 
@@ -325,8 +342,8 @@ _DELETECREDENTIALREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=673,
-  serialized_end=779,
+  serialized_start=695,
+  serialized_end=801,
 )
 
 
@@ -356,8 +373,8 @@ _GETOPERATIONSMETADATAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=781,
-  serialized_end=828,
+  serialized_start=803,
+  serialized_end=850,
 )
 
 
@@ -408,8 +425,8 @@ _OPERATIONMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=830,
-  serialized_end=920,
+  serialized_start=852,
+  serialized_end=942,
 )
 
 
@@ -439,8 +456,8 @@ _GETOPERATIONSMETADATARESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=922,
-  serialized_end=1034,
+  serialized_start=944,
+  serialized_end=1056,
 )
 
 
@@ -477,8 +494,8 @@ _GETNEWCUSTOSCREDENTIALREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1036,
-  serialized_end=1105,
+  serialized_start=1058,
+  serialized_end=1127,
 )
 
 
@@ -515,8 +532,8 @@ _GETNEWCUSTOSCREDENTIALRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1107,
-  serialized_end=1179,
+  serialized_start=1129,
+  serialized_end=1201,
 )
 
 
@@ -534,6 +551,13 @@ _TOKENREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='parentClientId', full_name='org.apache.custos.credential.store.service.TokenRequest.parentClientId', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -546,8 +570,8 @@ _TOKENREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1181,
-  serialized_end=1210,
+  serialized_start=1203,
+  serialized_end=1256,
 )
 
 
@@ -577,8 +601,8 @@ _GETOWNERIDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1212,
-  serialized_end=1249,
+  serialized_start=1258,
+  serialized_end=1295,
 )
 
 
@@ -657,8 +681,8 @@ _CREDENTIALS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1252,
-  serialized_end=1508,
+  serialized_start=1298,
+  serialized_end=1554,
 )
 
 _CREDENTIALMETADATA.fields_by_name['type'].enum_type = _TYPE
@@ -790,8 +814,8 @@ _CREDENTIALSTORESERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1569,
-  serialized_end=3629,
+  serialized_start=1644,
+  serialized_end=4487,
   methods=[
   _descriptor.MethodDescriptor(
     name='putCredential',
@@ -908,6 +932,51 @@ _CREDENTIALSTORESERVICE = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_TOKENREQUEST,
     output_type=_CREDENTIALS,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='createAgentCredential',
+    full_name='org.apache.custos.credential.store.service.CredentialStoreService.createAgentCredential',
+    index=13,
+    containing_service=None,
+    input_type=_CREDENTIALMETADATA,
+    output_type=_CREDENTIALMETADATA,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='getAgentCredential',
+    full_name='org.apache.custos.credential.store.service.CredentialStoreService.getAgentCredential',
+    index=14,
+    containing_service=None,
+    input_type=_GETCREDENTIALREQUEST,
+    output_type=_CREDENTIALMETADATA,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='deleteAgentCredential',
+    full_name='org.apache.custos.credential.store.service.CredentialStoreService.deleteAgentCredential',
+    index=15,
+    containing_service=None,
+    input_type=_CREDENTIALMETADATA,
+    output_type=_OPERATIONSTATUS,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='getCredentialByAgentBasicAuth',
+    full_name='org.apache.custos.credential.store.service.CredentialStoreService.getCredentialByAgentBasicAuth',
+    index=16,
+    containing_service=None,
+    input_type=_TOKENREQUEST,
+    output_type=_GETALLCREDENTIALSRESPONSE,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='getCredentialByAgentJWTToken',
+    full_name='org.apache.custos.credential.store.service.CredentialStoreService.getCredentialByAgentJWTToken',
+    index=17,
+    containing_service=None,
+    input_type=_TOKENREQUEST,
+    output_type=_GETALLCREDENTIALSRESPONSE,
     serialized_options=None,
   ),
 ])
