@@ -225,7 +225,7 @@ public class InputValidator implements Validator {
         if (obj instanceof GetTenantsRequest) {
             GetTenantsRequest req = (GetTenantsRequest) obj;
 
-            if (req.getLimit() == 0) {
+            if (req.getLimit() == 0 && (req.getRequesterEmail() == null ||  req.getRequesterEmail().equals(""))) {
                 throw new MissingParameterException("Limit should greater than 0", null);
             }
         } else {

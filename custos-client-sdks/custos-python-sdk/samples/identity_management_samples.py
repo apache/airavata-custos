@@ -16,6 +16,8 @@
 
 import logging
 from clients.identity_management_client import IdentityManagementClient
+from transport.settings import CustosServerClientSettings
+import clients.utils.utilities as utl
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,9 @@ handler.setLevel(logging.DEBUG)
 # load IdentityManagementClient with default configuration
 client = IdentityManagementClient()
 
-token = "xxx"
+custos_settings = CustosServerClientSettings()
+token = utl.get_token(custos_settings)
+
 
 def authenticate():
     response = client.authenticate(token, "isjarana", "Custos1234")
@@ -64,5 +68,6 @@ def get_credentials():
 def get_OIDC_config():
     response = client.get_oidc_configuration(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
+
 
 authenticate()

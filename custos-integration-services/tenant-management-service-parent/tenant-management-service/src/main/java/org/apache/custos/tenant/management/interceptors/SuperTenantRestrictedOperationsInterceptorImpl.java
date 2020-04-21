@@ -70,11 +70,13 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
         } else if (method.equals("getAllTenants")) {
             AuthClaim claim = null;
             try {
-                claim = authorizeUsingUserToken(headers);
+                claim = authorize(headers);
+                LOGGER.info("Claim "+ claim);
+                LOGGER.info("Claim Auth "+ claim.isSuperTenant());
             } catch (Exception ex) {
                 throw new NotAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
+            if (claim == null || !claim.isSuperTenant()) {
                 throw new NotAuthorizedException("Request is not authorized", null);
             }
 

@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='org.apache.custos.user.management.service',
   syntax='proto3',
   serialized_options=b'P\001',
-  serialized_pb=b'\n\x1bUserManagementService.proto\x12)org.apache.custos.user.management.service\x1a\x1cgoogle/api/annotations.proto\x1a\x18UserProfileService.proto\x1a\x15IamAdminService.proto\"\xc3\x01\n\x12UserProfileRequest\x12I\n\x0cuser_profile\x18\x01 \x01(\x0b\x32\x33.org.apache.custos.user.profile.service.UserProfile\x12\x10\n\x08\x63lientId\x18\x02 \x01(\t\x12\x10\n\x08tenantId\x18\x03 \x01(\x03\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x04 \x01(\t\x12\x14\n\x0c\x63lientSecret\x18\x05 \x01(\t\x12\x13\n\x0bperformedBy\x18\x06 \x01(\t\"o\n\x0eGetUserRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12K\n\x11userSearchRequest\x18\x02 \x01(\x0b\x32\x30.org.apache.custos.iam.service.UserSearchRequest\"\xa1\x01\n\x0fGetUsersRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x0e\n\x06offset\x18\x04 \x01(\x05\x12\r\n\x05limit\x18\x05 \x01(\x05\x12\x0e\n\x06search\x18\x06 \x01(\t\x12\x13\n\x0biamClientId\x18\x07 \x01(\t\x12\x17\n\x0fiamClientSecret\x18\x08 \x01(\t\"\x88\x01\n\rResetPassword\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x13\n\x0biamClientId\x18\x05 \x01(\t\x12\x17\n\x0fiamClientSecret\x18\x06 \x01(\t\"j\n\x14ResetPasswordRequest\x12R\n\x10passwordMetadata\x18\x01 \x01(\x0b\x32\x38.org.apache.custos.user.management.service.ResetPassword2\xef\x18\n\x15UserManagementService\x12\xa3\x01\n\x0cregisterUser\x12\x32.org.apache.custos.iam.service.RegisterUserRequest\x1a\x33.org.apache.custos.iam.service.RegisterUserResponse\"*\x82\xd3\xe4\x93\x02$\"\x1c/user-management/v1.0.0/user:\x04user\x12\xb1\x01\n\x16registerAndEnableUsers\x12\x33.org.apache.custos.iam.service.RegisterUsersRequest\x1a\x34.org.apache.custos.iam.service.RegisterUsersResponse\",\x82\xd3\xe4\x93\x02&\"\x1d/user-management/v1.0.0/users:\x05users\x12\xa8\x01\n\x11\x61\x64\x64UserAttributes\x12\x37.org.apache.custos.iam.service.AddUserAttributesRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$\"\"/user-management/v1.0.0/attributes\x12\xad\x01\n\x14\x64\x65leteUserAttributes\x12\x39.org.apache.custos.iam.service.DeleteUserAttributeRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$*\"/user-management/v1.0.0/attributes\x12\xa8\x01\n\nenableUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a\x31.org.apache.custos.iam.service.UserRepresentation\"5\x82\xd3\xe4\x93\x02/\"\'/user-management/v1.0.0/user/activation:\x04user\x12\xa2\x01\n\x0f\x61\x64\x64RolesToUsers\x12\x32.org.apache.custos.iam.service.AddUserRolesRequest\x1a..org.apache.custos.iam.service.OperationStatus\"+\x82\xd3\xe4\x93\x02%\"#/user-management/v1.0.0/users/roles\x12\xaa\x01\n\risUserEnabled\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a/.org.apache.custos.iam.service.CheckingResponse\"6\x82\xd3\xe4\x93\x02\x30\x12./user-management/v1.0.0/user/activation/status\x12\xab\x01\n\x13isUsernameAvailable\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a/.org.apache.custos.iam.service.CheckingResponse\"1\x82\xd3\xe4\x93\x02+\x12)/user-management/v1.0.0/user/availability\x12\x94\x01\n\x07getUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a\x31.org.apache.custos.iam.service.UserRepresentation\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/user-management/v1.0.0/user\x12\x95\x01\n\tfindUsers\x12/.org.apache.custos.iam.service.FindUsersRequest\x1a\x30.org.apache.custos.iam.service.FindUsersResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/user-management/v1.0.0/users\x12\xa1\x01\n\rresetPassword\x12\x30.org.apache.custos.iam.service.ResetUserPassword\x1a/.org.apache.custos.iam.service.CheckingResponse\"-\x82\xd3\xe4\x93\x02\'\x1a%/user-management/v1.0.0/user/password\x12\x9b\x01\n\ndeleteUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a/.org.apache.custos.iam.service.CheckingResponse\"*\x82\xd3\xe4\x93\x02$*\x1c/user-management/v1.0.0/user:\x04user\x12\xa5\x01\n\x0f\x64\x65leteUserRoles\x12\x35.org.apache.custos.iam.service.DeleteUserRolesRequest\x1a/.org.apache.custos.iam.service.CheckingResponse\"*\x82\xd3\xe4\x93\x02$*\"/user-management/v1.0.0/user/roles\x12\xc3\x01\n\x11updateUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\":\x82\xd3\xe4\x93\x02\x34\x1a$/user-management/v1.0.0/user/profile:\x0cuser_profile\x12\xb2\x01\n\x0egetUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\",\x82\xd3\xe4\x93\x02&\x12$/user-management/v1.0.0/user/profile\x12\xb5\x01\n\x11\x64\x65leteUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\",\x82\xd3\xe4\x93\x02&*$/user-management/v1.0.0/user/profile\x12\xce\x01\n\x1agetAllUserProfilesInTenant\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x42.org.apache.custos.user.profile.service.GetAllUserProfilesResponse\"-\x82\xd3\xe4\x93\x02\'\x12%/user-management/v1.0.0/users/profile\x12\xd8\x01\n\x19getUserProfileAuditTrails\x12\x42.org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest\x1a\x43.org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse\"2\x82\xd3\xe4\x93\x02,\x12*/user-management/v1.0.0/user/profile/auditB\x02P\x01\x62\x06proto3'
+  serialized_pb=b'\n\x1bUserManagementService.proto\x12)org.apache.custos.user.management.service\x1a\x1cgoogle/api/annotations.proto\x1a\x18UserProfileService.proto\x1a\x15IamAdminService.proto\"\xc3\x01\n\x12UserProfileRequest\x12I\n\x0cuser_profile\x18\x01 \x01(\x0b\x32\x33.org.apache.custos.user.profile.service.UserProfile\x12\x10\n\x08\x63lientId\x18\x02 \x01(\t\x12\x10\n\x08tenantId\x18\x03 \x01(\x03\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x04 \x01(\t\x12\x14\n\x0c\x63lientSecret\x18\x05 \x01(\t\x12\x13\n\x0bperformedBy\x18\x06 \x01(\t\"o\n\x0eGetUserRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12K\n\x11userSearchRequest\x18\x02 \x01(\x0b\x32\x30.org.apache.custos.iam.service.UserSearchRequest\"\xa1\x01\n\x0fGetUsersRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\r\n\x05\x65mail\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x0e\n\x06offset\x18\x04 \x01(\x05\x12\r\n\x05limit\x18\x05 \x01(\x05\x12\x0e\n\x06search\x18\x06 \x01(\t\x12\x13\n\x0biamClientId\x18\x07 \x01(\t\x12\x17\n\x0fiamClientSecret\x18\x08 \x01(\t\"\x88\x01\n\rResetPassword\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x02 \x01(\t\x12\x10\n\x08username\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x13\n\x0biamClientId\x18\x05 \x01(\t\x12\x17\n\x0fiamClientSecret\x18\x06 \x01(\t\"j\n\x14ResetPasswordRequest\x12R\n\x10passwordMetadata\x18\x01 \x01(\x0b\x32\x38.org.apache.custos.user.management.service.ResetPassword\"\xd3\x01\n\x16LinkUserProfileRequest\x12\x18\n\x10\x63urrent_username\x18\x01 \x01(\t\x12\x19\n\x11previous_username\x18\x02 \x01(\t\x12\x1a\n\x12linking_attributes\x18\x03 \x03(\t\x12\x10\n\x08tenantId\x18\x04 \x01(\x03\x12\x13\n\x0biamClientId\x18\x05 \x01(\t\x12\x17\n\x0fiamClientSecret\x18\x06 \x01(\t\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x07 \x01(\t\x12\x13\n\x0bperformedBy\x18\x08 \x01(\t2\xaf\x1e\n\x15UserManagementService\x12\xa3\x01\n\x0cregisterUser\x12\x32.org.apache.custos.iam.service.RegisterUserRequest\x1a\x33.org.apache.custos.iam.service.RegisterUserResponse\"*\x82\xd3\xe4\x93\x02$\"\x1c/user-management/v1.0.0/user:\x04user\x12\xb1\x01\n\x16registerAndEnableUsers\x12\x33.org.apache.custos.iam.service.RegisterUsersRequest\x1a\x34.org.apache.custos.iam.service.RegisterUsersResponse\",\x82\xd3\xe4\x93\x02&\"\x1d/user-management/v1.0.0/users:\x05users\x12\xa8\x01\n\x11\x61\x64\x64UserAttributes\x12\x37.org.apache.custos.iam.service.AddUserAttributesRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$\"\"/user-management/v1.0.0/attributes\x12\xad\x01\n\x14\x64\x65leteUserAttributes\x12\x39.org.apache.custos.iam.service.DeleteUserAttributeRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$*\"/user-management/v1.0.0/attributes\x12\xa8\x01\n\nenableUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a\x31.org.apache.custos.iam.service.UserRepresentation\"5\x82\xd3\xe4\x93\x02/\"\'/user-management/v1.0.0/user/activation:\x04user\x12\xab\x01\n\x0b\x64isableUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a\x31.org.apache.custos.iam.service.UserRepresentation\"7\x82\xd3\xe4\x93\x02\x31\")/user-management/v1.0.0/user/deactivation:\x04user\x12\xaa\x01\n\x14grantAdminPrivileges\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a..org.apache.custos.iam.service.OperationStatus\"0\x82\xd3\xe4\x93\x02*\"\"/user-management/v1.0.0/user/admin:\x04user\x12\xab\x01\n\x15removeAdminPrivileges\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a..org.apache.custos.iam.service.OperationStatus\"0\x82\xd3\xe4\x93\x02**\"/user-management/v1.0.0/user/admin:\x04user\x12\xa2\x01\n\x0f\x61\x64\x64RolesToUsers\x12\x32.org.apache.custos.iam.service.AddUserRolesRequest\x1a..org.apache.custos.iam.service.OperationStatus\"+\x82\xd3\xe4\x93\x02%\"#/user-management/v1.0.0/users/roles\x12\xa9\x01\n\risUserEnabled\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a..org.apache.custos.iam.service.OperationStatus\"6\x82\xd3\xe4\x93\x02\x30\x12./user-management/v1.0.0/user/activation/status\x12\xaa\x01\n\x13isUsernameAvailable\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a..org.apache.custos.iam.service.OperationStatus\"1\x82\xd3\xe4\x93\x02+\x12)/user-management/v1.0.0/user/availability\x12\x94\x01\n\x07getUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a\x31.org.apache.custos.iam.service.UserRepresentation\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/user-management/v1.0.0/user\x12\x95\x01\n\tfindUsers\x12/.org.apache.custos.iam.service.FindUsersRequest\x1a\x30.org.apache.custos.iam.service.FindUsersResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/user-management/v1.0.0/users\x12\xa0\x01\n\rresetPassword\x12\x30.org.apache.custos.iam.service.ResetUserPassword\x1a..org.apache.custos.iam.service.OperationStatus\"-\x82\xd3\xe4\x93\x02\'\x1a%/user-management/v1.0.0/user/password\x12\x9a\x01\n\ndeleteUser\x12\x30.org.apache.custos.iam.service.UserSearchRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$*\x1c/user-management/v1.0.0/user:\x04user\x12\xa4\x01\n\x0f\x64\x65leteUserRoles\x12\x35.org.apache.custos.iam.service.DeleteUserRolesRequest\x1a..org.apache.custos.iam.service.OperationStatus\"*\x82\xd3\xe4\x93\x02$*\"/user-management/v1.0.0/user/roles\x12\xc3\x01\n\x11updateUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\":\x82\xd3\xe4\x93\x02\x34\x1a$/user-management/v1.0.0/user/profile:\x0cuser_profile\x12\xb2\x01\n\x0egetUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\",\x82\xd3\xe4\x93\x02&\x12$/user-management/v1.0.0/user/profile\x12\xb5\x01\n\x11\x64\x65leteUserProfile\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x33.org.apache.custos.user.profile.service.UserProfile\",\x82\xd3\xe4\x93\x02&*$/user-management/v1.0.0/user/profile\x12\xce\x01\n\x1agetAllUserProfilesInTenant\x12=.org.apache.custos.user.management.service.UserProfileRequest\x1a\x42.org.apache.custos.user.profile.service.GetAllUserProfilesResponse\"-\x82\xd3\xe4\x93\x02\'\x12%/user-management/v1.0.0/users/profile\x12\xb9\x01\n\x0flinkUserProfile\x12\x41.org.apache.custos.user.management.service.LinkUserProfileRequest\x1a..org.apache.custos.iam.service.OperationStatus\"3\x82\xd3\xe4\x93\x02-\"+/user-management/v1.0.0/user/profile/mapper\x12\xd8\x01\n\x19getUserProfileAuditTrails\x12\x42.org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest\x1a\x43.org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse\"2\x82\xd3\xe4\x93\x02,\x12*/user-management/v1.0.0/user/profile/auditB\x02P\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,UserProfileService__pb2.DESCRIPTOR,IamAdminService__pb2.DESCRIPTOR,])
 
@@ -308,6 +308,86 @@ _RESETPASSWORDREQUEST = _descriptor.Descriptor(
   serialized_end=873,
 )
 
+
+_LINKUSERPROFILEREQUEST = _descriptor.Descriptor(
+  name='LinkUserProfileRequest',
+  full_name='org.apache.custos.user.management.service.LinkUserProfileRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='current_username', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.current_username', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='previous_username', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.previous_username', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='linking_attributes', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.linking_attributes', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='tenantId', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.tenantId', index=3,
+      number=4, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='iamClientId', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.iamClientId', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='iamClientSecret', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.iamClientSecret', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='accessToken', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.accessToken', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='performedBy', full_name='org.apache.custos.user.management.service.LinkUserProfileRequest.performedBy', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=876,
+  serialized_end=1087,
+)
+
 _USERPROFILEREQUEST.fields_by_name['user_profile'].message_type = UserProfileService__pb2._USERPROFILE
 _GETUSERREQUEST.fields_by_name['userSearchRequest'].message_type = IamAdminService__pb2._USERSEARCHREQUEST
 _RESETPASSWORDREQUEST.fields_by_name['passwordMetadata'].message_type = _RESETPASSWORD
@@ -316,6 +396,7 @@ DESCRIPTOR.message_types_by_name['GetUserRequest'] = _GETUSERREQUEST
 DESCRIPTOR.message_types_by_name['GetUsersRequest'] = _GETUSERSREQUEST
 DESCRIPTOR.message_types_by_name['ResetPassword'] = _RESETPASSWORD
 DESCRIPTOR.message_types_by_name['ResetPasswordRequest'] = _RESETPASSWORDREQUEST
+DESCRIPTOR.message_types_by_name['LinkUserProfileRequest'] = _LINKUSERPROFILEREQUEST
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 UserProfileRequest = _reflection.GeneratedProtocolMessageType('UserProfileRequest', (_message.Message,), {
@@ -353,6 +434,13 @@ ResetPasswordRequest = _reflection.GeneratedProtocolMessageType('ResetPasswordRe
   })
 _sym_db.RegisterMessage(ResetPasswordRequest)
 
+LinkUserProfileRequest = _reflection.GeneratedProtocolMessageType('LinkUserProfileRequest', (_message.Message,), {
+  'DESCRIPTOR' : _LINKUSERPROFILEREQUEST,
+  '__module__' : 'UserManagementService_pb2'
+  # @@protoc_insertion_point(class_scope:org.apache.custos.user.management.service.LinkUserProfileRequest)
+  })
+_sym_db.RegisterMessage(LinkUserProfileRequest)
+
 
 DESCRIPTOR._options = None
 
@@ -362,8 +450,8 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=876,
-  serialized_end=4059,
+  serialized_start=1090,
+  serialized_end=4977,
   methods=[
   _descriptor.MethodDescriptor(
     name='registerUser',
@@ -411,9 +499,36 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
     serialized_options=b'\202\323\344\223\002/\"\'/user-management/v1.0.0/user/activation:\004user',
   ),
   _descriptor.MethodDescriptor(
+    name='disableUser',
+    full_name='org.apache.custos.user.management.service.UserManagementService.disableUser',
+    index=5,
+    containing_service=None,
+    input_type=IamAdminService__pb2._USERSEARCHREQUEST,
+    output_type=IamAdminService__pb2._USERREPRESENTATION,
+    serialized_options=b'\202\323\344\223\0021\")/user-management/v1.0.0/user/deactivation:\004user',
+  ),
+  _descriptor.MethodDescriptor(
+    name='grantAdminPrivileges',
+    full_name='org.apache.custos.user.management.service.UserManagementService.grantAdminPrivileges',
+    index=6,
+    containing_service=None,
+    input_type=IamAdminService__pb2._USERSEARCHREQUEST,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002*\"\"/user-management/v1.0.0/user/admin:\004user',
+  ),
+  _descriptor.MethodDescriptor(
+    name='removeAdminPrivileges',
+    full_name='org.apache.custos.user.management.service.UserManagementService.removeAdminPrivileges',
+    index=7,
+    containing_service=None,
+    input_type=IamAdminService__pb2._USERSEARCHREQUEST,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002**\"/user-management/v1.0.0/user/admin:\004user',
+  ),
+  _descriptor.MethodDescriptor(
     name='addRolesToUsers',
     full_name='org.apache.custos.user.management.service.UserManagementService.addRolesToUsers',
-    index=5,
+    index=8,
     containing_service=None,
     input_type=IamAdminService__pb2._ADDUSERROLESREQUEST,
     output_type=IamAdminService__pb2._OPERATIONSTATUS,
@@ -422,25 +537,25 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='isUserEnabled',
     full_name='org.apache.custos.user.management.service.UserManagementService.isUserEnabled',
-    index=6,
+    index=9,
     containing_service=None,
     input_type=IamAdminService__pb2._USERSEARCHREQUEST,
-    output_type=IamAdminService__pb2._CHECKINGRESPONSE,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
     serialized_options=b'\202\323\344\223\0020\022./user-management/v1.0.0/user/activation/status',
   ),
   _descriptor.MethodDescriptor(
     name='isUsernameAvailable',
     full_name='org.apache.custos.user.management.service.UserManagementService.isUsernameAvailable',
-    index=7,
+    index=10,
     containing_service=None,
     input_type=IamAdminService__pb2._USERSEARCHREQUEST,
-    output_type=IamAdminService__pb2._CHECKINGRESPONSE,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
     serialized_options=b'\202\323\344\223\002+\022)/user-management/v1.0.0/user/availability',
   ),
   _descriptor.MethodDescriptor(
     name='getUser',
     full_name='org.apache.custos.user.management.service.UserManagementService.getUser',
-    index=8,
+    index=11,
     containing_service=None,
     input_type=IamAdminService__pb2._USERSEARCHREQUEST,
     output_type=IamAdminService__pb2._USERREPRESENTATION,
@@ -449,7 +564,7 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='findUsers',
     full_name='org.apache.custos.user.management.service.UserManagementService.findUsers',
-    index=9,
+    index=12,
     containing_service=None,
     input_type=IamAdminService__pb2._FINDUSERSREQUEST,
     output_type=IamAdminService__pb2._FINDUSERSRESPONSE,
@@ -458,34 +573,34 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='resetPassword',
     full_name='org.apache.custos.user.management.service.UserManagementService.resetPassword',
-    index=10,
+    index=13,
     containing_service=None,
     input_type=IamAdminService__pb2._RESETUSERPASSWORD,
-    output_type=IamAdminService__pb2._CHECKINGRESPONSE,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
     serialized_options=b'\202\323\344\223\002\'\032%/user-management/v1.0.0/user/password',
   ),
   _descriptor.MethodDescriptor(
     name='deleteUser',
     full_name='org.apache.custos.user.management.service.UserManagementService.deleteUser',
-    index=11,
+    index=14,
     containing_service=None,
     input_type=IamAdminService__pb2._USERSEARCHREQUEST,
-    output_type=IamAdminService__pb2._CHECKINGRESPONSE,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
     serialized_options=b'\202\323\344\223\002$*\034/user-management/v1.0.0/user:\004user',
   ),
   _descriptor.MethodDescriptor(
     name='deleteUserRoles',
     full_name='org.apache.custos.user.management.service.UserManagementService.deleteUserRoles',
-    index=12,
+    index=15,
     containing_service=None,
     input_type=IamAdminService__pb2._DELETEUSERROLESREQUEST,
-    output_type=IamAdminService__pb2._CHECKINGRESPONSE,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
     serialized_options=b'\202\323\344\223\002$*\"/user-management/v1.0.0/user/roles',
   ),
   _descriptor.MethodDescriptor(
     name='updateUserProfile',
     full_name='org.apache.custos.user.management.service.UserManagementService.updateUserProfile',
-    index=13,
+    index=16,
     containing_service=None,
     input_type=_USERPROFILEREQUEST,
     output_type=UserProfileService__pb2._USERPROFILE,
@@ -494,7 +609,7 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getUserProfile',
     full_name='org.apache.custos.user.management.service.UserManagementService.getUserProfile',
-    index=14,
+    index=17,
     containing_service=None,
     input_type=_USERPROFILEREQUEST,
     output_type=UserProfileService__pb2._USERPROFILE,
@@ -503,7 +618,7 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deleteUserProfile',
     full_name='org.apache.custos.user.management.service.UserManagementService.deleteUserProfile',
-    index=15,
+    index=18,
     containing_service=None,
     input_type=_USERPROFILEREQUEST,
     output_type=UserProfileService__pb2._USERPROFILE,
@@ -512,16 +627,25 @@ _USERMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getAllUserProfilesInTenant',
     full_name='org.apache.custos.user.management.service.UserManagementService.getAllUserProfilesInTenant',
-    index=16,
+    index=19,
     containing_service=None,
     input_type=_USERPROFILEREQUEST,
     output_type=UserProfileService__pb2._GETALLUSERPROFILESRESPONSE,
     serialized_options=b'\202\323\344\223\002\'\022%/user-management/v1.0.0/users/profile',
   ),
   _descriptor.MethodDescriptor(
+    name='linkUserProfile',
+    full_name='org.apache.custos.user.management.service.UserManagementService.linkUserProfile',
+    index=20,
+    containing_service=None,
+    input_type=_LINKUSERPROFILEREQUEST,
+    output_type=IamAdminService__pb2._OPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002-\"+/user-management/v1.0.0/user/profile/mapper',
+  ),
+  _descriptor.MethodDescriptor(
     name='getUserProfileAuditTrails',
     full_name='org.apache.custos.user.management.service.UserManagementService.getUserProfileAuditTrails',
-    index=17,
+    index=21,
     containing_service=None,
     input_type=UserProfileService__pb2._GETUPDATEAUDITTRAILREQUEST,
     output_type=UserProfileService__pb2._GETUPDATEAUDITTRAILRESPONSE,

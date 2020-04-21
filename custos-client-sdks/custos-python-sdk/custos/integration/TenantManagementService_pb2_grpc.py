@@ -47,10 +47,10 @@ class TenantManagementServiceStub(object):
         request_serializer=IamAdminService__pb2.AddProtocolMapperRequest.SerializeToString,
         response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
-    self.getCredentials = channel.unary_unary(
-        '/org.apache.custos.tenant.management.service.TenantManagementService/getCredentials',
-        request_serializer=TenantManagementService__pb2.GetCredentialsRequest.SerializeToString,
-        response_deserializer=TenantManagementService__pb2.GetCredentialsResponse.FromString,
+    self.configureEventPersistence = channel.unary_unary(
+        '/org.apache.custos.tenant.management.service.TenantManagementService/configureEventPersistence',
+        request_serializer=IamAdminService__pb2.EventPersistenceRequest.SerializeToString,
+        response_deserializer=IamAdminService__pb2.OperationStatus.FromString,
         )
     self.updateTenantStatus = channel.unary_unary(
         '/org.apache.custos.tenant.management.service.TenantManagementService/updateTenantStatus',
@@ -130,7 +130,7 @@ class TenantManagementServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def getCredentials(self, request, context):
+  def configureEventPersistence(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -212,10 +212,10 @@ def add_TenantManagementServiceServicer_to_server(servicer, server):
           request_deserializer=IamAdminService__pb2.AddProtocolMapperRequest.FromString,
           response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
-      'getCredentials': grpc.unary_unary_rpc_method_handler(
-          servicer.getCredentials,
-          request_deserializer=TenantManagementService__pb2.GetCredentialsRequest.FromString,
-          response_serializer=TenantManagementService__pb2.GetCredentialsResponse.SerializeToString,
+      'configureEventPersistence': grpc.unary_unary_rpc_method_handler(
+          servicer.configureEventPersistence,
+          request_deserializer=IamAdminService__pb2.EventPersistenceRequest.FromString,
+          response_serializer=IamAdminService__pb2.OperationStatus.SerializeToString,
       ),
       'updateTenantStatus': grpc.unary_unary_rpc_method_handler(
           servicer.updateTenantStatus,

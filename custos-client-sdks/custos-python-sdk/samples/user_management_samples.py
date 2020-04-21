@@ -17,6 +17,9 @@ import logging
 from clients.user_management_client import UserManagementClient
 from clients.identity_management_client import IdentityManagementClient
 
+from transport.settings import CustosServerClientSettings
+import clients.utils.utilities as utl
+
 logger = logging.getLogger(__name__)
 
 logger.setLevel(logging.DEBUG)
@@ -28,7 +31,8 @@ handler.setLevel(logging.DEBUG)
 client = UserManagementClient()
 id_client = IdentityManagementClient()
 
-token = "XXX"
+custos_settings = CustosServerClientSettings()
+token = utl.get_token(custos_settings)
 
 
 def register_user():
@@ -98,24 +102,9 @@ def add_roles_to_user():
 
 
 def find_users():
-    response = client.find_users(token, 0, 3, username="janith")
+    response = client.find_users(token, 0, 3, username="isjarana")
     print(response)
 
 
-x = 0;
-# #register_and_enable_users()
-# #add_user_attributes()
-# while x <= 50:
-#     # delete_user_attributes()
-#     #     # find_users()
-#     #     # add_user_attributes()
-#     #     # x = x + 1
-#     id_client.authenticate(token, "isjarana", "Custos1234")
 
-response = id_client.authenticate(token, "isjarana", "Custos1234")
 
-print(response.accessToken)
-#response = client.is_user_enabled(token, "test_2")
-
-#print(response)
-# register_and_enable_users()

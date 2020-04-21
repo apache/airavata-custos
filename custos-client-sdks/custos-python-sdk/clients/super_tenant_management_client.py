@@ -19,7 +19,7 @@ import grpc
 from custos.integration.TenantManagementService_pb2_grpc import TenantManagementServiceStub;
 from custos.core.TenantProfileService_pb2 import GetTenantsRequest, UpdateStatusRequest
 from transport.settings import CustosServerClientSettings
-
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -29,13 +29,15 @@ class SuperTenantManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
         self.channel = grpc.secure_channel(target=self.target, credentials=self.channel_credentials)
         self.tenant_stub = TenantManagementServiceStub(self.channel)
 
-    def get_all_tenants(self, token, offset, limit, status):
+    def get_all_tenants(self, token, offset, limit, status, requester_email=None):
         """
         Get all tenants
         :param token admin user token
@@ -48,7 +50,7 @@ class SuperTenantManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = GetTenantsRequest(offset=offset, limit=limit, status=status)
+            request = GetTenantsRequest(offset=offset, limit=limit, status=status, requester_email=None)
 
             return self.tenant_stub.getAllTenants(request, metadata=metadata)
 

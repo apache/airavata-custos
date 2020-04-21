@@ -24,6 +24,9 @@ from custos.core.IamAdminService_pb2 import RegisterUserRequest, UserRepresentat
     UserAttribute, AddUserAttributesRequest, DeleteUserAttributeRequest, UserSearchMetadata, FindUsersRequest, \
     AddUserRolesRequest, UserSearchRequest, ResetUserPassword, DeleteUserRolesRequest
 from custos.core.UserProfileService_pb2 import UserProfileRequest
+from custos.integration.UserManagementService_pb2 import LinkUserProfileRequest
+
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -34,6 +37,8 @@ class UserManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
@@ -325,7 +330,7 @@ class UserManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = DeleteUserRolesRequest(username=username, client_roles=client_roles, realm_roles=realm_roles)
+            request = DeleteUserRolesRequest(username=username, client_roles=client_roles, roles=realm_roles)
             return self.user_stub.deleteUserRoles(request, metadata=metadata)
 
         except Exception:
@@ -349,6 +354,31 @@ class UserManagementClient(object):
 
             request = UserProfileRequest(username=username, email=email, first_name=first_name, last_name=last_name)
             return self.user_stub.updateUserProfile(request, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred in update_user_profile, probably due to invalid parameters")
+            raise
+
+    def link_user_profile(self, token, current_username, previous_username, linking_attributes=None):
+        """
+        Link existing user profile with previous user profile
+        :param previous_username:
+        :param current_username:
+        :param linking_attributes:
+        :return:
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            attributeList = []
+            for atr in linking_attributes:
+                attribute = UserAttribute(key=atr['key'], values=atr['values'])
+                attributeList.append(attribute)
+
+            request = LinkUserProfileRequest(current_username=current_username, previous_username=previous_username,
+                                             linking_attributes=attributeList)
+            return self.user_stub.linkUserProfile(request, metadata=metadata)
 
         except Exception:
             logger.exception("Error occurred in update_user_profile, probably due to invalid parameters")

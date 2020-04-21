@@ -4,6 +4,7 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /tenant-management/$2
+    cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   rules:
     - host: custos.scigap.org

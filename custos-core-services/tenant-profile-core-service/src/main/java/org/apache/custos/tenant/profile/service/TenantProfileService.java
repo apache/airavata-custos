@@ -172,9 +172,13 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             int limit = request.getLimit();
             long parentId = request.getParentId();
 
+            String requesterEmail = request.getRequesterEmail();
+
             List<Tenant> tenants = null;
 
-            if (status == null && parentId == 0) {
+            if (requesterEmail != null && !requesterEmail.equals("")) {
+              tenants = tenantRepository.findByRequesterEmail(requesterEmail);
+            } else if (status == null && parentId == 0) {
                 tenants = tenantRepository.getAllWithPaginate(limit,offset);
             } else if (status != null && parentId == 0){
                 tenants = tenantRepository.findByStatusWithPaginate(status,limit,offset);

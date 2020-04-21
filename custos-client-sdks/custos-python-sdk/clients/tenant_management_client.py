@@ -23,7 +23,7 @@ from custos.core.IamAdminService_pb2 import AddRolesRequest, RoleRepresentation,
 from custos.integration.TenantManagementService_pb2 import GetCredentialsRequest, GetTenantRequest, \
     UpdateTenantRequest, DeleteTenantRequest
 from transport.settings import CustosServerClientSettings
-
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -33,6 +33,8 @@ class TenantManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)

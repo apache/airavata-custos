@@ -37,6 +37,11 @@ class IdentityManagementServiceStub(object):
         request_serializer=IdentityService__pb2.GetUserManagementSATokenRequest.SerializeToString,
         response_deserializer=IdentityService__pb2.AuthToken.FromString,
         )
+    self.endUserSession = channel.unary_unary(
+        '/org.apache.custos.identity.management.service.IdentityManagementService/endUserSession',
+        request_serializer=IdentityManagementService__pb2.EndSessionRequest.SerializeToString,
+        response_deserializer=IdentityService__pb2.OperationStatus.FromString,
+        )
     self.authorize = channel.unary_unary(
         '/org.apache.custos.identity.management.service.IdentityManagementService/authorize',
         request_serializer=IdentityManagementService__pb2.AuthorizationRequest.SerializeToString,
@@ -56,6 +61,16 @@ class IdentityManagementServiceStub(object):
         '/org.apache.custos.identity.management.service.IdentityManagementService/getOIDCConfiguration',
         request_serializer=IdentityService__pb2.GetOIDCConfiguration.SerializeToString,
         response_deserializer=google_dot_protobuf_dot_struct__pb2.Struct.FromString,
+        )
+    self.getAgentToken = channel.unary_unary(
+        '/org.apache.custos.identity.management.service.IdentityManagementService/getAgentToken',
+        request_serializer=IdentityManagementService__pb2.GetAgentTokenRequest.SerializeToString,
+        response_deserializer=google_dot_protobuf_dot_struct__pb2.Struct.FromString,
+        )
+    self.endAgentSession = channel.unary_unary(
+        '/org.apache.custos.identity.management.service.IdentityManagementService/endAgentSession',
+        request_serializer=IdentityManagementService__pb2.EndSessionRequest.SerializeToString,
+        response_deserializer=IdentityService__pb2.OperationStatus.FromString,
         )
 
 
@@ -91,6 +106,13 @@ class IdentityManagementServiceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def endUserSession(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def authorize(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -113,6 +135,20 @@ class IdentityManagementServiceServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def getOIDCConfiguration(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def getAgentToken(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def endAgentSession(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -142,6 +178,11 @@ def add_IdentityManagementServiceServicer_to_server(servicer, server):
           request_deserializer=IdentityService__pb2.GetUserManagementSATokenRequest.FromString,
           response_serializer=IdentityService__pb2.AuthToken.SerializeToString,
       ),
+      'endUserSession': grpc.unary_unary_rpc_method_handler(
+          servicer.endUserSession,
+          request_deserializer=IdentityManagementService__pb2.EndSessionRequest.FromString,
+          response_serializer=IdentityService__pb2.OperationStatus.SerializeToString,
+      ),
       'authorize': grpc.unary_unary_rpc_method_handler(
           servicer.authorize,
           request_deserializer=IdentityManagementService__pb2.AuthorizationRequest.FromString,
@@ -161,6 +202,16 @@ def add_IdentityManagementServiceServicer_to_server(servicer, server):
           servicer.getOIDCConfiguration,
           request_deserializer=IdentityService__pb2.GetOIDCConfiguration.FromString,
           response_serializer=google_dot_protobuf_dot_struct__pb2.Struct.SerializeToString,
+      ),
+      'getAgentToken': grpc.unary_unary_rpc_method_handler(
+          servicer.getAgentToken,
+          request_deserializer=IdentityManagementService__pb2.GetAgentTokenRequest.FromString,
+          response_serializer=google_dot_protobuf_dot_struct__pb2.Struct.SerializeToString,
+      ),
+      'endAgentSession': grpc.unary_unary_rpc_method_handler(
+          servicer.endAgentSession,
+          request_deserializer=IdentityManagementService__pb2.EndSessionRequest.FromString,
+          response_serializer=IdentityService__pb2.OperationStatus.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

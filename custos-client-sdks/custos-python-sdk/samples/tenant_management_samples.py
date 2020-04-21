@@ -16,6 +16,8 @@
 import logging
 from clients.tenant_management_client import TenantManagementClient
 from clients.super_tenant_management_client import SuperTenantManagementClient
+from transport.settings import CustosServerClientSettings
+import clients.utils.utilities as utl
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,8 @@ handler.setLevel(logging.DEBUG)
 client = TenantManagementClient()
 admin_client = SuperTenantManagementClient()
 
-token = "XXX"
+custos_settings = CustosServerClientSettings()
+token = utl.get_token(custos_settings)
 
 
 def create_tenant():
@@ -57,7 +60,8 @@ def get_tenant():
 def update_tenant():
     client_id = "custos-6nwoqodstpe5mvcq09lh-10000101"
     contacts = ["8123915386"]
-    redirect_uris = ["https://custos.scigap.org/callback ","http://127.0.0.1:8000/auth/callback/", "http://127.0.0.1:8000/"]
+    redirect_uris = ["https://custos.scigap.org/callback ", "http://127.0.0.1:8000/auth/callback/",
+                     "http://127.0.0.1:8000/"]
     response = client.update_tenant(token, client_id, "Custos Portal",
                                     "irjanith@gmail.com", "Isuru", "Ranawaka", "irjanith@gmail.com", "isjarana",
                                     "Custos1234",
