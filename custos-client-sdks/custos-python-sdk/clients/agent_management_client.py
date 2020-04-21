@@ -25,6 +25,7 @@ from custos.core.IamAdminService_pb2 import AgentClientMetadata, RegisterUserReq
     UserRepresentation, UserAttribute, AddUserAttributesRequest, DeleteUserAttributeRequest, AddUserRolesRequest, \
     DeleteUserRolesRequest, AddProtocolMapperRequest, ClaimJSONTypes, MapperTypes
 from custos.integration.AgentManagementService_pb2 import AgentSearchRequest
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -35,6 +36,8 @@ class AgentManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
@@ -77,10 +80,8 @@ class AgentManagementClient(object):
     def register_and_enable_agent(self, token, agent):
         """
         Register and enable agent
+        :param agent:
         :param token:
-        :param id:
-        :param realm_roles:
-        :param attributes:
         :return:
         """
         try:
@@ -88,13 +89,12 @@ class AgentManagementClient(object):
             metadata = (('authorization', token),)
 
             attributeList = []
-            for atr in agent:
+            for atr in agent['attributes']:
                 attribute = UserAttribute(key=atr['key'], values=atr['values'])
                 attributeList.append(attribute)
             id = agent['id']
             realm_roles = agent['realm_roles']
-            attributes = attributeList
-            user = UserRepresentation(id=id, realm_roles=realm_roles, attributes=attributes)
+            user = UserRepresentation(id=id, realm_roles=realm_roles, attributes=attributeList)
             request = RegisterUserRequest(user=user)
 
             return self.agent_stub.registerAndEnableAgent(request=request, metadata=metadata)

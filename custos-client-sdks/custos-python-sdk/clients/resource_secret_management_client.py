@@ -14,17 +14,22 @@
 #  limitations under the License.
 #
 
+
 import logging
 import grpc
-from custos.integration.TenantManagementService_pb2_grpc import TenantManagementServiceStub;
-from custos.core.TenantProfileService_pb2 import GetTenantsRequest, UpdateStatusRequest
+
 from transport.settings import CustosServerClientSettings
+
+from custos.integration.ResourceSecretManagementService_pb2_grpc import ResourceSecretManagementServiceStub
+from custos.core.IdentityService_pb2 import GetJWKSRequest
+from custos.core.ResourceSecretService_pb2 import GetSecretRequest, SecretMetadata, ResourceOwnerType, ResourceSource, \
+    ResourceType
 from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class SuperTenantManagementClient(object):
+class ResourceSecretManagementClient(object):
 
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
@@ -35,45 +40,44 @@ class SuperTenantManagementClient(object):
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
         self.channel = grpc.secure_channel(target=self.target, credentials=self.channel_credentials)
-        self.tenant_stub = TenantManagementServiceStub(self.channel)
+        self.resource_sec_client = ResourceSecretManagementServiceStub(self.channel)
 
-    def get_all_tenants(self, token, offset, limit, status, requester_email=None):
+    def get_secret(self, token, owner_type, resource_type, source, name):
         """
-        Get all tenants
-        :param token admin user token
-        :param offset  omits the initial number of entries
-        :param limit  contains maximum number of entries
-        :param status (ACTIVE, REQUESTED, DENIED, CANCELLED, DEACTIVATED)
-        :return: Tenants
+        Get secret from secret service
+        :param token:
+        :param owner_type:
+        :param resource_type:
+        :param source:
+        :param name:
+        :return:
         """
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = GetTenantsRequest(offset=offset, limit=limit, status=status, requester_email=None)
-
-            return self.tenant_stub.getAllTenants(request, metadata=metadata)
-
+            owner_type = ResourceOwnerType.Value(owner_type)
+            resource_type = ResourceType.Value(resource_type)
+            source = ResourceSource.Value(source)
+            met = SecretMetadata(owner_type=owner_type,
+                                 resource_type=resource_type, source=source, name=name)
+            request = GetSecretRequest(metadata=met)
+            return self.resource_sec_client.get_secret(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred in get_all_tenants, probably due to invalid parameters")
+            logger.exception("Error occurred while fetching secrets")
             raise
 
-    def update_tenant_status(self, token, client_id, status):
+    def get_JWKS(self, token):
         """
-        Update tenant status.
-        :param token admin user token
-        :param client_id  client id of tenant to be updated
-        :param status (ACTIVE, REQUESTED, DENIED, CANCELLED, DEACTIVATED)
-        :return: Operation Status
+        Get JWKS resources
+        :param token:
+        :return:
         """
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            request = UpdateStatusRequest(client_id=client_id, status=status)
-
-            return self.tenant_stub.updateTenantStatus(request, metadata=metadata)
-
+            request = GetJWKSRequest()
+            return self.resource_sec_client.get_JWKS(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred in update_tenant_status, probably due to invalid parameters")
+            logger.exception("Error occurred while fetching JWKS request")
             raise

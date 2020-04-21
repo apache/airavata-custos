@@ -13,9 +13,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-
 import logging
 from clients.identity_management_client import IdentityManagementClient
+from clients.agent_management_client import AgentManagementClient
+
 from transport.settings import CustosServerClientSettings
 import clients.utils.utilities as utl
 
@@ -26,48 +27,26 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 
-# load IdentityManagementClient with default configuration
-client = IdentityManagementClient()
+# load APIServerClient with default configuration
+client = AgentManagementClient()
+id_client = IdentityManagementClient()
 
 custos_settings = CustosServerClientSettings()
 token = utl.get_token(custos_settings)
 
 
-def authenticate():
-    response = client.authenticate(token, "isjarana", "Custos1234")
+def register_and_enable():
+    agent = {
+        "id": "agent-asdasda-erf",
+        "realm_roles": [],
+        "attributes": [{
+            "key": "agent_cluster_id",
+            "values": ["123123131"]
+        }]
+    }
+    id_res = id_client.token(token, username="isjarana", password="Custos1234", grant_type="password")
+    response = client.register_and_enable_agent(id_res['access_token'], agent)
     print(response)
 
 
-def is_authenticated():
-    access_token = client.authenticate(token, "issa", "1234")
-    response = client.is_authenticated(token, access_token.accessToken, "issa")
-    print(response)
-
-
-def get_user_management_access_token():
-    response = client.get_service_account_access_token(token)
-    print(response)
-
-
-def authorize():
-    response = client.authorize("custos-xgect9otrwawa8uwztym-10000006", "http://custos.lk", "code",
-                                "openid email profile", "asdadasdewde")
-    print(response)
-
-
-def token():
-    response = client.token(token, "http://custos.lk", "asdasdasdadasd")
-    print(response)
-
-
-def get_credentials():
-    response = client.get_credentials(token, "custos-xgect9otrwawa8uwztym-10000006")
-    print(response)
-
-
-def get_OIDC_config():
-    response = client.get_oidc_configuration(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
-    print(response)
-
-
-authenticate()
+register_and_enable()

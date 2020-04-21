@@ -21,8 +21,9 @@ import grpc
 from transport.settings import CustosServerClientSettings
 
 from custos.integration.GroupManagementService_pb2_grpc import GroupManagementServiceStub
-from custos.core.IamAdminService_pb2 import GroupRequest, GroupsRequest, UserGroupMappingRequest
-
+from custos.core.IamAdminService_pb2 import GroupRequest, GroupsRequest, UserGroupMappingRequest, UserAttribute, \
+    GroupRepresentation
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -32,6 +33,8 @@ class GroupManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
@@ -40,7 +43,7 @@ class GroupManagementClient(object):
 
     def create_groups(self, token, groups):
         """
-        create groups
+        Create groups
         :param token:
         :param groups:
         :return:
@@ -49,10 +52,16 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
+            group_list = []
+            for group in groups:
+                gr = self.__convert_groups(group)
+                group_list.append(gr)
 
-            return self.agent_stub.enableAgents(metadata=metadata)
+            request = GroupsRequest(groups=group_list)
+
+            return self.group_stub.createGroups(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while enabling agents")
+            logger.exception("Error occurred while creating groups")
             raise
 
     def update_group(self, token, group):
@@ -65,12 +74,12 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            request = AgentClientMetadata(access_token_life_time=access_token_life_time)
-
-            return self.agent_stub.enableAgents(request, metadata=metadata)
+            id = group['id']
+            gr = self.__convert_groups(group)
+            request = GroupRequest(id=id, group=gr)
+            return self.group_stub.updateGroup(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while configuring agent client")
+            logger.exception("Error occurred while updating group")
             raise
 
     def delete_group(self, token, id):
@@ -83,24 +92,13 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            attributeList = []
-            for atr in agent:
-                attribute = UserAttribute(key=atr['key'], values=atr['values'])
-                attributeList.append(attribute)
-            id = agent['id']
-            realm_roles = agent['realm_roles']
-            attributes = attributeList
-            user = UserRepresentation(id=id, realm_roles=realm_roles, attributes=attributes)
-            request = RegisterUserRequest(user=user)
-
-            return self.agent_stub.registerAndEnableAgent(request=request, metadata=metadata)
-
+            request = GroupRequest(id=id)
+            return self.group_stub.deleteGroup(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while enabling agents")
+            logger.exception("Error occurred while deleting group")
             raise
 
-    def find_group(self, token, group_name):
+    def find_group(self, token, group_name, group_id):
         """
         find group using group name
         :param token:
@@ -111,10 +109,11 @@ class GroupManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = AgentSearchRequest(id=id)
-            return self.agent_stub.getAgent(request=request, metadata=metadata)
+            gr = GroupRepresentation(id=group_id, name=group_name)
+            request = GroupRequest(id=group_id, group=gr)
+            return self.group_stub.findGroup(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while fetching agent")
+            logger.exception("Error occurred finding group")
             raise
 
     def get_all_groups(self, token):
@@ -126,11 +125,10 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            request = AgentSearchRequest(id=id)
-            return self.agent_stub.deleteAgent(request=request, metadata=metadata)
+            request = GroupRequest()
+            return self.group_stub.getAllGroups(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while deleting agent")
+            logger.exception("Error occurred while pulling groups")
             raise
 
     def add_user_to_group(self, token, username, group_id):
@@ -144,11 +142,10 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            request = AgentSearchRequest(id=id)
-            return self.agent_stub.disableAgent(request=request, metadata=metadata)
+            request = UserGroupMappingRequest(username=username, group_id=group_id)
+            return self.group_stub.addUserToGroup(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while disabling agent")
+            logger.exception("Error occurred while adding user to group")
             raise
 
     def remove_user_from_group(self, token, username, group_id):
@@ -162,9 +159,27 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-
-            request = AgentSearchRequest(id=id)
-            return self.agent_stub.enableAgent(request=request, metadata=metadata)
+            request = UserGroupMappingRequest(username=username, group_id=group_id)
+            return self.group_stub.removeUserFromGroup(request=request, metadata=metadata)
         except Exception:
-            logger.exception("Error occurred while enabling agent")
+            logger.exception("Error occurred while removing user from group")
             raise
+
+    def __convert_groups(self, group):
+        attributeList = []
+        for atr in group['attributes']:
+            attribute = UserAttribute(key=atr['key'], values=atr['values'])
+            attributeList.append(attribute)
+        name = group['name']
+        realm_roles = group['realm_roles']
+        client_roles = group['client_roles']
+        sub_groups = group['sub_groups']
+        attributes = attributeList
+
+        sub_list = []
+        for sub_group in sub_groups:
+            sub = self.__convert_groups(sub_group)
+            sub_list.append(sub)
+
+        return GroupRepresentation( name=name, realm_roles=realm_roles, client_roles=client_roles,
+                                   sub_groups=sub_list, attributes=attributes)

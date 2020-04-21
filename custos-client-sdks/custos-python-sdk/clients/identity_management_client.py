@@ -21,9 +21,10 @@ from transport.settings import CustosServerClientSettings
 
 from custos.integration.IdentityManagementService_pb2_grpc import IdentityManagementServiceStub
 from custos.core.IdentityService_pb2 import AuthenticationRequest, AuthToken, Claim, GetUserManagementSATokenRequest, \
-    GetTokenRequest, GetOIDCConfiguration
-from custos.integration.IdentityManagementService_pb2 import AuthorizationRequest, GetCredentialsRequest
-
+    GetTokenRequest, GetOIDCConfiguration, EndSessionRequest
+from custos.integration.IdentityManagementService_pb2 import AuthorizationRequest, GetCredentialsRequest, \
+    EndSessionRequest as Er, GetAgentTokenRequest
+from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -33,6 +34,8 @@ class IdentityManagementClient(object):
     def __init__(self, configuration_file_location=None):
         self.custos_settings = CustosServerClientSettings(configuration_file_location)
         self.target = self.custos_settings.CUSTOS_SERVER_HOST + ":" + str(self.custos_settings.CUSTOS_SERVER_PORT)
+        certManager = CertificateFetchingRestClient(configuration_file_location)
+        certManager.load_certificate()
         with open(self.custos_settings.CUSTOS_CERT_PATH, 'rb') as f:
             trusted_certs = f.read()
         self.channel_credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
@@ -118,7 +121,8 @@ class IdentityManagementClient(object):
             logger.exception("Error occurred in authorize, probably due to invalid parameters")
             raise
 
-    def token(self, token, redirect_uri, code):
+    def token(self, token, redirect_uri=None, code=None, username=None, password=None, refresh_token=None,
+              grant_type=None):
         """
         provide user access token
         :param token: client credentials
@@ -130,7 +134,9 @@ class IdentityManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = GetTokenRequest(redirect_uri=redirect_uri, code=code)
+            request = GetTokenRequest(redirect_uri=redirect_uri, code=code,
+                                      username=username, password=password, refresh_token=refresh_token,
+                                      grant_type=grant_type)
 
             return self.identity_stub.token(request, metadata=metadata)
         except Exception:
@@ -170,4 +176,63 @@ class IdentityManagementClient(object):
             return self.identity_stub.getOIDCConfiguration(request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred in get_OIDC_Configuration, probably due to invalid parameters")
+            raise
+
+    def end_user_session(self, token, refresh_token):
+        """
+        End user session
+        :param token:
+        :param refresh_token:
+        :return:
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            body = EndSessionRequest(refresh_token=refresh_token)
+            request = Er(body=body)
+
+            return self.identity_stub.endUserSession(request=request, metadata=metadata)
+        except Exception:
+            logger.exception("Error occurred while ending user session")
+            raise
+
+    def get_agent_token(self, token, client_id, grant_type, refresh_token=None):
+        """
+        Get agent token
+        :param token: base64Encoded(agentId:agentSec)
+        :param client_id: parent Client Id
+        :param grant_type: client_credentials, refresh_token
+        :param refresh_token:
+        :return:
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            request = GetAgentTokenRequest(client_id=client_id, grant_type=grant_type, refresh_token=refresh_token)
+
+            return self.identity_stub.getAgentToken(request=request, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred while fetching agent token")
+            raise
+
+    def end_agent_session(self, token, refresh_token):
+        """
+        End user session
+        :param token: base64Encoded(agentId:agentSec)
+        :param refresh_token:
+        :return:
+        """
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+
+            body = EndSessionRequest(refresh_token=refresh_token)
+            request = Er(body=body)
+
+            return self.identity_stub.endAgentSession(request=request, metadata=metadata)
+        except Exception:
+            logger.exception("Error occurred while ending agent session")
             raise
