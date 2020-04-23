@@ -481,7 +481,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             CredentialEntity entity = repository.findByClientId(credential.getId());
 
             if (entity == null) {
-                LOGGER.error("User not found");
+                LOGGER.error(" client not found");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
                 return;
             }
