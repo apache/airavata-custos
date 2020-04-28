@@ -282,6 +282,10 @@ enum ClaimJSONTypes {
     JSON = 4;
 }
 
+enum ResourceTypes {
+    USER =0;
+    AGENT = 1;
+}
 
 message OperationStatus {
     bool status = 1;
@@ -375,6 +379,18 @@ message Agent {
 }
 
 
+message GetAllResources {
+    int64 tenantId = 1;
+    string clientId = 2;
+    ResourceTypes resource_type = 3;
+}
+
+message GetAllResourcesResponse {
+    repeated Agent agents = 1;
+    repeated UserRepresentation users = 2;
+}
+
+
 service IamAdminService {
 
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
@@ -435,6 +451,9 @@ service IamAdminService {
     rpc deleteAgentAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
     rpc addRolesToAgent (AddUserRolesRequest) returns (OperationStatus);
     rpc deleteAgentRoles (DeleteUserRolesRequest) returns (OperationStatus);
+
+
+    rpc getAllResources (GetAllResources) returns (GetAllResourcesResponse);
 
 
 }

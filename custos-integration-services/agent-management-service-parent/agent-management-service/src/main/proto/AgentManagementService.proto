@@ -43,6 +43,11 @@ message AgentRegistrationResponse {
     string secret = 2;
 }
 
+message SynchronizeAgentDBRequest {
+    int64 tenantId = 2;
+    string clientId = 4;
+}
+
 
 service AgentManagementService {
 
@@ -115,6 +120,12 @@ service AgentManagementService {
            post: "/agent-management/v1.0.0/protocol/mapper"
         };
     }
+
+     rpc synchronizeAgentDBs (SynchronizeAgentDBRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+         option (google.api.http) = {
+           post: "/agent-management/v1.0.0/db/synchronize"
+        };
+      }
 
 
 }

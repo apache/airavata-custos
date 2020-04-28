@@ -889,7 +889,7 @@ public class KeycloakClient {
             idp.getConfig().put("defaultScope", scopes);
             idp.getConfig().put("issuer", ciLogonIssuerUri);
             idp.getConfig().put("jwksUri", jwksUri);
-            idp.getConfig().put("forwardParameters","idphint");
+            idp.getConfig().put("forwardParameters", "idphint");
 
             realmResource.identityProviders().create(idp);
 
@@ -1044,6 +1044,39 @@ public class KeycloakClient {
             }
         }
         return true;
+    }
+
+
+    /**
+     * Get all users of given tenant
+     *
+     * @param realmId
+     * @return
+     */
+    public List<UserRepresentation> getAllUsers(String realmId) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            List<UserRepresentation> representations = client.realm(realmId).users().list();
+            List<UserRepresentation> representationList = new ArrayList<>();
+            if (representations != null && !representations.isEmpty()) {
+                for (UserRepresentation userRepresentation : representations) {
+                    UserRepresentation userRep = getUserByUsername(client, realmId, userRepresentation.getUsername());
+                    representationList.add(userRep);
+                }
+            }
+            return representationList;
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding protocol mappers in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
     }
 
 
@@ -1630,24 +1663,7 @@ public class KeycloakClient {
 
             client = getClient(iamServerURL, realmId, accessToken);
 
-            UserRepresentation representation = getUserByUsername(client, realmId, username);
-
-            if (representation == null) {
-                return false;
-            }
-
-            Map<String, List<String>> attributes = representation.getAttributes();
-
-            if (attributes != null && !attributes.isEmpty()) {
-
-                for (String key : attributes.keySet()) {
-                    if (key.equals(Constants.CUSTOS_REALM_AGENT)) {
-                        return false;
-                    }
-
-                }
-            }
-            return true;
+            return isValidEndUser(client, realmId, username);
         } catch (Exception ex) {
             String msg = "Error occurred end user validity: " + ex.getMessage();
             LOGGER.error(msg, ex);
@@ -1659,6 +1675,47 @@ public class KeycloakClient {
         }
 
 
+    }
+
+    public boolean isValidEndUser(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            return isValidEndUser(client, realmId, username);
+        } catch (Exception ex) {
+            String msg = "Error occurred end user validity: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+
+    }
+
+
+    private boolean isValidEndUser(Keycloak client, String realmId, String username) {
+        UserRepresentation representation = getUserByUsername(client, realmId, username);
+
+        if (representation == null) {
+            return false;
+        }
+
+        Map<String, List<String>> attributes = representation.getAttributes();
+
+        if (attributes != null && !attributes.isEmpty()) {
+
+            for (String key : attributes.keySet()) {
+                if (key.equals(Constants.CUSTOS_REALM_AGENT)) {
+                    return false;
+                }
+
+            }
+        }
+        return true;
     }
 
 

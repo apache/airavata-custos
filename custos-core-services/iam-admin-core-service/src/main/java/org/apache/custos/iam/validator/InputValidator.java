@@ -135,6 +135,9 @@ public class InputValidator implements Validator {
             case "deleteRolesFromAgent":
                 validateDeleteRolesFromAgent(obj);
                 break;
+            case "getAllResources":
+                validateGetAllResources(obj);
+                break;
 
 
             default:
@@ -891,5 +894,28 @@ public class InputValidator implements Validator {
         return true;
     }
 
+
+    private boolean validateGetAllResources(Object obj) {
+        if (obj instanceof GetAllResources) {
+            GetAllResources request = (GetAllResources) obj;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
+                throw new MissingParameterException("Client Id should not be null", null);
+            }
+
+            if (request.getResourceType() == null) {
+                throw new MissingParameterException("Resource  type should not be null", null);
+            }
+
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method getAllResources");
+        }
+        return true;
+    }
 
 }
