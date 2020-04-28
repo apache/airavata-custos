@@ -17,17 +17,16 @@
  *  under the License.
  */
 
-package org.apache.custos.tenant.management.interceptors;
+package org.apache.custos.agent.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.iam.service.GetAllResources;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
-import org.apache.custos.tenant.management.service.Credentials;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
-import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -49,38 +48,17 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
-        if (method.equals("updateTenantStatus")) {
-            if ( !((UpdateStatusRequest)msg).getSuperTenant() ) {
-                AuthClaim claim = null;
-                String token = getToken(headers);
-                try {
-                    claim = authorizeUsingUserToken(headers);
-                } catch (Exception ex) {
-                    LOGGER.error(" Authorizing error " + ex.getMessage());
-                    throw new NotAuthorizedException("Request is not authorized", ex);
-                }
-                if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
-                    throw new NotAuthorizedException("Request is not authorized", null);
-                }
-                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy())
-                        .setAccessToken(token).build();
-            }
-            return msg;
-
-        } else if (method.equals("getAllTenants")) {
+        if (method.equals("synchronizeAgentDBs")) {
             AuthClaim claim = null;
             try {
-                claim = authorize(headers);
-                LOGGER.info("Claim "+ claim);
-                LOGGER.info("Claim Auth "+ claim.isSuperTenant());
+                claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
+                LOGGER.error(" Authorizing error " + ex.getMessage());
                 throw new NotAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant()) {
+            if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
                 throw new NotAuthorizedException("Request is not authorized", null);
             }
-
-            return msg;
 
         }
 
@@ -88,16 +66,4 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
     }
 
 
-    private Credentials getCredentials(AuthClaim claim) {
-        return Credentials.newBuilder()
-                .setCustosClientId(claim.getCustosId())
-                .setCustosClientSecret(claim.getCustosSecret())
-                .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
-                .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
-                .setIamClientId(claim.getIamAuthId())
-                .setIamClientSecret(claim.getIamAuthSecret())
-                .setCiLogonClientId(claim.getCiLogonId())
-                .setCiLogonClientSecret(claim.getCiLogonSecret()).build();
-
-    }
 }

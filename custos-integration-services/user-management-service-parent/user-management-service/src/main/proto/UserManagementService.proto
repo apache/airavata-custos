@@ -77,6 +77,10 @@ message LinkUserProfileRequest {
     string performedBy = 8;
 }
 
+message SynchronizeUserDBRequest {
+    int64 tenantId = 2;
+    string clientId = 4;
+}
 
 service UserManagementService {
 
@@ -240,7 +244,11 @@ service UserManagementService {
 
     }
 
-
+    rpc synchronizeUserDBs (SynchronizeUserDBRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/db/synchronize"
+        };
+    }
 
 }
 

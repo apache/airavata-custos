@@ -19,6 +19,7 @@
 
 package org.apache.custos.agent.management.service;
 
+import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.agent.profile.client.AgentProfileClient;
@@ -426,22 +427,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 org.apache.custos.iam.service.Agent agent = iamAdminServiceClient.getAgent(searchRequest);
 
 
-                Agent agentProfile = Agent.newBuilder()
-                        .setId(agent.getId())
-                        .setStatus(AgentStatus.DISABLED)
-                        .addAllRoles(agent.getRealmRolesList())
-                        .build();
-
-                for (UserAttribute atr : agent.getAttributesList()) {
-
-                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                            .setKey(atr.getKey())
-                            .addAllValue(atr.getValuesList())
-                            .build();
-
-                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                }
+                Agent agentProfile = getAgentProfile(agent);
 
                 AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                         .setAgent(agentProfile).build();
@@ -490,23 +476,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
                     org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
 
-                    Agent agentProfile = Agent.newBuilder()
-                            .setId(iamAgent.getId())
-                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
-                            .addAllRoles(iamAgent.getRealmRolesList())
-                            .build();
-
-                    for (UserAttribute atr : iamAgent.getAttributesList()) {
-
-                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                                .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
-                                .build();
-
-                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                    }
-
+                    Agent agentProfile = getAgentProfile(iamAgent);
                     AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                             .setAgent(agentProfile).build();
                     agentProfileClient.updateAgent(agentRequest);
@@ -554,23 +524,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                             .build();
 
                     org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
-
-                    Agent agentProfile = Agent.newBuilder()
-                            .setId(iamAgent.getId())
-                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
-                            .addAllRoles(iamAgent.getRealmRolesList())
-                            .build();
-
-                    for (UserAttribute atr : iamAgent.getAttributesList()) {
-
-                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                                .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
-                                .build();
-
-                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                    }
+                    Agent agentProfile = getAgentProfile(iamAgent);
 
                     AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                             .setAgent(agentProfile).build();
@@ -619,22 +573,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
                     org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
 
-                    Agent agentProfile = Agent.newBuilder()
-                            .setId(iamAgent.getId())
-                            .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
-                            .addAllRoles(iamAgent.getRealmRolesList())
-                            .build();
-
-                    for (UserAttribute atr : iamAgent.getAttributesList()) {
-
-                        AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                                .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
-                                .build();
-
-                        agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                    }
+                    Agent agentProfile = getAgentProfile(iamAgent);
 
                     AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                             .setAgent(agentProfile).build();
@@ -681,22 +620,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
                 org.apache.custos.iam.service.Agent iamAgent = iamAdminServiceClient.getAgent(searchRequest);
 
-                Agent agentProfile = Agent.newBuilder()
-                        .setId(iamAgent.getId())
-                        .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
-                        .addAllRoles(iamAgent.getRealmRolesList())
-                        .build();
-
-                for (UserAttribute atr : iamAgent.getAttributesList()) {
-
-                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                            .setKey(atr.getKey())
-                            .addAllValue(atr.getValuesList())
-                            .build();
-
-                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                }
+                Agent agentProfile = getAgentProfile(iamAgent);
 
                 AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                         .setAgent(agentProfile).build();
@@ -742,22 +666,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 org.apache.custos.iam.service.Agent agent = iamAdminServiceClient.getAgent(searchRequest);
 
 
-                Agent agentProfile = Agent.newBuilder()
-                        .setId(agent.getId())
-                        .setStatus(AgentStatus.ENABLED)
-                        .addAllRoles(agent.getRealmRolesList())
-                        .build();
-
-                for (UserAttribute atr : agent.getAttributesList()) {
-
-                    AgentAttribute agentAttribute = AgentAttribute.newBuilder()
-                            .setKey(atr.getKey())
-                            .addAllValue(atr.getValuesList())
-                            .build();
-
-                    agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
-
-                }
+                Agent agentProfile = getAgentProfile(agent);
 
                 AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                         .setAgent(agentProfile).build();
@@ -796,6 +705,73 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
+
+
+    @Override
+    public void synchronizeAgentDBs(SynchronizeAgentDBRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            Context ctx = Context.current().fork();
+            ctx.run(() -> {
+                GetAllResources resources = GetAllResources
+                        .newBuilder()
+                        .setClientId(request.getClientId())
+                        .setTenantId(request.getTenantId())
+                        .setResourceType(ResourceTypes.AGENT)
+                        .build();
+                GetAllResourcesResponse response = iamAdminServiceClient.getAllResources(resources);
+
+                if (response != null && response.getAgentsList() != null && !response.getAgentsList().isEmpty()) {
+
+                    for (org.apache.custos.iam.service.Agent agent : response.getAgentsList()) {
+
+                        Agent profile = getAgentProfile(agent);
+
+                        AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
+                                .setAgent(profile).build();
+                        Agent exAgent = agentProfileClient.getAgent(agentRequest);
+
+
+                        if (exAgent != null && exAgent.getId() != null && !exAgent.getId().equals("")) {
+                            agentProfileClient.updateAgent(agentRequest);
+                        } else {
+                            agentProfileClient.createAgent(agentRequest);
+                        }
+                    }
+                }
+
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            });
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at synchronizeAgentDBs " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    private Agent getAgentProfile(org.apache.custos.iam.service.Agent iamAgent) {
+        Agent agentProfile = Agent.newBuilder()
+                .setId(iamAgent.getId())
+                .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
+                .addAllRoles(iamAgent.getRealmRolesList())
+                .build();
+
+        for (UserAttribute atr : iamAgent.getAttributesList()) {
+
+            AgentAttribute agentAttribute = AgentAttribute.newBuilder()
+                    .setKey(atr.getKey())
+                    .addAllValue(atr.getValuesList())
+                    .build();
+
+            agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+
+        }
+        return agentProfile;
+
     }
 
 

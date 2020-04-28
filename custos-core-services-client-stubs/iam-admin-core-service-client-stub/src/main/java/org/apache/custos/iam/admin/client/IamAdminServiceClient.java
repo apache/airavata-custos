@@ -29,7 +29,6 @@ import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.List;
 
@@ -281,30 +280,39 @@ public class IamAdminServiceClient {
     public SetUpTenantResponse createAgentClient(AgentClientMetadata request) {
         return iamAdminServiceBlockingStub.createAgentClient(request);
     }
+
     public OperationStatus configureAgentClient(AgentClientMetadata request) {
         return iamAdminServiceBlockingStub.configureAgentClient(request);
     }
+
     public OperationStatus isAgentNameAvailable(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.isAgentNameAvailable(request);
     }
+
     public RegisterUserResponse registerAndEnableAgent(RegisterUserRequest request) {
         return iamAdminServiceBlockingStub.registerAndEnableAgent(request);
     }
+
     public OperationStatus disableAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.disableAgent(request);
     }
+
     public OperationStatus deleteAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.deleteAgent(request);
     }
+
     public OperationStatus addAgentAttributes(AddUserAttributesRequest request) {
         return iamAdminServiceBlockingStub.addAgentAttributes(request);
     }
+
     public OperationStatus deleteAgentAttributes(DeleteUserAttributeRequest request) {
         return iamAdminServiceBlockingStub.deleteAgentAttributes(request);
     }
+
     public OperationStatus addRolesToAgent(AddUserRolesRequest request) {
         return iamAdminServiceBlockingStub.addRolesToAgent(request);
     }
+
     public OperationStatus deleteAgentRoles(DeleteUserRolesRequest request) {
         return iamAdminServiceBlockingStub.deleteAgentRoles(request);
     }
@@ -323,6 +331,10 @@ public class IamAdminServiceClient {
 
     public SetUpTenantResponse updateTenant(SetUpTenantRequest request) {
         return iamAdminServiceBlockingStub.updateTenant(request);
+    }
+
+    public GetAllResourcesResponse getAllResources(GetAllResources request) {
+        return iamAdminServiceBlockingStub.getAllResources(request);
     }
 
     public Agent getAgent(UserSearchRequest request) {

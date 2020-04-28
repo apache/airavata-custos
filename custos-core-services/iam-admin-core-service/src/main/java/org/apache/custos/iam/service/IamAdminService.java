@@ -1885,22 +1885,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     return;
                 } else {
 
-                    Agent.Builder builder = Agent.newBuilder().setId(representation.getUsername())
-                            .setIsEnabled(representation.isEnabled())
-                            .setCreationTime(representation.getCreatedTimestamp());
-
-                    for (String key : representation.getAttributes().keySet()) {
-                        UserAttribute attribute = UserAttribute.newBuilder().setKey(key)
-                                .addAllValues(representation.getAttributes().get(key))
-                                .build();
-                        builder.addAttributes(attribute);
-                    }
-
-                    if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
-                        builder.addAllRealmRoles(representation.getRealmRoles());
-                    }
-
-                    Agent agent = builder.build();
+                    Agent agent = getAgent(representation);
                     responseObserver.onNext(agent);
                     responseObserver.onCompleted();
                 }
@@ -2041,12 +2026,93 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+
+    @Override
+    public void getAllResources(GetAllResources request, StreamObserver<GetAllResourcesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllResources for tenant " + request.getTenantId());
+
+            List<UserRepresentation> representations = keycloakClient.getAllUsers(String.valueOf(request.getTenantId()));
+            GetAllResourcesResponse resourcesResponse = GetAllResourcesResponse.newBuilder().build();
+            if (!representations.isEmpty()) {
+                if (request.getResourceType().name().equals(ResourceTypes.USER.name())) {
+                    List<org.apache.custos.iam.service.UserRepresentation> users = new ArrayList<>();
+                    for (UserRepresentation userRepresentation : representations) {
+
+                        boolean validationStatus = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                                userRepresentation.getUsername());
+                        if (validationStatus) {
+                            users.add(getUser(userRepresentation, request.getClientId()));
+
+                        }
+
+                    }
+
+                    resourcesResponse = resourcesResponse.toBuilder().addAllUsers(users).build();
+                    responseObserver.onNext(resourcesResponse);
+                    responseObserver.onCompleted();
+
+                } else {
+                    List<Agent> agents = new ArrayList<>();
+                    for (UserRepresentation userRepresentation : representations) {
+                        boolean validationStatus = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
+                                userRepresentation.getUsername());
+                        if (!validationStatus) {
+                            agents.add(getAgent(userRepresentation));
+                        }
+                    }
+
+                    resourcesResponse = resourcesResponse.toBuilder().addAllAgents(agents).build();
+                    responseObserver.onNext(resourcesResponse);
+                    responseObserver.onCompleted();
+
+                }
+
+            } else {
+                String msg = " Empty resources";
+                LOGGER.error(msg);
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+
+
+        } catch (Exception ex) {
+            String msg = " Get all resources failed";
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("HTTP 401 Unauthorized")) {
+                responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
     private OperationMetadata convertFromEntity(StatusEntity entity) {
         return OperationMetadata.newBuilder()
                 .setEvent(entity.getEvent())
                 .setStatus(entity.getState())
                 .setPerformedBy(entity.getPerformedBy())
                 .setTimeStamp(entity.getTime().toString()).build();
+    }
+
+
+    private Agent getAgent(UserRepresentation representation) {
+
+        Agent.Builder builder = Agent.newBuilder().setId(representation.getUsername())
+                .setIsEnabled(representation.isEnabled())
+                .setCreationTime(representation.getCreatedTimestamp());
+
+        for (String key : representation.getAttributes().keySet()) {
+            UserAttribute attribute = UserAttribute.newBuilder().setKey(key)
+                    .addAllValues(representation.getAttributes().get(key))
+                    .build();
+            builder.addAttributes(attribute);
+        }
+
+        if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
+            builder.addAllRealmRoles(representation.getRealmRoles());
+        }
+
+        return builder.build();
     }
 
 

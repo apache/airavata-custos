@@ -25,6 +25,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.agent.management.interceptors.ClientAuthInterceptorImpl;
 import org.apache.custos.agent.management.interceptors.InputValidator;
+import org.apache.custos.agent.management.interceptors.SuperTenantRestrictedOperationsInterceptorImpl;
 import org.apache.custos.agent.management.interceptors.UserAuthInterceptorImpl;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
@@ -66,11 +67,13 @@ public class AgentManagementServiceInitializer {
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
                                                                   ClientAuthInterceptorImpl authInterceptor,
-                                                                  UserAuthInterceptorImpl userAuthInterceptor) {
+                                                                  UserAuthInterceptorImpl userAuthInterceptor,
+                                                                  SuperTenantRestrictedOperationsInterceptorImpl superTenantRestrictedOperationsInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(inputValidator);
         interceptors.add(authInterceptor);
         interceptors.add(userAuthInterceptor);
+        interceptors.add(superTenantRestrictedOperationsInterceptor);
 
 
         return interceptors;
