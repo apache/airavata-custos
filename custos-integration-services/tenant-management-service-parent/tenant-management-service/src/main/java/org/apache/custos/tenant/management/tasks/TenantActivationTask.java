@@ -216,19 +216,36 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
         clientMetadataBuilder.setClientId(creMeta.getId());
 
 
-        RegisterClientResponse registerClientResponse = federatedAuthenticationClient
-                .addClient(clientMetadataBuilder.build());
+        if (!update) {
+            RegisterClientResponse registerClientResponse = federatedAuthenticationClient
+                    .addClient(clientMetadataBuilder.build());
 
 
-        CredentialMetadata credentialMetadataCILogon = CredentialMetadata
-                .newBuilder()
-                .setId(registerClientResponse.getClientId())
-                .setSecret(registerClientResponse.getClientSecret())
-                .setOwnerId(tenant.getTenantId())
-                .setType(Type.CILOGON)
-                .build();
+            CredentialMetadata credentialMetadataCILogon = CredentialMetadata
+                    .newBuilder()
+                    .setId(registerClientResponse.getClientId())
+                    .setSecret(registerClientResponse.getClientSecret())
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CILOGON)
+                    .build();
 
-        credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
+            credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
+
+
+            ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
+                    .newBuilder()
+                    .setTenantId(tenant.getTenantId())
+                    .setClientID(registerClientResponse.getClientId())
+                    .setClientSec(registerClientResponse.getClientSecret())
+                    .setScope(tenant.getScope())
+                    .setRequesterEmail(tenant.getRequesterEmail())
+                    .setType(FederatedIDPs.CILOGON)
+                    .build();
+            iamAdminServiceClient.configureFederatedIDP(request);
+        } else {
+            federatedAuthenticationClient
+                    .updateClient(clientMetadataBuilder.build());
+        }
 
         org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
                 org.apache.custos.tenant.profile.service.UpdateStatusRequest.newBuilder()
@@ -236,19 +253,6 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                         .setStatus(TenantStatus.ACTIVE)
                         .setUpdatedBy(Constants.SYSTEM)
                         .build();
-
-        ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
-                .newBuilder()
-                .setTenantId(tenant.getTenantId())
-                .setClientID(registerClientResponse.getClientId())
-                .setClientSec(registerClientResponse.getClientSecret())
-                .setScope(tenant.getScope())
-                .setRequesterEmail(tenant.getRequesterEmail())
-                .setType(FederatedIDPs.CILOGON)
-                .build();
-        iamAdminServiceClient.configureFederatedIDP(request);
-
-
         return profileClient.updateTenantStatus(updateTenantRequest);
     }
 
