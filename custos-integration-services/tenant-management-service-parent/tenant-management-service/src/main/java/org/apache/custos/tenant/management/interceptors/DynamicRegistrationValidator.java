@@ -93,6 +93,10 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             String clientId = tenantRequest.getClientId();
 
+            if (clientId == null || clientId.trim().equals("")) {
+                clientId = tenantRequest.getBody().getClientId();
+            }
+
             GetCredentialRequest request = GetCredentialRequest.newBuilder()
                     .setId(clientId)
                     .build();
@@ -105,7 +109,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
-            return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
+            return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).setClientId(clientId).build();
 
         } else if (method.equals("deleteTenant")) {
 
