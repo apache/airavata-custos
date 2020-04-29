@@ -110,8 +110,6 @@ public class InputValidator implements IntegrationServiceInterceptor {
             clientId = tenantRequest.getBody().getClientId();
         }
 
-        LOGGER.info("CLient Id "+ clientId);
-
         if (clientId == null || clientId.trim().equals("")) {
             throw new MissingParameterException("client_id should not be null", null);
         }
