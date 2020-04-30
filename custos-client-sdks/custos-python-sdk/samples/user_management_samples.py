@@ -16,6 +16,7 @@
 import logging
 from clients.user_management_client import UserManagementClient
 from clients.identity_management_client import IdentityManagementClient
+from clients.super_tenant_management_client import SuperTenantManagementClient
 
 from transport.settings import CustosServerClientSettings
 import clients.utils.utilities as utl
@@ -33,6 +34,8 @@ id_client = IdentityManagementClient()
 
 custos_settings = CustosServerClientSettings()
 token = utl.get_token(custos_settings)
+
+admin_client = SuperTenantManagementClient()
 
 
 def register_user():
@@ -107,4 +110,3 @@ def find_users():
 
 response = id_client.authenticate(token, "isjarana", "Custos1234")
 print(response)
-

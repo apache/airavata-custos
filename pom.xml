@@ -36,14 +36,6 @@
     <version>1.0-SNAPSHOT</version>
 
     <modules>
-<!--        <module>custos-commons</module>-->
-<!--        <module>custos-client</module>-->
-<!--        <module>ide-integration</module>-->
-<!--        <module>custos-authentication</module>-->
-<!--        <module>custos-profile-service</module>-->
-<!--        <module>custos-connectors</module>-->
-<!--        <module>custos-sharing-registry-service</module>-->
-<!--        <module>custos-rest-api</module>-->
         <module>custos-core-services</module>
         <module>custos-integration-services</module>
         <module>custos-core-services-client-stubs</module>
@@ -228,19 +220,6 @@
          </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.thrift</groupId>
-            <artifactId>libthrift</artifactId>
-            <version>${thrift.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mariadb.jdbc</groupId>
-            <artifactId>mariadb-java-client</artifactId>
-            <version>2.0.2</version>
-        </dependency>
-
-    </dependencies>
     <build>
         <extensions>
             <extension>

@@ -74,15 +74,7 @@ public class CILogonClient {
         }
         HttpHeaders headers = new HttpHeaders();
 
-        LOGGER.info("client name" + clientName);
-        LOGGER.info("URIS "+redirectURIs.toString());
-        LOGGER.info("Comment "+comment);
-        LOGGER.info("Token " +getBearerToken());
-        LOGGER.info("Scopes", scopes.toString());
-        LOGGER.info("Scopes size", scopes.length);
-        for(String scope: scopes) {
-            LOGGER.info(scope);
-        }
+
 
         headers.add("Authorization", getBearerToken());
         headers.setContentType(MediaType.APPLICATION_JSON);

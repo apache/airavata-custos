@@ -31,6 +31,8 @@ import clients.utils.utilities as utl
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+path = os.path.join(BASE_DIR, "../", "transport", "certificate.pem")
 
 class CertificateFetchingRestClient(object):
 

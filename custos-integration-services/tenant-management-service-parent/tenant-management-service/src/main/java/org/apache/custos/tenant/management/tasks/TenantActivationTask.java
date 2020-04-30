@@ -242,9 +242,6 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                     .setType(FederatedIDPs.CILOGON)
                     .build();
             iamAdminServiceClient.configureFederatedIDP(request);
-        } else {
-            federatedAuthenticationClient
-                    .updateClient(clientMetadataBuilder.build());
         }
 
         org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =

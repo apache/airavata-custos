@@ -37,7 +37,7 @@ token = utl.get_token(custos_settings)
 
 def register_and_enable():
     agent = {
-        "id": "agent-asdasda-erf",
+        "id": "agent-asdasda-ebnmvf",
         "realm_roles": [],
         "attributes": [{
             "key": "agent_cluster_id",

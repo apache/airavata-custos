@@ -30,17 +30,18 @@ handler.setLevel(logging.DEBUG)
 client = IdentityManagementClient()
 
 custos_settings = CustosServerClientSettings()
-token = utl.get_token(custos_settings)
+
+main_token = utl.get_token(custos_settings)
 
 
 def authenticate():
-    response = client.authenticate(token, "isjarana", "Custos1234")
+    response = client.authenticate(main_token, "isjarana", "Custos1234")
     print(response)
 
 
 def is_authenticated():
-    access_token = client.authenticate(token, "issa", "1234")
-    response = client.is_authenticated(token, access_token.accessToken, "issa")
+    access_token = client.authenticate(main_token, "issa", "1234")
+    response = client.is_authenticated(main_token, access_token.accessToken, "issa")
     print(response)
 
 
@@ -56,17 +57,17 @@ def authorize():
 
 
 def token():
-    response = client.token(token, "http://custos.lk", "asdasdasdadasd")
+    response = client.token(main_token, "http://custos.lk", "asdasdasdadasd")
     print(response)
 
 
 def get_credentials():
-    response = client.get_credentials(token, "custos-xgect9otrwawa8uwztym-10000006")
+    response = client.get_credentials(main_token, "custos-xgect9otrwawa8uwztym-10000006")
     print(response)
 
 
 def get_OIDC_config():
-    response = client.get_oidc_configuration(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
+    response = client.get_oidc_configuration(main_token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
 
 

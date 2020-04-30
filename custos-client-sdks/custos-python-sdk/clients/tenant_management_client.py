@@ -16,7 +16,7 @@
 
 import logging
 import grpc
-from custos.integration.TenantManagementService_pb2_grpc import TenantManagementServiceStub;
+from custos.integration.TenantManagementService_pb2_grpc import TenantManagementServiceStub
 from custos.core.TenantProfileService_pb2 import Tenant, GetTenantsRequest, GetAllTenantsForUserRequest
 from custos.core.IamAdminService_pb2 import AddRolesRequest, RoleRepresentation, AddProtocolMapperRequest, \
     ClaimJSONTypes, MapperTypes
@@ -100,18 +100,7 @@ class TenantManagementClient(object):
             logger.exception("Error occurred in create_tenant, probably due to invalid parameters")
             raise
 
-    def get_credentials(self, client_token):
-        """
-        :return: IAM credentials and CILogon credentials
-        """
-        try:
-            request = GetCredentialsRequest()
-            token = "Bearer " + client_token
-            metadata = (('authorization', token),)
-            return self.tenant_stub.getCredentials(request, metadata=metadata)
-        except Exception:
-            logger.exception("Error occurred in get_credentials, probably due to invalid parameters")
-            raise
+
 
     def get_tenant(self, client_token, client_id):
         """

@@ -12,7 +12,7 @@ setup(
     name='custos-python-sdk',
     version='1.0.0',
     packages=find_packages(),
-    package_data={'transport': ['*.ini'], 'sample': ['*.pem']},
+    package_data={'transport': ['*.ini', '*.pem'], 'sample': ['*.pem']},
     url='http://custos.com',
     license='Apache License 2.0',
     author='Custos Developers',
