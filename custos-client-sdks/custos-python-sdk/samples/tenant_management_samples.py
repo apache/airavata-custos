@@ -46,14 +46,12 @@ def create_tenant():
     print(response)
 
 
-def get_credentials():
-    response = client.get_credentials(token=token)
-    print(response)
+
 
 
 def get_tenant():
-    client_id = "custos-xgect9otrwawa8uwztym-10000006"
-    response = client.get_tenant(token=token, client_id=client_id)
+    client_id = "custos-8p4baddxvbiusmjorjch-10000401"
+    response = client.get_tenant(client_token=token, client_id=client_id)
     print(response)
 
 
@@ -97,5 +95,3 @@ def delete_tenant():
     response = client.delete_tenant(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
 
-
-update_tenant()

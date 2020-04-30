@@ -34,11 +34,12 @@ id_client = IdentityManagementClient()
 custos_settings = CustosServerClientSettings()
 token = utl.get_token(custos_settings)
 
+print(token)
 
 def create_group():
     groups = [
         {
-            "name": "testlm",
+            "name": "testll",
             "realm_roles": [],
             "client_roles": [],
             "attributes": [{
@@ -46,7 +47,7 @@ def create_group():
                 "values": ["8123915386"]
             }],
             "sub_groups": [{
-                "name": "testln",
+                "name": "testlj",
                 "realm_roles": [],
                 "client_roles": [],
                 "attributes": [{
@@ -58,8 +59,8 @@ def create_group():
         }
     ]
     id_res = id_client.token(token, username="isjarana", password="Custos1234", grant_type="password")
-    response = client.create_groups(id_res['access_token'], groups)
-    print(response)
+   # response = client.create_groups(id_res['access_token'], groups)
+   # print(response)
 
 
-create_group()
+#create_group()
