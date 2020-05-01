@@ -5,10 +5,10 @@ github:
     - airavata
     - apache
     - security
-    - OAuth2
-    - OpenIDConnect
-    - Authentication
-    - Authorization
+    - oauth2
+    - openidconnect
+    - authentication
+    - authorization
 
   features:
     wiki: true
