@@ -1,0 +1,16 @@
+github:
+  description: "Apache Airavata Custos Security"
+  homepage: https://airavata.apache.org/
+  labels:
+    - airavata
+    - apache
+    - security
+    - OAuth2
+    - OpenIDConnect
+    - Authentication
+    - Authorization
+
+  features:
+    wiki: true
+    issues: true
+    projects: true
