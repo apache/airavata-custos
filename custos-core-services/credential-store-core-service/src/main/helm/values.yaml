@@ -5,7 +5,7 @@
 replicaCount: 2
 
 image:
-  repository: isurur/${artifactId}
+  repository: apachecustos/${artifactId}
   tag: ${project.version}
   pullPolicy: Always
 

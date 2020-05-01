@@ -5,7 +5,7 @@
 replicaCount: 2
 
 image:
-  repository: isurur/${artifactId}
+  repository: apachecustos/${artifactId}
   tag: ${project.version}
   pullPolicy: Always
 
@@ -69,7 +69,7 @@ tolerations: []
 affinity: {}
 
 proxy:
-   repository: isurur/group-management-service-sidecar
+   repository: apachecustos/group-management-service-sidecar
    tag: 1.0-SNAPSHOT
    port: 50000
    adminport: 9901
