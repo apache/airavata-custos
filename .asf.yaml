@@ -1,0 +1,25 @@
+notifications:
+  commits:              commits@airavata.apache.org
+  # Send all issue emails (new, closed, comments) to issues@
+  issues:               issues@airavata.apache.org
+  # Send new/closed PR notifications to dev@
+  pullrequests_status:  custos@airavata.apache.org
+  # Send individual PR comments/reviews to issues@
+  pullrequests_comment: issues@airavata.apache.org
+
+github:
+  description: "Apache Airavata Custos Security"
+  homepage: https://airavata.apache.org/
+  labels:
+    - airavata
+    - apache
+    - security
+    - oauth2
+    - openidconnect
+    - authentication
+    - authorization
+
+  features:
+    wiki: true
+    issues: true
+    projects: true
