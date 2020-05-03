@@ -42,7 +42,6 @@
         <module>custos-integration-core</module>
         <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
-        <module>custos-clients</module>
     </modules>
 
     <dependencyManagement>
