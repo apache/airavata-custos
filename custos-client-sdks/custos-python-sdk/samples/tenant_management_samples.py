@@ -16,6 +16,7 @@
 import logging
 from clients.tenant_management_client import TenantManagementClient
 from clients.super_tenant_management_client import SuperTenantManagementClient
+from clients.identity_management_client import IdentityManagementClient
 from transport.settings import CustosServerClientSettings
 import clients.utils.utilities as utl
 
@@ -29,7 +30,7 @@ handler.setLevel(logging.DEBUG)
 # load APIServerClient with default configuration
 client = TenantManagementClient()
 admin_client = SuperTenantManagementClient()
-
+id_client = IdentityManagementClient()
 custos_settings = CustosServerClientSettings()
 token = utl.get_token(custos_settings)
 
@@ -44,9 +45,6 @@ def create_tenant():
                                           "openid profile email org.cilogon.userinfo", "domain.org",
                                           "https://domain.org/static/favicon.png", "Galaxy Portal")
     print(response)
-
-
-
 
 
 def get_tenant():
@@ -94,4 +92,5 @@ def get_all_tenants():
 def delete_tenant():
     response = client.delete_tenant(token, "custos-pv3fqfs9z1hps0xily2t-10000000")
     print(response)
+
 

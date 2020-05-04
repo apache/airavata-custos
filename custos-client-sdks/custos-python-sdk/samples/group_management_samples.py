@@ -59,8 +59,7 @@ def create_group():
         }
     ]
     id_res = id_client.token(token, username="isjarana", password="Custos1234", grant_type="password")
-   # response = client.create_groups(id_res['access_token'], groups)
-   # print(response)
+    response = client.create_groups(id_res['access_token'], groups)
+    print(response)
 
 
-#create_group()

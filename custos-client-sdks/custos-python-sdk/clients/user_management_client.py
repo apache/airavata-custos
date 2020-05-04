@@ -291,7 +291,7 @@ class UserManagementClient(object):
             metadata = (('authorization', token),)
 
             request = ResetUserPassword(username=username, password=password)
-            return self.user_stub.findUsers(request, metadata=metadata)
+            return self.user_stub.resetPassword(request, metadata=metadata)
 
         except Exception:
             logger.exception("Error occurred in reset_password, probably due to invalid parameters")

@@ -49,4 +49,3 @@ def register_and_enable():
     print(response)
 
 
-register_and_enable()
