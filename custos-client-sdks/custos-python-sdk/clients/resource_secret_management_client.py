@@ -24,6 +24,7 @@ from custos.integration.ResourceSecretManagementService_pb2_grpc import Resource
 from custos.core.IdentityService_pb2 import GetJWKSRequest
 from custos.core.ResourceSecretService_pb2 import GetSecretRequest, SecretMetadata, ResourceOwnerType, ResourceSource, \
     ResourceType
+from google.protobuf.json_format import  MessageToJson
 from clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -62,7 +63,8 @@ class ResourceSecretManagementClient(object):
             met = SecretMetadata(owner_type=owner_type,
                                  resource_type=resource_type, source=source, name=name)
             request = GetSecretRequest(metadata=met)
-            return self.resource_sec_client.get_secret(request=request, metadata=metadata)
+            msg = self.resource_sec_client.getSecret(request=request, metadata=metadata)
+            return MessageToJson(msg)
         except Exception:
             logger.exception("Error occurred while fetching secrets")
             raise
@@ -77,7 +79,8 @@ class ResourceSecretManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
             request = GetJWKSRequest()
-            return self.resource_sec_client.get_JWKS(request=request, metadata=metadata)
+            msg = self.resource_sec_client.getJWKS(request=request, metadata=metadata)
+            return MessageToJson(msg)
         except Exception:
             logger.exception("Error occurred while fetching JWKS request")
             raise
