@@ -94,6 +94,3 @@ def delete_tenant():
     print(response)
 
 
-# token_res = id_client.authenticate(token, "isjarana", "Custos1234")
-# response = admin_client.update_tenant_status(token_res.accessToken, "custos-xlbkovs0nuvhfdbw7bzh-10000402", "ACTIVE")
-# print(response)

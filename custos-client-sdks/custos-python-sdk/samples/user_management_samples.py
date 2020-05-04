@@ -108,5 +108,3 @@ def find_users():
     response = client.find_users(token, 0, 3, username="isjarana")
     print(response)
 
-response = id_client.authenticate(token, "isjarana", "Custos1234")
-print(response)

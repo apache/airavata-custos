@@ -71,4 +71,3 @@ def get_OIDC_config():
     print(response)
 
 
-authenticate()
