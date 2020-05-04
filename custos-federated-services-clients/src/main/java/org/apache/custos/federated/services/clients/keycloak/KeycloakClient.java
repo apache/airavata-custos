@@ -70,10 +70,10 @@ public class KeycloakClient {
     @Value("${iam.server.url:https://keycloak.custos.scigap.org:31000/auth/}")
     private String iamServerURL;
 
-    @Value("${iam.server.admin.username:keycloak}")
+    @Value("${iam.server.admin.username}")
     private String superAdminUserName;
 
-    @Value("${iam.server.admin.password:5SocwZ78TEUyyj0R}")
+    @Value("${iam.server.admin.password}")
     private String superAdminPassword;
 
     @Value("${iam.server.super.admin.realm.id:master}")
