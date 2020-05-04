@@ -1,3 +1,5 @@
 Apache Airavata Custos Security 
 
 Custos: Generalized versions of Apache Airavata Security server components and client libraries.
+
+Master branch is obselete, checkout develop branch for up-to-date code
