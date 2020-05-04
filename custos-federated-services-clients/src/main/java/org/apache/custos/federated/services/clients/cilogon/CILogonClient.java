@@ -37,11 +37,11 @@ import java.util.Base64;
 public class CILogonClient {
     private final static Logger LOGGER = LoggerFactory.getLogger(CILogonClient.class);
 
-    @Value("${ciLogon.admin.client.id:cilogon:/adminClient/22dc117c021f7787a3df8519438d4235/1581020563144}")
+    @Value("${ciLogon.admin.client.id}")
     private String adminClientId;
 
 
-    @Value("${ciLogon.admin.client.secret:c3o_634Ej3IpLCi98LZAx8JX8TE8WhfRtUSFB1qEPaoBKXblNzdCd6VC8pSCh0-SmWC8Tb729Rs6Mh2nQytL5g}")
+    @Value("${ciLogon.admin.client.secret}")
     private String adminClientSecret;
 
 
