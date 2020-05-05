@@ -32,7 +32,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>custos-java-sdk</module>
-        <module>custos-clients</module>
+        <module>custos-java-clients</module>
     </modules>
     <build>
         <plugins>
