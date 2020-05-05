@@ -26,7 +26,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>18</version>
+        <version>23</version>
         <relativePath/>
     </parent>
 
@@ -42,197 +42,186 @@
         <module>custos-integration-core</module>
         <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
-        <module>custos-tests</module>
     </modules>
 
-
     <dependencyManagement>
-         <dependencies>
-             <dependency>
-                 <groupId>org.springframework.boot</groupId>
-                 <artifactId>spring-boot-starter-parent</artifactId>
-                 <version>${spring.boot.version}</version>
-                 <type>pom</type>
-                 <scope>import</scope>
-             </dependency>
-             <dependency>
-                 <groupId>org.springframework.cloud</groupId>
-                 <artifactId>spring-cloud-dependencies</artifactId>
-                 <version>${spring.cloud.version}</version>
-                 <type>pom</type>
-                 <scope>import</scope>
-             </dependency>
-             <dependency>
-                 <groupId>org.lognet</groupId>
-                 <artifactId>grpc-spring-boot-starter</artifactId>
-                 <version>${grpc.spring.boot.version}</version>
-                 <exclusions>
-                     <exclusion>
-                         <groupId>io.grpc</groupId>
-                         <artifactId>grpc-netty</artifactId>
-                     </exclusion>
-                     <exclusion>
-                         <groupId>org.springframework.boot</groupId>
-                         <artifactId>spring-boot-starter</artifactId>
-                     </exclusion>
-                 </exclusions>
-             </dependency>
-             <dependency>
-                 <groupId>io.grpc</groupId>
-                 <artifactId>grpc-stub</artifactId>
-                 <version>${io.grpc.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>io.grpc</groupId>
-                 <artifactId>grpc-protobuf</artifactId>
-                 <version>${io.grpc.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>io.grpc</groupId>
-                 <artifactId>grpc-netty</artifactId>
-                 <version>${io.grpc.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>javax.annotation</groupId>
-                 <artifactId>javax.annotation-api</artifactId>
-                 <version>${javax.annotation.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.springframework.cloud</groupId>
-                 <artifactId>spring-cloud-starter-sleuth</artifactId>
-                 <version>${spring.cloud.slueth.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.springframework.cloud</groupId>
-                 <artifactId>spring-cloud-sleuth-zipkin</artifactId>
-                 <version>${spring.cloud.slueth.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.springframework.cloud</groupId>
-                 <artifactId>spring-cloud-starter-vault-config</artifactId>
-                 <version>${spring.boot.version}</version>
-             </dependency>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-parent</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.lognet</groupId>
+                <artifactId>grpc-spring-boot-starter</artifactId>
+                <version>${grpc.spring.boot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${javax.annotation.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-sleuth</artifactId>
+                <version>${spring.cloud.slueth.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-sleuth-zipkin</artifactId>
+                <version>${spring.cloud.slueth.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-vault-config</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
 
-             <dependency>
-                 <groupId>io.zipkin.brave</groupId>
-                 <artifactId>brave-instrumentation-grpc</artifactId>
-                 <version>${brave.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>io.micrometer</groupId>
-                 <artifactId>micrometer-registry-prometheus</artifactId>
-                 <version>${io.micrometer.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>com.google.api.grpc</groupId>
-                 <artifactId>proto-google-common-protos</artifactId>
-                 <version>${google.common.protos}</version>
-             </dependency>
-             <dependency>
-                 <groupId>mysql</groupId>
-                 <artifactId>mysql-connector-java</artifactId>
-                 <version>${mysql.connector.java}</version>
-             </dependency>
-             <dependency>
-                 <groupId>javax.persistence</groupId>
-                 <artifactId>persistence-api</artifactId>
-                 <version>${javax.persistance}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.keycloak</groupId>
-                 <artifactId>keycloak-admin-client</artifactId>
-                 <version>${keycloak.admin.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.keycloak</groupId>
-                 <artifactId>keycloak-authz-client</artifactId>
-                 <version>${keycloak.admin.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.keycloak</groupId>
-                 <artifactId>keycloak-authz-client</artifactId>
-                 <version>${keycloak.admin.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.jboss.resteasy</groupId>
-                 <artifactId>resteasy-client</artifactId>
-                 <version>${reasteasy.client.version}</version>
-             </dependency>
-             <dependency>
-             <groupId>org.jboss.resteasy</groupId>
-             <artifactId>resteasy-jackson2-provider</artifactId>
-             <version>${reasteasy.client.version}</version>
-         </dependency>
-             <dependency>
-                 <groupId>org.jboss.resteasy</groupId>
-                 <artifactId>resteasy-jaxrs</artifactId>
-                 <version>${reasteasy.client.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>org.jboss.resteasy</groupId>
-                 <artifactId>resteasy-multipart-provider</artifactId>
-                 <version>${reasteasy.client.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>com.google.protobuf</groupId>
-                 <artifactId>protobuf-java-util</artifactId>
-                 <version>${com.google.protobuf.util}</version>
-             </dependency>
-             <dependency>
-                 <groupId>io.springfox</groupId>
-                 <artifactId>springfox-swagger2</artifactId>
-                 <version>${springfox.swagger.version}</version>
-             </dependency>
+            <dependency>
+                <groupId>io.zipkin.brave</groupId>
+                <artifactId>brave-instrumentation-grpc</artifactId>
+                <version>${brave.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-registry-prometheus</artifactId>
+                <version>${io.micrometer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api.grpc</groupId>
+                <artifactId>proto-google-common-protos</artifactId>
+                <version>${google.common.protos}</version>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.connector.java}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.persistence</groupId>
+                <artifactId>persistence-api</artifactId>
+                <version>${javax.persistance}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-admin-client</artifactId>
+                <version>${keycloak.admin.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-authz-client</artifactId>
+                <version>${keycloak.admin.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-client</artifactId>
+                <version>${reasteasy.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-jackson2-provider</artifactId>
+                <version>${reasteasy.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-jaxrs</artifactId>
+                <version>${reasteasy.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-multipart-provider</artifactId>
+                <version>${reasteasy.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${com.google.protobuf.util}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger2</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
 
+            <!--Swagger -->
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger-ui</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-bean-validators</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.xml</groupId>
+                <artifactId>jaxb-api</artifactId>
+                <version>${jaxb.version}</version>
+            </dependency>
 
-             <!--Swagger -->
-             <dependency>
-                 <groupId>io.springfox</groupId>
-                 <artifactId>springfox-swagger-ui</artifactId>
-                 <version>${springfox.swagger.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>io.springfox</groupId>
-                 <artifactId>springfox-bean-validators</artifactId>
-                 <version>${springfox.swagger.version}</version>
-             </dependency>
-             <dependency>
-                 <groupId>javax.xml</groupId>
-                 <artifactId>jaxb-api</artifactId>
-                 <version>${jaxb.version}</version>
-             </dependency>
+            <!-- SCIM-->
+            <dependency>
+                <groupId>org.wso2.charon</groupId>
+                <artifactId>org.wso2.charon3.core</artifactId>
+                <version>${org.wso2.charon}</version>
+            </dependency>
 
-             <!-- SCIM-->
-             <dependency>
-                 <groupId>org.wso2.charon</groupId>
-                 <artifactId>org.wso2.charon3.core</artifactId>
-                 <version>${org.wso2.charon}</version>
-             </dependency>
+            <!--Kube -->
+            <dependency>
+                <groupId>io.kubernetes</groupId>
+                <artifactId>client-java</artifactId>
+                <version>${kube.java.client.version}</version>
+            </dependency>
 
+            <!-- Integration tests dependencies -->
+            <dependency>
+                <groupId>org.testng</groupId>
+                <artifactId>testng</artifactId>
+                <version>${testng.version}</version>
+                <scope>test</scope>
+            </dependency>
 
-             <!--Kube -->
-             <dependency>
-                 <groupId>io.kubernetes</groupId>
-                 <artifactId>client-java</artifactId>
-                 <version>${kube.java.client.version}</version>
-             </dependency>
-
-             <!-- Integration tests dependencies -->
-             <dependency>
-                 <groupId>org.testng</groupId>
-                 <artifactId>testng</artifactId>
-                 <version>${testng.version}</version>
-                 <scope>test</scope>
-             </dependency>
-
-             <dependency>
-                 <groupId>org.json</groupId>
-                 <artifactId>json</artifactId>
-                 <version>${org.json.version}</version>
-             </dependency>
-
-
-         </dependencies>
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${org.json.version}</version>
+            </dependency>
+        </dependencies>
     </dependencyManagement>
 
     <profiles>
@@ -274,9 +263,11 @@
                         <artifactId>protobuf-maven-plugin</artifactId>
                         <version>${protobuf.maven.plugin}</version>
                         <configuration>
-                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}</protocArtifact>
+                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}
+                            </protocArtifact>
                             <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}</pluginArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}
+                            </pluginArtifact>
                         </configuration>
                         <executions>
                             <execution>
@@ -325,9 +316,11 @@
                         <artifactId>protobuf-maven-plugin</artifactId>
                         <version>${protobuf.maven.plugin}</version>
                         <configuration>
-                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}</protocArtifact>
+                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}
+                            </protocArtifact>
                             <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}</pluginArtifact>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}
+                            </pluginArtifact>
                         </configuration>
                         <executions>
                             <execution>
@@ -393,6 +386,31 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
+                        <version>0.13</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*.json</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -413,7 +431,7 @@
         <thrift.version>0.12.0</thrift.version>
         <openjpa.version>2.4.3</openjpa.version>
         <mysql.connector.version>5.1.34</mysql.connector.version>
-        <maven.assembly.plugin>3.1.1</maven.assembly.plugin>
+        <maven.assembly.plugin>3.3.0</maven.assembly.plugin>
         <junit.version>4.8.1</junit.version>
         <jmockit.version>1.8</jmockit.version>
         <java.version>11</java.version>
@@ -436,11 +454,11 @@
         <io.micrometer.version>1.3.1</io.micrometer.version>
         <brave.version>5.9.1</brave.version>
 
-         <docker.image.prefix>apachecustos</docker.image.prefix>
+        <docker.image.prefix>apachecustos</docker.image.prefix>
         <docker.image.repo>custos</docker.image.repo>
-         <docker.plugin.version>1.4.13</docker.plugin.version>
+        <docker.plugin.version>1.4.13</docker.plugin.version>
 
-         <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
+        <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
@@ -462,7 +480,6 @@
         <org.json.version>20190722</org.json.version>
 
     </properties>
-
 
     <repositories>
         <repository>
