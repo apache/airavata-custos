@@ -19,20 +19,22 @@
 
 package org.apache.custos.identity.management.client;
 
+import com.google.protobuf.Struct;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.credential.store.service.Credentials;
-import org.apache.custos.identity.management.service.AuthorizationRequest;
-import org.apache.custos.identity.management.service.AuthorizationResponse;
+import org.apache.custos.identity.management.service.GetAgentTokenRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
+import org.apache.custos.identity.service.EndSessionRequest;
+import org.apache.custos.identity.service.GetOIDCConfiguration;
 import org.apache.custos.identity.service.GetTokenRequest;
-import org.apache.custos.identity.service.TokenResponse;
+import org.apache.custos.identity.service.OperationStatus;
 
-import javax.net.ssl.SSLException;
+import java.io.IOException;
 
 /**
  * Java client to connect with the Custos Identity Management Service
@@ -45,28 +47,15 @@ public class IdentityManagementClient {
     private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub blockingStub;
 
 
-    private String clientId;
-
-    private String clientSecret;
-
-
     public IdentityManagementClient(String serviceHost, int servicePort, String clientId,
-                                    String clientSecret, String certificateFilePath) throws SSLException {
-
-        if (serviceHost == null || certificateFilePath == null || clientId == null || clientSecret == null) {
-            throw new NullPointerException("Please provide all the parameters");
-        }
-
+                                    String clientSecret) throws IOException {
 
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()
-                        .trustManager(ClientUtils.getFile(IdentityManagementClient.class, certificateFilePath)) // public key
+                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
                         .build())
                 .build();
-
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
 
         blockingStub = IdentityManagementServiceGrpc.newBlockingStub(managedChannel);
         blockingStub = MetadataUtils.attachHeaders(blockingStub, ClientUtils.getAuthorizationHeader(clientId, clientSecret));
@@ -74,49 +63,110 @@ public class IdentityManagementClient {
 
 
     /**
-     * Authorization Endpoint
+     * Get token
      *
      * @param redirectUri
-     * @param responseType
-     * @param scope        return AuthorizationResponse
-     */
-    public AuthorizationResponse authorize(String redirectUri, String responseType, String scope, String state) {
-
-        AuthorizationRequest request = AuthorizationRequest
-                .newBuilder()
-                .setRedirectUri(redirectUri)
-                .setResponseType(responseType)
-                .setState(state)
-                .setScope(scope).build();
-        return blockingStub.authorize(request);
-    }
-
-    /**
-     * Token Endpoint
-     *
      * @param code
-     * @param redirectUri
-     * @return TokenResponse
+     * @param username
+     * @param password
+     * @param refreshToken
+     * @param grantType
+     * @return
      */
-    public TokenResponse getToken(String code, String redirectUri) {
+    public Struct getToken(String redirectUri, String code, String username, String password, String refreshToken,
+                           String grantType) {
 
-        GetTokenRequest request = GetTokenRequest
-                .newBuilder()
-                .setCode(code)
+        GetTokenRequest.Builder request = GetTokenRequest.newBuilder();
+
+        request = request
                 .setRedirectUri(redirectUri)
-                .build();
+                .setCode(code);
 
-        return null;
+        if (username != null) {
+            request = request.setUsername(username);
+        }
+        if (password != null) {
+            request = request.setPassword(password);
+        }
+        if (refreshToken != null) {
+            request = request.setRefreshToken(refreshToken);
+        }
+        if (grantType != null) {
+            request = request.setGrantType(grantType);
+        }
+
+        return blockingStub.token(request.build());
+
     }
 
+
     /**
-     * Returns Custos Id, Custos client secret, IAM Id, IAM Client Secret, CILogon Id, CILogon Client Secret
+     * Get iam, cilogon credentials of given tenant
      *
+     * @param clientId
      * @return
      */
     public Credentials getCredentials(String clientId) {
         GetCredentialsRequest request = GetCredentialsRequest.newBuilder().setClientId(clientId).build();
         return blockingStub.getCredentials(request);
+    }
+
+
+    /**
+     * Get OIDC configurations of given client
+     * @param clientId
+     * @return
+     */
+    public Struct getOIDCConfiguration(String clientId) {
+
+        GetOIDCConfiguration configuration = GetOIDCConfiguration
+                .newBuilder()
+                .setClientId(clientId).build();
+        return blockingStub.getOIDCConfiguration(configuration);
+
+    }
+
+
+    /**
+     * End user session
+     * @param refreshToken
+     * @return
+     */
+    public OperationStatus endUserSession(String refreshToken) {
+        EndSessionRequest body = EndSessionRequest
+                .newBuilder()
+                .setRefreshToken(refreshToken)
+                .build();
+        org.apache.custos.identity.management.service.EndSessionRequest endSessionRequest =
+                org.apache.custos.identity.management.service.EndSessionRequest
+                        .newBuilder()
+                        .setBody(body)
+                        .build();
+        return blockingStub.endUserSession(endSessionRequest);
+    }
+
+
+    /**
+     * Get agent tokens
+     * @param clientId
+     * @param grantType
+     * @param refreshToken
+     * @return
+     */
+    public Struct getAgentToken(String clientId, String grantType, String refreshToken) {
+
+        GetAgentTokenRequest.Builder agentTokenRequest = GetAgentTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setGrantType(grantType);
+
+        if (refreshToken != null) {
+            agentTokenRequest = agentTokenRequest.setRefreshToken(refreshToken);
+        }
+
+
+        return blockingStub.getAgentToken(agentTokenRequest.build());
+
     }
 
 

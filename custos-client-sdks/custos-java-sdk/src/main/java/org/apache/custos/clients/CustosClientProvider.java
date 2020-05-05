@@ -20,10 +20,11 @@
 package org.apache.custos.clients;
 
 import org.apache.custos.identity.management.client.IdentityManagementClient;
-import org.apache.custos.tenant.manamgement.client.AdminTenantRegistrationClient;
+import org.apache.custos.tenant.manamgement.client.SuperAdminOperationsClient;
 import org.apache.custos.tenant.manamgement.client.TenantManagementClient;
 
 import javax.net.ssl.SSLException;
+import java.io.IOException;
 
 /**
  * The class responsible for provides the Custos clients
@@ -45,19 +46,19 @@ public class CustosClientProvider {
     }
 
 
-    public IdentityManagementClient getIdentityManagementClient(String clientId, String clientSecret) throws SSLException {
-        return new IdentityManagementClient(this.serverHost, this.serverPort, clientId, clientSecret, this.certFilePath);
+    public IdentityManagementClient getIdentityManagementClient(String clientId, String clientSecret) throws IOException {
+        return new IdentityManagementClient(this.serverHost, this.serverPort, clientId, clientSecret);
     }
 
 
-    public TenantManagementClient getTenantManagementClient(String clientId, String clientSecret) throws SSLException {
-        return new TenantManagementClient(this.serverHost, this.serverPort, clientId, clientSecret, this.certFilePath);
+    public TenantManagementClient getTenantManagementClient(String clientId, String clientSecret) throws IOException {
+        return new TenantManagementClient(this.serverHost, this.serverPort, clientId, clientSecret);
     }
 
 
-    public AdminTenantRegistrationClient getAdminTenantRegistrationClient() throws SSLException {
-        return new AdminTenantRegistrationClient(this.serverHost, this.serverPort, this.certFilePath);
-    }
+//    public SuperAdminOperationsClient getAdminTenantRegistrationClient() throws IOException {
+//        return new SuperAdminOperationsClient(this.serverHost, this.serverPort);
+//    }
 
 
     public static class Builder {

@@ -22,21 +22,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>custos-client-sdks</artifactId>
+        <artifactId>custos</artifactId>
         <groupId>org.apache.custos</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>custos-java-clients</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>identity-management-client</module>
-        <module>tenant-management-client</module>
-        <module>custos-clients-core</module>
-        <module>user-management-client</module>
-        <module>agent-management-client</module>
-        <module>group-management-client</module>
-    </modules>
+
+    <artifactId>custos-tests</artifactId>
 
     <build>
         <plugins>
@@ -50,4 +42,5 @@
         </plugins>
 
     </build>
+
 </project>

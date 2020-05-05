@@ -207,6 +207,22 @@
                 <artifactId>client-java</artifactId>
                 <version>${kube.java.client.version}</version>
             </dependency>
+
+
+            <!-- Integration tests dependencies -->
+            <dependency>
+                <groupId>org.testng</groupId>
+                <artifactId>testng</artifactId>
+                <version>${testng.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${org.json.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -462,7 +478,12 @@
 
         <kube.java.client.version>5.0.0</kube.java.client.version>
 
+        <testng.version>6.8</testng.version>
+        <org.json.version>20190722</org.json.version>
+
+
     </properties>
+
 
     <repositories>
         <repository>

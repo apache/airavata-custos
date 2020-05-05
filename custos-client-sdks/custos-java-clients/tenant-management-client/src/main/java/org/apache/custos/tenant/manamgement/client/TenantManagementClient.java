@@ -24,13 +24,18 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
+import org.apache.custos.iam.service.*;
+import org.apache.custos.tenant.management.service.DeleteTenantRequest;
+import org.apache.custos.tenant.management.service.GetTenantRequest;
+import org.apache.custos.tenant.management.service.GetTenantResponse;
 import org.apache.custos.tenant.management.service.*;
-import org.apache.custos.tenant.profile.service.Tenant;
+import org.apache.custos.tenant.profile.service.*;
 
-import javax.net.ssl.SSLException;
+import java.io.IOException;
+import java.util.Arrays;
 
 /**
- * Java client to managed registered Custos Tenants
+ * This class contains tenant management operations
  */
 public class TenantManagementClient {
 
@@ -39,128 +44,211 @@ public class TenantManagementClient {
     private TenantManagementServiceGrpc.TenantManagementServiceBlockingStub blockingStub;
 
 
-    public TenantManagementClient(String serviceHost, int servicePort, String certificateFilePath, String adminClientId,
-                                  String adminClientSecret) throws SSLException {
-
-        if (serviceHost == null || certificateFilePath == null || adminClientId == null || adminClientSecret == null) {
-            throw new NullPointerException("Please provide all the parameters");
-        }
+    public TenantManagementClient(String serviceHost, int servicePort, String clientId,
+                                  String clientSecret) throws IOException {
 
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()
-                        .trustManager(ClientUtils.getFile(TenantManagementClient.class, certificateFilePath)) // public key
+                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
                         .build())
                 .build();
 
-
         blockingStub = TenantManagementServiceGrpc.newBlockingStub(managedChannel);
+
         blockingStub = MetadataUtils.attachHeaders(blockingStub,
-                ClientUtils.getAuthorizationHeader(adminClientId, adminClientSecret));
-
-    }
-
-    /**
-     * Only accessible by admin tenants and provides information related  to given Client Id.
-     *
-     * @param clientId
-     * @return {
-     * <p>
-     * string client_id
-     * string client_name
-     * string requester_email
-     * string admin_first_name
-     * string admin_last_name
-     * string admin_email
-     * repeated string contacts
-     * repeated string redirect_uris
-     * repeated string grant_types
-     * double client_id_issued_at
-     * string client_uri
-     * string scope
-     * string domain
-     * string comment
-     * string logo_uri
-     * string application_type
-     * string jwks_uri ;
-     * string example_extension_parameter
-     * string tos_uri
-     * string policy_uri
-     * map<string, string> jwks
-     * string software_id
-     * string software_version
-     * }
-     */
-    public GetTenantResponse getTenant(String clientId) {
-
-        if (clientId == null) {
-            throw new NullPointerException("Client Id is null");
-        }
-
-        GetTenantRequest tenantRequest = GetTenantRequest.newBuilder().setClientId(clientId).build();
-        return blockingStub.getTenant(tenantRequest);
+                ClientUtils.getAuthorizationHeader(clientId, clientSecret));
 
     }
 
 
     /**
-     * Only accessible by admin tenants and updates and get information related to given Client Id
-     *
-     * @param tenant
-     * @param clientId
-     * @return {
-     * <p>
-     * string client_id
-     * string client_name
-     * string requester_email
-     * string admin_first_name
-     * string admin_last_name
-     * string admin_email
-     * repeated string contacts
-     * repeated string redirect_uris
-     * repeated string grant_types
-     * double client_id_issued_at
-     * string client_uri
-     * string scope
-     * string domain
-     * string comment
-     * string logo_uri
-     * string application_type
-     * string jwks_uri
-     * string example_extension_parameter
-     * string tos_uri
-     * string policy_uri
-     * map<string, string> jwks
-     * string software_id
-     * string software_version
-     * }
+     * Register child tenant
+     * @param client_name
+     * @param requester_email
+     * @param admin_frist_name
+     * @param admin_last_name
+     * @param admin_email
+     * @param admin_username
+     * @param admin_password
+     * @param contacts
+     * @param redirect_uris
+     * @param client_uri
+     * @param scope
+     * @param domain
+     * @param logo_uri
+     * @param comment
+     * @return
      */
-    public GetTenantResponse updateAndGetTenant(Tenant tenant, String clientId) {
+    public CreateTenantResponse registerTenant(String client_name, String requester_email, String admin_frist_name,
+                                               String admin_last_name, String admin_email, String admin_username,
+                                               String admin_password, String[] contacts, String[] redirect_uris,
+                                               String client_uri, String scope, String domain, String logo_uri,
+                                               String comment) {
+        Tenant tenant = Tenant.newBuilder()
+                .setClientName(client_name)
+                .setRequesterEmail(requester_email)
+                .setAdminFirstName(admin_frist_name)
+                .setAdminLastName(admin_last_name)
+                .setAdminEmail(admin_email)
+                .setAdminUsername(admin_username)
+                .setAdminPassword(admin_password)
+                .addAllContacts(Arrays.asList(contacts))
+                .addAllRedirectUris(Arrays.asList(redirect_uris))
+                .setClientUri(client_uri)
+                .setScope(scope)
+                .setDomain(domain)
+                .setLogoUri(logo_uri)
+                .setComment(comment)
+                .setApplicationType("web")
+                .build();
 
-        if (tenant == null || clientId == null) {
-            throw new NullPointerException(" Tenant and Client Id should not be null");
-        }
+        return blockingStub.createTenant(tenant);
+
+    }
+
+
+    /**
+     * Update tenant
+     * @param clientId
+     * @param client_name
+     * @param requester_email
+     * @param admin_frist_name
+     * @param admin_last_name
+     * @param admin_email
+     * @param admin_username
+     * @param admin_password
+     * @param contacts
+     * @param redirect_uris
+     * @param client_uri
+     * @param scope
+     * @param domain
+     * @param logo_uri
+     * @param comment
+     * @return
+     */
+    public GetTenantResponse updateTenant(String clientId, String client_name, String requester_email, String admin_frist_name,
+                                          String admin_last_name, String admin_email, String admin_username,
+                                          String admin_password, String[] contacts, String[] redirect_uris,
+                                          String client_uri, String scope, String domain, String logo_uri,
+                                          String comment) {
+        Tenant tenant = Tenant.newBuilder()
+                .setClientName(client_name)
+                .setRequesterEmail(requester_email)
+                .setAdminFirstName(admin_frist_name)
+                .setAdminLastName(admin_last_name)
+                .setAdminEmail(admin_email)
+                .setAdminUsername(admin_username)
+                .setAdminPassword(admin_password)
+                .addAllContacts(Arrays.asList(contacts))
+                .addAllRedirectUris(Arrays.asList(redirect_uris))
+                .setClientUri(client_uri)
+                .setScope(scope)
+                .setDomain(domain)
+                .setLogoUri(logo_uri)
+                .setComment(comment)
+                .setApplicationType("web")
+                .build();
 
         UpdateTenantRequest updateTenantRequest = UpdateTenantRequest.newBuilder()
-                .setClientId(clientId).setBody(tenant).build();
+                .setBody(tenant)
+                .setClientId(clientId)
+                .build();
 
         return blockingStub.updateTenant(updateTenantRequest);
 
     }
 
+
+    public GetTenantResponse getTenant(String clientId) {
+        GetTenantRequest tenantRequest = GetTenantRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .build();
+        return blockingStub.getTenant(tenantRequest);
+    }
+
+
     /**
-     * Only accessible by admin tenants and deletes the  tenant  attached to given Client Id
-     *
+     * delete tenant identified by clientId
      * @param clientId
      */
     public void deleteTenant(String clientId) {
-        if (clientId == null) {
-            throw new NullPointerException("Client Id should not be null");
-        }
-
         DeleteTenantRequest tenantRequest = DeleteTenantRequest.newBuilder().setClientId(clientId).build();
         blockingStub.deleteTenant(tenantRequest);
+    }
 
+
+    /**
+     * Add tenant roles to tenant
+     * @param roleRepresentations
+     * @param clientLevel
+     * @return
+     */
+    public AllRoles addTenantRoles(RoleRepresentation[] roleRepresentations, boolean clientLevel) {
+
+        AddRolesRequest rolesRequest = AddRolesRequest
+                .newBuilder()
+                .addAllRoles(Arrays.asList(roleRepresentations))
+                .setClientLevel(clientLevel)
+                .build();
+        return blockingStub.addTenantRoles(rolesRequest);
+
+    }
+
+    public OperationStatus addProtocolMapper(String name, String attributeName, String claimName, String claimType, String mapperType,
+                                             boolean addToIdToken, boolean addToAccessToken, boolean addToUserInfo, boolean multiValued,
+                                             boolean aggregreteMultiValues) {
+
+        AddProtocolMapperRequest mapperRequest = AddProtocolMapperRequest.newBuilder()
+                .setName(name)
+                .setAttributeName(attributeName)
+                .setClaimName(claimName)
+                .setMapperType(MapperTypes.valueOf(mapperType))
+                .setClaimType(ClaimJSONTypes.valueOf(claimType))
+                .setAddToAccessToken(addToAccessToken)
+                .setAddToIdToken(addToIdToken)
+                .setAddToUserInfo(addToUserInfo)
+                .setMultiValued(multiValued)
+                .setAggregateAttributeValues(aggregreteMultiValues)
+                .build();
+        return blockingStub.addProtocolMapper(mapperRequest);
+    }
+
+
+    /**
+     * Get child tenants
+     * @param limit
+     * @param offset
+     * @param status
+     * @return
+     */
+    public GetAllTenantsResponse getChildTenants(int limit, int offset, String status) {
+
+        GetTenantsRequest request = GetTenantsRequest
+                .newBuilder()
+                .setLimit(limit)
+                .setOffset(offset)
+                .setStatus(TenantStatus.valueOf(status))
+                .build();
+
+        return blockingStub.getChildTenants(request);
+    }
+
+
+    /**
+     * provides all tenants requested by given email
+     * @param email
+     * @return
+     */
+    public GetAllTenantsForUserResponse getAllTenants(String email) {
+
+        GetAllTenantsForUserRequest request = GetAllTenantsForUserRequest
+                .newBuilder()
+                .setRequesterEmail(email)
+                .build();
+
+        return blockingStub.getAllTenantsForUser(request);
     }
 
 

@@ -20,15 +20,23 @@
 package org.apache.custos.clients.core;
 
 import io.grpc.Metadata;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Base64;
 
+
 /**
- * Having utility methods to used by clients
+ * Utility methods for clients
  */
 public class ClientUtils {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientUtils.class);
 
     /**
      * Creates authorization header
@@ -51,6 +59,16 @@ public class ClientUtils {
         return header;
     }
 
+
+    public static Metadata getAuthorizationHeader(String accessToken) {
+
+        String headerStr = "Bearer " + accessToken;
+        Metadata header = new Metadata();
+        Metadata.Key<String> key = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+        header.put(key, headerStr);
+        return header;
+    }
+
     /**
      * Provides file object
      *
@@ -64,5 +82,55 @@ public class ClientUtils {
                 .getFile());
     }
 
+
+    public static InputStream getServerCertificate(String serverHost, String clientId,
+                                                   String clientSec) throws IOException {
+        HttpURLConnection conn = null;
+        InputStream inputStream = null;
+        try {
+            String url = "https://" + serverHost +
+                    "/apiserver/resource-secret-management/v1.0.0/secret?metadata.owner_type=CUSTOS&metadata.resource_type=SERVER_CERTIFICATE";
+
+            URL endpoint = new URL(url);
+            conn = (HttpURLConnection) endpoint.openConnection();
+            conn.setRequestMethod("GET");
+            String userCredentials = clientId + ":" + clientSec;
+            String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("Authorization", basicAuth);
+            if (conn.getResponseCode() != 200) {
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            StringBuilder responseStrBuilder = new StringBuilder();
+            inputStream = conn.getInputStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (inputStream)));
+
+            String output;
+
+            while ((output = br.readLine()) != null) {
+                responseStrBuilder.append(output);
+            }
+
+            JSONObject jsonObject = new JSONObject(responseStrBuilder.toString());
+
+            Object key = jsonObject.get("value");
+            return new ByteArrayInputStream(((String) key).getBytes(Charset.forName("UTF-8")));
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching server certificate";
+            LOGGER.error(msg, ex);
+            throw ex;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+                inputStream.close();
+
+            }
+        }
+
+    }
 
 }
