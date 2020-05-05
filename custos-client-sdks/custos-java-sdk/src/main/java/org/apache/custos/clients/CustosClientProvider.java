@@ -46,8 +46,8 @@ public class CustosClientProvider {
     }
 
 
-    public IdentityManagementClient getIdentityManagementClient(String clientId, String clientSecret) throws SSLException {
-        return new IdentityManagementClient(this.serverHost, this.serverPort, clientId, clientSecret, this.certFilePath);
+    public IdentityManagementClient getIdentityManagementClient(String clientId, String clientSecret) throws IOException {
+        return new IdentityManagementClient(this.serverHost, this.serverPort, clientId, clientSecret);
     }
 
 
