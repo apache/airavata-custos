@@ -16,25 +16,28 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-scrape_configs:
-  - job_name: 'prometheus'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['localhost:9090']
-  - job_name: 'tenantRegistrationService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-      - targets: ['docker.for.mac.localhost:8080']
+notifications:
+  commits:              commits@airavata.apache.org
+  # Send all issue emails (new, closed, comments) to issues@
+  issues:               issues@airavata.apache.org
+  # Send new/closed PR notifications to dev@
+  pullrequests_status:  custos@airavata.apache.org
+  # Send individual PR comments/reviews to issues@
+  pullrequests_comment: issues@airavata.apache.org
 
-  - job_name: 'iamAdminCoreService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-        - targets: ['docker.for.mac.localhost:8080']
+github:
+  description: "Apache Airavata Custos Security"
+  homepage: https://airavata.apache.org/
+  labels:
+    - airavata
+    - apache
+    - security
+    - oauth2
+    - openidconnect
+    - authentication
+    - authorization
 
-  - job_name: 'tenantProfileCoreService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-        - targets: ['docker.for.mac.localhost:8080']
+  features:
+    wiki: true
+    issues: true
+    projects: true

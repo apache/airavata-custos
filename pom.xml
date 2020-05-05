@@ -208,6 +208,7 @@
                 <version>${kube.java.client.version}</version>
             </dependency>
 
+
             <!-- Integration tests dependencies -->
             <dependency>
                 <groupId>org.testng</groupId>
@@ -221,6 +222,7 @@
                 <artifactId>json</artifactId>
                 <version>${org.json.version}</version>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -479,7 +481,9 @@
         <testng.version>6.8</testng.version>
         <org.json.version>20190722</org.json.version>
 
+
     </properties>
+
 
     <repositories>
         <repository>

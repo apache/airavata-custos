@@ -16,25 +16,21 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-scrape_configs:
-  - job_name: 'prometheus'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['localhost:9090']
-  - job_name: 'tenantRegistrationService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-      - targets: ['docker.for.mac.localhost:8080']
 
-  - job_name: 'iamAdminCoreService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-        - targets: ['docker.for.mac.localhost:8080']
+language: java
 
-  - job_name: 'tenantProfileCoreService'
-    scrape_interval: 10s
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-        - targets: ['docker.for.mac.localhost:8080']
+sudo: false
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+jdk:
+  - oraclejdk11
+
+script: mvn clean install
+
+# Git-describe Maven plugin needs the full history
+git:
+  depth: false
