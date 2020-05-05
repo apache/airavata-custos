@@ -28,12 +28,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>custos-client-sdks</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>custos-java-sdk</module>
-        <module>custos-java-clients</module>
-    </modules>
+    <artifactId>custos-tests</artifactId>
+
     <build>
         <plugins>
             <plugin>
