@@ -9,7 +9,7 @@ notifications:
 
 github:
   description: "Apache Airavata Custos Security"
-  homepage: https://airavata.apache.org/
+  homepage: https://airavata.apache.org/custos
   labels:
     - airavata
     - apache
@@ -20,6 +20,6 @@ github:
     - authorization
 
   features:
-    wiki: true
+    wiki: false
     issues: true
     projects: true
