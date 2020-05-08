@@ -78,10 +78,13 @@ public class IdentityManagementClient {
 
         GetTokenRequest.Builder request = GetTokenRequest.newBuilder();
 
-        request = request
-                .setRedirectUri(redirectUri)
-                .setCode(code);
+        if (redirectUri != null) {
+            request = request.setRedirectUri(redirectUri);
+        }
 
+        if (code != null) {
+            request = request.setCode(code);
+        }
         if (username != null) {
             request = request.setUsername(username);
         }
