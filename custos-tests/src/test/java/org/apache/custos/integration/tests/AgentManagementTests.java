@@ -200,7 +200,7 @@ public class AgentManagementTests {
         Assert.assertTrue(status.getStatus());
     }
 
-    @AfterClass
+    @AfterClass(groups = {"agent-management"})
     public void cleanup() {
         LOGGER.info("Completing agent management tests " + LOG_SUFFIX);
         agentManagementClient = null;
