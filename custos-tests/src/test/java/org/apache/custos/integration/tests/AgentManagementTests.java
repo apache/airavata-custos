@@ -105,7 +105,7 @@ public class AgentManagementTests {
 
     @Test(groups = {"agent-management"}, dependsOnMethods = {"getAgent"})
     public void disableAgent() {
-        LOGGER.info("Executing get agent test case ");
+        LOGGER.info("Executing disable agent test case ");
         OperationStatus status = agentManagementClient.disableAgent(adminToken, agentId);
         Assert.assertTrue(status.getStatus());
     }
@@ -200,7 +200,7 @@ public class AgentManagementTests {
         Assert.assertTrue(status.getStatus());
     }
 
-    @AfterClass
+    @AfterClass(groups = {"agent-management"})
     public void cleanup() {
         LOGGER.info("Completing agent management tests " + LOG_SUFFIX);
         agentManagementClient = null;
@@ -216,7 +216,8 @@ public class AgentManagementTests {
     static String getAlphaNumericString(int n) {
 
         // chose a Character random from this String
-        String AlphaNumericString = "abcdefghijklmnopqrstuvxyz"
+        String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"+
+                "abcdefghijklmnopqrstuvxyz"
                 + "0123456789";
 
         // create StringBuffer size of AlphaNumericString

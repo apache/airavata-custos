@@ -204,7 +204,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 if (response.getIsRegistered()) {
 
                     Agent agent = Agent.newBuilder()
-                            .setId(representation.getId())
+                            .setId(representation.getId().toLowerCase())
                             .setStatus(AgentStatus.ENABLED)
                             .build();
 
@@ -378,7 +378,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
                 credentialStoreServiceClient.deleteAgentCredential(credentialMetadata);
 
-                Agent agent = Agent.newBuilder().setId(request.getId()).build();
+                Agent agent = Agent.newBuilder().setId(request.getId().toLowerCase()).build();
 
                 AgentRequest agentRequest = AgentRequest.newBuilder().setTenantId(request.getTenantId())
                         .setAgent(agent).build();
@@ -755,7 +755,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
     private Agent getAgentProfile(org.apache.custos.iam.service.Agent iamAgent) {
         Agent agentProfile = Agent.newBuilder()
-                .setId(iamAgent.getId())
+                .setId(iamAgent.getId().toLowerCase())
                 .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
                 .addAllRoles(iamAgent.getRealmRolesList())
                 .build();

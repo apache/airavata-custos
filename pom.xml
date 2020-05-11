@@ -482,7 +482,7 @@
         <docker.image.repo>custos</docker.image.repo>
         <docker.plugin.version>1.4.13</docker.plugin.version>
 
-        <helm.maven.plugin.version>2.16.0</helm.maven.plugin.version>
+        <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
