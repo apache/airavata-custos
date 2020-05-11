@@ -13,17 +13,23 @@
             <define name="user-management-tests">
                 <include name="user-management" />
             </define>
+            <define name="agent-management-tests">
+                <include name="agent-management" />
+            </define>
             <dependencies>
                 <group depends-on="tenant-management-tests" name="user-management-tests"></group>
+                <group depends-on="user-management-tests" name="agent-management-tests"></group>
             </dependencies>
             <run>
                 <include name="tenant-management-tests" />
                 <include name="user-management-tests" />
+                <include name="agent-management-tests" />
             </run>
         </groups>
         <classes>
             <class name="org.apache.custos.integration.tests.TenantManagementTests" />
             <class name="org.apache.custos.integration.tests.UserManagementTests" />
+            <class name="org.apache.custos.integration.tests.AgentManagementTests" />
         </classes>
     </test>
 </suite>

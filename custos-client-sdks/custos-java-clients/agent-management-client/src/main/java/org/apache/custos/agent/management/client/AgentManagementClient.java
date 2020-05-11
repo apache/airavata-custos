@@ -44,9 +44,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus enableAgents(String adminToken) {
-
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentClientMetadata metadata = AgentClientMetadata
                 .newBuilder()
@@ -64,8 +65,10 @@ public class AgentManagementClient {
      */
     public OperationStatus configureAgentClient(String adminToken, long accessTokenLifeTime) {
 
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentClientMetadata metadata = AgentClientMetadata
                 .newBuilder()
@@ -85,8 +88,10 @@ public class AgentManagementClient {
      */
     public AgentRegistrationResponse registerAndEnableAgent(String adminToken, String id, String[] realmRoles, UserAttribute[] agentAttributes) {
 
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         UserRepresentation userRepresentation = UserRepresentation
                 .newBuilder()
@@ -112,8 +117,10 @@ public class AgentManagementClient {
      * @return
      */
     public Agent getAgent(String adminToken, String agentId) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentSearchRequest request = AgentSearchRequest
                 .newBuilder()
@@ -130,8 +137,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus deleteAgent(String adminToken, String agentId) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentSearchRequest request = AgentSearchRequest
                 .newBuilder()
@@ -149,8 +158,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus disableAgent(String adminToken, String agentId) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentSearchRequest request = AgentSearchRequest
                 .newBuilder()
@@ -169,8 +180,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus enableAgent(String adminToken, String agentId) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AgentSearchRequest request = AgentSearchRequest
                 .newBuilder()
@@ -189,9 +202,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus addAgentAttributes(String adminToken, String[] agents, UserAttribute[] attributes) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
-
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
         AddUserAttributesRequest addUserAttributesRequest = AddUserAttributesRequest
                 .newBuilder()
                 .addAllAttributes(Arrays.asList(attributes))
@@ -210,8 +224,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus deleteAgentAttributes(String adminToken, String[] agents, UserAttribute[] attributes) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         DeleteUserAttributeRequest addUserAttributesRequest = DeleteUserAttributeRequest
                 .newBuilder()
@@ -230,8 +246,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus addRolesToAgents(String adminToken, String[] agents, String[] roles) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AddUserRolesRequest addUserRolesRequest = AddUserRolesRequest
                 .newBuilder()
@@ -251,8 +269,10 @@ public class AgentManagementClient {
      * @return
      */
     public OperationStatus deleteRolesFromAgents(String adminToken, String id, String[] roles) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         DeleteUserRolesRequest deleteUserRolesRequest = DeleteUserRolesRequest
                 .newBuilder()
@@ -281,8 +301,10 @@ public class AgentManagementClient {
     public OperationStatus addProtocolMapper(String adminToken, String name, String attributeName, String claimName, String claimType, String mapperType,
                                              boolean addToIdToken, boolean addToAccessToken, boolean addToUserInfo, boolean multiValued,
                                              boolean aggregrateAttributeValues) {
+        AgentManagementServiceGrpc.AgentManagementServiceBlockingStub unAuthorizedStub =
+                AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AddProtocolMapperRequest mapperRequest = AddProtocolMapperRequest
                 .newBuilder()
