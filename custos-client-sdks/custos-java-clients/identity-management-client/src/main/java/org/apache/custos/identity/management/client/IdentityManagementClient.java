@@ -46,6 +46,8 @@ public class IdentityManagementClient {
 
     private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub blockingStub;
 
+    private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub cleanBlockingStub;
+
 
     public IdentityManagementClient(String serviceHost, int servicePort, String clientId,
                                     String clientSecret) throws IOException {
@@ -58,6 +60,7 @@ public class IdentityManagementClient {
                 .build();
 
         blockingStub = IdentityManagementServiceGrpc.newBlockingStub(managedChannel);
+        cleanBlockingStub = IdentityManagementServiceGrpc.newBlockingStub(managedChannel);
         blockingStub = MetadataUtils.attachHeaders(blockingStub, ClientUtils.getAuthorizationHeader(clientId, clientSecret));
     }
 
@@ -78,10 +81,13 @@ public class IdentityManagementClient {
 
         GetTokenRequest.Builder request = GetTokenRequest.newBuilder();
 
-        request = request
-                .setRedirectUri(redirectUri)
-                .setCode(code);
+        if (redirectUri != null) {
+            request = request.setRedirectUri(redirectUri);
+        }
 
+        if (code != null) {
+            request = request.setCode(code);
+        }
         if (username != null) {
             request = request.setUsername(username);
         }
@@ -114,6 +120,7 @@ public class IdentityManagementClient {
 
     /**
      * Get OIDC configurations of given client
+     *
      * @param clientId
      * @return
      */
@@ -129,6 +136,7 @@ public class IdentityManagementClient {
 
     /**
      * End user session
+     *
      * @param refreshToken
      * @return
      */
@@ -148,12 +156,13 @@ public class IdentityManagementClient {
 
     /**
      * Get agent tokens
+     *
      * @param clientId
      * @param grantType
      * @param refreshToken
      * @return
      */
-    public Struct getAgentToken(String clientId, String grantType, String refreshToken) {
+    public Struct getAgentToken(String clientId, String agentId, String agentSec, String grantType, String refreshToken) {
 
         GetAgentTokenRequest.Builder agentTokenRequest = GetAgentTokenRequest
                 .newBuilder()
@@ -164,8 +173,8 @@ public class IdentityManagementClient {
             agentTokenRequest = agentTokenRequest.setRefreshToken(refreshToken);
         }
 
-
-        return blockingStub.getAgentToken(agentTokenRequest.build());
+        cleanBlockingStub = MetadataUtils.attachHeaders(cleanBlockingStub, ClientUtils.getAuthorizationHeader(agentId, agentSec));
+        return cleanBlockingStub.getAgentToken(agentTokenRequest.build());
 
     }
 

@@ -42,6 +42,7 @@
         <module>custos-integration-core</module>
         <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
+        <module>custos-tests</module>
     </modules>
 
     <dependencyManagement>
@@ -214,13 +215,18 @@
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
                 <version>${testng.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${org.json.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${log.back.version}</version>
             </dependency>
 
         </dependencies>
@@ -395,7 +401,7 @@
                     <plugin>
                         <groupId>org.apache.rat</groupId>
                         <artifactId>apache-rat-plugin</artifactId>
-                        <version>0.13</version>
+                        <version>${apache.rat.plugin.version}</version>
                         <configuration>
                             <excludes>
                                 <exclude>**/*.json</exclude>
@@ -409,6 +415,22 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven.surefile.plugin.version}</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -460,7 +482,7 @@
         <docker.image.repo>custos</docker.image.repo>
         <docker.plugin.version>1.4.13</docker.plugin.version>
 
-        <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
+        <helm.maven.plugin.version>2.16.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
@@ -480,6 +502,12 @@
 
         <testng.version>6.8</testng.version>
         <org.json.version>20190722</org.json.version>
+
+        <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
+
+        <maven.surefile.plugin.version>3.0.0-M4</maven.surefile.plugin.version>
+
+        <log.back.version>1.2.3</log.back.version>
 
 
     </properties>
