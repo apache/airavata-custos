@@ -52,7 +52,7 @@
             <artifactId>persistence-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.lognet</groupId>
+            <groupId>io.github.lognet</groupId>
             <artifactId>grpc-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
