@@ -346,6 +346,11 @@ public class KeycloakClient {
 
 
             pgaClient.setRedirectUris(newList);
+
+            List<String> webOrigins = new ArrayList<>();
+            webOrigins.add("+");
+            pgaClient.setWebOrigins(webOrigins);
+
             pgaClient.setPublicClient(false);
             Response httpResponse = client.realms().realm(realmId).clients().create(pgaClient);
             LOGGER.debug("Realm client configuration exited with code : " + httpResponse.getStatus() + " : " + httpResponse.getStatusInfo());
