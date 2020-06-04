@@ -43,6 +43,7 @@
         <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
         <module>custos-tests</module>
+        <module>custos-external-services-distributions</module>
     </modules>
 
     <dependencyManagement>
