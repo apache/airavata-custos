@@ -230,6 +230,18 @@
                 <version>${log.back.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.jcraft</groupId>
+                <artifactId>jsch</artifactId>
+                <version>${com.jcraft.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${io.commons.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -509,6 +521,10 @@
         <maven.surefile.plugin.version>3.0.0-M4</maven.surefile.plugin.version>
 
         <log.back.version>1.2.3</log.back.version>
+
+        <com.jcraft.version>0.1.55</com.jcraft.version>
+
+        <io.commons.version>2.7</io.commons.version>
 
 
     </properties>

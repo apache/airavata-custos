@@ -202,7 +202,7 @@ public class CredentialManager {
 
     }
 
-
+    //TODO use UUID
     private String generateRandomClientId(int length) {
         StringBuilder returnValue = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -211,6 +211,7 @@ public class CredentialManager {
         return new String(returnValue);
     }
 
+    //TODO use UUID
     private String generateSecret(int length) {
         StringBuilder returnValue = new StringBuilder(length);
         for (int i = 0; i < length; i++) {

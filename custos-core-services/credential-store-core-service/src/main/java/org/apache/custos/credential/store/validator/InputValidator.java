@@ -58,6 +58,7 @@ public class InputValidator implements Validator {
             case "getCredentialFromToken":
             case "getAllCredentialsFromJWTToken":
             case "getAllCredentialsFromToken":
+            case "getCustosCredentialFromToken":
                 validateTokenRequest(obj, methodName);
                 break;
             case "getCredentialFromClientId":
