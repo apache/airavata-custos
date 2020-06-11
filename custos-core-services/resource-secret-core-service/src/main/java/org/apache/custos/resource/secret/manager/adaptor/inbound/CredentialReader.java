@@ -17,10 +17,10 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.manager.adaptor.outbound;
+package org.apache.custos.resource.secret.manager.adaptor.inbound;
 
 import org.apache.custos.resource.secret.utils.Constants;
-import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialWriter;
+import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.apache.custos.resource.secret.persistance.local.repository.SecretRepository;
 import org.apache.custos.resource.secret.persistance.vault.Certificate;

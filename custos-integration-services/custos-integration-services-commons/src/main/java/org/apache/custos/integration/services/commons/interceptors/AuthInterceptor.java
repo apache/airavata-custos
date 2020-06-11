@@ -21,9 +21,7 @@ package org.apache.custos.integration.services.commons.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
-import org.apache.custos.credential.store.service.GetAllCredentialsResponse;
-import org.apache.custos.credential.store.service.TokenRequest;
-import org.apache.custos.credential.store.service.Type;
+import org.apache.custos.credential.store.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
@@ -34,6 +32,7 @@ import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.GetTenantRequest;
 import org.apache.custos.tenant.profile.service.GetTenantResponse;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.apache.custos.tenant.profile.service.TenantStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,6 +195,50 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         return token.trim();
     }
 
+
+    /**
+     * Authorize tenant request by checking validity of calling tenant and its child tenant given by clientId
+     * @param headers       parentTenant Headers
+     * @param childClientId childTenant Headers
+     * @return AuthClaim of child tenant
+     */
+    public AuthClaim authorizeWithParentChildTenantValidationByBasicAuth(Metadata headers, String childClientId) {
+        AuthClaim authClaim = authorize(headers);
+
+        if (authClaim == null) {
+            return null;
+        }
+
+        if (childClientId == null || childClientId.trim().equals("")) {
+            return authClaim;
+        }
+
+        GetCredentialRequest request = GetCredentialRequest
+                .newBuilder()
+                .setId(childClientId).build();
+
+
+        CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+        AuthClaim childClaim = getAuthClaim(metadata);
+
+        boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
+
+        if (!statusValidation) {
+            return null;
+        }
+
+        boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(), childClaim.getTenantId());
+
+        if (!relationShipValidation) {
+            return null;
+        }
+
+        return childClaim;
+
+    }
+
+
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
             LOGGER.info("Nulling " + response.getSecretListCount());
@@ -249,5 +292,73 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         return null;
     }
 
+
+    private AuthClaim getAuthClaim(CredentialMetadata metadata) {
+        AuthClaim authClaim = new AuthClaim();
+        if (metadata.getType() == Type.CUSTOS) {
+            authClaim.setTenantId(metadata.getOwnerId());
+            authClaim.setCustosId(metadata.getId());
+            authClaim.setCustosSecret(metadata.getSecret());
+            authClaim.setCustosIdIssuedAt(metadata.getClientIdIssuedAt());
+            authClaim.setCustosSecretExpiredAt(metadata.getClientSecretExpiredAt());
+            authClaim.setAdmin(metadata.getSuperAdmin());
+            authClaim.setSuperTenant(metadata.getSuperTenant());
+        } else if (metadata.getType() == Type.IAM) {
+            authClaim.setIamAuthId(metadata.getId());
+            authClaim.setIamAuthSecret(metadata.getSecret());
+
+        } else if (metadata.getType() == Type.CILOGON) {
+            authClaim.setCiLogonId(metadata.getId());
+            authClaim.setCiLogonSecret(metadata.getSecret());
+        } else if (metadata.getType() == Type.AGENT_CLIENT) {
+            authClaim.setAgentClientId(metadata.getId());
+            authClaim.setAgentClientSecret(metadata.getSecret());
+        } else if (metadata.getType() == Type.AGENT) {
+            authClaim.setAgentId(metadata.getId());
+            authClaim.setAgentPassword(metadata.getInternalSec());
+        }
+        return authClaim;
+
+    }
+
+
+    private boolean validateTenantStatus(long tenantId) {
+        GetTenantRequest tenantRequest = GetTenantRequest
+                .newBuilder()
+                .setTenantId(tenantId)
+                .build();
+
+        GetTenantResponse tentResp = tenantProfileClient.getTenant(tenantRequest);
+
+        if (tentResp.getTenant() != null && tentResp.getTenant().getTenantStatus().equals(TenantStatus.ACTIVE)) {
+            return true;
+        }
+        return false;
+    }
+
+
+    private boolean validateParentChildTenantRelationShip(long parentId, long childTenantId) {
+
+        GetTenantRequest childTenantReq = GetTenantRequest
+                .newBuilder()
+                .setTenantId(childTenantId)
+                .build();
+
+        GetTenantResponse childTenantRes = tenantProfileClient.getTenant(childTenantReq);
+
+        Tenant childTenant = childTenantRes.getTenant();
+
+        // referring to same tenant
+        if (childTenant != null && childTenant.getTenantId() == parentId) {
+            return true;
+        }
+
+        //referring to child tenant
+        if (childTenant != null && childTenant.getTenantId() != parentId && childTenant.getParentTenantId() == parentId) {
+            return true;
+        }
+
+        return false;
+    }
 
 }

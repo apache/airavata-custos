@@ -27,11 +27,9 @@ import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
 import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.GetJWKSRequest;
+import org.apache.custos.resource.secret.client.ResourceSecretClient;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceImplBase;
-import org.apache.custos.resource.secret.service.GetSecretRequest;
-import org.apache.custos.resource.secret.service.ResourceOwnerType;
-import org.apache.custos.resource.secret.service.ResourceType;
-import org.apache.custos.resource.secret.service.SecretMetadata;
+import org.apache.custos.resource.secret.service.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +46,13 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     @Autowired
     private IdentityClient identityClient;
 
+    @Autowired
+    private ResourceSecretClient resourceSecretClient;
+
     @Override
     public void getSecret(GetSecretRequest request,
                           StreamObserver<SecretMetadata> responseObserver) {
-        LOGGER.debug("Request received to getSecret ");
+        LOGGER.debug("Request received to get secret ");
         try {
 
             if (request.getMetadata().getOwnerType() == ResourceOwnerType.CUSTOS &&
@@ -76,7 +77,7 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
 
     @Override
     public void getJWKS(GetJWKSRequest request, StreamObserver<Struct> responseObserver) {
-        LOGGER.debug("Request received to getJWKS " + request.getTenantId());
+        LOGGER.debug("Request received to get JWKS " + request.getTenantId());
         try {
 
             Struct struct = identityClient.getJWKS(request);
@@ -87,6 +88,176 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling JWKS " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getResourceCredentialSummary(GetResourceCredentialByTokenRequest request, StreamObserver<SecretMetadata> responseObserver) {
+        LOGGER.debug("Request received to get ResourceCredentialSummary of " + request.getToken());
+        try {
+
+            SecretMetadata metadata = resourceSecretClient.getResourceCredentialSummary(request);
+            responseObserver.onNext(metadata);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching resource credential summary : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllResourceCredentialSummaries(GetResourceCredentialSummariesRequest request, StreamObserver<ResourceCredentialSummaries> responseObserver) {
+        LOGGER.debug("Request received to get AllResourceCredentialSummaries in tenant " + request.getTenantId());
+        try {
+
+            ResourceCredentialSummaries response = resourceSecretClient.getAllResourceCredentialSummaries(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching all resource credential summaries : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addSSHCredential(SSHCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        LOGGER.debug("Request received to add SSHCredential ");
+        try {
+
+            AddResourceCredentialResponse response = resourceSecretClient.addSSHCredential(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred whiling saving SSH credentials :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addPasswordCredential(PasswordCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        LOGGER.debug("Request received to add PasswordCredential ");
+        try {
+
+            AddResourceCredentialResponse response = resourceSecretClient.addPasswordCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while  saving password credential : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addCertificateCredential(CertificateCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        LOGGER.debug("Request received to add CertificateCredential ");
+        try {
+
+            AddResourceCredentialResponse response = resourceSecretClient.addCertificateCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while saving  certificate credential : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+
+    }
+
+    @Override
+    public void getSSHCredential(GetResourceCredentialByTokenRequest request, StreamObserver<SSHCredential> responseObserver) {
+        LOGGER.debug("Request received to get SSHCredential ");
+        try {
+
+            SSHCredential response = resourceSecretClient.getSSHCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching  SSH credentials : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getPasswordCredential(GetResourceCredentialByTokenRequest request, StreamObserver<PasswordCredential> responseObserver) {
+        LOGGER.debug("Request received to get PasswordCredential " + request.getTenantId());
+        try {
+
+            PasswordCredential response = resourceSecretClient.getPasswordCredential(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while  fetching password credentials : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCertificateCredential(GetResourceCredentialByTokenRequest request, StreamObserver<CertificateCredential> responseObserver) {
+        LOGGER.debug("Request received to get CertificateCredential " + request.getTenantId());
+        try {
+
+            CertificateCredential response = resourceSecretClient.getCertificateCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching  certificate credential : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteSSHCredential(GetResourceCredentialByTokenRequest request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to delete SSHCredential " + request.getTenantId());
+        try {
+
+            ResourceCredentialOperationStatus response = resourceSecretClient.deleteSSHCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  SSH credential : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deletePWDCredential(GetResourceCredentialByTokenRequest request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to delete PWDCredential " + request.getTenantId());
+        try {
+
+            ResourceCredentialOperationStatus response = resourceSecretClient.deletePWDCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting password credential : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteCertificateCredential(GetResourceCredentialByTokenRequest request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to delete CertificateCredential " + request.getTenantId());
+        try {
+            ResourceCredentialOperationStatus response = resourceSecretClient.deleteCertificateCredential(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  certificate credential :  " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
