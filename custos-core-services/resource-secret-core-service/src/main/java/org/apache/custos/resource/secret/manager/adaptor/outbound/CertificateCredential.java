@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.manager.adaptor.inbound;
+package org.apache.custos.resource.secret.manager.adaptor.outbound;
 
 import com.google.protobuf.GeneratedMessageV3;
 import org.apache.commons.codec.binary.Base64;

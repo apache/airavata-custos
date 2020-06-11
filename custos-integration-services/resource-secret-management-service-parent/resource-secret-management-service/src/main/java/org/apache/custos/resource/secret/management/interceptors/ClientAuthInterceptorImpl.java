@@ -26,7 +26,7 @@ import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
-import org.apache.custos.resource.secret.service.GetSecretRequest;
+import org.apache.custos.resource.secret.service.*;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +82,61 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
                     .setClientSecret(oauthSec)
                     .setTenantId(tenantId)
                     .build();
+
+        } else if (method.equals("getAllResourceCredentialSummaries")) {
+            String clientId = ((GetResourceCredentialSummariesRequest) reqT).getClientId();
+
+            AuthClaim claim = authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            return (ReqT) ((GetResourceCredentialSummariesRequest) reqT).toBuilder().setTenantId(claim.getTenantId()).build();
+
+
+        } else if (method.equals("addSSHCredential")) {
+            String clientId = ((SSHCredential) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((SSHCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
+
+            return (ReqT) ((SSHCredential) reqT).toBuilder().setMetadata(metadata).build();
+
+
+        } else if (method.equals("addPasswordCredential")) {
+            String clientId = ((PasswordCredential) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((PasswordCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
+
+            return (ReqT) ((PasswordCredential) reqT).toBuilder().setMetadata(metadata).build();
+
+        } else if (method.equals("addCertificateCredential")) {
+            String clientId = ((CertificateCredential) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((CertificateCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
+
+            return (ReqT) ((CertificateCredential) reqT).toBuilder().setMetadata(metadata).build();
+
+        } else if (method.equals("getSSHCredential") || method.equals("getPasswordCredential") || method.equals("getCertificateCredential")
+                || method.equals("deleteSSHCredential") || method.equals("deletePWDCredential") || method.equals("deleteCertificateCredential")
+                || method.equals("getResourceCredentialSummary")) {
+            String clientId = ((GetResourceCredentialByTokenRequest) reqT).getClientId();
+
+            AuthClaim claim = authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            return (ReqT) ((GetResourceCredentialByTokenRequest) reqT).toBuilder().setTenantId(claim.getTenantId()).build();
 
         }
         return reqT;

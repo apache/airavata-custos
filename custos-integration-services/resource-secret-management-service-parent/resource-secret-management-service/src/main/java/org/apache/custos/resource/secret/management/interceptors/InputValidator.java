@@ -23,6 +23,9 @@ package org.apache.custos.resource.secret.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.integration.core.exceptions.MissingParameterException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.resource.secret.service.CertificateCredential;
+import org.apache.custos.resource.secret.service.PasswordCredential;
+import org.apache.custos.resource.secret.service.SSHCredential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -61,6 +64,37 @@ public class InputValidator implements IntegrationServiceInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
         validate(method, msg, headers);
+
+        if (method.equals("addSSHCredential") || method.equals("addPasswordCredential")
+                || method.equals("addCertificateCredential")) {
+            validateSecretMetadata(msg, method);
+        }
         return msg;
     }
+
+
+    private boolean validateSecretMetadata(Object msg, String method) {
+        if (msg instanceof SSHCredential) {
+            SSHCredential request = (SSHCredential) msg;
+
+            if (request.getMetadata() == null) {
+                throw new MissingParameterException("SecretMetadata should not be null ", null);
+            }
+
+        } else if (msg instanceof PasswordCredential) {
+            PasswordCredential request = (PasswordCredential) msg;
+            if (request.getMetadata() == null) {
+                throw new MissingParameterException("SecretMetadata should not be null ", null);
+            }
+        } else if (msg instanceof CertificateCredential) {
+            CertificateCredential request = (CertificateCredential) msg;
+            if (request.getMetadata() == null) {
+                throw new MissingParameterException("SecretMetadata should not be null ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method  " + method);
+        }
+        return true;
+    }
+
 }

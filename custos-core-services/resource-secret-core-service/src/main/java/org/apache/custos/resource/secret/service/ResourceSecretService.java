@@ -25,8 +25,8 @@ import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
 import org.apache.custos.resource.secret.manager.Credential;
 import org.apache.custos.resource.secret.manager.CredentialGeneratorFactory;
-import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialWriter;
-import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialReader;
+import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
+import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialReader;
 import org.apache.custos.resource.secret.utils.Operations;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
@@ -107,8 +107,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
                     " of owner " + request.getMetadata().getOwnerId() + " with token  " + request.getMetadata().getToken());
 
             Credential credential = credentialGeneratorFactory.getCredential(request);
-            org.apache.custos.resource.secret.manager.adaptor.inbound.SSHCredential sshCredential =
-                    (org.apache.custos.resource.secret.manager.adaptor.inbound.SSHCredential) credential;
+            org.apache.custos.resource.secret.manager.adaptor.outbound.SSHCredential sshCredential =
+                    (org.apache.custos.resource.secret.manager.adaptor.outbound.SSHCredential) credential;
 
             credentialWriter.
                     saveSSHCredential(sshCredential);
@@ -141,8 +141,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
                     " of owner " + request.getMetadata().getOwnerId() + " with token  " + request.getMetadata().getToken());
 
             Credential credential = credentialGeneratorFactory.getCredential(request);
-            org.apache.custos.resource.secret.manager.adaptor.inbound.PasswordCredential passwordCredential =
-                    (org.apache.custos.resource.secret.manager.adaptor.inbound.PasswordCredential) credential;
+            org.apache.custos.resource.secret.manager.adaptor.outbound.PasswordCredential passwordCredential =
+                    (org.apache.custos.resource.secret.manager.adaptor.outbound.PasswordCredential) credential;
 
             credentialWriter.
                     savePasswordCredential(passwordCredential);
@@ -174,8 +174,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
 
             Credential credential = credentialGeneratorFactory.getCredential(request);
-            org.apache.custos.resource.secret.manager.adaptor.inbound.CertificateCredential certificateCredential =
-                    (org.apache.custos.resource.secret.manager.adaptor.inbound.CertificateCredential) credential;
+            org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential certificateCredential =
+                    (org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential) credential;
 
             credentialWriter.
                     saveCertificateCredential(certificateCredential);

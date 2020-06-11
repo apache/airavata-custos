@@ -39,11 +39,11 @@ public class CredentialGeneratorFactory {
     public Credential getCredential(GeneratedMessageV3 message) throws Exception {
 
         if (message instanceof SSHCredential) {
-            return new org.apache.custos.resource.secret.manager.adaptor.inbound.SSHCredential(message);
+            return new org.apache.custos.resource.secret.manager.adaptor.outbound.SSHCredential(message);
         } else if (message instanceof CertificateCredential) {
-            return new org.apache.custos.resource.secret.manager.adaptor.inbound.CertificateCredential(message);
+            return new org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential(message);
         } else if (message instanceof PasswordCredential) {
-            return new org.apache.custos.resource.secret.manager.adaptor.inbound.PasswordCredential(message);
+            return new org.apache.custos.resource.secret.manager.adaptor.outbound.PasswordCredential(message);
         }
 
         return null;

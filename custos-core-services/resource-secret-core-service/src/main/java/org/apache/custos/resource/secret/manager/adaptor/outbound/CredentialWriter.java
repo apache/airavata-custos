@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.manager.adaptor.inbound;
+package org.apache.custos.resource.secret.manager.adaptor.outbound;
 
 import org.apache.custos.resource.secret.utils.Constants;
 import org.apache.custos.resource.secret.exceptions.CredentialStoreException;
