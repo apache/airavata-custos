@@ -42,6 +42,10 @@ public class Certificate {
         this.privateKey = privateKey;
     }
 
+    public Certificate() {
+
+    }
+
     public String getCertificate() {
         return certificate;
     }
