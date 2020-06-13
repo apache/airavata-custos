@@ -19,6 +19,7 @@
 
 package org.apache.custos.resource.secret.manager.adaptor.inbound;
 
+import org.apache.custos.resource.secret.service.*;
 import org.apache.custos.resource.secret.utils.Constants;
 import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
@@ -26,10 +27,6 @@ import org.apache.custos.resource.secret.persistance.local.repository.SecretRepo
 import org.apache.custos.resource.secret.persistance.vault.Certificate;
 import org.apache.custos.resource.secret.persistance.vault.PasswordSecret;
 import org.apache.custos.resource.secret.persistance.vault.SSHCredentialSecrets;
-import org.apache.custos.resource.secret.service.CertificateCredential;
-import org.apache.custos.resource.secret.service.ResourceSecretType;
-import org.apache.custos.resource.secret.service.SSHCredential;
-import org.apache.custos.resource.secret.service.SecretMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +87,8 @@ public class CredentialReader {
                 .setTenantId(tenantId)
                 .setPersistedTime(exSec.getCreatedAt().getTime())
                 .setDescription(exSec.getDiscription())
+                .setResourceType(ResourceType.VAULT_CREDENTIAL)
+                .setSource(ResourceSource.EXTERNAL)
                 .setToken(token)
                 .build();
 
@@ -140,6 +139,8 @@ public class CredentialReader {
                 .setTenantId(tenantId)
                 .setPersistedTime(exSec.getCreatedAt().getTime())
                 .setDescription(exSec.getDiscription())
+                .setResourceType(ResourceType.VAULT_CREDENTIAL)
+                .setSource(ResourceSource.EXTERNAL)
                 .setToken(token)
                 .build();
 
@@ -187,6 +188,8 @@ public class CredentialReader {
                 .setTenantId(tenantId)
                 .setPersistedTime(exSec.getCreatedAt().getTime())
                 .setDescription(exSec.getDiscription())
+                .setResourceType(ResourceType.VAULT_CREDENTIAL)
+                .setSource(ResourceSource.EXTERNAL)
                 .setToken(token)
                 .build();
 
@@ -226,6 +229,8 @@ public class CredentialReader {
                 .setDescription(secret.getDiscription())
                 .setPersistedTime(secret.getCreatedAt().getTime())
                 .setType(ResourceSecretType.valueOf(secret.getSecretType()))
+                .setResourceType(ResourceType.VAULT_CREDENTIAL)
+                .setSource(ResourceSource.EXTERNAL)
                 .setOwnerId(secret.getOwnerId())
                 .build();
 
@@ -253,6 +258,8 @@ public class CredentialReader {
                         .setDescription(secret.getDiscription())
                         .setPersistedTime(secret.getCreatedAt().getTime())
                         .setType(ResourceSecretType.valueOf(secret.getSecretType()))
+                        .setResourceType(ResourceType.VAULT_CREDENTIAL)
+                        .setSource(ResourceSource.EXTERNAL)
                         .setOwnerId(secret.getOwnerId())
                         .build());
             });

@@ -26,6 +26,11 @@ public class PasswordSecret {
 
     private String password;
 
+    public PasswordSecret() {
+
+    }
+
+
     public PasswordSecret(String password) {
         this.password = password;
     }

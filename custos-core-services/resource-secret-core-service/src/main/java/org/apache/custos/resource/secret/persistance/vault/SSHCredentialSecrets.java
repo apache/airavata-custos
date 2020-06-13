@@ -35,6 +35,10 @@ public class SSHCredentialSecrets {
         this.passphrase = passphrase;
     }
 
+    public SSHCredentialSecrets() {
+
+    }
+
     public String getPrivateKey() {
         return privateKey;
     }
