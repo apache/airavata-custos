@@ -5,3 +5,4 @@ googleapis-common-protos
 grpcio
 requests
 pyopenssl
+pytest
