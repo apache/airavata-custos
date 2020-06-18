@@ -84,6 +84,35 @@ service GroupManagementService {
            delete: "/group-management/v1.0.0/user"
          };
     }
+
+    rpc addChildGroupToParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/group/membership"
+         };
+
+    }
+    rpc removeChildGroupFromParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/group/membership"
+         };
+    }
+
+    rpc getAllGroupsOfUser (org.apache.custos.user.profile.service.UserProfileRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
+
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/user/groups/memberships"
+         };
+    }
+
+    rpc getAllParentGroupsOfGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/groups/memberships"
+         };
+
+    }
+
+
 }
 
 

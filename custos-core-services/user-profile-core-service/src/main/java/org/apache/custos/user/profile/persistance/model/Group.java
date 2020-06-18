@@ -58,6 +58,10 @@ public class Group {
     @Column
     private String parentId;
 
+     @Column
+    private String  externalId;
+
+
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "group", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<GroupRole> groupRole;
@@ -67,7 +71,13 @@ public class Group {
 
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    Set<GroupMembership> groupMemberships;
+    Set<UserGroupMembership> userGroupMemberships;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    Set<GroupToGroupMembership> parentGroups;
+
+    @OneToMany(mappedBy = "child", cascade = CascadeType.ALL)
+    Set<GroupToGroupMembership> childGroups;
 
 
     public String getId() {
@@ -86,12 +96,12 @@ public class Group {
         this.tenantId = tenantId;
     }
 
-    public Set<GroupMembership> getGroupMemberships() {
-        return groupMemberships;
+    public Set<UserGroupMembership> getUserGroupMemberships() {
+        return userGroupMemberships;
     }
 
-    public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
-        this.groupMemberships = groupMemberships;
+    public void setUserGroupMemberships(Set<UserGroupMembership> userGroupMemberships) {
+        this.userGroupMemberships = userGroupMemberships;
     }
 
     public Date getCreatedAt() {
@@ -141,5 +151,29 @@ public class Group {
 
     public void setGroupAttribute(Set<GroupAttribute> groupAttribute) {
         this.groupAttribute = groupAttribute;
+    }
+
+    public Set<GroupToGroupMembership> getParentGroups() {
+        return parentGroups;
+    }
+
+    public void setParentGroups(Set<GroupToGroupMembership> parentGroups) {
+        this.parentGroups = parentGroups;
+    }
+
+    public Set<GroupToGroupMembership> getChildGroups() {
+        return childGroups;
+    }
+
+    public void setChildGroups(Set<GroupToGroupMembership> childGroups) {
+        this.childGroups = childGroups;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }

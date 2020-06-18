@@ -1491,8 +1491,12 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, realmId, accessToken);
 
+            String id = client.realm(realmId).groups().
+                    group(groupId).toRepresentation().getId();
+
             client.realm(realmId).groups().
-                    group(groupId).remove();
+                    group(id).remove();
+
             return true;
         } catch (Exception ex) {
             String msg = "Error occurred while deleting group, reason: " + ex.getMessage();

@@ -128,6 +128,12 @@ message GroupMembership{
     string username = 3;
 }
 
+message GroupToGroupMembership {
+    int64 tenantId = 1;
+    string parent_id = 2;
+    string child_id = 3;
+}
+
 message Status {
     bool status = 1;
 }
@@ -152,6 +158,13 @@ service UserProfileService {
 
     rpc addUserToGroup(GroupMembership) returns (Status);
     rpc removeUserFromGroup(GroupMembership) returns (Status);
+    rpc addChildGroupToParentGroup(GroupToGroupMembership) returns (Status);
+    rpc removeChildGroupFromParentGroup(GroupToGroupMembership) returns (Status);
+
+    rpc getAllGroupsOfUser (UserProfileRequest) returns (GetAllGroupsResponse);
+    rpc getAllParentGroupsOfGroup (GroupRequest) returns (GetAllGroupsResponse);
+
+
 
 
 

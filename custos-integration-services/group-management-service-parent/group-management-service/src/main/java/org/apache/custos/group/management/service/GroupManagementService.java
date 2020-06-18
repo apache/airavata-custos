@@ -23,14 +23,14 @@ package org.apache.custos.group.management.service;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
+import org.apache.custos.iam.service.GroupRequest;
+import org.apache.custos.iam.service.UserAttribute;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.user.profile.client.UserProfileClient;
-import org.apache.custos.user.profile.service.Group;
-import org.apache.custos.user.profile.service.GroupAttribute;
-import org.apache.custos.user.profile.service.GroupMembership;
+import org.apache.custos.user.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +49,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
     @Autowired
     private IamAdminServiceClient iamAdminServiceClient;
+
 
     @Autowired
     private IdentityClient identityClient;
@@ -310,6 +311,105 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             }
 
             responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void addChildGroupToParentGroup(GroupToGroupMembership request,
+                                           StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addChildGroupToParentGroup for  group  " + request.getChildId() +
+                    " to add " + request.getParentId() + " of tenant " + request.getTenantId());
+
+            org.apache.custos.user.profile.service.Status status = userProfileClient.addChildGroupToParentGroup(request);
+
+            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status.getStatus()).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void removeChildGroupFromParentGroup(GroupToGroupMembership request,
+                                                StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserFromGroup for  group  " + request.getChildId() +
+                    " to remove " + request.getParentId() + " of tenant " + request.getTenantId());
+
+            org.apache.custos.user.profile.service.Status status = userProfileClient.removeChildGroupFromParentGroup(request);
+
+            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status.getStatus()).build();
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void getAllGroupsOfUser(UserProfileRequest request,
+                                   StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroupsOfUser for  user  " + request.getProfile().getUsername() + " of tenant "
+                    + request.getTenantId());
+
+            GetAllGroupsResponse response = userProfileClient.getAllGroupsOfUser(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void getAllParentGroupsOfGroup(org.apache.custos.user.profile.service.GroupRequest request,
+                                          StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllParentGroupsOfGroup for  group  "
+                    + request.getGroup().getId() + " of tenant " + request.getTenantId());
+
+            GetAllGroupsResponse response = userProfileClient.getAllParentGroupsOfGroup(request);
+
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {

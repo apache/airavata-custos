@@ -81,7 +81,7 @@ public class UserProfile {
 
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
-    Set<GroupMembership> groupMemberships;
+    Set<UserGroupMembership> userGroupMemberships;
 
 
     public String getId() {
@@ -181,12 +181,12 @@ public class UserProfile {
         this.userRole = userRole;
     }
 
-    public Set<GroupMembership> getGroupMemberships() {
-        return groupMemberships;
+    public Set<UserGroupMembership> getUserGroupMemberships() {
+        return userGroupMemberships;
     }
 
-    public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
-        this.groupMemberships = groupMemberships;
+    public void setUserGroupMemberships(Set<UserGroupMembership> userGroupMemberships) {
+        this.userGroupMemberships = userGroupMemberships;
     }
 
 
