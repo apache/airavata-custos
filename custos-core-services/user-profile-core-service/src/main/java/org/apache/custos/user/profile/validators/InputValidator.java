@@ -57,6 +57,8 @@ public class InputValidator implements Validator {
                 break;
             case "addUserToGroup":
             case "removeUserFromGroup":
+            case "hasAccess":
+            case "changeUserMembershipType":
                 validateGroupMembership(obj, methodName);
                 break;
 
@@ -70,6 +72,15 @@ public class InputValidator implements Validator {
             case "getAllParentGroupsOfGroup":
                 validateGetAllParentGroupsOfGroup(obj, methodName);
                 break;
+            case "addUserGroupMembershipType":
+            case "removeUserGroupMembershipType":
+                validateUserGroupMembershipTypeRequest(obj, methodName);
+                break;
+            case "getAllChildUsers":
+            case "getAllChildGroups":
+                validateGetUserAndChildGroups(obj, methodName);
+                break;
+
 
             default:
 
@@ -91,13 +102,16 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("username should not be null", null);
             }
 
-            if (profile.getProfile().getFirstName() == null || profile.getProfile().getFirstName().equals("")) {
+            if ((profile.getProfile().getFirstName() == null || profile.getProfile().getFirstName().equals("")) &&
+                    !profile.getProfile().getType().equals(UserTypes.COMMUNITY) ) {
                 throw new MissingParameterException("firstName should not be null", null);
             }
-            if (profile.getProfile().getLastName() == null || profile.getProfile().getLastName().equals("")) {
+            if ((profile.getProfile().getLastName() == null || profile.getProfile().getLastName().equals("")) &&
+                    !profile.getProfile().getType().equals(UserTypes.COMMUNITY)) {
                 throw new MissingParameterException("lastName should not be null", null);
             }
-            if (profile.getProfile().getEmail() == null || profile.getProfile().getEmail().equals("")) {
+            if ((profile.getProfile().getEmail() == null || profile.getProfile().getEmail().equals("")) &&
+                    !profile.getProfile().getType().equals(UserTypes.COMMUNITY)) {
                 throw new MissingParameterException("emailAddress should not be null", null);
             }
         } else {
@@ -333,4 +347,38 @@ public class InputValidator implements Validator {
         }
         return true;
     }
+
+
+    private boolean validateUserGroupMembershipTypeRequest(Object obj, String method) {
+        if (obj instanceof UserGroupMembershipTypeRequest) {
+            UserGroupMembershipTypeRequest profileReq = (UserGroupMembershipTypeRequest) obj;
+            if (profileReq.getType() == null
+                    || profileReq.getType().equals("")) {
+                throw new MissingParameterException("Membership type is null ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method" + method);
+        }
+        return true;
+
+    }
+
+
+    private boolean validateGetUserAndChildGroups(Object obj, String method) {
+        if (obj instanceof GroupRequest) {
+            GroupRequest profileReq = (GroupRequest) obj;
+            if (profileReq.getTenantId() == 0) {
+                throw new MissingParameterException("tenantId should be valid ", null);
+            }
+            if (profileReq.getGroup() == null || profileReq.getGroup().getId() == null
+                    || profileReq.getGroup().getId().equals("")) {
+                throw new MissingParameterException("groupId should not be null ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method" + method);
+        }
+        return true;
+    }
+
+
 }

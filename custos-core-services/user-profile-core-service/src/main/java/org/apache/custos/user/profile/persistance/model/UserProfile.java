@@ -44,13 +44,13 @@ public class UserProfile {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column
     private String emailAddress;
 
-    @Column(nullable = false)
+    @Column
     private String firstName;
 
-    @Column(nullable = false)
+    @Column
     private String lastName;
 
     @Column(nullable = false)
@@ -65,6 +65,10 @@ public class UserProfile {
     @Temporal(TemporalType.TIMESTAMP)
     @LastModifiedDate
     private Date lastModifiedAt;
+
+
+    @Column
+    private String type;
 
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
@@ -196,5 +200,13 @@ public class UserProfile {
 
     public void setLastModifiedAt(Date lastModifiedAt) {
         this.lastModifiedAt = lastModifiedAt;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

@@ -190,6 +190,23 @@ public class UserProfileClient {
     }
 
 
+    public GetAllUserProfilesResponse getAllChildUsers(GroupRequest request) {
+        return userProfileServiceBlockingStub.getAllChildUsers(request);
+    }
+
+    public GetAllGroupsResponse getAllChildGroups(GroupRequest request) {
+        return userProfileServiceBlockingStub.getAllChildGroups(request);
+    }
+
+    public Status changeUserMembershipType(GroupMembership request) {
+        return userProfileServiceBlockingStub.changeUserMembershipType(request);
+    }
+
+    public Status hasAccess(GroupMembership request) {
+        return userProfileServiceBlockingStub.hasAccess(request);
+    }
+
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {

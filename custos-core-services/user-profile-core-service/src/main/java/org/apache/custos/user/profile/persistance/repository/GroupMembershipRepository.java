@@ -33,5 +33,8 @@ public interface GroupMembershipRepository extends JpaRepository<UserGroupMember
 
     public List<UserGroupMembership> findAllByGroupIdAndUserProfileId(String groupEntityId, String userProfileId);
 
+    public List<UserGroupMembership>
+    findAllByGroupIdAndUserProfileIdAndUserGroupMembershipTypeId(String groupId, String userProfileId, String groupMembershipId);
+
 
 }

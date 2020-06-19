@@ -41,6 +41,17 @@ enum UserStatus {
     EXPIRED = 13;
 }
 
+enum DefaultGroupMembershipTypes {
+    OWNER = 0;
+    ADMIN = 1;
+    MEMBER = 2;
+}
+
+enum UserTypes {
+    END_USER = 0;
+    COMMUNITY = 1;
+}
+
 
 message UserProfile {
     string username = 1;
@@ -53,6 +64,7 @@ message UserProfile {
     repeated string client_roles = 8;
     repeated string realm_roles = 9;
     string last_modified_at = 10;
+    UserTypes type = 11;
 }
 
 message UserProfileRequest {
@@ -122,10 +134,11 @@ message GroupAttribute {
     repeated string value = 3;
 }
 
-message GroupMembership{
+message GroupMembership {
     int64 tenantId = 1;
     string group_id = 2;
     string username = 3;
+    string type = 4;
 }
 
 message GroupToGroupMembership {
@@ -137,6 +150,12 @@ message GroupToGroupMembership {
 message Status {
     bool status = 1;
 }
+
+message UserGroupMembershipTypeRequest {
+    string type = 1;
+}
+
+
 
 
 service UserProfileService {
@@ -156,13 +175,22 @@ service UserProfileService {
 
     rpc getUserProfileAuditTrails (GetUpdateAuditTrailRequest) returns (GetUpdateAuditTrailResponse);
 
-    rpc addUserToGroup(GroupMembership) returns (Status);
-    rpc removeUserFromGroup(GroupMembership) returns (Status);
-    rpc addChildGroupToParentGroup(GroupToGroupMembership) returns (Status);
-    rpc removeChildGroupFromParentGroup(GroupToGroupMembership) returns (Status);
+    rpc addUserToGroup (GroupMembership) returns (Status);
+    rpc removeUserFromGroup (GroupMembership) returns (Status);
+    rpc addChildGroupToParentGroup (GroupToGroupMembership) returns (Status);
+    rpc removeChildGroupFromParentGroup (GroupToGroupMembership) returns (Status);
 
     rpc getAllGroupsOfUser (UserProfileRequest) returns (GetAllGroupsResponse);
     rpc getAllParentGroupsOfGroup (GroupRequest) returns (GetAllGroupsResponse);
+
+    rpc addUserGroupMembershipType (UserGroupMembershipTypeRequest) returns (Status);
+    rpc removeUserGroupMembershipType (UserGroupMembershipTypeRequest) returns (Status);
+
+    rpc getAllChildUsers(GroupRequest) returns (GetAllUserProfilesResponse);
+    rpc getAllChildGroups(GroupRequest) returns (GetAllGroupsResponse);
+    rpc changeUserMembershipType (GroupMembership) returns (Status);
+    rpc hasAccess(GroupMembership) returns (Status);
+
 
 
 

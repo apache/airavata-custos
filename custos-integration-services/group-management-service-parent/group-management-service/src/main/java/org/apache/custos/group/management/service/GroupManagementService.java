@@ -340,7 +340,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            String msg = "Error occurred at addChildGroupToParentGroup " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -366,7 +366,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            String msg = "Error occurred at removeChildGroupFromParentGroup " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -390,7 +390,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            String msg = "Error occurred at getAllGroupsOfUser " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -413,7 +413,101 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            String msg = "Error occurred at getAllParentGroupsOfGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+
+    @Override
+    public void getAllChildUsers(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllChildUsers for  group  "
+                    + request.getGroup().getId() + " of tenant " + request.getTenantId());
+
+            GetAllUserProfilesResponse response = userProfileClient.getAllChildUsers(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllChildUsers " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void getAllChildGroups(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllChildGroups for  group  "
+                    + request.getGroup().getId() + " of tenant " + request.getTenantId());
+
+            GetAllGroupsResponse response = userProfileClient.getAllChildGroups(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllChildGroups " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void changeUserMembershipType(GroupMembership request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to changeUserMembershipType for  user  "
+                    + request.getUsername() + " of tenant " + request.getTenantId());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.changeUserMembershipType(request);
+
+            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getStatus()).build();
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at changeUserMembershipType " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
+
+    @Override
+    public void hasAccess(GroupMembership request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to hasAccess for  user  "
+                    + request.getUsername() + " of tenant " + request.getTenantId());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.hasAccess(request);
+
+            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getStatus()).build();
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at hasAccess " + ex.getMessage();
             LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());

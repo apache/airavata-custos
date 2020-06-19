@@ -58,6 +58,10 @@ public class UserGroupMembership {
     @Column(nullable = false)
     private Long tenantId;
 
+    @ManyToOne
+    @JoinColumn(name = "user_group_membership_type_id")
+    private UserGroupMembershipType userGroupMembershipType;
+
 
     public Long getId() {
         return id;
@@ -105,5 +109,13 @@ public class UserGroupMembership {
 
     public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public UserGroupMembershipType getUserGroupMembershipType() {
+        return userGroupMembershipType;
+    }
+
+    public void setUserGroupMembershipType(UserGroupMembershipType userGroupMembershipType) {
+        this.userGroupMembershipType = userGroupMembershipType;
     }
 }
