@@ -19,18 +19,22 @@
 
 package org.apache.custos.user.profile.persistance.repository;
 
-import org.apache.custos.user.profile.persistance.model.GroupMembership;
+import org.apache.custos.user.profile.persistance.model.UserGroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface GroupMembershipRepository extends JpaRepository<GroupMembership, String> {
+public interface GroupMembershipRepository extends JpaRepository<UserGroupMembership, String> {
 
 
-    public List<GroupMembership> findAllByGroupId(String id);
+    public List<UserGroupMembership> findAllByGroupId(String id);
 
-    public List<GroupMembership> findAllByUserProfileId(String id);
+    public List<UserGroupMembership> findAllByUserProfileId(String id);
 
-    public List<GroupMembership> findAllByGroupIdAndUserProfileId(String groupEntityId, String userProfileId);
+    public List<UserGroupMembership> findAllByGroupIdAndUserProfileId(String groupEntityId, String userProfileId);
+
+    public List<UserGroupMembership>
+    findAllByGroupIdAndUserProfileIdAndUserGroupMembershipTypeId(String groupId, String userProfileId, String groupMembershipId);
+
 
 }

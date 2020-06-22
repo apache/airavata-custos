@@ -20,15 +20,16 @@
 package org.apache.custos.user.profile.persistance.model;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
 import java.util.Date;
 
 @Entity
-@Table(name = "group_membership")
+@Table(name = "user_group_membership")
 @EntityListeners(AuditingEntityListener.class)
-public class GroupMembership {
+public class UserGroupMembership {
 
 
     @Id
@@ -48,6 +49,18 @@ public class GroupMembership {
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
     private Date createdAt;
+
+    @Column(nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @LastModifiedDate
+    private Date lastModifiedDate;
+
+    @Column(nullable = false)
+    private Long tenantId;
+
+    @ManyToOne
+    @JoinColumn(name = "user_group_membership_type_id")
+    private UserGroupMembershipType userGroupMembershipType;
 
 
     public Long getId() {
@@ -80,5 +93,29 @@ public class GroupMembership {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Date getLastModifiedDate() {
+        return lastModifiedDate;
+    }
+
+    public void setLastModifiedDate(Date lastModifiedDate) {
+        this.lastModifiedDate = lastModifiedDate;
+    }
+
+    public Long getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public UserGroupMembershipType getUserGroupMembershipType() {
+        return userGroupMembershipType;
+    }
+
+    public void setUserGroupMembershipType(UserGroupMembershipType userGroupMembershipType) {
+        this.userGroupMembershipType = userGroupMembershipType;
     }
 }

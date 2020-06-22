@@ -24,6 +24,7 @@ import org.apache.custos.user.profile.persistance.model.UserAttribute;
 import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.apache.custos.user.profile.persistance.model.UserRole;
 import org.apache.custos.user.profile.service.UserStatus;
+import org.apache.custos.user.profile.service.UserTypes;
 import org.apache.custos.user.profile.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,9 +50,24 @@ public class UserProfileMapper {
         UserProfile entity = new UserProfile();
 
         entity.setUsername(userProfile.getUsername());
-        entity.setEmailAddress(userProfile.getEmail());
-        entity.setFirstName(userProfile.getFirstName());
-        entity.setLastName(userProfile.getLastName());
+        if (userProfile.getEmail() != null && !userProfile.getEmail().trim().equals("")) {
+            entity.setEmailAddress(userProfile.getEmail());
+        }
+
+        if (userProfile.getFirstName() != null && !userProfile.getFirstName().trim().equals("")) {
+            entity.setFirstName(userProfile.getFirstName());
+        }
+
+        if (userProfile.getLastName() != null && !userProfile.getLastName().trim().equals("")) {
+            entity.setLastName(userProfile.getLastName());
+        }
+
+        if (userProfile.getType() != null) {
+            entity.setType(userProfile.getType().name());
+        } else {
+            entity.setType(UserTypes.END_USER.name());
+        }
+
         entity.setStatus(userProfile.getStatus().name());
 
         Set<UserAttribute> attributeSet = new HashSet<>();
@@ -157,16 +173,33 @@ public class UserProfileMapper {
         }
 
 
-        return builder
+        builder
                 .setUsername(profileEntity.getUsername())
-                .setEmail(profileEntity.getEmailAddress())
-                .setFirstName(profileEntity.getFirstName())
-                .setLastName(profileEntity.getLastName())
                 .setCreatedAt(profileEntity.getCreatedAt().toString())
                 .setLastModifiedAt(profileEntity.getLastModifiedAt() != null ? profileEntity.getLastModifiedAt().toString() : "")
                 .setStatus(UserStatus.valueOf(profileEntity.getStatus()))
-                .addAllAttributes(attributeList)
-                .build();
+                .addAllAttributes(attributeList);
+
+
+        if (profileEntity.getEmailAddress() != null) {
+            builder.setEmail(profileEntity.getEmailAddress());
+        }
+
+        if (profileEntity.getFirstName() != null) {
+            builder.setFirstName(profileEntity.getFirstName());
+        }
+
+        if (profileEntity.getLastName() != null) {
+            builder.setLastName(profileEntity.getLastName());
+        }
+
+        if (profileEntity.getType() == null) {
+            builder.setType(UserTypes.END_USER);
+        } else {
+            builder.setType(UserTypes.valueOf(profileEntity.getType()));
+        }
+
+        return builder.build();
 
 
     }

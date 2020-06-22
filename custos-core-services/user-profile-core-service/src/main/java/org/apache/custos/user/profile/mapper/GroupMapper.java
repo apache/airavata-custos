@@ -22,6 +22,7 @@ package org.apache.custos.user.profile.mapper;
 import org.apache.custos.user.profile.persistance.model.Group;
 import org.apache.custos.user.profile.persistance.model.GroupAttribute;
 import org.apache.custos.user.profile.persistance.model.GroupRole;
+import org.apache.custos.user.profile.persistance.model.GroupToGroupMembership;
 import org.apache.custos.user.profile.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +40,19 @@ public class GroupMapper {
     public static Group createGroupEntity(org.apache.custos.user.profile.service.Group group, long tenantId) {
 
         Group groupEntity = new Group();
+        String id = group.getId() + "@" + tenantId;
 
-        groupEntity.setId(group.getId());
+        String parentId = group.getParentId();
+
+        if (parentId != null && !parentId.trim().equals("")) {
+            parentId = group.getParentId() + "@" + tenantId;
+        }
+
+        groupEntity.setId(id);
+        groupEntity.setExternalId(group.getId());
         groupEntity.setName(group.getName());
         groupEntity.setTenantId(tenantId);
-        groupEntity.setParentId(group.getParentId());
+        groupEntity.setParentId(parentId);
 
         if (!group.getAttributesList().isEmpty()) {
 
@@ -109,7 +118,7 @@ public class GroupMapper {
 
         org.apache.custos.user.profile.service.Group.Builder groupBuilder = org.apache.custos.user.profile.service.Group
                 .newBuilder()
-                .setId(group.getId())
+                .setId(group.getExternalId())
                 .setName(group.getName())
                 .setParentId(group.getParentId())
                 .setCreatedTime(group.getCreatedAt().getTime())
@@ -156,6 +165,31 @@ public class GroupMapper {
         });
 
         return groupBuilder.addAllAttributes(attributeList).build();
+
+    }
+
+
+    public static Group setParentGroupMembership(Group parent, Group child) {
+
+        GroupToGroupMembership groupToGroupMembership = new GroupToGroupMembership();
+        groupToGroupMembership.setChild(child);
+        groupToGroupMembership.setParent(parent);
+        groupToGroupMembership.setTenantId(child.getTenantId());
+
+
+        Set<GroupToGroupMembership> groupList = new HashSet<>();
+        groupList.add(groupToGroupMembership);
+        child.setParentGroups(groupList);
+        return child;
+
+    }
+
+    public static GroupToGroupMembership groupToGroupMembership(Group child, Group parent) {
+        GroupToGroupMembership groupToGroupMembership = new GroupToGroupMembership();
+        groupToGroupMembership.setChild(child);
+        groupToGroupMembership.setParent(parent);
+        groupToGroupMembership.setTenantId(child.getTenantId());
+        return groupToGroupMembership;
 
     }
 

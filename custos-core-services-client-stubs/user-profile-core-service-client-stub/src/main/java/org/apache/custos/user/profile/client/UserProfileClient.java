@@ -171,7 +171,41 @@ public class UserProfileClient {
     public Status removeUserFromGroup(GroupMembership request) {
         return userProfileServiceBlockingStub.removeUserFromGroup(request);
     }
-    
+
+    public Status addChildGroupToParentGroup(GroupToGroupMembership request) {
+        return userProfileServiceBlockingStub.addChildGroupToParentGroup(request);
+    }
+
+    public Status removeChildGroupFromParentGroup(GroupToGroupMembership request) {
+        return userProfileServiceBlockingStub.removeChildGroupFromParentGroup(request);
+    }
+
+    public GetAllGroupsResponse getAllGroupsOfUser(UserProfileRequest request) {
+        return userProfileServiceBlockingStub.getAllGroupsOfUser(request);
+    }
+
+    public GetAllGroupsResponse getAllParentGroupsOfGroup(GroupRequest request) {
+
+        return userProfileServiceBlockingStub.getAllParentGroupsOfGroup(request);
+    }
+
+
+    public GetAllUserProfilesResponse getAllChildUsers(GroupRequest request) {
+        return userProfileServiceBlockingStub.getAllChildUsers(request);
+    }
+
+    public GetAllGroupsResponse getAllChildGroups(GroupRequest request) {
+        return userProfileServiceBlockingStub.getAllChildGroups(request);
+    }
+
+    public Status changeUserMembershipType(GroupMembership request) {
+        return userProfileServiceBlockingStub.changeUserMembershipType(request);
+    }
+
+    public Status hasAccess(GroupMembership request) {
+        return userProfileServiceBlockingStub.hasAccess(request);
+    }
+
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

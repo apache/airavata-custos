@@ -25,19 +25,15 @@ import org.apache.custos.user.profile.mapper.AttributeUpdateMetadataMapper;
 import org.apache.custos.user.profile.mapper.GroupMapper;
 import org.apache.custos.user.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.user.profile.mapper.UserProfileMapper;
-import org.apache.custos.user.profile.persistance.model.AttributeUpdateMetadata;
-import org.apache.custos.user.profile.persistance.model.StatusUpdateMetadata;
 import org.apache.custos.user.profile.persistance.model.UserProfile;
+import org.apache.custos.user.profile.persistance.model.*;
 import org.apache.custos.user.profile.persistance.repository.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -72,6 +68,12 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
     @Autowired
     private GroupMembershipRepository groupMembershipRepository;
+
+    @Autowired
+    private GroupToGroupMembershipRepository groupToGroupMembershipRepository;
+
+    @Autowired
+    private GroupMembershipTypeRepository groupMembershipTypeRepository;
 
 
     @Override
@@ -394,18 +396,38 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             LOGGER.debug("Request received to createGroup from tenant" + request.getTenantId());
 
             String groupId = request.getGroup().getId();
+            long tenantId = request.getTenantId();
 
-            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(groupId);
+            String effectiveId = groupId + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(effectiveId);
 
             if (op.isEmpty()) {
 
                 org.apache.custos.user.profile.persistance.model.Group entity =
                         GroupMapper.createGroupEntity(request.getGroup(), request.getTenantId());
+
+                String parentId = entity.getParentId();
+                if (parentId != null && !parentId.trim().equals("")) {
+
+                    Optional<org.apache.custos.user.profile.persistance.model.Group> parent = groupRepository.findById(parentId);
+
+                    if (parent.isEmpty()) {
+                        String msg = "Error occurred while creating  Group for " + request.getTenantId()
+                                + " reason : Parent group not found";
+                        LOGGER.error(msg);
+                        responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                        return;
+                    }
+
+                    entity = GroupMapper.setParentGroupMembership(parent.get(), entity);
+                }
+
                 groupRepository.save(entity);
             }
 
             Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
-                    groupRepository.findById(request.getGroup().getId());
+                    groupRepository.findById(effectiveId);
 
             if (exOP.isPresent()) {
                 Group exGroup = GroupMapper.createGroup(exOP.get());
@@ -438,8 +460,13 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             String groupId = request.getGroup().getId();
 
+            long tenantId = request.getTenantId();
+
+            String effectiveId = groupId + "@" + tenantId;
+
+
             Optional<org.apache.custos.user.profile.persistance.model.Group> exEntity =
-                    groupRepository.findById(groupId);
+                    groupRepository.findById(effectiveId);
 
 
             if (exEntity.isPresent()) {
@@ -469,7 +496,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 groupRepository.save(entity);
 
                 Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
-                        groupRepository.findById(request.getGroup().getId());
+                        groupRepository.findById(effectiveId);
 
                 if (exOP.isPresent()) {
                     Group exNewGroup = GroupMapper.createGroup(exOP.get());
@@ -505,8 +532,11 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             LOGGER.debug("Request received to deleteGroup for " + request.getGroup().getId() + "at " + request.getTenantId());
 
             String userId = request.getGroup().getId();
+            long tenantId = request.getTenantId();
 
-            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(userId);
+            String effectiveId = userId + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(effectiveId);
 
             if (op.isPresent()) {
                 org.apache.custos.user.profile.persistance.model.Group entity = op.get();
@@ -547,7 +577,11 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             String userId = request.getGroup().getId();
 
-            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(userId);
+            long tenantId = request.getTenantId();
+
+            String effectiveId = userId + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(effectiveId);
 
             if (op.isPresent()) {
 
@@ -597,7 +631,8 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
     }
 
     @Override
-    public void addUserToGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+    public void addUserToGroup(GroupMembership request,
+                               StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to addUserToGroup for " + request.getTenantId());
 
@@ -606,16 +641,46 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             long tenantId = request.getTenantId();
             String userId = username + "@" + tenantId;
 
-            Optional<org.apache.custos.user.profile.persistance.model.Group> group = groupRepository.findById(group_id);
+            String effectiveGroupId = group_id + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> group = groupRepository.findById(effectiveGroupId);
             Optional<UserProfile> userProfile = repository.findById(userId);
 
             if (group.isPresent() && userProfile.isPresent()) {
 
-                org.apache.custos.user.profile.persistance.model.GroupMembership groupMembership = new
-                        org.apache.custos.user.profile.persistance.model.GroupMembership();
-                groupMembership.setGroup(group.get());
-                groupMembership.setUserProfile(userProfile.get());
-                groupMembershipRepository.save(groupMembership);
+                List<UserGroupMembership> memberships =
+                        groupMembershipRepository.findAllByGroupIdAndUserProfileId(effectiveGroupId, userId);
+
+                if (memberships == null || memberships.isEmpty()) {
+
+
+                    String type = request.getType();
+                    if (type == null || type.trim().equals("")) {
+                        type = DefaultGroupMembershipTypes.MEMBER.name();
+                    } else {
+                        type = type.toUpperCase();
+                    }
+
+                    Optional<UserGroupMembershipType> groupMembershipType = groupMembershipTypeRepository.findById(type);
+                    UserGroupMembershipType exist = null;
+
+                    if (groupMembershipType.isEmpty()) {
+                        exist = new UserGroupMembershipType();
+                        exist.setId(type);
+                        groupMembershipTypeRepository.save(exist);
+                    }
+
+                    exist = groupMembershipType.get();
+
+                    UserGroupMembership userGroupMembership = new
+                            UserGroupMembership();
+                    userGroupMembership.setGroup(group.get());
+                    userGroupMembership.setUserProfile(userProfile.get());
+                    userGroupMembership.setTenantId(tenantId);
+
+                    userGroupMembership.setUserGroupMembershipType(exist);
+                    groupMembershipRepository.save(userGroupMembership);
+                }
 
                 org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
                         .newBuilder()
@@ -638,7 +703,8 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
     }
 
     @Override
-    public void removeUserFromGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+    public void removeUserFromGroup(GroupMembership request,
+                                    StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to removeUserFromGroup for " + request.getTenantId());
 
@@ -647,8 +713,10 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             long tenantId = request.getTenantId();
             String userId = username + "@" + tenantId;
 
-            List<org.apache.custos.user.profile.persistance.model.GroupMembership> memberships =
-                    groupMembershipRepository.findAllByGroupIdAndUserProfileId(group_id, userId);
+            String effectiveGroupId = group_id + "@" + tenantId;
+
+            List<UserGroupMembership> memberships =
+                    groupMembershipRepository.findAllByGroupIdAndUserProfileId(effectiveGroupId, userId);
 
             if (memberships != null && !memberships.isEmpty()) {
 
@@ -669,4 +737,582 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+
+    @Override
+    public void addChildGroupToParentGroup(GroupToGroupMembership request,
+                                           StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addChildGroupToParentGroup for " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+
+            String childId = request.getChildId();
+
+            String parentId = request.getParentId();
+
+            String effectiveChildId = childId + "@" + tenantId;
+            String effectiveParentId = parentId + "@" + tenantId;
+
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> childEntity = groupRepository.
+                    findById(effectiveChildId);
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> parentEntity = groupRepository.
+                    findById(effectiveParentId);
+
+            if (childEntity.isEmpty() || parentEntity.isEmpty()) {
+                String msg = "Child or parent group not available";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+            List<org.apache.custos.user.profile.persistance.model.GroupToGroupMembership> groupToGroupMemberships =
+                    groupToGroupMembershipRepository.findByChildIdAndParentId(effectiveChildId, effectiveParentId);
+            if (groupToGroupMemberships == null || groupToGroupMemberships.isEmpty()) {
+
+                org.apache.custos.user.profile.persistance.model.GroupToGroupMembership membership =
+                        GroupMapper.groupToGroupMembership(childEntity.get(), parentEntity.get());
+
+                org.apache.custos.user.profile.persistance.model.GroupToGroupMembership saved =
+                        groupToGroupMembershipRepository.save(membership);
+
+                if (saved != null && saved.getId() != null) {
+                    org.apache.custos.user.profile.service.Status status =
+                            org.apache.custos.user.profile.service.Status.newBuilder().setStatus(true).build();
+                    responseObserver.onNext(status);
+                    responseObserver.onCompleted();
+                } else {
+                    String msg = "Group membership creation failed";
+                    LOGGER.error(msg);
+                    responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                }
+            } else {
+                org.apache.custos.user.profile.service.Status status =
+                        org.apache.custos.user.profile.service.Status.newBuilder().setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+
+            }
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding child group to parent group for " + request.getTenantId() +
+                    " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeChildGroupFromParentGroup(GroupToGroupMembership request,
+                                                StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeChildGroupFromParentGroup for " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+
+            String childId = request.getChildId();
+
+            String parentId = request.getParentId();
+
+            String effectiveChildId = childId + "@" + tenantId;
+            String effectiveParentId = parentId + "@" + tenantId;
+
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> childEntity = groupRepository.
+                    findById(effectiveChildId);
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> parentEntity = groupRepository.
+                    findById(effectiveParentId);
+
+            if (childEntity.isEmpty() || parentEntity.isEmpty()) {
+                String msg = "Child or parent group not available";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+
+            List<org.apache.custos.user.profile.persistance.model.GroupToGroupMembership> groupToGroupMemberships =
+                    groupToGroupMembershipRepository.findByChildIdAndParentId(effectiveChildId, effectiveParentId);
+
+            if (groupToGroupMemberships != null && !groupToGroupMemberships.isEmpty()) {
+                groupToGroupMembershipRepository.delete(groupToGroupMemberships.get(0));
+
+            }
+
+            org.apache.custos.user.profile.service.Status status =
+                    org.apache.custos.user.profile.service.Status.newBuilder().setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while remove child group from parent group for " + request.getTenantId() +
+                    " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllGroupsOfUser(UserProfileRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroupsOfUser for " + request.getTenantId());
+
+            long tenantId = request.getTenantId();
+            String username = request.getProfile().getUsername();
+
+            String userId = username + "@" + tenantId;
+
+            List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByUserProfileId(userId);
+
+            List<org.apache.custos.user.profile.persistance.model.Group> groups = new ArrayList<>();
+
+            if (userGroupMemberships != null && !userGroupMemberships.isEmpty()) {
+
+                userGroupMemberships.forEach(userGroupMembership -> {
+                    AtomicBoolean toBeAdded = new AtomicBoolean(true);
+                    groups.forEach(le -> {
+                        if (le.getId().equals(userGroupMembership.getGroup().getId())) {
+                            toBeAdded.set(false);
+                        }
+                    });
+
+                    if (toBeAdded.get()) {
+                        groups.add(userGroupMembership.getGroup());
+                    }
+                });
+
+            }
+
+            Map<String, org.apache.custos.user.profile.persistance.model.Group> groupMap =
+                    getAllUniqueGroups(groups, null);
+
+
+            List<Group> groupList = new ArrayList<>();
+
+
+            groupMap.keySet().forEach(gr -> {
+                groupList.add(GroupMapper.createGroup(groupMap.get(gr)));
+            });
+
+
+            GetAllGroupsResponse getAllGroupsResponse =
+                    GetAllGroupsResponse.newBuilder().addAllGroups(groupList).build();
+            responseObserver.onNext(getAllGroupsResponse);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching user groups of user " + request.getProfile().getUsername() +
+                    " in tenant " + request.getTenantId() +
+                    " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllParentGroupsOfGroup(GroupRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllParentGroupsOfGroup for " + request.getTenantId());
+
+            String groupId = request.getGroup().getId();
+            long tenantId = request.getTenantId();
+
+            String effectiveId = groupId + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository.findById(effectiveId);
+
+            if (groups.isEmpty()) {
+                GetAllGroupsResponse getAllGroupsResponse = GetAllGroupsResponse.newBuilder().build();
+                responseObserver.onNext(getAllGroupsResponse);
+                responseObserver.onCompleted();
+                return;
+            } else {
+                List<org.apache.custos.user.profile.persistance.model.Group> groupList = new ArrayList<>();
+                groupList.add(groups.get());
+
+                Map<String, org.apache.custos.user.profile.persistance.model.Group> groupMap =
+                        getAllUniqueGroups(groupList, null);
+
+                List<Group> serviceGroupList = new ArrayList<>();
+
+
+                groupMap.keySet().forEach(gr -> {
+                    serviceGroupList.add(GroupMapper.createGroup(groupMap.get(gr)));
+                });
+
+
+                GetAllGroupsResponse getAllGroupsResponse =
+                        GetAllGroupsResponse.newBuilder().addAllGroups(serviceGroupList).build();
+                responseObserver.onNext(getAllGroupsResponse);
+                responseObserver.onCompleted();
+
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching all parent groups for group " + request.getGroup().getId() +
+                    "in tenant " + request.getTenantId() +
+                    " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void addUserGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                           StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addUserGroupMembershipType of type  " + request.getType());
+
+            String type = request.getType().toUpperCase();
+
+            Optional<UserGroupMembershipType> userGroupMembershipType = groupMembershipTypeRepository.findById(type);
+
+            if (userGroupMembershipType.isEmpty()) {
+
+                UserGroupMembershipType userGroupType = new UserGroupMembershipType();
+                userGroupType.setId(type);
+                groupMembershipTypeRepository.save(userGroupType);
+
+            }
+
+            org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
+                    .newBuilder()
+                    .setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while saving group membership type" + request.getType();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeUserGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                              StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserGroupMembershipType of type " + request.getType());
+
+            String type = request.getType().toUpperCase();
+
+            Optional<UserGroupMembershipType> userGroupMembershipType = groupMembershipTypeRepository.findById(type);
+
+            if (userGroupMembershipType.isPresent()) {
+
+                groupMembershipTypeRepository.delete(userGroupMembershipType.get());
+            }
+
+            org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
+                    .newBuilder()
+                    .setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting removeUserGroupMembershipType of type  " + request.getType();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllChildUsers(GroupRequest request, StreamObserver<GetAllUserProfilesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllChildUsers in tenant " + request.getTenantId() +
+                    " for group with Id " + request.getGroup().getId());
+
+            long tenantId = request.getTenantId();
+            String username = request.getGroup().getId();
+
+            String effectiveId = username + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> groupOptional = groupRepository.findById(effectiveId);
+
+            if (groupOptional.isEmpty()) {
+                String msg = "group not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            List<UserGroupMembership> memberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+            List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
+
+            List<UserProfile> selectedProfiles = new ArrayList<>();
+
+
+            if (memberships != null && !memberships.isEmpty()) {
+
+                memberships.forEach(mem -> {
+
+                    AtomicBoolean addToList = new AtomicBoolean(true);
+
+                    selectedProfiles.forEach(ex -> {
+                        if (ex.getId().equals(mem.getUserProfile().getId())) {
+                            addToList.set(false);
+                        }
+                    });
+
+                    if (addToList.get()) {
+                        selectedProfiles.add(mem.getUserProfile());
+                    }
+                });
+            }
+
+            if (!selectedProfiles.isEmpty()) {
+                selectedProfiles.forEach(gr -> {
+                    userProfileList.add(UserProfileMapper.createUserProfileFromUserProfileEntity(gr));
+                });
+            }
+
+            GetAllUserProfilesResponse getAllUserProfilesResponse = GetAllUserProfilesResponse
+                    .newBuilder()
+                    .addAllProfiles(userProfileList)
+                    .build();
+            responseObserver.onNext(getAllUserProfilesResponse);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching all child users in tenant " + request.getTenantId() +
+                    " for group with Id " + request.getGroup().getId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getAllChildGroups(GroupRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllChildGroups in tenant " + request.getTenantId() +
+                    " for group with Id " + request.getGroup().getId());
+
+            long tenantId = request.getTenantId();
+            String username = request.getGroup().getId();
+
+            String effectiveId = username + "@" + tenantId;
+
+            Optional<org.apache.custos.user.profile.persistance.model.Group> groupOptional = groupRepository.findById(effectiveId);
+
+            if (groupOptional.isEmpty()) {
+                String msg = "group not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+
+            List<UserGroupMembership> memberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+            List<org.apache.custos.user.profile.service.Group> groupList = new ArrayList<>();
+
+            List<org.apache.custos.user.profile.persistance.model.Group> selectedGroups = new ArrayList<>();
+
+
+            if (memberships != null && !memberships.isEmpty()) {
+
+                memberships.forEach(mem -> {
+
+                    AtomicBoolean addToList = new AtomicBoolean(true);
+
+                    selectedGroups.forEach(ex -> {
+                        if (ex.getId().equals(mem.getGroup().getId())) {
+                            addToList.set(false);
+                        }
+                    });
+
+                    if (addToList.get()) {
+                        selectedGroups.add(mem.getGroup());
+                    }
+                });
+            }
+
+            if (!selectedGroups.isEmpty()) {
+                selectedGroups.forEach(gr -> {
+                    groupList.add(GroupMapper.createGroup(gr));
+                });
+            }
+
+            GetAllGroupsResponse getAllUserProfilesResponse = GetAllGroupsResponse
+                    .newBuilder()
+                    .addAllGroups(groupList)
+                    .build();
+            responseObserver.onNext(getAllUserProfilesResponse);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching all child groups in tenant " + request.getTenantId() +
+                    " for group with Id " + request.getGroup().getId();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void changeUserMembershipType(GroupMembership request,
+                                         StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to changeUserMembershipType in   tenant"
+                    + request.getTenantId() + " with id " + request.getUsername() + " to " + request.getType());
+
+            long tenantId = request.getTenantId();
+            String username = request.getUsername();
+            String groupId = request.getGroupId();
+            String type = request.getType();
+
+
+            String userId = username + "@" + tenantId;
+            String effectiveGroupId = groupId + "@" + tenantId;
+
+
+            List<UserGroupMembership> userGroupMemberships =
+                    groupMembershipRepository.findAllByGroupIdAndUserProfileId(effectiveGroupId, userId);
+
+            if (userGroupMemberships == null || userGroupMemberships.isEmpty()) {
+                String msg = "group membership not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            UserGroupMembership groupMembership = userGroupMemberships.get(0);
+
+            UserGroupMembershipType groupMembershipType = groupMembership.getUserGroupMembershipType();
+            groupMembershipType.setId(type);
+
+            groupMembership.setUserGroupMembershipType(groupMembershipType);
+
+            groupMembershipRepository.save(groupMembership);
+
+            org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
+                    .newBuilder()
+                    .setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while changing membership type  in   tenant"
+                    + request.getTenantId() + " with id " + request.getUsername() + " to " + request.getType();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void hasAccess(GroupMembership request,
+                          StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to check access  in   tenant"
+                    + request.getTenantId() + " with id " + request.getUsername() + " to " + request.getType());
+
+            long tenantId = request.getTenantId();
+            String username = request.getUsername();
+            String groupId = request.getGroupId();
+            String type = request.getType();
+
+
+            String userId = username + "@" + tenantId;
+            String effectiveGroupId = groupId + "@" + tenantId;
+
+
+            List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.
+                    findAllByGroupIdAndUserProfileIdAndUserGroupMembershipTypeId(effectiveGroupId, userId, type);
+            org.apache.custos.user.profile.service.Status status = null;
+
+            if (userGroupMemberships == null || userGroupMemberships.isEmpty()) {
+                status = org.apache.custos.user.profile.service.Status
+                        .newBuilder()
+                        .setStatus(false).build();
+            } else {
+                status = org.apache.custos.user.profile.service.Status
+                        .newBuilder()
+                        .setStatus(true).build();
+            }
+
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while checking access to   in   tenant"
+                    + request.getTenantId() + " with id " + request.getUsername() + " to " + request.getType();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    public boolean initializeDBConfigs() {
+
+        for (DefaultGroupMembershipTypes type : DefaultGroupMembershipTypes.values()) {
+
+            Optional<UserGroupMembershipType> typeOptional = groupMembershipTypeRepository.
+                    findById(type.name().toUpperCase());
+
+            if (typeOptional.isEmpty()) {
+                UserGroupMembershipType membershipType = new UserGroupMembershipType();
+                membershipType.setId(type.name().toUpperCase());
+                groupMembershipTypeRepository.save(membershipType);
+            }
+        }
+        return true;
+
+    }
+
+    private Map<String, org.apache.custos.user.profile.persistance.model.Group>
+    getAllUniqueGroups(List<org.apache.custos.user.profile.persistance.model.Group> leaveGroups,
+                       Map<String, org.apache.custos.user.profile.persistance.model.Group> allParentGroups) {
+
+        if (allParentGroups == null) {
+            allParentGroups = new HashMap<>();
+
+        }
+
+        if (leaveGroups != null && !leaveGroups.isEmpty()) {
+
+            for (org.apache.custos.user.profile.persistance.model.Group gr : leaveGroups) {
+                List<org.apache.custos.user.profile.persistance.model.GroupToGroupMembership> memberships
+                        = groupToGroupMembershipRepository.findAllByChildId(gr.getId());
+                List<org.apache.custos.user.profile.persistance.model.Group> leaves = new ArrayList<>();
+                allParentGroups.put(gr.getId(), gr);
+
+                if (memberships != null && !memberships.isEmpty()) {
+                    memberships.forEach(mem -> {
+                        AtomicBoolean toBeAdded = new AtomicBoolean(true);
+                        leaves.forEach(le -> {
+                            if (le.getId().equals(mem.getParent().getId())) {
+                                toBeAdded.set(false);
+                            }
+                        });
+
+                        if (toBeAdded.get()) {
+                            leaves.add(mem.getParent());
+                        }
+                    });
+
+                    getAllUniqueGroups(leaves, allParentGroups);
+
+                }
+
+            }
+
+
+        }
+
+        return allParentGroups;
+
+    }
+
+
 }

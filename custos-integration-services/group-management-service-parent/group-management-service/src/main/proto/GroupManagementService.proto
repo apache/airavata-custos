@@ -73,7 +73,7 @@ service GroupManagementService {
     rpc addUserToGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
 
         option (google.api.http) = {
-           post: "/group-management/v1.0.0/user"
+           post: "/group-management/v1.0.0/user/group/membership"
          };
     }
 
@@ -81,9 +81,64 @@ service GroupManagementService {
     rpc removeUserFromGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
 
         option (google.api.http) = {
-           delete: "/group-management/v1.0.0/user"
+           delete: "/group-management/v1.0.0/user/group/membership"
          };
     }
+
+    rpc addChildGroupToParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/group/membership"
+         };
+
+    }
+    rpc removeChildGroupFromParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/group/membership"
+         };
+    }
+
+    rpc getAllGroupsOfUser (org.apache.custos.user.profile.service.UserProfileRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
+
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/user/group/memberships"
+         };
+    }
+
+    rpc getAllParentGroupsOfGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/groups/memberships"
+         };
+
+    }
+
+
+    rpc getAllChildUsers(org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.GetAllUserProfilesResponse) {
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/user/group/memberships/child"
+         };
+
+    }
+    rpc getAllChildGroups(org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/groups/memberships/child"
+         };
+
+    }
+    rpc changeUserMembershipType (org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           put: "/group-management/v1.0.0/user/group/membership"
+         };
+
+    }
+    rpc hasAccess(org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/user/group/access"
+         };
+
+    }
+
+
 }
 
 

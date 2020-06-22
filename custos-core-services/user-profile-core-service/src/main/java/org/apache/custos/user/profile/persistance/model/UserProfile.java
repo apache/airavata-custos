@@ -44,13 +44,13 @@ public class UserProfile {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column
     private String emailAddress;
 
-    @Column(nullable = false)
+    @Column
     private String firstName;
 
-    @Column(nullable = false)
+    @Column
     private String lastName;
 
     @Column(nullable = false)
@@ -67,6 +67,10 @@ public class UserProfile {
     private Date lastModifiedAt;
 
 
+    @Column
+    private String type;
+
+
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<UserRole> userRole;
 
@@ -81,7 +85,7 @@ public class UserProfile {
 
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
-    Set<GroupMembership> groupMemberships;
+    Set<UserGroupMembership> userGroupMemberships;
 
 
     public String getId() {
@@ -181,12 +185,12 @@ public class UserProfile {
         this.userRole = userRole;
     }
 
-    public Set<GroupMembership> getGroupMemberships() {
-        return groupMemberships;
+    public Set<UserGroupMembership> getUserGroupMemberships() {
+        return userGroupMemberships;
     }
 
-    public void setGroupMemberships(Set<GroupMembership> groupMemberships) {
-        this.groupMemberships = groupMemberships;
+    public void setUserGroupMemberships(Set<UserGroupMembership> userGroupMemberships) {
+        this.userGroupMemberships = userGroupMemberships;
     }
 
 
@@ -196,5 +200,13 @@ public class UserProfile {
 
     public void setLastModifiedAt(Date lastModifiedAt) {
         this.lastModifiedAt = lastModifiedAt;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
