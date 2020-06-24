@@ -21,6 +21,12 @@ package org.apache.custos.sharing.persistance.repository;
 
 import org.apache.custos.sharing.persistance.model.Sharing;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 
 public interface SharingRepository extends JpaRepository<Sharing, String> {
+
+    @Query(value = "select * from sharing s where s.tenant_id LIKE ?1 and s.entity_id LIKE ?2 and s.sharing_type IN LIKE ?3", nativeQuery = true)
+    public List<Sharing> findSharingForEntityOfTenant(long tenantId, String entityId, List<String> sharingTypes);
 }

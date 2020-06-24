@@ -37,6 +37,9 @@ public class PermissionType {
     @Column(nullable = false)
     private String id;
 
+    @Column
+    private String externalId;
+
     @Column(nullable = false)
     private long tenantId;
 
@@ -113,5 +116,13 @@ public class PermissionType {
 
     public void setSharingSet(Set<Sharing> sharingSet) {
         this.sharingSet = sharingSet;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }

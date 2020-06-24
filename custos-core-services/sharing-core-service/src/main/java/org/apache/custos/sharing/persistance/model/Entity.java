@@ -36,11 +36,14 @@ public class Entity {
     @Column(nullable = false)
     private String id;
 
+    @Column(nullable = false)
+    private String externalId;
+
     @Column
     private long tenantId;
 
     @Column
-    private String parentId;
+    private String externalParentId;
 
     @Column(nullable = false)
     private String ownerId;
@@ -98,12 +101,12 @@ public class Entity {
     }
 
 
-    public String getParentId() {
-        return parentId;
+    public String getExternalParentId() {
+        return externalParentId;
     }
 
-    public void setParentId(String parentId) {
-        this.parentId = parentId;
+    public void setExternalParentId(String externalParentId) {
+        this.externalParentId = externalParentId;
     }
 
     public String getOwnerId() {
@@ -208,5 +211,13 @@ public class Entity {
 
     public void setInheritedSharing(Set<Sharing> inheritedSharing) {
         this.inheritedSharing = inheritedSharing;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }

@@ -17,15 +17,13 @@
  *  under the License.
  */
 
-package org.apache.custos.sharing.persistance.repository;
+package org.apache.custos.sharing.utils;
 
-import org.apache.custos.sharing.persistance.model.EntityType;
-import org.springframework.data.jpa.repository.JpaRepository;
+public class Constants {
 
-import java.util.List;
+    public static final String OWNER = "OWNER";
 
-public interface EntityTypeRepository extends JpaRepository<EntityType, String> {
-
-
-    public List<EntityType> findAllByTenantId(long tenantId);
+    public static final String DIRECT_CASCADING = "DIRECT_CASCADING";
+    public static final String INDIRECT_CASCADING = "INDIRECT_CASCADING";
+    public static final String DIRECT_NON_CASCADING = "DIRECT_NON_CASCADING";
 }

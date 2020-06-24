@@ -38,6 +38,9 @@ public class EntityType {
     private String id;
 
     @Column(nullable = false)
+    private String externalId;
+
+    @Column(nullable = false)
     private String name;
 
     @Column
@@ -114,5 +117,13 @@ public class EntityType {
 
     public void setTenantId(long tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }

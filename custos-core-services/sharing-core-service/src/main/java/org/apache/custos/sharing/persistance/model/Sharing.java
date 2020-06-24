@@ -53,7 +53,7 @@ public class Sharing {
 
 
     @Column(nullable = false)
-    private String tenantId;
+    private long tenantId;
 
 
     @JoinColumn(name = "permission_type_id")
@@ -101,5 +101,45 @@ public class Sharing {
 
     public void setLastModifiedAt(Date lastModifiedAt) {
         this.lastModifiedAt = lastModifiedAt;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public long getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(long tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public PermissionType getPermissionType() {
+        return permissionType;
+    }
+
+    public void setPermissionType(PermissionType permissionType) {
+        this.permissionType = permissionType;
+    }
+
+    public org.apache.custos.sharing.persistance.model.Entity getEntity() {
+        return entity;
+    }
+
+    public void setEntity(org.apache.custos.sharing.persistance.model.Entity entity) {
+        this.entity = entity;
+    }
+
+    public org.apache.custos.sharing.persistance.model.Entity getInheritedEntity() {
+        return inheritedEntity;
+    }
+
+    public void setInheritedEntity(org.apache.custos.sharing.persistance.model.Entity inheritedEntity) {
+        this.inheritedEntity = inheritedEntity;
     }
 }

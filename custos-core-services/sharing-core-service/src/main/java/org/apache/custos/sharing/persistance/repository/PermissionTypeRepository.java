@@ -19,7 +19,15 @@
 
 package org.apache.custos.sharing.persistance.repository;
 
+import org.apache.custos.sharing.persistance.model.PermissionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+import java.util.Optional;
+
 public interface PermissionTypeRepository extends JpaRepository<org.apache.custos.sharing.persistance.model.PermissionType, String> {
+
+    public List<PermissionType> findAllByTenantId(long tenantId);
+
+    public Optional<PermissionType> findAllByExternalIdAndTenantId(String externalId, long tenantId);
 }
