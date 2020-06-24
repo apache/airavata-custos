@@ -27,12 +27,23 @@ package org.apache.custos.sharing.service;
 enum SearchCondition {
     EQUAL = 0;
     LIKE = 1;
-    FULL_TEXT = 3;
-    GTE = 4;
-    LTE = 5;
-    NOT = 6;
+    GTE = 2;
+    LTE = 3;
+    NOT = 4;
 }
 
+enum EntitySearchField {
+    NAME = 0;
+    DESCRIPTION = 1;
+    ID = 2;
+    FULL_TEXT = 3;
+    OWNER_ID = 4;
+    CREATED_AT = 5;
+    LAST_MODIFIED_AT = 6;
+    ENTITY_TYPE_ID = 7;
+    PARENT_ID = 8;
+    SHARED_COUNT = 9;
+}
 
 
 message EntityType {
@@ -79,7 +90,6 @@ message EntityTypeRequest {
 }
 
 
-
 message PermissionTypeRequest {
     string client_id = 1;
     int64 tenant_id = 2;
@@ -88,7 +98,7 @@ message PermissionTypeRequest {
 
 
 message SearchCriteria {
-    string search_field = 1;
+    EntitySearchField search_field = 1;
     string value = 2;
     SearchCondition condition = 3;
 }
@@ -154,6 +164,7 @@ service SharingService {
 
     rpc createEntity (EntityRequest) returns (Status);
     rpc updateEntity (EntityRequest) returns (Status);
+    rpc isEntityExists (EntityRequest) returns (Status);
     rpc getEntity (EntityRequest) returns (Entity);
     rpc deleteEntity (EntityRequest) returns (Status);
     rpc searchEntities (SearchRequest) returns (Entities);

@@ -20,7 +20,11 @@
 package org.apache.custos.sharing.persistance.repository;
 
 import org.apache.custos.sharing.persistance.model.Entity;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.apache.custos.sharing.service.SearchCriteria;
 
-public interface EntityRepository  extends JpaRepository<Entity, String>, SearchEntityRepository {
+import java.util.List;
+
+public interface SearchEntityRepository {
+
+    List<Entity>  searchEntities(long tenantId, List<SearchCriteria> searchCriteria);
 }

@@ -36,7 +36,7 @@ public class Sharing {
     private String id;
 
     @Column(nullable = false)
-    private String ownerId;
+    private String associatingId;
 
     @Column(nullable = false)
     private String sharingType;
@@ -66,17 +66,17 @@ public class Sharing {
     private org.apache.custos.sharing.persistance.model.Entity entity;
 
 
-    @JoinColumn(name = "entity_id", insertable=false, updatable=false)
+    @JoinColumn(name = "inherited_parent_id", insertable=false, updatable=false)
     @ManyToOne
     private org.apache.custos.sharing.persistance.model.Entity inheritedEntity;
 
 
-    public String getOwnerId() {
-        return ownerId;
+    public String getAssociatingId() {
+        return associatingId;
     }
 
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
+    public void setAssociatingId(String associatingId) {
+        this.associatingId = associatingId;
     }
 
     public String getSharingType() {

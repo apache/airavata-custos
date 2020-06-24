@@ -27,6 +27,19 @@ import java.util.List;
 
 public interface SharingRepository extends JpaRepository<Sharing, String> {
 
-    @Query(value = "select * from sharing s where s.tenant_id LIKE ?1 and s.entity_id LIKE ?2 and s.sharing_type IN LIKE ?3", nativeQuery = true)
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.sharing_type IN  ?3", nativeQuery = true)
     public List<Sharing> findSharingForEntityOfTenant(long tenantId, String entityId, List<String> sharingTypes);
+
+    @Query(value = "delete  from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.sharing_type = ?3", nativeQuery = true)
+    public void removeGivenCascadingPermissionsForEntity(long tenantId, String entityId, String sharingType);
+
+
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.sharing_type = ?3 and s.permission_type_id = ?4", nativeQuery = true)
+    public List<Sharing> findAllByEntityAndSharingTypeAndPermissionType
+            (long tenantId, String entityId, String sharingType, String permissionTypeId);
+
+
 }

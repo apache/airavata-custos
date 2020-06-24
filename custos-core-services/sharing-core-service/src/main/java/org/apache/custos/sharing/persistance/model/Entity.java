@@ -81,7 +81,7 @@ public class Entity {
     private java.sql.Blob binaryData;
 
 
-    @JoinColumn(name = "entity_id")
+    @JoinColumn(name = "entity_type_id")
     @ManyToOne
     private EntityType entityType;
 
