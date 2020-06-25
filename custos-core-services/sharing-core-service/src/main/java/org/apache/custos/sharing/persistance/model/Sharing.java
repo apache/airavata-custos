@@ -39,6 +39,9 @@ public class Sharing {
     private String associatingId;
 
     @Column(nullable = false)
+    private String associatingIdType;
+
+    @Column(nullable = false)
     private String sharingType;
 
     @Column(nullable = false)
@@ -141,5 +144,13 @@ public class Sharing {
 
     public void setInheritedEntity(org.apache.custos.sharing.persistance.model.Entity inheritedEntity) {
         this.inheritedEntity = inheritedEntity;
+    }
+
+    public String getAssociatingIdType() {
+        return associatingIdType;
+    }
+
+    public void setAssociatingIdType(String associatingIdType) {
+        this.associatingIdType = associatingIdType;
     }
 }

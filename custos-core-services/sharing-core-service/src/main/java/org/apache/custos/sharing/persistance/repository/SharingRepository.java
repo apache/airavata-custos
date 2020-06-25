@@ -37,9 +37,33 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
 
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
-            "and s.sharing_type = ?3 and s.permission_type_id = ?4", nativeQuery = true)
+            "and s.permission_type_id = ?3 and s.sharing_type IN ?4", nativeQuery = true)
     public List<Sharing> findAllByEntityAndSharingTypeAndPermissionType
-            (long tenantId, String entityId, String sharingType, String permissionTypeId);
+            (long tenantId, String entityId, String permissionTypeId, List<String> sharingTypes);
+
+
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.permission_type_id = ?3 and s.associating_id_type = ?4", nativeQuery = true)
+    public List<Sharing> findAllByEntityAndPermissionTypeAndOwnerType
+            (long tenantId, String entityId, String permissionTypeId, String associatingIdType);
+
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.permission_type_id = ?3 and s.associating_id_type = ?4 and s.sharing_type IN ?5", nativeQuery = true)
+    public List<Sharing> findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType
+            (long tenantId, String entityId, String permissionTypeId, String associatingIdType, List<String> sharingList);
+
+
+    public List<Sharing> deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAssociatingId(
+            String inheritedParentId, String permissionTypeId, long tenantId, String sharingType, String associatedId);
+
+    public void deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
+            String entityId, String permissionTypeId, String associatingId, long tenantId, String inheritedParentId);
+
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.permission_type_id IN ?3 and s.associating_id_type IN  ?4", nativeQuery = true)
+    public List<Sharing>  findAllSharingOfEntityForGroupsUnderPermissions(long tenantId, String entityId,
+                                                                          List<String> permissionTypes,
+                                                                          List<String> associatedIds);
 
 
 }

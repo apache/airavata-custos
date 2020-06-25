@@ -26,4 +26,8 @@ public class Constants {
     public static final String DIRECT_CASCADING = "DIRECT_CASCADING";
     public static final String INDIRECT_CASCADING = "INDIRECT_CASCADING";
     public static final String DIRECT_NON_CASCADING = "DIRECT_NON_CASCADING";
+
+    public static final String USER = "user";
+    public static final String GROUP = "group";
+
 }

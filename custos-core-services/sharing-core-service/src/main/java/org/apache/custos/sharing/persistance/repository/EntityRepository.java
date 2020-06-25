@@ -22,5 +22,12 @@ package org.apache.custos.sharing.persistance.repository;
 import org.apache.custos.sharing.persistance.model.Entity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface EntityRepository  extends JpaRepository<Entity, String>, SearchEntityRepository {
+
+    public List<Entity> findAllByExternalParentIdAndTenantId(String externalParentId, long tenantId);
+
+
+
 }

@@ -29,5 +29,5 @@ public interface PermissionTypeRepository extends JpaRepository<org.apache.custo
 
     public List<PermissionType> findAllByTenantId(long tenantId);
 
-    public Optional<PermissionType> findAllByExternalIdAndTenantId(String externalId, long tenantId);
+    public Optional<PermissionType> findByExternalIdAndTenantId(String externalId, long tenantId);
 }

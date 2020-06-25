@@ -125,6 +125,7 @@ message SharingRequest {
     Entity entity = 3;
     PermissionType permission_type = 4;
     repeated string owner_id = 5;
+    bool cascade = 6;
 }
 
 message Status {

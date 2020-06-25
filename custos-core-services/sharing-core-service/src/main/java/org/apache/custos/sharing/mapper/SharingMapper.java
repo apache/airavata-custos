@@ -22,8 +22,13 @@ package org.apache.custos.sharing.mapper;
 import org.apache.custos.sharing.persistance.model.Entity;
 import org.apache.custos.sharing.persistance.model.PermissionType;
 import org.apache.custos.sharing.persistance.model.Sharing;
+import org.apache.custos.sharing.service.SharedOwners;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class SharingMapper {
 
@@ -34,6 +39,7 @@ public class SharingMapper {
                                         Entity entity,
                                         Entity inheritedEntity,
                                         String ownerId,
+                                        String ownerType,
                                         String sharingType,
                                         long tenantId) {
 
@@ -45,6 +51,7 @@ public class SharingMapper {
         sharing.setEntity(entity);
         sharing.setPermissionType(permissionType);
         sharing.setAssociatingId(ownerId);
+        sharing.setAssociatingIdType(ownerType);
         sharing.setInheritedEntity(inheritedEntity);
         sharing.setTenantId(tenantId);
         sharing.setId(id);
@@ -65,6 +72,24 @@ public class SharingMapper {
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;
+
+    }
+
+
+    public static SharedOwners getSharedOwners(List<Sharing> sharingList) {
+
+        SharedOwners.Builder builder = SharedOwners.newBuilder();
+
+        List<String> ownerIds = new ArrayList<>();
+
+        if (sharingList != null && !sharingList.isEmpty()) {
+
+            ownerIds = sharingList.stream().
+                    map(shr -> shr.getAssociatingId()).collect(Collectors.toList());
+
+        }
+
+        return builder.addAllOwnerIds(ownerIds).build();
 
     }
 
