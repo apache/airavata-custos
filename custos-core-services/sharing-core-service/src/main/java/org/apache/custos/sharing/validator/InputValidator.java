@@ -21,6 +21,13 @@ package org.apache.custos.sharing.validator;
 
 
 import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.sharing.service.*;
+import org.apache.custos.sharing.service.EntityRequest;
+import org.apache.custos.sharing.service.EntityTypeRequest;
+import org.apache.custos.sharing.service.PermissionTypeRequest;
+import org.apache.custos.sharing.service.SearchRequest;
+import org.apache.custos.sharing.service.SharingRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,53 +105,250 @@ public class InputValidator implements Validator {
     }
 
     private boolean validateEntityTypeRequest(Object obj, String methodName) {
-
+        if (obj instanceof EntityTypeRequest) {
+            EntityTypeRequest entityTypeRequest = (EntityTypeRequest) obj;
+            if (entityTypeRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+            if (entityTypeRequest.getEntityType() == null) {
+                throw new MissingParameterException("Entity type not found", null);
+            }
+            if (entityTypeRequest.getEntityType().getId() == null || entityTypeRequest.
+                    getEntityType().getId().equals("")) {
+                throw new MissingParameterException("Entity type id not found", null);
+            }
+            if (entityTypeRequest.getEntityType().getName() == null || entityTypeRequest.
+                    getEntityType().getName().equals("")) {
+                throw new MissingParameterException("Entity type name not found", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
     private boolean validateEntityTypeIdentifyingRequest(Object obj, String methodName) {
-
+        if (obj instanceof EntityTypeRequest) {
+            EntityTypeRequest entityTypeRequest = (EntityTypeRequest) obj;
+            if (entityTypeRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+            if (entityTypeRequest.getEntityType() == null) {
+                throw new MissingParameterException("Entity type not found", null);
+            }
+            if (entityTypeRequest.getEntityType().getId() == null || entityTypeRequest.
+                    getEntityType().getId().equals("")) {
+                throw new MissingParameterException("Entity type id not found", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
 
     private boolean validateTenantIdOnly(Object obj, String methodName) {
-
+        if (obj instanceof SearchRequest) {
+            SearchRequest entityTypeRequest = (SearchRequest) obj;
+            if (entityTypeRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
     private boolean validateCreatePermissionTypeRequest(Object obj, String methodName) {
-
+        if (obj instanceof PermissionTypeRequest) {
+            PermissionTypeRequest permissionTypeRequest = (PermissionTypeRequest) obj;
+            if (permissionTypeRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+            if (permissionTypeRequest.getPermissionType() == null) {
+                throw new MissingParameterException("Permission type not found", null);
+            }
+            if (permissionTypeRequest.getPermissionType().getId() == null || permissionTypeRequest.
+                    getPermissionType().getId().equals("")) {
+                throw new MissingParameterException("Permission type id not found", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
     private boolean validateEntityRequest(Object obj, String methodName) {
 
+        if (obj instanceof EntityRequest) {
+            EntityRequest entityRequest = (EntityRequest) obj;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getEntity() == null) {
+                throw new MissingParameterException("Entity not found ", null);
+            }
+
+            if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
+                throw new MissingParameterException("Entity Id  not found", null);
+            }
+            if (entityRequest.getEntity().getType() == null || entityRequest.getEntity().getType().equals("")) {
+                throw new MissingParameterException("Entity type  not found", null);
+            }
+
+            if (entityRequest.getEntity().getName() == null || entityRequest.getEntity().getName().equals("")) {
+                throw new MissingParameterException("Entity name  not found", null);
+            }
+
+            if (entityRequest.getEntity().getOwnerId() == null || entityRequest.getEntity().getOwnerId().equals("")) {
+                throw new MissingParameterException("Owner Id  not found", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
 
     }
 
     private boolean validateEntityIdentifierRequest(Object object, String methodName) {
 
+        if (object instanceof EntityRequest) {
+            EntityRequest entityRequest = (EntityRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getEntity() == null) {
+                throw new MissingParameterException("Entity not found ", null);
+            }
+
+            if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
+                throw new MissingParameterException("Entity Id  not found", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
 
     }
 
     private boolean validateSearchEntityRequest(Object object, String methodName) {
-        
+
+        if (object instanceof SearchRequest) {
+            SearchRequest entityRequest = (SearchRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getSearchCriteriaList() == null) {
+                throw new MissingParameterException("Search Criteria  not found ", null);
+            }
+
+            if (entityRequest.getSearchCriteriaList().isEmpty()) {
+                throw new MissingParameterException("Search Criteria  not found ", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
 
     private boolean validateGetSharingRequest(Object object, String methodName) {
+        if (object instanceof SharingRequest) {
+            SharingRequest entityRequest = (SharingRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getEntity() == null) {
+                throw new MissingParameterException("Entity  is not found ", null);
+            }
+
+            if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
+                throw new MissingParameterException("Entity id is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType() == null) {
+                throw new MissingParameterException("Permission Type is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
+                throw new MissingParameterException("Permission Type Id is  not found ", null);
+            }
+
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
     private boolean validateSharingRequest(Object object, String methodName) {
+        if (object instanceof SharingRequest) {
+            SharingRequest entityRequest = (SharingRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getEntity() == null) {
+                throw new MissingParameterException("Entity  is not found ", null);
+            }
+
+            if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
+                throw new MissingParameterException("Entity id is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType() == null) {
+                throw new MissingParameterException("Permission Type is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
+                throw new MissingParameterException("Permission Type Id is  not found ", null);
+            }
+
+            if (entityRequest.getOwnerIdList() == null || entityRequest.getOwnerIdList().isEmpty()) {
+                throw new MissingParameterException("Owner  Id list   not found ", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
     private boolean validateCheckAccessRequest(Object object, String methodName) {
+        if (object instanceof SharingRequest) {
+            SharingRequest entityRequest = (SharingRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
+            }
+
+            if (entityRequest.getEntity() == null) {
+                throw new MissingParameterException("Entity  is not found ", null);
+            }
+
+            if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
+                throw new MissingParameterException("Entity id is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType() == null) {
+                throw new MissingParameterException("Permission Type is  not found ", null);
+            }
+
+            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
+                throw new MissingParameterException("Permission Type Id is  not found ", null);
+            }
+
+            if (entityRequest.getOwnerIdList() == null || entityRequest.getOwnerIdList().isEmpty()) {
+                throw new MissingParameterException("Owner  Id list   not found ", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
         return true;
     }
 
