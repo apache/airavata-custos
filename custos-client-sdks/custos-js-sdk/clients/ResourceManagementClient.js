@@ -21,7 +21,7 @@ const {} = require('../stubs/integration-services/resource-secret-management/Res
 const {ResourceSecretManagementServiceClient} = require('../stubs/integration-services/resource-secret-management/ResourceSecretManagementService_grpc_web_pb');
 const {GetSecretRequest, SecretMetadata, ResourceOwnerType, ResourceType} = require('../stubs/core-services/resource-secret-service/ResourceSecretService_pb');
 
-var resourceSecretService = new ResourceSecretManagementServiceClient("http://custos.scigap.org:31937/web", null, null);
+var resourceSecretService = new ResourceSecretManagementServiceClient("http://custos.scigap.org:32026", null, null);
 
 var request = new GetSecretRequest();
 
@@ -36,7 +36,7 @@ secretMetadata.setOwnerType(resourceOwnerType);
 request.setMetadata(secretMetadata);
 
 
-const header = {'Authorization': 'Y3VzdG9zLTRwYno4YWJmaHpqcG10cWkzYW5pLTEwMDAwMzAxOlM4OG8xb2JGOXBQcmlxbGx2dzlnVmN5QTZ6bkFlN0dYQzhsZncxa3E='}
+const header = {'Authorization': 'Bearer Y3VzdG9zLTRwYno4YWJmaHpqcG10cWkzYW5pLTEwMDAwMzAxOlM4OG8xb2JGOXBQcmlxbGx2dzlnVmN5QTZ6bkFlN0dYQzhsZncxa3E='}
 
 resourceSecretService.getSecret(request, header, (err, response) => {
 

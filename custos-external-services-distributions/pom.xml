@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>custos-keycloak</module>
+        <module>custos-grpc-web-proxy</module>
     </modules>
 
 

@@ -74,10 +74,9 @@ role:
 
 
 proxy:
-   repository: apachecustos/resource-secret-management-service-sidecar
-   tag: 1.0-SNAPSHOT
-   port: 50000
-   webport: 50001
+   repository: apachecustos/${artifactId}
+   tag: ${project.version}
+   port: 40000
    adminport: 9901
 
 rollingUpdate:
