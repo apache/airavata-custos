@@ -21,7 +21,7 @@ const {} = require('../stubs/integration-services/resource-secret-management/Res
 const {ResourceSecretManagementServiceClient} = require('../stubs/integration-services/resource-secret-management/ResourceSecretManagementService_grpc_web_pb');
 const {GetSecretRequest, SecretMetadata, ResourceOwnerType, ResourceType} = require('../stubs/core-services/resource-secret-service/ResourceSecretService_pb');
 
-var resourceSecretService = new ResourceSecretManagementServiceClient("http://custos.scigap.org:31047", null, null);
+var resourceSecretService = new ResourceSecretManagementServiceClient("https://custos.scigap.org/grpcweb", null, null);
 
 var request = new GetSecretRequest();
 
@@ -36,7 +36,7 @@ secretMetadata.setOwnerType(resourceOwnerType);
 request.setMetadata(secretMetadata);
 
 
-const header = {'Authorization': 'Bearer XXXXX'}
+const header = {'Authorization': 'Bearer XXX'}
 
 resourceSecretService.getSecret(request, header, (err, response) => {
 

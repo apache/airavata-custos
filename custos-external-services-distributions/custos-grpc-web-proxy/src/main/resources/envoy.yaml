@@ -35,8 +35,16 @@ static_resources:
                 http_filters:
                   - name: envoy.grpc_web
                   - name: envoy.router
-
-
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                    - certificate_chain:
+                        filename: "/etc/tls/tls-secret/tls.crt"
+                      private_key:
+                        filename: "/etc/tls/tls-secret/tls.key"
   clusters:
     - name: resource-secret-backend-service
       connect_timeout: 1.25s

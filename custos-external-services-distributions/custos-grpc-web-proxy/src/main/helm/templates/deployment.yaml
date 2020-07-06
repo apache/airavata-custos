@@ -38,8 +38,15 @@ spec:
             - name: web
               containerPort: {{ .Values.proxy.port }}
               protocol: TCP
+          volumeMounts:
+            - name: tls-secret
+              mountPath: /etc/tls/tls-secret
           resources:
               {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tls-secret
+          secret:
+             secretName: tls-secret
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
