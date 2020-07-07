@@ -76,6 +76,12 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "updateTenantStatus":
                 validateUpdateTenantStatus(headers, body, methodName);
                 break;
+            case "addToCache":
+            case "removeFromCache":
+            case "getFromCache":
+            case "getInstitutions":
+                validationAuthorizationHeader(headers);
+                break;
             default:
         }
     }

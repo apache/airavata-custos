@@ -95,9 +95,9 @@ message GetOperationsMetadataResponse {
 }
 
 
-message InstitutionOperationRequest {
+message CacheManipulationRequest {
     int64 tenant_id = 1;
-    repeated string institution_id = 2;
+    repeated string institution_ids = 2;
     InstitutionCacheType type = 3;
     string performedBy = 4;
 }
@@ -117,6 +117,10 @@ message Institution {
     bool rand_s = 4;
 }
 
+message GetInstitutionsIdsAsResponse {
+   repeated string entity_ids = 1;
+}
+
 
 message GetInstitutionsResponse {
     repeated Institution institutions = 2;
@@ -130,9 +134,9 @@ service FederatedAuthenticationService {
     rpc deleteClient (DeleteClientRequest) returns (Empty);
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
 
-    rpc addToCache (InstitutionOperationRequest) returns (Status);
-    rpc removeFromCache (InstitutionOperationRequest) returns (Status);
-    rpc getFromCache (InstitutionOperationRequest) returns (GetInstitutionsResponse);
-    rpc getInstitutions (InstitutionOperationRequest) returns (GetInstitutionsResponse);
+    rpc addToCache (CacheManipulationRequest) returns (Status);
+    rpc removeFromCache (CacheManipulationRequest) returns (Status);
+    rpc getFromCache (CacheManipulationRequest) returns (GetInstitutionsIdsAsResponse);
+    rpc getInstitutions (CacheManipulationRequest) returns (GetInstitutionsResponse);
 
 }

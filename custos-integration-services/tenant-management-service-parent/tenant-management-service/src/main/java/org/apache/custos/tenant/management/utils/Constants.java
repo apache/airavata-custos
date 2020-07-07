@@ -33,4 +33,6 @@ public final class Constants {
     public static final String REFRESH_TOKEN = "refresh-token";
 
     public static final String AUTHORIZATION_HEADER = "authorization";
+    public static final String USER_TOKEN = "user-token";
+
 }

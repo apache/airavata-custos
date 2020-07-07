@@ -22,10 +22,10 @@ package org.apache.custos.federated.authentication.validator;
 
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.federated.authentication.exceptions.MissingParameterException;
+import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.federated.authentication.service.ClientMetadata;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
 import org.apache.custos.federated.authentication.service.GetClientRequest;
-import org.apache.custos.federated.authentication.service.InstitutionOperationRequest;
 
 /**
  * This class validates the  requests
@@ -138,14 +138,14 @@ public class InputValidator implements Validator {
 
 
     private boolean validateAddToCache(Object object, String methodName) {
-        if (object instanceof InstitutionOperationRequest) {
-            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+        if (object instanceof CacheManipulationRequest) {
+            CacheManipulationRequest request = (CacheManipulationRequest) object;
 
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (request.getInstitutionIdList() == null || request.getInstitutionIdList().isEmpty()) {
+            if (request.getInstitutionIdsList() == null || request.getInstitutionIdsList().isEmpty()) {
                 throw new MissingParameterException("Institutional id list is empty", null);
             }
 
@@ -162,14 +162,14 @@ public class InputValidator implements Validator {
 
 
     private boolean validateRemoveToCache(Object object, String methodName) {
-        if (object instanceof InstitutionOperationRequest) {
-            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+        if (object instanceof CacheManipulationRequest) {
+            CacheManipulationRequest request = (CacheManipulationRequest) object;
 
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-            if (request.getInstitutionIdList() == null || request.getInstitutionIdList().isEmpty()) {
+            if (request.getInstitutionIdsList() == null || request.getInstitutionIdsList().isEmpty()) {
                 throw new MissingParameterException("Institutional id list is empty", null);
             }
 
@@ -182,8 +182,8 @@ public class InputValidator implements Validator {
 
 
     private boolean validateGetFromCache(Object object, String methodName) {
-        if (object instanceof InstitutionOperationRequest) {
-            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+        if (object instanceof CacheManipulationRequest) {
+            CacheManipulationRequest request = (CacheManipulationRequest) object;
 
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);

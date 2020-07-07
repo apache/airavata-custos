@@ -21,6 +21,7 @@ package org.apache.custos.tenant.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.iam.service.AddProtocolMapperRequest;
 import org.apache.custos.iam.service.AddRolesRequest;
 import org.apache.custos.iam.service.EventPersistenceRequest;
@@ -32,6 +33,7 @@ import org.apache.custos.tenant.management.service.Credentials;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
 import org.apache.custos.tenant.management.service.UpdateTenantRequest;
+import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.GetTenantsRequest;
 import org.apache.custos.tenant.profile.service.Tenant;
@@ -139,8 +141,25 @@ public class AuthInterceptorImpl extends AuthInterceptor {
         } else if (method.equals("getAllTenantsForUser")) {
             validateAuth(headers);
             return msg;
-        }
+        } else if (method.equals("getFromCache") || method.equals("getInstitutions")) {
+            AuthClaim claim = validateAuth(headers);
 
+            CacheManipulationRequest request = ((CacheManipulationRequest) msg);
+            return (ReqT) request.toBuilder().setTenantId(claim.getTenantId()).build();
+
+        } else if (method.equals("addToCache") || method.equals("removeFromCache")) {
+            AuthClaim claim = validateAuth(headers);
+            AuthClaim userClaim = validateUserToken(headers);
+
+            CacheManipulationRequest.Builder request = ((CacheManipulationRequest) msg).toBuilder();
+
+            if (userClaim != null) {
+                request = request.setPerformedBy(userClaim.getUsername());
+            }
+
+            return (ReqT) request.setTenantId(claim.getTenantId()).build();
+
+        }
         return msg;
     }
 
@@ -157,6 +176,28 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             throw new NotAuthorizedException("Request is not authorized", null);
         }
         return claim;
+    }
+
+
+    private AuthClaim validateUserToken(Metadata headers) {
+        AuthClaim claim = null;
+        try {
+            String usertoken = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
+            if (usertoken == null) {
+                return null;
+            }
+
+            claim = authorizeUsingUserToken(usertoken);
+        } catch (Exception ex) {
+            LOGGER.error(" Authorizing error " + ex.getMessage());
+            throw new NotAuthorizedException("Request is not authorized", ex);
+        }
+        if (claim == null) {
+            throw new NotAuthorizedException("Request is not authorized", null);
+        }
+        return claim;
+
+
     }
 
     private Credentials getCredentials(AuthClaim claim) {

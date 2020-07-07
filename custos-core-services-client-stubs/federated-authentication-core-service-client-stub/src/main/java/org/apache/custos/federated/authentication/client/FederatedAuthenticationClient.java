@@ -44,8 +44,8 @@ public class FederatedAuthenticationClient {
 
 
     public FederatedAuthenticationClient(List<ClientInterceptor> clientInterceptorList,
-                                 @Value("${federated.authentication.service.dns.name}") String serviceHost,
-                                 @Value("${federated.authentication.service.port}") int servicePort) {
+                                         @Value("${federated.authentication.service.dns.name}") String serviceHost,
+                                         @Value("${federated.authentication.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
@@ -63,6 +63,7 @@ public class FederatedAuthenticationClient {
         StreamObserver observer = this.getObserver(callback, "updateClient   task failed");
         federatedAuthenticationServiceStub.updateClient(request, observer);
     }
+
     public void deleteClientAsync(DeleteClientRequest request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "deleteClient   task failed");
         federatedAuthenticationServiceStub.deleteClient(request, observer);
@@ -70,7 +71,7 @@ public class FederatedAuthenticationClient {
 
     public void getOperationsMetadataAsync(GetOperationsMetadataRequest request, final ServiceCallback callback) {
         StreamObserver observer = getObserver(callback, "get operations metadata");
-        federatedAuthenticationServiceStub.getOperationMetadata(request,observer);
+        federatedAuthenticationServiceStub.getOperationMetadata(request, observer);
     }
 
     public void getClientAsync(GetClientRequest request) {
@@ -78,15 +79,17 @@ public class FederatedAuthenticationClient {
     }
 
     public RegisterClientResponse addClient(ClientMetadata request) {
-       return federatedAuthenticationServiceBlockingStub.addClient(request);
+        return federatedAuthenticationServiceBlockingStub.addClient(request);
     }
 
-    public  Empty updateClient(ClientMetadata request) {
+    public Empty updateClient(ClientMetadata request) {
         return federatedAuthenticationServiceBlockingStub.updateClient(request);
     }
+
     public Empty deleteClient(DeleteClientRequest request) {
-        return  federatedAuthenticationServiceBlockingStub.deleteClient(request);
+        return federatedAuthenticationServiceBlockingStub.deleteClient(request);
     }
+
     public GetClientResponse getClient(GetClientRequest request) {
         return federatedAuthenticationServiceBlockingStub.getClient(request);
     }
@@ -94,6 +97,24 @@ public class FederatedAuthenticationClient {
     public GetOperationsMetadataResponse getOperationsMetadata(GetOperationsMetadataRequest request) {
         return federatedAuthenticationServiceBlockingStub.getOperationMetadata(request);
     }
+
+    public Status addToCache(CacheManipulationRequest request) {
+        return federatedAuthenticationServiceBlockingStub.addToCache(request);
+    }
+
+
+    public Status removeFromCache(CacheManipulationRequest request) {
+        return federatedAuthenticationServiceBlockingStub.removeFromCache(request);
+    }
+
+    public GetInstitutionsIdsAsResponse getFromCache(CacheManipulationRequest request) {
+        return federatedAuthenticationServiceBlockingStub.getFromCache(request);
+    }
+
+    public GetInstitutionsResponse getInstitutions(CacheManipulationRequest request) {
+        return federatedAuthenticationServiceBlockingStub.getInstitutions(request);
+    }
+
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];

@@ -25,7 +25,10 @@ import io.grpc.stub.StreamObserver;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.*;
 import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
+import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
+import org.apache.custos.federated.authentication.service.GetInstitutionsIdsAsResponse;
+import org.apache.custos.federated.authentication.service.GetInstitutionsResponse;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.OperationStatus;
 import org.apache.custos.iam.service.*;
@@ -656,6 +659,76 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
+    public void addToCache(CacheManipulationRequest request,
+                           StreamObserver<org.apache.custos.federated.authentication.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to add to cache for tenant  " + request.getTenantId());
+
+
+            org.apache.custos.federated.authentication.service.Status status = federatedAuthenticationClient.addToCache(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred calling addToCache method for tenant  " + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void removeFromCache(CacheManipulationRequest request,
+                                StreamObserver<org.apache.custos.federated.authentication.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeFromCache for tenant  " + request.getTenantId());
+            org.apache.custos.federated.authentication.service.Status status = federatedAuthenticationClient.removeFromCache(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred calling removeFromCache method for tenant  " + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getFromCache(CacheManipulationRequest request,
+                             StreamObserver<GetInstitutionsIdsAsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getFromCache for tenant  " + request.getTenantId());
+
+            GetInstitutionsIdsAsResponse status = federatedAuthenticationClient.getFromCache(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred calling getFromCache method for tenant  " + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getInstitutions(CacheManipulationRequest request,
+                                StreamObserver<GetInstitutionsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getInstitutions for tenant  " + request.getTenantId());
+            GetInstitutionsResponse status = federatedAuthenticationClient.getInstitutions(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred calling getInstitutions method for tenant  " + request.getTenantId() + " reason :" + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void getTenantStatusUpdateAuditTrail(GetAuditTrailRequest request, StreamObserver<GetStatusUpdateAuditTrailResponse> responseObserver) {
 
         GetStatusUpdateAuditTrailResponse response = profileClient.getStatusUpdateAuditTrail(request);
@@ -670,6 +743,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
+
 
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
