@@ -34,7 +34,6 @@ static_resources:
                         always_print_enums_as_ints: false
                         preserve_proto_field_names: true
                   - name: envoy.router
-
   clusters:
     - name: grpc-backend-services
       connect_timeout: 1.25s

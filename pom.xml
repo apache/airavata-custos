@@ -349,6 +349,7 @@
                                 <goals>
                                     <goal>compile</goal>
                                     <goal>compile-custom</goal>
+                                    <goal>compile-python</goal>
                                 </goals>
                             </execution>
                         </executions>

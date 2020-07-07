@@ -22,6 +22,12 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 package org.apache.custos.federated.authentication.service;
+import "google/protobuf/struct.proto";
+
+enum InstitutionCacheType {
+    WHITELIST = 0;
+    BACKLIST = 1;
+}
 
 
 message ClientMetadata {
@@ -57,7 +63,7 @@ message GetClientResponse {
     repeated string redirectURIs = 3;
     repeated string grantTypes = 4;
     repeated string scope = 5;
-     int64 clientIdIssuedAt = 6;
+    int64 clientIdIssuedAt = 6;
     string comment = 7;
     string clientSecret = 8;
     int64 clientSecretExpiresAt = 9;
@@ -89,10 +95,44 @@ message GetOperationsMetadataResponse {
 }
 
 
+message InstitutionOperationRequest {
+    int64 tenant_id = 1;
+    repeated string institution_id = 2;
+    InstitutionCacheType type = 3;
+    string performedBy = 4;
+}
+
+message Status {
+    bool status = 1;
+}
+
+message InstitutionOperationResponse {
+
+}
+
+message Institution {
+    string entity_id = 1;
+    string organization_name = 2;
+    string display_name = 3;
+    bool rand_s = 4;
+}
+
+
+message GetInstitutionsResponse {
+    repeated Institution institutions = 2;
+}
+
+
 service FederatedAuthenticationService {
     rpc addClient (ClientMetadata) returns (RegisterClientResponse);
     rpc updateClient (ClientMetadata) returns (Empty);
     rpc getClient (GetClientRequest) returns (GetClientResponse);
     rpc deleteClient (DeleteClientRequest) returns (Empty);
     rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+
+    rpc addToCache (InstitutionOperationRequest) returns (Status);
+    rpc removeFromCache (InstitutionOperationRequest) returns (Status);
+    rpc getFromCache (InstitutionOperationRequest) returns (GetInstitutionsResponse);
+    rpc getInstitutions (InstitutionOperationRequest) returns (GetInstitutionsResponse);
+
 }

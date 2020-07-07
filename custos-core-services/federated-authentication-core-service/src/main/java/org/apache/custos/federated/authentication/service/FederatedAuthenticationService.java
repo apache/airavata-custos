@@ -24,6 +24,9 @@ import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
 import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
 import org.apache.custos.federated.authentication.exceptions.FederatedAuthenticationServiceException;
+import org.apache.custos.federated.authentication.mapper.ModelMapper;
+import org.apache.custos.federated.authentication.persistance.model.CILogonInstitution;
+import org.apache.custos.federated.authentication.persistance.repository.CiLogonInstitutionCacheRepository;
 import org.apache.custos.federated.authentication.service.FederatedAuthenticationServiceGrpc.FederatedAuthenticationServiceImplBase;
 import org.apache.custos.federated.authentication.utils.Operations;
 import org.apache.custos.federated.services.clients.cilogon.CILogonClient;
@@ -36,6 +39,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @GRpcService
 public class FederatedAuthenticationService extends FederatedAuthenticationServiceImplBase {
@@ -47,6 +52,9 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
     @Autowired
     private StatusUpdater statusUpdater;
+
+    @Autowired
+    private CiLogonInstitutionCacheRepository institutionRespository;
 
     @Override
     public void addClient(ClientMetadata request, StreamObserver<RegisterClientResponse> responseObserver) {
@@ -225,6 +233,186 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
         } catch (Exception ex) {
             FederatedAuthenticationServiceException failedException = new FederatedAuthenticationServiceException(" operation failed for "
                     + request.getTraceId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+
+    @Override
+    public void addToCache(InstitutionOperationRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Calling addToCache API for tenantId " + request.getTenantId());
+
+
+            long tenantId = request.getTenantId();
+
+            List<String> ids = request.getInstitutionIdList();
+
+            InstitutionCacheType type = request.getType();
+
+            List<CILogonInstitution> ciLogonInstitutions = new ArrayList<>();
+
+            ids.forEach(id -> {
+                ciLogonInstitutions.add(ModelMapper.convert(tenantId, id, type.name(), request.getPerformedBy()));
+
+            });
+
+            institutionRespository.saveAll(ciLogonInstitutions);
+
+            Status status = Status.newBuilder().setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            FederatedAuthenticationServiceException failedException =
+                    new FederatedAuthenticationServiceException(" operation failed for "
+                            + request.getTenantId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+    @Override
+    public void removeFromCache(InstitutionOperationRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Calling removeFromCache API for tenantId" + request.getTenantId());
+            long tenantId = request.getTenantId();
+
+            List<String> ids = request.getInstitutionIdList();
+
+            List<CILogonInstitution> ciLogonInstitutions = new ArrayList<>();
+
+            ids.forEach(id -> {
+
+                String savedId = id + "@" + tenantId;
+
+                Optional<CILogonInstitution> ciLogonList = institutionRespository.findById(savedId);
+
+                if (ciLogonList.isPresent()) {
+                    ciLogonInstitutions.add(ciLogonList.get());
+                }
+
+
+            });
+
+            institutionRespository.deleteAll(ciLogonInstitutions);
+
+            Status status = Status.newBuilder().setStatus(true).build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            FederatedAuthenticationServiceException failedException =
+                    new FederatedAuthenticationServiceException(" operation failed for "
+                            + request.getTenantId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+    @Override
+    public void getFromCache(InstitutionOperationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Calling getFromCache API for tenantId " + request.getTenantId());
+
+
+            long tenant = request.getTenantId();
+
+            String type = request.getType().name();
+
+            List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, type);
+
+            List<Institution> institutionList = new ArrayList<>();
+
+            if (institutions != null && !institutions.isEmpty()) {
+
+                for (CILogonInstitution institution : institutions) {
+                    institutionList.add(ModelMapper.convert(institution));
+                }
+            }
+
+
+            GetInstitutionsResponse response = GetInstitutionsResponse.
+                    newBuilder().addAllInstitutions(institutionList).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            FederatedAuthenticationServiceException failedException =
+                    new FederatedAuthenticationServiceException(" operation failed for "
+                            + request.getTenantId(), ex);
+            responseObserver.onError(failedException);
+        }
+    }
+
+
+    @Override
+    public void getInstitutions(InstitutionOperationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Calling getInstitutions API for tenantId " + request.getTenantId());
+
+            long tenant = request.getTenantId();
+
+            String type = request.getType().name();
+
+            List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, type);
+
+
+            org.apache.custos.federated.services.clients.cilogon.CILogonInstitution[] ciLogonInstitutions =
+                    ciLogonClient.getInstitutions();
+
+            List<org.apache.custos.federated.services.clients.cilogon.CILogonInstitution> selectedLists = new ArrayList<>();
+
+            if (type.equals(InstitutionCacheType.WHITELIST.name())) {
+
+                for (org.apache.custos.federated.services.clients.cilogon.CILogonInstitution ciLogonInstitution : ciLogonInstitutions) {
+
+                    institutions.forEach(it -> {
+
+                        if (it.getInstitutionId().equals(ciLogonInstitution.getEntityId()) &&
+                                it.getType().equals(InstitutionCacheType.WHITELIST.name())) {
+                            selectedLists.add(ciLogonInstitution);
+                        }
+                    });
+
+                }
+
+            } else {
+
+                for (org.apache.custos.federated.services.clients.cilogon.CILogonInstitution ciLogonInstitution : ciLogonInstitutions) {
+
+                    AtomicBoolean doNotAdd = new AtomicBoolean(false);
+                    institutions.forEach(it -> {
+
+                        if (it.getInstitutionId().equals(ciLogonInstitution.getEntityId())) {
+                            doNotAdd.set(true);
+                        }
+                    });
+
+                    if (!doNotAdd.get()) {
+                        selectedLists.add(ciLogonInstitution);
+                    }
+
+                }
+            }
+
+            List<Institution> institutionList = new ArrayList<>();
+
+            selectedLists.forEach(sl -> {
+
+                institutionList.add(ModelMapper.convert(sl));
+
+            });
+
+            GetInstitutionsResponse response = GetInstitutionsResponse
+                    .newBuilder().addAllInstitutions(institutionList).build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            FederatedAuthenticationServiceException failedException =
+                    new FederatedAuthenticationServiceException(" operation failed for "
+                            + request.getTenantId(), ex);
             responseObserver.onError(failedException);
         }
     }

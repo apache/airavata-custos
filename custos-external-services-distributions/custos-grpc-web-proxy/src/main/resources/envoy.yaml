@@ -1,0 +1,113 @@
+admin:
+  access_log_path: /tmp/admin_access.log
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+static_resources:
+  listeners:
+    - name: web-listner
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 40000 }
+      filter_chains:
+        - filters:
+            - name: envoy.http_connection_manager
+              config:
+                codec_type: auto
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: local_service
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/org.apache.custos.resource.secret.management.service.ResourceSecretManagementService" }
+                          route: { cluster: resource-secret-backend-service }
+                        - match: { prefix: "/org.apache.custos.agent.management.service.AgentManagementService" }
+                          route: { cluster: agent-management-backend-service }
+                        - match: { prefix: "/org.apache.custos.group.management.service.GroupManagementService" }
+                          route: { cluster: group-management-service-backend-service }
+                        - match: { prefix: "/org.apache.custos.identity.management.service.IdentityManagementService" }
+                          route: { cluster: identity-management-service-backend-service }
+                        - match: { prefix: "/org.apache.custos.tenant.management.service.TenantManagementService" }
+                          route: { cluster: tenant-management-service-backend-service }
+                        - match: { prefix: "/org.apache.custos.user.management.service.UserManagementService" }
+                          route: { cluster: user-management-service-backend-service }
+                http_filters:
+                  - name: envoy.grpc_web
+                  - name: envoy.router
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                    - certificate_chain:
+                        filename: "/etc/tls/tls-secret/tls.crt"
+                      private_key:
+                        filename: "/etc/tls/tls-secret/tls.key"
+  clusters:
+    - name: resource-secret-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: resource-secret-management-service.custos.svc.cluster.local
+            port_value: 7000
+
+    - name: agent-management-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: agent-management-service.custos.svc.cluster.local
+            port_value: 7000
+
+    - name: group-management-service-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: group-management-service.custos.svc.cluster.local
+            port_value: 7000
+
+    - name: identity-management-service-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: identity-management-service.custos.svc.cluster.local
+            port_value: 7000
+
+    - name: tenant-management-service-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: tenant-management-service.custos.svc.cluster.local
+            port_value: 7000
+
+    - name: user-management-service-backend-service
+      connect_timeout: 1.25s
+      type: logical_dns
+      lb_policy: round_robin
+      dns_lookup_family: V4_ONLY
+      http2_protocol_options: {}
+      hosts:
+        - socket_address:
+            address: user-management-service.custos.svc.cluster.local
+            port_value: 7000
