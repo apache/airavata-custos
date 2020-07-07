@@ -25,6 +25,7 @@ import org.apache.custos.federated.authentication.exceptions.MissingParameterExc
 import org.apache.custos.federated.authentication.service.ClientMetadata;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
 import org.apache.custos.federated.authentication.service.GetClientRequest;
+import org.apache.custos.federated.authentication.service.InstitutionOperationRequest;
 
 /**
  * This class validates the  requests
@@ -33,58 +34,71 @@ public class InputValidator implements Validator {
 
     /**
      * Input parameter validater
+     *
      * @param methodName
      * @param obj
      * @return
      */
-    public  void validate(String methodName, Object obj) {
+    public void validate(String methodName, Object obj) {
 
         switch (methodName) {
             case "addClient":
             case "updateClient":
-              validateClientMetadata(obj, methodName);
-              break;
+                validateClientMetadata(obj, methodName);
+                break;
             case "getClient":
                 validateGetClientRequest(obj);
                 break;
             case "deleteClient":
                 validateDeleteClientRequest(obj);
                 break;
+            case "addToCache":
+                validateAddToCache(obj, methodName);
+                break;
+            case "removeFromCache":
+                validateRemoveToCache(obj, methodName);
+                break;
+            case "getFromCache":
+                validateGetFromCache(obj, methodName);
+                break;
+            case "getInstitutions":
+                validateGetFromCache(obj, methodName);
+                break;
             default:
         }
     }
 
-    private  boolean validateClientMetadata(Object obj, String method) {
+    private boolean validateClientMetadata(Object obj, String method) {
         if (obj instanceof ClientMetadata) {
-          ClientMetadata metadata = (ClientMetadata)obj;
-          if (metadata.getTenantId() == 0) {
-              throw new MissingParameterException("Tenant Id should not be null", null);
-          }
+            ClientMetadata metadata = (ClientMetadata) obj;
+            if (metadata.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
 
-          if (metadata.getTenantName() == null || metadata.getTenantName().trim().equals("")) {
-              throw new MissingParameterException("Tenant name should not be null", null);
-          }
+            if (metadata.getTenantName() == null || metadata.getTenantName().trim().equals("")) {
+                throw new MissingParameterException("Tenant name should not be null", null);
+            }
 
-          if (metadata.getRedirectURIsList() == null || metadata.getRedirectURIsCount() == 0) {
-              throw new MissingParameterException("RedirectURIs should not be null", null);
-          }
-          if (metadata.getComment() == null || metadata.getComment().trim().equals("")) {
-              throw new MissingParameterException("Comment should not be null", null);
-          }
+            if (metadata.getRedirectURIsList() == null || metadata.getRedirectURIsCount() == 0) {
+                throw new MissingParameterException("RedirectURIs should not be null", null);
+            }
+            if (metadata.getComment() == null || metadata.getComment().trim().equals("")) {
+                throw new MissingParameterException("Comment should not be null", null);
+            }
 
-          if (metadata.getPerformedBy() == null || metadata.getPerformedBy().trim().equals("")) {
-              throw new MissingParameterException("Performed by should not be null", null);
-          }
+            if (metadata.getPerformedBy() == null || metadata.getPerformedBy().trim().equals("")) {
+                throw new MissingParameterException("Performed by should not be null", null);
+            }
 
         } else {
-            throw new RuntimeException("Unexpected input type for method  "+method);
+            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
     }
 
-    private  boolean validateGetClientRequest(Object obj) {
+    private boolean validateGetClientRequest(Object obj) {
         if (obj instanceof GetClientRequest) {
-            GetClientRequest request = (GetClientRequest)obj;
+            GetClientRequest request = (GetClientRequest) obj;
 
             if (request.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id should not be null", null);
@@ -101,7 +115,7 @@ public class InputValidator implements Validator {
         return true;
     }
 
-    private  boolean validateDeleteClientRequest(Object obj) {
+    private boolean validateDeleteClientRequest(Object obj) {
         if (obj instanceof DeleteClientRequest) {
             DeleteClientRequest request = (DeleteClientRequest) obj;
 
@@ -120,6 +134,70 @@ public class InputValidator implements Validator {
             throw new RuntimeException("Unexpected input type for method deleteClient");
         }
         return true;
+    }
+
+
+    private boolean validateAddToCache(Object object, String methodName) {
+        if (object instanceof InstitutionOperationRequest) {
+            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getInstitutionIdList() == null || request.getInstitutionIdList().isEmpty()) {
+                throw new MissingParameterException("Institutional id list is empty", null);
+            }
+
+            if (request.getType() == null) {
+                throw new MissingParameterException("Type should not be null", null);
+            }
+        } else {
+            throw new RuntimeException("Unexpected input type for method addToCache");
+        }
+        return true;
+
+
+    }
+
+
+    private boolean validateRemoveToCache(Object object, String methodName) {
+        if (object instanceof InstitutionOperationRequest) {
+            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getInstitutionIdList() == null || request.getInstitutionIdList().isEmpty()) {
+                throw new MissingParameterException("Institutional id list is empty", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
+        return true;
+
+    }
+
+
+    private boolean validateGetFromCache(Object object, String methodName) {
+        if (object instanceof InstitutionOperationRequest) {
+            InstitutionOperationRequest request = (InstitutionOperationRequest) object;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+            if (request.getType() == null) {
+                throw new MissingParameterException("Type cannot be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
+        return true;
+
     }
 
 

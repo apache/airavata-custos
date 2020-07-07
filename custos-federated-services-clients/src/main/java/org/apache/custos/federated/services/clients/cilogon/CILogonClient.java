@@ -48,6 +48,9 @@ public class CILogonClient {
     @Value("${ciLogon.admin.auth.endpoint:https://test.cilogon.org/oauth2/oidc-cm}")
     private String ciLogonAuthEndpoint;
 
+    @Value("${ciLogon.institutions.endpoint:https://cilogon.org/idplist/}")
+    private String ciLogonInstitutionsEndpoint;
+
     private RestTemplate template = new RestTemplate();
 
 
@@ -73,7 +76,6 @@ public class CILogonClient {
             req.setContacts(new String[]{contactEmail});
         }
         HttpHeaders headers = new HttpHeaders();
-
 
 
         headers.add("Authorization", getBearerToken());
@@ -136,6 +138,22 @@ public class CILogonClient {
         headers.add("Authorization", getBearerToken());
         HttpEntity<Object> entity = new HttpEntity<Object>(headers);
         template.exchange(url, HttpMethod.DELETE, entity, String.class);
+    }
+
+
+    public CILogonInstitution[] getInstitutions() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", getBearerToken());
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity entity = new HttpEntity(headers);
+
+        String url = ciLogonInstitutionsEndpoint;
+
+        ResponseEntity<CILogonInstitution[]> responseEntity = template.
+                exchange(url, HttpMethod.GET, entity, CILogonInstitution[].class);
+
+        return responseEntity.getBody();
+
     }
 
 
