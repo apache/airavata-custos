@@ -115,7 +115,6 @@ public class AgentProfileService extends AgentProfileServiceGrpc.AgentProfileSer
 
             if (exEntity.isPresent()) {
 
-
                 org.apache.custos.agent.profile.persistance.model.Agent entity =
                         AgentMapper.createAgent(request.getAgent(), request.getTenantId());
                 entity.setId(exEntity.get().getId());

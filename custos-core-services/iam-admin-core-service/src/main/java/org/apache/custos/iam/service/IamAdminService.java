@@ -1832,6 +1832,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     public void deleteAgentRoles(DeleteUserRolesRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to deleteRolesFromAgent " + request.getTenantId());
+
             if (!request.getRolesList().isEmpty()) {
 
                 keycloakClient.removeRoleFromUser(request.getAccessToken(),
@@ -2110,6 +2111,12 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         if (representation.getRealmRoles() != null && !representation.getRealmRoles().isEmpty()) {
             builder.addAllRealmRoles(representation.getRealmRoles());
+        }
+
+        if (representation.getClientRoles() != null && !representation.getClientRoles().isEmpty() &&
+                representation.getClientRoles().get(Constants.AGENT_CLIENT) != null &&
+                !representation.getClientRoles().get(Constants.AGENT_CLIENT).isEmpty()) {
+            builder.addAllClientRoles(representation.getClientRoles().get(Constants.AGENT_CLIENT));
         }
 
         return builder.build();

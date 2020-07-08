@@ -75,6 +75,19 @@ public class AgentMapper {
             });
         }
 
+        
+
+        if (agent.getAgentClientRolesList() != null && !agent.getAgentClientRolesList().isEmpty()) {
+
+            agent.getAgentClientRolesList().forEach(role -> {
+                AgentRole userRole = new AgentRole();
+                userRole.setValue(role);
+                userRole.setType(Constants.ROLE_TYPE_CLIENT);
+                userRole.setAgent(persistenceModel);
+                userRoleSet.add(userRole);
+            });
+        }
+
         persistenceModel.setAgentRole(userRoleSet);
 
         return persistenceModel;
@@ -119,17 +132,22 @@ public class AgentMapper {
         }
 
         List<String> roleList = new ArrayList<>();
+        List<String> clientList = new ArrayList<>();
+
         if (agent.getAgentRole() != null && !agent.getAgentRole().isEmpty()) {
 
             agent.getAgentRole().forEach(role -> {
-                if (role.getType().equals(Constants.ROLE_TYPE_CLIENT)) {
+                if (role.getType().equals(Constants.ROLE_TYPE_REALM)) {
                     roleList.add(role.getValue());
+                } else if (role.getType().equals(Constants.ROLE_TYPE_CLIENT)) {
+                    clientList.add(role.getValue());
                 }
             });
         }
 
         serviceAgent = serviceAgent.toBuilder()
                 .addAllRoles(roleList)
+                .addAllAgentClientRoles(clientList)
                 .addAllAttributes(attributeList)
                 .build();
 
