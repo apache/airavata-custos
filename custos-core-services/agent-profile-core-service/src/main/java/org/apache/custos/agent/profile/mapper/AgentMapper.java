@@ -75,8 +75,7 @@ public class AgentMapper {
             });
         }
 
-
-        LOGGER.info("Agent client role list size "+ agent.getAgentClientRolesList().size());
+        
 
         if (agent.getAgentClientRolesList() != null && !agent.getAgentClientRolesList().isEmpty()) {
 
