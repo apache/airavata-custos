@@ -30,6 +30,7 @@ message Agent {
     int64 last_modified_at = 4;
     repeated string roles = 5;
     repeated AgentAttribute attributes = 6;
+    repeated string agent_client_roles = 8;
 
 }
 

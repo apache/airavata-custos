@@ -376,6 +376,7 @@ message Agent {
     bool isEnabled = 4;
     double creation_time = 5;
     double last_modified_at = 6;
+    repeated string client_roles = 7;
 }
 
 

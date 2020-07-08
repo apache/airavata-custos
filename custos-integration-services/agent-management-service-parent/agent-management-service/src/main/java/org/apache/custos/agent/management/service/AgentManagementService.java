@@ -197,7 +197,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 newAtrList.add(attribute);
                 representation = representation.toBuilder().addAllAttributes(newAtrList).build();
 
-                request = request.toBuilder().setUser(representation).build();
+                request = request.toBuilder().setUser(representation).setClientId(AGENT_CLIENT).build();
 
                 RegisterUserResponse response = iamAdminServiceClient.registerAndEnableAgent(request);
 
@@ -211,6 +211,10 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                     if (representation.getRealmRolesList() != null && !representation.getRealmRolesList().isEmpty()) {
                         agent = agent.toBuilder().addAllRoles(representation.getRealmRolesList()).build();
 
+                    }
+
+                    if (representation.getClientRolesList() != null && !representation.getClientRolesList().isEmpty()) {
+                        agent = agent.toBuilder().addAllAgentClientRoles(representation.getClientRolesList()).build();
                     }
 
                     if (representation.getAttributesList() != null && !representation.getAttributesList().isEmpty()) {
@@ -311,6 +315,34 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
         }
     }
 
+
+    @Override
+    public void addRolesToClient(AddRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+
+            LOGGER.debug("Request received to add agent client roles" + request.getTenantId());
+
+            request = request.toBuilder()
+                    .setClientId(AGENT_CLIENT)
+                    .setClientLevel(true)
+                    .build();
+
+            iamAdminServiceClient.addRolesToTenant(request);
+
+            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(true).build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addRolesToClient " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            if (ex.getMessage().contains("UNAUTHENTICATED")) {
+                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            } else {
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            }
+        }
+    }
 
     @Override
     public void getAgent(AgentSearchRequest request, StreamObserver<org.apache.custos.iam.service.Agent> responseObserver) {
@@ -555,6 +587,7 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
     public void addRolesToAgent(AddUserRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+            request = request.toBuilder().setClientId(AGENT_CLIENT).build();
 
             OperationStatus status = iamAdminServiceClient.addRolesToAgent(request);
 
@@ -603,6 +636,9 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
     public void deleteRolesFromAgent(DeleteUserRolesRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to deleteAgentAttributes " + request.getTenantId());
+
+            request = request.toBuilder().setClientId(AGENT_CLIENT).build();
+
 
             OperationStatus status = iamAdminServiceClient.deleteAgentRoles(request);
 
@@ -754,11 +790,18 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
     }
 
     private Agent getAgentProfile(org.apache.custos.iam.service.Agent iamAgent) {
-        Agent agentProfile = Agent.newBuilder()
+        Agent.Builder agentProfile = Agent.newBuilder()
                 .setId(iamAgent.getId().toLowerCase())
-                .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED)
-                .addAllRoles(iamAgent.getRealmRolesList())
-                .build();
+                .setStatus(iamAgent.getIsEnabled() ? AgentStatus.ENABLED : AgentStatus.DISABLED);
+
+        if (!iamAgent.getRealmRolesList().isEmpty()) {
+            agentProfile = agentProfile.addAllRoles(iamAgent.getRealmRolesList());
+        }
+
+        if (!iamAgent.getClientRolesList().isEmpty()) {
+            agentProfile = agentProfile.addAllAgentClientRoles(iamAgent.getClientRolesList());
+        }
+
 
         for (UserAttribute atr : iamAgent.getAttributesList()) {
 
@@ -767,10 +810,10 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                     .addAllValue(atr.getValuesList())
                     .build();
 
-            agentProfile = agentProfile.toBuilder().addAttributes(agentAttribute).build();
+            agentProfile = agentProfile.addAttributes(agentAttribute);
 
         }
-        return agentProfile;
+        return agentProfile.build();
 
     }
 

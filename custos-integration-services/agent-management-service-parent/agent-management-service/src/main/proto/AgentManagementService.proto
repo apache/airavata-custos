@@ -62,6 +62,13 @@ service AgentManagementService {
          };
     }
 
+
+    rpc addRolesToClient (org.apache.custos.iam.service.AddRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/agent-management/v1.0.0/roles"
+         };
+    }
+
     rpc registerAndEnableAgent (org.apache.custos.iam.service.RegisterUserRequest) returns (AgentRegistrationResponse) {
         option (google.api.http) = {
            post: "/agent-management/v1.0.0/agent"
