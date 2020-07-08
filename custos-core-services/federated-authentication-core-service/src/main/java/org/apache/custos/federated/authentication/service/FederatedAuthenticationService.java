@@ -239,14 +239,14 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
 
     @Override
-    public void addToCache(InstitutionOperationRequest request, StreamObserver<Status> responseObserver) {
+    public void addToCache(CacheManipulationRequest request, StreamObserver<Status> responseObserver) {
         try {
             LOGGER.debug("Calling addToCache API for tenantId " + request.getTenantId());
 
 
             long tenantId = request.getTenantId();
 
-            List<String> ids = request.getInstitutionIdList();
+            List<String> ids = request.getInstitutionIdsList();
 
             InstitutionCacheType type = request.getType();
 
@@ -257,6 +257,22 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
             });
 
+
+            for (CILogonInstitution ciLogonInstitution : ciLogonInstitutions) {
+
+                Optional<CILogonInstitution> optionalCILogonInstitution =
+                        institutionRespository.findById(ciLogonInstitution.getId());
+
+                if (optionalCILogonInstitution.isPresent()) {
+                    String msg = " Duplicate entry with Id  " + ciLogonInstitution.getInstitutionId();
+                    LOGGER.error(msg);
+                    responseObserver.onError(io.grpc.Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
+                    return;
+                }
+
+            }
+
+
             institutionRespository.saveAll(ciLogonInstitutions);
 
             Status status = Status.newBuilder().setStatus(true).build();
@@ -264,20 +280,19 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            FederatedAuthenticationServiceException failedException =
-                    new FederatedAuthenticationServiceException(" operation failed for "
-                            + request.getTenantId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " Error at federated authentication core service " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void removeFromCache(InstitutionOperationRequest request, StreamObserver<Status> responseObserver) {
+    public void removeFromCache(CacheManipulationRequest request, StreamObserver<Status> responseObserver) {
         try {
             LOGGER.debug("Calling removeFromCache API for tenantId" + request.getTenantId());
             long tenantId = request.getTenantId();
 
-            List<String> ids = request.getInstitutionIdList();
+            List<String> ids = request.getInstitutionIdsList();
 
             List<CILogonInstitution> ciLogonInstitutions = new ArrayList<>();
 
@@ -301,15 +316,14 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            FederatedAuthenticationServiceException failedException =
-                    new FederatedAuthenticationServiceException(" operation failed for "
-                            + request.getTenantId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " Error at federated authentication core service " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void getFromCache(InstitutionOperationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
+    public void getFromCache(CacheManipulationRequest request, StreamObserver<GetInstitutionsIdsAsResponse> responseObserver) {
         try {
             LOGGER.debug("Calling getFromCache API for tenantId " + request.getTenantId());
 
@@ -320,41 +334,41 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
             List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, type);
 
-            List<Institution> institutionList = new ArrayList<>();
+            List<String> institutionList = new ArrayList<>();
 
             if (institutions != null && !institutions.isEmpty()) {
 
                 for (CILogonInstitution institution : institutions) {
-                    institutionList.add(ModelMapper.convert(institution));
+                    institutionList.add(institution.getInstitutionId());
                 }
             }
 
 
-            GetInstitutionsResponse response = GetInstitutionsResponse.
-                    newBuilder().addAllInstitutions(institutionList).build();
+            GetInstitutionsIdsAsResponse response = GetInstitutionsIdsAsResponse.
+                    newBuilder().addAllEntityIds(institutionList).build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            FederatedAuthenticationServiceException failedException =
-                    new FederatedAuthenticationServiceException(" operation failed for "
-                            + request.getTenantId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " Error at federated authentication core service " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
 
     @Override
-    public void getInstitutions(InstitutionOperationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
+    public void getInstitutions(CacheManipulationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
         try {
             LOGGER.debug("Calling getInstitutions API for tenantId " + request.getTenantId());
 
             long tenant = request.getTenantId();
 
-            String type = request.getType().name();
 
-            List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, type);
+            List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, InstitutionCacheType.WHITELIST.name());
+
+            List<CILogonInstitution> backListedInstituions = institutionRespository.findAllByTenantIdAndType(tenant, InstitutionCacheType.BACKLIST.name());
 
 
             org.apache.custos.federated.services.clients.cilogon.CILogonInstitution[] ciLogonInstitutions =
@@ -362,7 +376,12 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
             List<org.apache.custos.federated.services.clients.cilogon.CILogonInstitution> selectedLists = new ArrayList<>();
 
-            if (type.equals(InstitutionCacheType.WHITELIST.name())) {
+            if (institutions.isEmpty() && backListedInstituions.isEmpty()) {
+
+                selectedLists.addAll(Arrays.asList(ciLogonInstitutions));
+
+            } else if (!institutions.isEmpty()) {
+
 
                 for (org.apache.custos.federated.services.clients.cilogon.CILogonInstitution ciLogonInstitution : ciLogonInstitutions) {
 
@@ -381,12 +400,14 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
                 for (org.apache.custos.federated.services.clients.cilogon.CILogonInstitution ciLogonInstitution : ciLogonInstitutions) {
 
                     AtomicBoolean doNotAdd = new AtomicBoolean(false);
-                    institutions.forEach(it -> {
+                    for (CILogonInstitution it : backListedInstituions) {
 
                         if (it.getInstitutionId().equals(ciLogonInstitution.getEntityId())) {
                             doNotAdd.set(true);
+                            break;
+
                         }
-                    });
+                    }
 
                     if (!doNotAdd.get()) {
                         selectedLists.add(ciLogonInstitution);
@@ -394,6 +415,7 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
                 }
             }
+
 
             List<Institution> institutionList = new ArrayList<>();
 
@@ -410,10 +432,9 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            FederatedAuthenticationServiceException failedException =
-                    new FederatedAuthenticationServiceException(" operation failed for "
-                            + request.getTenantId(), ex);
-            responseObserver.onError(failedException);
+            String msg = " Error at federated authentication core service " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 

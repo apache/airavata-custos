@@ -28,6 +28,7 @@ import "TenantProfileService.proto";
 import "google/rpc/error_details.proto";
 import "google/protobuf/empty.proto";
 import "IamAdminService.proto";
+import "FederatedAuthenticationService.proto";
 
 
 message CreateTenantResponse {
@@ -161,7 +162,6 @@ service TenantManagementService {
     }
 
 
-
     rpc updateTenantStatus (org.apache.custos.tenant.profile.service.UpdateStatusRequest) returns (org.apache.custos.tenant.profile.service.UpdateStatusResponse) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/status"
@@ -193,6 +193,31 @@ service TenantManagementService {
     rpc getTenantAttributeUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/audit/attributes/{tenantId}"
+        };
+    }
+
+
+    rpc addToCache (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.Status) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/cache/institutions/CILogon"
+        };
+
+    }
+    rpc removeFromCache (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.Status) {
+        option (google.api.http) = {
+           delete: "/tenant-management/v1.0.0/cache/institutions/CILogon"
+        };
+
+    }
+    rpc getFromCache (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.GetInstitutionsIdsAsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/cache/institutions/CILogon"
+        };
+
+    }
+    rpc getInstitutions (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.GetInstitutionsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/institutions/CILogon"
         };
     }
 
