@@ -52,7 +52,7 @@ public class SharingMapper {
         sharing.setPermissionType(permissionType);
         sharing.setAssociatingId(ownerId);
         sharing.setAssociatingIdType(ownerType);
-        sharing.setInheritedEntity(inheritedEntity);
+        sharing.setInheritedParent(inheritedEntity);
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;
@@ -61,14 +61,15 @@ public class SharingMapper {
 
     public static Sharing getNewSharing(Sharing oldSharing, long tenantId, Entity entity) {
         String id = entity.getId() + "_" +
-                oldSharing.getInheritedEntity().getId() + "_" + oldSharing.getAssociatingId() + "_" + oldSharing.getPermissionType().getId() + "_" + tenantId;
+                oldSharing.getInheritedParent().getId() + "_" + oldSharing.getAssociatingId() + "_" + oldSharing.getPermissionType().getId() + "_" + tenantId;
 
         Sharing sharing = new Sharing();
         sharing.setSharingType(oldSharing.getSharingType());
         sharing.setEntity(entity);
         sharing.setPermissionType(oldSharing.getPermissionType());
         sharing.setAssociatingId(oldSharing.getAssociatingId());
-        sharing.setInheritedEntity(oldSharing.getInheritedEntity());
+        sharing.setAssociatingIdType(oldSharing.getAssociatingIdType());
+        sharing.setInheritedParent(oldSharing.getInheritedParent());
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;

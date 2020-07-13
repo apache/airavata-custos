@@ -21,7 +21,9 @@ package org.apache.custos.sharing.persistance.repository;
 
 import org.apache.custos.sharing.persistance.model.Sharing;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -31,6 +33,8 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
             "and s.sharing_type IN  ?3", nativeQuery = true)
     public List<Sharing> findSharingForEntityOfTenant(long tenantId, String entityId, List<String> sharingTypes);
 
+    @Modifying
+    @Transactional
     @Query(value = "delete  from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.sharing_type = ?3", nativeQuery = true)
     public void removeGivenCascadingPermissionsForEntity(long tenantId, String entityId, String sharingType);
@@ -53,14 +57,18 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
             (long tenantId, String entityId, String permissionTypeId, String associatingIdType, List<String> sharingList);
 
 
-    public List<Sharing> deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAssociatingId(
+
+    @Transactional
+    public List<Sharing> deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAndAssociatingId(
             String inheritedParentId, String permissionTypeId, long tenantId, String sharingType, String associatedId);
 
+
+    @Transactional
     public void deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
             String entityId, String permissionTypeId, String associatingId, long tenantId, String inheritedParentId);
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
-            "and s.permission_type_id IN ?3 and s.associating_id_type IN  ?4", nativeQuery = true)
+            "and s.permission_type_id IN ?3 and s.associating_id IN  ?4", nativeQuery = true)
     public List<Sharing>  findAllSharingOfEntityForGroupsUnderPermissions(long tenantId, String entityId,
                                                                           List<String> permissionTypes,
                                                                           List<String> associatedIds);

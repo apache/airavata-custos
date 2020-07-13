@@ -114,11 +114,11 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Entity type not found", null);
             }
             if (entityTypeRequest.getEntityType().getId() == null || entityTypeRequest.
-                    getEntityType().getId().equals("")) {
+                    getEntityType().getId().trim().equals("")) {
                 throw new MissingParameterException("Entity type id not found", null);
             }
             if (entityTypeRequest.getEntityType().getName() == null || entityTypeRequest.
-                    getEntityType().getName().equals("")) {
+                    getEntityType().getName().trim().equals("")) {
                 throw new MissingParameterException("Entity type name not found", null);
             }
         } else {

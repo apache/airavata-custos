@@ -23,6 +23,8 @@ import org.apache.custos.sharing.persistance.model.Entity;
 import org.apache.custos.sharing.service.EntitySearchField;
 import org.apache.custos.sharing.service.SearchCondition;
 import org.apache.custos.sharing.service.SearchCriteria;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -33,7 +35,9 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public class SearchEntityRepositoryImpl implements SearchEntityRepository {
+public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SearchEntityRepositoryImpl.class);
 
     @PersistenceContext
     EntityManager entityManager;
@@ -45,7 +49,8 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
         String query = createSQLQuery(searchCriteria, valueMap);
 
 
-        Query q = entityManager.createNativeQuery(query);
+
+        Query q = entityManager.createNativeQuery(query, Entity.class);
         for (String key : valueMap.keySet()) {
             q.setParameter(key, valueMap.get(key));
         }
@@ -137,8 +142,10 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
             }
 
         }
+        query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
+
         return query;
     }
 
