@@ -198,6 +198,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     /**
      * Authorize tenant request by checking validity of calling tenant and its child tenant given by clientId
+     *
      * @param headers       parentTenant Headers
      * @param childClientId childTenant Headers
      * @return AuthClaim of child tenant
@@ -220,7 +221,18 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
 
+
+        GetCredentialRequest credentialRequest = GetCredentialRequest
+                .newBuilder()
+                .setOwnerId(metadata.getOwnerId())
+                .setType(Type.IAM).build();
+
+        CredentialMetadata iamCredentials = credentialStoreServiceClient.getCredential(credentialRequest);
+
         AuthClaim childClaim = getAuthClaim(metadata);
+
+        childClaim.setIamAuthSecret(iamCredentials.getSecret());
+        childClaim.setIamAuthId(iamCredentials.getId());
 
         boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
 

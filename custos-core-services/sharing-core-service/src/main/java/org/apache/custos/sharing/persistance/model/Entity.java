@@ -71,7 +71,7 @@ public class Entity {
     private Date lastModifiedAt;
 
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Temporal(TemporalType.TIMESTAMP)
     private Date originalCreatedTime;
 
@@ -88,7 +88,7 @@ public class Entity {
     @OneToMany(mappedBy = "entity", cascade = CascadeType.ALL)
     private Set<Sharing> sharingSet;
 
-    @OneToMany(mappedBy = "inheritedEntity", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "inheritedParent", cascade = CascadeType.ALL)
     private Set<Sharing> inheritedSharing;
 
 
