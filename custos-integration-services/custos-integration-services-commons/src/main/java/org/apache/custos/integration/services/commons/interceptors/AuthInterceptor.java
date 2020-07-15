@@ -251,6 +251,45 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
+    public AuthClaim authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(Metadata headers,
+                                                                                               String childClientId,
+                                                                                               String userToken) {
+        AuthClaim authClaim = authorize(headers);
+
+        if (authClaim == null) {
+            return null;
+        }
+
+        if (childClientId == null || childClientId.trim().equals("")) {
+            return authClaim;
+        }
+
+        GetCredentialRequest request = GetCredentialRequest
+                .newBuilder()
+                .setId(childClientId).build();
+
+        CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+        AuthClaim childClaim = getAuthClaim(metadata);
+
+
+        boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
+
+        if (!statusValidation) {
+            return null;
+        }
+
+        boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(), childClaim.getTenantId());
+
+        if (!relationShipValidation) {
+            return null;
+        }
+
+        return authorizeUsingUserToken(userToken);
+
+    }
+
+
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
             LOGGER.info("Nulling " + response.getSecretListCount());

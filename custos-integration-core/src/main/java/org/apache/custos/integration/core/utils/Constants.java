@@ -25,4 +25,6 @@ package org.apache.custos.integration.core.utils;
 public final class Constants {
 
     public static final String SYSTEM = "SYSTEM";
+
+    public static final String USER_TOKEN = "user-token";
 }
