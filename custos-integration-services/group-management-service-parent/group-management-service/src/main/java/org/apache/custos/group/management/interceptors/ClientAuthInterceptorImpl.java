@@ -22,11 +22,18 @@ package org.apache.custos.group.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.GroupRequest;
+import org.apache.custos.iam.service.GroupsRequest;
+import org.apache.custos.iam.service.UserGroupMappingRequest;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
+import org.apache.custos.integration.core.utils.Constants;
+import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.user.profile.service.GroupMembership;
+import org.apache.custos.user.profile.service.GroupToGroupMembership;
+import org.apache.custos.user.profile.service.UserProfileRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +44,7 @@ import org.springframework.stereotype.Component;
  * Methods which authenticates based only on client are implemented here.
  */
 @Component
-public class ClientAuthInterceptorImpl extends AuthInterceptor {
+public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
@@ -49,8 +56,10 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
 
-        if (method.equals("findGroup")) {
-            AuthClaim claim = authorize(headers);
+        if (method.equals("findGroup") || method.equals("getAllGroups")
+                || method.equals("updateGroup") || method.equals("deleteGroup")) {
+            GroupRequest request = (GroupRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -60,33 +69,140 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
+
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
+
             return (ReqT) ((GroupRequest) reqT).toBuilder()
+                    .setClientId(oauthId)
+                    .setTenantId(tenantId)
+                    .setClientSec(oauthSec)
+                    .setAccessToken(token.getAccessToken())
+                    .setPerformedBy(claim.getPerformedBy() != null ? claim.getPerformedBy(): Constants.SYSTEM)
+                    .build();
+
+        } else if (method.equals("createGroups")) {
+            GroupsRequest request = (GroupsRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
+
+            return (ReqT) ((GroupsRequest) reqT).toBuilder()
+                    .setClientId(oauthId)
+                    .setTenantId(tenantId)
+                    .setClientSec(oauthSec)
+                    .setAccessToken(token.getAccessToken())
+                    .setPerformedBy(claim.getPerformedBy() != null ? claim.getPerformedBy(): Constants.SYSTEM)
+                    .build();
+
+        } else if (method.equals("addUserToGroup") || method.equals("removeUserFromGroup")) {
+            UserGroupMappingRequest request = (UserGroupMappingRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
+
+            return (ReqT) ((UserGroupMappingRequest) reqT).toBuilder()
                     .setClientId(oauthId)
                     .setClientSec(oauthSec)
                     .setTenantId(tenantId)
+                    .setAccessToken(token.getAccessToken())
+                    .setPerformedBy(claim.getPerformedBy() != null ? claim.getPerformedBy(): Constants.SYSTEM)
                     .build();
 
-        } else if (method.equals("getAllGroups")) {
-            AuthClaim claim = authorize(headers);
+        } else if (method.equals("addChildGroupToParentGroup") || method.equals("removeChildGroupFromParentGroup")) {
+            GroupToGroupMembership groupToGroupMembership = (GroupToGroupMembership)reqT;
+            AuthClaim claim = authorize(headers, groupToGroupMembership.getChildId());
+
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
             }
-
-            String oauthId = claim.getIamAuthId();
-            String oauthSec = claim.getIamAuthSecret();
-
             long tenantId = claim.getTenantId();
-            GroupRequest registerUserRequest =
-                    ((GroupRequest) reqT).toBuilder()
-                            .setTenantId(tenantId)
-                            .setClientId(oauthId)
-                            .setClientSec(oauthSec)
-                            .build();
 
-            return (ReqT) registerUserRequest;
+
+            return (ReqT) ((GroupToGroupMembership) reqT).toBuilder()
+                    .setTenantId(tenantId)
+                    .build();
+
+
+        } else if (method.equals("getAllGroupsOfUser")) {
+            UserProfileRequest request = (UserProfileRequest)reqT;
+            AuthClaim claim = authorize(headers,request.getClientId());
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            long tenantId = claim.getTenantId();
+
+            return (ReqT) ((UserProfileRequest) reqT).toBuilder()
+                    .setTenantId(tenantId)
+                    .build();
+
+
+        } else if (method.equals("getAllChildUsers") || method.equals("getAllChildGroups")
+                || method.equals("getAllParentGroupsOfGroup")) {
+
+            org.apache.custos.user.profile.service.GroupRequest request =
+                    (org.apache.custos.user.profile.service.GroupRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            long tenantId = claim.getTenantId();
+
+
+            return (ReqT) ((org.apache.custos.user.profile.service.GroupRequest) reqT).toBuilder()
+                    .setTenantId(tenantId)
+                    .build();
+        } else if (method.equals("changeUserMembershipType") || method.equals("hasAccess")) {
+            GroupMembership request =
+                    (GroupMembership) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
+
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+            long tenantId = claim.getTenantId();
+
+            return (ReqT) ((GroupMembership) reqT).toBuilder()
+                    .setTenantId(tenantId)
+                    .build();
         }
         return reqT;
     }
+
 
 }

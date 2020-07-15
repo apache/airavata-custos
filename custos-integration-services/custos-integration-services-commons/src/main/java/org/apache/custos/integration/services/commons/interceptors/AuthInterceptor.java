@@ -25,6 +25,7 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
+import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.identity.service.IsAuthenticateResponse;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
@@ -290,6 +291,18 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
+    public AuthToken getSAToken(String clientId, String clientSec, long tenantId) {
+        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setClientSecret(clientSec)
+                .setTenantId(tenantId)
+                .build();
+        return identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+    }
+
+
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
             LOGGER.info("Nulling " + response.getSecretListCount());
@@ -411,5 +424,6 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         return false;
     }
+
 
 }

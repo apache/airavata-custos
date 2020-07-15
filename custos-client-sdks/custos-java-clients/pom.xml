@@ -37,6 +37,7 @@
         <module>agent-management-client</module>
         <module>group-management-client</module>
         <module>resource-secret-management-client</module>
+        <module>sharing-management-client</module>
     </modules>
 
     <build>

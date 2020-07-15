@@ -22,7 +22,6 @@ package org.apache.custos.group.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.GroupRequest;
-import org.apache.custos.iam.service.GroupsRequest;
 import org.apache.custos.iam.service.UserGroupMappingRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
@@ -54,28 +53,30 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
 
-        if (method.equals("createGroups")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+//        if (method.equals("createGroups")) {
+//            String token = getToken(headers);
+//            AuthClaim claim = authorizeUsingUserToken(headers);
+//
+//
+//            if (claim == null) {
+//                throw new NotAuthorizedException("Request is not authorized", null);
+//            }
+//
+//            String oauthId = claim.getIamAuthId();
+//
+//            long tenantId = claim.getTenantId();
+//
+//
+//            return (ReqT) ((GroupsRequest) msg).toBuilder()
+//                    .setClientId(oauthId)
+//                    .setTenantId(tenantId)
+//                    .setAccessToken(token)
+//                    .setPerformedBy(claim.getPerformedBy())
+//                    .build();
+//
+//        } else
 
-
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            String oauthId = claim.getIamAuthId();
-
-            long tenantId = claim.getTenantId();
-
-
-            return (ReqT) ((GroupsRequest) msg).toBuilder()
-                    .setClientId(oauthId)
-                    .setTenantId(tenantId)
-                    .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
-                    .build();
-
-        } else if (method.equals("updateGroup")) {
+        if (method.equals("updateGroup")) {
             String token = getToken(headers);
             AuthClaim claim = authorizeUsingUserToken(headers);
 
