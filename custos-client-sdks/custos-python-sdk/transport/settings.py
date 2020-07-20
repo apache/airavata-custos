@@ -6,7 +6,7 @@ config = configparser.ConfigParser()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 defaultSettings = os.path.join(BASE_DIR, "transport", "settings.ini")
 config.read(defaultSettings)
-cert_path = BASE_DIR + "/transport/certificate.pem"
+cert_path = os.path.join(BASE_DIR,'transport','certificate.pem')
 
 
 class CustosServerClientSettings(object):
