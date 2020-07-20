@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-path = os.path.join(BASE_DIR, "../", "transport", "certificate.pem")
+cert_path = os.path.join(BASE_DIR,'transport','certificate.pem')
 
 class CertificateFetchingRestClient(object):
 
@@ -58,7 +58,7 @@ class CertificateFetchingRestClient(object):
     def __download_certificate(self):
         r = requests.get(url=self.url, params=self.params, headers=self.header, stream=True, timeout=60, verify=False)
         value = r.json()['value']
-        path = self.rootdir + "/../transport/certificate.pem"
+        path = self.custos_settings.CUSTOS_CERT_PATH
         f = open(path, "w")
         f.write(value)
         f.close()
