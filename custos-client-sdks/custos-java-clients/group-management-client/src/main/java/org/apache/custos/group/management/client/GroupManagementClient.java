@@ -38,18 +38,17 @@ public class GroupManagementClient {
 
     /**
      * Create groups
-     * @param adminToken
+     *
+     * @param clientId
      * @param groupRepresentation
      * @return
      */
-    public GroupsResponse createGroup(String adminToken, GroupRepresentation[] groupRepresentation) {
-
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public GroupsResponse createGroup(String clientId, GroupRepresentation[] groupRepresentation) {
 
         GroupsRequest request = GroupsRequest
                 .newBuilder()
                 .addAllGroups(Arrays.asList(groupRepresentation))
+                .setClientId(clientId)
                 .build();
         return blockingStub.createGroups(request);
 
@@ -58,34 +57,34 @@ public class GroupManagementClient {
 
     /**
      * update group
-     * @param adminToken
+     *
+     * @param clientId
      * @param groupRepresentation
      * @return
      */
-    public GroupRepresentation updateGroup(String adminToken, GroupRepresentation groupRepresentation) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public GroupRepresentation updateGroup(String clientId, GroupRepresentation groupRepresentation) {
 
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
+                .setClientId(clientId)
                 .build();
         return blockingStub.updateGroup(request);
     }
 
     /**
      * delete group
-     * @param adminToken
+     *
+     * @param clientId
      * @param groupRepresentation
      * @return
      */
-    public OperationStatus deleteGroup(String adminToken, GroupRepresentation groupRepresentation) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public OperationStatus deleteGroup(String clientId, GroupRepresentation groupRepresentation) {
 
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
+                .setClientId(clientId)
                 .build();
         return blockingStub.deleteGroup(request);
     }
@@ -93,20 +92,19 @@ public class GroupManagementClient {
 
     /**
      * find group
-     * @param adminToken
+     *
+     * @param clientId
      * @param groupName
      * @param groupId
      * @return
      */
-    public OperationStatus findGroup(String adminToken, String groupName, String groupId) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
-
+    public OperationStatus findGroup(String clientId, String groupName, String groupId) {
         GroupRepresentation groupRepresentation =
                 GroupRepresentation.newBuilder().setId(groupId).setName(groupName).build();
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
+                .setClientId(clientId)
                 .build();
         return blockingStub.deleteGroup(request);
     }
@@ -114,15 +112,14 @@ public class GroupManagementClient {
 
     /**
      * Get all groups
-     * @param adminToken
+     *
+     * @param clientId
      * @return
      */
-    public GroupsResponse getAllGroups(String adminToken) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
-
+    public GroupsResponse getAllGroups(String clientId) {
         GroupRequest request = GroupRequest
                 .newBuilder()
+                .setClientId(clientId)
                 .build();
         return blockingStub.getAllGroups(request);
     }
@@ -130,18 +127,17 @@ public class GroupManagementClient {
 
     /**
      * Add user to group
-     * @param adminToken
+     *
+     * @param clientId
      * @param username
      * @param groupId
      * @return
      */
-    public OperationStatus addUserToGroup(String adminToken, String username, String groupId) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
-
+    public OperationStatus addUserToGroup(String clientId, String username, String groupId) {
         UserGroupMappingRequest request = UserGroupMappingRequest
                 .newBuilder()
                 .setUsername(username)
+                .setClientId(clientId)
                 .setGroupId(groupId).build();
         return blockingStub.addUserToGroup(request);
 
@@ -149,18 +145,18 @@ public class GroupManagementClient {
 
     /**
      * Remove user from group
-     * @param adminToken
+     *
+     * @param clientId
      * @param username
      * @param groupId
      * @return
      */
-    public OperationStatus removeUserFromGroup(String adminToken, String username, String groupId) {
-        GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub =
-                MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public OperationStatus removeUserFromGroup(String clientId, String username, String groupId) {
 
         UserGroupMappingRequest request = UserGroupMappingRequest
                 .newBuilder()
                 .setUsername(username)
+                .setClientId(clientId)
                 .setGroupId(groupId).build();
         return blockingStub.removeUserFromGroup(request);
 

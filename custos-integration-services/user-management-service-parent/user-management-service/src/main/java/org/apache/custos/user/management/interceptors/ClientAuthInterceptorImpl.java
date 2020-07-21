@@ -27,7 +27,7 @@ import org.apache.custos.iam.service.ResetUserPassword;
 import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.user.management.service.UserProfileRequest;
@@ -42,7 +42,7 @@ import org.springframework.stereotype.Component;
  * Methods which authenticates based only on client are implemented here.
  */
 @Component
-public class ClientAuthInterceptorImpl extends AuthInterceptor {
+public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
@@ -55,7 +55,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
 
 
         if (method.equals("deleteUserProfile")) {
-            AuthClaim claim = authorize(headers);
+            UserProfileRequest request = (UserProfileRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -72,7 +73,9 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
                     .build();
 
         } else if (method.equals("registerUser")) {
-            AuthClaim claim = authorize(headers);
+
+            RegisterUserRequest request = (RegisterUserRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -90,9 +93,10 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
                             .build();
 
             return (ReqT) registerUserRequest;
-        } else if (method.equals("enableUser")|| method.equals("disableUser") ||
+        } else if (method.equals("enableUser") || method.equals("disableUser") ||
                 method.equals("isUserEnabled") || method.equals("isUsernameAvailable")) {
-            AuthClaim claim = authorize(headers);
+            UserSearchRequest request = (UserSearchRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -112,7 +116,9 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) info;
 
         } else if (method.equals("getUserProfile")) {
-            AuthClaim claim = authorize(headers);
+
+            UserProfileRequest req = (UserProfileRequest) reqT;
+            AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -128,7 +134,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) request;
         } else if (method.equals("getAllUserProfilesInTenant")) {
-            AuthClaim claim = authorize(headers);
+            UserProfileRequest req = (UserProfileRequest) reqT;
+            AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -160,7 +167,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) request;
         } else if (method.equals("resetPassword")) {
-            AuthClaim claim = authorize(headers);
+            ResetUserPassword req = (ResetUserPassword) reqT;
+            AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -180,7 +188,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) request;
         } else if (method.equals("getUser")) {
-            AuthClaim claim = authorize(headers);
+            UserSearchRequest req = (UserSearchRequest) reqT;
+            AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -199,7 +208,8 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) request;
 
         } else if (method.equals("findUsers")) {
-            AuthClaim claim = authorize(headers);
+            FindUsersRequest req = (FindUsersRequest) reqT;
+            AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);

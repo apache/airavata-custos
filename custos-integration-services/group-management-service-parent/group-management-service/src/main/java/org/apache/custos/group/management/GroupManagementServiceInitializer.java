@@ -64,14 +64,10 @@ public class GroupManagementServiceInitializer {
 
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
-                                                                  ClientAuthInterceptorImpl authInterceptor,
-                                                                  UserAuthInterceptorImpl userAuthInterceptor) {
+                                                                  ClientAuthInterceptorImpl authInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(inputValidator);
         interceptors.add(authInterceptor);
-        interceptors.add(userAuthInterceptor);
-
-
         return interceptors;
     }
 
