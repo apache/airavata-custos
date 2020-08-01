@@ -234,6 +234,20 @@ public class KeycloakAuthClient {
 
     }
 
+    public JSONObject getAccessTokenFromClientCredentialsGrantType(String clientId, String clientSecret, String realmId
+    ) throws JSONException {
+        try {
+            String tokenURL = getTokenEndpoint(realmId);
+            return getClientCredentials(tokenURL, clientId, clientSecret);
+
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+    }
+
     public JSONObject getJWTVerificationCerts(String clientId, String clientSecret, String realmId
     ) throws JSONException {
         try {
@@ -538,6 +552,9 @@ public class KeycloakAuthClient {
             }
         }
     }
+
+
+
 
 
 }

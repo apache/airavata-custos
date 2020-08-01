@@ -23,6 +23,7 @@ package org.apache.custos.user.profile.mapper;
 import org.apache.custos.user.profile.persistance.model.UserAttribute;
 import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.apache.custos.user.profile.persistance.model.UserRole;
+import org.apache.custos.user.profile.service.DefaultGroupMembershipTypes;
 import org.apache.custos.user.profile.service.UserStatus;
 import org.apache.custos.user.profile.service.UserTypes;
 import org.apache.custos.user.profile.utils.Constants;
@@ -128,7 +129,7 @@ public class UserProfileMapper {
      * @param profileEntity
      * @return tenant
      */
-    public static org.apache.custos.user.profile.service.UserProfile createUserProfileFromUserProfileEntity(UserProfile profileEntity) {
+    public static org.apache.custos.user.profile.service.UserProfile createUserProfileFromUserProfileEntity(UserProfile profileEntity, String membershipType) {
 
 
         org.apache.custos.user.profile.service.UserProfile.Builder builder =
@@ -175,8 +176,8 @@ public class UserProfileMapper {
 
         builder
                 .setUsername(profileEntity.getUsername())
-                .setCreatedAt(profileEntity.getCreatedAt().toString())
-                .setLastModifiedAt(profileEntity.getLastModifiedAt() != null ? profileEntity.getLastModifiedAt().toString() : "")
+                .setCreatedAt(profileEntity.getCreatedAt().getTime())
+                .setLastModifiedAt(profileEntity.getLastModifiedAt() != null ? profileEntity.getLastModifiedAt().getTime() : 0)
                 .setStatus(UserStatus.valueOf(profileEntity.getStatus()))
                 .addAllAttributes(attributeList);
 
@@ -191,6 +192,10 @@ public class UserProfileMapper {
 
         if (profileEntity.getLastName() != null) {
             builder.setLastName(profileEntity.getLastName());
+        }
+
+        if (membershipType != null ) {
+            builder.setMembershipType(DefaultGroupMembershipTypes.valueOf(membershipType));
         }
 
         if (profileEntity.getType() == null) {

@@ -606,11 +606,11 @@ public class KeycloakClient {
 
 
     public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
-                                             String username, String firstName, String lastName, String email) {
+                                             String username, String firstName, String lastName, String email, String search) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
-            return searchUsers(client, realmId, username, firstName, lastName, email, offset, limit);
+            return searchUsers(client, realmId, username, firstName, lastName, email, search, offset, limit);
 
         } catch (Exception ex) {
             String msg = "Error occurred while searching for user, reason: " + ex.getMessage();
@@ -1565,7 +1565,15 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, realmId, accessToken);
 
-            return client.realm(realmId).groups().groups();
+            List<GroupRepresentation> groupRepresentations = new ArrayList<>();
+
+
+            for (GroupRepresentation representation : client.realm(realmId).groups().groups()) {
+                groupRepresentations.
+                        add(client.realm(realmId).groups().group(representation.getId()).toRepresentation());
+            }
+
+            return groupRepresentations;
 
 
         } catch (Exception ex) {
@@ -1916,11 +1924,17 @@ public class KeycloakClient {
 
 
     private List<UserRepresentation> searchUsers(Keycloak client, String tenantId, String username,
-                                                 String firstName, String lastName, String email, int offset, int limit) {
+                                                 String firstName, String lastName, String email, String search, int offset, int limit) {
 
         // Searching for users by username returns also partial matches, so need to filter down to an exact match if it exists
-        List<UserRepresentation> userResourceList = client.realm(tenantId).users().search(
-                username.toLowerCase(), firstName, lastName, email, offset, limit);
+        List<UserRepresentation> userResourceList = null;
+        if (search != null && !search.trim().equals("")) {
+            userResourceList = client.realm(tenantId).users().search(search, offset, limit);
+        } else {
+
+            userResourceList = client.realm(tenantId).users().search(
+                    username.toLowerCase(), firstName, lastName, email, offset, limit);
+        }
 
         if (userResourceList != null && !userResourceList.isEmpty()) {
             List<UserRepresentation> newList = new ArrayList<>();

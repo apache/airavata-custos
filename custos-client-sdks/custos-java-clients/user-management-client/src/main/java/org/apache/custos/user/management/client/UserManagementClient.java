@@ -25,6 +25,9 @@ import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.user.management.service.UserManagementServiceGrpc;
+import org.apache.custos.user.management.service.UserProfileRequest;
+import org.apache.custos.user.profile.service.GetAllUserProfilesResponse;
+import org.apache.custos.user.profile.service.UserProfile;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -281,7 +284,8 @@ public class UserManagementClient {
 
 
     public RegisterUserResponse registerUser(String username, String firstName, String lastName,
-                                             String password, String email, boolean isTempPassword, String clientId) {
+                                             String password, String email, boolean isTempPassword,
+                                             String clientId) {
 
         UserRepresentation userRepresentation = UserRepresentation
                 .newBuilder()
@@ -320,12 +324,8 @@ public class UserManagementClient {
         return blockingStub.enableUser(request);
     }
 
-    public OperationStatus addUserAttributes(String adminToken, UserAttribute[] attributes, String[] users, String clientId) {
+    public OperationStatus addUserAttributes(UserAttribute[] attributes, String[] users, String clientId) {
 
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
 
         AddUserAttributesRequest request = AddUserAttributesRequest
                 .newBuilder()
@@ -333,16 +333,11 @@ public class UserManagementClient {
                 .addAllUsers(Arrays.asList(users))
                 .setClientId(clientId)
                 .build();
-        return unAuthorizedStub.addUserAttributes(request);
+        return blockingStub.addUserAttributes(request);
 
     }
 
-    public OperationStatus deleteUserAttributes(String adminToken, UserAttribute[] attributes, String[] users, String clientId) {
-
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public OperationStatus deleteUserAttributes(UserAttribute[] attributes, String[] users, String clientId) {
 
 
         DeleteUserAttributeRequest request = DeleteUserAttributeRequest
@@ -351,17 +346,15 @@ public class UserManagementClient {
                 .addAllUsers(Arrays.asList(users))
                 .setClientId(clientId)
                 .build();
-        return unAuthorizedStub.deleteUserAttributes(request);
+        return blockingStub.deleteUserAttributes(request);
 
     }
 
 
-    public OperationStatus addRolesToUsers(String adminToken, String[] roles, String[] username,
-                                           boolean isClientLevel, String clientId) {
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public OperationStatus addRolesToUsers(String[] roles, String[] username,
+                                           boolean isClientLevel, String clientId, String adminToken) {
+        blockingStub =
+                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
 
         AddUserRolesRequest request = AddUserRolesRequest
                 .newBuilder()
@@ -370,17 +363,15 @@ public class UserManagementClient {
                 .setClientLevel(isClientLevel)
                 .setClientId(clientId)
                 .build();
-        return unAuthorizedStub.addRolesToUsers(request);
+        return blockingStub.addRolesToUsers(request);
 
     }
 
 
-    public OperationStatus deleteUserRoles(String adminToken, String[] clientRoles,
-                                           String[] realmRoles, String username, String clientId) {
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
+    public OperationStatus deleteUserRoles(String[] clientRoles,
+                                           String[] realmRoles, String username, String clientId, String adminToken) {
+        blockingStub =
+                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
 
         DeleteUserRolesRequest request = DeleteUserRolesRequest
                 .newBuilder()
@@ -389,7 +380,7 @@ public class UserManagementClient {
                 .setUsername(username)
                 .setClientId(clientId)
                 .build();
-        return unAuthorizedStub.deleteUserRoles(request);
+        return blockingStub.deleteUserRoles(request);
 
     }
 
@@ -445,8 +436,19 @@ public class UserManagementClient {
     }
 
 
-    public FindUsersResponse findUser(String username, String firstName,
-                                      String lastName, String email, int offset, int limit, String clientId) {
+    public GetAllUserProfilesResponse getAllUserProfiles(String clientId) {
+        UserProfileRequest request = UserProfileRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.getAllUserProfilesInTenant(request);
+
+    }
+
+
+    public FindUsersResponse findUsers(String searchString, String username, String firstName,
+                                       String lastName, String email, int offset, int limit, String clientId) {
 
         UserSearchMetadata.Builder builder = UserSearchMetadata
                 .newBuilder();
@@ -465,6 +467,10 @@ public class UserManagementClient {
 
         if (email != null) {
             builder = builder.setFirstName(email);
+        }
+
+        if (searchString != null) {
+            builder = builder.setId(searchString);
         }
         UserSearchMetadata metadata = builder.build();
 
@@ -487,7 +493,7 @@ public class UserManagementClient {
                 .newBuilder()
                 .setPassword(password)
                 .setUsername(username)
-                .setClientSec(clientId)
+                .setClientId(clientId)
                 .build();
 
         return blockingStub.resetPassword(userPassword);
@@ -495,12 +501,10 @@ public class UserManagementClient {
     }
 
 
-    public OperationStatus deleteUser(String adminToken, String username, String clientId) {
+    public OperationStatus deleteUser(String username, String clientId, String adminToken) {
 
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
+        blockingStub =
+                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
@@ -513,7 +517,29 @@ public class UserManagementClient {
                 .setClientId(clientId)
                 .build();
 
-        return unAuthorizedStub.deleteUser(request);
+        return blockingStub.deleteUser(request);
+
+    }
+
+
+    public UserProfile updateUserProfile(String username, String firstName, String lastName, String email,
+                                         String clientId) {
+
+
+        UserProfile userProfile = UserProfile.newBuilder()
+                .setUsername(username)
+                .setFirstName(firstName)
+                .setLastName(lastName)
+                .setEmail(email)
+                .build();
+
+        UserProfileRequest userProfileRequest = UserProfileRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setUserProfile(userProfile)
+                .build();
+
+        return blockingStub.updateUserProfile(userProfileRequest);
 
     }
 

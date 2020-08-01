@@ -6,7 +6,9 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.group.management.service.GroupManagementServiceGrpc;
+import org.apache.custos.iam.service.GroupRequest;
 import org.apache.custos.iam.service.*;
+import org.apache.custos.user.profile.service.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -98,15 +100,24 @@ public class GroupManagementClient {
      * @param groupId
      * @return
      */
-    public OperationStatus findGroup(String clientId, String groupName, String groupId) {
+    public GroupRepresentation findGroup(String clientId, String groupName, String groupId) {
+
         GroupRepresentation groupRepresentation =
-                GroupRepresentation.newBuilder().setId(groupId).setName(groupName).build();
+                GroupRepresentation.newBuilder().build();
+        if (groupName != null) {
+            groupRepresentation = groupRepresentation.toBuilder().setName(groupName).build();
+        }
+
+        if (groupId != null) {
+            groupRepresentation = groupRepresentation.toBuilder().setId(groupId).build();
+        }
+
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
                 .setClientId(clientId)
                 .build();
-        return blockingStub.deleteGroup(request);
+        return blockingStub.findGroup(request);
     }
 
 
@@ -133,11 +144,12 @@ public class GroupManagementClient {
      * @param groupId
      * @return
      */
-    public OperationStatus addUserToGroup(String clientId, String username, String groupId) {
+    public OperationStatus addUserToGroup(String clientId, String username, String groupId, String type) {
         UserGroupMappingRequest request = UserGroupMappingRequest
                 .newBuilder()
                 .setUsername(username)
                 .setClientId(clientId)
+                .setMembershipType(type)
                 .setGroupId(groupId).build();
         return blockingStub.addUserToGroup(request);
 
@@ -159,6 +171,124 @@ public class GroupManagementClient {
                 .setClientId(clientId)
                 .setGroupId(groupId).build();
         return blockingStub.removeUserFromGroup(request);
+
+    }
+
+
+    public OperationStatus addChildGroupToParentGroup(String clientId, String parentId, String childId) {
+        GroupToGroupMembership membership = GroupToGroupMembership
+                .newBuilder()
+                .setChildId(childId)
+                .setParentId(parentId)
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.addChildGroupToParentGroup(membership);
+    }
+
+
+    public OperationStatus removeChildGroupFromParentGroup(String clientId, String parentId, String childId) {
+        GroupToGroupMembership membership = GroupToGroupMembership
+                .newBuilder()
+                .setChildId(childId)
+                .setParentId(parentId)
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.removeChildGroupFromParentGroup(membership);
+    }
+
+
+    public GetAllGroupsResponse getAllGroupsOfUser(String clientId, String username) {
+        UserProfile userProfile = UserProfile
+                .newBuilder()
+                .setUsername(username)
+                .build();
+        UserProfileRequest userProfileRequest = UserProfileRequest
+                .newBuilder()
+                .setProfile(userProfile)
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.getAllGroupsOfUser(userProfileRequest);
+    }
+
+
+    public GetAllGroupsResponse getAllParentGroupsOfGroup(String clientId, String id) {
+        Group group = Group
+                .newBuilder()
+                .setId(id)
+                .build();
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+
+        return blockingStub.getAllParentGroupsOfGroup(request);
+    }
+
+
+    public GetAllUserProfilesResponse getAllChildUsers(String clientId, String id) {
+        Group group = Group
+                .newBuilder()
+                .setId(id)
+                .build();
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+
+        return blockingStub.getAllChildUsers(request);
+    }
+
+
+    public GetAllGroupsResponse getAllChildGroups(String clientId, String id) {
+        Group group = Group
+                .newBuilder()
+                .setId(id)
+                .build();
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+
+        return blockingStub.getAllChildGroups(request);
+    }
+
+
+    public OperationStatus changeUserMembershipType(String clientId, String username, String groupId, String type) {
+
+        GroupMembership membership = GroupMembership
+                .newBuilder()
+                .setUsername(username)
+                .setGroupId(groupId)
+                .setType(type)
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.changeUserMembershipType(membership);
+    }
+
+
+    public OperationStatus hasAccess(String clientId, String groupId, String userId, String type) {
+        GroupMembership membership = GroupMembership
+                .newBuilder()
+                .setUsername(userId)
+                .setGroupId(groupId)
+                .setType(type)
+                .setClientId(clientId)
+                .build();
+
+        return blockingStub.hasAccess(membership);
 
     }
 

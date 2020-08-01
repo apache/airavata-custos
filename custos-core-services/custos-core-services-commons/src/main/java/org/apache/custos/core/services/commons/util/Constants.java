@@ -22,5 +22,8 @@ package org.apache.custos.core.services.commons.util;
 public final class Constants {
 
     public static final String  CUSTOS_REALM_AGENT  = "custos-realm-agent";
-    public static  final String  AGENT_CLIENT = "agent-client";
+    public static  final String AGENT_CLIENT = "agent-client";
+    public static final String  OWNER_ID = "custos-ownerId";
+    public static final String DESCRIPTION = "custos-description";
+
 }

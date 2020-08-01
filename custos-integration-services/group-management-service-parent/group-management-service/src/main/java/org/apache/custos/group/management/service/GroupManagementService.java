@@ -63,13 +63,14 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
             GroupsResponse response = iamAdminServiceClient.createGroups(request);
 
+
             List<org.apache.custos.user.profile.service.GroupRequest> groupRequests =
                     getAllGroupRequests(response.getGroupsList(), null, request.getTenantId(), request.getPerformedBy());
+
 
             for (org.apache.custos.user.profile.service.GroupRequest groupRequest : groupRequests) {
 
                 userProfileClient.createGroup(groupRequest);
-
             }
 
             responseObserver.onNext(response);
@@ -118,7 +119,9 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             List<org.apache.custos.user.profile.service.GroupRequest> groupRequests =
                     getAllGroupRequests(representations, exGroup.getParentId(), request.getTenantId(), request.getPerformedBy());
 
+
             userProfileClient.updateGroup(groupRequests.get(0));
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -191,6 +194,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
                 GroupRepresentation representation = iamAdminServiceClient.findGroup(request);
+
                 responseObserver.onNext(representation);
                 responseObserver.onCompleted();
             } else {
@@ -229,6 +233,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
                 GroupsResponse response = iamAdminServiceClient.getAllGroups(request);
+
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
@@ -264,6 +269,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                         .setGroupId(request.getGroupId())
                         .setUsername(request.getUsername())
                         .setTenantId(request.getTenantId())
+                        .setType(request.getMembershipType())
                         .build();
 
                 userProfileClient.addUserToGroup(membership);
@@ -550,6 +556,13 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             group = group.toBuilder().setParentId(parentId).build();
         }
 
+        if (representation.getOwnerId() != null && !representation.getOwnerId().trim().equals("")) {
+            group = group.toBuilder().setOwnerId(representation.getOwnerId()).build();
+        }
+
+        if (representation.getDescription() != null && !representation.getDescription().trim().equals("")) {
+            group = group.toBuilder().setDescription(representation.getDescription()).build();
+        }
 
         org.apache.custos.user.profile.service.GroupRequest groupRequest =
 

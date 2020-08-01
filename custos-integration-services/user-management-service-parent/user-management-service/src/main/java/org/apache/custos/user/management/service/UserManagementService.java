@@ -90,7 +90,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at registerUser " + ex.getMessage();
+            String msg = "Error occurred while registering users,  " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("CredentialGenerationException")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -180,7 +180,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at registerAndEnableUsers " + ex.getMessage();
+            String msg = "Error occurred while registering and enabling  users,  " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -245,7 +245,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at addUserAttributes " + ex.getMessage();
+            String msg = "Error occurred while adding user attributes, " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -302,7 +302,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at deleteUserAttributes " + ex.getMessage();
+            String msg = "Error occurred while deleting user attributes " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -368,7 +368,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at enableUser " + ex.getMessage();
+            String msg = "Error occurred while enabling user,  " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -430,7 +430,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at enableUser " + ex.getMessage();
+            String msg = "Error occurred while disabling user, " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -478,7 +478,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred at deleteUser " + ex.getMessage();
+            String msg = "Error occurred while  deleting user " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -515,7 +515,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred at getUser " + ex.getMessage();
+            String msg = "Error occurred while fetching user, " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -551,7 +551,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred at getUsers " + ex.getMessage();
+            String msg = "Error occurred while pulling users, " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -587,7 +587,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred at resetPassword " + ex.getMessage();
+            String msg = "Error occurred  while resetting password " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -644,7 +644,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at addRolesToUsers " + ex.getMessage();
+            String msg = "Error occurred while adding roles to users, " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -699,7 +699,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
         } catch (
                 Exception ex) {
-            String msg = "Error occurred at deleteRoleFromUser " + ex.getMessage();
+            String msg = "Error occurred while delete user roles,  " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -736,7 +736,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at isUserEnabled " + ex.getMessage();
+            String msg = "Error occurred while enabling user " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -769,7 +769,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred at isUsernameAvailable " + ex.getMessage();
+            String msg = "Error occurred while checking username, " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -779,27 +779,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void updateUserProfile(UserProfileRequest request, StreamObserver<UserProfile> responseObserver) {
         try {
-            LOGGER.debug("Request received to updateUserProfile " + request.getUserProfile().getUsername() +
-                    " at" + request.getTenantId());
-
-
-            UserRepresentation.Builder builder = UserRepresentation.newBuilder()
-                    .setFirstName(request.getUserProfile().getFirstName())
-                    .setLastName(request.getUserProfile().getLastName())
-                    .setEmail(request.getUserProfile().getEmail())
-                    .setUsername(request.getUserProfile().getUsername());
-
-            if (request.getUserProfile().getStatus() != null) {
-                builder.setState(request.getUserProfile().getStatus().name());
-            }
-
-
-            UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
-                    .newBuilder()
-                    .setUser(builder.build())
-                    .setAccessToken(request.getAccessToken())
-                    .setTenantId(request.getTenantId())
-                    .build();
+            LOGGER.debug("Request received to updateUserProfile for " + request.getUserProfile().getUsername() +
+                    " in " + request.getTenantId());
 
             UserSearchMetadata metadata = UserSearchMetadata
                     .newBuilder()
@@ -812,11 +793,35 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     .setUser(metadata)
                     .build();
 
-            UserRepresentation exUser = iamAdminServiceClient.getUser(info);
+            CheckingResponse response = iamAdminServiceClient.isUserExist(info);
 
-            OperationStatus response = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
 
-            if (response != null && response.getStatus()) {
+            if (!response.getIsExist()) {
+                String msg = "User not found with username " + request.getUserProfile().getUsername();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.
+                        withDescription(msg).asRuntimeException());
+            }
+
+            UserRepresentation userRepresentation = iamAdminServiceClient.getUser(info);
+
+            userRepresentation = userRepresentation
+                    .toBuilder()
+                    .setFirstName(request.getUserProfile().getFirstName())
+                    .setLastName(request.getUserProfile().getLastName())
+                    .setEmail(request.getUserProfile().getEmail())
+                    .build();
+
+            UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
+                    .newBuilder()
+                    .setUser(userRepresentation)
+                    .setAccessToken(request.getAccessToken())
+                    .setTenantId(request.getTenantId())
+                    .build();
+
+            OperationStatus operationStatus = iamAdminServiceClient.updateUserProfile(updateUserProfileRequest);
+
+            if (operationStatus != null && operationStatus.getStatus()) {
                 try {
                     org.apache.custos.user.profile.service.UserProfileRequest userProfileRequest =
                             org.apache.custos.user.profile.service.UserProfileRequest.
@@ -834,28 +839,24 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                 .setLastName(request.getUserProfile().getLastName())
                                 .setUsername(request.getUserProfile().getUsername())
                                 .build();
-
+                        userProfileRequest = userProfileRequest.toBuilder().setProfile(profile).build();
                         userProfileClient.
-                                updateUserProfile(userProfileRequest.toBuilder().setProfile(profile).build());
-
+                                updateUserProfile(userProfileRequest);
                         responseObserver.onNext(profile);
                         responseObserver.onCompleted();
 
                     } else {
-                        String msg = "Error occurred while saving user profile in local DB, " +
-                                "rolling back IAM service" + "User profile not found";
-                        LOGGER.error(msg);
-                        UpdateUserProfileRequest rollingRequest = UpdateUserProfileRequest
-                                .newBuilder()
-                                .setUser(exUser)
-                                .setAccessToken(request.getAccessToken())
-                                .setTenantId(request.getTenantId())
+                        UserProfile userProfile = UserProfile.newBuilder()
+                                .setEmail(request.getUserProfile().getEmail())
+                                .setFirstName(request.getUserProfile().getFirstName())
+                                .setLastName(request.getUserProfile().getLastName())
+                                .setUsername(request.getUserProfile().getUsername())
                                 .build();
-                        iamAdminServiceClient.updateUserProfile(rollingRequest);
-                        responseObserver.onError(Status.CANCELLED.
-                                withDescription(msg).asRuntimeException());
+                        userProfileRequest = userProfileRequest.toBuilder().setProfile(userProfile).build();
+                        userProfileClient.createUserProfile(userProfileRequest);
+                        responseObserver.onNext(profile);
+                        responseObserver.onCompleted();
                     }
-
 
                 } catch (Exception ex) {
                     String msg = "Error occurred while saving user profile in local DB, " +
@@ -863,7 +864,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     LOGGER.error(msg);
                     UpdateUserProfileRequest rollingRequest = UpdateUserProfileRequest
                             .newBuilder()
-                            .setUser(exUser)
+                            .setUser(userRepresentation)
                             .setAccessToken(request.getAccessToken())
                             .setTenantId(request.getTenantId())
                             .build();
@@ -872,9 +873,10 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                             withDescription(msg).asRuntimeException());
                 }
             } else {
-                LOGGER.error("User profile  not found in IDP server");
-                responseObserver.onError(Status.CANCELLED.
-                        withDescription("IAM server failed to update user profile").asRuntimeException());
+                String msg = "Cannot update user profile in keycloak for user  " + request.getUserProfile().getUsername();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.
+                        withDescription(msg).asRuntimeException());
             }
 
         } catch (Exception ex) {
@@ -923,7 +925,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
         } catch (Exception ex) {
-            String msg = "Error occurred while delete user profile " + ex.getMessage();
+            String msg = "Error occurred while deleting user profile " + ex.getMessage();
             LOGGER.error(msg);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(io.grpc.Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
@@ -954,7 +956,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get user profile " + ex.getMessage();
+            String msg = "Error occurred while pulling  user profile " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -990,7 +992,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get all  user profiles in tenant " + ex.getMessage();
+            String msg = "Error occurred while pulling  all  user profiles in tenant " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -1010,7 +1012,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            String msg = "Error occurred while pulling user profile audit trails " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -1212,7 +1214,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            String msg = "Error occurred while puling user profile audit trails " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -1258,7 +1260,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while get user profile audit trails " + ex.getMessage();
+            String msg = "Error occurred while  removing admin privileges " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
 

@@ -434,7 +434,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
-                String msg = "User " + request.getUser().getUsername() + "not found at " + request.getTenantId();
+                String msg = "User " + request.getUser().getUsername() + " not found in " + request.getTenantId();
                 responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             }
 
@@ -458,7 +458,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     String.valueOf(request.getTenantId()), request.getOffset(), request.getLimit(),
                     request.getUser().getUsername(), request.getUser().getFirstName(),
                     request.getUser().getLastName(),
-                    request.getUser().getEmail());
+                    request.getUser().getEmail(),
+                    request.getUser().getId());
             List<org.apache.custos.iam.service.UserRepresentation> users = new ArrayList<>();
             representation.stream().forEach(r -> {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
@@ -2185,6 +2186,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
                                         org.keycloak.representations.idm.GroupRepresentation parentGroup) {
         String name = groupRepresentation.getName();
         String id = groupRepresentation.getId();
+
+        if (groupRepresentation.getOwnerId() != null && !groupRepresentation.getOwnerId().equals("")) {
+
+            groupRepresentation = groupRepresentation.toBuilder().addAttributes(UserAttribute.newBuilder()
+                    .setKey(Constants.OWNER_ID).addValues(groupRepresentation.getOwnerId()).build()).build();
+        }
+
+        if (groupRepresentation.getDescription() != null && !groupRepresentation.getDescription().equals("")) {
+
+            groupRepresentation = groupRepresentation.toBuilder().addAttributes(UserAttribute.newBuilder()
+                    .setKey(Constants.DESCRIPTION).addValues(groupRepresentation.getDescription()).build()).build();
+        }
+
+
         List<UserAttribute> attributeList = groupRepresentation.getAttributesList();
         List<String> realmRoles = groupRepresentation.getRealmRolesList();
         List<String> clientRoles = groupRepresentation.getClientRolesList();
@@ -2197,6 +2212,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         if (id != null && !id.trim().equals("")) {
             keycloakGroup.setId(id);
         }
+
 
         Map<String, List<String>> map = new HashMap<>();
         if (attributeList != null && !attributeList.isEmpty()) {
@@ -2239,6 +2255,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         String path = "/" + keycloakGroup.getName();
         keycloakGroup.setPath(path);
+
         return keycloakGroup;
     }
 
@@ -2277,8 +2294,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
         if (atrs != null && !atrs.isEmpty()) {
             List<UserAttribute> attributeList = new ArrayList<>();
             for (String key : atrs.keySet()) {
-                UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
-                attributeList.add(attribute);
+                if (key.equals(Constants.OWNER_ID)) {
+                    representation = representation.toBuilder().setOwnerId(atrs.get(key).get(0)).build();
+                } else if (key.equals(Constants.DESCRIPTION)) {
+                    representation = representation.toBuilder().setDescription(atrs.get(key).get(0)).build();
+                } else {
+                    UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
+                    attributeList.add(attribute);
+                }
             }
             representation = representation.toBuilder().addAllAttributes(attributeList).build();
 

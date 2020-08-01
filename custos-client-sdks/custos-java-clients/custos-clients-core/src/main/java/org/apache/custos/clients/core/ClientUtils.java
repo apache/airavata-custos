@@ -20,6 +20,7 @@
 package org.apache.custos.clients.core;
 
 import io.grpc.Metadata;
+import org.apache.custos.integration.core.utils.Constants;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,14 @@ public class ClientUtils {
         Metadata header = new Metadata();
         Metadata.Key<String> key = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
         header.put(key, headerStr);
+        return header;
+    }
+
+
+    public static Metadata getUserTokenHeader(String accessToken) {
+        Metadata header = new Metadata();
+        Metadata.Key<String> key = Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER);
+        header.put(key, accessToken);
         return header;
     }
 

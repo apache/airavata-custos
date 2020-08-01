@@ -54,6 +54,12 @@ public class GroupMapper {
         groupEntity.setTenantId(tenantId);
         groupEntity.setParentId(parentId);
 
+
+
+        if (group.getDescription() != null && !group.getDescription().trim().equals("")) {
+            groupEntity.setDescription(group.getDescription());
+        }
+
         if (!group.getAttributesList().isEmpty()) {
 
             Set<GroupAttribute> groupList = new HashSet<>();
@@ -114,7 +120,7 @@ public class GroupMapper {
     }
 
 
-    public static org.apache.custos.user.profile.service.Group createGroup(Group group) {
+    public static org.apache.custos.user.profile.service.Group createGroup(Group group, String ownerId) {
 
         org.apache.custos.user.profile.service.Group.Builder groupBuilder = org.apache.custos.user.profile.service.Group
                 .newBuilder()
@@ -122,7 +128,13 @@ public class GroupMapper {
                 .setName(group.getName())
                 .setParentId(group.getParentId())
                 .setCreatedTime(group.getCreatedAt().getTime())
-                .setLastModifiedTime(group.getLastModifiedAt().getTime());
+                .setLastModifiedTime(group.getLastModifiedAt().getTime())
+                .setOwnerId(ownerId);
+
+
+        if (group.getDescription() != null) {
+            groupBuilder.setDescription(group.getDescription());
+        }
 
         List<String> clientRoles = new ArrayList<>();
         List<String> realmRoles = new ArrayList<>();
