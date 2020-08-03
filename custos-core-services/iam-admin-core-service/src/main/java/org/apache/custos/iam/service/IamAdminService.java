@@ -1206,7 +1206,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     transformToKeycloakGroups(request.getClientId(), request.getGroupsList());
 
             List<org.keycloak.representations.idm.GroupRepresentation> representations =
-                    keycloakClient.createGroups(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations);
+                    keycloakClient.createGroups(String.valueOf(tenantId), request.getClientId(), request.getClientSec(), groupRepresentations);
 
             List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), representations);
 
@@ -1248,7 +1248,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     transformToKeycloakGroups(request.getClientId(), representations);
 
             org.keycloak.representations.idm.GroupRepresentation groupRepresentation =
-                    keycloakClient.updateGroup(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations.get(0));
+                    keycloakClient.updateGroup(String.valueOf(tenantId), request.getClientId(), request.getClientSec(), groupRepresentations.get(0));
 
             GroupRepresentation group = transformKeycloakGroupToGroup(request.getClientId(), groupRepresentation, null);
 
@@ -1285,7 +1285,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String accessToken = request.getAccessToken();
 
             keycloakClient.deleteGroup(String.valueOf(tenantId)
-                    , accessToken, request.getGroup().getId());
+                    , request.getClientId(), request.getClientSec(), request.getGroup().getId());
 
 
             statusUpdater.updateStatus(IAMOperations.DELETE_GROUP.name(),

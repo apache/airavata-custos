@@ -25,7 +25,6 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.group.management.interceptors.ClientAuthInterceptorImpl;
 import org.apache.custos.group.management.interceptors.InputValidator;
-import org.apache.custos.group.management.interceptors.UserAuthInterceptorImpl;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;

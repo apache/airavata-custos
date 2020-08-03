@@ -41,6 +41,10 @@ public class UserManagementClient {
 
     private UserManagementServiceGrpc.UserManagementServiceBlockingStub blockingStub;
 
+    private String clientId ;
+
+    private String clientSec;
+
 
     public UserManagementClient(String serviceHost, int servicePort, String clientId,
                                 String clientSecret) throws IOException {
@@ -57,6 +61,10 @@ public class UserManagementClient {
 
         blockingStub = MetadataUtils.attachHeaders(blockingStub,
                 ClientUtils.getAuthorizationHeader(clientId, clientSecret));
+
+        this.clientId = clientId;
+
+        this.clientSec = clientSecret;
 
     }
 
@@ -353,8 +361,10 @@ public class UserManagementClient {
 
     public OperationStatus addRolesToUsers(String[] roles, String[] username,
                                            boolean isClientLevel, String clientId, String adminToken) {
-        blockingStub =
-                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
+        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
+                UserManagementServiceGrpc.newBlockingStub(managedChannel);
+        unAuthorizedStub =
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
 
         AddUserRolesRequest request = AddUserRolesRequest
                 .newBuilder()
@@ -363,15 +373,17 @@ public class UserManagementClient {
                 .setClientLevel(isClientLevel)
                 .setClientId(clientId)
                 .build();
-        return blockingStub.addRolesToUsers(request);
+        return unAuthorizedStub.addRolesToUsers(request);
 
     }
 
 
     public OperationStatus deleteUserRoles(String[] clientRoles,
                                            String[] realmRoles, String username, String clientId, String adminToken) {
-        blockingStub =
-                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
+        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
+                UserManagementServiceGrpc.newBlockingStub(managedChannel);
+        unAuthorizedStub =
+                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
 
         DeleteUserRolesRequest request = DeleteUserRolesRequest
                 .newBuilder()
@@ -380,7 +392,7 @@ public class UserManagementClient {
                 .setUsername(username)
                 .setClientId(clientId)
                 .build();
-        return blockingStub.deleteUserRoles(request);
+        return unAuthorizedStub.deleteUserRoles(request);
 
     }
 
@@ -503,8 +515,11 @@ public class UserManagementClient {
 
     public OperationStatus deleteUser(String username, String clientId, String adminToken) {
 
-        blockingStub =
-                MetadataUtils.attachHeaders(blockingStub, ClientUtils.getUserTokenHeader(adminToken));
+        UserManagementServiceGrpc.UserManagementServiceBlockingStub stub =
+                UserManagementServiceGrpc.newBlockingStub(managedChannel);
+                stub = MetadataUtils.attachHeaders(stub,
+                        ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
+                MetadataUtils.attachHeaders(stub, ClientUtils.getUserTokenHeader(adminToken));
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
@@ -517,7 +532,7 @@ public class UserManagementClient {
                 .setClientId(clientId)
                 .build();
 
-        return blockingStub.deleteUser(request);
+        return stub.deleteUser(request);
 
     }
 

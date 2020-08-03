@@ -60,9 +60,10 @@ public class GroupMapper {
             groupEntity.setDescription(group.getDescription());
         }
 
+        Set<GroupAttribute> groupList = new HashSet<>();
         if (!group.getAttributesList().isEmpty()) {
 
-            Set<GroupAttribute> groupList = new HashSet<>();
+
             group.getAttributesList().forEach(atr -> {
 
                 for (String value : atr.getValueList()) {
@@ -76,9 +77,10 @@ public class GroupMapper {
 
             });
 
-            groupEntity.setGroupAttribute(groupList);
+
 
         }
+        groupEntity.setGroupAttribute(groupList);
 
         Set<GroupRole> groupRoles = new HashSet<>();
 

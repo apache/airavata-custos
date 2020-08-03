@@ -540,7 +540,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                     String ownerId = null;
                     for (UserGroupMembership userGroupMembership : userGroupMemberships) {
-                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                             ownerId = userGroupMembership.getUserProfile().getUsername();
                         }
                     }
@@ -550,7 +550,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                     responseObserver.onCompleted();
                 } else {
 
-                    String msg = "Error occurred while creating Group for " + request.getTenantId()
+                    String msg = "Error occurred while updating group  " + request.getTenantId()
                             + " reason : DB error";
                     LOGGER.error(msg);
 
@@ -564,7 +564,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while creating user profile for " + request.getGroup().getId() + "at "
+            String msg = "Error occurred while updating group " + request.getGroup().getId() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
@@ -591,7 +591,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                 String ownerId = null;
                 for (UserGroupMembership userGroupMembership : userGroupMemberships) {
-                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                         ownerId = userGroupMembership.getUserProfile().getUsername();
                     }
                 }
@@ -620,7 +620,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while creating group for " + request.getGroup() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
@@ -645,7 +645,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                 String ownerId = null;
                 for (UserGroupMembership userGroupMembership : userGroupMemberships) {
-                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                         ownerId = userGroupMembership.getUserProfile().getUsername();
                     }
                 }
@@ -685,7 +685,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                     String ownerId = null;
                     for (UserGroupMembership userGroupMembership : userGroupMemberships) {
-                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                             ownerId = userGroupMembership.getUserProfile().getUsername();
                         }
                     }
@@ -1032,7 +1032,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                     String ownerId = null;
                     for (UserGroupMembership userGroupMembership : userGroupMemberships) {
-                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                             ownerId = userGroupMembership.getUserProfile().getUsername();
                         }
                     }

@@ -1314,10 +1314,10 @@ public class KeycloakClient {
      * @param groupRepresentations
      * @return
      */
-    public List<GroupRepresentation> createGroups(String realmId, String clientId, String accessToken, List<GroupRepresentation> groupRepresentations) {
+    public List<GroupRepresentation> createGroups(String realmId, String clientId, String clientSec, List<GroupRepresentation> groupRepresentations) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             List<GroupRepresentation> representationList = new ArrayList<>();
 
@@ -1402,10 +1402,10 @@ public class KeycloakClient {
      * @param groupRepresentation
      * @return
      */
-    public GroupRepresentation updateGroup(String realmId, String clientId, String accessToken, GroupRepresentation groupRepresentation) {
+    public GroupRepresentation updateGroup(String realmId, String clientId, String clientSec, GroupRepresentation groupRepresentation) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             client.realm(realmId).groups().
                     group(groupRepresentation.getId()).update(groupRepresentation);
@@ -1486,10 +1486,10 @@ public class KeycloakClient {
      * @param groupId
      * @return
      */
-    public boolean deleteGroup(String realmId, String accessToken, String groupId) {
+    public boolean deleteGroup(String realmId, String clientId, String clientSec, String groupId) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             String id = client.realm(realmId).groups().
                     group(groupId).toRepresentation().getId();
@@ -1596,7 +1596,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
 
             UserRepresentation userRepresentation = getUserByUsername(client, realmId, username);

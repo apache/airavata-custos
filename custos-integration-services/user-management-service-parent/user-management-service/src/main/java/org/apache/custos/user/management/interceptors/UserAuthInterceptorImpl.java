@@ -205,10 +205,9 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             String oauthId = claim.getIamAuthId();
             String oauthSec = claim.getIamAuthSecret();
 
-            String userToken = getUserTokenFromUserTokenHeader(headers);
-
-            if (userToken == null || userToken.trim().equals("")) {
-                userToken = getToken(headers);
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
 
@@ -216,10 +215,10 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             UserSearchRequest operationRequest = ((UserSearchRequest) msg)
                     .toBuilder()
                     .setClientId(oauthId)
-                    .setClientSec(oauthId)
+                    .setClientSec(oauthSec)
                     .setTenantId(tenantId)
-                    .setAccessToken(userToken)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setAccessToken(token.getAccessToken())
+                    .setPerformedBy(Constants.SYSTEM)
                     .build();
 
             return (ReqT) operationRequest;

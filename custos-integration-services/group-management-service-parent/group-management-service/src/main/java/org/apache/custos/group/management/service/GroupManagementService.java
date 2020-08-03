@@ -94,7 +94,10 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             LOGGER.debug("Request received to updateGroup for tenant " + request.getTenantId());
 
             GroupRepresentation gr = request.getGroup();
-            gr = gr.toBuilder().setId(request.getId()).build();
+
+            if (request.getId() != null && ! request.getId().trim().equals("")) {
+                gr = gr.toBuilder().setId(request.getId()).build();
+            }
             request = request.toBuilder().setGroup(gr).build();
 
             GroupRepresentation response = iamAdminServiceClient.updateGroup(request);
@@ -142,7 +145,9 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             LOGGER.debug("Request received to updateGroup for tenant " + request.getTenantId());
 
             GroupRepresentation gr = request.getGroup();
-            gr = gr.toBuilder().setId(request.getId()).build();
+            if (request.getId() != null && ! request.getId().trim().equals("")) {
+                gr = gr.toBuilder().setId(request.getId()).build();
+            }
             request = request.toBuilder().setGroup(gr).build();
 
             OperationStatus response = iamAdminServiceClient.deleteGroup(request);
