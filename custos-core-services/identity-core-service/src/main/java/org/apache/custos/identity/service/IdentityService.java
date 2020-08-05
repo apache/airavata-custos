@@ -255,6 +255,9 @@ public class IdentityService extends IdentityServiceImplBase {
                 object = keycloakAuthClient.
                         getAccessTokenFromRefreshTokenGrantType(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),
                                 request.getRefreshToken());
+            } else if (request.getGrantType().equals(Constants.CLIENT_CREDENTIALS)) {
+                object = keycloakAuthClient.getAccessTokenFromClientCredentialsGrantType(request.getClientId(),
+                        request.getClientSecret(), String.valueOf(request.getTenantId()));
             } else {
                 object = keycloakAuthClient.
                         getAccessToken(request.getClientId(), request.getClientSecret(), String.valueOf(request.getTenantId()),

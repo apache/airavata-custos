@@ -58,13 +58,14 @@ message UserProfile {
     string email = 2;
     string first_name = 3;
     string last_name = 4;
-    string created_at = 5;
+    int64 created_at = 5;
     UserStatus status = 6;
     repeated UserAttribute attributes = 7;
     repeated string client_roles = 8;
     repeated string realm_roles = 9;
-    string last_modified_at = 10;
+    int64 last_modified_at = 10;
     UserTypes type = 11;
+    DefaultGroupMembershipTypes membership_type = 12;
 }
 
 message UserProfileRequest {
@@ -114,6 +115,8 @@ message GroupRequest {
     Group group = 2;
     string performedBy = 3;
     string clientId = 4;
+    DefaultGroupMembershipTypes membership_type = 5;
+
 }
 
 message GetAllGroupsResponse {
@@ -128,6 +131,8 @@ message Group {
     int64 created_time = 6;
     int64 last_modified_time = 7;
     repeated GroupAttribute attributes = 8;
+    string description = 9;
+    string owner_id = 10;
 }
 
 message GroupAttribute {
@@ -148,6 +153,7 @@ message GroupToGroupMembership {
     int64 tenantId = 1;
     string parent_id = 2;
     string child_id = 3;
+    string client_id = 4;
 }
 
 message Status {

@@ -140,7 +140,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
         } else if (method.equals("addChildGroupToParentGroup") || method.equals("removeChildGroupFromParentGroup")) {
             GroupToGroupMembership groupToGroupMembership = (GroupToGroupMembership)reqT;
-            AuthClaim claim = authorize(headers, groupToGroupMembership.getChildId());
+            AuthClaim claim = authorize(headers, groupToGroupMembership.getClientId());
 
 
             if (claim == null) {

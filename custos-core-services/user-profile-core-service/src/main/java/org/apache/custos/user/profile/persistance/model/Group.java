@@ -61,6 +61,9 @@ public class Group {
      @Column
     private String  externalId;
 
+     @Column
+     private String description;
+
 
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "group", orphanRemoval = true, cascade = CascadeType.ALL)
@@ -175,5 +178,13 @@ public class Group {
 
     public void setExternalId(String externalId) {
         this.externalId = externalId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

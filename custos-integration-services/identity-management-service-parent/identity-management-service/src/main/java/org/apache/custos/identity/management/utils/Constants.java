@@ -31,4 +31,5 @@ public final class Constants {
     public static final String AUTHORIZATION_HEADER = "authorization";
     public static final String CLIENT_CREDENTIALS = "client_credentials";
     public static final String REFERESH_TOKEN = "refresh_token";
+    public static final String CLIENT_ID = "client_id";
 }

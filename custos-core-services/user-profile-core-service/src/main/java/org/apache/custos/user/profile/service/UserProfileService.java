@@ -174,7 +174,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             if (entity.isPresent()) {
                 UserProfile profileEntity = entity.get();
-                org.apache.custos.user.profile.service.UserProfile profile = UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity);
+                org.apache.custos.user.profile.service.UserProfile profile = UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity, null);
 
                 responseObserver.onNext(profile);
                 responseObserver.onCompleted();
@@ -208,7 +208,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             if (profileEntity.isPresent()) {
                 UserProfile entity = profileEntity.get();
 
-                org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
+                org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity, null);
 
                 repository.delete(profileEntity.get());
                 responseObserver.onNext(prof);
@@ -238,7 +238,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             if (profileList != null && profileList.size() > 0) {
                 for (UserProfile entity : profileList) {
-                    org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity);
+                    org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity, null);
                     userProfileList.add(prof);
                 }
             }
@@ -305,7 +305,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
                 selectedProfiles.forEach(userProfile -> {
                     org.apache.custos.user.profile.service.UserProfile prof =
-                            UserProfileMapper.createUserProfileFromUserProfileEntity(userProfile);
+                            UserProfileMapper.createUserProfileFromUserProfileEntity(userProfile, null);
                     userProfileList.add(prof);
 
                 });
@@ -402,6 +402,19 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             Optional<org.apache.custos.user.profile.persistance.model.Group> op = groupRepository.findById(effectiveId);
 
+            String ownerId = request.getGroup().getOwnerId() + "@" + tenantId;
+
+            Optional<UserProfile> userProfile = repository.findById(ownerId);
+
+            if (userProfile.isEmpty()) {
+                String msg = "Error occurred while creating  Group for " + request.getTenantId()
+                        + " reason : Owner  not found";
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            org.apache.custos.user.profile.persistance.model.Group savedGroup = null;
             if (op.isEmpty()) {
 
                 org.apache.custos.user.profile.persistance.model.Group entity =
@@ -423,14 +436,37 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                     entity = GroupMapper.setParentGroupMembership(parent.get(), entity);
                 }
 
-                groupRepository.save(entity);
+                savedGroup = groupRepository.save(entity);
             }
 
             Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
                     groupRepository.findById(effectiveId);
 
             if (exOP.isPresent()) {
-                Group exGroup = GroupMapper.createGroup(exOP.get());
+                String type = DefaultGroupMembershipTypes.OWNER.name();
+
+                Optional<UserGroupMembershipType> groupMembershipType = groupMembershipTypeRepository.findById(type);
+                UserGroupMembershipType exist = null;
+
+                if (groupMembershipType.isEmpty()) {
+                    exist = new UserGroupMembershipType();
+                    exist.setId(type);
+                    groupMembershipTypeRepository.save(exist);
+                }
+
+                exist = groupMembershipType.get();
+
+
+                UserGroupMembership userGroupMembership = new
+                        UserGroupMembership();
+                userGroupMembership.setGroup(savedGroup);
+                userGroupMembership.setUserProfile(userProfile.get());
+                userGroupMembership.setTenantId(tenantId);
+
+                userGroupMembership.setUserGroupMembershipType(exist);
+                groupMembershipRepository.save(userGroupMembership);
+
+                Group exGroup = GroupMapper.createGroup(exOP.get(), ownerId);
                 responseObserver.onNext(exGroup);
                 responseObserver.onCompleted();
             } else {
@@ -498,13 +534,23 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 Optional<org.apache.custos.user.profile.persistance.model.Group> exOP =
                         groupRepository.findById(effectiveId);
 
+
                 if (exOP.isPresent()) {
-                    Group exNewGroup = GroupMapper.createGroup(exOP.get());
+                    List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+                    String ownerId = null;
+                    for (UserGroupMembership userGroupMembership : userGroupMemberships) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                            ownerId = userGroupMembership.getUserProfile().getUsername();
+                        }
+                    }
+
+                    Group exNewGroup = GroupMapper.createGroup(exOP.get(), ownerId);
                     responseObserver.onNext(exNewGroup);
                     responseObserver.onCompleted();
                 } else {
 
-                    String msg = "Error occurred while creating Group for " + request.getTenantId()
+                    String msg = "Error occurred while updating group  " + request.getTenantId()
                             + " reason : DB error";
                     LOGGER.error(msg);
 
@@ -518,7 +564,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while creating user profile for " + request.getGroup().getId() + "at "
+            String msg = "Error occurred while updating group " + request.getGroup().getId() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
@@ -541,7 +587,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             if (op.isPresent()) {
                 org.apache.custos.user.profile.persistance.model.Group entity = op.get();
 
-                Group prof = GroupMapper.createGroup(entity);
+                List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+                String ownerId = null;
+                for (UserGroupMembership userGroupMembership : userGroupMemberships) {
+                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                        ownerId = userGroupMembership.getUserProfile().getUsername();
+                    }
+                }
+
+
+                Group prof = GroupMapper.createGroup(entity, ownerId);
 
                 groupRepository.delete(op.get());
 
@@ -564,7 +620,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while creating group for " + request.getGroup() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
@@ -585,7 +641,16 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             if (op.isPresent()) {
 
-                Group entity = GroupMapper.createGroup(op.get());
+                List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+                String ownerId = null;
+                for (UserGroupMembership userGroupMembership : userGroupMemberships) {
+                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                        ownerId = userGroupMembership.getUserProfile().getUsername();
+                    }
+                }
+                Group entity = GroupMapper.createGroup(op.get(), ownerId);
+
                 responseObserver.onNext(entity);
                 responseObserver.onCompleted();
 
@@ -615,7 +680,18 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             if (groups != null && groups.isEmpty()) {
                 for (org.apache.custos.user.profile.persistance.model.Group group : groups) {
-                    groupList.add(GroupMapper.createGroup(group));
+
+                    List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(group.getId());
+
+                    String ownerId = null;
+                    for (UserGroupMembership userGroupMembership : userGroupMemberships) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                            ownerId = userGroupMembership.getUserProfile().getUsername();
+                        }
+                    }
+                    Group gr = GroupMapper.createGroup(group, ownerId);
+
+                    groupList.add(gr);
                 }
             }
             GetAllGroupsResponse response = GetAllGroupsResponse.newBuilder().addAllGroups(groupList).build();
@@ -871,6 +947,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             if (userGroupMemberships != null && !userGroupMemberships.isEmpty()) {
 
                 userGroupMemberships.forEach(userGroupMembership -> {
+
                     AtomicBoolean toBeAdded = new AtomicBoolean(true);
                     groups.forEach(le -> {
                         if (le.getId().equals(userGroupMembership.getGroup().getId())) {
@@ -893,7 +970,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
 
             groupMap.keySet().forEach(gr -> {
-                groupList.add(GroupMapper.createGroup(groupMap.get(gr)));
+
+                List<UserGroupMembership> memberships = groupMembershipRepository.findAllByGroupId(gr);
+
+                String ownerId = null;
+                for (UserGroupMembership userGroupMembership : memberships) {
+                    if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                        ownerId = userGroupMembership.getUserProfile().getUsername();
+                        break;
+                    }
+                }
+                groupList.add(GroupMapper.createGroup(groupMap.get(gr), ownerId));
             });
 
 
@@ -906,7 +993,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while fetching user groups of user " + request.getProfile().getUsername() +
                     " in tenant " + request.getTenantId() +
-                    " reason :" + ex.getMessage();
+                    " reason :" + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -940,7 +1027,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
 
                 groupMap.keySet().forEach(gr -> {
-                    serviceGroupList.add(GroupMapper.createGroup(groupMap.get(gr)));
+
+                    List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(effectiveId);
+
+                    String ownerId = null;
+                    for (UserGroupMembership userGroupMembership : userGroupMemberships) {
+                        if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
+                            ownerId = userGroupMembership.getUserProfile().getUsername();
+                        }
+                    }
+
+                    serviceGroupList.add(GroupMapper.createGroup(groupMap.get(gr), ownerId));
                 });
 
 
@@ -1048,7 +1145,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
             List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
 
-            List<UserProfile> selectedProfiles = new ArrayList<>();
+            List<UserGroupMembership> selectedProfiles = new ArrayList<>();
 
 
             if (memberships != null && !memberships.isEmpty()) {
@@ -1064,14 +1161,15 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                     });
 
                     if (addToList.get()) {
-                        selectedProfiles.add(mem.getUserProfile());
+                        selectedProfiles.add(mem);
                     }
                 });
             }
 
             if (!selectedProfiles.isEmpty()) {
                 selectedProfiles.forEach(gr -> {
-                    userProfileList.add(UserProfileMapper.createUserProfileFromUserProfileEntity(gr));
+                    userProfileList.add(UserProfileMapper.createUserProfileFromUserProfileEntity(gr.getUserProfile(),
+                            gr.getUserGroupMembershipType().getId()));
                 });
             }
 
@@ -1132,14 +1230,18 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                     });
 
                     if (addToList.get()) {
-                        selectedGroups.add(mem.getGroup());
-                    }
-                });
-            }
 
-            if (!selectedGroups.isEmpty()) {
-                selectedGroups.forEach(gr -> {
-                    groupList.add(GroupMapper.createGroup(gr));
+                        String ownerId = null;
+
+                        if (mem.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER)) {
+                            ownerId = mem.getUserProfile().getUsername();
+                        }
+
+                        selectedGroups.add(mem.getGroup());
+                        groupList.add(GroupMapper.createGroup(mem.getGroup(), ownerId));
+
+
+                    }
                 });
             }
 
@@ -1193,6 +1295,39 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             groupMembership.setUserGroupMembershipType(groupMembershipType);
 
             groupMembershipRepository.save(groupMembership);
+
+            if(type.equals(DefaultGroupMembershipTypes.OWNER.name())) {
+
+             List<UserGroupMembership> memberships =    groupMembershipRepository.findAllByGroupId(effectiveGroupId);
+
+             if (memberships != null &&  ! memberships.isEmpty()) {
+
+                 for (UserGroupMembership membership: memberships) {
+
+                     if (membership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())
+                         && ! membership.getUserProfile().getUsername().equals(userId)) {
+
+                         groupMembershipRepository.delete(membership);
+
+                         UserGroupMembership userGroupMembership = new
+                                 UserGroupMembership();
+                         userGroupMembership.setGroup(membership.getGroup());
+                         userGroupMembership.setUserProfile(membership.getUserProfile());
+                         userGroupMembership.setTenantId(tenantId);
+
+                         Optional<UserGroupMembershipType> membershipType = groupMembershipTypeRepository.
+                                 findById(DefaultGroupMembershipTypes.MEMBER.name());
+                         userGroupMembership.setUserGroupMembershipType(membershipType.get());
+                         groupMembershipRepository.save(userGroupMembership);
+
+                     }
+                 }
+
+
+             }
+
+            }
+
 
             org.apache.custos.user.profile.service.Status status = org.apache.custos.user.profile.service.Status
                     .newBuilder()

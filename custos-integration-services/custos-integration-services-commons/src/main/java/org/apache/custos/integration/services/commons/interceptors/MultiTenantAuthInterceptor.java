@@ -69,4 +69,9 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
             return authorizeUsingUserToken(headers);
         }
     }
+
+
+    public String getUserTokenFromUserTokenHeader(Metadata headers) {
+        return headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
+    }
 }

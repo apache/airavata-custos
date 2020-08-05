@@ -109,6 +109,8 @@ message GroupRepresentation {
     repeated UserAttribute attributes = 5;
     repeated UserRepresentation users = 6;
     repeated GroupRepresentation sub_groups = 7;
+    string description = 8;
+    string ownerId = 9;
 }
 
 
@@ -357,6 +359,7 @@ message UserGroupMappingRequest {
     string clientSec = 5;
     string username = 6;
     string group_id = 7;
+    string membership_type = 8;
 }
 
 message AgentClientMetadata {

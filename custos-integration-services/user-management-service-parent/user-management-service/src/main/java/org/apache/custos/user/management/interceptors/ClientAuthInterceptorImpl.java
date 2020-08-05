@@ -26,7 +26,9 @@ import org.apache.custos.iam.service.RegisterUserRequest;
 import org.apache.custos.iam.service.ResetUserPassword;
 import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -189,6 +191,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             return (ReqT) request;
         } else if (method.equals("getUser")) {
             UserSearchRequest req = (UserSearchRequest) reqT;
+
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
@@ -199,6 +202,8 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             String oauthSec = claim.getIamAuthSecret();
 
             long tenantId = claim.getTenantId();
+
+
             UserSearchRequest request = ((UserSearchRequest) reqT)
                     .toBuilder()
                     .setClientId(oauthId)
@@ -227,6 +232,34 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             return (ReqT) request;
+        } else if (method.equals("updateUserProfile")) {
+
+            UserProfileRequest userProfileRequest = (UserProfileRequest) reqT;
+
+            AuthClaim claim = authorize(headers, userProfileRequest.getClientId());
+
+            if (claim == null) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            String oauthId = claim.getIamAuthId();
+            String oauthSec = claim.getIamAuthSecret();
+
+            long tenantId = claim.getTenantId();
+
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
+            return (ReqT) ((UserProfileRequest) reqT).toBuilder()
+                    .setAccessToken(token.getAccessToken())
+                    .setTenantId(tenantId)
+                    .setClientId(oauthId)
+                    .setClientSecret(oauthSec)
+                    .setPerformedBy(Constants.SYSTEM)
+                    .build();
+
         }
         return reqT;
     }
