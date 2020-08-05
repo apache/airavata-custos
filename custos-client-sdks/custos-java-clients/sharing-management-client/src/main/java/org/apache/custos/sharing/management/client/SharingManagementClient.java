@@ -154,6 +154,7 @@ public class SharingManagementClient {
         EntityRequest entityRequest = EntityRequest
                 .newBuilder()
                 .setClientId(clientId)
+                .setEntity(entity)
                 .build();
         return blockingStub.createEntity(entityRequest);
 
@@ -164,6 +165,7 @@ public class SharingManagementClient {
         EntityRequest entityRequest = EntityRequest
                 .newBuilder()
                 .setClientId(clientId)
+                .setEntity(entity)
                 .build();
         return blockingStub.updateEntity(entityRequest);
 
@@ -174,6 +176,7 @@ public class SharingManagementClient {
         EntityRequest entityRequest = EntityRequest
                 .newBuilder()
                 .setClientId(clientId)
+                .setEntity(entity)
                 .build();
         return blockingStub.isEntityExists(entityRequest);
 
@@ -184,6 +187,7 @@ public class SharingManagementClient {
         EntityRequest entityRequest = EntityRequest
                 .newBuilder()
                 .setClientId(clientId)
+                .setEntity(entity)
                 .build();
         return blockingStub.getEntity(entityRequest);
 
@@ -195,6 +199,7 @@ public class SharingManagementClient {
         EntityRequest entityRequest = EntityRequest
                 .newBuilder()
                 .setClientId(clientId)
+                .setEntity(entity)
                 .build();
         return blockingStub.deleteEntity(entityRequest);
     }

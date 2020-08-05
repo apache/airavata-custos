@@ -43,6 +43,7 @@ enum EntitySearchField {
     ENTITY_TYPE_ID = 7;
     PARENT_ID = 8;
     SHARED_COUNT = 9;
+    PERMISSION_TYPE_ID = 10;
 }
 
 
