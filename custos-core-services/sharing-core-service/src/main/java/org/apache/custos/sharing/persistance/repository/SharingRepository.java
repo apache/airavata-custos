@@ -74,4 +74,13 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
                                                                           List<String> associatedIds);
 
 
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.associating_id IN  ?2 " +
+            "and s.entity_id  IN ?3", nativeQuery = true)
+    public List<Sharing>  findAllSharingEntitiesForUsers(long tenantId,
+                                                                          List<String> associatedIds,
+                                                                          List<String> entityIds);
+
+
+
+
 }

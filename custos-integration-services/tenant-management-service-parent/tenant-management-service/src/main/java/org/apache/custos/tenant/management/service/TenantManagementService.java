@@ -185,6 +185,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                     .setAdminEmail(tenant.getAdminEmail())
                     .setAdminFirstName(tenant.getAdminFirstName())
                     .setAdminLastName(tenant.getAdminLastName())
+                    .setAdminUsername(tenant.getAdminUsername())
                     .setRequesterEmail(tenant.getRequesterEmail())
                     .setApplicationType(tenant.getApplicationType())
                     .setClientName(tenant.getClientName())

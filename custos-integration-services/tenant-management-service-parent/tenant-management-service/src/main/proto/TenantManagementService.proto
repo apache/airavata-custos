@@ -66,6 +66,7 @@ message GetTenantResponse {
     map<string, string> jwks = 21;
     string software_id = 22;
     string software_version = 23;
+    string admin_username = 24;
 }
 
 

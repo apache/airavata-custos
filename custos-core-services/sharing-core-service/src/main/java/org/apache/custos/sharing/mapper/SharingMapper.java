@@ -70,6 +70,7 @@ public class SharingMapper {
         sharing.setAssociatingId(oldSharing.getAssociatingId());
         sharing.setAssociatingIdType(oldSharing.getAssociatingIdType());
         sharing.setInheritedParent(oldSharing.getInheritedParent());
+        sharing.setCreatedAt(oldSharing.getCreatedAt());
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;
