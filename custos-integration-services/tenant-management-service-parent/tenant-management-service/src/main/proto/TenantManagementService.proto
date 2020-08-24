@@ -209,7 +209,7 @@ service TenantManagementService {
         };
 
     }
-    rpc getFromCache (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.GetInstitutionsIdsAsResponse) {
+    rpc getFromCache (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.GetInstitutionsResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/cache/institutions/CILogon"
         };

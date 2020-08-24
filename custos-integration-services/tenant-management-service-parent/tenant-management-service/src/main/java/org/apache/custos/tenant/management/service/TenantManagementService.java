@@ -696,11 +696,11 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Override
     public void getFromCache(CacheManipulationRequest request,
-                             StreamObserver<GetInstitutionsIdsAsResponse> responseObserver) {
+                             StreamObserver<GetInstitutionsResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to getFromCache for tenant  " + request.getTenantId());
 
-            GetInstitutionsIdsAsResponse status = federatedAuthenticationClient.getFromCache(request);
+            GetInstitutionsResponse status = federatedAuthenticationClient.getFromCache(request);
 
             responseObserver.onNext(status);
             responseObserver.onCompleted();
