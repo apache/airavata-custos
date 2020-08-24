@@ -29,10 +29,14 @@
                 </p>
             </div>
             <div id="kc-error-message">
-                <p class="instruction">${message.summary}</p>
+                <#if message.summary?contains("Account is disabled")>
+                    <p class="instruction">Your account is locked. Please contact <a href="mailto:htrc-help@hathitrust.org">htrc-help@hathitrust.org</a>.</p>
+                <#else>
+                    <p class="instruction">${message.summary}</p>
+                </#if>
                 <#if client?? && client.baseUrl?has_content>
                     <p><a id="backToApplication"
-                          href="${client.baseUrl}">${kcSanitize(msg("backToApplication"))?no_esc}</a></p>
+                          href="${client.baseUrl}">Back to HTRC Analytics</a></p>
                 </#if>
             </div>
         </div>

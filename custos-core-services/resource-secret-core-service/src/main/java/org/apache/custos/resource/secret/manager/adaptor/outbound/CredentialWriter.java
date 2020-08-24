@@ -125,6 +125,12 @@ public class CredentialWriter {
             throw new CredentialStoreException(msg, null);
         }
 
+        LOGGER.info("TOken "+credential.getToken());
+        LOGGER.info("Description "+credential.getDescription());
+        LOGGER.info("ownerId "+ credential.getOwnerId());
+        LOGGER.info("owner type" + credential.getResourceOwnerType().name());
+        LOGGER.info("Secret type"+ResourceSecretType.PASSWORD.name());
+        LOGGER.info("TenantId "+ credential.getTenantId());
         Secret secret = new Secret();
         secret.setId(credential.getToken());
         secret.setDiscription(credential.getDescription());

@@ -27,14 +27,18 @@
         <div class="login">
         <#if realm.password>
             <div class="login-form">
-                <h3>Sign In to <span class="htrc-text">HathiTrust Research Center</span></h3>
+                <h3>Sign in to <span class="htrc-text">HathiTrust Research Center</span></h3>
                 <#if message?has_content>
                     <div class="alert alert-${message.type}">
                         <#if message.type = 'success'><span class="${properties.kcFeedbackSuccessIcon!}"></span></#if>
                         <#if message.type = 'warning'><span class="${properties.kcFeedbackWarningIcon!}"></span></#if>
                         <#if message.type = 'error'><span class="${properties.kcFeedbackErrorIcon!}"></span></#if>
                         <#if message.type = 'info'><span class="${properties.kcFeedbackInfoIcon!}"></span></#if>
-                        <span class="message-text">${message.summary?no_esc}</span>
+                        <#if message.summary?contains("Account is disabled")>
+                            <span class="message-text">Your account is locked.<br/>Please contact <a href="mailto:htrc-help@hathitrust.org">htrc-help@hathitrust.org</a>.</span>
+                        <#else>
+                            <span class="message-text">${message.summary?no_esc}</span>
+                        </#if>
                     </div>
                 </#if>
                <form id="kc-form-login" class="form" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post">

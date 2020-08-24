@@ -711,10 +711,10 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             Optional<org.apache.custos.sharing.persistance.model.Entity> optionalEntity =
                     entityRepository.findById(internalId);
 
+
             if (optionalEntity.isPresent()) {
                 entityRepository.delete(optionalEntity.get());
             }
-
 
             org.apache.custos.sharing.service.Status status =
                     org.apache.custos.sharing.service.Status.newBuilder().setStatus(true).build();

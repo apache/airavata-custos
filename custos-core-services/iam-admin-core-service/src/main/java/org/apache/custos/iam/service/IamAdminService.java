@@ -967,6 +967,47 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
+    public void getRolesOfTenant(GetRolesRequest request, StreamObserver<AllRoles> responseObserver) {
+        try {
+            LOGGER.debug("Request received to add roles to tenant for " + request.getTenantId());
+
+            List<org.keycloak.representations.idm.RoleRepresentation> allKeycloakRoles = keycloakClient.
+                    getAllRoles(String.valueOf(request.getTenantId()), (request.getClientLevel()) ? request.getClientId() : null);
+            AllRoles.Builder builder = AllRoles.newBuilder();
+            if (allKeycloakRoles != null && !allKeycloakRoles.isEmpty()) {
+
+                List<RoleRepresentation> roleRepresentations = new ArrayList<>();
+                for (org.keycloak.representations.idm.RoleRepresentation role : allKeycloakRoles) {
+                    RoleRepresentation roleRepresentation = RoleRepresentation.
+                            newBuilder().setName(role.getName())
+                            .setComposite(role.isComposite())
+                            .build();
+                    if (role.getDescription() != null) {
+                        roleRepresentation = roleRepresentation.toBuilder().setDescription(role.getDescription()).build();
+                    }
+                    roleRepresentations.add(roleRepresentation);
+
+                }
+
+                builder.addAllRoles(roleRepresentations);
+                if (request.getClientLevel()) {
+                    builder.setScope("client_level");
+                } else {
+                    builder.setScope("realm_level");
+                }
+            }
+
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Get roles   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void addProtocolMapper(AddProtocolMapperRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to add protocol mapper " + request.getTenantId());
