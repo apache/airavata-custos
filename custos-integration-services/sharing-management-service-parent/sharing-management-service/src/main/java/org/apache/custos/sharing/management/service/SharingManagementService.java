@@ -372,7 +372,6 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
            for (Group gr: response.getGroupsList()) {
                associatingIds.add(gr.getId());
-               LOGGER.info("Associating ids "+ gr.getId());
            }
 
             request = request.toBuilder().addAllAssociatingIds(associatingIds).build();
