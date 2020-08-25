@@ -136,7 +136,7 @@ service FederatedAuthenticationService {
 
     rpc addToCache (CacheManipulationRequest) returns (Status);
     rpc removeFromCache (CacheManipulationRequest) returns (Status);
-    rpc getFromCache (CacheManipulationRequest) returns (GetInstitutionsIdsAsResponse);
+    rpc getFromCache (CacheManipulationRequest) returns (GetInstitutionsResponse);
     rpc getInstitutions (CacheManipulationRequest) returns (GetInstitutionsResponse);
 
 }

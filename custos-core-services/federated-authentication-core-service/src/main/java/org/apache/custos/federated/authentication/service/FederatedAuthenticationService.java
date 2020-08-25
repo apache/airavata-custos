@@ -323,7 +323,7 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
     }
 
     @Override
-    public void getFromCache(CacheManipulationRequest request, StreamObserver<GetInstitutionsIdsAsResponse> responseObserver) {
+    public void getFromCache(CacheManipulationRequest request, StreamObserver<GetInstitutionsResponse> responseObserver) {
         try {
             LOGGER.debug("Calling getFromCache API for tenantId " + request.getTenantId());
 
@@ -334,18 +334,27 @@ public class FederatedAuthenticationService extends FederatedAuthenticationServi
 
             List<CILogonInstitution> institutions = institutionRespository.findAllByTenantIdAndType(tenant, type);
 
-            List<String> institutionList = new ArrayList<>();
+            List<Institution> institutionList = new ArrayList<>();
+
+            org.apache.custos.federated.services.clients.cilogon.CILogonInstitution[] ciLogonInstitutions =
+                    ciLogonClient.getInstitutions();
 
             if (institutions != null && !institutions.isEmpty()) {
 
                 for (CILogonInstitution institution : institutions) {
-                    institutionList.add(institution.getInstitutionId());
+
+                    for (org.apache.custos.federated.services.clients.cilogon.CILogonInstitution
+                            ciLogonInstitution : ciLogonInstitutions) {
+                        if (ciLogonInstitution.getEntityId().equals(institution.getInstitutionId())) {
+                            institutionList.add(ModelMapper.convert(ciLogonInstitution));
+                        }
+                    }
+
                 }
             }
 
-
-            GetInstitutionsIdsAsResponse response = GetInstitutionsIdsAsResponse.
-                    newBuilder().addAllEntityIds(institutionList).build();
+            GetInstitutionsResponse response = GetInstitutionsResponse.
+                    newBuilder().addAllInstitutions(institutionList).build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();

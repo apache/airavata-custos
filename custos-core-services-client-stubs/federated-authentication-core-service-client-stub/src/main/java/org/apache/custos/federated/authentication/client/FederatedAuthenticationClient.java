@@ -107,7 +107,7 @@ public class FederatedAuthenticationClient {
         return federatedAuthenticationServiceBlockingStub.removeFromCache(request);
     }
 
-    public GetInstitutionsIdsAsResponse getFromCache(CacheManipulationRequest request) {
+    public GetInstitutionsResponse getFromCache(CacheManipulationRequest request) {
         return federatedAuthenticationServiceBlockingStub.getFromCache(request);
     }
 
