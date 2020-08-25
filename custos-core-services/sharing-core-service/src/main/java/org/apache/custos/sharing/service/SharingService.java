@@ -711,10 +711,10 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             Optional<org.apache.custos.sharing.persistance.model.Entity> optionalEntity =
                     entityRepository.findById(internalId);
 
+
             if (optionalEntity.isPresent()) {
                 entityRepository.delete(optionalEntity.get());
             }
-
 
             org.apache.custos.sharing.service.Status status =
                     org.apache.custos.sharing.service.Status.newBuilder().setStatus(true).build();
@@ -743,12 +743,21 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>();
 
+            List<String> internalEntityIds = new ArrayList<>();
+
             if (entities != null && !entities.isEmpty()) {
 
                 for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
-                    entityList.add(EntityMapper.createEntity(entity));
+                    internalEntityIds.add(entity.getId());
                 }
 
+                List<Sharing> sharings = sharingRepository.
+                        findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
+                if (sharings != null && !sharings.isEmpty()) {
+                    for (Sharing sharing : sharings) {
+                        entityList.add(EntityMapper.createEntity(sharing.getEntity()));
+                    }
+                }
             }
 
             org.apache.custos.sharing.service.Entities resp = org.apache.custos.sharing.service.Entities
@@ -849,17 +858,17 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             String internalEntityId = entityId + "@" + tenantId;
 
-            String permisstionType = request.getPermissionType().getId();
+            String permissionType = request.getPermissionType().getId();
 
             String internalPermissionTypeId = request.getPermissionType().getId() + "@" + tenantId;
 
-            Optional<org.apache.custos.sharing.persistance.model.PermissionType> permissionType =
+            Optional<org.apache.custos.sharing.persistance.model.PermissionType> oPT =
                     permissionTypeRepository.findById(internalPermissionTypeId);
 
-            if (permissionType.isEmpty()) {
-                String msg = "Cannot find permission type" + permisstionType;
+            if (oPT.isEmpty()) {
+                String msg = "Cannot find permission type" + permissionType;
                 LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.NOT_FOUND.asRuntimeException());
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
                 return;
             }
 
@@ -869,12 +878,9 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             if (optionalEntity.isEmpty()) {
                 String msg = "Cannot find given entity" + entityId;
                 LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.NOT_FOUND.asRuntimeException());
+                responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
                 return;
             }
-
-            Optional<org.apache.custos.sharing.persistance.model.PermissionType> optionalPermissionType =
-                    permissionTypeRepository.findByExternalIdAndTenantId(Constants.OWNER, tenantId);
 
 
             List<String> sharingList = new ArrayList<>();

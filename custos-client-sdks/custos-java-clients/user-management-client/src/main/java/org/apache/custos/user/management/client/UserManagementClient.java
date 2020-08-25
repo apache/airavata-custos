@@ -365,6 +365,8 @@ public class UserManagementClient {
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
                 MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
+        unAuthorizedStub =MetadataUtils.attachHeaders(unAuthorizedStub,
+                ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
 
         AddUserRolesRequest request = AddUserRolesRequest
                 .newBuilder()
@@ -384,6 +386,8 @@ public class UserManagementClient {
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
                 MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
+        unAuthorizedStub =MetadataUtils.attachHeaders(unAuthorizedStub,
+                ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
 
         DeleteUserRolesRequest request = DeleteUserRolesRequest
                 .newBuilder()

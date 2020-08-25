@@ -28,6 +28,7 @@ import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.identity.service.User;
 import org.apache.custos.integration.services.commons.utils.InterServiceModelMapper;
 import org.apache.custos.sharing.client.SharingClient;
 import org.apache.custos.sharing.management.exceptions.SharingException;
@@ -41,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @GRpcService
@@ -355,6 +357,24 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
     public void searchEntities(SearchRequest request, StreamObserver<Entities> responseObserver) {
         try {
             LOGGER.debug("Request received to searchEntities in tenant " + request.getTenantId());
+
+
+            String userId = request.getOwnerId();
+
+            UserProfile profile = UserProfile.newBuilder().setUsername(userId).build();
+            UserProfileRequest profileRequest = UserProfileRequest.newBuilder()
+                    .setProfile(profile).setTenantId(request.getTenantId()).build();
+
+           GetAllGroupsResponse response =  userProfileClient.getAllGroupsOfUser(profileRequest);
+
+           List<String> associatingIds = new ArrayList<>();
+           associatingIds.add(userId);
+
+           for (Group gr: response.getGroupsList()) {
+               associatingIds.add(gr.getId());
+           }
+
+            request = request.toBuilder().addAllAssociatingIds(associatingIds).build();
 
             Entities entities = sharingClient.searchEntities(request);
             responseObserver.onNext(entities);

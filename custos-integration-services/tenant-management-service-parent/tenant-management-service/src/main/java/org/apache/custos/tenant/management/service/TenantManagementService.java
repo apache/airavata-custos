@@ -185,6 +185,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                     .setAdminEmail(tenant.getAdminEmail())
                     .setAdminFirstName(tenant.getAdminFirstName())
                     .setAdminLastName(tenant.getAdminLastName())
+                    .setAdminUsername(tenant.getAdminUsername())
                     .setRequesterEmail(tenant.getRequesterEmail())
                     .setApplicationType(tenant.getApplicationType())
                     .setClientName(tenant.getClientName())
@@ -433,6 +434,21 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
         }
     }
 
+
+    @Override
+    public void getTenantRoles(GetRolesRequest request, StreamObserver<AllRoles> responseObserver) {
+        try {
+            AllRoles allRoles = iamAdminServiceClient.getRolesOfTenant(request);
+
+            responseObserver.onNext(allRoles);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getTenantRoles " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 
     @Override
     public void addProtocolMapper(AddProtocolMapperRequest request, StreamObserver<OperationStatus> responseObserver) {

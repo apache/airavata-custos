@@ -25,6 +25,7 @@ import org.apache.custos.federated.authentication.service.CacheManipulationReque
 import org.apache.custos.iam.service.AddProtocolMapperRequest;
 import org.apache.custos.iam.service.AddRolesRequest;
 import org.apache.custos.iam.service.EventPersistenceRequest;
+import org.apache.custos.iam.service.GetRolesRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
@@ -110,6 +111,14 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             AuthClaim claim = validateAuth(headers);
 
             AddRolesRequest rolesRequest = ((AddRolesRequest) msg);
+
+            return (ReqT) rolesRequest.toBuilder()
+                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+        } else if (method.equals("getTenantRoles")) {
+
+            AuthClaim claim = validateAuth(headers);
+
+            GetRolesRequest rolesRequest = ((GetRolesRequest) msg);
 
             return (ReqT) rolesRequest.toBuilder()
                     .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();

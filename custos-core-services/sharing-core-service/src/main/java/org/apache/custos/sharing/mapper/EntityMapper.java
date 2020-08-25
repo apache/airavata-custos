@@ -83,7 +83,6 @@ public class EntityMapper {
         org.apache.custos.sharing.service.Entity.Builder builder =
                 org.apache.custos.sharing.service.Entity
                         .newBuilder();
-
         builder
                 .setId(entity.getExternalId())
                 .setCreatedAt(entity.getCreatedAt().getTime())
@@ -91,7 +90,7 @@ public class EntityMapper {
                 .setName(entity.getName())
                 .setOriginalCreationTime(entity.getCreatedAt().getTime())
                 .setOwnerId(entity.getOwnerId())
-                .setType(entity.getEntityType().getId())
+                .setType(entity.getEntityType().getExternalId())
                 .setSharedCount(entity.getSharedCount());
 
         if (entity.getExternalParentId() != null) {
