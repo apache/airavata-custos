@@ -23,6 +23,8 @@ import org.apache.custos.sharing.persistance.model.Entity;
 import org.apache.custos.sharing.service.EntitySearchField;
 import org.apache.custos.sharing.service.SearchCondition;
 import org.apache.custos.sharing.service.SearchCriteria;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -33,7 +35,9 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public class SearchEntityRepositoryImpl implements SearchEntityRepository {
+public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SearchEntityRepositoryImpl.class);
 
     @PersistenceContext
     EntityManager entityManager;
@@ -42,10 +46,11 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
     public List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria) {
 
         Map<String, Object> valueMap = new HashMap<>();
-        String query = createSQLQuery(searchCriteria, valueMap);
+        String query = createSQLQuery(tenantId,searchCriteria, valueMap);
 
 
-        Query q = entityManager.createNativeQuery(query);
+
+        Query q = entityManager.createNativeQuery(query, Entity.class);
         for (String key : valueMap.keySet()) {
             q.setParameter(key, valueMap.get(key));
         }
@@ -55,7 +60,7 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
     }
 
 
-    private String createSQLQuery(List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap) {
+    private String createSQLQuery(long tenantId, List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap) {
 
         String query = "SELECT * FROM entity E WHERE ";
 
@@ -105,7 +110,7 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
                 } else {
                     query = query + "E.entity_type_id != :" + EntitySearchField.ENTITY_TYPE_ID.name() + " AND ";
                 }
-                valueMap.put(EntitySearchField.ENTITY_TYPE_ID.name(), searchCriteria.getValue());
+                valueMap.put(EntitySearchField.ENTITY_TYPE_ID.name(), searchCriteria.getValue()+"@"+tenantId);
             } else if (searchCriteria.getSearchField().equals(EntitySearchField.CREATED_AT)) {
                 if (searchCriteria.getCondition().equals(SearchCondition.GTE)) {
                     query = query + "E.created_at >= :" + EntitySearchField.CREATED_AT.name() + " AND ";
@@ -137,8 +142,10 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
             }
 
         }
+        query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
+
         return query;
     }
 

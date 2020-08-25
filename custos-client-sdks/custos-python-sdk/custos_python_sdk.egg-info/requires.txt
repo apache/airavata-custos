@@ -1,0 +1,10 @@
+google==3.0.0
+protobuf==3.12.2
+google-api-python-client==1.10.0
+googleapis-common-protos==1.52.0
+grpcio==1.30.0
+pyopenssl==19.1.0
+configparser==5.0.0
+requests==2.13.0
+requests-oauthlib==0.7.0
+urllib3==1.25.9

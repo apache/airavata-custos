@@ -23,8 +23,10 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
+import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
+import org.apache.custos.integration.core.utils.Constants;
+import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.user.management.service.LinkUserProfileRequest;
@@ -39,7 +41,7 @@ import org.springframework.stereotype.Component;
  * Methods authenticates users access tokens are implemented here
  */
 @Component
-public class UserAuthInterceptorImpl extends AuthInterceptor {
+public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
@@ -52,9 +54,9 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
 
         if (method.equals("addUserAttributes")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
-
+            AddUserAttributesRequest userAttributesRequest = (AddUserAttributesRequest) msg;
+            headers =  attachUserToken(headers, userAttributesRequest.getClientId());
+            AuthClaim claim = authorize(headers, userAttributesRequest.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -63,18 +65,25 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             String oauthId = claim.getIamAuthId();
 
             long tenantId = claim.getTenantId();
+
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
 
 
             return (ReqT) ((AddUserAttributesRequest) msg).toBuilder()
                     .setClientId(oauthId)
                     .setTenantId(tenantId)
-                    .setAccessToken(token)
+                    .setAccessToken(token.getAccessToken())
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
-        }  else if (method.equals("deleteUserAttributes")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+        } else if (method.equals("deleteUserAttributes")) {
+
+            DeleteUserAttributeRequest userAttributesRequest = (DeleteUserAttributeRequest) msg;
+            headers =  attachUserToken(headers, userAttributesRequest.getClientId());
+            AuthClaim claim = authorize(headers, userAttributesRequest.getClientId());
 
 
             if (claim == null) {
@@ -85,17 +94,23 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             long tenantId = claim.getTenantId();
 
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
 
             return (ReqT) ((DeleteUserAttributeRequest) msg).toBuilder()
                     .setClientId(oauthId)
                     .setTenantId(tenantId)
-                    .setAccessToken(token)
+                    .setAccessToken(token.getAccessToken())
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
         } else if (method.equals("addRolesToUsers")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            AddUserRolesRequest userAttributesRequest = (AddUserRolesRequest) msg;
+            headers =  attachUserToken(headers, userAttributesRequest.getClientId());
+            AuthClaim claim = authorize(headers, userAttributesRequest.getClientId());
 
 
             if (claim == null) {
@@ -105,18 +120,26 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             String oauthId = claim.getIamAuthId();
 
             long tenantId = claim.getTenantId();
+
+            String userToken = getUserTokenFromUserTokenHeader(headers);
+
+            if (userToken == null || userToken.trim().equals("")) {
+                userToken = getToken(headers);
+            }
 
 
             return (ReqT) ((AddUserRolesRequest) msg).toBuilder()
                     .setClientId(oauthId)
                     .setTenantId(tenantId)
-                    .setAccessToken(token)
+                    .setAccessToken(userToken)
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
         } else if (method.equals("registerAndEnableUsers")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            RegisterUsersRequest registerUsersRequest = (RegisterUsersRequest) msg;
+            headers =  attachUserToken(headers, registerUsersRequest.getClientId());
+            AuthClaim claim = authorize(headers, registerUsersRequest.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -124,19 +147,26 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             String oauthId = claim.getIamAuthId();
             String oauthSec = claim.getIamAuthSecret();
+            String userToken = getUserTokenFromUserTokenHeader(headers);
+
+            if (userToken == null || userToken.trim().equals("")) {
+                userToken = getToken(headers);
+            }
 
             long tenantId = claim.getTenantId();
             org.apache.custos.iam.service.RegisterUsersRequest registerUserRequest =
                     ((RegisterUsersRequest) msg).toBuilder()
                             .setTenantId(tenantId)
                             .setClientId(oauthId)
-                            .setAccessToken(token)
+                            .setAccessToken(userToken)
                             .setPerformedBy(claim.getPerformedBy())
                             .build();
             return (ReqT) registerUserRequest;
         } else if (method.equals("deleteUserRoles")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            DeleteUserRolesRequest deleteUserRolesRequest = (DeleteUserRolesRequest) msg;
+            headers =  attachUserToken(headers, deleteUserRolesRequest.getClientId());
+            AuthClaim claim = authorize(headers, deleteUserRolesRequest.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -144,44 +174,29 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             String oauthId = claim.getIamAuthId();
             String oauthSec = claim.getIamAuthSecret();
+            String userToken = getUserTokenFromUserTokenHeader(headers);
+
+            if (userToken == null || userToken.trim().equals("")) {
+                userToken = getToken(headers);
+            }
 
             long tenantId = claim.getTenantId();
             DeleteUserRolesRequest operationRequest = ((DeleteUserRolesRequest) msg)
                     .toBuilder()
                     .setClientId(oauthId)
-                    .setAccessToken(token)
+                    .setAccessToken(userToken)
                     .setTenantId(tenantId)
                     .setPerformedBy(claim.getPerformedBy())
                     .build();
 
             return (ReqT) operationRequest;
 
-        }
-        else if (method.equals("updateUserProfile")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
-
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            String oauthId = claim.getIamAuthId();
-            String oauthSec = claim.getIamAuthSecret();
-
-            long tenantId = claim.getTenantId();
-
-            return (ReqT) ((UserProfileRequest) msg).toBuilder()
-                    .setAccessToken(token)
-                    .setTenantId(tenantId)
-                    .setClientId(oauthId)
-                    .setClientSecret(oauthSec)
-                    .setPerformedBy(claim.getPerformedBy())
-                    .build();
-
-        } else if (method.equals("deleteUser") || method.equals("grantAdminPrivileges") ||
+        }  else if (method.equals("deleteUser") || method.equals("grantAdminPrivileges") ||
                 method.equals("removeAdminPrivileges")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            UserSearchRequest userSearchRequest = (UserSearchRequest) msg;
+            headers =  attachUserToken(headers, userSearchRequest.getClientId());
+            AuthClaim claim = authorize(headers, userSearchRequest.getClientId());
 
             if (claim == null) {
                 throw new NotAuthorizedException("Request is not authorized", null);
@@ -189,15 +204,21 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             String oauthId = claim.getIamAuthId();
             String oauthSec = claim.getIamAuthSecret();
+
+            AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
 
             long tenantId = claim.getTenantId();
             UserSearchRequest operationRequest = ((UserSearchRequest) msg)
                     .toBuilder()
                     .setClientId(oauthId)
-                    .setClientSec(oauthId)
+                    .setClientSec(oauthSec)
                     .setTenantId(tenantId)
-                    .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setAccessToken(token.getAccessToken())
+                    .setPerformedBy(Constants.SYSTEM)
                     .build();
 
             return (ReqT) operationRequest;
@@ -225,28 +246,20 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             return (ReqT) operationRequest;
 
-        } else if (method.equals("createGroups")) {
-            String token = getToken(headers);
-            AuthClaim claim = authorizeUsingUserToken(headers);
-
-            if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
-            GroupsRequest operationRequest = ((GroupsRequest) msg)
-                    .toBuilder()
-                    .setTenantId(tenantId)
-                    .setAccessToken(token)
-                    .setClientId(claim.getIamAuthId())
-                    .setPerformedBy(claim.getPerformedBy())
-                    .build();
-
-            return (ReqT) operationRequest;
-
         }
 
-            return msg;
+        return msg;
+    }
+
+
+
+    private Metadata attachUserToken(Metadata headers, String clientId) {
+        if (clientId == null || clientId.trim().equals("")) {
+           String formattedUserToken =  getToken(headers);
+           headers.put(Metadata.Key.of(Constants.USER_TOKEN,Metadata.ASCII_STRING_MARSHALLER), formattedUserToken);
+           return headers;
+        }
+        return headers;
     }
 
 

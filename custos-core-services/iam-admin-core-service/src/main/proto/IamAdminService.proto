@@ -109,6 +109,8 @@ message GroupRepresentation {
     repeated UserAttribute attributes = 5;
     repeated UserRepresentation users = 6;
     repeated GroupRepresentation sub_groups = 7;
+    string description = 8;
+    string ownerId = 9;
 }
 
 
@@ -240,6 +242,12 @@ message AddRolesRequest {
     string client_id = 4;
 }
 
+message GetRolesRequest {
+    bool client_level = 1;
+    int64 tenant_id = 2;
+    string client_id = 3;
+}
+
 message RoleRepresentation {
     string name = 1;
     string description = 2;
@@ -357,6 +365,7 @@ message UserGroupMappingRequest {
     string clientSec = 5;
     string username = 6;
     string group_id = 7;
+    string membership_type = 8;
 }
 
 message AgentClientMetadata {
@@ -400,7 +409,7 @@ service IamAdminService {
     rpc configureFederatedIDP (ConfigureFederateIDPRequest) returns (FederateIDPResponse);
     rpc addRolesToTenant (AddRolesRequest) returns (AllRoles);
     rpc addProtocolMapper (AddProtocolMapperRequest) returns (OperationStatus);
-
+    rpc getRolesOfTenant (GetRolesRequest) returns (AllRoles);
 
     rpc isUsernameAvailable (UserSearchRequest) returns (OperationStatus);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);

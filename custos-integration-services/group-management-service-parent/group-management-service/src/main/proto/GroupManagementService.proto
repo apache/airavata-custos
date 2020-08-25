@@ -34,7 +34,6 @@ service GroupManagementService {
 
         option (google.api.http) = {
            post: "/group-management/v1.0.0/groups"
-           body: "groups"
          };
     }
 
@@ -43,7 +42,6 @@ service GroupManagementService {
 
         option (google.api.http) = {
            put: "/group-management/v1.0.0/group/{id}"
-           body: "group"
          };
     }
 
@@ -51,7 +49,6 @@ service GroupManagementService {
 
         option (google.api.http) = {
            delete: "/group-management/v1.0.0/group/{id}"
-           body: "group"
          };
     }
 

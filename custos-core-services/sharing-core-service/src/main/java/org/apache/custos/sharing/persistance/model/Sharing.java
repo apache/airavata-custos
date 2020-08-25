@@ -64,14 +64,14 @@ public class Sharing {
     private PermissionType permissionType;
 
 
-    @JoinColumn(name = "entity_id", insertable=false, updatable=false)
+    @JoinColumn(name = "entity_id")
     @ManyToOne
     private org.apache.custos.sharing.persistance.model.Entity entity;
 
 
-    @JoinColumn(name = "inherited_parent_id", insertable=false, updatable=false)
+    @JoinColumn(name = "inherited_parent_id")
     @ManyToOne
-    private org.apache.custos.sharing.persistance.model.Entity inheritedEntity;
+    private org.apache.custos.sharing.persistance.model.Entity inheritedParent;
 
 
     public String getAssociatingId() {
@@ -138,12 +138,12 @@ public class Sharing {
         this.entity = entity;
     }
 
-    public org.apache.custos.sharing.persistance.model.Entity getInheritedEntity() {
-        return inheritedEntity;
+    public org.apache.custos.sharing.persistance.model.Entity getInheritedParent() {
+        return inheritedParent;
     }
 
-    public void setInheritedEntity(org.apache.custos.sharing.persistance.model.Entity inheritedEntity) {
-        this.inheritedEntity = inheritedEntity;
+    public void setInheritedParent(org.apache.custos.sharing.persistance.model.Entity inheritedParent) {
+        this.inheritedParent = inheritedParent;
     }
 
     public String getAssociatingIdType() {

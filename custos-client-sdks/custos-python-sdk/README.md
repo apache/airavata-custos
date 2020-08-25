@@ -41,7 +41,7 @@ The Apache Custos Python SDK for  third party clients to  integrate with Custos 
        ```
   -  Create a INI file containing server configuration details. For more information refer to default settings file
             
-       [settings.ini](transport/settings.ini)
+       [settings.ini](custos/transport/settings.ini)
        
 ### Generating Distribution Archives (Optional)
 
@@ -77,7 +77,7 @@ There are three types of tokens used for access custos APIs.
    - Admin Token (Access Token of Admin User)
    - User Token (Access Token of Generic User)
       
-   -  [tenant_management_client](clients/tenant_management_client.py)
+   -  [tenant_management_client](custos/clients/tenant_management_client.py)
    
       - create_admin_tenant (<sub><sup>client_name, requester_email, admin_frist_name,
                             admin_last_name, admin_email, admin_username, admin_password,
@@ -98,9 +98,9 @@ There are three types of tokens used for access custos APIs.
       
     
       
-   Sample implementations can be found at [tenant_management_samples](samples/tenant_management_samples.py)
+   Sample implementations can be found at [tenant_management_samples](custos/samples/tenant_management_samples.py)
       
-   -   [identity_management_client](clients/identity_management_client.py)
+   -   [identity_management_client](custos/clients/identity_management_client.py)
       
        - authenticate(<sub><sup>client_token, username, password</sup></sub>)
        - is_authenticated(<sub><sup> client_token, user_access_token, username</sup></sub>)
@@ -110,10 +110,10 @@ There are three types of tokens used for access custos APIs.
        - get_credentials(<sub><sup>  client_token, client_id</sup></sub>)
        - get_oidc_configuration(<sub><sup> client_token, client_id</sup></sub>)
        
-   Sample implementations can be found at [identity_management_sample](samples/identity_management_samples.py)
+   Sample implementations can be found at [identity_management_sample](custos/samples/identity_management_samples.py)
     
     
-   - [user_management_client](clients/user_management_client.py)   
+   - [user_management_client](custos/clients/user_management_client.py)   
        
        - register_user(<sub><sup>client_token, username, first_name, last_name, password, email, is_temp_password</sup></sub>) 
        - register_and_enable_users(<sub><sup> admin_token, users</sup></sub>)
@@ -131,11 +131,11 @@ There are three types of tokens used for access custos APIs.
        - update_user_profile(<sub><sup> user_token, username, email, first_name, last_name</sup></sub>)
        
        
-   Sample implementations can be found at [user_management_samples](samples/user_management_sample.py)
+   Sample implementations can be found at [user_management_samples](custos/samples/user_management_sample.py)
        
        
        
-   - [super_tenant_management_client](clients/super_tenant_management_client.py)
+   - [super_tenant_management_client](custos/clients/super_tenant_management_client.py)
    
        - get_all_tenants(<sub><sup> super_admin_token, offset, limit, status</sup></sub>)
        - update_tenant_status(<sub><sup>  super_admin_token, client_id, status</sup></sub>)

@@ -75,7 +75,6 @@ public class AgentMapper {
             });
         }
 
-        
 
         if (agent.getAgentClientRolesList() != null && !agent.getAgentClientRolesList().isEmpty()) {
 
@@ -87,6 +86,7 @@ public class AgentMapper {
                 userRoleSet.add(userRole);
             });
         }
+
 
         persistenceModel.setAgentRole(userRoleSet);
 

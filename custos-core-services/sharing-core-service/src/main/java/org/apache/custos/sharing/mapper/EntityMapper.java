@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.rowset.serial.SerialBlob;
 import java.sql.Blob;
+import java.sql.Date;
 import java.sql.SQLException;
 
 public class EntityMapper {
@@ -59,14 +60,17 @@ public class EntityMapper {
             perEntity.setDescription(entity.getDescription());
         }
 
-        if (entity.getFullText() != null && entity.getFullText().trim().equals("")) {
+        if (entity.getFullText() != null && !entity.getFullText().trim().equals("")) {
             perEntity.setFullText(entity.getFullText());
         }
 
-        if (entity.getParentId() != null && entity.getParentId().trim().equals("")) {
+        if (entity.getParentId() != null && !entity.getParentId().trim().equals("")) {
             perEntity.setExternalParentId(entity.getParentId());
         }
 
+        if (entity.getOriginalCreationTime() > 0) {
+            perEntity.setOriginalCreatedTime(new Date(entity.getOriginalCreationTime()));
+        }
 
         return perEntity;
 
@@ -79,7 +83,6 @@ public class EntityMapper {
         org.apache.custos.sharing.service.Entity.Builder builder =
                 org.apache.custos.sharing.service.Entity
                         .newBuilder();
-
         builder
                 .setId(entity.getExternalId())
                 .setCreatedAt(entity.getCreatedAt().getTime())
@@ -87,8 +90,12 @@ public class EntityMapper {
                 .setName(entity.getName())
                 .setOriginalCreationTime(entity.getCreatedAt().getTime())
                 .setOwnerId(entity.getOwnerId())
-                .setType(entity.getEntityType().getId())
+                .setType(entity.getEntityType().getExternalId())
                 .setSharedCount(entity.getSharedCount());
+
+        if (entity.getExternalParentId() != null) {
+            builder.setParentId(entity.getExternalParentId());
+        }
 
         if (entity.getDescription() != null) {
             builder.setDescription(entity.getDescription());

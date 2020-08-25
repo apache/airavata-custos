@@ -22,6 +22,8 @@ package org.apache.custos.sharing;
 import brave.Tracing;
 import brave.grpc.GrpcTracing;
 import io.grpc.ServerInterceptor;
+import org.apache.custos.core.services.commons.ServiceInterceptor;
+import org.apache.custos.sharing.validator.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -52,6 +54,17 @@ public class SharingServiceInitializer {
     @GRpcGlobalInterceptor
     ServerInterceptor grpcServerSleuthInterceptor(GrpcTracing grpcTracing) {
         return grpcTracing.newServerInterceptor();
+    }
+
+    @Bean
+    public InputValidator getValidator() {
+        return new InputValidator();
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(InputValidator validator){
+        return new ServiceInterceptor(validator);
     }
 
 }

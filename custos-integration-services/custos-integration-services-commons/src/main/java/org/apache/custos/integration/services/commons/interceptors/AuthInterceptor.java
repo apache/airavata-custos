@@ -25,6 +25,7 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
+import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.identity.service.IsAuthenticateResponse;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
@@ -198,6 +199,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
     /**
      * Authorize tenant request by checking validity of calling tenant and its child tenant given by clientId
+     *
      * @param headers       parentTenant Headers
      * @param childClientId childTenant Headers
      * @return AuthClaim of child tenant
@@ -220,7 +222,18 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
 
+
+        GetCredentialRequest credentialRequest = GetCredentialRequest
+                .newBuilder()
+                .setOwnerId(metadata.getOwnerId())
+                .setType(Type.IAM).build();
+
+        CredentialMetadata iamCredentials = credentialStoreServiceClient.getCredential(credentialRequest);
+
         AuthClaim childClaim = getAuthClaim(metadata);
+
+        childClaim.setIamAuthSecret(iamCredentials.getSecret());
+        childClaim.setIamAuthId(iamCredentials.getId());
 
         boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
 
@@ -239,9 +252,59 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
+    public AuthClaim authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(Metadata headers,
+                                                                                               String childClientId,
+                                                                                               String userToken) {
+        AuthClaim authClaim = authorize(headers);
+
+        if (authClaim == null) {
+            return null;
+        }
+
+        if (childClientId == null || childClientId.trim().equals("")) {
+            return authClaim;
+        }
+
+        GetCredentialRequest request = GetCredentialRequest
+                .newBuilder()
+                .setId(childClientId).build();
+
+        CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+        AuthClaim childClaim = getAuthClaim(metadata);
+
+
+        boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
+
+        if (!statusValidation) {
+            return null;
+        }
+
+        boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(), childClaim.getTenantId());
+
+        if (!relationShipValidation) {
+            return null;
+        }
+
+        return authorizeUsingUserToken(userToken);
+
+    }
+
+
+    public AuthToken getSAToken(String clientId, String clientSec, long tenantId) {
+        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setClientSecret(clientSec)
+                .setTenantId(tenantId)
+                .build();
+        return identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+    }
+
+
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
-            LOGGER.info("Nulling " + response.getSecretListCount());
             return null;
         }
 
@@ -360,5 +423,6 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         return false;
     }
+
 
 }

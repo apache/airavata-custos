@@ -234,6 +234,20 @@ public class KeycloakAuthClient {
 
     }
 
+    public JSONObject getAccessTokenFromClientCredentialsGrantType(String clientId, String clientSecret, String realmId
+    ) throws JSONException {
+        try {
+            String tokenURL = getTokenEndpoint(realmId);
+            return getClientCredentials(tokenURL, clientId, clientSecret);
+
+        } catch (Exception e) {
+            String msg = "Error occurred while retrieving  access token  " + e;
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+
+    }
+
     public JSONObject getJWTVerificationCerts(String clientId, String clientSecret, String realmId
     ) throws JSONException {
         try {
@@ -294,7 +308,7 @@ public class KeycloakAuthClient {
         openIdConnectConfig.put("custos_token_endpoint", tokenEndpoint);
         //  openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
         //  openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
-        openIdConnectConfig.put("userinfo_endpoint", userInfoEndpoint);
+        openIdConnectConfig.put("custos_userinfo_endpoint", userInfoEndpoint);
         // openIdConnectConfig.put("jwks_uri", jwksUri);
         openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
         // openIdConnectConfig.remove("check_session_iframe");
@@ -538,6 +552,9 @@ public class KeycloakAuthClient {
             }
         }
     }
+
+
+
 
 
 }

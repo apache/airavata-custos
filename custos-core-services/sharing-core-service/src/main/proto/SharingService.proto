@@ -43,6 +43,7 @@ enum EntitySearchField {
     ENTITY_TYPE_ID = 7;
     PARENT_ID = 8;
     SHARED_COUNT = 9;
+    PERMISSION_TYPE_ID = 10;
 }
 
 
@@ -81,12 +82,14 @@ message EntityRequest {
     string client_id = 1;
     int64 tenant_id = 2;
     Entity entity = 3;
+    string client_sec = 4;
 }
 
 message EntityTypeRequest {
     string client_id = 1;
     int64 tenant_id = 2;
     EntityType entity_type = 3;
+    string client_sec = 4;
 }
 
 
@@ -94,6 +97,7 @@ message PermissionTypeRequest {
     string client_id = 1;
     int64 tenant_id = 2;
     PermissionType permission_type = 3;
+    string client_sec = 4;
 }
 
 
@@ -110,6 +114,8 @@ message SearchRequest {
     int32 offset = 4;
     int32 limit = 5;
     repeated SearchCriteria search_criteria = 6;
+    string client_sec = 7;
+    repeated string associating_ids = 8;
 }
 
 message PermissionRequest {
@@ -117,6 +123,7 @@ message PermissionRequest {
     int64 tenant_id = 2;
     Entity entity = 3;
     PermissionType permission_type = 4;
+    string client_sec = 5;
 }
 
 message SharingRequest {
@@ -126,6 +133,15 @@ message SharingRequest {
     PermissionType permission_type = 4;
     repeated string owner_id = 5;
     bool cascade = 6;
+    string client_sec = 7;
+}
+
+message SharesFilteringRequest {
+    string client_id = 1;
+    int64 tenant_id = 2;
+    repeated string owner_id = 5;
+    bool cascade = 6;
+    string client_sec = 7;
 }
 
 message Status {
@@ -181,6 +197,8 @@ service SharingService {
     rpc revokeEntitySharingFromUsers (SharingRequest) returns (Status);
     rpc revokeEntitySharingFromGroups (SharingRequest) returns (Status);
     rpc userHasAccess (SharingRequest) returns (Status);
+
+
 
 
 }

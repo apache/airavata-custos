@@ -29,10 +29,7 @@ import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.management.service.GetAgentTokenRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
-import org.apache.custos.identity.service.EndSessionRequest;
-import org.apache.custos.identity.service.GetOIDCConfiguration;
-import org.apache.custos.identity.service.GetTokenRequest;
-import org.apache.custos.identity.service.OperationStatus;
+import org.apache.custos.identity.service.*;
 
 import java.io.IOException;
 
@@ -175,6 +172,20 @@ public class IdentityManagementClient {
 
         cleanBlockingStub = MetadataUtils.attachHeaders(cleanBlockingStub, ClientUtils.getAuthorizationHeader(agentId, agentSec));
         return cleanBlockingStub.getAgentToken(agentTokenRequest.build());
+
+    }
+
+    public User getUser(String clientId, String username, String accessToken) {
+
+        Claim user = Claim.newBuilder().setKey("username").setValue(username).build();
+        Claim cli = Claim.newBuilder().setKey("client_id").setValue(clientId).build();
+
+        AuthToken authToken = AuthToken.newBuilder()
+                .setAccessToken(accessToken)
+                .addClaims(user)
+                .addClaims(cli)
+                .build();
+        return blockingStub.getUser(authToken);
 
     }
 

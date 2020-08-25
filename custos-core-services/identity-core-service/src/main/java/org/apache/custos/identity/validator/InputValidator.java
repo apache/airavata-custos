@@ -195,10 +195,7 @@ public class InputValidator implements Validator {
                     throw new MissingParameterException("Refresh token should not be null", null);
                 }
 
-                if (request.getPassword() == null || request.getPassword().trim().equals("")) {
-                    throw new MissingParameterException("Password should not be null", null);
-                }
-            } else {
+            } else if (request.getGrantType() == null || !request.getGrantType().equals(Constants.CLIENT_CREDENTIALS)) {
 
                 if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
                     throw new MissingParameterException("Redirect Uri should not be null", null);

@@ -26,7 +26,7 @@ import "google/protobuf/struct.proto";
 
 
 message AuthToken {
-    string accessToken = 1;
+    string access_token = 1;
     repeated Claim claims = 2;
 }
 

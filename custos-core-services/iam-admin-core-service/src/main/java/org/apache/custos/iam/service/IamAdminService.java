@@ -434,7 +434,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
-                String msg = "User " + request.getUser().getUsername() + "not found at " + request.getTenantId();
+                String msg = "User " + request.getUser().getUsername() + " not found in " + request.getTenantId();
                 responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
             }
 
@@ -458,7 +458,8 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     String.valueOf(request.getTenantId()), request.getOffset(), request.getLimit(),
                     request.getUser().getUsername(), request.getUser().getFirstName(),
                     request.getUser().getLastName(),
-                    request.getUser().getEmail());
+                    request.getUser().getEmail(),
+                    request.getUser().getId());
             List<org.apache.custos.iam.service.UserRepresentation> users = new ArrayList<>();
             representation.stream().forEach(r -> {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
@@ -966,6 +967,47 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
+    public void getRolesOfTenant(GetRolesRequest request, StreamObserver<AllRoles> responseObserver) {
+        try {
+            LOGGER.debug("Request received to add roles to tenant for " + request.getTenantId());
+
+            List<org.keycloak.representations.idm.RoleRepresentation> allKeycloakRoles = keycloakClient.
+                    getAllRoles(String.valueOf(request.getTenantId()), (request.getClientLevel()) ? request.getClientId() : null);
+            AllRoles.Builder builder = AllRoles.newBuilder();
+            if (allKeycloakRoles != null && !allKeycloakRoles.isEmpty()) {
+
+                List<RoleRepresentation> roleRepresentations = new ArrayList<>();
+                for (org.keycloak.representations.idm.RoleRepresentation role : allKeycloakRoles) {
+                    RoleRepresentation roleRepresentation = RoleRepresentation.
+                            newBuilder().setName(role.getName())
+                            .setComposite(role.isComposite())
+                            .build();
+                    if (role.getDescription() != null) {
+                        roleRepresentation = roleRepresentation.toBuilder().setDescription(role.getDescription()).build();
+                    }
+                    roleRepresentations.add(roleRepresentation);
+
+                }
+
+                builder.addAllRoles(roleRepresentations);
+                if (request.getClientLevel()) {
+                    builder.setScope("client_level");
+                } else {
+                    builder.setScope("realm_level");
+                }
+            }
+
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Get roles   failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void addProtocolMapper(AddProtocolMapperRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to add protocol mapper " + request.getTenantId());
@@ -1205,7 +1247,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     transformToKeycloakGroups(request.getClientId(), request.getGroupsList());
 
             List<org.keycloak.representations.idm.GroupRepresentation> representations =
-                    keycloakClient.createGroups(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations);
+                    keycloakClient.createGroups(String.valueOf(tenantId), request.getClientId(), request.getClientSec(), groupRepresentations);
 
             List<GroupRepresentation> groups = transformKeycloakGroupsToGroups(request.getClientId(), representations);
 
@@ -1247,7 +1289,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     transformToKeycloakGroups(request.getClientId(), representations);
 
             org.keycloak.representations.idm.GroupRepresentation groupRepresentation =
-                    keycloakClient.updateGroup(String.valueOf(tenantId), request.getClientId(), accessToken, groupRepresentations.get(0));
+                    keycloakClient.updateGroup(String.valueOf(tenantId), request.getClientId(), request.getClientSec(), groupRepresentations.get(0));
 
             GroupRepresentation group = transformKeycloakGroupToGroup(request.getClientId(), groupRepresentation, null);
 
@@ -1284,7 +1326,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             String accessToken = request.getAccessToken();
 
             keycloakClient.deleteGroup(String.valueOf(tenantId)
-                    , accessToken, request.getGroup().getId());
+                    , request.getClientId(), request.getClientSec(), request.getGroup().getId());
 
 
             statusUpdater.updateStatus(IAMOperations.DELETE_GROUP.name(),
@@ -2185,6 +2227,20 @@ public class IamAdminService extends IamAdminServiceImplBase {
                                         org.keycloak.representations.idm.GroupRepresentation parentGroup) {
         String name = groupRepresentation.getName();
         String id = groupRepresentation.getId();
+
+        if (groupRepresentation.getOwnerId() != null && !groupRepresentation.getOwnerId().equals("")) {
+
+            groupRepresentation = groupRepresentation.toBuilder().addAttributes(UserAttribute.newBuilder()
+                    .setKey(Constants.OWNER_ID).addValues(groupRepresentation.getOwnerId()).build()).build();
+        }
+
+        if (groupRepresentation.getDescription() != null && !groupRepresentation.getDescription().equals("")) {
+
+            groupRepresentation = groupRepresentation.toBuilder().addAttributes(UserAttribute.newBuilder()
+                    .setKey(Constants.DESCRIPTION).addValues(groupRepresentation.getDescription()).build()).build();
+        }
+
+
         List<UserAttribute> attributeList = groupRepresentation.getAttributesList();
         List<String> realmRoles = groupRepresentation.getRealmRolesList();
         List<String> clientRoles = groupRepresentation.getClientRolesList();
@@ -2197,6 +2253,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
         if (id != null && !id.trim().equals("")) {
             keycloakGroup.setId(id);
         }
+
 
         Map<String, List<String>> map = new HashMap<>();
         if (attributeList != null && !attributeList.isEmpty()) {
@@ -2239,6 +2296,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
         String path = "/" + keycloakGroup.getName();
         keycloakGroup.setPath(path);
+
         return keycloakGroup;
     }
 
@@ -2277,8 +2335,14 @@ public class IamAdminService extends IamAdminServiceImplBase {
         if (atrs != null && !atrs.isEmpty()) {
             List<UserAttribute> attributeList = new ArrayList<>();
             for (String key : atrs.keySet()) {
-                UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
-                attributeList.add(attribute);
+                if (key.equals(Constants.OWNER_ID)) {
+                    representation = representation.toBuilder().setOwnerId(atrs.get(key).get(0)).build();
+                } else if (key.equals(Constants.DESCRIPTION)) {
+                    representation = representation.toBuilder().setDescription(atrs.get(key).get(0)).build();
+                } else {
+                    UserAttribute attribute = UserAttribute.newBuilder().setKey(key).addAllValues(atrs.get(key)).build();
+                    attributeList.add(attribute);
+                }
             }
             representation = representation.toBuilder().addAllAttributes(attributeList).build();
 

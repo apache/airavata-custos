@@ -337,6 +337,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.getAllResources(request);
     }
 
+    public AllRoles getRolesOfTenant(GetRolesRequest request) {
+        return iamAdminServiceBlockingStub.getRolesOfTenant(request);
+    }
+
     public Agent getAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getAgent(request);
     }

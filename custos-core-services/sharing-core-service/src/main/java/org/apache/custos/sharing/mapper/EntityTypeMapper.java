@@ -23,6 +23,8 @@ import org.apache.custos.sharing.persistance.model.EntityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Date;
+
 public class EntityTypeMapper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EntityTypeMapper.class);
@@ -35,8 +37,12 @@ public class EntityTypeMapper {
         type.setName(entityType.getName());
         type.setTenantId(tenantId);
         type.setExternalId(entityType.getId());
-        if (entityType.getDescription() != null && entityType.getDescription().trim().equals("")) {
+        if (entityType.getDescription() != null && ! entityType.getDescription().trim().equals("")) {
             type.setDescription(entityType.getDescription());
+        }
+
+        if (entityType.getCreatedAt() > 0 ) {
+            type.setCreatedAt(new Date(entityType.getCreatedAt()));
         }
         return type;
     }
