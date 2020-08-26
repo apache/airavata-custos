@@ -1,0 +1,75 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.logging.service;
+
+import "google/protobuf/empty.proto";
+
+
+message LogEvent {
+    int64 created_time = 1;
+    string service_name = 2;
+    string event_type = 3;
+    string username = 4;
+    string client_id = 5;
+    int64 tenant_id = 6;
+    string external_ip = 7;
+}
+
+message Status {
+    bool status = 1;
+}
+
+message LogEventRequest {
+    int64 tenant_id = 1;
+    int64 start_time = 2;
+    int64 end_time = 3;
+    string client_id = 4;
+    string username = 5;
+    string remote_ip = 6;
+    string service_name = 7;
+    string event_type = 8;
+    int32 offset = 9;
+    int32 limit = 10;
+}
+
+message LogEvents {
+    repeated LogEvent events = 1;
+}
+
+message LoggingConfigurationRequest {
+    int64 tenant_id = 1;
+}
+
+
+service LoggingService {
+
+    rpc addLogEvent(LogEvent) returns (Status);
+
+    rpc getLogEvents(LogEventRequest) returns (LogEvents);
+
+    rpc isLogEnabled(LoggingConfigurationRequest) returns(Status);
+
+    rpc enable(LoggingConfigurationRequest) returns (Status);
+
+}

@@ -45,6 +45,7 @@
         <module>cluster-management-core-service</module>
         <module>resource-secret-core-service</module>
         <module>sharing-core-service</module>
+        <module>custos-logging</module>
     </modules>
 
 
