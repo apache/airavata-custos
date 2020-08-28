@@ -61,10 +61,6 @@ public class LogEventRepoImpl implements LogEventRepo {
         String query = "SELECT * FROM log_events E WHERE ";
 
 
-        query = query.substring(0, query.length() - 5);
-
-        query = query + " ORDER BY E.created_time DESC";
-
         if (logEventRequest.getTenantId() != 0) {
 
             query = query + "E.tenant_id = :" + "tenant_id" + " AND ";
@@ -131,13 +127,15 @@ public class LogEventRepoImpl implements LogEventRepo {
 
         query = query.substring(0, query.length() - 5);
 
-        query = query + " ORDER BY E.created_time DESC";
+        query = query + " ORDER BY E.created_time DESC ";
 
         if (logEventRequest.getOffset() >= 0 && logEventRequest.getLimit() > 0) {
-            query = query + "LIMIT " + "limit" + "OFFSET " + "offset";
+            query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
             valueMap.put("limit", logEventRequest.getLimit());
             valueMap.put("offset", logEventRequest.getOffset());
         }
+
+        LOGGER.info("Query ####" + query);
 
 
         return query;

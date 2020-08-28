@@ -25,6 +25,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.apache.custos.sharing.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.sharing.management.interceptors.InputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
@@ -64,10 +65,12 @@ public class SharingManagementServiceInitializer {
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
 
-                                                                  InputValidator validator) {
+                                                                  InputValidator validator,
+                                                                  LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
+        interceptors.add(loggingInterceptor);
         return interceptors;
     }
 

@@ -25,6 +25,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.apache.custos.resource.secret.management.interceptors.ClientAuthInterceptorImpl;
 import org.apache.custos.resource.secret.management.interceptors.InputValidator;
 import org.apache.custos.resource.secret.management.interceptors.UserAuthInterceptorImpl;
@@ -66,11 +67,13 @@ public class ResourceSecretManagementInitializer {
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator validator,
                                                                   ClientAuthInterceptorImpl authInterceptor,
-                                                                  UserAuthInterceptorImpl userAuthInterceptor) {
+                                                                  UserAuthInterceptorImpl userAuthInterceptor,
+                                                                  LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
         interceptors.add(userAuthInterceptor);
+        interceptors.add(loggingInterceptor);
 
         return interceptors;
     }

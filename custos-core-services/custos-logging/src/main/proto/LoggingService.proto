@@ -59,6 +59,7 @@ message LogEvents {
 
 message LoggingConfigurationRequest {
     int64 tenant_id = 1;
+    string client_id = 2;
 }
 
 

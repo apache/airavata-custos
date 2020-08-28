@@ -29,6 +29,7 @@ import org.apache.custos.agent.management.interceptors.SuperTenantRestrictedOper
 import org.apache.custos.agent.management.interceptors.UserAuthInterceptorImpl;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -68,12 +69,14 @@ public class AgentManagementServiceInitializer {
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
                                                                   ClientAuthInterceptorImpl authInterceptor,
                                                                   UserAuthInterceptorImpl userAuthInterceptor,
-                                                                  SuperTenantRestrictedOperationsInterceptorImpl superTenantRestrictedOperationsInterceptor) {
+                                                                  SuperTenantRestrictedOperationsInterceptorImpl superTenantRestrictedOperationsInterceptor,
+                                                                  LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(inputValidator);
         interceptors.add(authInterceptor);
         interceptors.add(userAuthInterceptor);
         interceptors.add(superTenantRestrictedOperationsInterceptor);
+        interceptors.add(loggingInterceptor);
 
 
         return interceptors;

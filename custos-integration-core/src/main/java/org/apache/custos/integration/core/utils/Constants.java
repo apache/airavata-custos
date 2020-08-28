@@ -27,4 +27,11 @@ public final class Constants {
     public static final String SYSTEM = "SYSTEM";
 
     public static final String USER_TOKEN = "user-token";
+
+    public static final String TenantId = "tenant-id";
+
+    public static final String X_FORWARDED_FOR = "x-forwarded-for";
+
+    public static final String SERVICE_NAME = "service-name";
+
 }

@@ -43,16 +43,16 @@ public class InputValidator implements Validator {
         switch (methodName) {
             case "addLogEvent":
                 validateAddLogEvent(methodName, obj);
+                break;
 
             case "getLogEvents":
                 validateGetLogEvents(methodName, obj);
-
+                break;
             case "isLogEnabled":
                 validateIsLogEnabled(methodName, obj);
-
+                break;
             case "enable":
                 validateEnable(methodName, obj);
-
                 break;
         }
 
@@ -65,18 +65,18 @@ public class InputValidator implements Validator {
             if (entityTypeRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-            if (entityTypeRequest.getClientId() == null || !entityTypeRequest.getClientId().equals("")) {
+            if (entityTypeRequest.getClientId() == null || entityTypeRequest.getClientId().equals("")) {
                 throw new MissingParameterException("Client Id not found ", null);
             }
-            if (entityTypeRequest.getServiceName() == null || !entityTypeRequest.getServiceName().equals("")) {
+            if (entityTypeRequest.getServiceName() == null || entityTypeRequest.getServiceName().equals("")) {
                 throw new MissingParameterException("Service name  not found ", null);
             }
 
-            if (entityTypeRequest.getEventType() == null || !entityTypeRequest.getEventType().equals("")) {
+            if (entityTypeRequest.getEventType() == null || entityTypeRequest.getEventType().equals("")) {
                 throw new MissingParameterException("Event type  not found ", null);
             }
 
-            if (entityTypeRequest.getExternalIp() == null || !entityTypeRequest.getExternalIp().equals("")) {
+            if (entityTypeRequest.getExternalIp() == null || entityTypeRequest.getExternalIp().equals("")) {
                 throw new MissingParameterException("External Ip  not found ", null);
             }
         } else {

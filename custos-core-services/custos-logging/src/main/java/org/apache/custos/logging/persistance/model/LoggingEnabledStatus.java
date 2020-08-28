@@ -36,7 +36,7 @@ public class LoggingEnabledStatus {
     @Column(nullable = false)
     private long tenantId;
 
-    @Column
+    @Column(nullable = false)
     private boolean status;
 
     public long getTenantId() {

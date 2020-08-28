@@ -19,6 +19,7 @@
 
 package org.apache.custos.logging.client;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -40,6 +41,7 @@ import java.util.List;
 public class LoggingClient {
     private ManagedChannel managedChannel;
     private LoggingServiceGrpc.LoggingServiceBlockingStub loggingServiceBlockingStub;
+    private LoggingServiceGrpc.LoggingServiceFutureStub loggingServiceFutureStub;
 
     private final List<ClientInterceptor> clientInterceptorList;
 
@@ -51,10 +53,15 @@ public class LoggingClient {
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
         loggingServiceBlockingStub = LoggingServiceGrpc.newBlockingStub(managedChannel);
+        loggingServiceFutureStub = LoggingServiceGrpc.newFutureStub(managedChannel);
 
 
     }
 
+
+    public ListenableFuture<org.apache.custos.logging.service.Status> addLogEventAsync(LogEvent logEvent) {
+        return loggingServiceFutureStub.addLogEvent(logEvent);
+    }
 
     public org.apache.custos.logging.service.Status addLogEvent(LogEvent logEvent) {
         return loggingServiceBlockingStub.addLogEvent(logEvent);

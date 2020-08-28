@@ -80,6 +80,10 @@ public class LoggingService extends LoggingServiceImplBase {
                     logEventList.add(LogEventMapper.transform(logEvent));
                 }
             }
+            org.apache.custos.logging.service.LogEvents logs =
+                    org.apache.custos.logging.service.LogEvents.newBuilder().addAllEvents(logEventList).build();
+            responseObserver.onNext(logs);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching log events " + ex;

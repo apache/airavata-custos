@@ -41,6 +41,7 @@
         <module>agent-management-service-parent</module>
         <module>resource-secret-management-service-parent</module>
         <module>sharing-management-service-parent</module>
+        <module>log-management-service-parent</module>
 
     </modules>
 
