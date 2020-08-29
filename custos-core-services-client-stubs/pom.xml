@@ -38,6 +38,7 @@
         <module>cluster-management-core-service-client-stub</module>
         <module>resource-secret-core-service-client-stub</module>
         <module>sharing-core-service-client-stub</module>
+        <module>custos-logging-client-stub</module>
     </modules>
     <artifactId>custos-core-services-client-stubs</artifactId>
 

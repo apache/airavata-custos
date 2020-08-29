@@ -25,6 +25,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.apache.custos.tenant.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.tenant.management.interceptors.DynamicRegistrationValidator;
 import org.apache.custos.tenant.management.interceptors.InputValidator;
@@ -67,12 +68,14 @@ public class TenantManagementServiceInitializer {
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor,
                                                                   DynamicRegistrationValidator registrationValidator,
-                                                                  InputValidator validator, SuperTenantRestrictedOperationsInterceptorImpl adminOperationsInterceptor) {
+                                                                  InputValidator validator, SuperTenantRestrictedOperationsInterceptorImpl adminOperationsInterceptor,
+                                                                   LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
         interceptors.add(adminOperationsInterceptor);
         interceptors.add(registrationValidator);
+        interceptors.add(loggingInterceptor);
 
         return interceptors;
     }

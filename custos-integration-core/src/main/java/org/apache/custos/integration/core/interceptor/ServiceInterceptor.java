@@ -21,14 +21,12 @@ package org.apache.custos.integration.core.interceptor;
 
 
 import io.grpc.*;
-import org.apache.custos.integration.core.exceptions.MissingParameterException;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 
 /**
@@ -51,26 +49,28 @@ public class ServiceInterceptor implements ServerInterceptor {
 
         String fullMethod = serverCall.getMethodDescriptor().getFullMethodName();
         String methodName = fullMethod.split("/")[1];
+        String serviceName = fullMethod.split("/")[0];
 
         LOGGER.debug("Calling method : " + serverCall.getMethodDescriptor().getFullMethodName());
-
+        metadata.put(Metadata.Key.of(Constants.SERVICE_NAME, Metadata.ASCII_STRING_MARSHALLER), serviceName);
 
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
 
             ReqT resp = null;
+
             @Override
             public void onMessage(ReqT message) {
                 try {
                     Iterator it = interceptorSet.iterator();
                     while (it.hasNext()) {
                         IntegrationServiceInterceptor interceptor = (IntegrationServiceInterceptor) it.next();
-                        resp  =  interceptor.intercept(methodName, metadata, (resp==null)?message:resp);
+                        resp = interceptor.intercept(methodName, metadata, (resp == null) ? message : resp);
                     }
                     super.onMessage(resp);
                 } catch (NotAuthorizedException ex) {
                     String msg = "Error while authorizing method " + methodName + ", " + ex.getMessage();
                     LOGGER.error(msg);
-                        serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), metadata);
+                    serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), metadata);
                 } catch (Exception ex) {
                     String msg = "Error while validating method " + methodName + ", " + ex.getMessage();
                     LOGGER.error(msg, ex);

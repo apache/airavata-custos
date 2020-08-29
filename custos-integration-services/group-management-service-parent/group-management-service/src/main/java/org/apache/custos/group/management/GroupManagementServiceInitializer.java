@@ -27,6 +27,7 @@ import org.apache.custos.group.management.interceptors.ClientAuthInterceptorImpl
 import org.apache.custos.group.management.interceptors.InputValidator;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -63,10 +64,12 @@ public class GroupManagementServiceInitializer {
 
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
-                                                                  ClientAuthInterceptorImpl authInterceptor) {
+                                                                  ClientAuthInterceptorImpl authInterceptor,
+                                                                  LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(inputValidator);
         interceptors.add(authInterceptor);
+        interceptors.add(loggingInterceptor);
         return interceptors;
     }
 

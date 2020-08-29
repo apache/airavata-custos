@@ -29,12 +29,14 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.identity.service.IsAuthenticateResponse;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.GetTenantRequest;
 import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.Tenant;
 import org.apache.custos.tenant.profile.service.TenantStatus;
+import org.apache.tomcat.util.bcel.Const;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -422,6 +424,11 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         }
 
         return false;
+    }
+
+
+    private void attachTenantId(String tenantId, Metadata headers) {
+        headers.put(Metadata.Key.of(Constants.TenantId,Metadata.ASCII_STRING_MARSHALLER), tenantId);
     }
 
 

@@ -25,6 +25,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.apache.custos.user.management.interceptors.ClientAuthInterceptorImpl;
 import org.apache.custos.user.management.interceptors.InputValidator;
 import org.apache.custos.user.management.interceptors.SuperTenantRestrictedOperationsInterceptorImpl;
@@ -67,12 +68,14 @@ public class UserManagementServiceInitializer {
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator inputValidator,
                                                                   ClientAuthInterceptorImpl authInterceptor,
                                                                   UserAuthInterceptorImpl userAuthInterceptor,
-                                                                  SuperTenantRestrictedOperationsInterceptorImpl superTenantRestrictedOperationsInterceptor) {
+                                                                  SuperTenantRestrictedOperationsInterceptorImpl superTenantRestrictedOperationsInterceptor,
+                                                                  LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(inputValidator);
         interceptors.add(authInterceptor);
         interceptors.add(userAuthInterceptor);
         interceptors.add(superTenantRestrictedOperationsInterceptor);
+        interceptors.add(loggingInterceptor);
 
 
         return interceptors;

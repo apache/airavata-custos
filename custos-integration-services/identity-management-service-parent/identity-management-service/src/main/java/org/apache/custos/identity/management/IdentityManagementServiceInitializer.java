@@ -29,6 +29,7 @@ import org.apache.custos.identity.management.interceptors.InputValidator;
 import org.apache.custos.identity.management.interceptors.ResponseInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -66,11 +67,12 @@ public class IdentityManagementServiceInitializer {
 
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(AuthInterceptorImpl authInterceptor, InputValidator validator,
-                                                                  AgentAuthInterceptor agentAuthInterceptor) {
+                                                                  AgentAuthInterceptor agentAuthInterceptor, LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
         interceptors.add(agentAuthInterceptor);
+        interceptors.add(loggingInterceptor);
 
         return interceptors;
     }
