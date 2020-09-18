@@ -414,7 +414,7 @@ public class IdentityService extends IdentityServiceImplBase {
                 }
             } catch (Exception ex) {
 
-                LOGGER.error(ex.getMessage(),ex);
+                LOGGER.error("JWKS format  error",ex);
                 String error = object.getString("error") + " " + object.getString("error_description");
                 responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
                 return;
