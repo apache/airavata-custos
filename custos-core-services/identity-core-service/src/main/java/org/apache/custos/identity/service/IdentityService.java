@@ -404,9 +404,8 @@ public class IdentityService extends IdentityServiceImplBase {
 
             JSONObject object = keycloakAuthClient.getJWTVerificationCerts(request.getClientId(),
                     request.getClientSecret(), String.valueOf(request.getTenantId()));
-
             try {
-                if (object != null && object.getString("keys") != null) {
+                if (object != null && object.getJSONArray("keys") != null) {
                     Struct.Builder structBuilder = Struct.newBuilder();
 
                     JsonFormat.parser().merge(object.toString(), structBuilder);
@@ -415,6 +414,7 @@ public class IdentityService extends IdentityServiceImplBase {
                 }
             } catch (Exception ex) {
 
+                LOGGER.error("JWKS format  error",ex);
                 String error = object.getString("error") + " " + object.getString("error_description");
                 responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
                 return;
