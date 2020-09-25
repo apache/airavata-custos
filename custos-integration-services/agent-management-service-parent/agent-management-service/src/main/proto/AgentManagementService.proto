@@ -128,6 +128,12 @@ service AgentManagementService {
         };
     }
 
+    rpc getAllAgents (org.apache.custos.iam.service.GetAllResources) returns (org.apache.custos.iam.service.GetAllResourcesResponse) {
+        option (google.api.http) = {
+           get: "/agent-management/v1.0.0/agents"
+        };
+    }
+
      rpc synchronizeAgentDBs (SynchronizeAgentDBRequest) returns (org.apache.custos.iam.service.OperationStatus) {
          option (google.api.http) = {
            post: "/agent-management/v1.0.0/db/synchronize"

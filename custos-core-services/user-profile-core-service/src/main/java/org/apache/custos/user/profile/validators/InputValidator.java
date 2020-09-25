@@ -65,6 +65,7 @@ public class InputValidator implements Validator {
             case "addChildGroupToParentGroup":
             case "removeChildGroupFromParentGroup":
                 validateGroupToGroupMembership(obj, methodName);
+                break;
 
             case "getAllGroupsOfUser":
                 validateGetAllGroupsOfUser(obj, methodName);

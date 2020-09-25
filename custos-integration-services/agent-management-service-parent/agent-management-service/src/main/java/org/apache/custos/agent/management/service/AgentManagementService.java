@@ -745,6 +745,22 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
 
     @Override
+    public void getAllAgents(GetAllResources request, StreamObserver<GetAllResourcesResponse> responseObserver) {
+        try {
+            GetAllResources resources = request.toBuilder().setResourceType(ResourceTypes.AGENT).build();
+            GetAllResourcesResponse allRoles = iamAdminServiceClient.getAllResources(resources);
+
+            responseObserver.onNext(allRoles);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllAgents in tenant " + request.getTenantId() + "reason :" + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void synchronizeAgentDBs(SynchronizeAgentDBRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             Context ctx = Context.current().fork();

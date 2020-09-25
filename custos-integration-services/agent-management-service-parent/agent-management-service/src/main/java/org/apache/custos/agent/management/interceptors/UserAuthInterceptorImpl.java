@@ -169,6 +169,23 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
                     .setTenantId(tenantId)
                     .build();
 
+        } else if (method.equals("getAllAgents")) {
+            GetCredentialRequest request = GetCredentialRequest
+                    .newBuilder()
+                    .setType(Type.AGENT_CLIENT)
+                    .setOwnerId(tenantId)
+                    .build();
+
+            CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
+            if (metadata == null || metadata.getId().equals("")) {
+                throw new NotAuthorizedException("Agent creation is not enabled", null);
+            }
+
+            return (ReqT) ((GetAllResources) msg).toBuilder()
+                    .setTenantId(tenantId)
+                    .setClientId(metadata.getId())
+                    .build();
+
         }
 
         return msg;
