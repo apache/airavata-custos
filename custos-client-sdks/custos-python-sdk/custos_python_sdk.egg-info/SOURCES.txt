@@ -7,6 +7,7 @@ custos/clients/agent_management_client.py
 custos/clients/group_management_client.py
 custos/clients/identity_management_client.py
 custos/clients/resource_secret_management_client.py
+custos/clients/sharing_management_client.py
 custos/clients/super_tenant_management_client.py
 custos/clients/tenant_management_client.py
 custos/clients/user_management_client.py
@@ -20,6 +21,7 @@ custos/samples/identity_management_samples.py
 custos/samples/tenant_management_samples.py
 custos/samples/user_management_samples.py
 custos/samples/resources/__init__.py
+custos/samples/resources/cert.pem
 custos/server/__init__.py
 custos/server/core/AgentProfileService_pb2.py
 custos/server/core/AgentProfileService_pb2_grpc.py
@@ -35,6 +37,8 @@ custos/server/core/IdentityService_pb2.py
 custos/server/core/IdentityService_pb2_grpc.py
 custos/server/core/ResourceSecretService_pb2.py
 custos/server/core/ResourceSecretService_pb2_grpc.py
+custos/server/core/SharingService_pb2.py
+custos/server/core/SharingService_pb2_grpc.py
 custos/server/core/TenantProfileService_pb2.py
 custos/server/core/TenantProfileService_pb2_grpc.py
 custos/server/core/UserProfileService_pb2.py
@@ -48,12 +52,15 @@ custos/server/integration/IdentityManagementService_pb2.py
 custos/server/integration/IdentityManagementService_pb2_grpc.py
 custos/server/integration/ResourceSecretManagementService_pb2.py
 custos/server/integration/ResourceSecretManagementService_pb2_grpc.py
+custos/server/integration/SharingManagementService_pb2.py
+custos/server/integration/SharingManagementService_pb2_grpc.py
 custos/server/integration/TenantManagementService_pb2.py
 custos/server/integration/TenantManagementService_pb2_grpc.py
 custos/server/integration/UserManagementService_pb2.py
 custos/server/integration/UserManagementService_pb2_grpc.py
 custos/server/integration/__init__.py
 custos/transport/__init__.py
+custos/transport/certificate.pem
 custos/transport/settings.py
 custos_python_sdk.egg-info/PKG-INFO
 custos_python_sdk.egg-info/SOURCES.txt
