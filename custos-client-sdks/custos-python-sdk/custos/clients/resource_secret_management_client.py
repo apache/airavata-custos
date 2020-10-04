@@ -95,7 +95,7 @@ class ResourceSecretManagementClient(object):
             secret_metadata = SecretMetadata(client_id=client_id, owner_id=owner_id, description=description)
             ssh_cred = SSHCredential(metadata=secret_metadata)
 
-            return self.resource_sec_client.addPasswordCredential(request=ssh_cred, metadata=metadata)
+            return self.resource_sec_client.addSSHCredential(request=ssh_cred, metadata=metadata)
 
         except Exception:
             logger.exception("Error occurred while creating ssh key")
@@ -115,12 +115,12 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while creating password key")
             raise
 
-    def get_ssh_credential(self, client_id, token):
+    def get_ssh_credential(self, token, client_id, ssh_credential_token):
 
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=token)
+            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=ssh_credential_token)
 
             msg = self.resource_sec_client.getSSHCredential(request=request, metadata=metadata)
             return MessageToJson(msg)
@@ -128,12 +128,12 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while creating ssh key")
             raise
 
-    def get_password_credential(self, client_id, token):
+    def get_password_credential(self, token, client_id, password_credential_token):
 
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=token)
+            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=password_credential_token)
 
             msg = self.resource_sec_client.getPasswordCredential(request=request, metadata=metadata)
             return MessageToJson(msg)

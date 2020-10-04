@@ -43,7 +43,7 @@ class SharingManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
             permission_type = PermissionType(id=id, name=name, description=description)
-            permission_type_req = PermissionTypeRequest(client_id=client_id, entity_type=permission_type)
+            permission_type_req = PermissionTypeRequest(client_id=client_id, permission_type=permission_type)
             return self.sharing_mgt_client.createPermissionType(request=permission_type_req, metadata=metadata);
         except Exception:
             logger.exception("Error occurred while creating permission entity type with Id " + id)
@@ -61,7 +61,7 @@ class SharingManagementClient(object):
             logger.exception("Error occurred while creating  entity  with Id " + id)
             raise
 
-    def share_entity_with_users(self, token, client_id, entity_id, permission_type, owner_id):
+    def share_entity_with_users(self, token, client_id, entity_id, permission_type, user_id):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
@@ -69,7 +69,7 @@ class SharingManagementClient(object):
             entity = Entity(id=entity_id)
             permission_type = PermissionType(id=permission_type)
             owner_ids = []
-            owner_ids.push(owner_id)
+            owner_ids.append(user_id)
             cascade = True
             sharing_req = SharingRequest(client_id=client_id, entity=entity, permission_type=permission_type,
                                          owner_id=owner_ids, cascade=cascade)
@@ -78,7 +78,7 @@ class SharingManagementClient(object):
             logger.exception("Error occurred while creating  entity  with Id " + entity_id)
             raise
 
-    def share_entity_with_groups(self, token, client_id, entity_id, permission_type, owner_id):
+    def share_entity_with_groups(self, token, client_id, entity_id, permission_type, group_id):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
@@ -86,7 +86,7 @@ class SharingManagementClient(object):
             entity = Entity(id=entity_id)
             permission_type = PermissionType(id=permission_type)
             owner_ids = []
-            owner_ids.push(owner_id)
+            owner_ids.append(group_id)
             cascade = True
             sharing_req = SharingRequest(client_id=client_id, entity=entity, permission_type=permission_type,
                                          owner_id=owner_ids, cascade=cascade)
@@ -104,11 +104,17 @@ class SharingManagementClient(object):
             entity = Entity(id=entity_id)
             permission_type = PermissionType(id=permission_type)
             owner_ids = []
-            owner_ids.push(user_id)
+            owner_ids.append(user_id)
             cascade = True
             sharing_req = SharingRequest(client_id=client_id, entity=entity, permission_type=permission_type,
                                          owner_id=owner_ids, cascade=cascade)
-            return self.sharing_mgt_client.userHasAccess(request=sharing_req, metadata=metadata)
+            resl = self.sharing_mgt_client.userHasAccess(request=sharing_req, metadata=metadata)
+
+            if resl.status:
+                return True
+            else:
+                return False
+
         except Exception:
             logger.exception("Error occurred while checking for permissions ")
             raise

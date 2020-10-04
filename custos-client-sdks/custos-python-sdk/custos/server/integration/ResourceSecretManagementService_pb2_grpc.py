@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import custos.server.coreIdentityService_pb2 as IdentityService__pb2
+import custos.server.core.IdentityService_pb2 as IdentityService__pb2
 import custos.server.core.ResourceSecretService_pb2 as ResourceSecretService__pb2
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
