@@ -21,6 +21,7 @@ import requests
 import os
 import datetime
 from urllib3.exceptions import InsecureRequestWarning
+import warnings
 
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 from custos.transport.settings import CustosServerClientSettings
@@ -57,7 +58,13 @@ class CertificateFetchingRestClient(object):
         path = self.custos_settings.CUSTOS_CERT_PATH
         f = open(path, "w")
         f.write(value)
-        f.close()
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', InsecureRequestWarning)
+                yield
+        finally:
+            f.close()
 
     def __is_certificate_valid(self):
         if os.path.isfile(self.custos_settings.CUSTOS_CERT_PATH):

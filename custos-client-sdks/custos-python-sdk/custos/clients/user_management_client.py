@@ -21,10 +21,11 @@ from custos.transport.settings import CustosServerClientSettings
 
 from custos.server.integration.UserManagementService_pb2_grpc import UserManagementServiceStub
 from custos.server.core.IamAdminService_pb2 import RegisterUserRequest, UserRepresentation, RegisterUsersRequest, \
-    UserAttribute, AddUserAttributesRequest, DeleteUserAttributeRequest, UserSearchMetadata, FindUsersRequest, \
-    AddUserRolesRequest, UserSearchRequest, ResetUserPassword, DeleteUserRolesRequest
-from custos.server.core.UserProfileService_pb2 import UserProfileRequest
-from custos.server.integration.UserManagementService_pb2 import LinkUserProfileRequest
+    UserAttribute, \
+    AddUserAttributesRequest, DeleteUserAttributeRequest, UserSearchMetadata, FindUsersRequest, AddUserRolesRequest, \
+    UserSearchRequest, ResetUserPassword, DeleteUserRolesRequest
+from custos.server.core.UserProfileService_pb2 import UserProfile
+from custos.server.integration.UserManagementService_pb2 import LinkUserProfileRequest, UserProfileRequest
 
 from custos.clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
@@ -352,8 +353,9 @@ class UserManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
 
-            request = UserProfileRequest(username=username, email=email, first_name=first_name, last_name=last_name)
-            return self.user_stub.updateUserProfile(request, metadata=metadata)
+            profile = UserProfile(username=username, email=email, first_name=first_name, last_name=last_name)
+            request = UserProfileRequest(user_profile=profile)
+            return self.user_stub.updateUserProfile(request=request, metadata=metadata)
 
         except Exception:
             logger.exception("Error occurred in update_user_profile, probably due to invalid parameters")

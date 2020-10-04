@@ -24,7 +24,7 @@ from custos.server.integration.ResourceSecretManagementService_pb2_grpc import R
 from custos.server.core.IdentityService_pb2 import GetJWKSRequest
 from custos.server.core.ResourceSecretService_pb2 import GetSecretRequest, SecretMetadata, ResourceOwnerType, \
     ResourceSource, \
-    ResourceType
+    ResourceType, SSHCredential, PasswordCredential, GetResourceCredentialByTokenRequest
 from google.protobuf.json_format import MessageToJson
 from custos.clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
@@ -85,4 +85,58 @@ class ResourceSecretManagementClient(object):
             return MessageToJson(msg)
         except Exception:
             logger.exception("Error occurred while fetching JWKS request")
+            raise
+
+    def add_ssh_credential(self, token, client_id, owner_id, description):
+
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            secret_metadata = SecretMetadata(client_id=client_id, owner_id=owner_id, description=description)
+            ssh_cred = SSHCredential(metadata=secret_metadata)
+
+            return self.resource_sec_client.addSSHCredential(request=ssh_cred, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred while creating ssh key")
+            raise
+
+    def add_password_credential(self, token, client_id, owner_id, description, password):
+
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            secret_metadata = SecretMetadata(client_id=client_id, owner_id=owner_id, description=description)
+            password_cred = PasswordCredential(metadata=secret_metadata, password=password)
+
+            return self.resource_sec_client.addPasswordCredential(request=password_cred, metadata=metadata)
+
+        except Exception:
+            logger.exception("Error occurred while creating password key")
+            raise
+
+    def get_ssh_credential(self, token, client_id, ssh_credential_token):
+
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=ssh_credential_token)
+
+            msg = self.resource_sec_client.getSSHCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+        except Exception:
+            logger.exception("Error occurred while creating ssh key")
+            raise
+
+    def get_password_credential(self, token, client_id, password_credential_token):
+
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            request = GetResourceCredentialByTokenRequest(client_id=client_id, token=password_credential_token)
+
+            msg = self.resource_sec_client.getPasswordCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+        except Exception:
+            logger.exception("Error occurred while creating password key")
             raise
