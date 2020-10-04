@@ -21,8 +21,10 @@ import grpc
 from custos.transport.settings import CustosServerClientSettings
 
 from custos.server.integration.GroupManagementService_pb2_grpc import GroupManagementServiceStub
-from custos.server.core.IamAdminService_pb2 import GroupRequest, GroupsRequest, UserGroupMappingRequest, UserAttribute, \
-    GroupRepresentation
+from custos.server.core.IamAdminService_pb2 import GroupRequest, GroupsRequest, UserGroupMappingRequest, \
+    UserAttribute, GroupRepresentation
+
+from custos.server.core.UserProfileService_pb2 import GroupToGroupMembership
 from custos.clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
 logger = logging.getLogger(__name__)
@@ -42,11 +44,13 @@ class GroupManagementClient(object):
         self.channel = grpc.secure_channel(target=self.target, credentials=self.channel_credentials)
         self.group_stub = GroupManagementServiceStub(self.channel)
 
-    def create_groups(self, token, groups):
+    def create_groups(self, token, name, description, owner_id):
         """
         Create groups
+        :param owner_id:
+        :param description:
+        :param name:
         :param token:
-        :param groups:
         :return:
         """
 
@@ -54,33 +58,15 @@ class GroupManagementClient(object):
             token = "Bearer " + token
             metadata = (('authorization', token),)
             group_list = []
-            for group in groups:
-                gr = self.__convert_groups(group)
-                group_list.append(gr)
-
+            rep = GroupRepresentation(name=name, realm_roles=[], client_roles=[],
+                                      sub_groups=[], attributes=[], description=description,
+                                      ownerId=owner_id)
+            group_list.append(rep)
             request = GroupsRequest(groups=group_list)
 
             return self.group_stub.createGroups(request=request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred while creating groups")
-            raise
-
-    def update_group(self, token, group):
-        """
-        update already created group
-        :param token:
-        :param group:
-        :return:
-        """
-        try:
-            token = "Bearer " + token
-            metadata = (('authorization', token),)
-            id = group['id']
-            gr = self.__convert_groups(group)
-            request = GroupRequest(id=id, group=gr)
-            return self.group_stub.updateGroup(request=request, metadata=metadata)
-        except Exception:
-            logger.exception("Error occurred while updating group")
             raise
 
     def delete_group(self, token, id):
@@ -132,7 +118,7 @@ class GroupManagementClient(object):
             logger.exception("Error occurred while pulling groups")
             raise
 
-    def add_user_to_group(self, token, username, group_id):
+    def add_user_to_group(self, token, username, group_id, membership_type):
         """
         Add user to group
         :param token:
@@ -143,7 +129,7 @@ class GroupManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
-            request = UserGroupMappingRequest(username=username, group_id=group_id)
+            request = UserGroupMappingRequest(username=username, group_id=group_id, membership_type=membership_type)
             return self.group_stub.addUserToGroup(request=request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred while adding user to group")
@@ -166,21 +152,22 @@ class GroupManagementClient(object):
             logger.exception("Error occurred while removing user from group")
             raise
 
-    def __convert_groups(self, group):
-        attributeList = []
-        for atr in group['attributes']:
-            attribute = UserAttribute(key=atr['key'], values=atr['values'])
-            attributeList.append(attribute)
-        name = group['name']
-        realm_roles = group['realm_roles']
-        client_roles = group['client_roles']
-        sub_groups = group['sub_groups']
-        attributes = attributeList
+    def add_child_group(self, token, parent_group_id, child_group_id):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            grm = GroupToGroupMembership(child_id=child_group_id, parent_id=parent_group_id)
+            return self.group_stub.addChildGroupToParentGroup(request=grm, metadata=metadata)
+        except Exception:
+            logger.exception("Error occurred while adding child group")
+            raise
 
-        sub_list = []
-        for sub_group in sub_groups:
-            sub = self.__convert_groups(sub_group)
-            sub_list.append(sub)
-
-        return GroupRepresentation(name=name, realm_roles=realm_roles, client_roles=client_roles,
-                                   sub_groups=sub_list, attributes=attributes)
+    def remove_child_group(self, token, parent_group_id, child_group_id):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),)
+            grm = GroupToGroupMembership(child_id=child_group_id, parent_id=parent_group_id)
+            return self.group_stub.removeChildGroupFromParentGroup(request=grm, metadata=metadata)
+        except Exception:
+            logger.exception("Error occurred while removing child group from group")
+            raise

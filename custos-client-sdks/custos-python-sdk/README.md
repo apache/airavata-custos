@@ -47,11 +47,22 @@ The Apache Custos Python SDK for  third party clients to  integrate with Custos 
 
    You can generate *.tar.gz or .whl distribution and install to any external project. 
    
+   -  Create a virtual environment
+                
+       ```
+       python3 -m venv venv
+        ```    
+   -  Activate the virtual environment
+        
+       ```
+       source venv/bin/activate
+       ```
    - Make sure you have the latest versions of setuptools and wheel installed
     
        ```
-       python3 -m pip install --user --upgrade setuptools wheel
+       pip install  wheel
        ``` 
+     
    - Now run this command from the same directory where setup.py is located
    
         ```
