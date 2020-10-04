@@ -30,4 +30,6 @@ public interface GroupToGroupMembershipRepository extends JpaRepository<GroupToG
 
     public List<GroupToGroupMembership> findAllByChildId(String childId);
 
+    public List<GroupToGroupMembership> findAllByParentId(String parentId);
+
 }

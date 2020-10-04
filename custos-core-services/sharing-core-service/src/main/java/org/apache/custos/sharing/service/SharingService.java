@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -741,7 +742,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             List<org.apache.custos.sharing.persistance.model.Entity> entities = entityRepository.
                     searchEntities(tenantId, request.getSearchCriteriaList());
 
-            List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>();
+            HashMap<String, org.apache.custos.sharing.service.Entity> entryMap = new HashMap<>();
+
 
             List<String> internalEntityIds = new ArrayList<>();
 
@@ -755,11 +757,13 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                         findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
                 if (sharings != null && !sharings.isEmpty()) {
                     for (Sharing sharing : sharings) {
-                        entityList.add(EntityMapper.createEntity(sharing.getEntity()));
+                        Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                        entryMap.put(entity.getId(), entity);
+
                     }
                 }
             }
-
+            List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>(entryMap.values());
             org.apache.custos.sharing.service.Entities resp = org.apache.custos.sharing.service.Entities
                     .newBuilder()
                     .addAllEntityArray(entityList)
