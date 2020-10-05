@@ -292,35 +292,42 @@ permissions = [
 ]
 entity_types = [
     {
-        'id': 'SSH_KEY',
-        'name': 'SSH_KEY',
-        'description': 'SSH Keys'
+        'id': 'SECRET',
+        'name': 'SECRET',
+        'description': 'SECRET Keys'
     }
 ]
 
 verifiy_admin_user()
 
+# Register users
 register_users(users)
 
+# Create groups
 create_groups(groups)
 
+# Allocate users to groups
 allocate_users_to_groups(user_group_mapping)
 
+# Allocate child groups to parent group
 allocate_child_group_to_parent_group(child_gr_parent_gr_mapping)
 
+# Creare resource
 create_resource()
 
+# Create permissions
 create_permissions(permissions)
 
+# Create entity types
 create_entity_types(entity_types)
 
 resources = [
     {
         'id': resource_ids[0],
-        'name': 'SSH Key',
+        'name': 'SECRET',
         'description': 'Register SSH Key Id',
         'user_id': 'admin',
-        'type': 'SSH_KEY'
+        'type': 'SECRET'
     }
 ]
 
@@ -328,7 +335,7 @@ sharings = [
     {
         "entity_id": resource_ids[0],
         "permission_type": "READ",
-        "type": "SSH_KEY",
+        "type": "SECRET",
         "user_id": "UserF"
     }
 ]
@@ -341,10 +348,14 @@ gr_sharings = [{
     "group_name": 'groupA'
 }]
 
+# Register resources
 register_resources(resources)
 
+# Share resource with users
 share_resource_with_user(sharings)
 
+# Share resource with group
 share_resource_with_group(gr_sharings)
 
+# Check user permissions
 check_user_permissions(users)
