@@ -40,6 +40,4 @@ github:
   features:
     wiki: false
     issues: true
-
-    projects: true
     projects: true
