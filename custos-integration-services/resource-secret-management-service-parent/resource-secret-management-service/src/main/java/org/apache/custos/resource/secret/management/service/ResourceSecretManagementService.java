@@ -19,6 +19,7 @@
 
 package org.apache.custos.resource.secret.management.service;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -27,6 +28,7 @@ import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
 import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.GetJWKSRequest;
+import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.client.ResourceSecretClient;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceImplBase;
 import org.apache.custos.resource.secret.service.*;
@@ -34,6 +36,13 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.apache.custos.integration.core.utils.ShamirSecretHandler.splitSecret;
 
 @GRpcService
 public class ResourceSecretManagementService extends ResourceSecretManagementServiceImplBase {
@@ -128,6 +137,16 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         LOGGER.debug("Request received to add SSHCredential ");
         try {
 
+            if (request.getUseShamirsSecretSharingWithEncryption()){
+                List<ByteString> byteStringList = request.getPrivateKeySharesList();
+                if (byteStringList != null && byteStringList.size()>0){
+
+                   String secret =  ShamirSecretHandler.
+                           generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                   request = request.toBuilder().setPrivateKey(secret).build();
+                }
+            }
+
             AddResourceCredentialResponse response = resourceSecretClient.addSSHCredential(request);
 
             responseObserver.onNext(response);
@@ -143,6 +162,15 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void addPasswordCredential(PasswordCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         LOGGER.debug("Request received to add PasswordCredential ");
         try {
+            if (request.getUseShamirsSecretSharingWithEncryption()){
+                List<ByteString> byteStringList = request.getSecretSharesList();
+                if (byteStringList != null && byteStringList.size()>0){
+
+                    String secret =  ShamirSecretHandler.
+                            generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                    request = request.toBuilder().setPassword(secret).build();
+                }
+            }
 
             AddResourceCredentialResponse response = resourceSecretClient.addPasswordCredential(request);
             responseObserver.onNext(response);
@@ -158,7 +186,15 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void addCertificateCredential(CertificateCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         LOGGER.debug("Request received to add CertificateCredential ");
         try {
+            if (request.getUseShamirsSecretSharingWithEncryption()){
+                List<ByteString> byteStringList = request.getPrivateKeySharesList();
+                if (byteStringList != null && byteStringList.size()>0){
 
+                    String secret =  ShamirSecretHandler.
+                            generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                    request = request.toBuilder().setPrivateKey(secret).build();
+                }
+            }
             AddResourceCredentialResponse response = resourceSecretClient.addCertificateCredential(request);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -175,8 +211,28 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void getSSHCredential(GetResourceCredentialByTokenRequest request, StreamObserver<SSHCredential> responseObserver) {
         LOGGER.debug("Request received to get SSHCredential ");
         try {
-
             SSHCredential response = resourceSecretClient.getSSHCredential(request);
+
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+               int numberOfShares =  response.getNumOfShares();
+               int threshold = response.getThreshold();
+
+               String privateKey =  response.getPrivateKey();
+
+               if (privateKey != null && privateKey.trim().equals("")){
+                  Map<Integer, byte[]>  shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                  List<ByteString> byteStringList = shares.values().stream().
+                          map(val->ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                 response = response.toBuilder().addAllPrivateKeyShares(byteStringList)
+                         .setPrivateKey("")
+                         .build();
+
+               }
+            }
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -192,6 +248,25 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         try {
 
             PasswordCredential response = resourceSecretClient.getPasswordCredential(request);
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+                int numberOfShares =  response.getNumOfShares();
+                int threshold = response.getThreshold();
+
+                String privateKey =  response.getPassword();
+
+                if (privateKey != null && privateKey.trim().equals("")){
+                    Map<Integer, byte[]>  shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                    List<ByteString> byteStringList = shares.values().stream().
+                            map(val->ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                    response = response.toBuilder().addAllSecretShares(byteStringList)
+                            .setPassword("")
+                            .build();
+
+                }
+            }
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -208,6 +283,25 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         try {
 
             CertificateCredential response = resourceSecretClient.getCertificateCredential(request);
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+                int numberOfShares =  response.getNumOfShares();
+                int threshold = response.getThreshold();
+
+                String privateKey =  response.getPrivateKey();
+
+                if (privateKey != null && privateKey.trim().equals("")){
+                    Map<Integer, byte[]>  shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                    List<ByteString> byteStringList = shares.values().stream().
+                            map(val->ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                    response = response.toBuilder().addAllPrivateKeyShares(byteStringList)
+                            .setPrivateKey("")
+                            .build();
+
+                }
+            }
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {

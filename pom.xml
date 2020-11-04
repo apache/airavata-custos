@@ -242,6 +242,13 @@
                 <version>${io.commons.version}</version>
             </dependency>
 
+            <!-- Secret handling dependencies -->
+            <dependency>
+                <groupId>com.codahale</groupId>
+                <artifactId>shamir</artifactId>
+                <version>${com.codahale.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -526,6 +533,8 @@
         <com.jcraft.version>0.1.55</com.jcraft.version>
 
         <io.commons.version>2.7</io.commons.version>
+
+        <com.codahale.version>0.7.0</com.codahale.version>
 
 
     </properties>
