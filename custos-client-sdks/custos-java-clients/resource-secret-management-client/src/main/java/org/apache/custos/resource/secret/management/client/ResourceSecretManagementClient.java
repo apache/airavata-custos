@@ -19,6 +19,7 @@
 
 package org.apache.custos.resource.secret.management.client;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
@@ -26,6 +27,7 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.identity.service.GetJWKSRequest;
+import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc;
 import org.apache.custos.resource.secret.service.*;
 
@@ -40,6 +42,9 @@ public class ResourceSecretManagementClient {
     private ManagedChannel managedChannel;
 
     private ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub blockingStub;
+
+    private int defaultNumOfShares = 5;
+    private int defaultThreshold = 3;
 
 
     public ResourceSecretManagementClient(String serviceHost, int servicePort, String clientId,
@@ -185,15 +190,29 @@ public class ResourceSecretManagementClient {
      * @param token
      * @return SSHCredential
      */
-    public SSHCredential getSSHCredential(String clientId, String token) {
+    public SSHCredential getSSHCredential(String clientId, String token, boolean useShamirSecret) {
+
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
                 .newBuilder()
                 .setClientId(clientId)
                 .setToken(token)
                 .build();
+        if (useShamirSecret) {
+            tokenRequest = tokenRequest.toBuilder()
+                    .setUseShamirsSecretSharingWithEncryption(true)
+                    .setNumOfShares(defaultNumOfShares)
+                    .setThreshold(defaultThreshold)
+                    .build();
+        }
 
+        SSHCredential sshCredential = blockingStub.getSSHCredential(tokenRequest);
 
-        return blockingStub.getSSHCredential(tokenRequest);
+        if (useShamirSecret) {
+            List<ByteString> shares = sshCredential.getPrivateKeySharesList();
+            String secret = ShamirSecretHandler.generateSecret(shares, defaultNumOfShares, defaultThreshold);
+            sshCredential = sshCredential.toBuilder().setPrivateKey(secret).build();
+        }
+        return sshCredential;
 
     }
 
