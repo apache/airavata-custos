@@ -19,14 +19,15 @@
 
 package org.apache.custos.resource.secret.manager.adaptor.outbound;
 
-import org.apache.custos.resource.secret.utils.Constants;
 import org.apache.custos.resource.secret.exceptions.CredentialStoreException;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.apache.custos.resource.secret.persistance.local.repository.SecretRepository;
 import org.apache.custos.resource.secret.persistance.vault.Certificate;
+import org.apache.custos.resource.secret.persistance.vault.KVSecret;
 import org.apache.custos.resource.secret.persistance.vault.PasswordSecret;
 import org.apache.custos.resource.secret.persistance.vault.SSHCredentialSecrets;
 import org.apache.custos.resource.secret.service.ResourceSecretType;
+import org.apache.custos.resource.secret.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultResponseSupport;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -186,6 +188,7 @@ public class CredentialWriter {
 
     /**
      * delete existing credential
+     *
      * @param tenantId
      * @param token
      * @return
@@ -221,7 +224,140 @@ public class CredentialWriter {
 
     }
 
+    public boolean saveKVCredential(KVCredential kvCredential) {
+        Optional<Secret> exSecret = repository.findById(kvCredential.getToken());
 
+        if (exSecret.isPresent()) {
+            String msg = " Credential with token " + kvCredential.getToken() + " already exist";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        List<Secret> secrets = repository.findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getOwnerId());
+
+        if (secrets != null && !secrets.isEmpty()) {
+            String msg = " Credential with key " + kvCredential.getKey() + " of user " + kvCredential.getOwnerId()
+                    + " in tenant " + kvCredential.getTenantId() + " is already exists, " +
+                    "please update or delete before setting it";
+            LOGGER.warn(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + kvCredential.getTenantId() + "/" + kvCredential.getOwnerId() +
+                "/" + Constants.KV_SECRET + "/" + kvCredential.getToken();
+
+        KVSecret kvSecret = new KVSecret(kvCredential.getKey(), kvCredential.getValue());
+
+        vaultTemplate.write(path, kvSecret);
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(path, KVSecret.class);
+
+        if (response == null || response.getData() == null && response.getData().getKey() == null) {
+            String msg = " KV credential of tenant " + kvCredential.getTenantId() +
+                    " of user " + kvCredential.getOwnerId() + " is not saved in vault";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        Secret secret = new Secret();
+        secret.setId(kvCredential.getToken());
+        secret.setDiscription(kvCredential.getDescription());
+        secret.setOwnerId(kvCredential.getOwnerId());
+        secret.setOwnerType(kvCredential.getResourceOwnerType().name());
+        secret.setSecretType(ResourceSecretType.KV.name());
+        secret.setTenantId(kvCredential.getTenantId());
+        secret.setExternalId(kvCredential.getKey());
+        repository.save(secret);
+        return true;
+
+    }
+
+    public boolean updateKVCredential(org.apache.custos.resource.secret.service.KVCredential kvCredential) {
+        Secret secret = null;
+
+        if (kvCredential.getToken() != null && !kvCredential.getToken().equals("")) {
+            Optional<Secret> exSecret = repository.findById(kvCredential.getToken());
+            if (!exSecret.isPresent() || (!exSecret.get().getOwnerId().equals(kvCredential.getMetadata().getOwnerId()) ||
+                    !exSecret.get().getExternalId().equals(kvCredential.getKey()))) {
+                String msg = " Cannot find record for token" + kvCredential.getToken()
+                        + " with given key " + kvCredential.getKey();
+                LOGGER.error(msg);
+                throw new CredentialStoreException(msg, null);
+            }
+            secret = exSecret.get();
+        } else {
+
+            List<Secret> secrets = repository.
+                    findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId());
+
+            if (secrets == null && secrets.isEmpty()) {
+                String msg = " Cannot find record "
+                        + " with given key " + kvCredential.getKey();
+                LOGGER.error(msg);
+                throw new CredentialStoreException(msg, null);
+            }
+            secret = secrets.get(0);
+        }
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + kvCredential.getMetadata().getTenantId() + "/" +
+                kvCredential.getMetadata().getOwnerId() +
+                "/" + Constants.KV_SECRET + "/" + secret.getId();
+
+        KVSecret kvSecret = new KVSecret(kvCredential.getKey(), kvCredential.getValue());
+
+        vaultTemplate.delete(path);
+        vaultTemplate.write(path, kvSecret);
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(path, KVSecret.class);
+
+        if (response == null || response.getData() == null && response.getData().getKey() == null) {
+            String msg = " KV credential of tenant " + kvCredential.getMetadata().getTenantId() +
+                    " of user " + kvCredential.getMetadata().getOwnerId() + " is not saved in vault";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        secret.setDiscription(kvCredential.getMetadata().getDescription());
+        repository.save(secret);
+        return true;
+
+    }
+
+    public boolean deleteKVCredential(org.apache.custos.resource.secret.service.KVCredential kvCredential) {
+        Secret secret = null;
+        if (kvCredential.getToken() != null && !kvCredential.getToken().equals("")) {
+            Optional<Secret> exSecret = repository.findById(kvCredential.getToken());
+            if (!exSecret.isPresent() || (!exSecret.get().getOwnerId().equals(kvCredential.getMetadata().getOwnerId()) ||
+                    !exSecret.get().getExternalId().equals(kvCredential.getKey()))) {
+                String msg = " Cannot find record for token" + kvCredential.getToken()
+                        + " with given key " + kvCredential.getKey();
+                LOGGER.error(msg);
+                throw new CredentialStoreException(msg, null);
+            }
+            secret = exSecret.get();
+        } else {
+
+            List<Secret> secrets = repository.
+                    findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId());
+
+            if (secrets == null && secrets.isEmpty()) {
+                String msg = " Cannot find record "
+                        + " with given key " + kvCredential.getKey();
+                LOGGER.error(msg);
+                throw new CredentialStoreException(msg, null);
+            }
+            secret = secrets.get(0);
+        }
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + kvCredential.getMetadata().getTenantId() + "/"
+                + kvCredential.getMetadata().getOwnerId() +
+                "/" + Constants.KV_SECRET + "/" + secret.getId();
+
+        vaultTemplate.delete(path);
+
+        repository.delete(secret);
+        return true;
+    }
 
 
 }

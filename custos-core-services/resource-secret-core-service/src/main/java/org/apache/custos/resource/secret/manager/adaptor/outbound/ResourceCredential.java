@@ -65,6 +65,12 @@ public class ResourceCredential implements Credential {
             this.ownerId = metadata.getOwnerId();
             this.tenantId = metadata.getTenantId();
             this.resourceOwnerType = ResourceOwnerType.TENANT;
+        } else if (message instanceof org.apache.custos.resource.secret.service.KVCredential) {
+            SecretMetadata metadata = ((org.apache.custos.resource.secret.service.KVCredential) message).getMetadata();
+            this.description = metadata.getDescription();
+            this.ownerId = metadata.getOwnerId();
+            this.tenantId = metadata.getTenantId();
+            this.resourceOwnerType = ResourceOwnerType.TENANT_USER;
         }
     }
 
