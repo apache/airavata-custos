@@ -361,6 +361,11 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
                 + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
         try {
 
+            KVCredential kvCredential = resourceSecretClient.getKVCredential(request);
+
+            responseObserver.onNext(kvCredential);
+            responseObserver.onCompleted();
+
         } catch (Exception ex) {
             String msg = "Error occurred while fetching  KV credentials :  " + ex.getMessage();
             LOGGER.error(msg, ex);
@@ -374,6 +379,10 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
                 + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
         try {
 
+            ResourceCredentialOperationStatus status = resourceSecretClient.setKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
         } catch (Exception ex) {
             String msg = "Error occurred while adding  KV  credentials :  " + ex.getMessage();
             LOGGER.error(msg, ex);
@@ -386,6 +395,10 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         LOGGER.debug("Request received to updateKVCredential in tenant " + request.getMetadata().getTenantId()
                 + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
         try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.updateKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
 
         } catch (Exception ex) {
             String msg = "Error occurred while updating  KV credentials :  " + ex.getMessage();
@@ -399,6 +412,9 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         LOGGER.debug("Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId()
                 + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
         try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.deleteKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred while deleting  KV credentials :  " + ex.getMessage();
