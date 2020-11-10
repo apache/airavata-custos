@@ -19,14 +19,15 @@
 
 package org.apache.custos.resource.secret.manager.adaptor.inbound;
 
-import org.apache.custos.resource.secret.service.*;
-import org.apache.custos.resource.secret.utils.Constants;
 import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.apache.custos.resource.secret.persistance.local.repository.SecretRepository;
 import org.apache.custos.resource.secret.persistance.vault.Certificate;
+import org.apache.custos.resource.secret.persistance.vault.KVSecret;
 import org.apache.custos.resource.secret.persistance.vault.PasswordSecret;
 import org.apache.custos.resource.secret.persistance.vault.SSHCredentialSecrets;
+import org.apache.custos.resource.secret.service.*;
+import org.apache.custos.resource.secret.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -272,4 +273,88 @@ public class CredentialReader {
     }
 
 
+    public KVCredential getKVSecretByToken(String token, long tenantId, String ownerId) {
+        Optional<Secret> secret = repository.findById(token);
+
+        if (secret.isEmpty()) {
+            return null;
+        }
+
+        Secret exSec = secret.get();
+
+        if (!exSec.getOwnerId().equals(ownerId)) {
+            return null;
+        }
+
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + ownerId +
+                "/" + Constants.KV_SECRET + "/" + token;
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(vaultPath, KVSecret.class);
+
+        KVSecret kvSecret = response.getData();
+        if (kvSecret == null || kvSecret.getValue() == null) {
+            repository.delete(exSec);
+            return null;
+        }
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setToken(token)
+                .setTenantId(tenantId)
+                .setDescription(exSec.getDiscription())
+                .setPersistedTime(exSec.getCreatedAt().getTime())
+                .setType(ResourceSecretType.valueOf(exSec.getSecretType()))
+                .setResourceType(ResourceType.OTHER)
+                .setSource(ResourceSource.EXTERNAL)
+                .setOwnerId(exSec.getOwnerId())
+                .build();
+
+        KVCredential kvCredential = KVCredential.newBuilder()
+                .setKey(exSec.getExternalId())
+                .setToken(exSec.getId())
+                .setValue(kvSecret.getValue())
+                .setMetadata(metadata).build();
+
+        return kvCredential;
+    }
+
+    public KVCredential getKVSecretByKey(String key, long tenantId, String ownerId) {
+
+        List<Secret> secrets = repository.findAllByExternalIdAndOwnerId(key, ownerId);
+
+        if (secrets != null && secrets.isEmpty()) {
+            return null;
+        }
+        Secret exSec = secrets.get(0);
+
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + ownerId +
+                "/" + Constants.KV_SECRET + "/" + exSec.getId();
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(vaultPath, KVSecret.class);
+
+        KVSecret kvSecret = response.getData();
+        if (kvSecret == null || kvSecret.getValue() == null) {
+            repository.delete(exSec);
+            return null;
+        }
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setToken(exSec.getId())
+                .setTenantId(tenantId)
+                .setDescription(exSec.getDiscription())
+                .setPersistedTime(exSec.getCreatedAt().getTime())
+                .setType(ResourceSecretType.valueOf(exSec.getSecretType()))
+                .setResourceType(ResourceType.OTHER)
+                .setSource(ResourceSource.EXTERNAL)
+                .setOwnerId(exSec.getOwnerId())
+                .build();
+
+        KVCredential kvCredential = KVCredential.newBuilder()
+                .setKey(exSec.getExternalId())
+                .setToken(exSec.getId())
+                .setValue(kvSecret.getValue())
+                .setMetadata(metadata).build();
+
+        return kvCredential;
+    }
 }
+
+
+

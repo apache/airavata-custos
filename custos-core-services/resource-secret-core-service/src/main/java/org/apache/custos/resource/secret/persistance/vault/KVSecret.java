@@ -17,15 +17,38 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.utils;
+package org.apache.custos.resource.secret.persistance.vault;
 
-public final class Constants {
+/**
+ * KV secret store
+ */
+public class KVSecret {
+    private String key;
 
-    public static final String VAULT_RESOURCE_SECRETS_PATH = "/resourcesecret/";
-    public static final String SSH_CREDENTIALS = "ssh";
-    public static  final String CERTIFICATES = "certificates";
-    public static final String PASSWORD = "passwd";
-    public static final String  KV_SECRET = "keyValue";
+    private String value;
 
+    public KVSecret() {
 
+    }
+
+    public KVSecret(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

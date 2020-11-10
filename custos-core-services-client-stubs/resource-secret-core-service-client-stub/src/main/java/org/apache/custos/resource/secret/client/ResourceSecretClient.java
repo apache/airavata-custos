@@ -18,6 +18,7 @@
  */
 
 package org.apache.custos.resource.secret.client;
+
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -42,12 +43,6 @@ public class ResourceSecretClient {
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
         resourceSecretServiceBlockingStub = ResourceSecretServiceGrpc.newBlockingStub(managedChannel);
-    }
-
-
-    public SecretMetadata getSecretResponse(GetSecretRequest request) {
-        return resourceSecretServiceBlockingStub.getSecret(request);
-
     }
 
 
@@ -94,6 +89,23 @@ public class ResourceSecretClient {
 
     public ResourceCredentialOperationStatus deleteCertificateCredential(GetResourceCredentialByTokenRequest request) {
         return resourceSecretServiceBlockingStub.deleteCertificateCredential(request);
+    }
+
+
+    public KVCredential getKVCredential(KVCredential request) {
+        return resourceSecretServiceBlockingStub.getKVCredential(request);
+    }
+
+    public ResourceCredentialOperationStatus setKVCredential(KVCredential request) {
+        return resourceSecretServiceBlockingStub.setKVCredential(request);
+    }
+
+    public ResourceCredentialOperationStatus updateKVCredential(KVCredential request) {
+        return resourceSecretServiceBlockingStub.updateKVCredential(request);
+    }
+
+    public ResourceCredentialOperationStatus deleteKVCredential(KVCredential request) {
+        return resourceSecretServiceBlockingStub.deleteKVCredential(request);
     }
 
 

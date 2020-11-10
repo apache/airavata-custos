@@ -25,8 +25,8 @@ import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
 import org.apache.custos.resource.secret.manager.Credential;
 import org.apache.custos.resource.secret.manager.CredentialGeneratorFactory;
-import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialReader;
+import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.utils.Operations;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
@@ -55,24 +55,6 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
     @Autowired
     private CredentialReader credentialReader;
-
-
-    @Override
-    public void getSecret(GetSecretRequest request, StreamObserver<SecretMetadata> responseObserver) {
-        try {
-            LOGGER.debug(" Request received to getSecret in tenant " + request.getMetadata().getTenantId() +
-                    " of owner " + request.getMetadata().getOwnerId() + " with token  " + request.getMetadata().getToken());
-
-            responseObserver.onNext(SecretMetadata.newBuilder().build());
-            responseObserver.onCompleted();
-
-        } catch (Exception ex) {
-            String msg = "Exception occurred while fetching secret with " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
 
 
     @Override
@@ -321,6 +303,112 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting password credential " + request.getToken() +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getKVCredential(KVCredential request, StreamObserver<KVCredential> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to getKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            String token = request.getToken();
+            KVCredential kvCredential = null;
+            if (token != null && !token.trim().equals("")) {
+                kvCredential = credentialReader.getKVSecretByToken(token,
+                        request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+            } else {
+                kvCredential = credentialReader.getKVSecretByKey(request.getKey(),
+                        request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+            }
+
+            responseObserver.onNext(kvCredential);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while fetching KV credentials " +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void setKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to setKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+
+            credentialWriter.saveKVCredential((org.apache.custos.resource.secret.manager.adaptor.outbound.KVCredential) credential);
+
+            statusUpdater.updateStatus(Operations.SAVE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  setting KV credentials " +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to updateKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            credentialWriter.updateKVCredential(request);
+
+            statusUpdater.updateStatus(Operations.UPDATE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while updating  KV credential " +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+
+            credentialWriter.deleteKVCredential(request);
+
+            statusUpdater.updateStatus(Operations.DELETE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
                     " : " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());

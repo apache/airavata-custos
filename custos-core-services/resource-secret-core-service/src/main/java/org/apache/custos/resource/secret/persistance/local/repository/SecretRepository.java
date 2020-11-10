@@ -22,6 +22,12 @@ package org.apache.custos.resource.secret.persistance.local.repository;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface SecretRepository extends JpaRepository<Secret, String> {
+
+
+    public List<Secret> findAllByExternalIdAndOwnerId(String externalId, String ownerId);
+
 
 }
