@@ -76,7 +76,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching credential summaries  " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -102,7 +102,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(sshCredential.getToken())
+                    .setToken((sshCredential.getExternalId() != null &&
+                            !sshCredential.getExternalId().trim().equals(""))?sshCredential.getExternalId(): sshCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
@@ -110,7 +111,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding SSH credentials " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -135,14 +136,15 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(passwordCredential.getToken())
+                    .setToken((passwordCredential.getExternalId() != null &&
+                            !passwordCredential.getExternalId().trim().equals(""))?passwordCredential.getExternalId(): passwordCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding password credentials " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -167,14 +169,16 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(certificateCredential.getToken())
+                    .setToken((certificateCredential.getExternalId() != null &&
+                            !certificateCredential.getExternalId().trim().equals(""))?
+                            certificateCredential.getExternalId(): certificateCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding certificate credential secret " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -194,7 +198,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching resource credential summaries " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -212,7 +216,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching SSH credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -231,7 +235,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching password credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -250,7 +254,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching certificate credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -277,7 +281,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting SSH secret " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -303,7 +307,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting password credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -329,7 +333,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching KV credentials " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -357,7 +361,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while  setting KV credentials " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -383,7 +387,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while updating  KV credential " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -409,7 +413,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting KV  credential " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
