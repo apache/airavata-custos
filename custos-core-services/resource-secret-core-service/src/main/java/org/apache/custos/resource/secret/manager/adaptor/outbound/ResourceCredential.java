@@ -41,6 +41,9 @@ public class ResourceCredential implements Credential {
     private long tenantId;
 
 
+    private String externalId;
+
+
     public ResourceCredential(GeneratedMessageV3 message) {
 
         this.token = generateToken();
@@ -51,6 +54,7 @@ public class ResourceCredential implements Credential {
             this.ownerId = metadata.getOwnerId();
             this.tenantId = metadata.getTenantId();
             this.resourceOwnerType = ResourceOwnerType.TENANT;
+            this.externalId = metadata.getToken();
 
         } else if (message instanceof CertificateCredential) {
             SecretMetadata metadata = ((CertificateCredential) message).getMetadata();
@@ -58,6 +62,7 @@ public class ResourceCredential implements Credential {
             this.ownerId = metadata.getOwnerId();
             this.tenantId = metadata.getTenantId();
             this.resourceOwnerType = ResourceOwnerType.TENANT;
+            this.externalId = metadata.getToken();
 
         } else if (message instanceof PasswordCredential) {
             SecretMetadata metadata = ((PasswordCredential) message).getMetadata();
@@ -65,12 +70,14 @@ public class ResourceCredential implements Credential {
             this.ownerId = metadata.getOwnerId();
             this.tenantId = metadata.getTenantId();
             this.resourceOwnerType = ResourceOwnerType.TENANT;
+            this.externalId = metadata.getToken();
         } else if (message instanceof org.apache.custos.resource.secret.service.KVCredential) {
             SecretMetadata metadata = ((org.apache.custos.resource.secret.service.KVCredential) message).getMetadata();
             this.description = metadata.getDescription();
             this.ownerId = metadata.getOwnerId();
             this.tenantId = metadata.getTenantId();
             this.resourceOwnerType = ResourceOwnerType.TENANT_USER;
+            this.externalId = ((org.apache.custos.resource.secret.service.KVCredential) message).getKey();
         }
     }
 
@@ -119,5 +126,14 @@ public class ResourceCredential implements Credential {
     private static String generateToken() {
 
         return UUID.randomUUID().toString();
+    }
+
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }

@@ -61,36 +61,47 @@ public class CredentialReader {
      */
     public SSHCredential getSSHCredential(long tenantId, String token) {
 
-        Optional<Secret> secret = repository.findById(token);
+        Secret secret = null;
 
+        if (token != null && !token.trim().equals("")) {
+            Optional<Secret> exSecret = repository.findById(token);
+            if (exSecret.isPresent()){
+                secret = exSecret.get();
+            }
+        }
+        if (secret == null) {
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
+            if (secrets != null && !secrets.isEmpty()) {
+                secret = secrets.get(0);
+            }
+        }
 
-        if (secret.isEmpty()) {
+        if (secret == null) {
             return null;
         }
 
-        Secret exSec = secret.get();
-
-        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + exSec.getOwnerId() +
-                "/" + Constants.SSH_CREDENTIALS + "/" + token;
-
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
+                "/" + Constants.SSH_CREDENTIALS + "/" + secret.getId();
 
         VaultResponseSupport<SSHCredentialSecrets> response = vaultTemplate.read(vaultPath, SSHCredentialSecrets.class);
 
         if (response == null || response.getData() == null && response.getData().getPrivateKey() == null) {
-            repository.delete(exSec);
+            repository.delete(secret);
             return null;
         }
 
         SSHCredentialSecrets sshCredentialSecrets = response.getData();
 
         SecretMetadata metadata = SecretMetadata.newBuilder()
-                .setOwnerId(exSec.getOwnerId())
+                .setOwnerId(secret.getOwnerId())
                 .setTenantId(tenantId)
-                .setPersistedTime(exSec.getCreatedAt().getTime())
-                .setDescription(exSec.getDiscription())
+                .setPersistedTime(secret.getCreatedAt().getTime())
+                .setDescription(secret.getDiscription())
                 .setResourceType(ResourceType.VAULT_CREDENTIAL)
                 .setSource(ResourceSource.EXTERNAL)
-                .setToken(token)
+                .setToken(
+                        (secret.getExternalId() != null &&
+                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
                 .build();
 
         SSHCredential credential = SSHCredential.newBuilder()
@@ -112,37 +123,50 @@ public class CredentialReader {
      * @param token
      * @return
      */
-    public org.apache.custos.resource.secret.service.PasswordCredential getPasswordCredential(long tenantId, String token) {
-        Optional<Secret> secret = repository.findById(token);
+    public org.apache.custos.resource.secret.service.PasswordCredential getPasswordCredential(long tenantId,
+                                                                                              String token) {
+        Secret secret = null;
 
+        if (token != null && !token.trim().equals("")) {
+            Optional<Secret> exSecret = repository.findById(token);
+            if (exSecret.isPresent()){
+                secret = exSecret.get();
+            }
+        } if (secret == null ) {
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
+            if (secrets != null && !secrets.isEmpty()) {
+                secret = secrets.get(0);
+            }
+        }
 
-        if (secret.isEmpty()) {
+        if (secret == null) {
             return null;
         }
 
-        Secret exSec = secret.get();
-
-        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + exSec.getOwnerId() +
-                "/" + Constants.PASSWORD + "/" + token;
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
+                "/" + Constants.PASSWORD + "/" + secret.getId();
 
 
         VaultResponseSupport<PasswordSecret> response = vaultTemplate.read(vaultPath, PasswordSecret.class);
 
         if (response == null || response.getData() == null && response.getData().getPassword() == null) {
-            repository.delete(exSec);
+            repository.delete(secret);
             return null;
         }
 
         PasswordSecret passwordSecret = response.getData();
 
         SecretMetadata metadata = SecretMetadata.newBuilder()
-                .setOwnerId(exSec.getOwnerId())
+                .setOwnerId(secret.getOwnerId())
                 .setTenantId(tenantId)
-                .setPersistedTime(exSec.getCreatedAt().getTime())
-                .setDescription(exSec.getDiscription())
+                .setPersistedTime(secret.getCreatedAt().getTime())
+                .setDescription(secret.getDiscription())
                 .setResourceType(ResourceType.VAULT_CREDENTIAL)
                 .setSource(ResourceSource.EXTERNAL)
-                .setToken(token)
+                .setType(ResourceSecretType.PASSWORD)
+                .setToken(
+                        (secret.getExternalId() != null ||
+                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
                 .build();
 
         org.apache.custos.resource.secret.service.PasswordCredential credential =
@@ -164,34 +188,48 @@ public class CredentialReader {
      * @return
      */
     public CertificateCredential getCertificateCredential(long tenantId, String token) {
-        Optional<Secret> secret = repository.findById(token);
+        Secret secret = null;
 
-        if (secret.isEmpty()) {
+        if (token != null && !token.trim().equals("")) {
+            Optional<Secret> exSecret = repository.findById(token);
+            if (exSecret.isPresent()){
+                secret = exSecret.get();
+            }
+        } if (secret == null) {
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
+            if (secrets != null && !secrets.isEmpty()) {
+                secret = secrets.get(0);
+            }
+        }
+
+        if (secret == null) {
             return null;
         }
 
-        Secret exSec = secret.get();
 
-        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + exSec.getOwnerId() +
-                "/" + Constants.PASSWORD + "/" + token;
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
+                "/" + Constants.PASSWORD + "/" + secret.getId();
 
         VaultResponseSupport<Certificate> response = vaultTemplate.read(vaultPath, Certificate.class);
 
         if (response == null || response.getData() == null && response.getData().getCertificate() == null) {
-            repository.delete(exSec);
+            repository.delete(secret);
             return null;
         }
 
         Certificate certificate = response.getData();
 
         SecretMetadata metadata = SecretMetadata.newBuilder()
-                .setOwnerId(exSec.getOwnerId())
+                .setOwnerId(secret.getOwnerId())
                 .setTenantId(tenantId)
-                .setPersistedTime(exSec.getCreatedAt().getTime())
-                .setDescription(exSec.getDiscription())
+                .setPersistedTime(secret.getCreatedAt().getTime())
+                .setDescription(secret.getDiscription())
                 .setResourceType(ResourceType.VAULT_CREDENTIAL)
                 .setSource(ResourceSource.EXTERNAL)
-                .setToken(token)
+                .setType(ResourceSecretType.X509_CERTIFICATE)
+                .setToken(
+                        (secret.getExternalId() != null &&
+                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
                 .build();
 
         CertificateCredential certificateCredential = CertificateCredential.newBuilder()
@@ -216,16 +254,29 @@ public class CredentialReader {
      */
     public SecretMetadata getCredentialSummary(long tenantId, String token) {
 
-        Optional<Secret> exSec = repository.findById(token);
+        Secret secret = null;
 
-        if (exSec.isEmpty()) {
+        if (token != null && !token.trim().equals("")) {
+            Optional<Secret> exSecret = repository.findById(token);
+            if (exSecret.isPresent()){
+                secret = exSecret.get();
+            }
+        }
+        if (secret == null) {
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
+            if (secrets != null && !secrets.isEmpty()) {
+                secret = secrets.get(0);
+            }
+        }
+
+        if (secret == null) {
             return null;
         }
 
-        Secret secret = exSec.get();
-
         return SecretMetadata.newBuilder()
-                .setToken(token)
+                .setToken(
+                        (secret.getExternalId() != null &&
+                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
                 .setTenantId(tenantId)
                 .setDescription(secret.getDiscription())
                 .setPersistedTime(secret.getCreatedAt().getTime())
@@ -246,7 +297,7 @@ public class CredentialReader {
      */
     public List<SecretMetadata> getAllCredentialSummaries(long tenantId, List<String> tokens) {
 
-        List<Secret> secrets = repository.findAllById(tokens);
+        List<Secret> secrets = repository.getAllSecretsByIdOrExternalId(tenantId, tokens, tokens);
         List<SecretMetadata> metadata = new ArrayList<>();
 
         if (secrets != null && !secrets.isEmpty()) {
@@ -254,7 +305,9 @@ public class CredentialReader {
 
             secrets.forEach(secret -> {
                 metadata.add(SecretMetadata.newBuilder()
-                        .setToken(secret.getId())
+                        .setToken(
+                                (secret.getExternalId() != null &&
+                                        !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
                         .setTenantId(tenantId)
                         .setDescription(secret.getDiscription())
                         .setPersistedTime(secret.getCreatedAt().getTime())
@@ -318,7 +371,7 @@ public class CredentialReader {
 
     public KVCredential getKVSecretByKey(String key, long tenantId, String ownerId) {
 
-        List<Secret> secrets = repository.findAllByExternalIdAndOwnerId(key, ownerId);
+        List<Secret> secrets = repository.findAllByExternalIdAndOwnerIdAndTenantId(key, ownerId, tenantId);
 
         if (secrets != null && secrets.isEmpty()) {
             return null;

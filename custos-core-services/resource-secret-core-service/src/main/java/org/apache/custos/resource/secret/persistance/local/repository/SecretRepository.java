@@ -21,13 +21,21 @@ package org.apache.custos.resource.secret.persistance.local.repository;
 
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.util.Iterator;
 import java.util.List;
 
 public interface SecretRepository extends JpaRepository<Secret, String> {
 
 
-    public List<Secret> findAllByExternalIdAndOwnerId(String externalId, String ownerId);
+    public List<Secret> findAllByExternalIdAndOwnerIdAndTenantId(String externalId, String ownerId, long tenantId);
+
+    public List<Secret> findAllByExternalIdAndTenantId(String externalId, long tenantId);
+
+    @Query(value = "select * from secret s where s.tenant_id = ?1 and ( s.id  IN ?2 " +
+            "or s.external_id  IN ?3 )", nativeQuery = true)
+    public List<Secret> getAllSecretsByIdOrExternalId(long tenantId, List<String> tokens, List<String> externalIds);
 
 
 }

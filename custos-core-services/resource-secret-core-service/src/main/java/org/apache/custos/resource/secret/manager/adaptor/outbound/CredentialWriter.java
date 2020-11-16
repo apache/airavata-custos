@@ -65,12 +65,31 @@ public class CredentialWriter {
         if (exSecret.isPresent()) {
             String msg = " Credential with token " + credential.getToken() + " already exist";
             LOGGER.error(msg);
-            throw new CredentialStoreException(msg, null);
+            throw new CredentialStoreException("Invalid token", null);
+        }
+
+        if (credential.getExternalId() != null && !credential.getExternalId().trim().equals("")) {
+
+            Optional<Secret> exToSec = repository.findById(credential.getExternalId());
+
+            if (exToSec.isPresent()) {
+                String msg = " Credential with token " + credential.getToken() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(credential.getExternalId(),
+                    credential.getTenantId());
+            if (secrets != null && !secrets.isEmpty()) {
+                String msg = " Credential with externalId " + credential.getExternalId() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
         }
 
         String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credential.getTenantId() + "/" + credential.getOwnerId()
                 + "/" + Constants.SSH_CREDENTIALS + "/" + credential.getToken();
-
 
         SSHCredentialSecrets sshCredentialSecrets = new SSHCredentialSecrets
                 (credential.getPrivateKey(), credential.getPublicKey(), credential.getPassPhrase());
@@ -92,6 +111,7 @@ public class CredentialWriter {
         secret.setOwnerType(credential.getResourceOwnerType().name());
         secret.setSecretType(ResourceSecretType.SSH.name());
         secret.setTenantId(credential.getTenantId());
+        secret.setExternalId(credential.getExternalId());
         repository.save(secret);
         return true;
     }
@@ -108,7 +128,26 @@ public class CredentialWriter {
         if (exSecret.isPresent()) {
             String msg = " Credential with token " + credential.getToken() + " already exist";
             LOGGER.error(msg);
-            throw new CredentialStoreException(msg, null);
+            throw new CredentialStoreException("Invalid token", null);
+        }
+
+        if (credential.getExternalId() != null && !credential.getExternalId().trim().equals("")) {
+            Optional<Secret> exToSec = repository.findById(credential.getExternalId());
+
+            if (exToSec.isPresent()) {
+                String msg = " Credential with token " + credential.getToken() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(credential.getExternalId(),
+                    credential.getTenantId());
+            if (secrets != null && !secrets.isEmpty()) {
+                String msg = " Credential with externalId " + credential.getExternalId() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
         }
 
         String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credential.getTenantId() + "/" + credential.getOwnerId()
@@ -134,6 +173,7 @@ public class CredentialWriter {
         secret.setOwnerType(credential.getResourceOwnerType().name());
         secret.setSecretType(ResourceSecretType.PASSWORD.name());
         secret.setTenantId(credential.getTenantId());
+        secret.setExternalId(credential.getExternalId());
         repository.save(secret);
         return true;
     }
@@ -150,8 +190,28 @@ public class CredentialWriter {
         if (exSecret.isPresent()) {
             String msg = " Credential with token " + credential.getToken() + " already exist";
             LOGGER.error(msg);
-            throw new CredentialStoreException(msg, null);
+            throw new CredentialStoreException("Invalid token", null);
         }
+
+        if (credential.getExternalId() != null && !credential.getExternalId().trim().equals("")) {
+            Optional<Secret> exToSec = repository.findById(credential.getExternalId());
+
+            if (exToSec.isPresent()) {
+                String msg = " Credential with token " + credential.getToken() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(credential.getExternalId(),
+                    credential.getTenantId());
+            if (secrets != null && !secrets.isEmpty()) {
+                String msg = " Credential with externalId " + credential.getExternalId() + " already exist";
+                LOGGER.error(msg);
+                throw new CredentialStoreException("Invalid token", null);
+            }
+
+        }
+
 
         String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credential.getTenantId() + "/" + credential.getOwnerId() +
                 "/" + Constants.SSH_CREDENTIALS + "/" + credential.getToken();
@@ -181,6 +241,7 @@ public class CredentialWriter {
         secret.setOwnerType(credential.getResourceOwnerType().name());
         secret.setSecretType(ResourceSecretType.X509_CERTIFICATE.name());
         secret.setTenantId(credential.getTenantId());
+        secret.setExternalId(credential.getExternalId());
         repository.save(secret);
         return true;
     }
@@ -195,13 +256,19 @@ public class CredentialWriter {
      */
     public boolean deleteCredential(long tenantId, String token) {
 
+        Secret secret = null;
         Optional<Secret> exSec = repository.findById(token);
 
-        if (exSec.isEmpty()) {
-            return true;
+        if (exSec.isPresent()) {
+            secret = exSec.get();
         }
 
-        Secret secret = exSec.get();
+        if (exSec.isEmpty()) {
+            List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
+            if (secrets != null && !secrets.isEmpty()) {
+                secret = secrets.get(0);
+            }
+        }
 
         String type = null;
 
@@ -215,7 +282,7 @@ public class CredentialWriter {
 
 
         String path = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
-                "/" + type + "/" + token;
+                "/" + type + "/" + secret.getId();
 
         vaultTemplate.delete(path);
 
@@ -230,10 +297,10 @@ public class CredentialWriter {
         if (exSecret.isPresent()) {
             String msg = " Credential with token " + kvCredential.getToken() + " already exist";
             LOGGER.error(msg);
-            throw new CredentialStoreException(msg, null);
+            throw new CredentialStoreException("Invalid token", null);
         }
 
-        List<Secret> secrets = repository.findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getOwnerId());
+        List<Secret> secrets = repository.findAllByExternalIdAndOwnerIdAndTenantId(kvCredential.getKey(), kvCredential.getOwnerId(), kvCredential.getTenantId());
 
         if (secrets != null && !secrets.isEmpty()) {
             String msg = " Credential with key " + kvCredential.getKey() + " of user " + kvCredential.getOwnerId()
@@ -288,7 +355,8 @@ public class CredentialWriter {
         } else {
 
             List<Secret> secrets = repository.
-                    findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId());
+                    findAllByExternalIdAndOwnerIdAndTenantId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId(),
+                            kvCredential.getMetadata().getTenantId());
 
             if (secrets == null && secrets.isEmpty()) {
                 String msg = " Cannot find record "
@@ -338,7 +406,8 @@ public class CredentialWriter {
         } else {
 
             List<Secret> secrets = repository.
-                    findAllByExternalIdAndOwnerId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId());
+                    findAllByExternalIdAndOwnerIdAndTenantId(kvCredential.getKey(), kvCredential.getMetadata().getOwnerId(),
+                            kvCredential.getMetadata().getTenantId());
 
             if (secrets == null && secrets.isEmpty()) {
                 String msg = " Cannot find record "

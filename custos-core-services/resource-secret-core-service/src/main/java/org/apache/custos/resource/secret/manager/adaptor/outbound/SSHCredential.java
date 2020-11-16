@@ -26,7 +26,6 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.io.File;
 import java.util.UUID;
 
@@ -42,20 +41,24 @@ public class SSHCredential extends ResourceCredential {
     private String privateKey;
     private String passPhrase;
 
+
     public SSHCredential(GeneratedMessageV3 message) throws Exception {
         super(message);
-       if (message instanceof org.apache.custos.resource.secret.service.SSHCredential) {
+        if (message instanceof org.apache.custos.resource.secret.service.SSHCredential) {
 
-         this.passPhrase =  ((org.apache.custos.resource.secret.service.SSHCredential) message).getPassphrase();
-         this.privateKey = ((org.apache.custos.resource.secret.service.SSHCredential) message).getPrivateKey();
-         this.publicKey = ((org.apache.custos.resource.secret.service.SSHCredential) message).getPublicKey();
+            this.passPhrase = ((org.apache.custos.resource.secret.service.SSHCredential) message).getPassphrase();
+            this.privateKey = ((org.apache.custos.resource.secret.service.SSHCredential) message).getPrivateKey();
+            this.publicKey = ((org.apache.custos.resource.secret.service.SSHCredential) message).getPublicKey();
 
-         if (passPhrase == null || passPhrase.trim().equals("")) {
-             this.passPhrase = String.valueOf(UUID.randomUUID());
-         }
-          this.generateKeyPair(this.passPhrase);
 
-       }
+            if (passPhrase == null || passPhrase.trim().equals("")) {
+                this.passPhrase = String.valueOf(UUID.randomUUID());
+            }
+            if (this.publicKey == null || this.publicKey.trim().equals("")) {
+                this.generateKeyPair(this.passPhrase);
+            }
+
+        }
 
     }
 
@@ -83,15 +86,16 @@ public class SSHCredential extends ResourceCredential {
         this.passPhrase = passPhrase;
     }
 
-    private void  generateKeyPair(String passPhrase) throws Exception{
-        JSch jsch=new JSch();
-        try{
-            KeyPair kpair= KeyPair.genKeyPair(jsch, KeyPair.RSA, 2048);
+
+    private void generateKeyPair(String passPhrase) throws Exception {
+        JSch jsch = new JSch();
+        try {
+            KeyPair kpair = KeyPair.genKeyPair(jsch, KeyPair.RSA, 2048);
             File file = File.createTempFile("id_rsa", "");
             String fileName = file.getAbsolutePath();
 
             kpair.writePrivateKey(fileName, passPhrase.getBytes());
-            kpair.writePublicKey(fileName + ".pub"  , "");
+            kpair.writePublicKey(fileName + ".pub", "");
             kpair.dispose();
             byte[] priKey = FileUtils.readFileToByteArray(new File(fileName));
 
@@ -99,8 +103,7 @@ public class SSHCredential extends ResourceCredential {
             this.privateKey = new String(priKey);
             this.publicKey = new String(pubKey);
 
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             LOGGER.error("Error while creating key pair", e);
             throw new Exception("Error while creating key pair", e);
         }

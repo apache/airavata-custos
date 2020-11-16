@@ -45,6 +45,7 @@ public class CertificateCredential extends ResourceCredential {
     private String privateKey;
 
 
+
     public CertificateCredential(GeneratedMessageV3 message) throws CertificateException {
         super(message);
         if (message instanceof org.apache.custos.resource.secret.service.CertificateCredential) {
