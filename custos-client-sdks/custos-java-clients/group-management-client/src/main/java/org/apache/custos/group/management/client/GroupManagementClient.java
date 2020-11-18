@@ -175,6 +175,138 @@ public class GroupManagementClient {
     }
 
 
+    public Group createGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.createGroup(request);
+
+    }
+
+
+    /**
+     * update group
+     *
+     * @param clientId
+     * @return
+     */
+    public Group updateGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.updateGroup(request);
+    }
+
+    /**
+     * delete group
+     *
+     * @param clientId
+     * @param groupRepresentation
+     * @return
+     */
+    public Status deleteGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.deleteGroup(request);
+    }
+
+
+    /**
+     * find group
+     *
+     * @param clientId
+     * @param groupName
+     * @param groupId
+     * @return
+     */
+    public Group findGroup(String clientId, String groupName, String groupId) {
+
+        Group group =
+                Group.newBuilder().build();
+        if (groupName != null) {
+            group = group.toBuilder().setName(groupName).build();
+        }
+
+        if (groupId != null) {
+            group = group.toBuilder().setId(groupId).build();
+        }
+
+        org.apache.custos.user.profile.service.GroupRequest request = org.apache.custos.user.profile.service.GroupRequest
+                .newBuilder()
+                .setGroup(group)
+                .setClientId(clientId)
+                .build();
+        return blockingStub.findGroup(request);
+    }
+
+
+    /**
+     * Get all groups
+     *
+     * @param clientId
+     * @return
+     */
+    public GetAllGroupsResponse getAllGroups(String clientId) {
+        org.apache.custos.user.profile.service.GroupRequest request = org.apache.custos.user.profile.service.GroupRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .build();
+        return blockingStub.getAllGroups(request);
+    }
+
+
+    /**
+     * Add user to group
+     *
+     * @param clientId
+     * @param username
+     * @param groupId
+     * @return
+     */
+    public Status addUserToGroup(String clientId, String username, String groupId, String type) {
+        GroupMembership request = GroupMembership
+                .newBuilder()
+                .setUsername(username)
+                .setClientId(clientId)
+                .setType(type)
+                .setGroupId(groupId).build();
+        return blockingStub.addUserToGroup(request);
+
+    }
+
+    /**
+     * Remove user from group
+     *
+     * @param clientId
+     * @param username
+     * @param groupId
+     * @return
+     */
+    public Status removeUserFromGroup(String clientId, String username, String groupId) {
+
+        GroupMembership request = GroupMembership
+                .newBuilder()
+                .setUsername(username)
+                .setClientId(clientId)
+                .setGroupId(groupId).build();
+        return blockingStub.removeUserFromGroup(request);
+
+    }
+
+
     public Status addChildGroupToParentGroup(String clientId, String parentId, String childId) {
         GroupToGroupMembership membership = GroupToGroupMembership
                 .newBuilder()

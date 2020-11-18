@@ -692,7 +692,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                             break;
                         }
                     }
-                    
+
                     Group gr = GroupMapper.createGroup(group, ownerId);
 
                     groupList.add(gr);
