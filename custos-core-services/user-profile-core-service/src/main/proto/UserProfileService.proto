@@ -116,6 +116,7 @@ message GroupRequest {
     string performedBy = 3;
     string clientId = 4;
     DefaultGroupMembershipTypes membership_type = 5;
+    string id = 6;
 
 }
 
