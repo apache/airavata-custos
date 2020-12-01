@@ -28,4 +28,6 @@ public interface GroupRepository extends JpaRepository<Group, String> {
 
 
     public List<Group> findByParentId(String s);
+
+    public List<Group> findAllByTenantId(long tenantId);
 }

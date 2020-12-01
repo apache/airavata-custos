@@ -45,14 +45,14 @@ public class GroupManagementClient {
      * @param groupRepresentation
      * @return
      */
-    public GroupsResponse createGroup(String clientId, GroupRepresentation[] groupRepresentation) {
+    public GroupsResponse createKeycloakGroup(String clientId, GroupRepresentation[] groupRepresentation) {
 
         GroupsRequest request = GroupsRequest
                 .newBuilder()
                 .addAllGroups(Arrays.asList(groupRepresentation))
                 .setClientId(clientId)
                 .build();
-        return blockingStub.createGroups(request);
+        return blockingStub.createKeycloakGroups(request);
 
     }
 
@@ -64,14 +64,14 @@ public class GroupManagementClient {
      * @param groupRepresentation
      * @return
      */
-    public GroupRepresentation updateGroup(String clientId, GroupRepresentation groupRepresentation) {
+    public GroupRepresentation updateKeycloakGroup(String clientId, GroupRepresentation groupRepresentation) {
 
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
                 .setClientId(clientId)
                 .build();
-        return blockingStub.updateGroup(request);
+        return blockingStub.updateKeycloakGroup(request);
     }
 
     /**
@@ -81,14 +81,14 @@ public class GroupManagementClient {
      * @param groupRepresentation
      * @return
      */
-    public OperationStatus deleteGroup(String clientId, GroupRepresentation groupRepresentation) {
+    public OperationStatus deleteKeycloakGroup(String clientId, GroupRepresentation groupRepresentation) {
 
         GroupRequest request = GroupRequest
                 .newBuilder()
                 .setGroup(groupRepresentation)
                 .setClientId(clientId)
                 .build();
-        return blockingStub.deleteGroup(request);
+        return blockingStub.deleteKeycloakGroup(request);
     }
 
 
@@ -100,7 +100,7 @@ public class GroupManagementClient {
      * @param groupId
      * @return
      */
-    public GroupRepresentation findGroup(String clientId, String groupName, String groupId) {
+    public GroupRepresentation findKeycloakGroup(String clientId, String groupName, String groupId) {
 
         GroupRepresentation groupRepresentation =
                 GroupRepresentation.newBuilder().build();
@@ -117,6 +117,138 @@ public class GroupManagementClient {
                 .setGroup(groupRepresentation)
                 .setClientId(clientId)
                 .build();
+        return blockingStub.findKeycloakGroup(request);
+    }
+
+
+    /**
+     * Get all groups
+     *
+     * @param clientId
+     * @return
+     */
+    public GroupsResponse getAllKeycloakGroups(String clientId) {
+        GroupRequest request = GroupRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .build();
+        return blockingStub.getAllKeycloakGroups(request);
+    }
+
+
+    /**
+     * Add user to group
+     *
+     * @param clientId
+     * @param username
+     * @param groupId
+     * @return
+     */
+    public OperationStatus addUserToKeycloakGroup(String clientId, String username, String groupId, String type) {
+        UserGroupMappingRequest request = UserGroupMappingRequest
+                .newBuilder()
+                .setUsername(username)
+                .setClientId(clientId)
+                .setMembershipType(type)
+                .setGroupId(groupId).build();
+        return blockingStub.addUserToKeycloakGroup(request);
+
+    }
+
+    /**
+     * Remove user from group
+     *
+     * @param clientId
+     * @param username
+     * @param groupId
+     * @return
+     */
+    public OperationStatus removeUserFromKeycloakGroup(String clientId, String username, String groupId) {
+
+        UserGroupMappingRequest request = UserGroupMappingRequest
+                .newBuilder()
+                .setUsername(username)
+                .setClientId(clientId)
+                .setGroupId(groupId).build();
+        return blockingStub.removeUserFromKeycloakGroup(request);
+
+    }
+
+
+    public Group createGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.createGroup(request);
+
+    }
+
+
+    /**
+     * update group
+     *
+     * @param clientId
+     * @return
+     */
+    public Group updateGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.updateGroup(request);
+    }
+
+    /**
+     * delete group
+     *
+     * @param clientId
+     * @param groupRepresentation
+     * @return
+     */
+    public Status deleteGroup(String clientId, Group group) {
+
+        org.apache.custos.user.profile.service.GroupRequest request =
+                org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder()
+                        .setGroup(group)
+                        .setClientId(clientId)
+                        .build();
+        return blockingStub.deleteGroup(request);
+    }
+
+
+    /**
+     * find group
+     *
+     * @param clientId
+     * @param groupName
+     * @param groupId
+     * @return
+     */
+    public Group findGroup(String clientId, String groupName, String groupId) {
+
+        Group group =
+                Group.newBuilder().build();
+        if (groupName != null) {
+            group = group.toBuilder().setName(groupName).build();
+        }
+
+        if (groupId != null) {
+            group = group.toBuilder().setId(groupId).build();
+        }
+
+        org.apache.custos.user.profile.service.GroupRequest request = org.apache.custos.user.profile.service.GroupRequest
+                .newBuilder()
+                .setGroup(group)
+                .setClientId(clientId)
+                .build();
         return blockingStub.findGroup(request);
     }
 
@@ -127,8 +259,8 @@ public class GroupManagementClient {
      * @param clientId
      * @return
      */
-    public GroupsResponse getAllGroups(String clientId) {
-        GroupRequest request = GroupRequest
+    public GetAllGroupsResponse getAllGroups(String clientId) {
+        org.apache.custos.user.profile.service.GroupRequest request = org.apache.custos.user.profile.service.GroupRequest
                 .newBuilder()
                 .setClientId(clientId)
                 .build();
@@ -144,12 +276,12 @@ public class GroupManagementClient {
      * @param groupId
      * @return
      */
-    public OperationStatus addUserToGroup(String clientId, String username, String groupId, String type) {
-        UserGroupMappingRequest request = UserGroupMappingRequest
+    public Status addUserToGroup(String clientId, String username, String groupId, String type) {
+        GroupMembership request = GroupMembership
                 .newBuilder()
                 .setUsername(username)
                 .setClientId(clientId)
-                .setMembershipType(type)
+                .setType(type)
                 .setGroupId(groupId).build();
         return blockingStub.addUserToGroup(request);
 
@@ -163,9 +295,9 @@ public class GroupManagementClient {
      * @param groupId
      * @return
      */
-    public OperationStatus removeUserFromGroup(String clientId, String username, String groupId) {
+    public Status removeUserFromGroup(String clientId, String username, String groupId) {
 
-        UserGroupMappingRequest request = UserGroupMappingRequest
+        GroupMembership request = GroupMembership
                 .newBuilder()
                 .setUsername(username)
                 .setClientId(clientId)
@@ -175,7 +307,7 @@ public class GroupManagementClient {
     }
 
 
-    public OperationStatus addChildGroupToParentGroup(String clientId, String parentId, String childId) {
+    public Status addChildGroupToParentGroup(String clientId, String parentId, String childId) {
         GroupToGroupMembership membership = GroupToGroupMembership
                 .newBuilder()
                 .setChildId(childId)
@@ -187,7 +319,7 @@ public class GroupManagementClient {
     }
 
 
-    public OperationStatus removeChildGroupFromParentGroup(String clientId, String parentId, String childId) {
+    public Status removeChildGroupFromParentGroup(String clientId, String parentId, String childId) {
         GroupToGroupMembership membership = GroupToGroupMembership
                 .newBuilder()
                 .setChildId(childId)
@@ -265,7 +397,7 @@ public class GroupManagementClient {
     }
 
 
-    public OperationStatus changeUserMembershipType(String clientId, String username, String groupId, String type) {
+    public Status changeUserMembershipType(String clientId, String username, String groupId, String type) {
 
         GroupMembership membership = GroupMembership
                 .newBuilder()
@@ -279,7 +411,7 @@ public class GroupManagementClient {
     }
 
 
-    public OperationStatus hasAccess(String clientId, String groupId, String userId, String type) {
+    public Status hasAccess(String clientId, String groupId, String userId, String type) {
         GroupMembership membership = GroupMembership
                 .newBuilder()
                 .setUsername(userId)
