@@ -1252,8 +1252,8 @@ public class KeycloakClient {
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling events, reason: " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new RuntimeException(msg, ex);
+            LOGGER.warn(msg, ex);
+            return null;
 
         } finally {
             if (client != null) {

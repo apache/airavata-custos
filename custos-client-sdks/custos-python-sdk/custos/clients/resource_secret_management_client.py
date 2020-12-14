@@ -23,8 +23,7 @@ from custos.transport.settings import CustosServerClientSettings
 from custos.server.integration.ResourceSecretManagementService_pb2_grpc import ResourceSecretManagementServiceStub
 from custos.server.core.IdentityService_pb2 import GetJWKSRequest
 from custos.server.core.ResourceSecretService_pb2 import GetSecretRequest, SecretMetadata, ResourceOwnerType, \
-    ResourceSource, \
-    ResourceType, SSHCredential, PasswordCredential, GetResourceCredentialByTokenRequest
+    ResourceSource, KVCredential, ResourceType, SSHCredential, PasswordCredential, GetResourceCredentialByTokenRequest
 from google.protobuf.json_format import MessageToJson
 from custos.clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
 
@@ -139,4 +138,58 @@ class ResourceSecretManagementClient(object):
             return MessageToJson(msg)
         except Exception:
             logger.exception("Error occurred while creating password key")
+            raise
+
+    def set_KV_credential(self, token, user_token, client_id, key, value):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),('user_token', user_token),)
+            secret_metadata = SecretMetadata(client_id=client_id)
+            request = KVCredential(key=key, value=value, metadata=secret_metadata)
+
+            msg = self.resource_sec_client.addKVCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+        except Exception:
+            logger.exception("Error occurred while creating KV credential")
+            raise
+
+    def update_KV_credential(self, token,user_token, client_id, key, value):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),('user_token', user_token),)
+            secret_metadata = SecretMetadata(client_id=client_id)
+            request = KVCredential(key=key, value=value, metadata=secret_metadata)
+
+            msg = self.resource_sec_client.updateKVCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+        except Exception:
+            logger.exception("Error occurred while updating KV credential")
+            raise
+
+    def delete_KV_credential(self, token, user_token, client_id, key, value):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),('user_token', user_token),)
+            secret_metadata = SecretMetadata(client_id=client_id)
+            request = KVCredential(key=key, value=value, metadata=secret_metadata)
+
+            msg = self.resource_sec_client.deleteKVCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+
+        except Exception:
+            logger.exception("Error occurred while deleting KV credential")
+            raise
+
+    def get_KV_credential(self, token, user_token, client_id, key):
+        try:
+            token = "Bearer " + token
+            metadata = (('authorization', token),('user_token', user_token),)
+            secret_metadata = SecretMetadata(client_id=client_id)
+            request = KVCredential(key=key, metadata=secret_metadata)
+
+            msg = self.resource_sec_client.getKVCredential(request=request, metadata=metadata)
+            return MessageToJson(msg)
+
+        except Exception:
+            logger.exception("Error occurred while get KV credential")
             raise

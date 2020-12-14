@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'P\001',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bResourceSecretService.proto\x12)org.apache.custos.resource.secret.service\"\xda\x03\n\x0eSecretMetadata\x12P\n\nowner_type\x18\x01 \x01(\x0e\x32<.org.apache.custos.resource.secret.service.ResourceOwnerType\x12N\n\rresource_type\x18\x02 \x01(\x0e\x32\x37.org.apache.custos.resource.secret.service.ResourceType\x12I\n\x06source\x18\x03 \x01(\x0e\x32\x39.org.apache.custos.resource.secret.service.ResourceSource\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\t\x12K\n\x04type\x18\x06 \x01(\x0e\x32=.org.apache.custos.resource.secret.service.ResourceSecretType\x12\x10\n\x08tenantId\x18\x07 \x01(\x03\x12\x10\n\x08owner_id\x18\x08 \x01(\t\x12\x16\n\x0epersisted_time\x18\t \x01(\x03\x12\r\n\x05token\x18\n \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x0b \x01(\t\x12\x11\n\tclient_id\x18\x0c \x01(\t\"\xab\x01\n\x10GetSecretRequest\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x10\n\x08tenantId\x18\x02 \x01(\x03\x12\x10\n\x08\x63lientId\x18\x03 \x01(\t\x12\x11\n\tclientSec\x18\x04 \x01(\t\x12\x13\n\x0b\x61\x63\x63\x65ssToken\x18\x05 \x01(\t\"\xc6\x01\n\x15\x43\x65rtificateCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x11\n\tx509_cert\x18\x03 \x01(\t\x12\x11\n\tnot_after\x18\x04 \x01(\t\x12\x13\n\x0bprivate_key\x18\x05 \x01(\t\x12\x11\n\tlife_time\x18\x06 \x01(\x03\x12\x12\n\nnot_before\x18\x07 \x01(\t\"s\n\x12PasswordCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x10\n\x08password\x18\x03 \x01(\t\"\x99\x01\n\rSSHCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x12\n\npassphrase\x18\x03 \x01(\t\x12\x12\n\npublic_key\x18\x04 \x01(\t\x12\x13\n\x0bprivate_key\x18\x05 \x01(\t\"o\n#GetResourceCredentialByTokenRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\r\n\x05token\x18\x02 \x01(\t\x12\x14\n\x0cperformed_by\x18\x03 \x01(\t\x12\x11\n\tclient_id\x18\x04 \x01(\t\"\xd3\x01\n%GetResourceCredentialSummariesRequest\x12\x45\n\x04type\x18\x01 \x01(\x0e\x32\x37.org.apache.custos.resource.secret.service.ResourceType\x12\x19\n\x11\x61\x63\x63\x65ssible_tokens\x18\x02 \x03(\t\x12\x10\n\x08tenantId\x18\x03 \x01(\x03\x12\x10\n\x08owner_id\x18\x04 \x01(\t\x12\x11\n\tall_types\x18\x05 \x01(\x08\x12\x11\n\tclient_id\x18\x06 \x01(\t\"j\n\x1bResourceCredentialSummaries\x12K\n\x08metadata\x18\x01 \x03(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\".\n\x1d\x41\x64\x64ResourceCredentialResponse\x12\r\n\x05token\x18\x01 \x01(\t\"3\n!ResourceCredentialOperationStatus\x12\x0e\n\x06status\x18\x01 \x01(\x08*<\n\x11ResourceOwnerType\x12\x0f\n\x0bTENANT_USER\x10\x00\x12\n\n\x06\x43USTOS\x10\x01\x12\n\n\x06TENANT\x10\x02*Y\n\x0cResourceType\x12\x16\n\x12SERVER_CERTIFICATE\x10\x00\x12\x1b\n\x17JWT_SIGNING_CERTIFICATE\x10\x01\x12\x14\n\x10VAULT_CREDENTIAL\x10\x02*D\n\x0eResourceSource\x12\x08\n\x04KUBE\x10\x00\x12\t\n\x05LOCAL\x10\x01\x12\x0c\n\x08\x45XTERNAL\x10\x02\x12\x0f\n\x0bLETSENCRYPT\x10\x03*A\n\x12ResourceSecretType\x12\x07\n\x03SSH\x10\x00\x12\x0c\n\x08PASSWORD\x10\x01\x12\x14\n\x10X509_CERTIFICATE\x10\x02\x32\x8f\x10\n\x15ResourceSecretService\x12\x83\x01\n\tgetSecret\x12;.org.apache.custos.resource.secret.service.GetSecretRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\xa9\x01\n\x1cgetResourceCredentialSummary\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\xbd\x01\n!getAllResourceCredentialSummaries\x12P.org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest\x1a\x46.org.apache.custos.resource.secret.service.ResourceCredentialSummaries\x12\x96\x01\n\x10\x61\x64\x64SSHCredential\x12\x38.org.apache.custos.resource.secret.service.SSHCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\xa0\x01\n\x15\x61\x64\x64PasswordCredential\x12=.org.apache.custos.resource.secret.service.PasswordCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\xa6\x01\n\x18\x61\x64\x64\x43\x65rtificateCredential\x12@.org.apache.custos.resource.secret.service.CertificateCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\x9c\x01\n\x10getSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x38.org.apache.custos.resource.secret.service.SSHCredential\x12\xa6\x01\n\x15getPasswordCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a=.org.apache.custos.resource.secret.service.PasswordCredential\x12\xac\x01\n\x18getCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a@.org.apache.custos.resource.secret.service.CertificateCredential\x12\xb3\x01\n\x13\x64\x65leteSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\xb3\x01\n\x13\x64\x65letePWDCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\xbb\x01\n\x1b\x64\x65leteCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatusB\x02P\x01\x62\x06proto3'
+  serialized_pb=b'\n\x1bResourceSecretService.proto\x12)org.apache.custos.resource.secret.service\"\xda\x03\n\x0eSecretMetadata\x12P\n\nowner_type\x18\x01 \x01(\x0e\x32<.org.apache.custos.resource.secret.service.ResourceOwnerType\x12N\n\rresource_type\x18\x02 \x01(\x0e\x32\x37.org.apache.custos.resource.secret.service.ResourceType\x12I\n\x06source\x18\x03 \x01(\x0e\x32\x39.org.apache.custos.resource.secret.service.ResourceSource\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\t\x12K\n\x04type\x18\x06 \x01(\x0e\x32=.org.apache.custos.resource.secret.service.ResourceSecretType\x12\x10\n\x08tenantId\x18\x07 \x01(\x03\x12\x10\n\x08owner_id\x18\x08 \x01(\t\x12\x16\n\x0epersisted_time\x18\t \x01(\x03\x12\r\n\x05token\x18\n \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x0b \x01(\t\x12\x11\n\tclient_id\x18\x0c \x01(\t\"\xb9\x02\n\x15\x43\x65rtificateCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x11\n\tx509_cert\x18\x03 \x01(\t\x12\x11\n\tnot_after\x18\x04 \x01(\t\x12\x13\n\x0bprivate_key\x18\x05 \x01(\t\x12\x11\n\tlife_time\x18\x06 \x01(\x03\x12\x12\n\nnot_before\x18\x07 \x01(\t\x12-\n%useShamirsSecretSharingWithEncryption\x18\x08 \x01(\x08\x12\x13\n\x0bnumOfShares\x18\t \x01(\x05\x12\x11\n\tthreshold\x18\n \x01(\x05\x12\x1a\n\x12private_key_shares\x18\x0b \x03(\x0c\"\xe1\x01\n\x12PasswordCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x10\n\x08password\x18\x03 \x01(\t\x12-\n%useShamirsSecretSharingWithEncryption\x18\x04 \x01(\x08\x12\x13\n\x0bnumOfShares\x18\x05 \x01(\x05\x12\x11\n\tthreshold\x18\x06 \x01(\x05\x12\x15\n\rsecret_shares\x18\x07 \x03(\x0c\"\x8c\x02\n\rSSHCredential\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x12\n\npassphrase\x18\x03 \x01(\t\x12\x12\n\npublic_key\x18\x04 \x01(\t\x12\x13\n\x0bprivate_key\x18\x05 \x01(\t\x12-\n%useShamirsSecretSharingWithEncryption\x18\x06 \x01(\x08\x12\x13\n\x0bnumOfShares\x18\x07 \x01(\x05\x12\x11\n\tthreshold\x18\x08 \x01(\x05\x12\x1a\n\x12private_key_shares\x18\t \x03(\x0c\"\xc6\x01\n#GetResourceCredentialByTokenRequest\x12\x10\n\x08tenantId\x18\x01 \x01(\x03\x12\r\n\x05token\x18\x02 \x01(\t\x12\x14\n\x0cperformed_by\x18\x03 \x01(\t\x12\x11\n\tclient_id\x18\x04 \x01(\t\x12-\n%useShamirsSecretSharingWithEncryption\x18\x05 \x01(\x08\x12\x13\n\x0bnumOfShares\x18\x06 \x01(\x05\x12\x11\n\tthreshold\x18\x07 \x01(\x05\"\xd3\x01\n%GetResourceCredentialSummariesRequest\x12\x45\n\x04type\x18\x01 \x01(\x0e\x32\x37.org.apache.custos.resource.secret.service.ResourceType\x12\x19\n\x11\x61\x63\x63\x65ssible_tokens\x18\x02 \x03(\t\x12\x10\n\x08tenantId\x18\x03 \x01(\x03\x12\x10\n\x08owner_id\x18\x04 \x01(\t\x12\x11\n\tall_types\x18\x05 \x01(\x08\x12\x11\n\tclient_id\x18\x06 \x01(\t\"j\n\x1bResourceCredentialSummaries\x12K\n\x08metadata\x18\x01 \x03(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\".\n\x1d\x41\x64\x64ResourceCredentialResponse\x12\r\n\x05token\x18\x01 \x01(\t\"3\n!ResourceCredentialOperationStatus\x12\x0e\n\x06status\x18\x01 \x01(\x08\"\x86\x01\n\x0cKVCredential\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\x12K\n\x08metadata\x18\x03 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\r\n\x05token\x18\x04 \x01(\t\"\x99\x01\n\x10GetSecretRequest\x12K\n\x08metadata\x18\x01 \x01(\x0b\x32\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\x11\n\tclient_id\x18\x02 \x01(\t\x12\x11\n\ttenant_id\x18\x03 \x01(\x03\x12\x12\n\nclient_sec\x18\x04 \x01(\t*<\n\x11ResourceOwnerType\x12\x0f\n\x0bTENANT_USER\x10\x00\x12\n\n\x06\x43USTOS\x10\x01\x12\n\n\x06TENANT\x10\x02*y\n\x0cResourceType\x12\x16\n\x12SERVER_CERTIFICATE\x10\x00\x12\x1b\n\x17JWT_SIGNING_CERTIFICATE\x10\x01\x12\x14\n\x10VAULT_CREDENTIAL\x10\x02\x12\x06\n\x02VM\x10\x03\x12\x0b\n\x07\x41\x43\x43OUNT\x10\x04\x12\t\n\x05OTHER\x10\x05*D\n\x0eResourceSource\x12\x08\n\x04KUBE\x10\x00\x12\t\n\x05LOCAL\x10\x01\x12\x0c\n\x08\x45XTERNAL\x10\x02\x12\x0f\n\x0bLETSENCRYPT\x10\x03*W\n\x12ResourceSecretType\x12\x07\n\x03SSH\x10\x00\x12\x0c\n\x08PASSWORD\x10\x01\x12\x14\n\x10X509_CERTIFICATE\x10\x02\x12\x0c\n\x08RAW_DATA\x10\x03\x12\x06\n\x02KV\x10\x04\x32\xe6\x13\n\x15ResourceSecretService\x12\x83\x01\n\x0fgetKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1a\x37.org.apache.custos.resource.secret.service.KVCredential\x12\x98\x01\n\x0fsetKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\x9b\x01\n\x12updateKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\x9b\x01\n\x12\x64\x65leteKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\xa9\x01\n\x1cgetResourceCredentialSummary\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\x12\xbd\x01\n!getAllResourceCredentialSummaries\x12P.org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest\x1a\x46.org.apache.custos.resource.secret.service.ResourceCredentialSummaries\x12\x96\x01\n\x10\x61\x64\x64SSHCredential\x12\x38.org.apache.custos.resource.secret.service.SSHCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\xa0\x01\n\x15\x61\x64\x64PasswordCredential\x12=.org.apache.custos.resource.secret.service.PasswordCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\xa6\x01\n\x18\x61\x64\x64\x43\x65rtificateCredential\x12@.org.apache.custos.resource.secret.service.CertificateCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\x12\x9c\x01\n\x10getSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x38.org.apache.custos.resource.secret.service.SSHCredential\x12\xa6\x01\n\x15getPasswordCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a=.org.apache.custos.resource.secret.service.PasswordCredential\x12\xac\x01\n\x18getCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a@.org.apache.custos.resource.secret.service.CertificateCredential\x12\xb3\x01\n\x13\x64\x65leteSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\xb3\x01\n\x13\x64\x65letePWDCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\x12\xbb\x01\n\x1b\x64\x65leteCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatusB\x02P\x01\x62\x06proto3'
 )
 
 _RESOURCEOWNERTYPE = _descriptor.EnumDescriptor(
@@ -48,8 +48,8 @@ _RESOURCEOWNERTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1735,
-  serialized_end=1795,
+  serialized_start=2283,
+  serialized_end=2343,
 )
 _sym_db.RegisterEnumDescriptor(_RESOURCEOWNERTYPE)
 
@@ -76,11 +76,26 @@ _RESOURCETYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='VM', index=3, number=3,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='ACCOUNT', index=4, number=4,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='OTHER', index=5, number=5,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1797,
-  serialized_end=1886,
+  serialized_start=2345,
+  serialized_end=2466,
 )
 _sym_db.RegisterEnumDescriptor(_RESOURCETYPE)
 
@@ -115,8 +130,8 @@ _RESOURCESOURCE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1888,
-  serialized_end=1956,
+  serialized_start=2468,
+  serialized_end=2536,
 )
 _sym_db.RegisterEnumDescriptor(_RESOURCESOURCE)
 
@@ -143,11 +158,21 @@ _RESOURCESECRETTYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='RAW_DATA', index=3, number=3,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='KV', index=4, number=4,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1958,
-  serialized_end=2023,
+  serialized_start=2538,
+  serialized_end=2625,
 )
 _sym_db.RegisterEnumDescriptor(_RESOURCESECRETTYPE)
 
@@ -158,6 +183,9 @@ TENANT = 2
 SERVER_CERTIFICATE = 0
 JWT_SIGNING_CERTIFICATE = 1
 VAULT_CREDENTIAL = 2
+VM = 3
+ACCOUNT = 4
+OTHER = 5
 KUBE = 0
 LOCAL = 1
 EXTERNAL = 2
@@ -165,6 +193,8 @@ LETSENCRYPT = 3
 SSH = 0
 PASSWORD = 1
 X509_CERTIFICATE = 2
+RAW_DATA = 3
+KV = 4
 
 
 
@@ -277,66 +307,6 @@ _SECRETMETADATA = _descriptor.Descriptor(
 )
 
 
-_GETSECRETREQUEST = _descriptor.Descriptor(
-  name='GetSecretRequest',
-  full_name='org.apache.custos.resource.secret.service.GetSecretRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='metadata', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.metadata', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='tenantId', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.tenantId', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='clientId', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.clientId', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='clientSec', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.clientSec', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='accessToken', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.accessToken', index=4,
-      number=5, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=552,
-  serialized_end=723,
-)
-
-
 _CERTIFICATECREDENTIAL = _descriptor.Descriptor(
   name='CertificateCredential',
   full_name='org.apache.custos.resource.secret.service.CertificateCredential',
@@ -387,6 +357,34 @@ _CERTIFICATECREDENTIAL = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='useShamirsSecretSharingWithEncryption', full_name='org.apache.custos.resource.secret.service.CertificateCredential.useShamirsSecretSharingWithEncryption', index=6,
+      number=8, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='numOfShares', full_name='org.apache.custos.resource.secret.service.CertificateCredential.numOfShares', index=7,
+      number=9, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='org.apache.custos.resource.secret.service.CertificateCredential.threshold', index=8,
+      number=10, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='private_key_shares', full_name='org.apache.custos.resource.secret.service.CertificateCredential.private_key_shares', index=9,
+      number=11, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -399,8 +397,8 @@ _CERTIFICATECREDENTIAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=726,
-  serialized_end=924,
+  serialized_start=552,
+  serialized_end=865,
 )
 
 
@@ -426,6 +424,34 @@ _PASSWORDCREDENTIAL = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='useShamirsSecretSharingWithEncryption', full_name='org.apache.custos.resource.secret.service.PasswordCredential.useShamirsSecretSharingWithEncryption', index=2,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='numOfShares', full_name='org.apache.custos.resource.secret.service.PasswordCredential.numOfShares', index=3,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='org.apache.custos.resource.secret.service.PasswordCredential.threshold', index=4,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='secret_shares', full_name='org.apache.custos.resource.secret.service.PasswordCredential.secret_shares', index=5,
+      number=7, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -438,8 +464,8 @@ _PASSWORDCREDENTIAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=926,
-  serialized_end=1041,
+  serialized_start=868,
+  serialized_end=1093,
 )
 
 
@@ -479,6 +505,34 @@ _SSHCREDENTIAL = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='useShamirsSecretSharingWithEncryption', full_name='org.apache.custos.resource.secret.service.SSHCredential.useShamirsSecretSharingWithEncryption', index=4,
+      number=6, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='numOfShares', full_name='org.apache.custos.resource.secret.service.SSHCredential.numOfShares', index=5,
+      number=7, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='org.apache.custos.resource.secret.service.SSHCredential.threshold', index=6,
+      number=8, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='private_key_shares', full_name='org.apache.custos.resource.secret.service.SSHCredential.private_key_shares', index=7,
+      number=9, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -491,8 +545,8 @@ _SSHCREDENTIAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1044,
-  serialized_end=1197,
+  serialized_start=1096,
+  serialized_end=1364,
 )
 
 
@@ -532,6 +586,27 @@ _GETRESOURCECREDENTIALBYTOKENREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='useShamirsSecretSharingWithEncryption', full_name='org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest.useShamirsSecretSharingWithEncryption', index=4,
+      number=5, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='numOfShares', full_name='org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest.numOfShares', index=5,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest.threshold', index=6,
+      number=7, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -544,8 +619,8 @@ _GETRESOURCECREDENTIALBYTOKENREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1199,
-  serialized_end=1310,
+  serialized_start=1367,
+  serialized_end=1565,
 )
 
 
@@ -611,8 +686,8 @@ _GETRESOURCECREDENTIALSUMMARIESREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1313,
-  serialized_end=1524,
+  serialized_start=1568,
+  serialized_end=1779,
 )
 
 
@@ -643,8 +718,8 @@ _RESOURCECREDENTIALSUMMARIES = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1526,
-  serialized_end=1632,
+  serialized_start=1781,
+  serialized_end=1887,
 )
 
 
@@ -675,8 +750,8 @@ _ADDRESOURCECREDENTIALRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1634,
-  serialized_end=1680,
+  serialized_start=1889,
+  serialized_end=1935,
 )
 
 
@@ -707,22 +782,128 @@ _RESOURCECREDENTIALOPERATIONSTATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1682,
-  serialized_end=1733,
+  serialized_start=1937,
+  serialized_end=1988,
+)
+
+
+_KVCREDENTIAL = _descriptor.Descriptor(
+  name='KVCredential',
+  full_name='org.apache.custos.resource.secret.service.KVCredential',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='org.apache.custos.resource.secret.service.KVCredential.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='org.apache.custos.resource.secret.service.KVCredential.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='org.apache.custos.resource.secret.service.KVCredential.metadata', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='token', full_name='org.apache.custos.resource.secret.service.KVCredential.token', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1991,
+  serialized_end=2125,
+)
+
+
+_GETSECRETREQUEST = _descriptor.Descriptor(
+  name='GetSecretRequest',
+  full_name='org.apache.custos.resource.secret.service.GetSecretRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.metadata', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='client_id', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.client_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='tenant_id', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.tenant_id', index=2,
+      number=3, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='client_sec', full_name='org.apache.custos.resource.secret.service.GetSecretRequest.client_sec', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2128,
+  serialized_end=2281,
 )
 
 _SECRETMETADATA.fields_by_name['owner_type'].enum_type = _RESOURCEOWNERTYPE
 _SECRETMETADATA.fields_by_name['resource_type'].enum_type = _RESOURCETYPE
 _SECRETMETADATA.fields_by_name['source'].enum_type = _RESOURCESOURCE
 _SECRETMETADATA.fields_by_name['type'].enum_type = _RESOURCESECRETTYPE
-_GETSECRETREQUEST.fields_by_name['metadata'].message_type = _SECRETMETADATA
 _CERTIFICATECREDENTIAL.fields_by_name['metadata'].message_type = _SECRETMETADATA
 _PASSWORDCREDENTIAL.fields_by_name['metadata'].message_type = _SECRETMETADATA
 _SSHCREDENTIAL.fields_by_name['metadata'].message_type = _SECRETMETADATA
 _GETRESOURCECREDENTIALSUMMARIESREQUEST.fields_by_name['type'].enum_type = _RESOURCETYPE
 _RESOURCECREDENTIALSUMMARIES.fields_by_name['metadata'].message_type = _SECRETMETADATA
+_KVCREDENTIAL.fields_by_name['metadata'].message_type = _SECRETMETADATA
+_GETSECRETREQUEST.fields_by_name['metadata'].message_type = _SECRETMETADATA
 DESCRIPTOR.message_types_by_name['SecretMetadata'] = _SECRETMETADATA
-DESCRIPTOR.message_types_by_name['GetSecretRequest'] = _GETSECRETREQUEST
 DESCRIPTOR.message_types_by_name['CertificateCredential'] = _CERTIFICATECREDENTIAL
 DESCRIPTOR.message_types_by_name['PasswordCredential'] = _PASSWORDCREDENTIAL
 DESCRIPTOR.message_types_by_name['SSHCredential'] = _SSHCREDENTIAL
@@ -731,6 +912,8 @@ DESCRIPTOR.message_types_by_name['GetResourceCredentialSummariesRequest'] = _GET
 DESCRIPTOR.message_types_by_name['ResourceCredentialSummaries'] = _RESOURCECREDENTIALSUMMARIES
 DESCRIPTOR.message_types_by_name['AddResourceCredentialResponse'] = _ADDRESOURCECREDENTIALRESPONSE
 DESCRIPTOR.message_types_by_name['ResourceCredentialOperationStatus'] = _RESOURCECREDENTIALOPERATIONSTATUS
+DESCRIPTOR.message_types_by_name['KVCredential'] = _KVCREDENTIAL
+DESCRIPTOR.message_types_by_name['GetSecretRequest'] = _GETSECRETREQUEST
 DESCRIPTOR.enum_types_by_name['ResourceOwnerType'] = _RESOURCEOWNERTYPE
 DESCRIPTOR.enum_types_by_name['ResourceType'] = _RESOURCETYPE
 DESCRIPTOR.enum_types_by_name['ResourceSource'] = _RESOURCESOURCE
@@ -743,13 +926,6 @@ SecretMetadata = _reflection.GeneratedProtocolMessageType('SecretMetadata', (_me
   # @@protoc_insertion_point(class_scope:org.apache.custos.resource.secret.service.SecretMetadata)
   })
 _sym_db.RegisterMessage(SecretMetadata)
-
-GetSecretRequest = _reflection.GeneratedProtocolMessageType('GetSecretRequest', (_message.Message,), {
-  'DESCRIPTOR' : _GETSECRETREQUEST,
-  '__module__' : 'ResourceSecretService_pb2'
-  # @@protoc_insertion_point(class_scope:org.apache.custos.resource.secret.service.GetSecretRequest)
-  })
-_sym_db.RegisterMessage(GetSecretRequest)
 
 CertificateCredential = _reflection.GeneratedProtocolMessageType('CertificateCredential', (_message.Message,), {
   'DESCRIPTOR' : _CERTIFICATECREDENTIAL,
@@ -807,6 +983,20 @@ ResourceCredentialOperationStatus = _reflection.GeneratedProtocolMessageType('Re
   })
 _sym_db.RegisterMessage(ResourceCredentialOperationStatus)
 
+KVCredential = _reflection.GeneratedProtocolMessageType('KVCredential', (_message.Message,), {
+  'DESCRIPTOR' : _KVCREDENTIAL,
+  '__module__' : 'ResourceSecretService_pb2'
+  # @@protoc_insertion_point(class_scope:org.apache.custos.resource.secret.service.KVCredential)
+  })
+_sym_db.RegisterMessage(KVCredential)
+
+GetSecretRequest = _reflection.GeneratedProtocolMessageType('GetSecretRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETSECRETREQUEST,
+  '__module__' : 'ResourceSecretService_pb2'
+  # @@protoc_insertion_point(class_scope:org.apache.custos.resource.secret.service.GetSecretRequest)
+  })
+_sym_db.RegisterMessage(GetSecretRequest)
+
 
 DESCRIPTOR._options = None
 
@@ -817,23 +1007,53 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2026,
-  serialized_end=4089,
+  serialized_start=2628,
+  serialized_end=5162,
   methods=[
   _descriptor.MethodDescriptor(
-    name='getSecret',
-    full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getSecret',
+    name='getKVCredential',
+    full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getKVCredential',
     index=0,
     containing_service=None,
-    input_type=_GETSECRETREQUEST,
-    output_type=_SECRETMETADATA,
+    input_type=_KVCREDENTIAL,
+    output_type=_KVCREDENTIAL,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='setKVCredential',
+    full_name='org.apache.custos.resource.secret.service.ResourceSecretService.setKVCredential',
+    index=1,
+    containing_service=None,
+    input_type=_KVCREDENTIAL,
+    output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='updateKVCredential',
+    full_name='org.apache.custos.resource.secret.service.ResourceSecretService.updateKVCredential',
+    index=2,
+    containing_service=None,
+    input_type=_KVCREDENTIAL,
+    output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='deleteKVCredential',
+    full_name='org.apache.custos.resource.secret.service.ResourceSecretService.deleteKVCredential',
+    index=3,
+    containing_service=None,
+    input_type=_KVCREDENTIAL,
+    output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
     name='getResourceCredentialSummary',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getResourceCredentialSummary',
-    index=1,
+    index=4,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_SECRETMETADATA,
@@ -843,7 +1063,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getAllResourceCredentialSummaries',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getAllResourceCredentialSummaries',
-    index=2,
+    index=5,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALSUMMARIESREQUEST,
     output_type=_RESOURCECREDENTIALSUMMARIES,
@@ -853,7 +1073,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addSSHCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.addSSHCredential',
-    index=3,
+    index=6,
     containing_service=None,
     input_type=_SSHCREDENTIAL,
     output_type=_ADDRESOURCECREDENTIALRESPONSE,
@@ -863,7 +1083,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addPasswordCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.addPasswordCredential',
-    index=4,
+    index=7,
     containing_service=None,
     input_type=_PASSWORDCREDENTIAL,
     output_type=_ADDRESOURCECREDENTIALRESPONSE,
@@ -873,7 +1093,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addCertificateCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.addCertificateCredential',
-    index=5,
+    index=8,
     containing_service=None,
     input_type=_CERTIFICATECREDENTIAL,
     output_type=_ADDRESOURCECREDENTIALRESPONSE,
@@ -883,7 +1103,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getSSHCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getSSHCredential',
-    index=6,
+    index=9,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_SSHCREDENTIAL,
@@ -893,7 +1113,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getPasswordCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getPasswordCredential',
-    index=7,
+    index=10,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_PASSWORDCREDENTIAL,
@@ -903,7 +1123,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getCertificateCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.getCertificateCredential',
-    index=8,
+    index=11,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_CERTIFICATECREDENTIAL,
@@ -913,7 +1133,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deleteSSHCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.deleteSSHCredential',
-    index=9,
+    index=12,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
@@ -923,7 +1143,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deletePWDCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.deletePWDCredential',
-    index=10,
+    index=13,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
@@ -933,7 +1153,7 @@ _RESOURCESECRETSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deleteCertificateCredential',
     full_name='org.apache.custos.resource.secret.service.ResourceSecretService.deleteCertificateCredential',
-    index=11,
+    index=14,
     containing_service=None,
     input_type=_GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=_RESOURCECREDENTIALOPERATIONSTATUS,
