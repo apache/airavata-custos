@@ -156,6 +156,27 @@ public class ResourceSecretManagementClient {
 
     }
 
+    public AddResourceCredentialResponse addSSHCredential(String token, String passphrase, String privateKey,
+                                                          String publicKey, String clientId, String description, String ownerId) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        SSHCredential sshCredential = SSHCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPassphrase(passphrase)
+                .setPrivateKey(privateKey)
+                .setPublicKey(publicKey).build();
+
+        return blockingStub.addSSHCredential(sshCredential);
+
+    }
+
+
     /**
      * Save password credentials
      *
@@ -170,6 +191,25 @@ public class ResourceSecretManagementClient {
                 .setClientId(clientId)
                 .setDescription(description)
                 .setOwnerId(ownerId).build();
+
+
+        PasswordCredential sshCredential = PasswordCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPassword(password)
+                .build();
+
+        return blockingStub.addPasswordCredential(sshCredential);
+
+    }
+
+    public AddResourceCredentialResponse addPasswordCredential(String token, String clientId, String description, String ownerId, String password) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
 
 
         PasswordCredential sshCredential = PasswordCredential

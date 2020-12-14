@@ -14,10 +14,25 @@ class ResourceSecretServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.getSecret = channel.unary_unary(
-                '/org.apache.custos.resource.secret.service.ResourceSecretService/getSecret',
-                request_serializer=ResourceSecretService__pb2.GetSecretRequest.SerializeToString,
-                response_deserializer=ResourceSecretService__pb2.SecretMetadata.FromString,
+        self.getKVCredential = channel.unary_unary(
+                '/org.apache.custos.resource.secret.service.ResourceSecretService/getKVCredential',
+                request_serializer=ResourceSecretService__pb2.KVCredential.SerializeToString,
+                response_deserializer=ResourceSecretService__pb2.KVCredential.FromString,
+                )
+        self.setKVCredential = channel.unary_unary(
+                '/org.apache.custos.resource.secret.service.ResourceSecretService/setKVCredential',
+                request_serializer=ResourceSecretService__pb2.KVCredential.SerializeToString,
+                response_deserializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
+                )
+        self.updateKVCredential = channel.unary_unary(
+                '/org.apache.custos.resource.secret.service.ResourceSecretService/updateKVCredential',
+                request_serializer=ResourceSecretService__pb2.KVCredential.SerializeToString,
+                response_deserializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
+                )
+        self.deleteKVCredential = channel.unary_unary(
+                '/org.apache.custos.resource.secret.service.ResourceSecretService/deleteKVCredential',
+                request_serializer=ResourceSecretService__pb2.KVCredential.SerializeToString,
+                response_deserializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
                 )
         self.getResourceCredentialSummary = channel.unary_unary(
                 '/org.apache.custos.resource.secret.service.ResourceSecretService/getResourceCredentialSummary',
@@ -79,7 +94,25 @@ class ResourceSecretServiceStub(object):
 class ResourceSecretServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def getSecret(self, request, context):
+    def getKVCredential(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def setKVCredential(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def updateKVCredential(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def deleteKVCredential(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -154,10 +187,25 @@ class ResourceSecretServiceServicer(object):
 
 def add_ResourceSecretServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'getSecret': grpc.unary_unary_rpc_method_handler(
-                    servicer.getSecret,
-                    request_deserializer=ResourceSecretService__pb2.GetSecretRequest.FromString,
-                    response_serializer=ResourceSecretService__pb2.SecretMetadata.SerializeToString,
+            'getKVCredential': grpc.unary_unary_rpc_method_handler(
+                    servicer.getKVCredential,
+                    request_deserializer=ResourceSecretService__pb2.KVCredential.FromString,
+                    response_serializer=ResourceSecretService__pb2.KVCredential.SerializeToString,
+            ),
+            'setKVCredential': grpc.unary_unary_rpc_method_handler(
+                    servicer.setKVCredential,
+                    request_deserializer=ResourceSecretService__pb2.KVCredential.FromString,
+                    response_serializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.SerializeToString,
+            ),
+            'updateKVCredential': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateKVCredential,
+                    request_deserializer=ResourceSecretService__pb2.KVCredential.FromString,
+                    response_serializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.SerializeToString,
+            ),
+            'deleteKVCredential': grpc.unary_unary_rpc_method_handler(
+                    servicer.deleteKVCredential,
+                    request_deserializer=ResourceSecretService__pb2.KVCredential.FromString,
+                    response_serializer=ResourceSecretService__pb2.ResourceCredentialOperationStatus.SerializeToString,
             ),
             'getResourceCredentialSummary': grpc.unary_unary_rpc_method_handler(
                     servicer.getResourceCredentialSummary,
@@ -225,7 +273,7 @@ class ResourceSecretService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def getSecret(request,
+    def getKVCredential(request,
             target,
             options=(),
             channel_credentials=None,
@@ -235,9 +283,60 @@ class ResourceSecretService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/org.apache.custos.resource.secret.service.ResourceSecretService/getSecret',
-            ResourceSecretService__pb2.GetSecretRequest.SerializeToString,
-            ResourceSecretService__pb2.SecretMetadata.FromString,
+        return grpc.experimental.unary_unary(request, target, '/org.apache.custos.resource.secret.service.ResourceSecretService/getKVCredential',
+            ResourceSecretService__pb2.KVCredential.SerializeToString,
+            ResourceSecretService__pb2.KVCredential.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def setKVCredential(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/org.apache.custos.resource.secret.service.ResourceSecretService/setKVCredential',
+            ResourceSecretService__pb2.KVCredential.SerializeToString,
+            ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def updateKVCredential(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/org.apache.custos.resource.secret.service.ResourceSecretService/updateKVCredential',
+            ResourceSecretService__pb2.KVCredential.SerializeToString,
+            ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def deleteKVCredential(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/org.apache.custos.resource.secret.service.ResourceSecretService/deleteKVCredential',
+            ResourceSecretService__pb2.KVCredential.SerializeToString,
+            ResourceSecretService__pb2.ResourceCredentialOperationStatus.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

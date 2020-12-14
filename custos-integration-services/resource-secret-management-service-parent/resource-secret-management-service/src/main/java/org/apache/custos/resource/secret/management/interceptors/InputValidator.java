@@ -79,7 +79,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
                     throw new MissingParameterException("At least key or token should be added ", null);
                 }
 
-                if ((value == null || value.trim().equals(""))) {
+                if ((method.equals("addKVCredential") || method.equals("updateKVCredential")) && (value == null || value.trim().equals(""))) {
                     throw new MissingParameterException("Vaule should not be null ", null);
                 }
 
