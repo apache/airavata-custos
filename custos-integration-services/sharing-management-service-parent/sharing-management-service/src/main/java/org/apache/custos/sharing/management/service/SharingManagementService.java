@@ -581,13 +581,7 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             long tenantId = request.getTenantId();
 
 
-            for (String username : request.getOwnerIdList()) {
-
-                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-            }
-
             UserProfile profile = UserProfile.newBuilder().setUsername(request.getOwnerId(0)).build();
-
 
             UserProfileRequest userProfileRequest = UserProfileRequest.newBuilder()
                     .setTenantId(tenantId)
@@ -609,6 +603,10 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             responseObserver.onNext(status);
             responseObserver.onCompleted();
 
+            for (String username : request.getOwnerIdList()) {
+
+                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred at userHasAccess " + ex.getMessage();
