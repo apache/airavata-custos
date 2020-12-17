@@ -166,12 +166,12 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while updating KV credential")
             raise
 
-    def delete_KV_credential(self, token, user_token, client_id, key, value):
+    def delete_KV_credential(self, token, user_token, client_id, key):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
-            request = KVCredential(key=key, value=value, metadata=secret_metadata)
+            request = KVCredential(key=key, metadata=secret_metadata)
 
             msg = self.resource_sec_client.deleteKVCredential(request=request, metadata=metadata)
             return MessageToJson(msg)
