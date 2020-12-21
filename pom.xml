@@ -44,6 +44,7 @@
         <module>custos-client-sdks</module>
         <module>custos-tests</module>
         <module>custos-external-services-distributions</module>
+        <module>custos-utilities/cert-updater</module>
     </modules>
 
     <dependencyManagement>
@@ -456,6 +457,21 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>cert-update</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${maven.exec.plugin.version}</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -535,6 +551,8 @@
         <io.commons.version>2.7</io.commons.version>
 
         <com.codahale.version>0.7.0</com.codahale.version>
+
+        <maven.exec.plugin.version>1.1.1</maven.exec.plugin.version>
 
 
     </properties>
