@@ -36,7 +36,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Enumeration;
 
 public class KeystoreHandler {
 
