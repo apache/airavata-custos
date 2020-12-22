@@ -44,9 +44,9 @@ spec:
             httpGet:
               path: /actuator/health
               port: {{ .Values.service.port }}
-              initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-              periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-              successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
           resources:
               {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
