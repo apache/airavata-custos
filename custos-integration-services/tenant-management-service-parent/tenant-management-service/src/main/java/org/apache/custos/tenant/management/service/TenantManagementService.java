@@ -382,6 +382,35 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
+    public void validateTenant(TenantValidationRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            GetCredentialRequest credentialRequest = GetCredentialRequest
+                    .newBuilder()
+                    .setId(request.getClientId()).build();
+
+
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(credentialRequest);
+
+            if (metadata.getSecret() != null || metadata.getSecret().trim().
+                    equals(request.getClientSec().trim())) {
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                OperationStatus status = OperationStatus.newBuilder().setStatus(false).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while validating tenant with Id " + request.getClientId()
+                    + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void addTenantRoles(AddRolesRequest request, StreamObserver<AllRoles> responseObserver) {
         try {
             AllRoles allRoles = iamAdminServiceClient.addRolesToTenant(request);

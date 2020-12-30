@@ -27,6 +27,7 @@ import org.apache.custos.integration.core.interceptor.IntegrationServiceIntercep
 import org.apache.custos.tenant.management.exceptions.MissingParameterException;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
 import org.apache.custos.tenant.management.service.GetTenantRequest;
+import org.apache.custos.tenant.management.service.TenantValidationRequest;
 import org.apache.custos.tenant.management.service.UpdateTenantRequest;
 import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
@@ -65,6 +66,9 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 break;
             case "deleteTenant":
                 validateDeleteTenant(headers, body, methodName);
+                break;
+            case "validateTenant":
+                validateTenant(headers, body, methodName);
                 break;
             case "addTenantRoles":
                 validateAddRoleToTenant(headers, body, methodName);
@@ -179,6 +183,21 @@ public class InputValidator implements IntegrationServiceInterceptor {
 
         if (updateStatusRequest.getClientId() == null || updateStatusRequest.getClientId().trim().equals("")) {
             throw new MissingParameterException("Client Id should not be null", null);
+        }
+        return true;
+    }
+
+
+    private boolean validateTenant(Metadata headers, Object body, String method) {
+        validationAuthorizationHeader(headers);
+
+        TenantValidationRequest updateStatusRequest = ((TenantValidationRequest) body);
+
+        if (updateStatusRequest.getClientId() == null || updateStatusRequest.getClientId().trim().equals("")) {
+            throw new MissingParameterException("Client Id should not be null", null);
+        }
+        if (updateStatusRequest.getClientSec() == null || updateStatusRequest.getClientSec().trim().equals("")) {
+            throw new MissingParameterException("Client Secret should not be null", null);
         }
         return true;
     }
