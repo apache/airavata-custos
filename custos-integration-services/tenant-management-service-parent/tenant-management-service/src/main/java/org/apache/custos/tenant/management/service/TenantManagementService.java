@@ -27,7 +27,6 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
 import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
-import org.apache.custos.federated.authentication.service.GetInstitutionsIdsAsResponse;
 import org.apache.custos.federated.authentication.service.GetInstitutionsResponse;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.OperationStatus;
@@ -42,6 +41,7 @@ import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.T
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
 import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.*;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.UserProfile;
@@ -52,7 +52,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -149,7 +148,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
     @Override
-    public void getTenant(GetTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
+    public void getTenant(GetTenantRequest request, StreamObserver<Tenant> responseObserver) {
         try {
 
             Tenant tenant = request.getTenant(); // retrieved cached tenant from interceptors
@@ -162,50 +161,18 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 org.apache.custos.tenant.profile.service.GetTenantResponse response =
                         profileClient.getTenant(tenantReq);
                 tenant = response.getTenant();
+
             }
+            GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CUSTOS).build();
 
-            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
+            CredentialMetadata metadata = credentialStoreServiceClient.
+                    getCredential(credentialRequest);
 
-            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+            tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
 
-                GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
-                        .setOwnerId(tenant.getTenantId())
-                        .setId(request.getClientId())
-                        .setType(Type.CUSTOS).build();
-
-                clientIdIssuedAt = credentialStoreServiceClient.
-                        getCredential(credentialRequest).getClientIdIssuedAt();
-            }
-
-
-            String[] grantTypes = {Constants.AUTHORIZATION_CODE};
-
-            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setAdminEmail(tenant.getAdminEmail())
-                    .setAdminFirstName(tenant.getAdminFirstName())
-                    .setAdminLastName(tenant.getAdminLastName())
-                    .setAdminUsername(tenant.getAdminUsername())
-                    .setRequesterEmail(tenant.getRequesterEmail())
-                    .setApplicationType(tenant.getApplicationType())
-                    .setClientName(tenant.getClientName())
-                    .setClientUri(tenant.getClientUri())
-                    .setComment(tenant.getComment())
-                    .setDomain(tenant.getDomain())
-                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
-                    .setJwksUri(tenant.getJwksUri())
-                    .addAllContacts(tenant.getContactsList())
-                    .addAllRedirectUris(tenant.getRedirectUrisList())
-                    .setLogoUri(tenant.getLogoUri())
-                    .setPolicyUri(tenant.getPolicyUri())
-                    .setTosUri(tenant.getTosUri())
-                    .setScope(tenant.getScope())
-                    .setSoftwareId(tenant.getSoftwareId())
-                    .setSoftwareVersion(tenant.getSoftwareVersion())
-                    .addAllGrantTypes(Arrays.asList(grantTypes))
-                    .setClientIdIssuedAt(clientIdIssuedAt)
-                    .build();
-            responseObserver.onNext(tenantResponse);
+            responseObserver.onNext(tenant);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -217,115 +184,110 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
-    public void updateTenant(UpdateTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
+    public void updateTenant(UpdateTenantRequest request, StreamObserver<Tenant> responseObserver) {
 
         try {
             Tenant tenant = request.getBody();
 
             tenant = tenant.toBuilder().setTenantId(request.getTenantId()).build();
 
+            org.apache.custos.tenant.profile.service.GetTenantRequest tenantRequest =
+                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder()
+                            .setTenantId(request.getTenantId()).build();
+
+            GetTenantResponse tenantResponse = profileClient.getTenant(tenantRequest);
+
+            if (tenantResponse.getTenant() == null && tenantResponse.getTenant().getTenantId() == 0) {
+                String msg = "Cannot find tenant with Tenant name" + tenant.getClientName();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            Tenant exTenant = tenantResponse.getTenant();
+
+            tenant = tenant.toBuilder().setTenantStatus(exTenant.getTenantStatus()).build();
+
+            GetCredentialRequest passwordRequest = GetCredentialRequest
+                    .newBuilder()
+                    .setId(tenant.getAdminUsername())
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.INDIVIDUAL)
+                    .build();
+            CredentialMetadata metadata = credentialStoreServiceClient.getCredential(passwordRequest);
+
+            if (metadata != null && metadata.getSecret() != null) {
+
+                tenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
+            }
+
             Tenant updateTenant = profileClient.updateTenant(tenant);
 
-            tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN, true);
+            GetCredentialRequest clientIdRequest = GetCredentialRequest.newBuilder()
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CUSTOS).build();
 
-            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
+            CredentialMetadata idMeta = credentialStoreServiceClient.
+                    getCredential(clientIdRequest);
 
+            tenant = tenant.toBuilder().setClientId(idMeta.getId()).build();
 
-            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+            if (tenant.getTenantStatus().equals(TenantStatus.ACTIVE)) {
 
+                tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN, true);
                 GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                         .setOwnerId(tenant.getTenantId())
                         .setId(request.getClientId())
-                        .setType(Type.CUSTOS).build();
+                        .setType(Type.IAM).build();
 
-                clientIdIssuedAt = credentialStoreServiceClient.
-                        getCredential(credentialRequest).getClientIdIssuedAt();
-            }
-
-
-            String[] grantTypes = {Constants.AUTHORIZATION_CODE,
-                    Constants.CLIENT_CREDENTIALS,
-                    Constants.PASSWORD_GRANT_TYPE,
-                    Constants.REFRESH_TOKEN};
-
-            GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
-                    .setOwnerId(tenant.getTenantId())
-                    .setId(request.getClientId())
-                    .setType(Type.IAM).build();
-
-            CredentialMetadata iamCredential = credentialStoreServiceClient.
-                    getCredential(credentialRequest);
+                CredentialMetadata iamCredential = credentialStoreServiceClient.
+                        getCredential(credentialRequest);
 
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(iamCredential.getId())
-                    .setClientSecret(iamCredential.getSecret())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-                UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                         .newBuilder()
-                        .setUsername(tenant.getAdminUsername())
-                        .build();
-
-                UserSearchRequest searchRequest = UserSearchRequest.newBuilder().
-                        setTenantId(request.getTenantId())
-                        .setPerformedBy(Constants.GATEWAY_ADMIN)
-                        .setAccessToken(token.getAccessToken())
-                        .setUser(userSearchMetadata)
-                        .build();
-
-                UserRepresentation userRepresentation = iamAdminServiceClient.getUser(searchRequest);
-
-                UserProfile profile = convertToProfile(userRepresentation);
-
-                UserProfileRequest userProfileRequest = UserProfileRequest
-                        .newBuilder()
-                        .setProfile(profile)
-                        .setPerformedBy(Constants.GATEWAY_ADMIN)
+                        .setClientId(iamCredential.getId())
+                        .setClientSecret(iamCredential.getSecret())
                         .setTenantId(request.getTenantId())
                         .build();
+                AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-                UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
+                if (token != null && token.getAccessToken() != null) {
+                    UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                            .newBuilder()
+                            .setUsername(tenant.getAdminUsername())
+                            .build();
 
-                if (userProfile == null || userProfile.getUsername().equals("")) {
-                    userProfileClient.createUserProfile(userProfileRequest);
-                } else {
-                    userProfileClient.updateUserProfile(userProfileRequest);
+                    UserSearchRequest searchRequest = UserSearchRequest.newBuilder().
+                            setTenantId(request.getTenantId())
+                            .setPerformedBy(Constants.GATEWAY_ADMIN)
+                            .setAccessToken(token.getAccessToken())
+                            .setUser(userSearchMetadata)
+                            .build();
+
+                    UserRepresentation userRepresentation = iamAdminServiceClient.getUser(searchRequest);
+
+                    UserProfile profile = convertToProfile(userRepresentation);
+
+                    UserProfileRequest userProfileRequest = UserProfileRequest
+                            .newBuilder()
+                            .setProfile(profile)
+                            .setPerformedBy(Constants.GATEWAY_ADMIN)
+                            .setTenantId(request.getTenantId())
+                            .build();
+
+                    UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
+
+                    if (userProfile == null || userProfile.getUsername().equals("")) {
+                        userProfileClient.createUserProfile(userProfileRequest);
+                    } else {
+                        userProfileClient.updateUserProfile(userProfileRequest);
+                    }
                 }
-
 
             }
 
-            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setAdminEmail(tenant.getAdminEmail())
-                    .setAdminFirstName(tenant.getAdminFirstName())
-                    .setAdminLastName(tenant.getAdminLastName())
-                    .setRequesterEmail(tenant.getRequesterEmail())
-                    .setApplicationType(tenant.getApplicationType())
-                    .setClientName(tenant.getClientName())
-                    .setClientUri(tenant.getClientUri())
-                    .setComment(tenant.getComment())
-                    .setDomain(tenant.getDomain())
-                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
-                    .setJwksUri(tenant.getJwksUri())
-                    .addAllContacts(tenant.getContactsList())
-                    .addAllRedirectUris(tenant.getRedirectUrisList())
-                    .setLogoUri(tenant.getLogoUri())
-                    .setPolicyUri(tenant.getPolicyUri())
-                    .setTosUri(tenant.getTosUri())
-                    .setScope(tenant.getScope())
-                    .setSoftwareId(tenant.getSoftwareId())
-                    .setSoftwareVersion(tenant.getSoftwareVersion())
-                    .addAllGrantTypes(Arrays.asList(grantTypes))
-                    .setClientIdIssuedAt(clientIdIssuedAt)
-                    .build();
-
-            responseObserver.onNext(tenantResponse);
+            responseObserver.onNext(tenant);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {

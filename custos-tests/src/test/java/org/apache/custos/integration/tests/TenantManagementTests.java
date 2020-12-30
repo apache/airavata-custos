@@ -6,6 +6,7 @@ import org.apache.custos.tenant.management.service.CreateTenantResponse;
 import org.apache.custos.tenant.management.service.GetTenantResponse;
 import org.apache.custos.tenant.manamgement.client.TenantManagementClient;
 import org.apache.custos.tenant.profile.service.GetAllTenantsResponse;
+import org.apache.custos.tenant.profile.service.Tenant;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +83,7 @@ public class TenantManagementTests {
     @Test(groups = {"tenant-management"}, dependsOnMethods = {"createTenant"})
     public void getTenant() {
         LOGGER.info("Executing getTenant test case ");
-        GetTenantResponse response = tenantManagementClient.getTenant(clientId);
+        Tenant response = tenantManagementClient.getTenant(clientId);
         Assert.assertEquals(response.getClientName(), "Testing tenant");
         Assert.assertEquals(response.getRequesterEmail(), "custos@airavata.apache.org");
         Assert.assertEquals(response.getScope(), "email openid profile org.cilogon.userinfo");
@@ -112,7 +113,7 @@ public class TenantManagementTests {
 
         String[] redirectURI = {"http://localhost:8080/callback", "http://localhost:8080/callback/updated"};
 
-        GetTenantResponse response = tenantManagementClient.updateTenant(clientId,
+        Tenant response = tenantManagementClient.updateTenant(clientId,
                 "Testing tenant updated",
                 "custos@airavata.apache.org",
                 "Merry",

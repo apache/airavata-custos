@@ -124,13 +124,13 @@ service TenantManagementService {
          };
     }
 
-    rpc getTenant (GetTenantRequest) returns (GetTenantResponse) {
+    rpc getTenant (GetTenantRequest) returns (org.apache.custos.tenant.profile.service.Tenant) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/oauth2/tenant"
         };
     }
 
-    rpc updateTenant (UpdateTenantRequest) returns (GetTenantResponse) {
+    rpc updateTenant (UpdateTenantRequest) returns (org.apache.custos.tenant.profile.service.Tenant) {
         option (google.api.http) = {
            put: "/tenant-management/v1.0.0/oauth2/tenant"
            body: "body"

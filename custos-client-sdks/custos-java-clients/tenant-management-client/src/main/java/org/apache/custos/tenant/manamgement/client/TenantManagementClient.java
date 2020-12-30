@@ -127,7 +127,7 @@ public class TenantManagementClient {
      * @param comment
      * @return
      */
-    public GetTenantResponse updateTenant(String clientId, String client_name, String requester_email, String admin_frist_name,
+    public Tenant updateTenant(String clientId, String client_name, String requester_email, String admin_frist_name,
                                           String admin_last_name, String admin_email, String admin_username,
                                           String admin_password, String[] contacts, String[] redirect_uris,
                                           String client_uri, String scope, String domain, String logo_uri,
@@ -160,7 +160,7 @@ public class TenantManagementClient {
     }
 
 
-    public GetTenantResponse getTenant(String clientId) {
+    public Tenant getTenant(String clientId) {
         GetTenantRequest tenantRequest = GetTenantRequest
                 .newBuilder()
                 .setClientId(clientId)

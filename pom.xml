@@ -393,7 +393,8 @@
                         <configuration>
                             <chartName>${project.artifactId}</chartName>
                             <chartFolder>src/main/helm</chartFolder>
-                            <chartRepoUrl>https://kubernetes-charts.storage.googleapis.com/</chartRepoUrl>
+<!--                            <chartRepoUrl>null</chartRepoUrl>-->
+                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
                             <helmVersion>2.16.0</helmVersion>
                             <strictLint>true</strictLint>
                             <valuesFile>src/main/helm/values.yaml</valuesFile>
@@ -503,7 +504,7 @@
         <docker.image.repo>custos</docker.image.repo>
         <docker.plugin.version>1.4.13</docker.plugin.version>
 
-        <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
+        <helm.maven.plugin.version>2.8.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
