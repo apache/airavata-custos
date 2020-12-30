@@ -391,7 +391,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(credentialRequest);
 
-            if (metadata.getSecret() != null || metadata.getSecret().trim().
+            if (metadata.getSecret() != null && metadata.getSecret().trim().
                     equals(request.getClientSec().trim())) {
                 OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
                 responseObserver.onNext(status);
