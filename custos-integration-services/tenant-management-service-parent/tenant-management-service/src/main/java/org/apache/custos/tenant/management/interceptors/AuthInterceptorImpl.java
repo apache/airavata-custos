@@ -75,7 +75,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         } else if (method.equals("getTenant")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             GetTenantRequest tenantRequest = ((GetTenantRequest) msg);
 
@@ -87,7 +87,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
         } else if (method.equals("updateTenant")) {
 
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             UpdateTenantRequest tenantRequest = ((UpdateTenantRequest) msg);
 
