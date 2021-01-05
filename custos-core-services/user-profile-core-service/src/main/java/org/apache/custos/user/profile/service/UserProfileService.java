@@ -467,7 +467,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 userGroupMembership.setUserGroupMembershipType(exist);
                 groupMembershipRepository.save(userGroupMembership);
 
-                Group exGroup = GroupMapper.createGroup(exOP.get(), ownerId);
+                Group exGroup = GroupMapper.createGroup(exOP.get(), userGroupMembership.getUserProfile().getUsername());
                 responseObserver.onNext(exGroup);
                 responseObserver.onCompleted();
             } else {

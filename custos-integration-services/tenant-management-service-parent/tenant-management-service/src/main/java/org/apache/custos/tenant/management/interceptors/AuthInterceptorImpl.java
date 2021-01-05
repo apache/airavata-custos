@@ -75,7 +75,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         } else if (method.equals("getTenant")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             GetTenantRequest tenantRequest = ((GetTenantRequest) msg);
 
@@ -87,7 +87,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
         } else if (method.equals("updateTenant")) {
 
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             UpdateTenantRequest tenantRequest = ((UpdateTenantRequest) msg);
 
@@ -97,7 +97,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                     .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
         } else if (method.equals("deleteTenant")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             DeleteTenantRequest tenantRequest = ((DeleteTenantRequest) msg);
 
@@ -108,7 +108,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                     .setTenantId(claim.getTenantId()).setCredentials(credentials).build();
         } else if (method.equals("addTenantRoles")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             AddRolesRequest rolesRequest = ((AddRolesRequest) msg);
 
@@ -124,7 +124,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                     .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
         } else if (method.equals("addProtocolMapper")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             AddProtocolMapperRequest rolesRequest = ((AddProtocolMapperRequest) msg);
 

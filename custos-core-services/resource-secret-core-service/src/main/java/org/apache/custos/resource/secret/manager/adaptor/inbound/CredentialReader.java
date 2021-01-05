@@ -65,7 +65,7 @@ public class CredentialReader {
 
         if (token != null && !token.trim().equals("")) {
             Optional<Secret> exSecret = repository.findById(token);
-            if (exSecret.isPresent()){
+            if (exSecret.isPresent()) {
                 secret = exSecret.get();
             }
         }
@@ -101,7 +101,7 @@ public class CredentialReader {
                 .setSource(ResourceSource.EXTERNAL)
                 .setToken(
                         (secret.getExternalId() != null &&
-                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
+                                !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
                 .build();
 
         SSHCredential credential = SSHCredential.newBuilder()
@@ -129,10 +129,11 @@ public class CredentialReader {
 
         if (token != null && !token.trim().equals("")) {
             Optional<Secret> exSecret = repository.findById(token);
-            if (exSecret.isPresent()){
+            if (exSecret.isPresent()) {
                 secret = exSecret.get();
             }
-        } if (secret == null ) {
+        }
+        if (secret == null) {
             List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
             if (secrets != null && !secrets.isEmpty()) {
                 secret = secrets.get(0);
@@ -166,7 +167,7 @@ public class CredentialReader {
                 .setType(ResourceSecretType.PASSWORD)
                 .setToken(
                         (secret.getExternalId() != null ||
-                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
+                                !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
                 .build();
 
         org.apache.custos.resource.secret.service.PasswordCredential credential =
@@ -192,10 +193,11 @@ public class CredentialReader {
 
         if (token != null && !token.trim().equals("")) {
             Optional<Secret> exSecret = repository.findById(token);
-            if (exSecret.isPresent()){
+            if (exSecret.isPresent()) {
                 secret = exSecret.get();
             }
-        } if (secret == null) {
+        }
+        if (secret == null) {
             List<Secret> secrets = repository.findAllByExternalIdAndTenantId(token, tenantId);
             if (secrets != null && !secrets.isEmpty()) {
                 secret = secrets.get(0);
@@ -229,7 +231,7 @@ public class CredentialReader {
                 .setType(ResourceSecretType.X509_CERTIFICATE)
                 .setToken(
                         (secret.getExternalId() != null &&
-                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
+                                !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
                 .build();
 
         CertificateCredential certificateCredential = CertificateCredential.newBuilder()
@@ -258,7 +260,7 @@ public class CredentialReader {
 
         if (token != null && !token.trim().equals("")) {
             Optional<Secret> exSecret = repository.findById(token);
-            if (exSecret.isPresent()){
+            if (exSecret.isPresent()) {
                 secret = exSecret.get();
             }
         }
@@ -276,7 +278,7 @@ public class CredentialReader {
         return SecretMetadata.newBuilder()
                 .setToken(
                         (secret.getExternalId() != null &&
-                                !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
+                                !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
                 .setTenantId(tenantId)
                 .setDescription(secret.getDiscription())
                 .setPersistedTime(secret.getCreatedAt().getTime())
@@ -296,9 +298,12 @@ public class CredentialReader {
      * @return
      */
     public List<SecretMetadata> getAllCredentialSummaries(long tenantId, List<String> tokens) {
-
-        List<Secret> secrets = repository.getAllSecretsByIdOrExternalId(tenantId, tokens, tokens);
         List<SecretMetadata> metadata = new ArrayList<>();
+        if (tokens == null || tokens.isEmpty()) {
+            return metadata;
+        }
+        List<Secret> secrets = repository.getAllSecretsByIdOrExternalId(tenantId, tokens, tokens);
+
 
         if (secrets != null && !secrets.isEmpty()) {
 
@@ -307,7 +312,7 @@ public class CredentialReader {
                 metadata.add(SecretMetadata.newBuilder()
                         .setToken(
                                 (secret.getExternalId() != null &&
-                                        !secret.getExternalId().trim().equals(""))? secret.getExternalId(): secret.getId())
+                                        !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
                         .setTenantId(tenantId)
                         .setDescription(secret.getDiscription())
                         .setPersistedTime(secret.getCreatedAt().getTime())

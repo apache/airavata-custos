@@ -50,7 +50,7 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
         if (method.equals("updateTenantStatus")) {
-            if ( !((UpdateStatusRequest)msg).getSuperTenant() ) {
+            if (!((UpdateStatusRequest) msg).getSuperTenant()) {
                 AuthClaim claim = null;
                 String token = getToken(headers);
                 try {
@@ -70,10 +70,22 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
         } else if (method.equals("getAllTenants")) {
             AuthClaim claim = null;
             try {
-                claim = authorize(headers);
-                LOGGER.info("Claim "+ claim);
-                LOGGER.info("Claim Auth "+ claim.isSuperTenant());
+                claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
+                throw new NotAuthorizedException("Request is not authorized", ex);
+            }
+            if (claim == null || !claim.isSuperTenant()) {
+                throw new NotAuthorizedException("Request is not authorized", null);
+            }
+
+            return msg;
+
+        } else if (method.equals("validateTenant")) {
+            AuthClaim claim = null;
+            try {
+                claim = authorizeUsingUserToken(headers);
+            } catch (Exception ex) {
+                LOGGER.error(" Authorizing error " + ex.getMessage());
                 throw new NotAuthorizedException("Request is not authorized", ex);
             }
             if (claim == null || !claim.isSuperTenant()) {

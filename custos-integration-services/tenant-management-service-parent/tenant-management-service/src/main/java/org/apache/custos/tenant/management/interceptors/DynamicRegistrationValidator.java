@@ -74,7 +74,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
                 throw new NotAuthorizedException("Invalid client_id", null);
             }
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
+            Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant != null ? tenant.getTenantId() :
                     tenantRequest.getTenantId()).setTenant(tenant).build();
 
@@ -83,7 +83,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
             Tenant tenantRequest = ((Tenant) msg);
 
             if (tenantRequest.getParentTenantId() > 0) {
-                validateTenant(tenantRequest.getParentTenantId(), tenantRequest.getParentTenantId(), headers);
+                validateTenantWithBasicAuth(tenantRequest.getParentTenantId(), tenantRequest.getParentTenantId(), headers);
             }
 
         } else if (method.equals("updateTenant")) {
@@ -107,7 +107,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
             }
 
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
+            Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).setClientId(clientId).build();
 
@@ -128,7 +128,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
             }
 
 
-            Tenant tenant = validateTenant(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
+            Tenant tenant = validateTenantWithBasicAuth(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
@@ -137,7 +137,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
     }
 
 
-    private Tenant validateTenant(long ownerId, long parentTenant, Metadata headers) {
+    private Tenant validateTenantWithBasicAuth(long ownerId, long parentTenant, Metadata headers) {
 
         org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
                 org.apache.custos.tenant.profile.service.GetTenantRequest
@@ -149,6 +149,30 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
         Tenant tenant = response.getTenant();
 
         AuthClaim authClaim = authorize(headers);
+
+        if (authClaim != null && authClaim.isSuperTenant()) {
+            return tenant;
+        }
+
+        if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
+            throw new NotAuthorizedException("Not a valid admin client", null);
+        }
+
+        return tenant;
+    }
+
+    private Tenant validateTenantWithUserToken(long ownerId, long parentTenant, Metadata headers) {
+
+        org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
+                org.apache.custos.tenant.profile.service.GetTenantRequest
+                        .newBuilder().setTenantId(ownerId).build();
+
+        org.apache.custos.tenant.profile.service.GetTenantResponse response =
+                tenantProfileClient.getTenant(tenantReq);
+
+        Tenant tenant = response.getTenant();
+
+        AuthClaim authClaim = authorizeUsingUserToken(headers);
 
         if (authClaim != null && authClaim.isSuperTenant()) {
             return tenant;

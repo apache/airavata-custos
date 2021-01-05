@@ -125,12 +125,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             //Do not update the tenant status
 
-            if (tenantEntity.getParentId() > 0) {
-
-                tenantEntity.setStatus(exTenant.getStatus());
-            } else {
-                tenantEntity.setStatus(TenantStatus.REQUESTED.name());
-            }
+//            if (tenantEntity.getParentId() > 0) {
+//
+//                tenantEntity.setStatus(exTenant.getStatus());
+//            } else {
+//                tenantEntity.setStatus(TenantStatus.REQUESTED.name());
+//            }
 
             tenantEntity.setCreatedAt(exTenant.getCreatedAt());
 
@@ -176,8 +176,10 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             List<Tenant> tenants = null;
 
-            if (requesterEmail != null && !requesterEmail.equals("")) {
+            if (status == null && requesterEmail != null && !requesterEmail.equals("")) {
               tenants = tenantRepository.findByRequesterEmail(requesterEmail);
+            } else if(status != null && requesterEmail != null && !requesterEmail.equals("")) {
+                tenants = tenantRepository.findByRequesterEmailAndStatus(requesterEmail, status);
             } else if (status == null && parentId == 0) {
                 tenants = tenantRepository.getAllWithPaginate(limit,offset);
             } else if (status != null && parentId == 0){

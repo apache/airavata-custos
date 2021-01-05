@@ -29,6 +29,8 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     public List<Tenant> findByRequesterEmail(String requesterEmail);
 
+    public List<Tenant> findByRequesterEmailAndStatus(String requesterEmail, String status);
+
     public List<Tenant> findByDomainAndName(String domain, String name);
 
     @Query(value = "select * from tenant t where t.status LIKE ?1 order by t.id limit ?2 offset ?3", nativeQuery = true)
