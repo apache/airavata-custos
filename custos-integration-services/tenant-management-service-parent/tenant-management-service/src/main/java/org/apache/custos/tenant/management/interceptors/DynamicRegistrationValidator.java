@@ -23,6 +23,8 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
 import org.apache.custos.credential.store.service.GetCredentialRequest;
+import org.apache.custos.iam.service.AddRolesRequest;
+import org.apache.custos.iam.service.GetRolesRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
@@ -41,7 +43,7 @@ import org.springframework.stereotype.Component;
  * This class validates the  conditions that should be satisfied by the Dynamic Registration Protocol
  */
 @Component
-public class DynamicRegistrationValidator extends AuthInterceptor implements IntegrationServiceInterceptor {
+public class DynamicRegistrationValidator extends AuthInterceptor  {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicRegistrationValidator.class);
 
@@ -65,14 +67,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             String clientId = tenantRequest.getClientId();
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
-
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
             Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant != null ? tenant.getTenantId() :
@@ -97,14 +92,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
                 clientId = tenantRequest.getBody().getClientId();
             }
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
-
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
 
             Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
@@ -118,22 +106,15 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             String clientId = tenantRequest.getClientId();
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
-
-
-            Tenant tenant = validateTenantWithBasicAuth(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
+            Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
         }
         return msg;
+
     }
 
 
@@ -184,4 +165,8 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
         return tenant;
     }
+
+
+
+
 }

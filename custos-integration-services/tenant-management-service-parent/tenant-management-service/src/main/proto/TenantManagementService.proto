@@ -169,6 +169,12 @@ service TenantManagementService {
         };
     }
 
+    rpc deleteRole (org.apache.custos.iam.service.DeleteRoleRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/tenant-management/v1.0.0/role"
+        };
+    }
+
     rpc addProtocolMapper (org.apache.custos.iam.service.AddProtocolMapperRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/protocol/mapper"

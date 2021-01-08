@@ -305,6 +305,20 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
+    public CredentialMetadata getCredentialsFromClientId(String clientId) {
+        GetCredentialRequest request = GetCredentialRequest.newBuilder()
+                .setId(clientId)
+                .build();
+        CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+        if (metadata == null || metadata.getOwnerId() == 0) {
+            throw new NotAuthorizedException("Invalid client_id", null);
+        }
+
+        return metadata;
+    }
+
+
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
         if (response == null || response.getSecretListCount() == 0) {
             return null;
@@ -402,7 +416,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
 
-    private boolean validateParentChildTenantRelationShip(long parentId, long childTenantId) {
+    public boolean validateParentChildTenantRelationShip(long parentId, long childTenantId) {
 
         GetTenantRequest childTenantReq = GetTenantRequest
                 .newBuilder()

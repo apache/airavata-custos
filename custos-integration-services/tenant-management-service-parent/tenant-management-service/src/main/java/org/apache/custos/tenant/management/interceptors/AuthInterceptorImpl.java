@@ -21,11 +21,9 @@ package org.apache.custos.tenant.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
+import org.apache.custos.credential.store.service.CredentialMetadata;
 import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
-import org.apache.custos.iam.service.AddProtocolMapperRequest;
-import org.apache.custos.iam.service.AddRolesRequest;
-import org.apache.custos.iam.service.EventPersistenceRequest;
-import org.apache.custos.iam.service.GetRolesRequest;
+import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
@@ -111,42 +109,132 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             AuthClaim claim = authorizeUsingUserToken(headers);
 
             AddRolesRequest rolesRequest = ((AddRolesRequest) msg);
+            String clientId = rolesRequest.getClientId();
+            if (rolesRequest.getClientId() == null || rolesRequest.getClientId().trim().equals("")) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(claim.getTenantId()).
+                        setClientId(claim.getCustosId()).build();
+            }
 
-            return (ReqT) rolesRequest.toBuilder()
-                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
+
+            if (claim.isSuperTenant()) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            }
+
+            boolean validationStatus = validateParentChildTenantRelationShip(claim.getTenantId(), metadata.getOwnerId());
+
+            if (validationStatus) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            } else {
+                String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
+                throw new NotAuthorizedException(error, null);
+            }
         } else if (method.equals("getTenantRoles")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             GetRolesRequest rolesRequest = ((GetRolesRequest) msg);
+            String clientId = rolesRequest.getClientId();
+            if (rolesRequest.getClientId() == null || rolesRequest.getClientId().trim().equals("")) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(claim.getTenantId()).
+                        setClientId(claim.getCustosId()).build();
+            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
-            return (ReqT) rolesRequest.toBuilder()
-                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+            if (claim.isSuperTenant()) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            }
+
+            boolean validationStatus = validateParentChildTenantRelationShip(claim.getTenantId(), metadata.getOwnerId());
+
+            if (validationStatus) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            } else {
+                String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
+                throw new NotAuthorizedException(error, null);
+            }
+        } else if (method.equals("deleteRole")) {
+
+            AuthClaim claim = authorizeUsingUserToken(headers);
+
+            DeleteRoleRequest rolesRequest = ((DeleteRoleRequest) msg);
+            String clientId = rolesRequest.getClientId();
+            if (rolesRequest.getClientId() == null || rolesRequest.getClientId().trim().equals("")) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(claim.getTenantId()).
+                        setClientId(claim.getCustosId()).build();
+            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
+
+            if (claim.isSuperTenant()) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            }
+
+            boolean validationStatus = validateParentChildTenantRelationShip(claim.getTenantId(), metadata.getOwnerId());
+
+            if (validationStatus) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            } else {
+                String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
+                throw new NotAuthorizedException(error, null);
+            }
         } else if (method.equals("addProtocolMapper")) {
 
             AuthClaim claim = authorizeUsingUserToken(headers);
 
             AddProtocolMapperRequest rolesRequest = ((AddProtocolMapperRequest) msg);
+            String clientId = rolesRequest.getClientId();
 
-            return (ReqT) rolesRequest.toBuilder()
-                    .setTenantId(claim.getTenantId()).setClientId(claim.getCustosId()).build();
+            if (rolesRequest.getClientId() == null || rolesRequest.getClientId().trim().equals("")) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(claim.getTenantId()).
+                        setClientId(claim.getCustosId()).build();
+            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
+
+            if (claim.isSuperTenant()) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            }
+
+            boolean validationStatus = validateParentChildTenantRelationShip(claim.getTenantId(), metadata.getOwnerId());
+
+            if (validationStatus) {
+                return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
+            } else {
+                String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
+                throw new NotAuthorizedException(error, null);
+            }
+
         } else if (method.equals("configureEventPersistence")) {
 
-            AuthClaim claim = validateAuth(headers);
-
+            AuthClaim claim = authorizeUsingUserToken(headers);
             EventPersistenceRequest rolesRequest = ((EventPersistenceRequest) msg);
 
             return (ReqT) rolesRequest.toBuilder()
-                    .setTenantId(claim.getTenantId()).setPerformedBy("Tenant Admin")
+                    .setTenantId(claim.getTenantId()).setPerformedBy(claim.getUsername())
                     .build();
         } else if (method.equals("getChildTenants")) {
 
-            AuthClaim claim = validateAuth(headers);
+            AuthClaim claim = authorizeUsingUserToken(headers);
 
             GetTenantsRequest tenantsRequest = ((GetTenantsRequest) msg);
+            String clientId = tenantsRequest.getParentClientId();
 
-            return (ReqT) tenantsRequest.toBuilder()
-                    .setParentId(claim.getTenantId()).build();
+            if (tenantsRequest.getParentClientId() == null || tenantsRequest.getParentClientId().trim().equals("")) {
+                return (ReqT) tenantsRequest.toBuilder().setParentId(claim.getTenantId()).build();
+            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
+
+            if (claim.isSuperTenant()) {
+                return (ReqT) tenantsRequest.toBuilder().setParentId(metadata.getOwnerId()).build();
+            }
+
+            boolean validationStatus = validateParentChildTenantRelationShip(claim.getTenantId(), metadata.getOwnerId());
+
+            if (validationStatus) {
+                return (ReqT) tenantsRequest.toBuilder().setParentId(metadata.getOwnerId()).build();
+            } else {
+                String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
+                throw new NotAuthorizedException(error, null);
+            }
         } else if (method.equals("getAllTenantsForUser")) {
             validateAuth(headers);
             return msg;
