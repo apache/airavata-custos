@@ -20,11 +20,11 @@
 package org.apache.custos.integration.core.exceptions;
 
 /**
- * Not authorized exception
+ * Un authorized exception
  */
-public class NotAuthorizedException extends RuntimeException {
+public class UnAuthorizedException extends RuntimeException {
 
-    public NotAuthorizedException(String msg, Throwable e) {
+    public UnAuthorizedException(String msg, Throwable e) {
         super(msg, e);
     }
 }

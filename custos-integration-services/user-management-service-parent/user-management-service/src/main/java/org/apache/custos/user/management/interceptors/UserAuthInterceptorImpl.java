@@ -24,13 +24,12 @@ import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.user.management.service.LinkUserProfileRequest;
-import org.apache.custos.user.management.service.UserProfileRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +58,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, userAttributesRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -68,7 +67,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
             if (token == null || token.getAccessToken() == null) {
-                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
 
@@ -87,7 +86,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -96,7 +95,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
             if (token == null || token.getAccessToken() == null) {
-                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
             return (ReqT) ((DeleteUserAttributeRequest) msg).toBuilder()
@@ -114,7 +113,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -142,7 +141,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, registerUsersRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -169,7 +168,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, deleteUserRolesRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -199,7 +198,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, userSearchRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -207,7 +206,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
             if (token == null || token.getAccessToken() == null) {
-                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
 
@@ -228,7 +227,7 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorizeUsingUserToken(headers);
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();

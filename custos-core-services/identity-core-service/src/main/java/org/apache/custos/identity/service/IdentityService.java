@@ -201,7 +201,7 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while checking authentication for  user " + username + " " + ex.getMessage();
+            String msg = "Error occurred while validating authentication status of  user " + username + " " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
         }

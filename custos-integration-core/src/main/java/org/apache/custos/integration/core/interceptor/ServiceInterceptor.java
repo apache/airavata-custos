@@ -21,7 +21,7 @@ package org.apache.custos.integration.core.interceptor;
 
 
 import io.grpc.*;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,14 +67,14 @@ public class ServiceInterceptor implements ServerInterceptor {
                         resp = interceptor.intercept(methodName, metadata, (resp == null) ? message : resp);
                     }
                     super.onMessage(resp);
-                } catch (NotAuthorizedException ex) {
+                } catch (UnAuthorizedException ex) {
                     String msg = "Error while authorizing method " + methodName + ", " + ex.getMessage();
                     LOGGER.error(msg);
-                    serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), metadata);
+                    serverCall.close(Status.UNAUTHENTICATED.withDescription(msg), new Metadata());
                 } catch (Exception ex) {
                     String msg = "Error while validating method " + methodName + ", " + ex.getMessage();
                     LOGGER.error(msg, ex);
-                    serverCall.close(Status.INVALID_ARGUMENT.withDescription(msg), metadata);
+                    serverCall.close(Status.INVALID_ARGUMENT.withDescription(msg), new Metadata());
                 }
             }
 

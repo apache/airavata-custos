@@ -22,12 +22,8 @@ package org.apache.custos.tenant.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
-import org.apache.custos.credential.store.service.GetCredentialRequest;
-import org.apache.custos.iam.service.AddRolesRequest;
-import org.apache.custos.iam.service.GetRolesRequest;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
@@ -136,7 +132,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor  {
         }
 
         if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
-            throw new NotAuthorizedException("Not a valid admin client", null);
+            throw new UnAuthorizedException("Not a valid admin client", null);
         }
 
         return tenant;
@@ -160,7 +156,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor  {
         }
 
         if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
-            throw new NotAuthorizedException("Not a valid admin client", null);
+            throw new UnAuthorizedException("Not a valid admin client", null);
         }
 
         return tenant;

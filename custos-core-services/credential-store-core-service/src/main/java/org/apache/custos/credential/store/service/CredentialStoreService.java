@@ -459,7 +459,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " Operation failed failed " + ex;
+            String msg = " Operation failed  " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -529,7 +529,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " Operation failed failed " + ex;
+            String msg = " Operation failed " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -610,7 +610,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " Operation failed failed " + ex;
+            String msg = " Operation failed " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -640,7 +640,6 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             String subPath = BASE_PATH + entity.getOwnerId();
             List<String> paths = vaultTemplate.list(subPath);
 
-
             List<CredentialMetadata> credentialMetadata = new ArrayList<>();
 
             if (paths != null && !paths.isEmpty()) {
@@ -650,9 +649,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
                         CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
 
-
                         if (key.equals(Type.CUSTOS.name())) {
-
                             metadata = metadata.toBuilder()
                                     .setClientIdIssuedAt(entity.getIssuedAt().getTime())
                                     .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
@@ -665,7 +662,6 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 }
             }
 
-
             GetAllCredentialsResponse response = GetAllCredentialsResponse.newBuilder()
                     .addAllSecretList(credentialMetadata)
                     .setRequesterUserEmail(credential.getEmail())
@@ -677,9 +673,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " Operation failed  " + ex;
+            String msg = " Operation failed  " + ex.getMessage();
             LOGGER.error(msg);
-            responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
@@ -987,8 +983,99 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
     }
 
 
+    @Override
+    public void getCredentialByAgentJWTToken(TokenRequest request, StreamObserver<GetAllCredentialsResponse> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to getCredentialByAgentJWTToken ");
+
+            String token = request.getToken();
+
+            Credential credential = credentialManager.decodeAgentJWTToken(token);
+
+            if (credential == null || credential.getId() == null || credential.getParentId() == null) {
+                LOGGER.error("Invalid agent access token");
+                responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                return;
+            }
+
+            CredentialEntity exEntity = repository.findByClientId(credential.getParentId());
+
+            if (exEntity != null) {
+
+                AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(credential.getId(),
+                        exEntity.getOwnerId());
+
+                if (entity == null) {
+                    LOGGER.error("Agent not found with Id " + credential.getId());
+                    responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
+                    return;
+                }
+                GetAllCredentialsResponse response = getAllCredentials(exEntity, credential);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+            } else {
+                String msg = " Cannot find a valid  tenant for agent " + credential.getId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+        } catch (Exception ex) {
+            String msg = " Error occurred  reason:  " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 
 
+    @Override
+    public void validateAgentJWTToken(TokenRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to validateAgentJWTToken ");
+
+            String token = request.getToken();
+
+            Credential credential = credentialManager.decodeAgentJWTToken(token);
+
+            if (credential == null || credential.getId() == null || credential.getParentId() == null) {
+                OperationStatus operationStatus = OperationStatus
+                        .newBuilder().setState(false).build();
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+                return;
+            }
+            CredentialEntity exEntity = repository.findByClientId(credential.getParentId());
+
+            if (exEntity == null) {
+                OperationStatus operationStatus = OperationStatus
+                        .newBuilder().setState(false).build();
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+                return;
+
+            }
+
+            AgentCredentialEntity entity = agentCredentialRepository.findByClientIdAndOwnerId(credential.getId(),
+                    exEntity.getOwnerId());
+
+            if (entity == null) {
+                OperationStatus operationStatus = OperationStatus
+                        .newBuilder().setState(false).build();
+                responseObserver.onNext(operationStatus);
+                responseObserver.onCompleted();
+                return;
+            }
+            OperationStatus operationStatus = OperationStatus
+                    .newBuilder().setState(true).build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            OperationStatus operationStatus = OperationStatus
+                    .newBuilder().setState(false).build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+        }
+    }
 
     private OperationMetadata convertFromEntity(StatusEntity entity) {
         return OperationMetadata.newBuilder()
@@ -1017,5 +1104,42 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 return true;
         }
         return false;
+    }
+
+
+    private GetAllCredentialsResponse getAllCredentials(CredentialEntity entity, Credential credential) {
+        String subPath = BASE_PATH + entity.getOwnerId();
+        List<String> paths = vaultTemplate.list(subPath);
+
+        List<CredentialMetadata> metadataList = new ArrayList<>();
+
+
+        if (paths != null && !paths.isEmpty()) {
+            for (String key : paths) {
+                String path = subPath + "/" + key;
+                VaultResponseSupport<Credential> crRe = vaultTemplate.read(path, Credential.class);
+
+                if (isMainType(key)) {
+                    CredentialMetadata metadata = convertToCredentialMetadata(crRe.getData(), entity.getOwnerId(), key);
+                    metadataList.add(metadata);
+
+                } else if (key.equals(credential.getId())) {
+                    CredentialMetadata metadata = CredentialMetadata
+                            .newBuilder()
+                            .setType(Type.AGENT)
+                            .setId(credential.getId())
+                            .setSecret(crRe.getData().getSecret())
+                            .setOwnerId(entity.getOwnerId())
+                            .setInternalSec(crRe.getData().getPassword())
+                            .build();
+                    metadataList.add(metadata);
+                }
+            }
+        }
+        GetAllCredentialsResponse response = GetAllCredentialsResponse
+                .newBuilder()
+                .addAllSecretList(metadataList)
+                .build();
+        return response;
     }
 }

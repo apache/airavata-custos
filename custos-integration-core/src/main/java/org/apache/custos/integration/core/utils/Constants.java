@@ -28,6 +28,8 @@ public final class Constants {
 
     public static final String USER_TOKEN = "user-token";
 
+    public static final String AUTHENTICATE_AGENT = "authenticate-agent";
+
     public static final String TenantId = "tenant-id";
 
     public static final String X_FORWARDED_FOR = "x-forwarded-for";

@@ -25,7 +25,7 @@ import org.apache.custos.credential.store.service.CredentialMetadata;
 import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.Credentials;
@@ -127,7 +127,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                 return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
             } else {
                 String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
-                throw new NotAuthorizedException(error, null);
+                throw new UnAuthorizedException(error, null);
             }
         } else if (method.equals("getTenantRoles")) {
 
@@ -151,7 +151,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                 return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
             } else {
                 String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
-                throw new NotAuthorizedException(error, null);
+                throw new UnAuthorizedException(error, null);
             }
         } else if (method.equals("deleteRole")) {
 
@@ -175,7 +175,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                 return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
             } else {
                 String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
-                throw new NotAuthorizedException(error, null);
+                throw new UnAuthorizedException(error, null);
             }
         } else if (method.equals("addProtocolMapper")) {
 
@@ -200,7 +200,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                 return (ReqT) rolesRequest.toBuilder().setTenantId(metadata.getOwnerId()).build();
             } else {
                 String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
-                throw new NotAuthorizedException(error, null);
+                throw new UnAuthorizedException(error, null);
             }
 
         } else if (method.equals("configureEventPersistence")) {
@@ -233,7 +233,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
                 return (ReqT) tenantsRequest.toBuilder().setParentId(metadata.getOwnerId()).build();
             } else {
                 String error = "Request is not authorized, user not authorized with requested clientId: " + clientId;
-                throw new NotAuthorizedException(error, null);
+                throw new UnAuthorizedException(error, null);
             }
         } else if (method.equals("getAllTenantsForUser")) {
             validateAuth(headers);
@@ -267,10 +267,10 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             claim = authorize(headers);
         } catch (Exception ex) {
             LOGGER.error(" Authorizing error " + ex.getMessage());
-            throw new NotAuthorizedException("Request is not authorized", ex);
+            throw new UnAuthorizedException("Request is not authorized", ex);
         }
         if (claim == null) {
-            throw new NotAuthorizedException("Request is not authorized", null);
+            throw new UnAuthorizedException("Request is not authorized", null);
         }
         return claim;
     }
@@ -287,10 +287,10 @@ public class AuthInterceptorImpl extends AuthInterceptor {
             claim = authorizeUsingUserToken(usertoken);
         } catch (Exception ex) {
             LOGGER.error(" Authorizing error " + ex.getMessage());
-            throw new NotAuthorizedException("Request is not authorized", ex);
+            throw new UnAuthorizedException("Request is not authorized", ex);
         }
         if (claim == null) {
-            throw new NotAuthorizedException("Request is not authorized", null);
+            throw new UnAuthorizedException("Request is not authorized", null);
         }
         return claim;
 
