@@ -311,5 +311,19 @@ public class ResourceSecretManagementClient {
         return blockingStub.deletePWDCredential(tokenRequest);
     }
 
+     ManagedChannel getManagedChannel() {
+        return managedChannel;
+    }
 
+     void setManagedChannel(ManagedChannel managedChannel) {
+        this.managedChannel = managedChannel;
+    }
+
+    public ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub getBlockingStub() {
+        return blockingStub;
+    }
+
+    public void setBlockingStub(ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub blockingStub) {
+        this.blockingStub = blockingStub;
+    }
 }
