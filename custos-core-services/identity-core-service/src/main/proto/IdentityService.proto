@@ -79,7 +79,7 @@ message AuthenticationRequest {
     string password = 5;
 }
 
-message IsAuthenticateResponse {
+message IsAuthenticatedResponse {
     bool authenticated = 1;
 }
 
@@ -122,7 +122,7 @@ message OperationStatus {
 
 service IdentityService {
     rpc authenticate (AuthenticationRequest) returns (AuthToken);
-    rpc isAuthenticate (AuthToken) returns (IsAuthenticateResponse);
+    rpc isAuthenticated (AuthToken) returns (IsAuthenticatedResponse);
     rpc getUser (AuthToken) returns (User);
     rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthToken);
     rpc getToken (GetTokenRequest) returns (google.protobuf.Struct);

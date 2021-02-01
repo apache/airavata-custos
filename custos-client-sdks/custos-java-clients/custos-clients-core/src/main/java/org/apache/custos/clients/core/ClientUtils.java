@@ -78,6 +78,13 @@ public class ClientUtils {
         return header;
     }
 
+    public static Metadata getAgentEnablingHeader() {
+        Metadata header = new Metadata();
+        Metadata.Key<String> key = Metadata.Key.of(Constants.AUTHENTICATE_AGENT, Metadata.ASCII_STRING_MARSHALLER);
+        header.put(key, "true");
+        return header;
+    }
+
     /**
      * Provides file object
      *

@@ -26,7 +26,7 @@ import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.Claim;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
-import org.apache.custos.identity.service.IsAuthenticateResponse;
+import org.apache.custos.identity.service.IsAuthenticatedResponse;
 import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.utils.Constants;
@@ -70,11 +70,11 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             String formattedToken = getToken(headers);
 
             if (formattedToken == null) {
-                throw new UnAuthorizedException(" token not found ",null);
+                throw new UnAuthorizedException(" token not found ", null);
             }
             return authorize(formattedToken);
         } catch (Exception ex) {
-            throw new UnAuthorizedException(" invalid token "+ ex.getMessage(), ex);
+            throw new UnAuthorizedException(" invalid token " + ex.getMessage(), ex);
         }
 
     }
@@ -88,7 +88,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentialFromToken(request);
             return getAuthClaim(response);
         } catch (Exception ex) {
-            throw new UnAuthorizedException(" invalid token "+ ex.getMessage(), ex);
+            throw new UnAuthorizedException(" invalid token " + ex.getMessage(), ex);
         }
 
     }
@@ -100,7 +100,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             String formattedToken = getToken(headers);
 
             if (formattedToken == null) {
-                throw new UnAuthorizedException(" token not found ",null);
+                throw new UnAuthorizedException(" token not found ", null);
             }
 
             return authorizeUsingUserToken(formattedToken);
@@ -146,14 +146,13 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                         .build();
 
 
-                IsAuthenticateResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
+                IsAuthenticatedResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
                 if (isAuthenticateResponse.getAuthenticated()) {
                     return claim;
                 } else {
                     throw new UnAuthorizedException(" expired user token ", null);
                 }
-            }
-            else {
+            } else {
                 throw new UnAuthorizedException(" expired user token ", null);
             }
         } catch (Exception ex) {
@@ -169,7 +168,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             String formattedToken = getToken(headers);
 
             if (formattedToken == null) {
-                throw new UnAuthorizedException(" token not found ",null);
+                throw new UnAuthorizedException(" token not found ", null);
             }
 
             TokenRequest request = TokenRequest
@@ -230,7 +229,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
                     .build();
 
 
-            IsAuthenticateResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
+            IsAuthenticatedResponse isAuthenticateResponse = identityClient.isAuthenticated(token);
             if (isAuthenticateResponse.getAuthenticated()) {
 
                 String userToken = getUserTokenFromUserTokenHeader(headers);
@@ -545,9 +544,9 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     }
 
     public boolean cleatUserTokenFromHeader(Metadata headers) {
-         String obj = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
-         headers.remove(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER),obj);
-         return true;
+        String obj = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
+        headers.remove(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER), obj);
+        return true;
     }
 
     public boolean isAgentAuthenticationEnabled(Metadata headers) {

@@ -26,6 +26,8 @@ import io.grpc.stub.MetadataUtils;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc;
 import org.apache.custos.resource.secret.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,21 +37,22 @@ import java.util.List;
  */
 public class ResourceSecretManagementAgentClient extends ResourceSecretManagementClient {
 
-    private ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub blockingStub;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceSecretManagementAgentClient.class);
+
+
+    ManagedChannel managedChannel = null;
 
     public ResourceSecretManagementAgentClient(String serviceHost, int servicePort,
                                                String clientId, String clientSecret) throws IOException {
 
         super(serviceHost, servicePort, clientId, clientSecret);
-        ManagedChannel managedChannel = getManagedChannel();
-        blockingStub = ResourceSecretManagementServiceGrpc.newBlockingStub(managedChannel);
-        super.setBlockingStub(blockingStub);
+        managedChannel = getManagedChannel();
     }
 
     public SecretMetadata getSecret(String userToken, String agentToken,
                                     ResourceOwnerType ownerType, ResourceType resourceType) {
-        attachedHeaders(userToken, agentToken);
-        return super.getSecret(ownerType, resourceType);
+
+        return super.getSecret(ownerType, resourceType, attachedHeaders(userToken, agentToken));
     }
 
 
@@ -59,72 +62,72 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
     }
 
     public SecretMetadata getResourceCredentialSummary(String userToken, String agentToken, String clientId, String token) {
-        attachedHeaders(userToken, agentToken);
-        return super.getResourceCredentialSummary(clientId, token);
+        return super.getResourceCredentialSummary(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
 
     public ResourceCredentialSummaries getAllResourceCredentialSummaries(String userToken, String agentToken,
                                                                          String clientId, List<String> accessibleTokens) {
-        attachedHeaders(userToken, agentToken);
-        return super.getAllResourceCredentialSummaries(clientId, accessibleTokens);
+        return super.getAllResourceCredentialSummaries(clientId, accessibleTokens, attachedHeaders(userToken, agentToken));
     }
 
     public AddResourceCredentialResponse generateSSHCredential(String userToken, String agentToken,
                                                                String clientId, String description, String ownerId) {
-        attachedHeaders(userToken, agentToken);
-        return super.generateSSHCredential(clientId, description, ownerId);
+        return super.generateSSHCredential(clientId, description, ownerId, attachedHeaders(userToken, agentToken));
     }
 
     public AddResourceCredentialResponse addSSHCredential(String userToken, String agentToken, String csToken,
                                                           String passphrase, String privateKey, String publicKey,
                                                           String clientId, String description, String ownerId) {
-        attachedHeaders(userToken, agentToken);
-        return super.addSSHCredential(csToken, passphrase, privateKey, publicKey, clientId, description, ownerId);
+        return super.addSSHCredential(csToken, passphrase, privateKey,
+                publicKey, clientId, description, ownerId, attachedHeaders(userToken, agentToken));
     }
 
     public AddResourceCredentialResponse addPasswordCredential(String userToken, String agentToken,
                                                                String clientId, String description, String ownerId, String password) {
-        attachedHeaders(userToken, agentToken);
-        return super.addPasswordCredential(clientId, description, ownerId, password);
+        return super.addPasswordCredential(clientId,
+                description, ownerId, password, attachedHeaders(userToken, agentToken));
     }
 
 
     public AddResourceCredentialResponse addPasswordCredential(String userToken, String agentToken,
                                                                String token, String clientId, String description,
                                                                String ownerId, String password) {
-        attachedHeaders(userToken, agentToken);
-        return super.addPasswordCredential(token, clientId, description, ownerId, password);
+        return super.addPasswordCredential(token, clientId,
+                description, ownerId, password, attachedHeaders(userToken, agentToken));
     }
 
-    public SSHCredential getSSHCredential(String userToken, String agentToken,
-                                          String clientId, String token, boolean useShamirSecret) {
-        attachedHeaders(userToken, agentToken);
-        return super.getSSHCredential(clientId, token, useShamirSecret);
+    public SSHCredential getSSHCredential(String userToken, String agentToken, String csToken, boolean useShamirSecret) {
+        return super.getSSHCredential("",
+                csToken, useShamirSecret, attachedHeaders(userToken, agentToken));
     }
 
 
     public PasswordCredential getPasswordCredential(String userToken, String agentToken, String clientId, String token) {
-        attachedHeaders(userToken, agentToken);
-        return super.getPasswordCredential(clientId, token);
+        return super.getPasswordCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
     public ResourceCredentialOperationStatus deleteSSHCredential(String userToken, String agentToken,
                                                                  String clientId, String token) {
-        attachedHeaders(userToken, agentToken);
-        return super.deleteSSHCredential(clientId, token);
+        return super.deleteSSHCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
     public ResourceCredentialOperationStatus deletePWDCredential(String userToken, String agentToken,
                                                                  String clientId, String token) {
-        attachedHeaders(userToken, agentToken);
-        return super.deletePWDCredential(clientId, token);
+        return super.deletePWDCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
-    private void attachedHeaders(String userToken, String agentToken) {
+    private ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub
+    attachedHeaders(String userToken, String agentToken) {
+        ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub
+                blockingStub = ResourceSecretManagementServiceGrpc.newBlockingStub(managedChannel);
+
         Metadata authHeader = ClientUtils.getAuthorizationHeader(agentToken);
         Metadata tokenHeader = ClientUtils.getUserTokenHeader(userToken);
-        MetadataUtils.attachHeaders(blockingStub, authHeader);
-        MetadataUtils.attachHeaders(blockingStub, tokenHeader);
+        Metadata agentEnablingHeaders = ClientUtils.getAgentEnablingHeader();
+        blockingStub = MetadataUtils.attachHeaders(blockingStub, authHeader);
+        blockingStub = MetadataUtils.attachHeaders(blockingStub, tokenHeader);
+        blockingStub = MetadataUtils.attachHeaders(blockingStub, agentEnablingHeaders);
+        return blockingStub;
     }
 }

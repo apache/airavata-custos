@@ -89,7 +89,8 @@ public class ResourceSecretManagementClient {
      *
      * @return
      */
-    public Struct getJWKS() {
+    public Struct getJWKS(ResourceSecretManagementServiceGrpc.
+                                  ResourceSecretManagementServiceBlockingStub blockingStub) {
         GetJWKSRequest request = GetJWKSRequest.newBuilder().build();
         return blockingStub.getJWKS(request);
     }
@@ -302,6 +303,274 @@ public class ResourceSecretManagementClient {
      * @return ResourceCredentialOperationStatus
      */
     public ResourceCredentialOperationStatus deletePWDCredential(String clientId, String token) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+        return blockingStub.deletePWDCredential(tokenRequest);
+    }
+
+
+
+    /**
+     * provides resource secret for given owner type and resource type
+     *
+     * @param ownerType
+     * @param resourceType
+     * @return
+     */
+    public SecretMetadata getSecret(ResourceOwnerType ownerType, ResourceType resourceType,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
+
+        SecretMetadata metadata = SecretMetadata
+                .newBuilder()
+                .setOwnerType(ownerType)
+                .setResourceType(resourceType)
+                .build();
+
+        GetSecretRequest request = GetSecretRequest.newBuilder().setMetadata(metadata).build();
+        return blockingStub.getSecret(request);
+    }
+
+    /**
+     * provides JWKS keys for calling tenant
+     *
+     * @return
+     */
+    public Struct getJWKS() {
+        GetJWKSRequest request = GetJWKSRequest.newBuilder().build();
+        return blockingStub.getJWKS(request);
+    }
+
+
+    /**
+     * Provides metadata object of credentials
+     *
+     * @param clientId
+     * @param token
+     * @return SecretMetadata
+     */
+    public SecretMetadata getResourceCredentialSummary(String clientId, String token,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
+
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+        return blockingStub.getResourceCredentialSummary(tokenRequest);
+
+    }
+
+    /**
+     * Provides metadata array of credentials metadata
+     *
+     * @param clientId
+     * @param accessibleTokens
+     * @return SecretMetadata[]
+     */
+    public ResourceCredentialSummaries getAllResourceCredentialSummaries(String clientId, List<String> accessibleTokens,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
+        GetResourceCredentialSummariesRequest summariesRequest = GetResourceCredentialSummariesRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .addAllAccessibleTokens(accessibleTokens).build();
+
+
+        return blockingStub.getAllResourceCredentialSummaries(summariesRequest);
+
+    }
+
+    /**
+     * Generate SSH credentials
+     *
+     * @param clientId
+     * @param description
+     * @param ownerId
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse generateSSHCredential(String clientId, String description, String ownerId,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
+
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId).build();
+
+
+        SSHCredential sshCredential = SSHCredential
+                .newBuilder()
+                .setMetadata(metadata).build();
+
+        return blockingStub.addSSHCredential(sshCredential);
+
+    }
+
+    public AddResourceCredentialResponse addSSHCredential(String token, String passphrase, String privateKey,
+                                                          String publicKey, String clientId, String description, String ownerId,
+                                                          ResourceSecretManagementServiceGrpc.
+                                                                  ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        SSHCredential sshCredential = SSHCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPassphrase(passphrase)
+                .setPrivateKey(privateKey)
+                .setPublicKey(publicKey).build();
+
+        return blockingStub.addSSHCredential(sshCredential);
+
+    }
+
+
+    /**
+     * Save password credentials
+     *
+     * @param clientId
+     * @param description
+     * @param ownerId
+     * @param password
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addPasswordCredential(String clientId, String description,
+                                                               String ownerId, String password,
+                                                               ResourceSecretManagementServiceGrpc.
+                                                                       ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId).build();
+
+
+        PasswordCredential sshCredential = PasswordCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPassword(password)
+                .build();
+
+        return blockingStub.addPasswordCredential(sshCredential);
+
+    }
+
+    public AddResourceCredentialResponse addPasswordCredential(String token, String clientId,
+                                                               String description, String ownerId,
+                                                               String password,
+                                                               ResourceSecretManagementServiceGrpc.
+                                                                       ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+
+        PasswordCredential sshCredential = PasswordCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPassword(password)
+                .build();
+
+        return blockingStub.addPasswordCredential(sshCredential);
+
+    }
+
+
+    /**
+     * Provides SSHCredential of given token
+     *
+     * @param clientId
+     * @param token
+     * @return SSHCredential
+     */
+    public SSHCredential getSSHCredential(String clientId, String token,
+                                          boolean useShamirSecret,
+                                          ResourceSecretManagementServiceGrpc.
+                                                  ResourceSecretManagementServiceBlockingStub blockingStub) {
+
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+        if (useShamirSecret) {
+            tokenRequest = tokenRequest.toBuilder()
+                    .setUseShamirsSecretSharingWithEncryption(true)
+                    .setNumOfShares(defaultNumOfShares)
+                    .setThreshold(defaultThreshold)
+                    .build();
+        }
+
+        SSHCredential sshCredential = blockingStub.getSSHCredential(tokenRequest);
+
+        if (useShamirSecret) {
+            List<ByteString> shares = sshCredential.getPrivateKeySharesList();
+            String secret = ShamirSecretHandler.generateSecret(shares, defaultNumOfShares, defaultThreshold);
+            sshCredential = sshCredential.toBuilder().setPrivateKey(secret).build();
+        }
+        return sshCredential;
+
+    }
+
+    /**
+     * provides PasswordCredential of given token
+     *
+     * @param clientId
+     * @param token
+     * @return PasswordCredential
+     */
+    public PasswordCredential getPasswordCredential(String clientId, String token,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
+
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+
+        return blockingStub.getPasswordCredential(tokenRequest);
+    }
+
+
+    /**
+     * Delete SSHCredential of given token
+     *
+     * @param clientId
+     * @param token
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteSSHCredential(String clientId, String token,
+                                                                 ResourceSecretManagementServiceGrpc.
+                                                                         ResourceSecretManagementServiceBlockingStub blockingStub) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+        return blockingStub.deleteSSHCredential(tokenRequest);
+    }
+
+
+    /**
+     * Delete Password Credential of given token
+     *
+     * @param clientId
+     * @param token
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deletePWDCredential(String clientId, String token,ResourceSecretManagementServiceGrpc.
+            ResourceSecretManagementServiceBlockingStub blockingStub) {
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
                 .newBuilder()
                 .setClientId(clientId)
