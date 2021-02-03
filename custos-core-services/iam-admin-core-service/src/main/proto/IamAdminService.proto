@@ -252,8 +252,14 @@ message RoleRepresentation {
     string name = 1;
     string description = 2;
     bool composite = 3;
+    string id = 4;
+}
 
-
+message DeleteRoleRequest {
+    bool client_level = 1;
+    int64 tenant_id = 2;
+    string client_id = 3;
+    RoleRepresentation role = 4;
 }
 
 message AllRoles {
@@ -410,6 +416,7 @@ service IamAdminService {
     rpc addRolesToTenant (AddRolesRequest) returns (AllRoles);
     rpc addProtocolMapper (AddProtocolMapperRequest) returns (OperationStatus);
     rpc getRolesOfTenant (GetRolesRequest) returns (AllRoles);
+    rpc deleteRole (DeleteRoleRequest) returns (OperationStatus);
 
     rpc isUsernameAvailable (UserSearchRequest) returns (OperationStatus);
     rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);

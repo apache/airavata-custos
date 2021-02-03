@@ -103,10 +103,10 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     }
 
     @Override
-    public void isAuthenticated(AuthToken request, StreamObserver<IsAuthenticateResponse> responseObserver) {
+    public void isAuthenticated(AuthToken request, StreamObserver<IsAuthenticatedResponse> responseObserver) {
         try {
             LOGGER.debug("Request received  to isAuthenticated ");
-            IsAuthenticateResponse response = identityClient.isAuthenticated(request);
+            IsAuthenticatedResponse response = identityClient.isAuthenticated(request);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {

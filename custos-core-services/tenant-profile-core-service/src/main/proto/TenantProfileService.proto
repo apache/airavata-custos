@@ -148,6 +148,7 @@ message GetTenantsRequest {
  int64 parent_id = 3;
  TenantStatus status = 4;
  string requester_email = 5;
+ string parent_client_id = 6;
 }
 
 service TenantProfileService {

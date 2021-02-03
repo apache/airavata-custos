@@ -31,6 +31,7 @@ public class Credential {
     private  boolean isAdmin;
     private String username;
     private String password;
+    private String parentId;
 
     public Credential(String id, String secret) {
         this.id = id;
@@ -94,5 +95,14 @@ public class Credential {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+
+    public String getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
 }

@@ -202,6 +202,29 @@ public class CredentialManager {
 
     }
 
+    public Credential decodeAgentJWTToken(String token) {
+        try {
+            java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+            String[] parts = token.split("\\."); // split out the "parts" (header, payload and signature)
+
+            String headerJson = new String(decoder.decode(parts[0]));
+            String payloadJson = new String(decoder.decode(parts[1]));
+            String signatureJson = new String(decoder.decode(parts[2]));
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> jsonMap = mapper.readValue(payloadJson, new TypeReference<Map<String, Object>>() {
+            });
+
+            Credential credential = new Credential();
+            credential.setId(jsonMap.get("agent-id").toString());
+            credential.setParentId(jsonMap.get("agent-parent-id").toString());
+            return credential;
+        } catch (Exception ex) {
+            throw new CredentialGenerationException
+                    ("Error occurred while decoding token ", ex);
+        }
+    }
+
     //TODO use UUID
     private String generateRandomClientId(int length) {
         StringBuilder returnValue = new StringBuilder(length);

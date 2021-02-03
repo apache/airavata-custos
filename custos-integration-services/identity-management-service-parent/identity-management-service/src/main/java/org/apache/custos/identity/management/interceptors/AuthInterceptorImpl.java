@@ -30,7 +30,7 @@ import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.AuthenticationRequest;
 import org.apache.custos.identity.service.Claim;
 import org.apache.custos.identity.service.GetTokenRequest;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -64,7 +64,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         if (method.equals("authenticate")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             AuthenticationRequest reqCore =
                     ((AuthenticationRequest) reqT).toBuilder()
@@ -77,7 +77,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("isAuthenticated")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String accessToken = ((AuthToken) reqT).getAccessToken();
@@ -124,7 +124,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                     .setAccessToken(accessToken);
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             long tenantId = claim.getTenantId();
@@ -138,7 +138,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("getUserManagementServiceAccountAccessToken")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             org.apache.custos.identity.service.GetUserManagementSATokenRequest request =
@@ -153,7 +153,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("token")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
@@ -166,7 +166,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("getCredentials")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             Credentials credentials = Credentials.newBuilder()
@@ -185,7 +185,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("endUserSession")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
                     ((EndSessionRequest) reqT).getBody().toBuilder()

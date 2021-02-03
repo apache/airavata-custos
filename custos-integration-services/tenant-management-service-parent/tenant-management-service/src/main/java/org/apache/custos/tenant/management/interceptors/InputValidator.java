@@ -85,6 +85,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "getFromCache":
             case "getInstitutions":
             case "getTenantRoles":
+            case "deleteRole":
                 validationAuthorizationHeader(headers);
                 break;
             default:

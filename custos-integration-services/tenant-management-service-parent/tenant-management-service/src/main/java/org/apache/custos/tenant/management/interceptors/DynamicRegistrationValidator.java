@@ -22,10 +22,8 @@ package org.apache.custos.tenant.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.credential.store.service.CredentialMetadata;
-import org.apache.custos.credential.store.service.GetCredentialRequest;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
-import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
@@ -41,7 +39,7 @@ import org.springframework.stereotype.Component;
  * This class validates the  conditions that should be satisfied by the Dynamic Registration Protocol
  */
 @Component
-public class DynamicRegistrationValidator extends AuthInterceptor implements IntegrationServiceInterceptor {
+public class DynamicRegistrationValidator extends AuthInterceptor  {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicRegistrationValidator.class);
 
@@ -65,14 +63,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             String clientId = tenantRequest.getClientId();
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
-
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
             Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant != null ? tenant.getTenantId() :
@@ -97,14 +88,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
                 clientId = tenantRequest.getBody().getClientId();
             }
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
-
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
 
             Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
@@ -118,22 +102,15 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
 
             String clientId = tenantRequest.getClientId();
 
-            GetCredentialRequest request = GetCredentialRequest.newBuilder()
-                    .setId(clientId)
-                    .build();
-            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+            CredentialMetadata metadata = getCredentialsFromClientId(clientId);
 
-            if (metadata == null || metadata.getOwnerId() == 0) {
-                throw new NotAuthorizedException("Invalid client_id", null);
-            }
-
-
-            Tenant tenant = validateTenantWithBasicAuth(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
+            Tenant tenant = validateTenantWithUserToken(metadata.getOwnerId(), tenantRequest.getTenantId(), headers);
 
             return (ReqT) tenantRequest.toBuilder().setTenantId(tenant.getTenantId()).build();
 
         }
         return msg;
+
     }
 
 
@@ -155,7 +132,7 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
         }
 
         if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
-            throw new NotAuthorizedException("Not a valid admin client", null);
+            throw new UnAuthorizedException("Not a valid admin client", null);
         }
 
         return tenant;
@@ -179,9 +156,13 @@ public class DynamicRegistrationValidator extends AuthInterceptor implements Int
         }
 
         if (tenant == null || (tenant.getParentTenantId() != 0 && tenant.getParentTenantId() != parentTenant)) {
-            throw new NotAuthorizedException("Not a valid admin client", null);
+            throw new UnAuthorizedException("Not a valid admin client", null);
         }
 
         return tenant;
     }
+
+
+
+
 }

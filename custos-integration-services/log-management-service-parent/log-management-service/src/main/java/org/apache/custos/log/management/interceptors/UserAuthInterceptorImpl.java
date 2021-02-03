@@ -22,7 +22,7 @@ package org.apache.custos.log.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -56,11 +56,11 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, loggingConfigRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             if (!claim.isAdmin()) {
-                throw new NotAuthorizedException("Your are not a tenant admin", null);
+                throw new UnAuthorizedException("Your are not a tenant admin", null);
             }
 
             long tenantId = claim.getTenantId();

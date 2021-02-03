@@ -22,6 +22,7 @@ package org.apache.custos.clients;
 import org.apache.custos.agent.management.client.AgentManagementClient;
 import org.apache.custos.group.management.client.GroupManagementClient;
 import org.apache.custos.identity.management.client.IdentityManagementClient;
+import org.apache.custos.resource.secret.management.client.ResourceSecretManagementAgentClient;
 import org.apache.custos.resource.secret.management.client.ResourceSecretManagementClient;
 import org.apache.custos.sharing.management.client.SharingManagementClient;
 import org.apache.custos.tenant.manamgement.client.TenantManagementClient;
@@ -79,6 +80,11 @@ public class CustosClientProvider {
 
     public UserManagementClient getUserManagementClient() throws IOException {
         return new UserManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
+    }
+
+    public ResourceSecretManagementClient getResourceSecretManagementClientForAgents() throws IOException {
+        return new ResourceSecretManagementAgentClient
+                (this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
 

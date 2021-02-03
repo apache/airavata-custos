@@ -27,7 +27,7 @@ import org.apache.custos.iam.service.ResetUserPassword;
 import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
@@ -61,7 +61,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -80,7 +80,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -101,7 +101,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -123,7 +123,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -140,7 +140,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -155,7 +155,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers);
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -173,7 +173,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -195,7 +195,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -217,7 +217,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, req.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -239,7 +239,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, userProfileRequest.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -249,7 +249,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthToken token = getSAToken(claim.getIamAuthId(), claim.getIamAuthSecret(), claim.getTenantId());
             if (token == null || token.getAccessToken() == null) {
-                throw new NotAuthorizedException("Request is not authorized SA token is invalid", null);
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
             return (ReqT) ((UserProfileRequest) reqT).toBuilder()
