@@ -151,6 +151,19 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
                     .toBuilder().setOwnerId(claim.getUsername()).setTenantId(claim.getTenantId()).build();
             return (ReqT) ((KVCredential) reqT).toBuilder().setMetadata(metadata).build();
 
+        } else if (method.equals("getCredentialMap") || method.equals("addCredentialMap") || method.equals("updateCredentialMap")
+                || method.equals("deleteCredentialMap")) {
+            String clientId = ((CredentialMap) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorize(headers, clientId);
+            if (claim == null) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((CredentialMap) reqT)
+                    .getMetadata()
+                    .toBuilder().setTenantId(claim.getTenantId()).build();
+            return (ReqT) ((CredentialMap) reqT).toBuilder().setMetadata(metadata).build();
+
         }
         return reqT;
     }

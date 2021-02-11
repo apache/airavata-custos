@@ -19,6 +19,7 @@
 
 package org.apache.custos.resource.secret.manager.adaptor.inbound;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.persistance.local.model.Secret;
 import org.apache.custos.resource.secret.persistance.local.repository.SecretRepository;
@@ -37,6 +38,7 @@ import org.springframework.vault.support.VaultResponseSupport;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -52,6 +54,7 @@ public class CredentialReader {
     private VaultTemplate vaultTemplate;
 
 
+
     /**
      * get SSH credentials
      *
@@ -59,7 +62,7 @@ public class CredentialReader {
      * @param token
      * @return
      */
-    public SSHCredential getSSHCredential(long tenantId, String token) {
+    public Optional<SSHCredential> getSSHCredential(long tenantId, String token) {
 
         Secret secret = null;
 
@@ -77,7 +80,7 @@ public class CredentialReader {
         }
 
         if (secret == null) {
-            return null;
+            return Optional.empty();
         }
 
         String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
@@ -87,7 +90,7 @@ public class CredentialReader {
 
         if (response == null || response.getData() == null && response.getData().getPrivateKey() == null) {
             repository.delete(secret);
-            return null;
+            return Optional.empty();
         }
 
         SSHCredentialSecrets sshCredentialSecrets = response.getData();
@@ -111,7 +114,7 @@ public class CredentialReader {
                 .setMetadata(metadata)
                 .build();
 
-        return credential;
+        return Optional.of(credential);
 
     }
 
@@ -123,8 +126,8 @@ public class CredentialReader {
      * @param token
      * @return
      */
-    public org.apache.custos.resource.secret.service.PasswordCredential getPasswordCredential(long tenantId,
-                                                                                              String token) {
+    public Optional<org.apache.custos.resource.secret.service.PasswordCredential> getPasswordCredential(long tenantId,
+                                                                                                        String token) {
         Secret secret = null;
 
         if (token != null && !token.trim().equals("")) {
@@ -141,7 +144,7 @@ public class CredentialReader {
         }
 
         if (secret == null) {
-            return null;
+            return Optional.empty();
         }
 
         String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
@@ -152,7 +155,7 @@ public class CredentialReader {
 
         if (response == null || response.getData() == null && response.getData().getPassword() == null) {
             repository.delete(secret);
-            return null;
+            return Optional.empty();
         }
 
         PasswordSecret passwordSecret = response.getData();
@@ -173,10 +176,11 @@ public class CredentialReader {
         org.apache.custos.resource.secret.service.PasswordCredential credential =
                 org.apache.custos.resource.secret.service.PasswordCredential.newBuilder()
                         .setPassword(passwordSecret.getPassword())
+                        .setUserId(passwordSecret.getUserId() != null? passwordSecret.getUserId() : "")
                         .setMetadata(metadata)
                         .build();
 
-        return credential;
+        return Optional.of(credential);
 
 
     }
@@ -188,7 +192,7 @@ public class CredentialReader {
      * @param token
      * @return
      */
-    public CertificateCredential getCertificateCredential(long tenantId, String token) {
+    public Optional<CertificateCredential> getCertificateCredential(long tenantId, String token) {
         Secret secret = null;
 
         if (token != null && !token.trim().equals("")) {
@@ -205,7 +209,7 @@ public class CredentialReader {
         }
 
         if (secret == null) {
-            return null;
+            return Optional.empty();
         }
 
 
@@ -216,7 +220,7 @@ public class CredentialReader {
 
         if (response == null || response.getData() == null && response.getData().getCertificate() == null) {
             repository.delete(secret);
-            return null;
+            return Optional.empty();
         }
 
         Certificate certificate = response.getData();
@@ -243,7 +247,7 @@ public class CredentialReader {
                 .setMetadata(metadata)
                 .build();
 
-        return certificateCredential;
+        return Optional.of(certificateCredential);
 
     }
 
@@ -254,7 +258,7 @@ public class CredentialReader {
      * @param token
      * @return
      */
-    public SecretMetadata getCredentialSummary(long tenantId, String token) {
+    public Optional<SecretMetadata> getCredentialSummary(long tenantId, String token) {
 
         Secret secret = null;
 
@@ -272,10 +276,10 @@ public class CredentialReader {
         }
 
         if (secret == null) {
-            return null;
+            return Optional.empty();
         }
 
-        return SecretMetadata.newBuilder()
+        return Optional.of(SecretMetadata.newBuilder()
                 .setToken(
                         (secret.getExternalId() != null &&
                                 !secret.getExternalId().trim().equals("")) ? secret.getExternalId() : secret.getId())
@@ -286,7 +290,7 @@ public class CredentialReader {
                 .setResourceType(ResourceType.VAULT_CREDENTIAL)
                 .setSource(ResourceSource.EXTERNAL)
                 .setOwnerId(secret.getOwnerId())
-                .build();
+                .build());
 
     }
 
@@ -331,17 +335,17 @@ public class CredentialReader {
     }
 
 
-    public KVCredential getKVSecretByToken(String token, long tenantId, String ownerId) {
+    public Optional<KVCredential> getKVSecretByToken(String token, long tenantId, String ownerId) {
         Optional<Secret> secret = repository.findById(token);
 
         if (secret.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         Secret exSec = secret.get();
 
         if (!exSec.getOwnerId().equals(ownerId)) {
-            return null;
+            return Optional.empty();
         }
 
         String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + ownerId +
@@ -352,7 +356,7 @@ public class CredentialReader {
         KVSecret kvSecret = response.getData();
         if (kvSecret == null || kvSecret.getValue() == null) {
             repository.delete(exSec);
-            return null;
+            return Optional.empty();
         }
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setToken(token)
@@ -371,15 +375,15 @@ public class CredentialReader {
                 .setValue(kvSecret.getValue())
                 .setMetadata(metadata).build();
 
-        return kvCredential;
+        return Optional.of(kvCredential);
     }
 
-    public KVCredential getKVSecretByKey(String key, long tenantId, String ownerId) {
+    public Optional<KVCredential> getKVSecretByKey(String key, long tenantId, String ownerId) {
 
         List<Secret> secrets = repository.findAllByExternalIdAndOwnerIdAndTenantId(key, ownerId, tenantId);
 
         if (secrets != null && secrets.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
         Secret exSec = secrets.get(0);
 
@@ -391,7 +395,7 @@ public class CredentialReader {
         KVSecret kvSecret = response.getData();
         if (kvSecret == null || kvSecret.getValue() == null) {
             repository.delete(exSec);
-            return null;
+            return Optional.empty();
         }
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setToken(exSec.getId())
@@ -410,7 +414,50 @@ public class CredentialReader {
                 .setValue(kvSecret.getValue())
                 .setMetadata(metadata).build();
 
-        return kvCredential;
+        return Optional.of(kvCredential);
+    }
+
+    public Optional<CredentialMap> getCredentialMapByToken(String token, long tenantId) throws JsonProcessingException {
+        Optional<Secret> secret = repository.findById(token);
+
+        if (secret.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Secret exSec = secret.get();
+
+        String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + exSec.getOwnerId() +
+                "/" + Constants.SECRET_MAP + "/" + token;
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(vaultPath, KVSecret.class);
+
+        KVSecret kvSecret = response.getData();
+        if (kvSecret == null || kvSecret.getValue() == null) {
+            repository.delete(exSec);
+            return Optional.empty();
+        }
+
+        Map<String, String> valueMap = org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap.
+                getCredentialMapFromString(response.getData().getValue());
+
+
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setToken(token)
+                .setTenantId(tenantId)
+                .setDescription(exSec.getDiscription())
+                .setPersistedTime(exSec.getCreatedAt().getTime())
+                .setType(ResourceSecretType.valueOf(exSec.getSecretType()))
+                .setResourceType(ResourceType.OTHER)
+                .setSource(ResourceSource.EXTERNAL)
+                .setResourceType(ResourceType.valueOf(exSec.getType()))
+                .setOwnerId(exSec.getOwnerId())
+                .build();
+
+        CredentialMap kvCredential = CredentialMap.newBuilder()
+                .putAllCredentialMap(valueMap)
+                .setMetadata(metadata).build();
+
+        return Optional.of(kvCredential);
     }
 }
 

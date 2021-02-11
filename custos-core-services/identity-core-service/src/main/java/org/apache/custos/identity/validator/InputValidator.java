@@ -48,7 +48,7 @@ public class InputValidator implements Validator {
             case "authenticate":
                 validateAuthenticate(obj);
                 break;
-            case "isAuthenticate":
+            case "isAuthenticated":
             case "getUser":
                 validateAuthzToken(obj);
                 break;

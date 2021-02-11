@@ -108,5 +108,20 @@ public class ResourceSecretClient {
         return resourceSecretServiceBlockingStub.deleteKVCredential(request);
     }
 
+    public CredentialMap getCredentialMap(CredentialMap request) {
+        return resourceSecretServiceBlockingStub.getCredentialMap(request);
+    }
+
+    public ResourceCredentialOperationStatus setCredentialMap(CredentialMap request) {
+        return resourceSecretServiceBlockingStub.setCredentialMap(request);
+    }
+
+    public ResourceCredentialOperationStatus updateCredentialMap(CredentialMap request) {
+        return resourceSecretServiceBlockingStub.updateCredentialMap(request);
+    }
+
+    public ResourceCredentialOperationStatus deleteCredentialMap(CredentialMap request) {
+        return resourceSecretServiceBlockingStub.deleteCredentialMap(request);
+    }
 
 }
