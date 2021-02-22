@@ -189,5 +189,17 @@ public class IdentityManagementClient {
 
     }
 
+    public boolean isAuthenticated(String accessToken) {
+        try {
+            AuthToken authToken = AuthToken
+                    .newBuilder()
+                    .setAccessToken(accessToken)
+                    .build();
+            IsAuthenticatedResponse authenticatedResponse = blockingStub.isAuthenticated(authToken);
+            return authenticatedResponse.getAuthenticated();
+        } catch (Exception ex) {
+            return false;
+        }
 
+    }
 }

@@ -33,6 +33,7 @@ import org.apache.custos.resource.secret.service.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is responsible for managing resource secrets
@@ -187,7 +188,7 @@ public class ResourceSecretManagementClient {
      * @param password
      * @return AddResourceCredentialResponse
      */
-    public AddResourceCredentialResponse addPasswordCredential(String clientId, String description, String ownerId, String password) {
+    public AddResourceCredentialResponse addPasswordCredential(String clientId, String description, String ownerId, String userId,  String password) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setDescription(description)
@@ -200,11 +201,16 @@ public class ResourceSecretManagementClient {
                 .setPassword(password)
                 .build();
 
+        if (userId != null) {
+            sshCredential = sshCredential.toBuilder().setUserId(userId).build();
+        }
+
         return blockingStub.addPasswordCredential(sshCredential);
 
     }
 
-    public AddResourceCredentialResponse addPasswordCredential(String token, String clientId, String description, String ownerId, String password) {
+    public AddResourceCredentialResponse addPasswordCredential(String token, String clientId,
+                                                               String description, String ownerId,  String userId, String password) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setDescription(description)
@@ -218,6 +224,10 @@ public class ResourceSecretManagementClient {
                 .setMetadata(metadata)
                 .setPassword(password)
                 .build();
+
+        if (userId != null) {
+            sshCredential = sshCredential.toBuilder().setUserId(userId).build();
+        }
 
         return blockingStub.addPasswordCredential(sshCredential);
 
@@ -313,7 +323,6 @@ public class ResourceSecretManagementClient {
     }
 
 
-
     /**
      * provides resource secret for given owner type and resource type
      *
@@ -321,7 +330,7 @@ public class ResourceSecretManagementClient {
      * @param resourceType
      * @return
      */
-    public SecretMetadata getSecret(ResourceOwnerType ownerType, ResourceType resourceType,ResourceSecretManagementServiceGrpc.
+    public SecretMetadata getSecret(ResourceOwnerType ownerType, ResourceType resourceType, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
 
         SecretMetadata metadata = SecretMetadata
@@ -352,7 +361,7 @@ public class ResourceSecretManagementClient {
      * @param token
      * @return SecretMetadata
      */
-    public SecretMetadata getResourceCredentialSummary(String clientId, String token,ResourceSecretManagementServiceGrpc.
+    public SecretMetadata getResourceCredentialSummary(String clientId, String token, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
 
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
@@ -372,7 +381,7 @@ public class ResourceSecretManagementClient {
      * @param accessibleTokens
      * @return SecretMetadata[]
      */
-    public ResourceCredentialSummaries getAllResourceCredentialSummaries(String clientId, List<String> accessibleTokens,ResourceSecretManagementServiceGrpc.
+    public ResourceCredentialSummaries getAllResourceCredentialSummaries(String clientId, List<String> accessibleTokens, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
         GetResourceCredentialSummariesRequest summariesRequest = GetResourceCredentialSummariesRequest
                 .newBuilder()
@@ -392,7 +401,7 @@ public class ResourceSecretManagementClient {
      * @param ownerId
      * @return AddResourceCredentialResponse
      */
-    public AddResourceCredentialResponse generateSSHCredential(String clientId, String description, String ownerId,ResourceSecretManagementServiceGrpc.
+    public AddResourceCredentialResponse generateSSHCredential(String clientId, String description, String ownerId, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
 
         SecretMetadata metadata = SecretMetadata.newBuilder()
@@ -442,7 +451,7 @@ public class ResourceSecretManagementClient {
      * @return AddResourceCredentialResponse
      */
     public AddResourceCredentialResponse addPasswordCredential(String clientId, String description,
-                                                               String ownerId, String password,
+                                                               String ownerId,  String userId,String password,
                                                                ResourceSecretManagementServiceGrpc.
                                                                        ResourceSecretManagementServiceBlockingStub blockingStub) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
@@ -450,20 +459,22 @@ public class ResourceSecretManagementClient {
                 .setDescription(description)
                 .setOwnerId(ownerId).build();
 
-
         PasswordCredential sshCredential = PasswordCredential
                 .newBuilder()
                 .setMetadata(metadata)
                 .setPassword(password)
                 .build();
+        if (userId != null) {
+            sshCredential = sshCredential.toBuilder().setUserId(userId).build();
+        }
 
         return blockingStub.addPasswordCredential(sshCredential);
-
     }
+
 
     public AddResourceCredentialResponse addPasswordCredential(String token, String clientId,
                                                                String description, String ownerId,
-                                                               String password,
+                                                                String userId,String password,
                                                                ResourceSecretManagementServiceGrpc.
                                                                        ResourceSecretManagementServiceBlockingStub blockingStub) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
@@ -473,12 +484,15 @@ public class ResourceSecretManagementClient {
                 .setToken(token)
                 .build();
 
-
         PasswordCredential sshCredential = PasswordCredential
                 .newBuilder()
                 .setMetadata(metadata)
                 .setPassword(password)
                 .build();
+
+        if (userId != null) {
+            sshCredential = sshCredential.toBuilder().setUserId(userId).build();
+        }
 
         return blockingStub.addPasswordCredential(sshCredential);
 
@@ -528,7 +542,7 @@ public class ResourceSecretManagementClient {
      * @param token
      * @return PasswordCredential
      */
-    public PasswordCredential getPasswordCredential(String clientId, String token,ResourceSecretManagementServiceGrpc.
+    public PasswordCredential getPasswordCredential(String clientId, String token, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
 
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
@@ -561,6 +575,145 @@ public class ResourceSecretManagementClient {
         return blockingStub.deleteSSHCredential(tokenRequest);
     }
 
+    public ResourceCredentialOperationStatus addCredentialMap(String clientId, String description, String ownerId,
+                                                              String token, Map<String, String> credentialMap,
+                                                              ResourceSecretManagementServiceGrpc.
+                                                                      ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        CredentialMap creMap = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .putAllCredentialMap(credentialMap)
+                .build();
+
+        return blockingStub.addCredentialMap(creMap);
+    }
+
+    public CredentialMap getCredentialMap(String clientId, String token,
+                                          ResourceSecretManagementServiceGrpc.
+                                                  ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setToken(token).
+                        build();
+
+        CredentialMap tokenRequest = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .build();
+
+        return blockingStub.getCredentialMap(tokenRequest);
+    }
+
+    public ResourceCredentialOperationStatus deleteCredentialMap(String clientId, String token,
+                                                                 ResourceSecretManagementServiceGrpc.
+                                                                         ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setToken(token).
+                        build();
+
+        CredentialMap tokenRequest = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .build();
+
+        return blockingStub.deleteCredentialMap(tokenRequest);
+    }
+
+
+    public ResourceCredentialOperationStatus updateCredentialMap(String clientId, String description, String ownerId,
+                                                                 String token, Map<String, String> credentialMap,
+                                                                 ResourceSecretManagementServiceGrpc.
+                                                                         ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        CredentialMap creMap = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .putAllCredentialMap(credentialMap)
+                .build();
+
+        return blockingStub.updateCredentialMap(creMap);
+    }
+
+
+    public ResourceCredentialOperationStatus addCredentialMap(String clientId, String description, String ownerId,
+                                                              String token, Map<String, String> credentialMap) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        CredentialMap creMap = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .putAllCredentialMap(credentialMap)
+                .build();
+
+        return blockingStub.addCredentialMap(creMap);
+    }
+
+    public CredentialMap getCredentialMap(String clientId, String token) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setToken(token).
+                        build();
+
+        CredentialMap tokenRequest = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .build();
+
+        return blockingStub.getCredentialMap(tokenRequest);
+    }
+
+    public ResourceCredentialOperationStatus deleteCredentialMap(String clientId, String token) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setToken(token).
+                        build();
+
+        CredentialMap tokenRequest = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .build();
+
+        return blockingStub.deleteCredentialMap(tokenRequest);
+    }
+
+
+    public ResourceCredentialOperationStatus updateCredentialMap(String clientId, String description, String ownerId,
+                                                                 String token, Map<String, String> credentialMap) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setDescription(description)
+                .setOwnerId(ownerId)
+                .setToken(token).
+                        build();
+
+        CredentialMap creMap = CredentialMap
+                .newBuilder()
+                .setMetadata(metadata)
+                .putAllCredentialMap(credentialMap)
+                .build();
+
+        return blockingStub.updateCredentialMap(creMap);
+    }
+
 
     /**
      * Delete Password Credential of given token
@@ -569,7 +722,7 @@ public class ResourceSecretManagementClient {
      * @param token
      * @return ResourceCredentialOperationStatus
      */
-    public ResourceCredentialOperationStatus deletePWDCredential(String clientId, String token,ResourceSecretManagementServiceGrpc.
+    public ResourceCredentialOperationStatus deletePWDCredential(String clientId, String token, ResourceSecretManagementServiceGrpc.
             ResourceSecretManagementServiceBlockingStub blockingStub) {
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
                 .newBuilder()
@@ -580,11 +733,11 @@ public class ResourceSecretManagementClient {
         return blockingStub.deletePWDCredential(tokenRequest);
     }
 
-     ManagedChannel getManagedChannel() {
+    ManagedChannel getManagedChannel() {
         return managedChannel;
     }
 
-     void setManagedChannel(ManagedChannel managedChannel) {
+    void setManagedChannel(ManagedChannel managedChannel) {
         this.managedChannel = managedChannel;
     }
 

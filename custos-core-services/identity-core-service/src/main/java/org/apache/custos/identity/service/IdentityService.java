@@ -149,8 +149,9 @@ public class IdentityService extends IdentityServiceImplBase {
                 tenantId = claim.getValue();
             }
         }
-        LOGGER.debug("Authentication status checking for  " + username
-        );
+        LOGGER.debug("Authentication status checking for  " + username );
+        LOGGER.info("Authentication status checking for  " + username + " token "+ request.getAccessToken());
+
         String accessToken = request.getAccessToken();
 
 

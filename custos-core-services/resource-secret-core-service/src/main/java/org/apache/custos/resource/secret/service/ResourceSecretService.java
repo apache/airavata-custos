@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This class is responsible for handling resource secrets, such as SSH credentials, password credentials
@@ -103,7 +104,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
                     .setToken((sshCredential.getExternalId() != null &&
-                            !sshCredential.getExternalId().trim().equals(""))?sshCredential.getExternalId(): sshCredential.getToken())
+                            !sshCredential.getExternalId().trim().equals("")) ? sshCredential.getExternalId() : sshCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
@@ -137,7 +138,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
                     .setToken((passwordCredential.getExternalId() != null &&
-                            !passwordCredential.getExternalId().trim().equals(""))?passwordCredential.getExternalId(): passwordCredential.getToken())
+                            !passwordCredential.getExternalId().trim().equals("")) ? passwordCredential.getExternalId() : passwordCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
@@ -170,8 +171,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
                     .setToken((certificateCredential.getExternalId() != null &&
-                            !certificateCredential.getExternalId().trim().equals(""))?
-                            certificateCredential.getExternalId(): certificateCredential.getToken())
+                            !certificateCredential.getExternalId().trim().equals("")) ?
+                            certificateCredential.getExternalId() : certificateCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
@@ -190,9 +191,9 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getResourceCredentialSummary in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            SecretMetadata metadata = credentialReader.getCredentialSummary(request.getTenantId(), request.getToken());
+            Optional<SecretMetadata> metadata = credentialReader.getCredentialSummary(request.getTenantId(), request.getToken());
 
-            responseObserver.onNext(metadata);
+            responseObserver.onNext(metadata.get());
             responseObserver.onCompleted();
 
 
@@ -210,8 +211,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getSSHCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            SSHCredential sshCredential = credentialReader.getSSHCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(sshCredential);
+            Optional<SSHCredential> sshCredential = credentialReader.getSSHCredential(request.getTenantId(), request.getToken());
+            responseObserver.onNext(sshCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -228,9 +229,9 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getPasswordCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            PasswordCredential passwordCredential = credentialReader.
+            Optional<PasswordCredential> passwordCredential = credentialReader.
                     getPasswordCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(passwordCredential);
+            responseObserver.onNext(passwordCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -247,9 +248,9 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getCertificateCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            CertificateCredential certificateCredential = credentialReader.
+            Optional<CertificateCredential> certificateCredential = credentialReader.
                     getCertificateCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(certificateCredential);
+            responseObserver.onNext(certificateCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -319,7 +320,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getKVCredential in tenant " + request.getMetadata().getTenantId() +
                     " with key  " + request.getKey());
             String token = request.getToken();
-            KVCredential kvCredential = null;
+            Optional<KVCredential> kvCredential = null;
             if (token != null && !token.trim().equals("")) {
                 kvCredential = credentialReader.getKVSecretByToken(token,
                         request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
@@ -328,7 +329,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
                         request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
             }
 
-            responseObserver.onNext(kvCredential);
+            responseObserver.onNext(kvCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -402,6 +403,105 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             credentialWriter.deleteKVCredential(request);
 
             statusUpdater.updateStatus(Operations.DELETE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCredentialMap(CredentialMap request, StreamObserver<CredentialMap> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to getCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+
+            Optional<CredentialMap> certificateCredential = credentialReader.
+                    getCredentialMapByToken(request.getMetadata().getToken(), request.getMetadata().getTenantId());
+            responseObserver.onNext(certificateCredential.get());
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void setCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to setCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+
+            credentialWriter.saveCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.SAVE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to updateCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+            credentialWriter.updateCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.UPDATE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to deleteCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+            credentialWriter.deleteCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
                     request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
 
             ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus

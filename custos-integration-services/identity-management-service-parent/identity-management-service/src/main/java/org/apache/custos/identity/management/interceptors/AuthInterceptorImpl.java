@@ -82,19 +82,14 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             String accessToken = ((AuthToken) reqT).getAccessToken();
 
+            AuthClaim authClaim = authorizeUsingUserToken(accessToken);
+
             AuthToken.Builder authzBuilder = AuthToken.newBuilder()
                     .setAccessToken(accessToken);
 
-            String username = null;
+            Claim userClaim = Claim.newBuilder().setKey("username").setValue(authClaim.getUsername()).build();
 
-            for (Claim claims : ((AuthToken) reqT).getClaimsList()) {
-                if (claims.getKey().equals("username")) {
-                    username = claims.getValue();
-                }
-            }
-            Claim userClaim = Claim.newBuilder().setKey("username").setValue(username).build();
-
-            Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(claim.getTenantId())).build();
+            Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(authClaim.getTenantId())).build();
 
             authzBuilder.addClaims(userClaim);
             authzBuilder.addClaims(tenantClaim);

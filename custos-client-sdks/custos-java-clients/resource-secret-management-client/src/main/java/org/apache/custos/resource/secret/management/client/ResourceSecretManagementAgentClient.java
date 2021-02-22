@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Client for agents or service accounts to manage secrets of Custos
@@ -84,17 +85,17 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
     }
 
     public AddResourceCredentialResponse addPasswordCredential(String userToken, String agentToken,
-                                                               String clientId, String description, String ownerId, String password) {
+                                                               String clientId, String description, String ownerId,  String userId,String password) {
         return super.addPasswordCredential(clientId,
-                description, ownerId, password, attachedHeaders(userToken, agentToken));
+                description, ownerId, userId, password,attachedHeaders(userToken, agentToken));
     }
 
 
     public AddResourceCredentialResponse addPasswordCredential(String userToken, String agentToken,
                                                                String token, String clientId, String description,
-                                                               String ownerId, String password) {
+                                                               String ownerId,  String userId, String password) {
         return super.addPasswordCredential(token, clientId,
-                description, ownerId, password, attachedHeaders(userToken, agentToken));
+                description, ownerId, userId,password, attachedHeaders(userToken, agentToken));
     }
 
     public SSHCredential getSSHCredential(String userToken, String agentToken, String csToken, boolean useShamirSecret) {
@@ -103,7 +104,8 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
     }
 
 
-    public PasswordCredential getPasswordCredential(String userToken, String agentToken, String clientId, String token) {
+    public PasswordCredential getPasswordCredential(String userToken, String agentToken,
+                                                    String clientId, String token) {
         return super.getPasswordCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
@@ -116,6 +118,31 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
                                                                  String clientId, String token) {
         return super.deletePWDCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
+
+    public ResourceCredentialOperationStatus addCredentialMap(String userToken, String agentToken,
+                                                              String clientId, String description, String ownerId,
+                                                              String token, Map<String, String> credentialMap) {
+        return super.addCredentialMap(clientId, description, ownerId,
+                token, credentialMap, attachedHeaders(userToken, agentToken));
+    }
+
+    public CredentialMap getCredentialMap(String userToken, String agentToken, String clientId, String token) {
+        return super.getCredentialMap(clientId, token, attachedHeaders(userToken, agentToken));
+    }
+
+    public ResourceCredentialOperationStatus deleteCredentialMap(String userToken,
+                                                                 String agentToken, String clientId, String token) {
+        return super.deleteCredentialMap(clientId, token, attachedHeaders(userToken, agentToken));
+    }
+
+
+    public ResourceCredentialOperationStatus updateCredentialMap(String userToken, String agentToken,
+                                                                 String clientId, String description, String ownerId,
+                                                                 String token, Map<String, String> credentialMap) {
+        return super.updateCredentialMap(clientId, description, ownerId, token, credentialMap,
+                attachedHeaders(userToken, agentToken));
+    }
+
 
     private ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub
     attachedHeaders(String userToken, String agentToken) {
