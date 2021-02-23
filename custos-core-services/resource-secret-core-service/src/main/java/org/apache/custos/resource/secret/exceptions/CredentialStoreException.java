@@ -21,5 +21,6 @@ package org.apache.custos.resource.secret.exceptions;
 
 public class CredentialStoreException extends RuntimeException {
     public CredentialStoreException(String s, Exception exception) {
+        super(s,exception);
     }
 }

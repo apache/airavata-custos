@@ -80,7 +80,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
                 }
 
                 if ((method.equals("addKVCredential") || method.equals("updateKVCredential")) && (value == null || value.trim().equals(""))) {
-                    throw new MissingParameterException("Vaule should not be null ", null);
+                    throw new MissingParameterException("Value should not be null ", null);
                 }
 
             } else {

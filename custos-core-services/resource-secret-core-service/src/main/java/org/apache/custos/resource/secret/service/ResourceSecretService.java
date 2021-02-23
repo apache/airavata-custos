@@ -428,19 +428,25 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             Optional<CredentialMap> certificateCredential = credentialReader.
                     getCredentialMapByToken(request.getMetadata().getToken(), request.getMetadata().getTenantId());
-            responseObserver.onNext(certificateCredential.get());
-            responseObserver.onCompleted();
+            if (certificateCredential.isPresent()) {
+                responseObserver.onNext(certificateCredential.get());
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Cannot find a credential with token " + request.getMetadata().getToken();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
 
         } catch (Exception ex) {
-            String msg = "Exception occurred while deleting KV  credential " +
-                    " : " + ex;
+            String msg = "Exception occurred while fetching credential  Map " +
+                    " : " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
 
     @Override
-    public void setCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+    public void setCredentialMap(CredentialMap request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         try {
             LOGGER.debug(" Request received to setCredentialMap in tenant " + request.getMetadata().getTenantId() +
                     " with key  " + request.getMetadata().getToken());
@@ -452,9 +458,9 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             statusUpdater.updateStatus(Operations.SAVE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
                     request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
 
-            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+            AddResourceCredentialResponse operationStatus = AddResourceCredentialResponse
                     .newBuilder()
-                    .setStatus(true)
+                    .setToken(((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential).getToken())
                     .build();
             responseObserver.onNext(operationStatus);
             responseObserver.onCompleted();
@@ -512,8 +518,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Exception occurred while deleting KV  credential " +
-                    " : " + ex;
+            String msg = "Exception occurred while deleting CredentialMap " +
+                    " : " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

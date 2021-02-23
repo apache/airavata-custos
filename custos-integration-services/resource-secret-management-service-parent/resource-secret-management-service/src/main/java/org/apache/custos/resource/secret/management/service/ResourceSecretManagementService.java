@@ -440,11 +440,11 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     }
 
     @Override
-    public void addCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+    public void addCredentialMap(CredentialMap request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         LOGGER.debug("Request received to addCredentialMap in tenant " + request.getMetadata().getTenantId()
                 + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
         try {
-            ResourceCredentialOperationStatus status = resourceSecretClient.setCredentialMap(request);
+            AddResourceCredentialResponse status = resourceSecretClient.setCredentialMap(request);
             responseObserver.onNext(status);
             responseObserver.onCompleted();
 

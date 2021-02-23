@@ -40,7 +40,9 @@ public class CredentialMap extends ResourceCredential {
         super(message);
         if (message instanceof org.apache.custos.resource.secret.service.CredentialMap) {
             this.credentialMap = ((org.apache.custos.resource.secret.service.CredentialMap) message).getCredentialMapMap();
-            this.json = new JSONObject(this.credentialMap);
+            if (this.credentialMap != null &&  !this.credentialMap.isEmpty()) {
+                this.json = new JSONObject(this.credentialMap);
+            }
         }
     }
 
