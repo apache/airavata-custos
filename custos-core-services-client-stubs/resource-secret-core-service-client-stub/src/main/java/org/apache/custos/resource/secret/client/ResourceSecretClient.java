@@ -112,7 +112,7 @@ public class ResourceSecretClient {
         return resourceSecretServiceBlockingStub.getCredentialMap(request);
     }
 
-    public ResourceCredentialOperationStatus setCredentialMap(CredentialMap request) {
+    public AddResourceCredentialResponse setCredentialMap(CredentialMap request) {
         return resourceSecretServiceBlockingStub.setCredentialMap(request);
     }
 

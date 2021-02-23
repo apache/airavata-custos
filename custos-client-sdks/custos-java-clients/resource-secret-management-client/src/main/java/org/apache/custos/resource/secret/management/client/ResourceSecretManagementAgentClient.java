@@ -36,7 +36,7 @@ import java.util.Map;
 /**
  * Client for agents or service accounts to manage secrets of Custos
  */
-public class ResourceSecretManagementAgentClient extends ResourceSecretManagementClient {
+public class ResourceSecretManagementAgentClient extends ResourceSecretManagementClient  {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResourceSecretManagementAgentClient.class);
 
@@ -119,7 +119,7 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
         return super.deletePWDCredential(clientId, token, attachedHeaders(userToken, agentToken));
     }
 
-    public ResourceCredentialOperationStatus addCredentialMap(String userToken, String agentToken,
+    public AddResourceCredentialResponse addCredentialMap(String userToken, String agentToken,
                                                               String clientId, String description, String ownerId,
                                                               String token, Map<String, String> credentialMap) {
         return super.addCredentialMap(clientId, description, ownerId,
@@ -156,5 +156,13 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
         blockingStub = MetadataUtils.attachHeaders(blockingStub, tokenHeader);
         blockingStub = MetadataUtils.attachHeaders(blockingStub, agentEnablingHeaders);
         return blockingStub;
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        if (this.managedChannel != null) {
+            this.managedChannel.shutdown();
+        }
     }
 }
