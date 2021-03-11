@@ -117,6 +117,7 @@ message GroupRequest {
     string clientId = 4;
     DefaultGroupMembershipTypes membership_type = 5;
     string id = 6;
+    string clientSec =7;
 
 }
 
@@ -148,6 +149,7 @@ message GroupMembership {
     string username = 3;
     string type = 4;
     string clientId = 5;
+    string clientSec = 6;
 }
 
 message GroupToGroupMembership {
@@ -163,6 +165,8 @@ message Status {
 
 message UserGroupMembershipTypeRequest {
     string type = 1;
+    int64 tenantId = 2;
+    string client_id = 3;
 }
 
 

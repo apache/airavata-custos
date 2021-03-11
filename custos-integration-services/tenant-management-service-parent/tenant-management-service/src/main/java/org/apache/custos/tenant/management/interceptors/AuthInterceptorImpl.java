@@ -63,6 +63,10 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
         if (method.equals("createTenant")) {
 
+            String token = getToken(headers);
+            if (token == null) {
+                return msg;
+            }
             AuthClaim claim = authorize(headers);
             if (claim == null) {
                 return msg;
