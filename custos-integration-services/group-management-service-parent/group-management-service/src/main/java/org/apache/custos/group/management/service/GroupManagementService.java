@@ -663,6 +663,48 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         }
     }
 
+    @Override
+    public void addGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                       StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addGroupMembershipType for  tenant " + request.getTenantId()
+                    + ", type " + request.getType());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.addUserMembershipType(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addGroupMembershipType " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+
+    }
+
+    @Override
+    public void removeUserGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                              StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserGroupMembershipType for  tenant " + request.getTenantId()
+                    + ", type " + request.getType());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.removeUserMembershipType(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserGroupMembershipType " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+
+    }
+
     private org.apache.custos.user.profile.service.GroupRequest createGroup(GroupRepresentation representation,
                                                                             String parentId,
                                                                             long tenantId,

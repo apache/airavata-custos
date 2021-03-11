@@ -188,6 +188,20 @@ service GroupManagementService {
 
     }
 
+    rpc addGroupMembershipType(org.apache.custos.user.profile.service.UserGroupMembershipTypeRequest) returns (org.apache.custos.user.profile.service.Status) {
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/user/group/membership/type"
+         };
+
+    }
+
+    rpc removeUserGroupMembershipType(org.apache.custos.user.profile.service.UserGroupMembershipTypeRequest) returns (org.apache.custos.user.profile.service.Status) {
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/user/group/membership/type"
+         };
+
+    }
+
 
 }
 

@@ -163,6 +163,8 @@ message Status {
 
 message UserGroupMembershipTypeRequest {
     string type = 1;
+    int64 tenantId = 2;
+    string client_id = 3;
 }
 
 
