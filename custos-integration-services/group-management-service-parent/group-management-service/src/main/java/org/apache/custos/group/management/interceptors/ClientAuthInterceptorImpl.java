@@ -105,6 +105,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             return (ReqT) ((GroupMembership) reqT).toBuilder()
                     .setClientId(oauthId)
+                    .setClientSec(oauthSec)
                     .setTenantId(tenantId)
                     .build();
 

@@ -345,6 +345,8 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
             String id = request.getGroup().getId();
 
+            updateProfile(request.getClientId(), request.getClientSec(),
+                    request.getTenantId(), request.getGroup().getOwnerId());
             if (id != null && !id.trim().equals("")) {
                 Group group = Group.newBuilder()
                         .setId(id)
@@ -385,6 +387,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         try {
             LOGGER.debug("Request received to updateGroup for  group  " + request.getGroup().getId() + " of tenant "
                     + request.getTenantId());
+
 
             if (request.getId() != null && !request.getId().trim().equals("")) {
                 Group group = request.getGroup().toBuilder().setId(request.getId()).build();
@@ -472,6 +475,9 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         try {
             LOGGER.debug("Request received to addUserToGroup for  user  " + request.getUsername() + " of tenant "
                     + request.getTenantId());
+
+            updateProfile(request.getClientId(), request.getClientSec(), request.getTenantId(), request.getUsername());
+
             org.apache.custos.user.profile.service.Status status = userProfileClient.addUserToGroup(request);
             responseObserver.onNext(status);
             responseObserver.onCompleted();
@@ -704,6 +710,60 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         }
 
     }
+
+    private void updateProfile(String clientId, String clientSec, long tenantId, String username) {
+
+        UserProfile userProfile = UserProfile.newBuilder().setUsername(username).build();
+        UserProfileRequest userProfileRequest = UserProfileRequest
+                .newBuilder()
+                .setTenantId(tenantId)
+                .setProfile(userProfile)
+                .build();
+
+        UserProfile exUser = userProfileClient.getUser(userProfileRequest);
+        if (exUser.getUsername().isBlank()) {
+
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(clientId)
+                    .setClientSecret(clientSec)
+                    .setTenantId(tenantId)
+                    .build();
+
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+            UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                    .newBuilder().setUsername(username).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setClientId(clientId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token.getAccessToken())
+                    .setUser(userSearchMetadata)
+                    .build();
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+            UserProfile profile = UserProfile
+                    .newBuilder()
+                    .setUsername(username)
+                    .setFirstName(representation.getFirstName())
+                    .setLastName(representation.getLastName())
+                    .setEmail(representation.getEmail())
+                    .build();
+
+            UserProfileRequest profileRequest = UserProfileRequest
+                    .newBuilder()
+                    .setTenantId(tenantId)
+                    .setProfile(profile)
+                    .build();
+
+            userProfileClient.createUserProfile(profileRequest);
+        }
+
+
+    }
+
 
     private org.apache.custos.user.profile.service.GroupRequest createGroup(GroupRepresentation representation,
                                                                             String parentId,
