@@ -217,7 +217,6 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             CredentialMetadata metadata = credentialStoreServiceClient.getCredential(passwordRequest);
 
             if (metadata != null && metadata.getSecret() != null) {
-
                 tenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
             }
 

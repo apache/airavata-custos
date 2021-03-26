@@ -25,7 +25,6 @@ import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.management.service.EndSessionRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
-import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.AuthenticationRequest;
 import org.apache.custos.identity.service.Claim;
@@ -74,7 +73,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                             .build();
 
             return (ReqT) reqCore;
-        } else if (method.equals("isAuthenticated")) {
+        } else if (method.equals("isAuthenticated") || method.equals("getUser")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {
                 throw new UnAuthorizedException("Request is not authorized", null);
@@ -97,39 +96,6 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
             return (ReqT) authzBuilder.build();
 
 
-        } else if (method.equals("getUser")) {
-
-            AuthToken authToken = ((AuthToken) reqT);
-            String clientId = null;
-            for (Claim claim : authToken.getClaimsList()) {
-                if (claim.getKey().equals(Constants.CLIENT_ID)) {
-                    clientId = claim.getValue();
-                }
-            }
-
-            String username = null;
-            for (Claim claims : ((AuthToken) reqT).getClaimsList()) {
-                if (claims.getKey().equals("username")) {
-                    username = claims.getValue();
-                }
-            }
-
-            String accessToken = ((AuthToken) reqT).getAccessToken();
-            AuthToken.Builder authzBuilder = AuthToken.newBuilder()
-                    .setAccessToken(accessToken);
-            AuthClaim claim = authorize(headers, clientId);
-            if (claim == null) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
-            long tenantId = claim.getTenantId();
-
-            Claim userClaim = Claim.newBuilder().setKey("username").setValue(username).build();
-            Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(tenantId)).build();
-            authzBuilder.addClaims(userClaim);
-            authzBuilder.addClaims(tenantClaim);
-
-            return (ReqT) authzBuilder.build();
         } else if (method.equals("getUserManagementServiceAccountAccessToken")) {
             AuthClaim claim = authorize(headers);
             if (claim == null) {

@@ -190,6 +190,14 @@ public class IdentityManagementClient implements Closeable {
 
     }
 
+    public User getUser(String accessToken) {
+        AuthToken authToken = AuthToken.newBuilder()
+                .setAccessToken(accessToken)
+                .build();
+        return blockingStub.getUser(authToken);
+
+    }
+
     public boolean isAuthenticated(String accessToken) {
         try {
             AuthToken authToken = AuthToken
