@@ -106,20 +106,20 @@ message DeleteTenantRequest {
 
 
 message GetCredentialsRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message GetCredentialsResponse {
-    string iamClientId = 1;
-    string iamClientSecret = 2;
-    string ciLogonClientId = 3;
-    string ciLogonClientSecret = 4;
+    string iam_client_id = 1;
+    string iam_client_secret = 2;
+    string ci_logon_client_id = 3;
+    string ci_logon_client_secret = 4;
 }
 
 
 message TenantValidationRequest {
-    string clientId = 1;
-    string clientSec = 2;
+    string client_id = 1;
+    string client_sec = 2;
 
 }
 

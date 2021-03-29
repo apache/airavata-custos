@@ -38,10 +38,10 @@ message Claim {
 
 message User {
     string sub = 1;
-    string fullName = 2;
-    string firstName = 3;
-    string lastName = 4;
-    string emailAddress = 5;
+    string full_name = 2;
+    string first_name = 3;
+    string last_name = 4;
+    string email_address = 5;
     string username = 6;
 }
 
@@ -72,9 +72,9 @@ message TokenResponse {
 
 
 message AuthenticationRequest {
-    string clientId = 1;
-    string clientSecret = 2;
-    int64 tenantId = 3;
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
     string username = 4;
     string password = 5;
 }
@@ -84,17 +84,17 @@ message IsAuthenticatedResponse {
 }
 
 message GetUserManagementSATokenRequest {
-    string clientId = 1;
-    string clientSecret = 2;
-    int64 tenantId = 3;
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
 }
 
 message GetAuthorizationEndpointRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message AuthorizationResponse {
-    string authorizationEndpoint = 2;
+    string authorization_endpoint = 2;
 }
 
 message GetOIDCConfiguration {

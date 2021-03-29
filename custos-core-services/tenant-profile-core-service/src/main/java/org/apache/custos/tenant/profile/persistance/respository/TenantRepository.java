@@ -25,7 +25,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface TenantRepository extends JpaRepository<Tenant, Long> {
+public interface TenantRepository extends JpaRepository<Tenant, Long>, SearchTenantRepository {
 
     public List<Tenant> findByRequesterEmail(String requesterEmail);
 

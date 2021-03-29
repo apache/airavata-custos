@@ -31,49 +31,49 @@ enum InstitutionCacheType {
 
 
 message ClientMetadata {
-    int64 tenantId = 1;
-    string tenantName = 2;
+    int64 tenant_id = 1;
+    string tenant_name = 2;
     repeated string scope = 3;
-    string tenantURI = 4;
+    string tenant_uRI = 4;
     repeated string contacts = 5;
     string comment = 6;
-    repeated string redirectURIs = 7;
-    string clientId = 8;
-    string performedBy = 9;
+    repeated string redirect_uRIs = 7;
+    string client_id = 8;
+    string performed_by = 9;
 }
 
 
 message RegisterClientResponse {
-    string clientId = 1;
-    string clientSecret = 2;
-    int64 clientIdIssuedAt = 3;
-    int64 clientSecretExpiresAt = 4;
-    string clientRegistrationUri = 5;
+    string client_id = 1;
+    string client_secret = 2;
+    int64 client_id_issued_at = 3;
+    int64 client_secret_expires_at = 4;
+    string client_registration_uri = 5;
 }
 
 
 message GetClientRequest {
-    int64 tenantId = 1;
-    string clientId = 2;
+    int64 tenant_id= 1;
+    string client_id = 2;
 }
 
 message GetClientResponse {
-    string clientId = 1;
-    string clientName = 2;
-    repeated string redirectURIs = 3;
-    repeated string grantTypes = 4;
+    string client_id = 1;
+    string client_name = 2;
+    repeated string redirect_uRIs = 3;
+    repeated string grant_types = 4;
     repeated string scope = 5;
-    int64 clientIdIssuedAt = 6;
+    int64 client_id_issued_at = 6;
     string comment = 7;
-    string clientSecret = 8;
-    int64 clientSecretExpiresAt = 9;
-    string clientRegistrationUri = 10;
+    string client_secret = 8;
+    int64 client_secret_expires_at = 9;
+    string client_registration_uri = 10;
 }
 
 message DeleteClientRequest {
-    int64 tenantId = 1;
-    string clientId = 2;
-    string performedBy = 3;
+    int64 tenant_id = 1;
+    string client_id = 2;
+    string performed_by = 3;
 }
 
 message Empty {
@@ -81,14 +81,14 @@ message Empty {
 }
 
 message GetOperationsMetadataRequest {
-    int64 traceId = 1;
+    int64 trace_id = 1;
 }
 
 message OperationMetadata {
     string event = 1;
     string status = 2;
-    string timeStamp = 3;
-    string performedBy = 4;
+    string time_stamp = 3;
+    string performed_by = 4;
 }
 message GetOperationsMetadataResponse {
     repeated OperationMetadata metadata = 1;
