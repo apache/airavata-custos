@@ -46,7 +46,7 @@ message AgentAttribute {
 }
 
 message AgentRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     Agent agent = 2;
 }
 

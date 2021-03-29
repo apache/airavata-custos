@@ -30,40 +30,40 @@ import "IamAdminService.proto";
 
 message UserProfileRequest {
     org.apache.custos.user.profile.service.UserProfile user_profile = 1;
-    string clientId = 2;
-    int64 tenantId = 3;
-    string accessToken = 4;
-    string clientSecret = 5;
-    string performedBy = 6;
+    string client_id = 2;
+    int64 tenant_id = 3;
+    string access_token = 4;
+    string client_secret = 5;
+    string performed_by = 6;
 }
 
 message GetUserRequest {
     string username = 1;
-    org.apache.custos.iam.service.UserSearchRequest userSearchRequest = 2;
+    org.apache.custos.iam.service.UserSearchRequest user_search_request = 2;
 }
 
 message GetUsersRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     string email = 2;
     string username = 3;
     int32 offset = 4;
     int32 limit = 5;
     string search = 6;
-    string iamClientId = 7;
-    string iamClientSecret = 8;
+    string iam_client_id = 7;
+    string iam_client_secret = 8;
 }
 
 message ResetPassword {
-    int64 tenantId = 1;
-    string accessToken = 2;
+    int64 tenant_id = 1;
+    string access_token = 2;
     string username = 3;
     string password = 4;
-    string iamClientId = 5;
-    string iamClientSecret = 6;
+    string iam_client_id = 5;
+    string iam_client_secret = 6;
 }
 
 message ResetPasswordRequest {
-    ResetPassword passwordMetadata = 1;
+    ResetPassword password_metadata = 1;
 }
 
 message LinkUserProfileRequest {
@@ -71,15 +71,15 @@ message LinkUserProfileRequest {
     string previous_username = 2;
     repeated string linking_attributes = 3;
     int64 tenantId = 4;
-    string iamClientId = 5;
-    string iamClientSecret = 6;
-    string accessToken = 7;
-    string performedBy = 8;
+    string iam_client_id = 5;
+    string iam_client_secret = 6;
+    string access_token = 7;
+    string performed_by = 8;
 }
 
 message SynchronizeUserDBRequest {
-    int64 tenantId = 2;
-    string clientId = 4;
+    int64 tenant_id = 2;
+    string client_id = 4;
 }
 
 service UserManagementService {

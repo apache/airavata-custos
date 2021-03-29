@@ -37,28 +37,28 @@ enum FederatedIDPs {
 
 
 message SetUpTenantRequest {
-    int64 tenantId = 1;
-    string tenantName = 2;
-    string adminUsername = 3;
-    string adminFirstname = 4;
-    string adminLastname = 5;
-    string adminEmail = 6;
-    string adminPassword = 7;
-    string tenantURL = 8;
-    string requesterEmail = 9;
-    repeated string redirectURIs = 10;
-    string custosClientId = 11;
+    int64 tenant_id = 1;
+    string tenant_name = 2;
+    string admin_username = 3;
+    string admin_firstname = 4;
+    string admin_lastname = 5;
+    string admin_email = 6;
+    string admin_password = 7;
+    string tenant_uRL = 8;
+    string requester_email = 9;
+    repeated string redirect_uRIs = 10;
+    string custos_client_id = 11;
 
 }
 
 message ConfigureFederateIDPRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     FederatedIDPs type = 2;
-    string clientID = 3;
-    string clientSec = 4;
-    map<string, string> configMap = 5;
-    string requesterEmail = 6;
-    string idpId = 7;
+    string client_iD = 3;
+    string client_sec = 4;
+    map<string, string> config_map = 5;
+    string requester_email = 6;
+    string idp_id = 7;
     string scope = 8;
 }
 
@@ -68,14 +68,14 @@ message FederateIDPResponse {
 }
 
 message SetUpTenantResponse {
-    string clientId = 1;
-    string clientSecret = 2;
+    string client_id = 1;
+    string client_secret = 2;
 }
 
 message IsUsernameAvailableRequest {
-    int64 tenantId = 1;
-    string accessToken = 2;
-    string userName = 3;
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string user_name = 3;
 
 }
 
@@ -115,21 +115,21 @@ message GroupRepresentation {
 
 
 message RegisterUserRequest {
-    int64 tenantId = 1;
-    string accessToken = 2;
-    string clientId = 3;
-    string clientSec = 4;
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string client_id = 3;
+    string client_sec = 4;
     UserRepresentation user = 5;
-    string performedBy = 6;
+    string performed_by = 6;
 }
 
 
 message RegisterUsersRequest {
     repeated UserRepresentation users = 1;
-    int64 tenantId = 2;
-    string accessToken = 3;
-    string clientId = 4;
-    string performedBy = 5;
+    int64 tenant_id = 2;
+    string access_token = 3;
+    string client_id = 4;
+    string performed_by = 5;
 }
 
 message RegisterUserResponse {
@@ -137,8 +137,8 @@ message RegisterUserResponse {
 }
 
 message RegisterUsersResponse {
-    bool allUseresRegistered = 1;
-    repeated UserRepresentation failedUsers = 2;
+    bool all_useres_registered = 1;
+    repeated UserRepresentation failed_users = 2;
 }
 
 
@@ -154,8 +154,8 @@ message FindUsersRequest {
     UserSearchMetadata user = 3;
     int32 offset = 4;
     int32 limit = 5;
-    int64 tenantId = 1;
-    string accessToken = 2;
+    int64 tenant_id = 1;
+    string access_token = 2;
     string client_id = 6;
     string client_sec = 7;
 
@@ -163,11 +163,11 @@ message FindUsersRequest {
 
 message UserSearchRequest {
     UserSearchMetadata user = 1;
-    int64 tenantId = 2;
-    string accessToken = 3;
+    int64 tenant_id = 2;
+    string access_token = 3;
     string client_id = 4;
     string client_sec = 5;
-    string performedBy = 6;
+    string performed_by = 6;
 }
 
 message FindUsersResponse {
@@ -177,10 +177,10 @@ message FindUsersResponse {
 message ResetUserPassword {
     string username = 1;
     string password = 2;
-    int64 tenantId = 3;
-    string accessToken = 4;
-    string clientId = 5;
-    string clientSec = 6;
+    int64 tenant_id = 3;
+    string access_token = 4;
+    string client_id = 5;
+    string client_sec = 6;
 }
 
 
@@ -207,8 +207,8 @@ message AddUserRolesRequest {
 }
 
 message UpdateUserProfileRequest {
-    string accessToken = 1;
-    int64 tenantId = 2;
+    string access_token = 1;
+    int64 tenant_id = 2;
     UserRepresentation user = 3;
 
 }
@@ -218,21 +218,21 @@ message AddUserResponse {
 }
 
 message GetOperationsMetadataRequest {
-    int64 traceId = 1;
+    int64 trace_id = 1;
 }
 
 message OperationMetadata {
     string event = 1;
     string status = 2;
-    string timeStamp = 3;
-    string performedBy = 4;
+    string time_stamp = 3;
+    string performed_by = 4;
 }
 message GetOperationsMetadataResponse {
     repeated OperationMetadata metadata = 1;
 }
 
 message DeleteTenantRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message AddRolesRequest {
