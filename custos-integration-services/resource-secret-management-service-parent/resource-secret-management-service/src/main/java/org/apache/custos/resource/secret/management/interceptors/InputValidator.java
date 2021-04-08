@@ -24,6 +24,7 @@ import io.grpc.Metadata;
 import org.apache.custos.integration.core.exceptions.MissingParameterException;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.resource.secret.service.CertificateCredential;
+import org.apache.custos.resource.secret.service.KVCredential;
 import org.apache.custos.resource.secret.service.PasswordCredential;
 import org.apache.custos.resource.secret.service.SSHCredential;
 import org.slf4j.Logger;
@@ -68,6 +69,23 @@ public class InputValidator implements IntegrationServiceInterceptor {
         if (method.equals("addSSHCredential") || method.equals("addPasswordCredential")
                 || method.equals("addCertificateCredential")) {
             validateSecretMetadata(msg, method);
+        } else if (method.equals("addKVCredential") || method.equals("getKVCredential") ||
+                method.equals("updateKVCredential") || method.equals("deleteKVCredential")) {
+            if (msg instanceof KVCredential) {
+                String key = ((KVCredential) msg).getKey();
+                String value = (((KVCredential) msg)).getValue();
+                String token = (((KVCredential) msg)).getToken();
+                if ((token == null || token.trim().equals("")) && (key == null || key.trim().equals(""))) {
+                    throw new MissingParameterException("At least key or token should be added ", null);
+                }
+
+                if ((method.equals("addKVCredential") || method.equals("updateKVCredential")) && (value == null || value.trim().equals(""))) {
+                    throw new MissingParameterException("Value should not be null ", null);
+                }
+
+            } else {
+                throw new RuntimeException("Unknown message type", null);
+            }
         }
         return msg;
     }

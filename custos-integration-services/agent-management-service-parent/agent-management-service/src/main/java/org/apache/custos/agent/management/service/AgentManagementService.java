@@ -71,6 +71,9 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
     private static final String CUSTOS_REALM_AGENT = "custos-realm-agent";
 
+    public static final String AGENT_ID = "agent-id";
+    public static final String AGENT_PARENT_ID = "agent-parent-id";
+
 
     @Override
     public void enableAgents(AgentClientMetadata request, StreamObserver<OperationStatus> responseObserver) {
@@ -130,13 +133,35 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
                 return;
             }
 
+
+            AddProtocolMapperRequest addProtocolMapperRequest = AddProtocolMapperRequest
+                    .newBuilder()
+                    .setAddToAccessToken(true)
+                    .setAddToIdToken(true)
+                    .setMapperType(MapperTypes.USER_ATTRIBUTE)
+                    .setClaimName(AGENT_ID)
+                    .setName(AGENT_ID)
+                    .setAttributeName(AGENT_ID)
+                    .setTenantId(request.getTenantId())
+                    .setClientId(setUpTenantResponse.getClientId())
+                    .build();
+
+            iamAdminServiceClient.addProtocolMapper(addProtocolMapperRequest);
+
+            addProtocolMapperRequest = addProtocolMapperRequest.toBuilder()
+                    .setClaimName(AGENT_PARENT_ID).setName(AGENT_PARENT_ID)
+                    .setAttributeName(AGENT_PARENT_ID).build();
+
+            iamAdminServiceClient.addProtocolMapper(addProtocolMapperRequest);
+
             CredentialMetadata metadata = CredentialMetadata.newBuilder().
                     setId(setUpTenantResponse.getClientId())
                     .setSecret(setUpTenantResponse.getClientSecret())
                     .setOwnerId(request.getTenantId())
                     .setType(Type.AGENT_CLIENT)
                     .build();
-            org.apache.custos.credential.store.service.OperationStatus status = credentialStoreServiceClient.putCredential(metadata);
+            org.apache.custos.credential.store.service.OperationStatus status =
+                    credentialStoreServiceClient.putCredential(metadata);
 
             OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status.getState()).build();
             responseObserver.onNext(operationStatus);
@@ -155,13 +180,15 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
 
     @Override
-    public void registerAndEnableAgent(RegisterUserRequest request, StreamObserver<org.apache.custos.agent.management.service.AgentRegistrationResponse> responseObserver) {
+    public void registerAndEnableAgent(RegisterUserRequest request,
+                                       StreamObserver<org.apache.custos.agent.management.service.AgentRegistrationResponse> responseObserver) {
         try {
 
             LOGGER.debug("Request received to registerAndEnableAgent for tenant " + request.getTenantId() +
                     " for agent " + request.getUser().getId());
 
             UserSearchMetadata metadata = UserSearchMetadata.newBuilder().setId(request.getUser().getId()).build();
+
 
             UserSearchRequest userSearchRequest = UserSearchRequest.
                     newBuilder().setUser(metadata).
@@ -194,7 +221,13 @@ public class AgentManagementService extends org.apache.custos.agent.management.s
 
                 UserAttribute attribute = UserAttribute.newBuilder()
                         .setKey(CUSTOS_REALM_AGENT).addValues("true").build();
+                UserAttribute agentId = UserAttribute.newBuilder()
+                        .setKey(AGENT_ID).addValues(request.getUser().getId()).build();
+                UserAttribute agentParentId = UserAttribute.newBuilder()
+                        .setKey(AGENT_PARENT_ID).addValues(request.getClientId()).build();
+                newAtrList.add(agentId);
                 newAtrList.add(attribute);
+                newAtrList.add(agentParentId);
                 representation = representation.toBuilder().addAllAttributes(newAtrList).build();
 
                 request = request.toBuilder().setUser(representation).setClientId(AGENT_CLIENT).build();

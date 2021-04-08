@@ -202,6 +202,14 @@ public class UserProfileClient {
         return userProfileServiceBlockingStub.changeUserMembershipType(request);
     }
 
+    public Status addUserMembershipType(UserGroupMembershipTypeRequest request) {
+        return userProfileServiceBlockingStub.addUserGroupMembershipType(request);
+    }
+
+    public Status removeUserMembershipType(UserGroupMembershipTypeRequest request) {
+        return userProfileServiceBlockingStub.removeUserGroupMembershipType(request);
+    }
+
     public Status hasAccess(GroupMembership request) {
         return userProfileServiceBlockingStub.hasAccess(request);
     }

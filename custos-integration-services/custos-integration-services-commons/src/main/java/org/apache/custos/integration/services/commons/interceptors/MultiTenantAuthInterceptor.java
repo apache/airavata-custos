@@ -22,7 +22,6 @@ package org.apache.custos.integration.services.commons.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
@@ -53,25 +52,34 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
 
     public AuthClaim authorize(Metadata headers, String clientId) {
 
-        if (clientId != null && clientId.trim().equals("")) {
-            clientId = null;
-        }
+        try {
 
-        String userToken = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
+            if (clientId != null && clientId.trim().equals("")) {
+                clientId = null;
+            }
 
-        if (clientId == null && userToken == null) {
-            return authorize(headers);
-        } else if (clientId != null && userToken == null) {
-            return authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
-        } else if (clientId != null && userToken != null) {
-            return authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(headers, clientId, userToken);
-        } else {
-            return authorizeUsingUserToken(headers);
+            String userToken = getUserTokenFromUserTokenHeader(headers);
+            boolean agentAuthenticationEnabled = isAgentAuthenticationEnabled(headers);
+
+            if (agentAuthenticationEnabled) {
+                return authorizeUsingAgentAndUserJWTTokens(headers);
+            }
+
+            if (clientId == null && userToken == null) {
+                return authorize(headers);
+            } else if (clientId != null && userToken == null) {
+                return authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
+            } else if (clientId != null && userToken != null) {
+                return authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(headers, clientId, userToken);
+            } else {
+                return authorizeUsingUserToken(headers);
+            }
+
+        } catch (Exception ex) {
+            cleatUserTokenFromHeader(headers);
+            throw ex;
         }
     }
 
 
-    public String getUserTokenFromUserTokenHeader(Metadata headers) {
-        return headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
-    }
 }

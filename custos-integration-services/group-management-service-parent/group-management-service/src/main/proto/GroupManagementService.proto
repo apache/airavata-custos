@@ -30,29 +30,81 @@ import "IamAdminService.proto";
 
 service GroupManagementService {
 
-    rpc createGroups (org.apache.custos.iam.service.GroupsRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
+    rpc createKeycloakGroups (org.apache.custos.iam.service.GroupsRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
 
         option (google.api.http) = {
-           post: "/group-management/v1.0.0/groups"
+           post: "/group-management/v1.0.0/keycloak/groups"
          };
     }
 
 
-    rpc updateGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupRepresentation) {
+    rpc updateKeycloakGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupRepresentation) {
+
+        option (google.api.http) = {
+           put: "/group-management/v1.0.0/keycloak/group/{id}"
+         };
+    }
+
+    rpc deleteKeycloakGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/keycloak/group/{id}"
+         };
+    }
+
+    rpc findKeycloakGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupRepresentation) {
+
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/keycloak/group"
+         };
+    }
+
+
+    rpc getAllKeycloakGroups (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
+
+        option (google.api.http) = {
+           get: "/group-management/v1.0.0/keycloak/groups"
+         };
+    }
+
+    rpc addUserToKeycloakGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/keycloak/user/group/membership"
+         };
+    }
+
+
+    rpc removeUserFromKeycloakGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/keycloak/user/group/membership"
+         };
+    }
+
+    rpc createGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.Group) {
+
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/group"
+         };
+    }
+
+
+    rpc updateGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.Group) {
 
         option (google.api.http) = {
            put: "/group-management/v1.0.0/group/{id}"
          };
     }
 
-    rpc deleteGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc deleteGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.Status) {
 
         option (google.api.http) = {
            delete: "/group-management/v1.0.0/group/{id}"
          };
     }
 
-    rpc findGroup (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupRepresentation) {
+    rpc findGroup (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.Group) {
 
         option (google.api.http) = {
            get: "/group-management/v1.0.0/group"
@@ -60,14 +112,14 @@ service GroupManagementService {
     }
 
 
-    rpc getAllGroups (org.apache.custos.iam.service.GroupRequest) returns (org.apache.custos.iam.service.GroupsResponse) {
+    rpc getAllGroups (org.apache.custos.user.profile.service.GroupRequest) returns (org.apache.custos.user.profile.service.GetAllGroupsResponse) {
 
         option (google.api.http) = {
            get: "/group-management/v1.0.0/groups"
          };
     }
 
-    rpc addUserToGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc addUserToGroup (org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.user.profile.service.Status) {
 
         option (google.api.http) = {
            post: "/group-management/v1.0.0/user/group/membership"
@@ -75,20 +127,21 @@ service GroupManagementService {
     }
 
 
-    rpc removeUserFromGroup (org.apache.custos.iam.service.UserGroupMappingRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc removeUserFromGroup (org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.user.profile.service.Status) {
 
         option (google.api.http) = {
            delete: "/group-management/v1.0.0/user/group/membership"
          };
     }
 
-    rpc addChildGroupToParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+
+    rpc addChildGroupToParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.user.profile.service.Status) {
         option (google.api.http) = {
            post: "/group-management/v1.0.0/group/membership"
          };
 
     }
-    rpc removeChildGroupFromParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc removeChildGroupFromParentGroup (org.apache.custos.user.profile.service.GroupToGroupMembership) returns (org.apache.custos.user.profile.service.Status) {
 
         option (google.api.http) = {
            delete: "/group-management/v1.0.0/group/membership"
@@ -122,15 +175,29 @@ service GroupManagementService {
          };
 
     }
-    rpc changeUserMembershipType (org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc changeUserMembershipType (org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.user.profile.service.Status) {
         option (google.api.http) = {
            put: "/group-management/v1.0.0/user/group/membership"
          };
 
     }
-    rpc hasAccess(org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.iam.service.OperationStatus) {
+    rpc hasAccess(org.apache.custos.user.profile.service.GroupMembership) returns (org.apache.custos.user.profile.service.Status) {
         option (google.api.http) = {
            get: "/group-management/v1.0.0/user/group/access"
+         };
+
+    }
+
+    rpc addGroupMembershipType(org.apache.custos.user.profile.service.UserGroupMembershipTypeRequest) returns (org.apache.custos.user.profile.service.Status) {
+        option (google.api.http) = {
+           post: "/group-management/v1.0.0/user/group/membership/type"
+         };
+
+    }
+
+    rpc removeUserGroupMembershipType(org.apache.custos.user.profile.service.UserGroupMembershipTypeRequest) returns (org.apache.custos.user.profile.service.Status) {
+        option (google.api.http) = {
+           delete: "/group-management/v1.0.0/user/group/membership/type"
          };
 
     }

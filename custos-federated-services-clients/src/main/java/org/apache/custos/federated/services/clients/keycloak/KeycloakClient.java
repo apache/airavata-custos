@@ -1128,6 +1128,42 @@ public class KeycloakClient {
         return true;
     }
 
+    /**
+     * Delete Roles in keycloak Realm or Client
+     *
+     * @param realmId
+     * @param clientScope if true add roles to client else to realm
+     * @return
+     */
+    public boolean deleteRole(String id, String realmId, String clientId, boolean clientScope) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (clientScope) {
+                ClientRepresentation representation = realmResource.clients().findByClientId(clientId).get(0);
+                realmResource.clients().get(representation.getId()).roles().deleteRole(id);
+
+            } else {
+                realmResource.roles().deleteRole(id);
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while delete role" + id +
+                    " in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+    }
+
 
     /**
      * Provides all Roles belongs to client, if clientId not present, provides all
@@ -1252,8 +1288,8 @@ public class KeycloakClient {
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling events, reason: " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new RuntimeException(msg, ex);
+            LOGGER.warn(msg, ex);
+            return null;
 
         } finally {
             if (client != null) {

@@ -20,12 +20,13 @@
 package org.apache.custos.resource.secret.manager;
 
 import com.google.protobuf.GeneratedMessageV3;
-import org.apache.custos.resource.secret.service.CertificateCredential;
-import org.apache.custos.resource.secret.service.PasswordCredential;
-import org.apache.custos.resource.secret.service.SSHCredential;
+import org.apache.custos.resource.secret.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class is responsible for generate secrets
@@ -44,10 +45,15 @@ public class CredentialGeneratorFactory {
             return new org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential(message);
         } else if (message instanceof PasswordCredential) {
             return new org.apache.custos.resource.secret.manager.adaptor.outbound.PasswordCredential(message);
+        } else if (message instanceof  KVCredential){
+            return new org.apache.custos.resource.secret.manager.adaptor.outbound.KVCredential(message);
+        }else if (message instanceof CredentialMap){
+            return new org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap(message);
         }
 
         return null;
     }
+
 
 
 }

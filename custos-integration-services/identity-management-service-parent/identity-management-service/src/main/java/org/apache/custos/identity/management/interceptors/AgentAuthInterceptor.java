@@ -24,7 +24,7 @@ import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.management.service.EndSessionRequest;
 import org.apache.custos.identity.management.service.GetAgentTokenRequest;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -50,7 +50,7 @@ public class AgentAuthInterceptor extends AuthInterceptor {
         if (method.equals("getAgentToken")) {
             AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((GetAgentTokenRequest) msg).getClientId());
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             GetAgentTokenRequest reqCore =
                     ((GetAgentTokenRequest) msg).toBuilder()
@@ -66,7 +66,7 @@ public class AgentAuthInterceptor extends AuthInterceptor {
             LOGGER.info("ClientId " + ((EndSessionRequest) msg).getClientId());
             AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((EndSessionRequest) msg).getClientId());
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
 

@@ -118,6 +118,7 @@
             <groupId>com.google.api.grpc</groupId>
             <artifactId>proto-google-common-protos</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -132,6 +133,13 @@
             <plugin>
                 <groupId>com.deviceinsight.helm</groupId>
                 <artifactId>helm-maven-plugin</artifactId>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
                 </configuration>

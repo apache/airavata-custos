@@ -19,6 +19,7 @@
 
 package org.apache.custos.resource.secret.management.service;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -27,6 +28,7 @@ import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
 import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.GetJWKSRequest;
+import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.client.ResourceSecretClient;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceImplBase;
 import org.apache.custos.resource.secret.service.*;
@@ -34,6 +36,10 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @GRpcService
 public class ResourceSecretManagementService extends ResourceSecretManagementServiceImplBase {
@@ -128,6 +134,16 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         LOGGER.debug("Request received to add SSHCredential ");
         try {
 
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+                List<ByteString> byteStringList = request.getPrivateKeySharesList();
+                if (byteStringList != null && byteStringList.size() > 0) {
+
+                    String secret = ShamirSecretHandler.
+                            generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                    request = request.toBuilder().setPrivateKey(secret).build();
+                }
+            }
+
             AddResourceCredentialResponse response = resourceSecretClient.addSSHCredential(request);
 
             responseObserver.onNext(response);
@@ -143,6 +159,15 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void addPasswordCredential(PasswordCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         LOGGER.debug("Request received to add PasswordCredential ");
         try {
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+                List<ByteString> byteStringList = request.getSecretSharesList();
+                if (byteStringList != null && byteStringList.size() > 0) {
+
+                    String secret = ShamirSecretHandler.
+                            generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                    request = request.toBuilder().setPassword(secret).build();
+                }
+            }
 
             AddResourceCredentialResponse response = resourceSecretClient.addPasswordCredential(request);
             responseObserver.onNext(response);
@@ -158,7 +183,15 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void addCertificateCredential(CertificateCredential request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
         LOGGER.debug("Request received to add CertificateCredential ");
         try {
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+                List<ByteString> byteStringList = request.getPrivateKeySharesList();
+                if (byteStringList != null && byteStringList.size() > 0) {
 
+                    String secret = ShamirSecretHandler.
+                            generateSecret(byteStringList, request.getNumOfShares(), request.getThreshold());
+                    request = request.toBuilder().setPrivateKey(secret).build();
+                }
+            }
             AddResourceCredentialResponse response = resourceSecretClient.addCertificateCredential(request);
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -175,8 +208,28 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
     public void getSSHCredential(GetResourceCredentialByTokenRequest request, StreamObserver<SSHCredential> responseObserver) {
         LOGGER.debug("Request received to get SSHCredential ");
         try {
-
             SSHCredential response = resourceSecretClient.getSSHCredential(request);
+
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+                int numberOfShares = response.getNumOfShares();
+                int threshold = response.getThreshold();
+
+                String privateKey = response.getPrivateKey();
+
+                if (privateKey != null && privateKey.trim().equals("")) {
+                    Map<Integer, byte[]> shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                    List<ByteString> byteStringList = shares.values().stream().
+                            map(val -> ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                    response = response.toBuilder().addAllPrivateKeyShares(byteStringList)
+                            .setPrivateKey("")
+                            .build();
+
+                }
+            }
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -192,6 +245,25 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         try {
 
             PasswordCredential response = resourceSecretClient.getPasswordCredential(request);
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+                int numberOfShares = response.getNumOfShares();
+                int threshold = response.getThreshold();
+
+                String privateKey = response.getPassword();
+
+                if (privateKey != null && privateKey.trim().equals("")) {
+                    Map<Integer, byte[]> shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                    List<ByteString> byteStringList = shares.values().stream().
+                            map(val -> ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                    response = response.toBuilder().addAllSecretShares(byteStringList)
+                            .setPassword("")
+                            .build();
+
+                }
+            }
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
@@ -208,6 +280,25 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
         try {
 
             CertificateCredential response = resourceSecretClient.getCertificateCredential(request);
+            if (request.getUseShamirsSecretSharingWithEncryption()) {
+
+                int numberOfShares = response.getNumOfShares();
+                int threshold = response.getThreshold();
+
+                String privateKey = response.getPrivateKey();
+
+                if (privateKey != null && privateKey.trim().equals("")) {
+                    Map<Integer, byte[]> shares = ShamirSecretHandler.splitSecret(privateKey, numberOfShares, threshold);
+
+                    List<ByteString> byteStringList = shares.values().stream().
+                            map(val -> ByteString.copyFromUtf8(new String(val))).collect(Collectors.toList());
+
+                    response = response.toBuilder().addAllPrivateKeyShares(byteStringList)
+                            .setPrivateKey("")
+                            .build();
+
+                }
+            }
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -258,6 +349,139 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
 
         } catch (Exception ex) {
             String msg = "Error occurred while deleting  certificate credential :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getKVCredential(KVCredential request, StreamObserver<KVCredential> responseObserver) {
+        LOGGER.debug("Request received to getKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
+        try {
+
+            KVCredential kvCredential = resourceSecretClient.getKVCredential(request);
+
+            responseObserver.onNext(kvCredential);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching  KV credentials :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to addKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
+        try {
+
+            ResourceCredentialOperationStatus status = resourceSecretClient.setKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while adding  KV  credentials :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to updateKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.updateKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while updating  KV credentials :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getKey());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.deleteKVCredential(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  KV credentials :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCredentialMap(CredentialMap request, StreamObserver<CredentialMap> responseObserver) {
+        LOGGER.debug("Request received to getCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            CredentialMap status = resourceSecretClient.getCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching   Credentials  Map :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addCredentialMap(CredentialMap request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        LOGGER.debug("Request received to addCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            AddResourceCredentialResponse status = resourceSecretClient.setCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while saving  CredentialMap :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to updateCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.updateCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while updaintg  Credentials  Map:  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.deleteCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  Credential Map :  " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

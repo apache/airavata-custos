@@ -125,12 +125,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             //Do not update the tenant status
 
-            if (tenantEntity.getParentId() > 0) {
-
-                tenantEntity.setStatus(exTenant.getStatus());
-            } else {
-                tenantEntity.setStatus(TenantStatus.REQUESTED.name());
-            }
+//            if (tenantEntity.getParentId() > 0) {
+//
+//                tenantEntity.setStatus(exTenant.getStatus());
+//            } else {
+//                tenantEntity.setStatus(TenantStatus.REQUESTED.name());
+//            }
 
             tenantEntity.setCreatedAt(exTenant.getCreatedAt());
 
@@ -164,7 +164,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             String status = null;
 
-            if (request.getStatus() != null && !request.getStatus().name().equals("")){
+            if (request.getStatus() != null && !request.getStatus().name().equals("")) {
                 status = request.getStatus().name();
             }
 
@@ -175,19 +175,24 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             String requesterEmail = request.getRequesterEmail();
 
             List<Tenant> tenants = null;
+            List<Tenant> total_tenants = null;
 
-            if (requesterEmail != null && !requesterEmail.equals("")) {
-              tenants = tenantRepository.findByRequesterEmail(requesterEmail);
-            } else if (status == null && parentId == 0) {
-                tenants = tenantRepository.getAllWithPaginate(limit,offset);
-            } else if (status != null && parentId == 0){
-                tenants = tenantRepository.findByStatusWithPaginate(status,limit,offset);
-            } else if (status == null && parentId > 0) {
-                tenants = tenantRepository.getAllChildTenantsWithPaginate(parentId,limit,offset);
-            } else if (status != null && parentId >0 ) {
-                tenants = tenantRepository.findChildTenantsByStatusWithPaginate(status,parentId,limit,offset);
-            }
+//            if (status == null && requesterEmail != null && !requesterEmail.equals("")) {
+//              tenants = tenantRepository.findByRequesterEmail(requesterEmail);
+//            } else if(status != null && requesterEmail != null && !requesterEmail.equals("")) {
+//                tenants = tenantRepository.findByRequesterEmailAndStatus(requesterEmail, status);
+//            } else if (status == null && parentId == 0) {
+//                tenants = tenantRepository.getAllWithPaginate(limit,offset);
+//            } else if (status != null && parentId == 0){
+//                tenants = tenantRepository.findByStatusWithPaginate(status,limit,offset);
+//            } else if (status == null && parentId > 0) {
+//                tenants = tenantRepository.getAllChildTenantsWithPaginate(parentId,limit,offset);
+//            } else if (status != null && parentId >0 ) {
+//                tenants = tenantRepository.findChildTenantsByStatusWithPaginate(status,parentId,limit,offset);
+//            }
 
+            tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, limit, offset);
+            total_tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, -1, -1);
 
             List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
 
@@ -196,7 +201,10 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
                 tenantList.add(t);
             }
 
-            GetAllTenantsResponse response = GetAllTenantsResponse.newBuilder().addAllTenant(tenantList).build();
+            GetAllTenantsResponse response = GetAllTenantsResponse
+                    .newBuilder()
+                    .setTotalNumOfTenants(total_tenants.size())
+                    .addAllTenant(tenantList).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 

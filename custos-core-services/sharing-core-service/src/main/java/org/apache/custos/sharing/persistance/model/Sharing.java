@@ -33,6 +33,7 @@ import java.util.Date;
 public class Sharing {
 
     @Id
+    @Column(length = 1000)
     private String id;
 
     @Column(nullable = false)

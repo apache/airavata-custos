@@ -78,7 +78,7 @@ service IdentityManagementService {
          };
     }
 
-    rpc isAuthenticated (org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.IsAuthenticateResponse) {
+    rpc isAuthenticated (org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.IsAuthenticatedResponse) {
         option (google.api.http) = {
            get: "/identity-management/v1.0.0/authenticate/status"
          };
@@ -146,6 +146,13 @@ service IdentityManagementService {
     rpc endAgentSession(EndSessionRequest) returns (org.apache.custos.identity.service.OperationStatus) {
         option (google.api.http) = {
            post: "/identity-management/v1.0.0/agent/logout/{client_id}"
+           body: "body"
+         };
+    }
+
+    rpc isAgentAuthenticated(org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.IsAuthenticatedResponse) {
+        option (google.api.http) = {
+           post: "/identity-management/v1.0.0/agent/authentication/status"
            body: "body"
          };
     }

@@ -26,6 +26,8 @@ public class PasswordSecret {
 
     private String password;
 
+    private String userId;
+
     public PasswordSecret() {
 
     }
@@ -35,11 +37,25 @@ public class PasswordSecret {
         this.password = password;
     }
 
+    public PasswordSecret(String password, String userId) {
+        this.password = password;
+        this.userId = userId;
+    }
+
     public String getPassword() {
         return password;
     }
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

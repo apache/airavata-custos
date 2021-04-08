@@ -21,9 +21,8 @@ package org.apache.custos.agent.management.interceptors;
 
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
-import org.apache.custos.iam.service.GetAllResources;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -54,10 +53,10 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
                 claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
                 LOGGER.error(" Authorizing error " + ex.getMessage());
-                throw new NotAuthorizedException("Request is not authorized", ex);
+                throw new UnAuthorizedException("Request is not authorized", ex);
             }
             if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
         }

@@ -64,21 +64,21 @@ enum TenantStatus {
 }
 
 message TenantAttributeUpdateMetadata {
-    string updatedAttribute = 1;
-    string updatedAttributeValue = 2;
-    string updatedBy = 3;
-    string updatedAt = 4;
+    string updated_attribute = 1;
+    string updated_attributeValue = 2;
+    string updated_by = 3;
+    string updated_at = 4;
 }
 
 message TenantStatusUpdateMetadata {
-    TenantStatus updatedStatus = 1;
-    string updatedBy = 2;
-    string updatedAt = 3;
+    TenantStatus updated_status = 1;
+    string updated_by = 2;
+    string updated_at = 3;
 }
 
 
 message AddTenantResponse {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 
@@ -88,7 +88,7 @@ message UpdateTenantResponse {
 }
 
 message GetTenantRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message GetTenantResponse {
@@ -98,18 +98,19 @@ message GetTenantResponse {
 
 message GetAllTenantsResponse {
     repeated Tenant tenant = 1;
+    int32 total_num_of_tenants =2;
 }
 
 message IsTenantExistRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message IsTenantExistResponse {
-    bool isExist = 1;
+    bool is_exist = 1;
 }
 
 message GetAllTenantsForUserRequest {
-    string requesterEmail = 1;
+    string requester_email = 1;
 }
 
 message GetAllTenantsForUserResponse {
@@ -119,19 +120,19 @@ message GetAllTenantsForUserResponse {
 message UpdateStatusRequest {
     string client_id = 1;
     TenantStatus status = 2;
-    string updatedBy = 3;
-    int64 tenantId = 4;
+    string updated_by = 3;
+    int64 tenant_id = 4;
     bool super_tenant = 5;
-    string accessToken = 6;
+    string access_token = 6;
 }
 
 message UpdateStatusResponse {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     TenantStatus status = 2;
 }
 
 message GetAuditTrailRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message GetStatusUpdateAuditTrailResponse {
@@ -148,6 +149,7 @@ message GetTenantsRequest {
  int64 parent_id = 3;
  TenantStatus status = 4;
  string requester_email = 5;
+ string parent_client_id = 6;
 }
 
 service TenantProfileService {

@@ -23,7 +23,7 @@ import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.GetJWKSRequest;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.resource.secret.service.*;
@@ -53,7 +53,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers);
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -70,7 +70,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers);
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -88,7 +88,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             return (ReqT) ((GetResourceCredentialSummariesRequest) reqT).toBuilder().setTenantId(claim.getTenantId()).build();
 
@@ -98,7 +98,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             SecretMetadata metadata = ((SSHCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
 
@@ -110,7 +110,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             SecretMetadata metadata = ((PasswordCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
 
@@ -121,7 +121,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             SecretMetadata metadata = ((CertificateCredential) reqT).getMetadata().toBuilder().setTenantId(claim.getTenantId()).build();
 
@@ -134,9 +134,35 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             return (ReqT) ((GetResourceCredentialByTokenRequest) reqT).toBuilder().setTenantId(claim.getTenantId()).build();
+
+        } else if (method.equals("getKVCredential") || method.equals("addKVCredential") || method.equals("updateKVCredential")
+                || method.equals("deleteKVCredential")) {
+            String clientId = ((KVCredential) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorize(headers, clientId);
+            if (claim == null) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((KVCredential) reqT)
+                    .getMetadata()
+                    .toBuilder().setOwnerId(claim.getUsername()).setTenantId(claim.getTenantId()).build();
+            return (ReqT) ((KVCredential) reqT).toBuilder().setMetadata(metadata).build();
+
+        } else if (method.equals("getCredentialMap") || method.equals("addCredentialMap") || method.equals("updateCredentialMap")
+                || method.equals("deleteCredentialMap")) {
+            String clientId = ((CredentialMap) reqT).getMetadata().getClientId();
+
+            AuthClaim claim = authorize(headers, clientId);
+            if (claim == null) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            SecretMetadata metadata = ((CredentialMap) reqT)
+                    .getMetadata()
+                    .toBuilder().setTenantId(claim.getTenantId()).build();
+            return (ReqT) ((CredentialMap) reqT).toBuilder().setMetadata(metadata).build();
 
         }
         return reqT;

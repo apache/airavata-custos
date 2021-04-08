@@ -467,7 +467,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 userGroupMembership.setUserGroupMembershipType(exist);
                 groupMembershipRepository.save(userGroupMembership);
 
-                Group exGroup = GroupMapper.createGroup(exOP.get(), ownerId);
+                Group exGroup = GroupMapper.createGroup(exOP.get(), userGroupMembership.getUserProfile().getUsername());
                 responseObserver.onNext(exGroup);
                 responseObserver.onCompleted();
             } else {
@@ -675,11 +675,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         try {
             LOGGER.debug("Request received to getAllGroups for " + request.getTenantId());
 
-            List<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository.findAll();
+            List<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository
+                    .searchEntities(request.getTenantId(), request.getGroup());
+            if (groups == null || groups.isEmpty()) {
+                groups = groupRepository.
+                        findAllByTenantId(request.getTenantId());
+
+            }
 
             List<Group> groupList = new ArrayList<>();
 
-            if (groups != null && groups.isEmpty()) {
+            if (groups != null && !groups.isEmpty()) {
                 for (org.apache.custos.user.profile.persistance.model.Group group : groups) {
 
                     List<UserGroupMembership> userGroupMemberships = groupMembershipRepository.findAllByGroupId(group.getId());
@@ -688,8 +694,10 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                     for (UserGroupMembership userGroupMembership : userGroupMemberships) {
                         if (userGroupMembership.getUserGroupMembershipType().getId().equals(DefaultGroupMembershipTypes.OWNER.name())) {
                             ownerId = userGroupMembership.getUserProfile().getUsername();
+                            break;
                         }
                     }
+
                     Group gr = GroupMapper.createGroup(group, ownerId);
 
                     groupList.add(gr);

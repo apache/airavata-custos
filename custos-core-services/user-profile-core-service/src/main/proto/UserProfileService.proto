@@ -71,8 +71,8 @@ message UserProfile {
 message UserProfileRequest {
     int64 tenantId = 1;
     UserProfile profile = 2;
-    string performedBy = 3;
-    string clientId = 4;
+    string performed_by = 3;
+    string client_id = 4;
 }
 
 
@@ -93,29 +93,31 @@ message GetUpdateAuditTrailRequest {
 }
 
 message UserProfileAttributeUpdateMetadata {
-    string updatedAttribute = 1;
-    string updatedAttributeValue = 2;
-    string updatedBy = 3;
-    string updatedAt = 4;
+    string updated_attribute = 1;
+    string updated_attribute_value = 2;
+    string updated_by = 3;
+    string updated_at = 4;
 }
 
 message UserProfileStatusUpdateMetadata {
-    UserStatus updatedStatus = 1;
-    string updatedBy = 2;
-    string updatedAt = 3;
+    UserStatus updated_status = 1;
+    string updated_by = 2;
+    string updated_at = 3;
 }
 
 message GetUpdateAuditTrailResponse {
-    repeated UserProfileAttributeUpdateMetadata attributeAudit = 1;
-    repeated UserProfileStatusUpdateMetadata statusAudit = 2;
+    repeated UserProfileAttributeUpdateMetadata attribute_audit = 1;
+    repeated UserProfileStatusUpdateMetadata status_audit = 2;
 }
 
 message GroupRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     Group group = 2;
-    string performedBy = 3;
-    string clientId = 4;
+    string performed_by = 3;
+    string client_id = 4;
     DefaultGroupMembershipTypes membership_type = 5;
+    string id = 6;
+    string client_sec =7;
 
 }
 
@@ -142,15 +144,16 @@ message GroupAttribute {
 }
 
 message GroupMembership {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     string group_id = 2;
     string username = 3;
     string type = 4;
     string clientId = 5;
+    string clientSec = 6;
 }
 
 message GroupToGroupMembership {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
     string parent_id = 2;
     string child_id = 3;
     string client_id = 4;
@@ -162,6 +165,8 @@ message Status {
 
 message UserGroupMembershipTypeRequest {
     string type = 1;
+    int64 tenant_id = 2;
+    string client_id = 3;
 }
 
 

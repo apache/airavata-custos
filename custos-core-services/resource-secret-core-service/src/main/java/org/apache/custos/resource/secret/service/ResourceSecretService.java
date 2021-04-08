@@ -25,8 +25,8 @@ import org.apache.custos.core.services.commons.StatusUpdater;
 import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
 import org.apache.custos.resource.secret.manager.Credential;
 import org.apache.custos.resource.secret.manager.CredentialGeneratorFactory;
-import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialReader;
+import org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialWriter;
 import org.apache.custos.resource.secret.utils.Operations;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This class is responsible for handling resource secrets, such as SSH credentials, password credentials
@@ -58,24 +59,6 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
 
     @Override
-    public void getSecret(GetSecretRequest request, StreamObserver<SecretMetadata> responseObserver) {
-        try {
-            LOGGER.debug(" Request received to getSecret in tenant " + request.getMetadata().getTenantId() +
-                    " of owner " + request.getMetadata().getOwnerId() + " with token  " + request.getMetadata().getToken());
-
-            responseObserver.onNext(SecretMetadata.newBuilder().build());
-            responseObserver.onCompleted();
-
-        } catch (Exception ex) {
-            String msg = "Exception occurred while fetching secret with " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-        }
-    }
-
-
-    @Override
     public void getAllResourceCredentialSummaries(GetResourceCredentialSummariesRequest request, StreamObserver<ResourceCredentialSummaries> responseObserver) {
         try {
             LOGGER.debug(" Request received to getAllResourceCredentialSummaries in tenant " + request.getTenantId() +
@@ -94,7 +77,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching credential summaries  " +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -120,7 +103,8 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(sshCredential.getToken())
+                    .setToken((sshCredential.getExternalId() != null &&
+                            !sshCredential.getExternalId().trim().equals("")) ? sshCredential.getExternalId() : sshCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
@@ -128,7 +112,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding SSH credentials " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -153,14 +137,15 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(passwordCredential.getToken())
+                    .setToken((passwordCredential.getExternalId() != null &&
+                            !passwordCredential.getExternalId().trim().equals("")) ? passwordCredential.getExternalId() : passwordCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding password credentials " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -185,14 +170,16 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
             AddResourceCredentialResponse resourceCredentialResponse = AddResourceCredentialResponse
                     .newBuilder()
-                    .setToken(certificateCredential.getToken())
+                    .setToken((certificateCredential.getExternalId() != null &&
+                            !certificateCredential.getExternalId().trim().equals("")) ?
+                            certificateCredential.getExternalId() : certificateCredential.getToken())
                     .build();
             responseObserver.onNext(resourceCredentialResponse);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while adding certificate credential secret " + request.getMetadata().getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -204,15 +191,15 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getResourceCredentialSummary in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            SecretMetadata metadata = credentialReader.getCredentialSummary(request.getTenantId(), request.getToken());
+            Optional<SecretMetadata> metadata = credentialReader.getCredentialSummary(request.getTenantId(), request.getToken());
 
-            responseObserver.onNext(metadata);
+            responseObserver.onNext(metadata.get());
             responseObserver.onCompleted();
 
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching resource credential summaries " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -224,13 +211,13 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getSSHCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            SSHCredential sshCredential = credentialReader.getSSHCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(sshCredential);
+            Optional<SSHCredential> sshCredential = credentialReader.getSSHCredential(request.getTenantId(), request.getToken());
+            responseObserver.onNext(sshCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching SSH credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -242,14 +229,14 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getPasswordCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            PasswordCredential passwordCredential = credentialReader.
+            Optional<PasswordCredential> passwordCredential = credentialReader.
                     getPasswordCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(passwordCredential);
+            responseObserver.onNext(passwordCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching password credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -261,14 +248,14 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             LOGGER.debug(" Request received to getCertificateCredential in tenant " + request.getTenantId() +
                     " with token  " + request.getToken());
 
-            CertificateCredential certificateCredential = credentialReader.
+            Optional<CertificateCredential> certificateCredential = credentialReader.
                     getCertificateCredential(request.getTenantId(), request.getToken());
-            responseObserver.onNext(certificateCredential);
+            responseObserver.onNext(certificateCredential.get());
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Exception occurred while fetching certificate credential " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -295,7 +282,7 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting SSH secret " + request.getToken() +
-                    " : " + ex.getMessage();
+                    " : " + ex;
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -321,6 +308,217 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
 
         } catch (Exception ex) {
             String msg = "Exception occurred while deleting password credential " + request.getToken() +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getKVCredential(KVCredential request, StreamObserver<KVCredential> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to getKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            String token = request.getToken();
+            Optional<KVCredential> kvCredential = null;
+            if (token != null && !token.trim().equals("")) {
+                kvCredential = credentialReader.getKVSecretByToken(token,
+                        request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+            } else {
+                kvCredential = credentialReader.getKVSecretByKey(request.getKey(),
+                        request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+            }
+
+            responseObserver.onNext(kvCredential.get());
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while fetching KV credentials " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void setKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to setKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+
+            credentialWriter.saveKVCredential((org.apache.custos.resource.secret.manager.adaptor.outbound.KVCredential) credential);
+
+            statusUpdater.updateStatus(Operations.SAVE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while  setting KV credentials " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to updateKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+            credentialWriter.updateKVCredential(request);
+
+            statusUpdater.updateStatus(Operations.UPDATE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while updating  KV credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteKVCredential(KVCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getKey());
+
+            credentialWriter.deleteKVCredential(request);
+
+            statusUpdater.updateStatus(Operations.DELETE_KV_CREDENTIAL.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void getCredentialMap(CredentialMap request, StreamObserver<CredentialMap> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to getCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+
+            Optional<CredentialMap> certificateCredential = credentialReader.
+                    getCredentialMapByToken(request.getMetadata().getToken(), request.getMetadata().getTenantId());
+            if (certificateCredential.isPresent()) {
+                responseObserver.onNext(certificateCredential.get());
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Cannot find a credential with token " + request.getMetadata().getToken();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while fetching credential  Map " +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void setCredentialMap(CredentialMap request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to setCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+
+            credentialWriter.saveCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.SAVE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            AddResourceCredentialResponse operationStatus = AddResourceCredentialResponse
+                    .newBuilder()
+                    .setToken(((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential).getToken())
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to updateCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+            credentialWriter.updateCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.UPDATE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting KV  credential " +
+                    " : " + ex;
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to deleteCredentialMap in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+            credentialWriter.deleteCredentialMap((org.apache.custos.resource.secret.manager.adaptor.outbound.CredentialMap) credential);
+
+            statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL_MAP.name(), OperationStatus.SUCCESS,
+                    request.getMetadata().getTenantId(), request.getMetadata().getOwnerId());
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while deleting CredentialMap " +
                     " : " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());

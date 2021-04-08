@@ -24,7 +24,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'P\001',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n%ResourceSecretManagementService.proto\x12\x34org.apache.custos.resource.secret.management.service\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bResourceSecretService.proto\x1a\x15IdentityService.proto2\xf4\x16\n\x1fResourceSecretManagementService\x12\xb6\x01\n\tgetSecret\x12;.org.apache.custos.resource.secret.service.GetSecretRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\"1\x82\xd3\xe4\x93\x02+\x12)/resource-secret-management/v1.0.0/secret\x12\x97\x01\n\x07getJWKS\x12\x32.org.apache.custos.identity.service.GetJWKSRequest\x1a\x17.google.protobuf.Struct\"?\x82\xd3\xe4\x93\x02\x39\x12\x37/resource-secret-management/v1.0.0/openid-connect/certs\x12\xe4\x01\n\x1cgetResourceCredentialSummary\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\"9\x82\xd3\xe4\x93\x02\x33\x12\x31/resource-secret-management/v1.0.0/secret/summary\x12\xfa\x01\n!getAllResourceCredentialSummaries\x12P.org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest\x1a\x46.org.apache.custos.resource.secret.service.ResourceCredentialSummaries\";\x82\xd3\xe4\x93\x02\x35\x12\x33/resource-secret-management/v1.0.0/secret/summaries\x12\xcd\x01\n\x10\x61\x64\x64SSHCredential\x12\x38.org.apache.custos.resource.secret.service.SSHCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\"5\x82\xd3\xe4\x93\x02/\"-/resource-secret-management/v1.0.0/secret/ssh\x12\xdc\x01\n\x15\x61\x64\x64PasswordCredential\x12=.org.apache.custos.resource.secret.service.PasswordCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\":\x82\xd3\xe4\x93\x02\x34\"2/resource-secret-management/v1.0.0/secret/password\x12\xe5\x01\n\x18\x61\x64\x64\x43\x65rtificateCredential\x12@.org.apache.custos.resource.secret.service.CertificateCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\"=\x82\xd3\xe4\x93\x02\x37\"5/resource-secret-management/v1.0.0/secret/certificate\x12\xd3\x01\n\x10getSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x38.org.apache.custos.resource.secret.service.SSHCredential\"5\x82\xd3\xe4\x93\x02/\x12-/resource-secret-management/v1.0.0/secret/ssh\x12\xe2\x01\n\x15getPasswordCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a=.org.apache.custos.resource.secret.service.PasswordCredential\":\x82\xd3\xe4\x93\x02\x34\x12\x32/resource-secret-management/v1.0.0/secret/password\x12\xeb\x01\n\x18getCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a@.org.apache.custos.resource.secret.service.CertificateCredential\"=\x82\xd3\xe4\x93\x02\x37\x12\x35/resource-secret-management/v1.0.0/secret/certificate\x12\xea\x01\n\x13\x64\x65leteSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"5\x82\xd3\xe4\x93\x02/*-/resource-secret-management/v1.0.0/secret/ssh\x12\xef\x01\n\x13\x64\x65letePWDCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\":\x82\xd3\xe4\x93\x02\x34*2/resource-secret-management/v1.0.0/secret/password\x12\xfa\x01\n\x1b\x64\x65leteCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"=\x82\xd3\xe4\x93\x02\x37*5/resource-secret-management/v1.0.0/secret/certificateB\x02P\x01\x62\x06proto3'
+  serialized_pb=b'\n%ResourceSecretManagementService.proto\x12\x34org.apache.custos.resource.secret.management.service\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bResourceSecretService.proto\x1a\x15IdentityService.proto2\xa9\x1d\n\x1fResourceSecretManagementService\x12\xb6\x01\n\tgetSecret\x12;.org.apache.custos.resource.secret.service.GetSecretRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\"1\x82\xd3\xe4\x93\x02+\x12)/resource-secret-management/v1.0.0/secret\x12\xb9\x01\n\x0fgetKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1a\x37.org.apache.custos.resource.secret.service.KVCredential\"4\x82\xd3\xe4\x93\x02.\x12,/resource-secret-management/v1.0.0/secret/kv\x12\xce\x01\n\x0f\x61\x64\x64KVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"4\x82\xd3\xe4\x93\x02.\",/resource-secret-management/v1.0.0/secret/kv\x12\xd1\x01\n\x12updateKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"4\x82\xd3\xe4\x93\x02.\x1a,/resource-secret-management/v1.0.0/secret/kv\x12\xd1\x01\n\x12\x64\x65leteKVCredential\x12\x37.org.apache.custos.resource.secret.service.KVCredential\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"4\x82\xd3\xe4\x93\x02.*,/resource-secret-management/v1.0.0/secret/kv\x12\x97\x01\n\x07getJWKS\x12\x32.org.apache.custos.identity.service.GetJWKSRequest\x1a\x17.google.protobuf.Struct\"?\x82\xd3\xe4\x93\x02\x39\x12\x37/resource-secret-management/v1.0.0/openid-connect/certs\x12\xe4\x01\n\x1cgetResourceCredentialSummary\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x39.org.apache.custos.resource.secret.service.SecretMetadata\"9\x82\xd3\xe4\x93\x02\x33\x12\x31/resource-secret-management/v1.0.0/secret/summary\x12\xfa\x01\n!getAllResourceCredentialSummaries\x12P.org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest\x1a\x46.org.apache.custos.resource.secret.service.ResourceCredentialSummaries\";\x82\xd3\xe4\x93\x02\x35\x12\x33/resource-secret-management/v1.0.0/secret/summaries\x12\xcd\x01\n\x10\x61\x64\x64SSHCredential\x12\x38.org.apache.custos.resource.secret.service.SSHCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\"5\x82\xd3\xe4\x93\x02/\"-/resource-secret-management/v1.0.0/secret/ssh\x12\xdc\x01\n\x15\x61\x64\x64PasswordCredential\x12=.org.apache.custos.resource.secret.service.PasswordCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\":\x82\xd3\xe4\x93\x02\x34\"2/resource-secret-management/v1.0.0/secret/password\x12\xe5\x01\n\x18\x61\x64\x64\x43\x65rtificateCredential\x12@.org.apache.custos.resource.secret.service.CertificateCredential\x1aH.org.apache.custos.resource.secret.service.AddResourceCredentialResponse\"=\x82\xd3\xe4\x93\x02\x37\"5/resource-secret-management/v1.0.0/secret/certificate\x12\xd3\x01\n\x10getSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a\x38.org.apache.custos.resource.secret.service.SSHCredential\"5\x82\xd3\xe4\x93\x02/\x12-/resource-secret-management/v1.0.0/secret/ssh\x12\xe2\x01\n\x15getPasswordCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a=.org.apache.custos.resource.secret.service.PasswordCredential\":\x82\xd3\xe4\x93\x02\x34\x12\x32/resource-secret-management/v1.0.0/secret/password\x12\xeb\x01\n\x18getCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1a@.org.apache.custos.resource.secret.service.CertificateCredential\"=\x82\xd3\xe4\x93\x02\x37\x12\x35/resource-secret-management/v1.0.0/secret/certificate\x12\xea\x01\n\x13\x64\x65leteSSHCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"5\x82\xd3\xe4\x93\x02/*-/resource-secret-management/v1.0.0/secret/ssh\x12\xef\x01\n\x13\x64\x65letePWDCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\":\x82\xd3\xe4\x93\x02\x34*2/resource-secret-management/v1.0.0/secret/password\x12\xfa\x01\n\x1b\x64\x65leteCertificateCredential\x12N.org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest\x1aL.org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus\"=\x82\xd3\xe4\x93\x02\x37*5/resource-secret-management/v1.0.0/secret/certificateB\x02P\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_struct__pb2.DESCRIPTOR,ResourceSecretService__pb2.DESCRIPTOR,IdentityService__pb2.DESCRIPTOR,])
 
@@ -43,7 +43,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
   serialized_start=237,
-  serialized_end=3169,
+  serialized_end=3990,
   methods=[
   _descriptor.MethodDescriptor(
     name='getSecret',
@@ -56,9 +56,49 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='getKVCredential',
+    full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getKVCredential',
+    index=1,
+    containing_service=None,
+    input_type=ResourceSecretService__pb2._KVCREDENTIAL,
+    output_type=ResourceSecretService__pb2._KVCREDENTIAL,
+    serialized_options=b'\202\323\344\223\002.\022,/resource-secret-management/v1.0.0/secret/kv',
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='addKVCredential',
+    full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.addKVCredential',
+    index=2,
+    containing_service=None,
+    input_type=ResourceSecretService__pb2._KVCREDENTIAL,
+    output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002.\",/resource-secret-management/v1.0.0/secret/kv',
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='updateKVCredential',
+    full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.updateKVCredential',
+    index=3,
+    containing_service=None,
+    input_type=ResourceSecretService__pb2._KVCREDENTIAL,
+    output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002.\032,/resource-secret-management/v1.0.0/secret/kv',
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='deleteKVCredential',
+    full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.deleteKVCredential',
+    index=4,
+    containing_service=None,
+    input_type=ResourceSecretService__pb2._KVCREDENTIAL,
+    output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,
+    serialized_options=b'\202\323\344\223\002.*,/resource-secret-management/v1.0.0/secret/kv',
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='getJWKS',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getJWKS',
-    index=1,
+    index=5,
     containing_service=None,
     input_type=IdentityService__pb2._GETJWKSREQUEST,
     output_type=google_dot_protobuf_dot_struct__pb2._STRUCT,
@@ -68,7 +108,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getResourceCredentialSummary',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getResourceCredentialSummary',
-    index=2,
+    index=6,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._SECRETMETADATA,
@@ -78,7 +118,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getAllResourceCredentialSummaries',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getAllResourceCredentialSummaries',
-    index=3,
+    index=7,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALSUMMARIESREQUEST,
     output_type=ResourceSecretService__pb2._RESOURCECREDENTIALSUMMARIES,
@@ -88,7 +128,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addSSHCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.addSSHCredential',
-    index=4,
+    index=8,
     containing_service=None,
     input_type=ResourceSecretService__pb2._SSHCREDENTIAL,
     output_type=ResourceSecretService__pb2._ADDRESOURCECREDENTIALRESPONSE,
@@ -98,7 +138,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addPasswordCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.addPasswordCredential',
-    index=5,
+    index=9,
     containing_service=None,
     input_type=ResourceSecretService__pb2._PASSWORDCREDENTIAL,
     output_type=ResourceSecretService__pb2._ADDRESOURCECREDENTIALRESPONSE,
@@ -108,7 +148,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='addCertificateCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.addCertificateCredential',
-    index=6,
+    index=10,
     containing_service=None,
     input_type=ResourceSecretService__pb2._CERTIFICATECREDENTIAL,
     output_type=ResourceSecretService__pb2._ADDRESOURCECREDENTIALRESPONSE,
@@ -118,7 +158,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getSSHCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getSSHCredential',
-    index=7,
+    index=11,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._SSHCREDENTIAL,
@@ -128,7 +168,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getPasswordCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getPasswordCredential',
-    index=8,
+    index=12,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._PASSWORDCREDENTIAL,
@@ -138,7 +178,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='getCertificateCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.getCertificateCredential',
-    index=9,
+    index=13,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._CERTIFICATECREDENTIAL,
@@ -148,7 +188,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deleteSSHCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.deleteSSHCredential',
-    index=10,
+    index=14,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,
@@ -158,7 +198,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deletePWDCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.deletePWDCredential',
-    index=11,
+    index=15,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,
@@ -168,7 +208,7 @@ _RESOURCESECRETMANAGEMENTSERVICE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='deleteCertificateCredential',
     full_name='org.apache.custos.resource.secret.management.service.ResourceSecretManagementService.deleteCertificateCredential',
-    index=12,
+    index=16,
     containing_service=None,
     input_type=ResourceSecretService__pb2._GETRESOURCECREDENTIALBYTOKENREQUEST,
     output_type=ResourceSecretService__pb2._RESOURCECREDENTIALOPERATIONSTATUS,

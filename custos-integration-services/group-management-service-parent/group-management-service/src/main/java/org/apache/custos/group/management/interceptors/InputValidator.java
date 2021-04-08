@@ -45,7 +45,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private void validate(String methodName, Object body, Metadata headers) {
 
         switch (methodName) {
-            case "createGroups":
+            case "createGroup":
             case "updateGroup":
             case "deleteGroup":
             case "findGroup":
@@ -56,6 +56,8 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "removeChildGroupFromParentGroup":
             case "getAllGroupsOfUser":
             case "getAllParentGroupsOfGroup":
+            case "addGroupMembershipType":
+            case "removeUserGroupMembershipType":
                 validateMethods(methodName, body, headers);
                 break;
             default:
