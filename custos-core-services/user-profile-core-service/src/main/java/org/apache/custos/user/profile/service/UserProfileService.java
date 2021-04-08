@@ -467,7 +467,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 userGroupMembership.setUserGroupMembershipType(exist);
                 groupMembershipRepository.save(userGroupMembership);
 
-                Group exGroup = GroupMapper.createGroup(exOP.get(), ownerId);
+                Group exGroup = GroupMapper.createGroup(exOP.get(), userGroupMembership.getUserProfile().getUsername());
                 responseObserver.onNext(exGroup);
                 responseObserver.onCompleted();
             } else {
@@ -675,8 +675,13 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         try {
             LOGGER.debug("Request received to getAllGroups for " + request.getTenantId());
 
-            List<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository.
-                    findAllByTenantId(request.getTenantId());
+            List<org.apache.custos.user.profile.persistance.model.Group> groups = groupRepository
+                    .searchEntities(request.getTenantId(), request.getGroup());
+            if (groups == null || groups.isEmpty()) {
+                groups = groupRepository.
+                        findAllByTenantId(request.getTenantId());
+
+            }
 
             List<Group> groupList = new ArrayList<>();
 

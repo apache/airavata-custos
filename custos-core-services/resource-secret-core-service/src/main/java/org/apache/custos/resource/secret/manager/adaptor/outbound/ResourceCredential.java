@@ -40,6 +40,7 @@ public class ResourceCredential implements Credential {
 
     private long tenantId;
 
+    private String type;
 
     private String externalId;
 
@@ -50,34 +51,31 @@ public class ResourceCredential implements Credential {
 
         if (message instanceof SSHCredential) {
             SecretMetadata metadata = ((SSHCredential) message).getMetadata();
-            this.description = metadata.getDescription();
-            this.ownerId = metadata.getOwnerId();
-            this.tenantId = metadata.getTenantId();
+            parseMetadata(metadata);
             this.resourceOwnerType = ResourceOwnerType.TENANT;
             this.externalId = metadata.getToken();
 
         } else if (message instanceof CertificateCredential) {
             SecretMetadata metadata = ((CertificateCredential) message).getMetadata();
-            this.description = metadata.getDescription();
-            this.ownerId = metadata.getOwnerId();
-            this.tenantId = metadata.getTenantId();
+            parseMetadata(metadata);
             this.resourceOwnerType = ResourceOwnerType.TENANT;
             this.externalId = metadata.getToken();
 
         } else if (message instanceof PasswordCredential) {
             SecretMetadata metadata = ((PasswordCredential) message).getMetadata();
-            this.description = metadata.getDescription();
-            this.ownerId = metadata.getOwnerId();
-            this.tenantId = metadata.getTenantId();
+            parseMetadata(metadata);
             this.resourceOwnerType = ResourceOwnerType.TENANT;
             this.externalId = metadata.getToken();
         } else if (message instanceof org.apache.custos.resource.secret.service.KVCredential) {
             SecretMetadata metadata = ((org.apache.custos.resource.secret.service.KVCredential) message).getMetadata();
-            this.description = metadata.getDescription();
-            this.ownerId = metadata.getOwnerId();
-            this.tenantId = metadata.getTenantId();
+            parseMetadata(metadata);
             this.resourceOwnerType = ResourceOwnerType.TENANT_USER;
             this.externalId = ((org.apache.custos.resource.secret.service.KVCredential) message).getKey();
+        } else if (message instanceof org.apache.custos.resource.secret.service.CredentialMap) {
+            SecretMetadata metadata = ((org.apache.custos.resource.secret.service.CredentialMap) message).getMetadata();
+            parseMetadata(metadata);
+            this.resourceOwnerType = ResourceOwnerType.TENANT;
+            this.externalId = metadata.getToken();
         }
     }
 
@@ -135,5 +133,22 @@ public class ResourceCredential implements Credential {
 
     public void setExternalId(String externalId) {
         this.externalId = externalId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    private boolean parseMetadata(SecretMetadata secretMetadata) {
+        this.description = secretMetadata.getDescription();
+        this.ownerId = secretMetadata.getOwnerId();
+        this.tenantId = secretMetadata.getTenantId();
+        this.type = secretMetadata.getResourceType().name();
+
+        return true;
     }
 }

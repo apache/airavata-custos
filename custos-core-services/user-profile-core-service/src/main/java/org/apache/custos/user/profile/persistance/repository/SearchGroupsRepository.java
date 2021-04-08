@@ -17,21 +17,13 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.utils;
+package org.apache.custos.user.profile.persistance.repository;
 
-public enum Operations {
+import org.apache.custos.user.profile.persistance.model.Group;
 
-    ADD_SSH_CREDENTIAL,
-    ADD_CERTIFICATE_CREDENTIAL,
-    ADD_PASSWORD_CREDENTIAL,
-    DELETE_SSH_CREDENTIAL,
-    DELETE_CERTIFICATE_CREDENTIAL,
-    DELETE_PASSWORD_CREDENTIAL,
-    SAVE_KV_CREDENTIAL,
-    UPDATE_KV_CREDENTIAL,
-    DELETE_KV_CREDENTIAL,
-    SAVE_CREDENTIAL_MAP,
-    UPDATE_CREDENTIAL_MAP,
-    DELETE_CREDENTIAL_MAP
+import java.util.List;
 
+public interface SearchGroupsRepository {
+
+    List<Group> searchEntities(long tenantId, org.apache.custos.user.profile.service.Group group);
 }

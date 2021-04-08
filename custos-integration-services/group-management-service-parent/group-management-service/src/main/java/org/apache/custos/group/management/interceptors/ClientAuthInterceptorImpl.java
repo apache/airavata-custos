@@ -22,16 +22,12 @@ package org.apache.custos.group.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.identity.service.AuthToken;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
-import org.apache.custos.user.profile.service.GroupMembership;
-import org.apache.custos.user.profile.service.GroupRequest;
-import org.apache.custos.user.profile.service.GroupToGroupMembership;
-import org.apache.custos.user.profile.service.UserProfileRequest;
+import org.apache.custos.user.profile.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,7 +56,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -79,7 +75,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
             AuthClaim claim = authorize(headers, request.getClientId());
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -99,7 +95,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String oauthId = claim.getIamAuthId();
@@ -109,6 +105,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             return (ReqT) ((GroupMembership) reqT).toBuilder()
                     .setClientId(oauthId)
+                    .setClientSec(oauthSec)
                     .setTenantId(tenantId)
                     .build();
 
@@ -118,7 +115,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             long tenantId = claim.getTenantId();
 
@@ -134,7 +131,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             long tenantId = claim.getTenantId();
 
@@ -152,7 +149,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             long tenantId = claim.getTenantId();
 
@@ -167,11 +164,25 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
 
             if (claim == null) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
             long tenantId = claim.getTenantId();
 
             return (ReqT) ((GroupMembership) reqT).toBuilder()
+                    .setTenantId(tenantId)
+                    .build();
+        } else if (method.equals("addGroupMembershipType") || method.equals("removeUserGroupMembershipType")) {
+            UserGroupMembershipTypeRequest request =
+                    (UserGroupMembershipTypeRequest) reqT;
+            AuthClaim claim = authorize(headers, request.getClientId());
+
+
+            if (claim == null) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            long tenantId = claim.getTenantId();
+
+            return (ReqT) ((UserGroupMembershipTypeRequest) reqT).toBuilder()
                     .setTenantId(tenantId)
                     .build();
         }

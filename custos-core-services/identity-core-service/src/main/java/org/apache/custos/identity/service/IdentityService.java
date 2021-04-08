@@ -137,8 +137,8 @@ public class IdentityService extends IdentityServiceImplBase {
     }
 
     @Override
-    public void isAuthenticate(AuthToken request,
-                               StreamObserver<IsAuthenticateResponse> responseObserver) {
+    public void isAuthenticated(AuthToken request,
+                               StreamObserver<IsAuthenticatedResponse> responseObserver) {
         String username = null;
         String tenantId = null;
 
@@ -149,8 +149,9 @@ public class IdentityService extends IdentityServiceImplBase {
                 tenantId = claim.getValue();
             }
         }
-        LOGGER.debug("Authentication status checking for  " + username
-        );
+        LOGGER.debug("Authentication status checking for  " + username );
+        LOGGER.info("Authentication status checking for  " + username + " token "+ request.getAccessToken());
+
         String accessToken = request.getAccessToken();
 
 
@@ -193,7 +194,7 @@ public class IdentityService extends IdentityServiceImplBase {
             } else {
                 LOGGER.debug("User" + username + "in gateway" + tenantId + "is not authenticated");
             }
-            IsAuthenticateResponse isAuthenticateResponse = IsAuthenticateResponse
+            IsAuthenticatedResponse isAuthenticateResponse = IsAuthenticatedResponse
                     .newBuilder()
                     .setAuthenticated(isAuthenticated)
                     .build();
@@ -201,7 +202,7 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while checking authentication for  user " + username + " " + ex.getMessage();
+            String msg = "Error occurred while validating authentication status of  user " + username + " " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
         }

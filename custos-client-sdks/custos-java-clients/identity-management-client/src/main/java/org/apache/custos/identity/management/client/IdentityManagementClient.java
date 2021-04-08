@@ -31,12 +31,13 @@ import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
 import org.apache.custos.identity.service.*;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * Java client to connect with the Custos Identity Management Service
  */
-public class IdentityManagementClient {
+public class IdentityManagementClient implements Closeable {
 
 
     private ManagedChannel managedChannel;
@@ -189,5 +190,30 @@ public class IdentityManagementClient {
 
     }
 
+    public User getUser(String accessToken) {
+        AuthToken authToken = AuthToken.newBuilder()
+                .setAccessToken(accessToken)
+                .build();
+        return blockingStub.getUser(authToken);
 
+    }
+
+    public boolean isAuthenticated(String accessToken) {
+        try {
+            AuthToken authToken = AuthToken
+                    .newBuilder()
+                    .setAccessToken(accessToken)
+                    .build();
+            IsAuthenticatedResponse authenticatedResponse = blockingStub.isAuthenticated(authToken);
+            return authenticatedResponse.getAuthenticated();
+        } catch (Exception ex) {
+            return false;
+        }
+
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.managedChannel.shutdown();
+    }
 }

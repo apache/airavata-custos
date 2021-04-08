@@ -341,6 +341,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.getRolesOfTenant(request);
     }
 
+    public OperationStatus deleteRole(DeleteRoleRequest request) {
+        return iamAdminServiceBlockingStub.deleteRole(request);
+    }
+
     public Agent getAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getAgent(request);
     }

@@ -56,6 +56,8 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "removeChildGroupFromParentGroup":
             case "getAllGroupsOfUser":
             case "getAllParentGroupsOfGroup":
+            case "addGroupMembershipType":
+            case "removeUserGroupMembershipType":
                 validateMethods(methodName, body, headers);
                 break;
             default:

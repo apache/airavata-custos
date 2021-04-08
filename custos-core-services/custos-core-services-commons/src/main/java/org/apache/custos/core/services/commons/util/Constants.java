@@ -26,4 +26,7 @@ public final class Constants {
     public static final String  OWNER_ID = "custos-ownerId";
     public static final String DESCRIPTION = "custos-description";
 
+    public static final String AGENT_ID ="agent-id";
+    public static final String AGENT_PARENT_ID = "agent-parent-id";
+
 }

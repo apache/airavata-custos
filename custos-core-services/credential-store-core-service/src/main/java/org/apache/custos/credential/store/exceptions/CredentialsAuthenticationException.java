@@ -17,21 +17,9 @@
  *  under the License.
  */
 
-package org.apache.custos.resource.secret.utils;
+package org.apache.custos.credential.store.exceptions;
 
-public enum Operations {
-
-    ADD_SSH_CREDENTIAL,
-    ADD_CERTIFICATE_CREDENTIAL,
-    ADD_PASSWORD_CREDENTIAL,
-    DELETE_SSH_CREDENTIAL,
-    DELETE_CERTIFICATE_CREDENTIAL,
-    DELETE_PASSWORD_CREDENTIAL,
-    SAVE_KV_CREDENTIAL,
-    UPDATE_KV_CREDENTIAL,
-    DELETE_KV_CREDENTIAL,
-    SAVE_CREDENTIAL_MAP,
-    UPDATE_CREDENTIAL_MAP,
-    DELETE_CREDENTIAL_MAP
-
+public class CredentialsAuthenticationException extends RuntimeException{
+    public CredentialsAuthenticationException(String s, Exception exception) {
+    }
 }

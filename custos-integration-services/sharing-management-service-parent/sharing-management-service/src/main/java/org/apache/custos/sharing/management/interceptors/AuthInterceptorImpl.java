@@ -22,7 +22,7 @@ package org.apache.custos.sharing.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.sharing.service.*;
@@ -109,10 +109,10 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
             claim = authorize(headers, clientId);
         } catch (Exception ex) {
             LOGGER.error(" Authorizing error " + ex.getMessage());
-            throw new NotAuthorizedException("Request is not authorized", ex);
+            throw new UnAuthorizedException("Request is not authorized", ex);
         }
         if (claim == null) {
-            throw new NotAuthorizedException("Request is not authorized", null);
+            throw new UnAuthorizedException("Request is not authorized", null);
         }
         return claim;
     }

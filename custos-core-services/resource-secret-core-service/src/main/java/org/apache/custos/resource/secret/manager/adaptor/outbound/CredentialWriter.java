@@ -112,6 +112,7 @@ public class CredentialWriter {
         secret.setSecretType(ResourceSecretType.SSH.name());
         secret.setTenantId(credential.getTenantId());
         secret.setExternalId(credential.getExternalId());
+        secret.setType(credential.getType());
         repository.save(secret);
         return true;
     }
@@ -154,7 +155,7 @@ public class CredentialWriter {
                 + "/" + Constants.PASSWORD + "/" + credential.getToken();
 
 
-        PasswordSecret passwordSecret = new PasswordSecret(credential.getPassword());
+        PasswordSecret passwordSecret = new PasswordSecret(credential.getPassword(), credential.getUserId());
         vaultTemplate.write(path, passwordSecret);
 
         VaultResponseSupport<PasswordSecret> response = vaultTemplate.read(path, PasswordSecret.class);
@@ -174,6 +175,7 @@ public class CredentialWriter {
         secret.setSecretType(ResourceSecretType.PASSWORD.name());
         secret.setTenantId(credential.getTenantId());
         secret.setExternalId(credential.getExternalId());
+        secret.setType(credential.getType());
         repository.save(secret);
         return true;
     }
@@ -242,6 +244,7 @@ public class CredentialWriter {
         secret.setSecretType(ResourceSecretType.X509_CERTIFICATE.name());
         secret.setTenantId(credential.getTenantId());
         secret.setExternalId(credential.getExternalId());
+        secret.setType(credential.getType());
         repository.save(secret);
         return true;
     }
@@ -334,6 +337,7 @@ public class CredentialWriter {
         secret.setSecretType(ResourceSecretType.KV.name());
         secret.setTenantId(kvCredential.getTenantId());
         secret.setExternalId(kvCredential.getKey());
+        secret.setType(kvCredential.getType());
         repository.save(secret);
         return true;
 
@@ -424,6 +428,101 @@ public class CredentialWriter {
 
         vaultTemplate.delete(path);
 
+        repository.delete(secret);
+        return true;
+    }
+
+    public boolean saveCredentialMap(CredentialMap credentialMap) {
+        Optional<Secret> exSecret = repository.findById(credentialMap.getToken());
+
+        if (exSecret.isPresent()) {
+            String msg = " Credential with token " + credentialMap.getToken() + " already exist";
+            LOGGER.error(msg);
+            throw new CredentialStoreException("Invalid token", null);
+        }
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credentialMap.getTenantId() + "/" + credentialMap.getOwnerId() +
+                "/" + Constants.SECRET_MAP + "/" + credentialMap.getToken();
+
+        KVSecret kvSecret = new KVSecret(credentialMap.getToken(), credentialMap.getCredentialString());
+
+        vaultTemplate.write(path, kvSecret);
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(path, KVSecret.class);
+
+        if (response == null || response.getData() == null && response.getData().getKey() == null) {
+            String msg = "  credential Map of tenant " + credentialMap.getTenantId() +
+                    " of user " + credentialMap.getOwnerId() + " is not saved in vault";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        Secret secret = new Secret();
+        secret.setId(credentialMap.getToken());
+        secret.setDiscription(credentialMap.getDescription());
+        secret.setOwnerId(credentialMap.getOwnerId());
+        secret.setOwnerType(credentialMap.getResourceOwnerType().name());
+        secret.setSecretType(ResourceSecretType.CREDENTIAL_MAP.name());
+        secret.setTenantId(credentialMap.getTenantId());
+        secret.setExternalId(credentialMap.getExternalId());
+        secret.setType(credentialMap.getType());
+        repository.save(secret);
+        return true;
+
+    }
+
+    public boolean updateCredentialMap(CredentialMap credentialMap) {
+
+        Optional<Secret> exSecret = repository.findById(credentialMap.getExternalId());
+        if (!exSecret.isPresent()) {
+            String msg = " Cannot find secret for token" + credentialMap.getToken();
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+        Secret secret = exSecret.get();
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credentialMap.getTenantId() + "/" +
+                secret.getOwnerId() +
+                "/" + Constants.SECRET_MAP + "/" + secret.getId();
+
+        KVSecret kvSecret = new KVSecret(credentialMap.getExternalId(), credentialMap.getCredentialString());
+
+        VaultResponseSupport<KVSecret> responseEx = vaultTemplate.read(path, KVSecret.class);
+
+        vaultTemplate.delete(path);
+        vaultTemplate.write(path, kvSecret);
+
+        VaultResponseSupport<KVSecret> response = vaultTemplate.read(path, KVSecret.class);
+
+        if (response == null || response.getData() == null && response.getData().getKey() == null) {
+            // Writing back previouse data
+            vaultTemplate.write(path, responseEx.getData());
+
+            String msg = " CredentialMap  of tenant " + credentialMap.getTenantId() +
+                    " of user " + credentialMap.getOwnerId() + " is not saved in vault";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+        secret.setDiscription(credentialMap.getDescription());
+        repository.save(secret);
+        return true;
+
+    }
+
+    public boolean deleteCredentialMap(CredentialMap credentialMap) {
+        Optional<Secret> exSecret = repository.findById(credentialMap.getExternalId());
+        if (!exSecret.isPresent()) {
+            String msg = " Cannot find secret for token" + credentialMap.getExternalId();
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+        Secret secret = exSecret.get();
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credentialMap.getTenantId() + "/" +
+                secret.getOwnerId() +
+                "/" + Constants.SECRET_MAP + "/" + secret.getId();
+
+        vaultTemplate.delete(path);
         repository.delete(secret);
         return true;
     }

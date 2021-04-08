@@ -422,4 +422,68 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+    @Override
+    public void getCredentialMap(CredentialMap request, StreamObserver<CredentialMap> responseObserver) {
+        LOGGER.debug("Request received to getCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            CredentialMap status = resourceSecretClient.getCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching   Credentials  Map :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addCredentialMap(CredentialMap request, StreamObserver<AddResourceCredentialResponse> responseObserver) {
+        LOGGER.debug("Request received to addCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            AddResourceCredentialResponse status = resourceSecretClient.setCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while saving  CredentialMap :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to updateCredentialMap in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.updateCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while updaintg  Credentials  Map:  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteCredentialMap(CredentialMap request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to deleteKVCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.deleteCredentialMap(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  Credential Map :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }

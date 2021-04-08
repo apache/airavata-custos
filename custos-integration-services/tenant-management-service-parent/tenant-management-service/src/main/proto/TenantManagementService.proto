@@ -106,14 +106,21 @@ message DeleteTenantRequest {
 
 
 message GetCredentialsRequest {
-    int64 tenantId = 1;
+    int64 tenant_id = 1;
 }
 
 message GetCredentialsResponse {
-    string iamClientId = 1;
-    string iamClientSecret = 2;
-    string ciLogonClientId = 3;
-    string ciLogonClientSecret = 4;
+    string iam_client_id = 1;
+    string iam_client_secret = 2;
+    string ci_logon_client_id = 3;
+    string ci_logon_client_secret = 4;
+}
+
+
+message TenantValidationRequest {
+    string client_id = 1;
+    string client_sec = 2;
+
 }
 
 service TenantManagementService {
@@ -124,13 +131,13 @@ service TenantManagementService {
          };
     }
 
-    rpc getTenant (GetTenantRequest) returns (GetTenantResponse) {
+    rpc getTenant (GetTenantRequest) returns (org.apache.custos.tenant.profile.service.Tenant) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/oauth2/tenant"
         };
     }
 
-    rpc updateTenant (UpdateTenantRequest) returns (GetTenantResponse) {
+    rpc updateTenant (UpdateTenantRequest) returns (org.apache.custos.tenant.profile.service.Tenant) {
         option (google.api.http) = {
            put: "/tenant-management/v1.0.0/oauth2/tenant"
            body: "body"
@@ -144,6 +151,12 @@ service TenantManagementService {
         };
     }
 
+    rpc validateTenant (TenantValidationRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/tenant/credentials/status"
+        };
+    }
+
     rpc addTenantRoles (org.apache.custos.iam.service.AddRolesRequest) returns (org.apache.custos.iam.service.AllRoles) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/roles"
@@ -153,6 +166,12 @@ service TenantManagementService {
     rpc getTenantRoles (org.apache.custos.iam.service.GetRolesRequest) returns (org.apache.custos.iam.service.AllRoles) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/roles"
+        };
+    }
+
+    rpc deleteRole (org.apache.custos.iam.service.DeleteRoleRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/tenant-management/v1.0.0/role"
         };
     }
 

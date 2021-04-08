@@ -932,6 +932,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     RoleRepresentation roleRepresentation = RoleRepresentation.
                             newBuilder().setName(role.getName())
                             .setComposite(role.isComposite())
+                            .setId(role.getId())
                             .build();
                     if (role.getDescription() != null) {
                         roleRepresentation = roleRepresentation.toBuilder().setDescription(role.getDescription()).build();
@@ -965,6 +966,24 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
     }
 
+    @Override
+    public void deleteRole(DeleteRoleRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to add roles to tenant for " + request.getTenantId());
+
+            keycloakClient.deleteRole(request.getRole().getId(), String.valueOf(request.getTenantId()),
+                    request.getClientId(), request.getClientLevel());
+            org.apache.custos.iam.service.OperationStatus operationStatus =
+                    org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(true).build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = " Deleting role" + request.getRole().getName() + "   " +
+                    "failed for " + request.getTenantId() + " " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 
     @Override
     public void getRolesOfTenant(GetRolesRequest request, StreamObserver<AllRoles> responseObserver) {
@@ -981,6 +1000,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     RoleRepresentation roleRepresentation = RoleRepresentation.
                             newBuilder().setName(role.getName())
                             .setComposite(role.isComposite())
+                            .setId(role.getId())
                             .build();
                     if (role.getDescription() != null) {
                         roleRepresentation = roleRepresentation.toBuilder().setDescription(role.getDescription()).build();
