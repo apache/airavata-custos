@@ -25,6 +25,7 @@ public final class Constants {
     public static  final String AGENT_CLIENT = "agent-client";
     public static final String  OWNER_ID = "custos-ownerId";
     public static final String DESCRIPTION = "custos-description";
+    public static final String X509CERTIFICATE = "X.509";
 
     public static final String AGENT_ID ="agent-id";
     public static final String AGENT_PARENT_ID = "agent-parent-id";
