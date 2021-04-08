@@ -248,7 +248,6 @@
                 <artifactId>shamir</artifactId>
                 <version>${com.codahale.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 
@@ -394,9 +393,9 @@
                             <chartName>${project.artifactId}</chartName>
                             <chartFolder>src/main/helm</chartFolder>
                             <chartRepoUrl>https://charts.helm.sh/stable</chartRepoUrl>
-<!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
+                            <!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
                             <helmVersion>3.4.2</helmVersion>
-<!--                            <chartRepoUrl>null</chartRepoUrl>-->
+                            <!--                            <chartRepoUrl>null</chartRepoUrl>-->
                             <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
                             <helmVersion>2.16.0</helmVersion>
                             <strictLint>true</strictLint>
@@ -415,7 +414,66 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>scp-to-remote</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>ant</groupId>
+                                <artifactId>ant-commons-net</artifactId>
+                                <version>1.6.5</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.apache.ant</groupId>
+                                <artifactId>ant-jsch</artifactId>
+                                <version>1.10.9</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <target>
 
+                                <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
+                                     remoteToFile="ubuntu@${host}:/home/ubuntu/custos/artifacts"
+                                     verbose="true"
+                                     keyfile="${ssh.privatekey}"
+                                     passphrase="${ssh.passphrase}" trust="true">
+                                </scp>
+                                <sshexec host="${host}"
+                                         username="ubuntu"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm delete ${project.artifactId} -n custos"/>
+
+                                <sshexec host="${host}"
+                                         username="ubuntu"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm install ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>
+
+                                <!-- SSH -->
+                                <taskdef name="sshexec"
+                                         classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHExec"
+                                         classpathref="maven.plugin.classpath" />
+
+                            </target>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -470,6 +528,7 @@
                 <version>${os.maven.plugin}</version>
             </extension>
         </extensions>
+
     </build>
 
     <properties>
@@ -540,7 +599,11 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
+        <host>service.staging.usecustos.org</host>
 
+        <ssh.privatekey></ssh.privatekey>
+
+        <ssh.passphrase></ssh.passphrase>
     </properties>
 
 </project>
