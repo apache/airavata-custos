@@ -6,9 +6,10 @@ metadata:
 {{ include "helm.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  rollingUpdate:
-    maxSurge: {{ .Values.rollingUpdate.maxSurge }}
-    maxUnavailable: {{ .Values.rollingUpdate.maxUnavailable }}
+  strategy:
+    rollingUpdate:
+      maxSurge: {{ .Values.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "helm.name" . }}
@@ -59,9 +60,9 @@ spec:
             httpGet:
               path: /actuator/health
               port: {{ .Values.service.port }}
-              initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-              periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-              successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

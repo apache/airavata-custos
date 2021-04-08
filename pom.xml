@@ -393,6 +393,9 @@
                         <configuration>
                             <chartName>${project.artifactId}</chartName>
                             <chartFolder>src/main/helm</chartFolder>
+                            <chartRepoUrl>https://charts.helm.sh/stable</chartRepoUrl>
+<!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
+                            <helmVersion>3.4.2</helmVersion>
 <!--                            <chartRepoUrl>null</chartRepoUrl>-->
                             <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
                             <helmVersion>2.16.0</helmVersion>
