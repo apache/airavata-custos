@@ -310,7 +310,22 @@
         </profile>
         <profile>
             <id>container</id>
+            <properties>
+                <spring.profiles.active>staging</spring.profiles.active>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+                        <excludes>
+                            <exclude>*.pkcs12</exclude>
+                        </excludes>
+                    </resource>
+                </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -601,9 +616,10 @@
 
         <host>service.staging.usecustos.org</host>
 
-        <ssh.privatekey></ssh.privatekey>
+        <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
-        <ssh.passphrase></ssh.passphrase>
+        <ssh.passphrase>isjarana</ssh.passphrase>
+
     </properties>
 
 </project>
