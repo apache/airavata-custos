@@ -19,14 +19,9 @@
 
 package org.apache.custos.federated.services.clients.keycloak;
 
-import org.apache.catalina.security.SecurityUtil;
 import org.apache.custos.cluster.management.client.ClusterManagementClient;
-import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
-import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
 import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.http.HttpStatus;
-import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.*;
@@ -39,11 +34,7 @@ import org.springframework.stereotype.Component;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
-import java.io.*;
 import java.net.URI;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -856,6 +847,7 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             // get client
+            LOGGER.info("IAM server URL "+ iamServerURL);
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             RealmResource realmResource = client.realm(realmId);
@@ -1793,80 +1785,16 @@ public class KeycloakClient {
     }
 
 
-    private ResteasyClient getRestClient() {
-        return new ResteasyClientBuilder()
-                .connectionPoolSize(POOL_SIZE)
-                .trustStore(loadKeyStore())
-                .build();
-    }
-
     private Keycloak getClient(String adminUrl, String realm, String loginUsername, String password) {
 
         return KeycloakUtils.getClient(adminUrl, realm, loginUsername,
-                password, clientId, trustStorePath, truststorePassword);
+                password, clientId, trustStorePath, truststorePassword, activeProfile, clusterManagementClient);
     }
 
     private Keycloak getClient(String adminUrl, String realm, String accessToken) {
 
-        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword);
-    }
-
-    private KeyStore loadKeyStore() {
-
-        InputStream is = null;
-        try {
-
-            File trustStoreFile = new File(trustStorePath);
-
-            if (trustStoreFile.exists()) {
-                LOGGER.debug("Loading trust store file from path " + trustStorePath);
-                is = new FileInputStream(trustStorePath);
-            } else {
-                LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
-                is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
-                if (is != null) {
-                    LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
-                }
-            }
-            if (is == null) {
-                throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
-            }
-
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-
-
-            ks.load(is, truststorePassword.toCharArray());
-            if (activeProfile.equals("staging") || activeProfile.equals("prod")) {
-                GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest.newBuilder().build();
-                GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
-                CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
-                Certificate certs = cf.generateCertificate(targetStream);
-
-                ///
-                File keystoreFile = new File(trustStorePath);
-                // Load the keystore contents
-                FileInputStream in = new FileInputStream(keystoreFile);
-                ks.load(in, truststorePassword.toCharArray());
-                in.close();
-
-                // Add the certificate
-                ks.setCertificateEntry("custos", certs);
-
-            }
-
-            return ks;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load trust store KeyStore instance", e);
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    LOGGER.error("Failed to close trust store FileInputStream", e);
-                }
-            }
-        }
+        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword,
+                activeProfile, clusterManagementClient);
     }
 
 
