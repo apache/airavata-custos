@@ -50,6 +50,7 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +81,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Value("${tenant.base.uri}")
+    private String TENANT_BASE_URI;
 
 
     @Override
@@ -122,7 +126,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             }
 
-            String tenantBaseURI = Constants.TENANT_BASE_URI + "?client_id=" + resp.getId();
+            String tenantBaseURI = TENANT_BASE_URI + "?client_id=" + resp.getId();
 
 
             CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()

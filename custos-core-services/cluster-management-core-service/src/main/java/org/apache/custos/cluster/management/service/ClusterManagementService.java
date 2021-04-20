@@ -63,7 +63,12 @@ public class ClusterManagementService extends ClusterManagementServiceImplBase {
             // the CoreV1Api loads default api-client from global configuration.
             CoreV1Api api = new CoreV1Api();
 
-            V1Secret secret = api.readNamespacedSecret(custosServerSecretName, custosNameSpace, null, null, null);
+            String namespace = request.getNamespace();
+            String secretName = request.getSecretName();
+
+
+            V1Secret secret = api.readNamespacedSecret(secretName.isEmpty() ? custosServerSecretName : secretName,
+                    namespace.isEmpty() ? custosNameSpace : namespace, null, null, null);
             Map<String, byte[]> map = secret.getData();
             byte[] cert = map.get("tls.crt");
             if (cert == null || cert.length == 0) {

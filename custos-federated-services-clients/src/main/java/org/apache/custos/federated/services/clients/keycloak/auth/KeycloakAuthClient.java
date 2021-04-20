@@ -19,6 +19,7 @@
 
 package org.apache.custos.federated.services.clients.keycloak.auth;
 
+import org.apache.custos.cluster.management.client.ClusterManagementClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakUtils;
 import org.apache.http.Consts;
 import org.apache.http.HttpHeaders;
@@ -41,6 +42,7 @@ import org.keycloak.authorization.client.Configuration;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -97,6 +99,12 @@ public class KeycloakAuthClient {
     @Value("${user.info.endpoint}")
     private String userInfoEndpoint;
 
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
+    @Autowired
+    private ClusterManagementClient clusterManagementClient;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakAuthClient.class);
 
     public KeycloakAuthClient() {
@@ -108,7 +116,8 @@ public class KeycloakAuthClient {
             KeyStoreException, KeyManagementException, IOException {
         try {
             LOGGER.info("initializing security requirements");
-            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword);
+            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword,
+                    activeProfile, clusterManagementClient);
         } catch (Exception ex) {
             LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
             throw ex;

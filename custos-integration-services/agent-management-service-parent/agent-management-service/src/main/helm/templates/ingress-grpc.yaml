@@ -8,7 +8,7 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - host: custos.scigap.org
+     - host: {{ .Values.deployment.host }}
        http:
         paths:
           - path: /org.apache.custos.agent.management.service.AgentManagementService(/|$)(.*)
@@ -18,5 +18,5 @@ spec:
 
   tls:
     - hosts:
-        - custos.scigap.org
+        - {{ .Values.deployment.host }}
       secretName: tls-secret

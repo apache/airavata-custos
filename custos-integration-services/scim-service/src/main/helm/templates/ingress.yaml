@@ -8,7 +8,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   rules:
-    - host: custos.scigap.org
+    - host: {{ .Values.deployment.host }}
       http:
         paths:
           - path: /scim(/|$)(.*)
@@ -18,5 +18,5 @@ spec:
 
   tls:
     - hosts:
-        - custos.scigap.org
+        - {{ .Values.deployment.host }}
       secretName: tls-secret

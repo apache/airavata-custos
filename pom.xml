@@ -310,7 +310,32 @@
         </profile>
         <profile>
             <id>container</id>
+            <properties>
+                <spring.profiles.active>staging</spring.profiles.active>
+                <vault.token>s.SI6Bnv0uLhFgEn4mI2tq8HmQ</vault.token>
+                <vault.scheme>http</vault.scheme>
+                <vault.host>vault.vault.svc.cluster.local</vault.host>
+                <vault.port>8200</vault.port>
+                <vault.uri>http://vault.vault.svc.cluster.local:8200</vault.uri>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+<!--                        <excludes>-->
+<!--                            <exclude>vault-client-truststore.pkcs12</exclude>-->
+<!--                            <exclude>keycloak-client-truststore.pkcs12</exclude>-->
+<!--                        </excludes>-->
+                        <includes>
+                            <include>**/*.pcks12</include>
+                            <include>**/*.properties</include>
+                        </includes>
+                    </resource>
+                </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -572,7 +597,7 @@
         <mysql.connector.java>8.0.18</mysql.connector.java>
         <javax.persistance>1.0.2</javax.persistance>
 
-        <keycloak.admin.version>7.0.0</keycloak.admin.version>
+        <keycloak.admin.version>9.0.2</keycloak.admin.version>
 
         <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
 
@@ -601,9 +626,10 @@
 
         <host>service.staging.usecustos.org</host>
 
-        <ssh.privatekey></ssh.privatekey>
+        <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
-        <ssh.passphrase></ssh.passphrase>
+        <ssh.passphrase>isjarana</ssh.passphrase>
+
     </properties>
 
 </project>

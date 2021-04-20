@@ -78,5 +78,6 @@ readinessProbe:
   successThreshold: 1
 
 
-
+deployment:
+  host: service.staging.usecustos.org
 
