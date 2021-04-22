@@ -57,12 +57,12 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
                                   Map<String, Object> valueMap) {
         String query = "SELECT * FROM tenant E WHERE ";
 
-        if (requestEmail != null) {
+        if (requestEmail != null && !requestEmail.isEmpty()) {
             query = query + "E.requester_email = :" + "requester_email" + " AND ";
             valueMap.put("requester_email", requestEmail);
         }
 
-        if (status != null) {
+        if (status != null  && !status.isEmpty()) {
             query = query + "E.status LIKE :" + "status" + " AND ";
             valueMap.put("status", status);
         }
