@@ -20,6 +20,7 @@
 package org.apache.custos.tenant.manamgement.client;
 
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
@@ -31,13 +32,14 @@ import org.apache.custos.tenant.management.service.GetTenantResponse;
 import org.apache.custos.tenant.management.service.*;
 import org.apache.custos.tenant.profile.service.*;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 
 /**
  * This class contains tenant management operations
  */
-public class TenantManagementClient {
+public class TenantManagementClient implements Closeable {
 
     private ManagedChannel managedChannel;
 
@@ -127,7 +129,7 @@ public class TenantManagementClient {
      * @param comment
      * @return
      */
-    public Tenant updateTenant(String clientId, String client_name, String requester_email, String admin_frist_name,
+    public Tenant updateTenant(String usertoken, String clientId, String client_name, String requester_email, String admin_frist_name,
                                           String admin_last_name, String admin_email, String admin_username,
                                           String admin_password, String[] contacts, String[] redirect_uris,
                                           String client_uri, String scope, String domain, String logo_uri,
@@ -155,17 +157,17 @@ public class TenantManagementClient {
                 .setClientId(clientId)
                 .build();
 
-        return blockingStub.updateTenant(updateTenantRequest);
+        return attachedHeaders(usertoken).updateTenant(updateTenantRequest);
 
     }
 
 
-    public Tenant getTenant(String clientId) {
+    public Tenant getTenant(String userToken, String clientId) {
         GetTenantRequest tenantRequest = GetTenantRequest
                 .newBuilder()
                 .setClientId(clientId)
                 .build();
-        return blockingStub.getTenant(tenantRequest);
+        return attachedHeaders(userToken).getTenant(tenantRequest);
     }
 
 
@@ -173,9 +175,9 @@ public class TenantManagementClient {
      * delete tenant identified by clientId
      * @param clientId
      */
-    public void deleteTenant(String clientId) {
+    public void deleteTenant(String userToken, String clientId) {
         DeleteTenantRequest tenantRequest = DeleteTenantRequest.newBuilder().setClientId(clientId).build();
-        blockingStub.deleteTenant(tenantRequest);
+        attachedHeaders(userToken).deleteTenant(tenantRequest);
     }
 
 
@@ -251,5 +253,21 @@ public class TenantManagementClient {
         return blockingStub.getAllTenantsForUser(request);
     }
 
+    private TenantManagementServiceGrpc.TenantManagementServiceBlockingStub
+    attachedHeaders(String userToken) {
+        TenantManagementServiceGrpc.TenantManagementServiceBlockingStub
+                blockingStub = TenantManagementServiceGrpc.newBlockingStub(managedChannel);
 
+        Metadata tokenHeader = ClientUtils.getAuthorizationHeader(userToken);
+        blockingStub = MetadataUtils.attachHeaders(blockingStub, tokenHeader);
+        return blockingStub;
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        if (this.managedChannel != null) {
+            this.managedChannel.shutdown();
+        }
+    }
 }
