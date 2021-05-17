@@ -216,7 +216,7 @@ public class CredentialWriter {
 
 
         String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credential.getTenantId() + "/" + credential.getOwnerId() +
-                "/" + Constants.SSH_CREDENTIALS + "/" + credential.getToken();
+                "/" + Constants.CERTIFICATES + "/" + credential.getToken();
 
 
         Certificate certificate = new Certificate(credential.getCert(),
