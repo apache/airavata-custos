@@ -405,11 +405,14 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
             return null;
         }
 
-        boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(),
-                metadata.getOwnerId());
+        if (!authClaim.isSuperTenant()) {
 
-        if (!relationShipValidation) {
-            return null;
+            boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(),
+                    metadata.getOwnerId());
+
+            if (!relationShipValidation) {
+                return null;
+            }
         }
 
         GetAllCredentialsRequest allReq = GetAllCredentialsRequest
@@ -557,6 +560,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         GetTenantResponse childTenantRes = tenantProfileClient.getTenant(childTenantReq);
 
         Tenant childTenant = childTenantRes.getTenant();
+
 
         // referring to same tenant
         if (childTenant != null && childTenant.getTenantId() == parentId) {
