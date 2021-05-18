@@ -125,7 +125,8 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
             return (ReqT) request;
 
         } else if (method.equals("getCredentials")) {
-            AuthClaim claim = authorize(headers);
+           String clientId =  ((GetCredentialsRequest) reqT).getClientId();
+            AuthClaim claim = authorize(headers, clientId);
             if (claim == null) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }

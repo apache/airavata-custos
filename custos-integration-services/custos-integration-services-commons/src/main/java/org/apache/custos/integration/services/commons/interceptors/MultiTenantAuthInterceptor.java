@@ -54,23 +54,26 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
 
         try {
 
-            if (clientId != null && clientId.trim().equals("")) {
+            if (clientId != null && clientId.trim().isEmpty()) {
                 clientId = null;
             }
 
-            String userToken = getUserTokenFromUserTokenHeader(headers);
             boolean agentAuthenticationEnabled = isAgentAuthenticationEnabled(headers);
 
             if (agentAuthenticationEnabled) {
                 return authorizeUsingAgentAndUserJWTTokens(headers);
             }
+            String userToken = getUserTokenFromUserTokenHeader(headers);
+            boolean isBasicAuth = isBasicAuth(headers);
 
-            if (clientId == null && userToken == null) {
+            if (clientId == null && userToken == null && isBasicAuth) {
                 return authorize(headers);
-            } else if (clientId != null && userToken == null) {
+            } else if (clientId != null && userToken == null && isBasicAuth) {
                 return authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
             } else if (clientId != null && userToken != null) {
                 return authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(headers, clientId, userToken);
+            } else if (clientId != null && isUserToken(headers)) {
+                return authorizeWithParentChildTenantValidationAndUserTokenValidation(headers, clientId);
             } else {
                 return authorizeUsingUserToken(headers);
             }

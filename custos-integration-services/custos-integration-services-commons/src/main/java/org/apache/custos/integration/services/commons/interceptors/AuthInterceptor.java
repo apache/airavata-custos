@@ -319,17 +319,14 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
 
 
-        GetCredentialRequest credentialRequest = GetCredentialRequest
+        GetAllCredentialsRequest credentialRequest = GetAllCredentialsRequest
                 .newBuilder()
                 .setOwnerId(metadata.getOwnerId())
-                .setType(Type.IAM).build();
+                .build();
 
-        CredentialMetadata iamCredentials = credentialStoreServiceClient.getCredential(credentialRequest);
+        GetAllCredentialsResponse allCredentials = credentialStoreServiceClient.getAllCredentials(credentialRequest);
 
-        AuthClaim childClaim = getAuthClaim(metadata);
-
-        childClaim.setIamAuthSecret(iamCredentials.getSecret());
-        childClaim.setIamAuthId(iamCredentials.getId());
+        AuthClaim childClaim = getAuthClaim(allCredentials);
 
         boolean statusValidation = validateTenantStatus(childClaim.getTenantId());
 
@@ -367,6 +364,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
 
+
         AuthClaim childClaim = getAuthClaim(metadata);
 
 
@@ -383,6 +381,48 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         }
 
         return authorizeUsingUserToken(userToken);
+
+    }
+
+    public AuthClaim authorizeWithParentChildTenantValidationAndUserTokenValidation(Metadata headers, String childClientId) {
+
+
+        if (childClientId == null || childClientId.trim().isEmpty()) {
+            return null;
+        }
+        AuthClaim authClaim = authorizeUsingUserToken(headers);
+
+        GetCredentialRequest request = GetCredentialRequest
+                .newBuilder()
+                .setId(childClientId).build();
+
+        CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(request);
+
+
+        boolean statusValidation = validateTenantStatus(metadata.getOwnerId());
+
+        if (!statusValidation) {
+            return null;
+        }
+
+        if (!authClaim.isSuperTenant()) {
+
+            boolean relationShipValidation = validateParentChildTenantRelationShip(authClaim.getTenantId(),
+                    metadata.getOwnerId());
+
+            if (!relationShipValidation) {
+                return null;
+            }
+        }
+
+        GetAllCredentialsRequest allReq = GetAllCredentialsRequest
+                .newBuilder()
+                .setOwnerId(metadata.getOwnerId())
+                .build();
+        GetAllCredentialsResponse response = credentialStoreServiceClient.getAllCredentials(allReq);
+
+        return getAuthClaim(response);
+
 
     }
 
@@ -414,7 +454,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
 
     private AuthClaim getAuthClaim(GetAllCredentialsResponse response) {
-        if (response == null || response.getSecretListCount() == 0) {
+        if (response == null || response.getSecretListList().isEmpty()) {
             return null;
         }
 
@@ -521,6 +561,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         Tenant childTenant = childTenantRes.getTenant();
 
+
         // referring to same tenant
         if (childTenant != null && childTenant.getTenantId() == parentId) {
             return true;
@@ -558,5 +599,22 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
         }
     }
 
+    public boolean isBasicAuth(Metadata headers) {
+        try {
+            this.authorize(headers);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public boolean isUserToken(Metadata headers) {
+        try {
+            this.authorizeUsingUserToken(headers);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
 
 }
