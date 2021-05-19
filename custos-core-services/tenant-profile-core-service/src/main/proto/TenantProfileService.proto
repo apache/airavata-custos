@@ -55,12 +55,13 @@ message Tenant {
 }
 
 enum TenantStatus {
-    REQUESTED = 0;
-    APPROVED = 1;
-    DENIED = 2;
-    CANCELLED = 3;
-    ACTIVE = 4;
-    DEACTIVATED = 5;
+    UNKNOWN = 0;
+    REQUESTED = 1;
+    APPROVED = 2;
+    DENIED = 3;
+    CANCELLED = 4;
+    ACTIVE = 5;
+    DEACTIVATED = 6;
 }
 
 message TenantAttributeUpdateMetadata {
