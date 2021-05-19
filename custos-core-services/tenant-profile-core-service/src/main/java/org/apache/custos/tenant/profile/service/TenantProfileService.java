@@ -164,7 +164,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             String status = null;
 
-            if (request.getStatus() != null && !request.getStatus().name().equals("")) {
+            if (!request.getStatus().equals(TenantStatus.UNKNOWN)) {
                 status = request.getStatus().name();
             }
 
@@ -176,20 +176,6 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             List<Tenant> tenants = null;
             List<Tenant> total_tenants = null;
-
-//            if (status == null && requesterEmail != null && !requesterEmail.equals("")) {
-//              tenants = tenantRepository.findByRequesterEmail(requesterEmail);
-//            } else if(status != null && requesterEmail != null && !requesterEmail.equals("")) {
-//                tenants = tenantRepository.findByRequesterEmailAndStatus(requesterEmail, status);
-//            } else if (status == null && parentId == 0) {
-//                tenants = tenantRepository.getAllWithPaginate(limit,offset);
-//            } else if (status != null && parentId == 0){
-//                tenants = tenantRepository.findByStatusWithPaginate(status,limit,offset);
-//            } else if (status == null && parentId > 0) {
-//                tenants = tenantRepository.getAllChildTenantsWithPaginate(parentId,limit,offset);
-//            } else if (status != null && parentId >0 ) {
-//                tenants = tenantRepository.findChildTenantsByStatusWithPaginate(status,parentId,limit,offset);
-//            }
 
             tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, limit, offset);
             total_tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, -1, -1);

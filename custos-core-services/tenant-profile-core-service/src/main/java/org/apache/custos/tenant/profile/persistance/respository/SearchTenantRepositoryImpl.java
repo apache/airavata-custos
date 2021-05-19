@@ -60,22 +60,36 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
         if (requestEmail != null && !requestEmail.isEmpty()) {
             query = query + "E.requester_email = :" + "requester_email" + " AND ";
             valueMap.put("requester_email", requestEmail);
+
         }
 
         if (status != null && !status.isEmpty()) {
             query = query + "E.status LIKE :" + "status" + " AND ";
             valueMap.put("status", status);
+
         }
 
         if (parentId > 0) {
             query = query + "E.parent_id = :" + "parent_id" + " AND ";
             valueMap.put("parent_id", parentId);
+
+        }
+
+        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0) {
+            String directQuery = "SELECT * FROM tenant E ORDER BY E.created_at DESC";
+            if (limit > 0) {
+                directQuery = directQuery + " LIMIT " + ":limit" + " OFFSET " + ":offset";
+                valueMap.put("limit", limit);
+                valueMap.put("offset", offset);
+            }
+            return directQuery;
         }
 
         query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
-        if (offset > 0 & limit > 0) {
+
+        if (limit > 0) {
             query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
             valueMap.put("limit", limit);
             valueMap.put("offset", offset);
