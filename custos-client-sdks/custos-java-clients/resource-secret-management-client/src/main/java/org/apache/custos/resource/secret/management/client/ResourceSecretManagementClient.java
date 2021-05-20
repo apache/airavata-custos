@@ -735,6 +735,66 @@ public class ResourceSecretManagementClient implements Closeable {
         return blockingStub.deletePWDCredential(tokenRequest);
     }
 
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId , String ownerId,
+                                                                   String privateKey, String x509Cert,
+                                                               ResourceSecretManagementServiceGrpc.
+                                                                       ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.addCertificateCredential(certificateCredential);
+    }
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @param description
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId , String ownerId,
+                                                                   String privateKey, String x509Cert,
+                                                                   String description,
+                                                                   ResourceSecretManagementServiceGrpc.
+                                                                           ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setDescription(description)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.addCertificateCredential(certificateCredential);
+    }
+
     ManagedChannel getManagedChannel() {
         return managedChannel;
     }
