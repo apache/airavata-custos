@@ -764,6 +764,7 @@ public class ResourceSecretManagementClient implements Closeable {
         return blockingStub.addCertificateCredential(certificateCredential);
     }
 
+
     /**
      * Save certificate credentials
      *
@@ -794,6 +795,43 @@ public class ResourceSecretManagementClient implements Closeable {
 
         return blockingStub.addCertificateCredential(certificateCredential);
     }
+
+
+    /**
+     * Get certificate credentials
+     *
+     * @param clientId
+     * @param token
+     * @return CertificateCredential
+     */
+    public CertificateCredential getCertificateCredentials(String clientId , String token) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+        return blockingStub.getCertificateCredential(tokenRequest);
+    }
+
+
+    /**
+     * Delete certificate credentials
+     *
+     * @param clientId
+     * @param token
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteCertificateCredentials(String clientId , String token) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(token)
+                .build();
+
+        return blockingStub.deleteCertificateCredential(tokenRequest);
+    }
+
 
     ManagedChannel getManagedChannel() {
         return managedChannel;
