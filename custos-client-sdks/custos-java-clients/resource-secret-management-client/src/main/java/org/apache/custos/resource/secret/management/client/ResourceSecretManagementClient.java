@@ -741,49 +741,19 @@ public class ResourceSecretManagementClient implements Closeable {
      *
      * @param clientId
      * @param ownerId
+     * @param token
      * @param privateKey
      * @param x509Cert
      * @return AddResourceCredentialResponse
      */
-    public AddResourceCredentialResponse addCertificateCredentials(String clientId , String ownerId,
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId, String ownerId, String token,
                                                                    String privateKey, String x509Cert,
-                                                               ResourceSecretManagementServiceGrpc.
-                                                                       ResourceSecretManagementServiceBlockingStub blockingStub) {
-        SecretMetadata metadata = SecretMetadata.newBuilder()
-                .setClientId(clientId)
-                .setOwnerId(ownerId)
-                .build();
-
-        CertificateCredential certificateCredential = CertificateCredential
-                .newBuilder()
-                .setMetadata(metadata)
-                .setPrivateKey(privateKey)
-                .setX509Cert(x509Cert)
-                .build();
-
-        return blockingStub.addCertificateCredential(certificateCredential);
-    }
-
-
-    /**
-     * Save certificate credentials
-     *
-     * @param clientId
-     * @param ownerId
-     * @param privateKey
-     * @param x509Cert
-     * @param description
-     * @return AddResourceCredentialResponse
-     */
-    public AddResourceCredentialResponse addCertificateCredentials(String clientId , String ownerId,
-                                                                   String privateKey, String x509Cert,
-                                                                   String description,
                                                                    ResourceSecretManagementServiceGrpc.
                                                                            ResourceSecretManagementServiceBlockingStub blockingStub) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setOwnerId(ownerId)
-                .setDescription(description)
+                .setToken(token)
                 .build();
 
         CertificateCredential certificateCredential = CertificateCredential
@@ -804,7 +774,7 @@ public class ResourceSecretManagementClient implements Closeable {
      * @param token
      * @return CertificateCredential
      */
-    public CertificateCredential getCertificateCredentials(String clientId , String token) {
+    public CertificateCredential getCertificateCredentials(String clientId, String token) {
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
                 .newBuilder()
                 .setClientId(clientId)
@@ -822,7 +792,7 @@ public class ResourceSecretManagementClient implements Closeable {
      * @param token
      * @return ResourceCredentialOperationStatus
      */
-    public ResourceCredentialOperationStatus deleteCertificateCredentials(String clientId , String token) {
+    public ResourceCredentialOperationStatus deleteCertificateCredentials(String clientId, String token) {
         GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
                 .newBuilder()
                 .setClientId(clientId)
@@ -830,6 +800,117 @@ public class ResourceSecretManagementClient implements Closeable {
                 .build();
 
         return blockingStub.deleteCertificateCredential(tokenRequest);
+    }
+
+
+    /**
+     * Save key value Credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param token
+     * @param key
+     * @param value
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus addKVCredentials(String clientId, String ownerId, String token,
+                                                              String key, String value,
+                                                              ResourceSecretManagementServiceGrpc.
+                                                                      ResourceSecretManagementServiceBlockingStub blockingStub) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .setValue(value)
+                .build();
+
+        return blockingStub.addKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Delete key value Credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param token
+     * @param key
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteKVCredentials(String clientId, String ownerId,
+                                                                 String token, String key) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .build();
+
+        return blockingStub.deleteKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Get key value Credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param token
+     * @return ResourceCredentialOperationStatus
+     */
+    public KVCredential getKVCredentials(String clientId, String ownerId, String token) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .build();
+
+        return blockingStub.getKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Update key value Credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param token
+     * @param key
+     * @param value
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus updateKVCredentials(String clientId, String ownerId,
+                                                                 String token, String key, String value) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .setValue(value)
+                .build();
+
+        return blockingStub.updateKVCredential(kvCredential);
     }
 
 
