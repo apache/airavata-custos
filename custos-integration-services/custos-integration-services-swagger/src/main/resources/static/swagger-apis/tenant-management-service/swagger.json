@@ -1,0 +1,1660 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "TenantManagementService.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "TenantManagementService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/tenant-management/v1.0.0/audit/attributes/{tenant_id}": {
+      "get": {
+        "operationId": "TenantManagementService_getTenantAttributeUpdateAuditTrail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAttributeUpdateAuditTrailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/cache/institutions/CILogon": {
+      "get": {
+        "operationId": "TenantManagementService_getFromCache",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetInstitutionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "institution_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "WHITELIST",
+              "BACKLIST"
+            ],
+            "default": "WHITELIST"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "TenantManagementService_removeFromCache",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authenticationserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "institution_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "WHITELIST",
+              "BACKLIST"
+            ],
+            "default": "WHITELIST"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "TenantManagementService_addToCache",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authenticationserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/child/tenants": {
+      "get": {
+        "operationId": "TenantManagementService_getChildTenants",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "DENIED",
+              "CANCELLED",
+              "ACTIVE",
+              "DEACTIVATED"
+            ],
+            "default": "REQUESTED"
+          },
+          {
+            "name": "requester_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "parent_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/events": {
+      "post": {
+        "operationId": "TenantManagementService_configureEventPersistence",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/institutions/CILogon": {
+      "get": {
+        "operationId": "TenantManagementService_getInstitutions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetInstitutionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "institution_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "WHITELIST",
+              "BACKLIST"
+            ],
+            "default": "WHITELIST"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/oauth2/tenant": {
+      "get": {
+        "operationId": "TenantManagementService_getTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceTenant"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "tenant.tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "tenant.client_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.requester_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.admin_first_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.admin_last_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.admin_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.admin_username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.admin_password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.tenant_status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "DENIED",
+              "CANCELLED",
+              "ACTIVE",
+              "DEACTIVATED"
+            ],
+            "default": "REQUESTED"
+          },
+          {
+            "name": "tenant.contacts",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "tenant.redirect_uris",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "tenant.client_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.scope",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.domain",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.comment",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.logo_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.parent_tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "tenant.application_type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.token_endpoint_auth_method",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.jwks_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.example_extension_parameter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.tos_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.policy_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.software_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.software_version",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant.refesh_token_lifetime",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "tenant.client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.iam_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.iam_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id_issued_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "credentials.custos_client_secret_expired_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "TenantManagementService_deleteTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "credentials.iam_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.iam_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id_issued_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "credentials.custos_client_secret_expired_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "body.tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body.client_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.requester_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.admin_first_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.admin_last_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.admin_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.admin_username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.admin_password",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.tenant_status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "DENIED",
+              "CANCELLED",
+              "ACTIVE",
+              "DEACTIVATED"
+            ],
+            "default": "REQUESTED"
+          },
+          {
+            "name": "body.contacts",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "body.redirect_uris",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "body.client_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.scope",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.domain",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.comment",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.logo_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.parent_tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body.application_type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.token_endpoint_auth_method",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.jwks_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.example_extension_parameter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.tos_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.policy_uri",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.software_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.software_version",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "body.refesh_token_lifetime",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "body.client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "TenantManagementService_createTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceCreateTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "TenantManagementService_updateTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceTenant"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/serviceTenant"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "credentials.iam_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.iam_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.ci_logon_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_secret",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "credentials.custos_client_id_issued_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "credentials.custos_client_secret_expired_at",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/protocol/mapper": {
+      "post": {
+        "operationId": "TenantManagementService_addProtocolMapper",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/role": {
+      "delete": {
+        "operationId": "TenantManagementService_deleteRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_level",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "role.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "role.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "role.composite",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "role.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/roles": {
+      "get": {
+        "operationId": "TenantManagementService_getTenantRoles",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceAllRoles"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_level",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "TenantManagementService_addTenantRoles",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceAllRoles"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/status": {
+      "post": {
+        "operationId": "TenantManagementService_updateTenantStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceUpdateStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/tenant/credentials/status": {
+      "post": {
+        "operationId": "TenantManagementService_validateTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/tenants": {
+      "get": {
+        "operationId": "TenantManagementService_getAllTenants",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "DENIED",
+              "CANCELLED",
+              "ACTIVE",
+              "DEACTIVATED"
+            ],
+            "default": "REQUESTED"
+          },
+          {
+            "name": "requester_email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "parent_client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    },
+    "/tenant-management/v1.0.0/tenants/{requester_email}": {
+      "get": {
+        "operationId": "TenantManagementService_getAllTenantsForUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllTenantsForUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "requester_email",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantManagementService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "authenticationserviceStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "serviceAllRoles": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceRoleRepresentation"
+          }
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceClaimJSONTypes": {
+      "type": "string",
+      "enum": [
+        "STRING",
+        "LONG",
+        "INTEGER",
+        "BOOLEAN",
+        "JSON"
+      ],
+      "default": "STRING"
+    },
+    "serviceCreateTenantResponse": {
+      "type": "object",
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "client_secret": {
+          "type": "string"
+        },
+        "is_activated": {
+          "type": "boolean"
+        },
+        "client_id_issued_at": {
+          "type": "number",
+          "format": "double"
+        },
+        "client_secret_expires_at": {
+          "type": "number",
+          "format": "double"
+        },
+        "registration_client_uri": {
+          "type": "string"
+        },
+        "token_endpoint_auth_method": {
+          "type": "string"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceCredentials": {
+      "type": "object",
+      "properties": {
+        "iam_client_id": {
+          "type": "string"
+        },
+        "iam_client_secret": {
+          "type": "string"
+        },
+        "ci_logon_client_id": {
+          "type": "string"
+        },
+        "ci_logon_client_secret": {
+          "type": "string"
+        },
+        "custos_client_id": {
+          "type": "string"
+        },
+        "custos_client_secret": {
+          "type": "string"
+        },
+        "custos_client_id_issued_at": {
+          "type": "number",
+          "format": "double"
+        },
+        "custos_client_secret_expired_at": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "serviceGetAllTenantsForUserResponse": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceTenant"
+          }
+        }
+      }
+    },
+    "serviceGetAllTenantsResponse": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceTenant"
+          }
+        },
+        "total_num_of_tenants": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "serviceGetAttributeUpdateAuditTrailResponse": {
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceTenantAttributeUpdateMetadata"
+          }
+        }
+      }
+    },
+    "serviceGetInstitutionsResponse": {
+      "type": "object",
+      "properties": {
+        "institutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceInstitution"
+          }
+        }
+      }
+    },
+    "serviceInstitution": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        },
+        "organization_name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "rand_s": {
+          "type": "boolean"
+        }
+      }
+    },
+    "serviceInstitutionCacheType": {
+      "type": "string",
+      "enum": [
+        "WHITELIST",
+        "BACKLIST"
+      ],
+      "default": "WHITELIST"
+    },
+    "serviceMapperTypes": {
+      "type": "string",
+      "enum": [
+        "USER_ATTRIBUTE",
+        "USER_REALM_ROLE",
+        "USER_CLIENT_ROLE"
+      ],
+      "default": "USER_ATTRIBUTE"
+    },
+    "serviceOperationStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    },
+    "serviceRoleRepresentation": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "composite": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceTenant": {
+      "type": "object",
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "client_name": {
+          "type": "string"
+        },
+        "requester_email": {
+          "type": "string"
+        },
+        "admin_first_name": {
+          "type": "string"
+        },
+        "admin_last_name": {
+          "type": "string"
+        },
+        "admin_email": {
+          "type": "string"
+        },
+        "admin_username": {
+          "type": "string"
+        },
+        "admin_password": {
+          "type": "string"
+        },
+        "tenant_status": {
+          "$ref": "#/definitions/serviceTenantStatus"
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "client_uri": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "logo_uri": {
+          "type": "string"
+        },
+        "parent_tenant_id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "application_type": {
+          "type": "string"
+        },
+        "token_endpoint_auth_method": {
+          "type": "string"
+        },
+        "jwks_uri": {
+          "type": "string"
+        },
+        "example_extension_parameter": {
+          "type": "string"
+        },
+        "tos_uri": {
+          "type": "string"
+        },
+        "policy_uri": {
+          "type": "string"
+        },
+        "jwks": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "software_id": {
+          "type": "string"
+        },
+        "software_version": {
+          "type": "string"
+        },
+        "refesh_token_lifetime": {
+          "type": "string",
+          "format": "int64"
+        },
+        "client_id": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceTenantAttributeUpdateMetadata": {
+      "type": "object",
+      "properties": {
+        "updated_attribute": {
+          "type": "string"
+        },
+        "updated_attributeValue": {
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceTenantStatus": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "APPROVED",
+        "DENIED",
+        "CANCELLED",
+        "ACTIVE",
+        "DEACTIVATED"
+      ],
+      "default": "REQUESTED"
+    },
+    "serviceUpdateStatusResponse": {
+      "type": "object",
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "status": {
+          "$ref": "#/definitions/serviceTenantStatus"
+        }
+      }
+    }
+  }
+}

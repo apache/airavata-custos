@@ -195,6 +195,11 @@
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger-common</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
 
             <!-- SCIM-->
             <dependency>
@@ -409,6 +414,32 @@
                                     <goal>template</goal>
                                     <goal>deploy</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.0.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-resources</id>
+                                <!-- here the phase you need -->
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>/Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos</outputDirectory>   <!-- output directory -->
+                                    <resources>
+                                        <resource>
+                                            <directory>${basedir}/src/main/proto</directory>         <!-- source directory -->
+                                            <includes>
+                                                <include> **/*.proto</include>
+                                            </includes>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
