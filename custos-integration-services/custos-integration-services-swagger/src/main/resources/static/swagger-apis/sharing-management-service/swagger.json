@@ -1,0 +1,2390 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "SharingManagementService.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "SharingManagementService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/sharing-management/v1.0.0/entities": {
+      "post": {
+        "operationId": "SharingManagementService_searchEntities",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceEntities"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/entity": {
+      "get": {
+        "operationId": "SharingManagementService_getEntity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceEntity"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "SharingManagementService_deleteEntity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "SharingManagementService_createEntity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "SharingManagementService_updateEntity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/entity/existence": {
+      "get": {
+        "operationId": "SharingManagementService_isEntityExists",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/entity/type": {
+      "get": {
+        "operationId": "SharingManagementService_getEntityType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceEntityType"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "SharingManagementService_deleteEntityType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "SharingManagementService_createEntityType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "SharingManagementService_updateEntityType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/entity/types": {
+      "get": {
+        "operationId": "SharingManagementService_getEntityTypes",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceEntityTypes"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "associating_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/entity/user/access": {
+      "get": {
+        "operationId": "SharingManagementService_userHasAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/groups/share": {
+      "get": {
+        "operationId": "SharingManagementService_getListOfSharedGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceSharedOwners"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "SharingManagementService_revokeEntitySharingFromGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "SharingManagementService_shareEntityWithGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/groups/share/direct": {
+      "get": {
+        "operationId": "SharingManagementService_getListOfDirectlySharedGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceSharedOwners"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/permission/type": {
+      "get": {
+        "operationId": "SharingManagementService_getPermissionType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/servicePermissionType"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "SharingManagementService_deletePermissionType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "SharingManagementService_createPermissionType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "SharingManagementService_updatePermissionType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/permission/types": {
+      "get": {
+        "operationId": "SharingManagementService_getPermissionTypes",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/servicePermissionTypes"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "associating_ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/users/share": {
+      "get": {
+        "operationId": "SharingManagementService_getListOfSharedUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceSharedOwners"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "delete": {
+        "operationId": "SharingManagementService_revokeEntitySharingFromUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "SharingManagementService_shareEntityWithUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/sharingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    },
+    "/sharing-management/v1.0.0/users/share/direct": {
+      "get": {
+        "operationId": "SharingManagementService_getListOfDirectlySharedUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceSharedOwners"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.binary_data",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "entity.full_text",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "entity.original_creation_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "entity.shared_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "permission_type.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "permission_type.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "permission_type.updated_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "owner_id",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cascade",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SharingManagementService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "serviceEntities": {
+      "type": "object",
+      "properties": {
+        "entity_array": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceEntity"
+          }
+        }
+      }
+    },
+    "serviceEntity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "binary_data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "full_text": {
+          "type": "string"
+        },
+        "original_creation_time": {
+          "type": "string",
+          "format": "int64"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "shared_count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "serviceEntitySearchField": {
+      "type": "string",
+      "enum": [
+        "NAME",
+        "DESCRIPTION",
+        "ID",
+        "FULL_TEXT",
+        "OWNER_ID",
+        "CREATED_AT",
+        "LAST_MODIFIED_AT",
+        "ENTITY_TYPE_ID",
+        "PARENT_ID",
+        "SHARED_COUNT",
+        "PERMISSION_TYPE_ID"
+      ],
+      "default": "NAME"
+    },
+    "serviceEntityType": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "serviceEntityTypes": {
+      "type": "object",
+      "properties": {
+        "types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceEntityType"
+          }
+        }
+      }
+    },
+    "servicePermissionType": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "servicePermissionTypes": {
+      "type": "object",
+      "properties": {
+        "types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/servicePermissionType"
+          }
+        }
+      }
+    },
+    "serviceSearchCondition": {
+      "type": "string",
+      "enum": [
+        "EQUAL",
+        "LIKE",
+        "GTE",
+        "LTE",
+        "NOT"
+      ],
+      "default": "EQUAL"
+    },
+    "serviceSearchCriteria": {
+      "type": "object",
+      "properties": {
+        "search_field": {
+          "$ref": "#/definitions/serviceEntitySearchField"
+        },
+        "value": {
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/definitions/serviceSearchCondition"
+        }
+      }
+    },
+    "serviceSharedOwners": {
+      "type": "object",
+      "properties": {
+        "owner_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sharingserviceStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

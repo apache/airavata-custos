@@ -80,6 +80,7 @@ proxy:
    webport: 50001
    adminport: 9901
 
+
 rollingUpdate:
   maxSurge: 1
   maxUnavailable: 25%

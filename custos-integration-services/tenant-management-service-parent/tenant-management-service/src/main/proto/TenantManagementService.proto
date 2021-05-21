@@ -22,6 +22,7 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 package org.apache.custos.tenant.management.service;
+option go_package = "./pb";
 
 import "google/api/annotations.proto";
 import "TenantProfileService.proto";

@@ -22,6 +22,7 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 package org.apache.custos.tenant.profile.service;
+option go_package = "./pb";
 
 message Tenant {
     int64 tenant_id = 1;
