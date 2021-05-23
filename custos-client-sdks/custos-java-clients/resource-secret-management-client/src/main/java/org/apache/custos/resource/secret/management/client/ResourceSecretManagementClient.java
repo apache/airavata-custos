@@ -741,6 +741,32 @@ public class ResourceSecretManagementClient implements Closeable {
      *
      * @param clientId
      * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId, String ownerId, String privateKey,
+                                                                   String x509Cert) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.addCertificateCredential(certificateCredential);
+    }
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
      * @param token
      * @param privateKey
      * @param x509Cert
@@ -748,8 +774,9 @@ public class ResourceSecretManagementClient implements Closeable {
      */
     public AddResourceCredentialResponse addCertificateCredentials(String clientId, String ownerId, String token,
                                                                    String privateKey, String x509Cert,
-                                                                   ResourceSecretManagementServiceGrpc.
-                                                                           ResourceSecretManagementServiceBlockingStub blockingStub) {
+                                                                   ResourceSecretManagementServiceGrpc
+                                                                           .ResourceSecretManagementServiceBlockingStub
+                                                                           blockingStub) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setOwnerId(ownerId)
@@ -816,7 +843,8 @@ public class ResourceSecretManagementClient implements Closeable {
     public ResourceCredentialOperationStatus addKVCredentials(String clientId, String ownerId, String token,
                                                               String key, String value,
                                                               ResourceSecretManagementServiceGrpc.
-                                                                      ResourceSecretManagementServiceBlockingStub blockingStub) {
+                                                                      ResourceSecretManagementServiceBlockingStub
+                                                                      blockingStub) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setOwnerId(ownerId)
@@ -843,8 +871,8 @@ public class ResourceSecretManagementClient implements Closeable {
      * @param key
      * @return ResourceCredentialOperationStatus
      */
-    public ResourceCredentialOperationStatus deleteKVCredentials(String clientId, String ownerId,
-                                                                 String token, String key) {
+    public ResourceCredentialOperationStatus deleteKVCredentials(String clientId, String ownerId, String token,
+                                                                 String key) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setOwnerId(ownerId)
@@ -895,8 +923,8 @@ public class ResourceSecretManagementClient implements Closeable {
      * @param value
      * @return ResourceCredentialOperationStatus
      */
-    public ResourceCredentialOperationStatus updateKVCredentials(String clientId, String ownerId,
-                                                                 String token, String key, String value) {
+    public ResourceCredentialOperationStatus updateKVCredentials(String clientId, String ownerId, String token,
+                                                                 String key, String value) {
         SecretMetadata metadata = SecretMetadata.newBuilder()
                 .setClientId(clientId)
                 .setOwnerId(ownerId)
