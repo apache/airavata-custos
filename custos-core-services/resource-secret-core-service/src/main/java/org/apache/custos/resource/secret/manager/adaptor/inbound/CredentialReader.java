@@ -214,7 +214,7 @@ public class CredentialReader {
 
 
         String vaultPath = Constants.VAULT_RESOURCE_SECRETS_PATH + tenantId + "/" + secret.getOwnerId() +
-                "/" + Constants.PASSWORD + "/" + secret.getId();
+                "/" + Constants.CERTIFICATES + "/" + secret.getId();
 
         VaultResponseSupport<Certificate> response = vaultTemplate.read(vaultPath, Certificate.class);
 
