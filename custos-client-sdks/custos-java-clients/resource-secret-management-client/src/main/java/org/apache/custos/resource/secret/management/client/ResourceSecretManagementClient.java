@@ -725,6 +725,69 @@ public class ResourceSecretManagementClient extends AbstractClient {
         return blockingStub.deletePWDCredential(tokenRequest);
     }
 
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId, String ownerId, String privateKey,
+                                                                   String x509Cert) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.addCertificateCredential(certificateCredential);
+    }
+
+
+    /**
+     * Get certificate credentials
+     *
+     * @param clientId
+     * @param credentialToken
+     * @return CertificateCredential
+     */
+    public CertificateCredential getCertificateCredentials(String clientId, String credentialToken) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(credentialToken)
+                .build();
+
+        return blockingStub.getCertificateCredential(tokenRequest);
+    }
+
+
+    /**
+     * Delete certificate credentials
+     *
+     * @param clientId
+     * @param credentialToken
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteCertificateCredentials(String clientId, String credentialToken) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(credentialToken)
+                .build();
+
+        return blockingStub.deleteCertificateCredential(tokenRequest);
+    }
+
     ManagedChannel getManagedChannel() {
         return managedChannel;
     }
