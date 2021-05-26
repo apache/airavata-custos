@@ -94,7 +94,7 @@ service UserManagementService {
     rpc registerAndEnableUsers (org.apache.custos.iam.service.RegisterUsersRequest) returns (org.apache.custos.iam.service.RegisterUsersResponse) {
         option (google.api.http) = {
            post: "/user-management/v1.0.0/users"
-           body: "*"
+           body: "users"
          };
     }
 
@@ -134,6 +134,7 @@ service UserManagementService {
     rpc removeAdminPrivileges (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user/admin"
+           body: "user"
          };
     }
 
@@ -182,6 +183,7 @@ service UserManagementService {
     rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/user"
+           body: "user"
          };
 
     }
