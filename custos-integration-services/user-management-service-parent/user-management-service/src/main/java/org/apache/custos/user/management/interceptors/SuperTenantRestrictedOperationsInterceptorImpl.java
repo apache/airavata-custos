@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthInterceptor {
 
@@ -48,14 +50,14 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
         if (method.equals("synchronizeUserDBs")) {
-            AuthClaim claim = null;
+            Optional<AuthClaim> claim = null;
             try {
                 claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
                 LOGGER.error(" Authorizing error " + ex.getMessage());
                 throw new UnAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
+            if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant() || !claim.get().isAdmin()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 

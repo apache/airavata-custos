@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
  * Responsible for managing auth flow
  */
@@ -47,7 +49,8 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
     @Autowired
-    public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+    public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient,
+                               TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
     }
 
@@ -55,108 +58,113 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
         if (method.equals("authorize") || method.equals("getAgentToken") || method.equals("endAgentSession")) {
-
             return reqT;
         }
 
-
         if (method.equals("authenticate")) {
-            AuthClaim claim = authorize(headers);
-            if (claim == null) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-            AuthenticationRequest reqCore =
-                    ((AuthenticationRequest) reqT).toBuilder()
-                            .setTenantId(claim.getTenantId())
-                            .setClientId(claim.getIamAuthId())
-                            .setClientSecret(claim.getIamAuthSecret())
-                            .build();
+            Optional<AuthClaim> claim = authorize(headers);
+           return claim.map(cl -> {
+                AuthenticationRequest reqCore =
+                        ((AuthenticationRequest) reqT).toBuilder()
+                                .setTenantId(cl.getTenantId())
+                                .setClientId(cl.getIamAuthId())
+                                .setClientSecret(cl.getIamAuthSecret())
+                                .build();
 
-            return (ReqT) reqCore;
+                return (ReqT) reqCore;
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
         } else if (method.equals("isAuthenticated") || method.equals("getUser")) {
-            AuthClaim claim = authorize(headers);
-            if (claim == null) {
+            Optional<AuthClaim> claim = authorize(headers);
+            if (claim.isEmpty()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             String accessToken = ((AuthToken) reqT).getAccessToken();
 
-            AuthClaim authClaim = authorizeUsingUserToken(accessToken);
+            Optional<AuthClaim> authClaim = authorizeUsingUserToken(accessToken);
 
             AuthToken.Builder authzBuilder = AuthToken.newBuilder()
                     .setAccessToken(accessToken);
 
-            Claim userClaim = Claim.newBuilder().setKey("username").setValue(authClaim.getUsername()).build();
+            if (authClaim.isPresent()) {
+                Claim userClaim = Claim.newBuilder().setKey("username").setValue(authClaim.get()
+                        .getUsername()).build();
 
-            Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(authClaim.getTenantId())).build();
-
-            authzBuilder.addClaims(userClaim);
-            authzBuilder.addClaims(tenantClaim);
-
+                Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(authClaim.get()
+                        .getTenantId())).build();
+                authzBuilder.addClaims(userClaim);
+                authzBuilder.addClaims(tenantClaim);
+            } else {
+                throw new UnAuthorizedException("Request is not authorized, User token not found", null);
+            }
             return (ReqT) authzBuilder.build();
 
 
         } else if (method.equals("getUserManagementServiceAccountAccessToken")) {
-            AuthClaim claim = authorize(headers);
-            if (claim == null) {
+            Optional<AuthClaim> claim = authorize(headers);
+            return claim.map(cl -> {
+                org.apache.custos.identity.service.GetUserManagementSATokenRequest request =
+                        org.apache.custos.identity.service.GetUserManagementSATokenRequest
+                                .newBuilder()
+                                .setTenantId(cl.getTenantId())
+                                .setClientId(cl.getIamAuthId())
+                                .setClientSecret(cl.getIamAuthSecret())
+                                .build();
+                return (ReqT) request;
+            }).orElseThrow(() -> {
                 throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
-            org.apache.custos.identity.service.GetUserManagementSATokenRequest request =
-                    org.apache.custos.identity.service.GetUserManagementSATokenRequest
-                            .newBuilder()
-                            .setTenantId(claim.getTenantId())
-                            .setClientId(claim.getIamAuthId())
-                            .setClientSecret(claim.getIamAuthSecret())
-                            .build();
-            return (ReqT) request;
+            });
 
         } else if (method.equals("token")) {
-            AuthClaim claim = authorize(headers);
-            if (claim == null) {
+            Optional<AuthClaim> claim = authorize(headers);
+            return claim.map(cl -> {
+                GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientId(cl.getIamAuthId())
+                        .setClientSecret(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
+            }).orElseThrow(() -> {
                 throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
-            GetTokenRequest request = ((GetTokenRequest) reqT).toBuilder()
-                    .setTenantId(claim.getTenantId())
-                    .setClientId(claim.getIamAuthId())
-                    .setClientSecret(claim.getIamAuthSecret())
-                    .build();
-            return (ReqT) request;
+            });
 
         } else if (method.equals("getCredentials")) {
-           String clientId =  ((GetCredentialsRequest) reqT).getClientId();
-            AuthClaim claim = authorize(headers, clientId);
-            if (claim == null) {
+            String clientId = ((GetCredentialsRequest) reqT).getClientId();
+            Optional<AuthClaim> claim = authorize(headers, clientId);
+            return claim.map(cl -> {
+                Credentials credentials = Credentials.newBuilder()
+                        .setCustosClientId(cl.getCustosId())
+                        .setCustosClientSecret(cl.getCustosSecret())
+                        .setCustosClientIdIssuedAt(cl.getCustosIdIssuedAt())
+                        .setCustosClientSecretExpiredAt(cl.getCustosSecretExpiredAt())
+                        .setCiLogonClientId(cl.getCiLogonId())
+                        .setCiLogonClientSecret(cl.getCiLogonSecret())
+                        .setIamClientId(cl.getIamAuthId())
+                        .setIamClientSecret(cl.getIamAuthSecret())
+                        .build();
+
+                return (ReqT) ((GetCredentialsRequest) reqT).toBuilder().setCredentials(credentials).build();
+            }).orElseThrow(() -> {
                 throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
-            Credentials credentials = Credentials.newBuilder()
-                    .setCustosClientId(claim.getCustosId())
-                    .setCustosClientSecret(claim.getCustosSecret())
-                    .setCustosClientIdIssuedAt(claim.getCustosIdIssuedAt())
-                    .setCustosClientSecretExpiredAt(claim.getCustosSecretExpiredAt())
-                    .setCiLogonClientId(claim.getCiLogonId())
-                    .setCiLogonClientSecret(claim.getCiLogonSecret())
-                    .setIamClientId(claim.getIamAuthId())
-                    .setIamClientSecret(claim.getIamAuthSecret())
-                    .build();
-
-            return (ReqT) ((GetCredentialsRequest) reqT).toBuilder().setCredentials(credentials).build();
+            });
 
         } else if (method.equals("endUserSession")) {
-            AuthClaim claim = authorize(headers);
-            if (claim == null) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-            org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
-                    ((EndSessionRequest) reqT).getBody().toBuilder()
-                            .setClientId(claim.getIamAuthId())
-                            .setClientSecret(claim.getIamAuthSecret())
-                            .setTenantId(claim.getTenantId())
-                            .build();
-            return (ReqT) ((EndSessionRequest) reqT).toBuilder().setBody(endSessionRequest).build();
+            Optional<AuthClaim> claim = authorize(headers);
+           return claim.map(cl -> {
+                org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
+                        ((EndSessionRequest) reqT).getBody().toBuilder()
+                                .setClientId(cl.getIamAuthId())
+                                .setClientSecret(cl.getIamAuthSecret())
+                                .setTenantId(cl.getTenantId())
+                                .build();
+                return (ReqT) ((EndSessionRequest) reqT).toBuilder().setBody(endSessionRequest).build();
 
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
         }
 
         return reqT;

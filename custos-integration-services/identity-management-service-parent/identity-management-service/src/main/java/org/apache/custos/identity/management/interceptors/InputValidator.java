@@ -67,16 +67,16 @@ public class InputValidator implements IntegrationServiceInterceptor {
 
             AuthorizationRequest request = (AuthorizationRequest) body;
 
-            if (request.getResponseType() == null || !request.getResponseType().trim().equals(Constants.AUTHORIZATION_CODE)) {
+            if (request.getResponseType().isEmpty() || !request.getResponseType().trim().equals(Constants.AUTHORIZATION_CODE)) {
                 throw new MissingParameterException("Incorrect response type", null);
             }
-            if (request.getClientId() == null || !request.getClientId().trim().equals("")) {
+            if (request.getClientId().isEmpty()) {
                 throw new MissingParameterException("ClientId is not available", null);
             }
-            if (request.getRedirectUri() == null || request.getRedirectUri().trim().equals("")) {
+            if (request.getRedirectUri().isEmpty()) {
                 throw new MissingParameterException("redirectUri is not available", null);
             }
-            if (request.getScope() == null || request.getScope().trim().equals("")) {
+            if (request.getScope().isEmpty()) {
                 throw new MissingParameterException("scope is not available", null);
             }
 
@@ -89,14 +89,15 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private boolean validateGetAgentToken(Metadata headers, Object body, String method) {
         validationAuthorizationHeader(headers);
 
-            GetAgentTokenRequest request = (GetAgentTokenRequest) body;
+        GetAgentTokenRequest request = (GetAgentTokenRequest) body;
 
-            if (request.getClientId() == null || request.getClientId().trim().equals("")) {
-                throw new MissingParameterException("ClientId is not available", null);
-            } if (request.getGrantType() == null || !(request.getGrantType().equals(Constants.CLIENT_CREDENTIALS) ||
-                    request.getGrantType().equals(Constants.REFERESH_TOKEN))) {
-                throw new MissingParameterException("Grant type should not be null", null);
-            }
+        if (request.getClientId().isEmpty()) {
+            throw new MissingParameterException("ClientId is not available", null);
+        }
+        if (request.getGrantType().isEmpty() || !(request.getGrantType().equals(Constants.CLIENT_CREDENTIALS) ||
+                request.getGrantType().equals(Constants.REFERESH_TOKEN))) {
+            throw new MissingParameterException("Grant type should not be null", null);
+        }
 
         return true;
     }
@@ -114,7 +115,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private boolean validationGetOIDCConfiguration(Metadata headers, Object body, String method) {
         if (body instanceof GetOIDCConfiguration) {
             GetOIDCConfiguration configuration = (GetOIDCConfiguration) body;
-            if (configuration.getClientId() == null || configuration.getClientId().equals("")) {
+            if (configuration.getClientId().isEmpty()) {
                 throw new MissingParameterException("Client Id  is not available", null);
             }
         }
@@ -125,7 +126,7 @@ public class InputValidator implements IntegrationServiceInterceptor {
     private boolean validationGetCredentials(Metadata headers, Object body, String method) {
         if (body instanceof GetCredentialsRequest) {
             GetCredentialsRequest configuration = (GetCredentialsRequest) body;
-            if (configuration.getClientId() == null || configuration.getClientId().equals("")) {
+            if (configuration.getClientId().isEmpty()) {
                 throw new MissingParameterException("Client Id  is not available", null);
             }
         }

@@ -26,6 +26,7 @@ import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.interceptors.MultiTenantAuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
+import org.apache.custos.logging.service.LogEventRequest;
 import org.apache.custos.logging.service.LoggingConfigurationRequest;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
@@ -33,16 +34,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
  * Responsible for validate user specific authorization
  * Methods authenticates users access tokens are implemented here
  */
 @Component
-public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
+public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
     @Autowired
-    public UserAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+    public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
     }
 
@@ -53,21 +56,58 @@ public class UserAuthInterceptorImpl extends MultiTenantAuthInterceptor {
         if (method.equals("enable")) {
             LoggingConfigurationRequest loggingConfigRequest = (LoggingConfigurationRequest) msg;
             headers = attachUserToken(headers, loggingConfigRequest.getClientId());
-            AuthClaim claim = authorize(headers, loggingConfigRequest.getClientId());
+            Optional<AuthClaim> claim = authorize(headers, loggingConfigRequest.getClientId());
 
-            if (claim == null) {
+            if (claim.isEmpty()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 
-            if (!claim.isAdmin()) {
+            if (!claim.get().isAdmin()) {
                 throw new UnAuthorizedException("Your are not a tenant admin", null);
             }
 
-            long tenantId = claim.getTenantId();
+            long tenantId = claim.get().getTenantId();
 
             return (ReqT) ((LoggingConfigurationRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .build();
+        } else if (method.equals("getLogEvents")) {
+            LogEventRequest request = (LogEventRequest) msg;
+            Optional<AuthClaim> claim = authorize(headers, request.getClientId());
+            return claim.map(cl -> {
+                String oauthId = cl.getIamAuthId();
+
+                long tenantId = cl.getTenantId();
+                return (ReqT) ((LogEventRequest) msg).toBuilder()
+                        .setClientId(oauthId)
+                        .setTenantId(tenantId)
+                        .build();
+
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
+
+        } else if (method.equals("isLogEnabled")) {
+
+            LoggingConfigurationRequest request = (LoggingConfigurationRequest) msg;
+            Optional<AuthClaim> claim = authorize(headers, request.getClientId());
+
+            return claim.map(cl -> {
+                String oauthId = cl.getIamAuthId();
+
+                long tenantId = cl.getTenantId();
+                LoggingConfigurationRequest registerUserRequest =
+                        ((LoggingConfigurationRequest) msg).toBuilder()
+                                .setTenantId(tenantId)
+                                .setClientId(oauthId)
+                                .build();
+
+                return (ReqT) registerUserRequest;
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
         }
         return msg;
     }

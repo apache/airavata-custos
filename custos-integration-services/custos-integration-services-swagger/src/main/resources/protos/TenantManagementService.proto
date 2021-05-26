@@ -209,13 +209,17 @@ service TenantManagementService {
 
     rpc getAllTenantsForUser (org.apache.custos.tenant.profile.service.GetAllTenantsForUserRequest) returns (org.apache.custos.tenant.profile.service.GetAllTenantsForUserResponse) {
         option (google.api.http) = {
-           get: "/tenant-management/v1.0.0/tenants/{requester_email}"
+           get: "/tenant-management/v1.0.0/tenants/{requesterEmail}"
         };
     }
-
+    rpc getTenantStatusUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetStatusUpdateAuditTrailResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/audit/status/{tenantId}"
+        };
+    }
     rpc getTenantAttributeUpdateAuditTrail (org.apache.custos.tenant.profile.service.GetAuditTrailRequest) returns (org.apache.custos.tenant.profile.service.GetAttributeUpdateAuditTrailResponse) {
         option (google.api.http) = {
-           get: "/tenant-management/v1.0.0/audit/attributes/{tenant_id}"
+           get: "/tenant-management/v1.0.0/audit/attributes/{tenantId}"
         };
     }
 

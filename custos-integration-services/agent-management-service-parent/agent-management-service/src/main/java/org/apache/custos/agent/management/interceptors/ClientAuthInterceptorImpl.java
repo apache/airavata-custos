@@ -38,14 +38,15 @@ public class ClientAuthInterceptorImpl extends AuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientAuthInterceptorImpl.class);
 
     @Autowired
-    public ClientAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
+    public ClientAuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient,
+                                     TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
     }
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-      return reqT;
+        return reqT;
     }
 
 }

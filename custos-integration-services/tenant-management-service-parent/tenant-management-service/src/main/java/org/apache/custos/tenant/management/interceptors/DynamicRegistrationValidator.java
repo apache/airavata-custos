@@ -35,11 +35,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
  * This class validates the  conditions that should be satisfied by the Dynamic Registration Protocol
  */
 @Component
-public class DynamicRegistrationValidator extends AuthInterceptor  {
+public class DynamicRegistrationValidator extends AuthInterceptor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicRegistrationValidator.class);
 
@@ -125,9 +127,9 @@ public class DynamicRegistrationValidator extends AuthInterceptor  {
 
         Tenant tenant = response.getTenant();
 
-        AuthClaim authClaim = authorize(headers);
+        Optional<AuthClaim> authClaim = authorize(headers);
 
-        if (authClaim != null && authClaim.isSuperTenant()) {
+        if (authClaim.isPresent() && authClaim.get().isSuperTenant()) {
             return tenant;
         }
 
@@ -149,9 +151,9 @@ public class DynamicRegistrationValidator extends AuthInterceptor  {
 
         Tenant tenant = response.getTenant();
 
-        AuthClaim authClaim = authorizeUsingUserToken(headers);
+        Optional<AuthClaim> authClaim = authorizeUsingUserToken(headers);
 
-        if (authClaim != null && authClaim.isSuperTenant()) {
+        if (authClaim.isPresent() && authClaim.get().isSuperTenant()) {
             return tenant;
         }
 
@@ -161,8 +163,6 @@ public class DynamicRegistrationValidator extends AuthInterceptor  {
 
         return tenant;
     }
-
-
 
 
 }
