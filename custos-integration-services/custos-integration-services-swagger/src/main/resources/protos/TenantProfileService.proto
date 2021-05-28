@@ -53,6 +53,7 @@ message Tenant {
     string software_version = 27;
     int64 refesh_token_lifetime = 28;
     string client_id = 29;
+    string parent_client_id = 30;
 }
 
 enum TenantStatus {
