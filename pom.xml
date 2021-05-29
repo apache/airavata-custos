@@ -44,6 +44,7 @@
         <module>custos-client-sdks</module>
         <module>custos-tests</module>
         <module>custos-external-services-distributions</module>
+        <module>custos-external-applications</module>
     </modules>
 
     <dependencyManagement>
