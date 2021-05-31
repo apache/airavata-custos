@@ -37,6 +37,7 @@
         <acme4j.version>2.11</acme4j.version>
         <slf4j.version>1.7.30</slf4j.version>
         <quartz.version>2.3.2</quartz.version>
+        <snakeyaml.version>1.28</snakeyaml.version>
     </properties>
 
     <dependencies>
@@ -60,6 +61,11 @@
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
             <version>${quartz.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
         </dependency>
     </dependencies>
 
