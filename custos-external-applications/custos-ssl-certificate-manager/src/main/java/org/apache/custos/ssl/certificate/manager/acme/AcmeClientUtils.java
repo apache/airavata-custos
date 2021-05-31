@@ -22,40 +22,33 @@ package org.apache.custos.ssl.certificate.manager.acme;
 import org.shredzone.acme4j.util.KeyPairUtils;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.security.KeyPair;
 
 public class AcmeClientUtils {
 
     static KeyPair userKeyPair(String userKey, int keySize) throws IOException {
-        File f = new File(userKey);
-        if (f.exists()) {
-            try (FileReader fr = new FileReader(f)) {
-                return KeyPairUtils.readKeyPair(fr);
+        if (userKey != null && !userKey.isEmpty()) {
+            try (Reader reader = new StringReader(userKey)) {
+                return KeyPairUtils.readKeyPair(reader);
             }
-
         } else {
+            File f = new File(userKey);
             KeyPair userKeyPair = KeyPairUtils.createKeyPair(keySize);
-            try (FileWriter fw = new FileWriter(f)) {
-                KeyPairUtils.writeKeyPair(userKeyPair, fw);
-            }
             return userKeyPair;
         }
     }
 
     static KeyPair domainKeyPair(String domainKey, int keySize) throws IOException {
-        File f = new File(domainKey);
-        if (f.exists()) {
-            try (FileReader fr = new FileReader(f)) {
-                return KeyPairUtils.readKeyPair(fr);
+        if (domainKey != null && !domainKey.isEmpty()) {
+            try (Reader reader = new StringReader(domainKey)) {
+                return KeyPairUtils.readKeyPair(reader);
             }
         } else {
+            File f = new File(domainKey);
             KeyPair domainKeyPair = KeyPairUtils.createKeyPair(keySize);
-            try (FileWriter fw = new FileWriter(f)) {
-                KeyPairUtils.writeKeyPair(domainKeyPair, fw);
-            }
             return domainKeyPair;
         }
     }

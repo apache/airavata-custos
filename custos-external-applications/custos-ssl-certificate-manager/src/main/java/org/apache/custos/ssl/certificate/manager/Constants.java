@@ -17,26 +17,21 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.nginx;
+package org.apache.custos.ssl.certificate.manager;
 
-public final class NginxConfiguration {
+public class Constants {
 
-    private String url;
-    private String folderPath;
+    public static final String CONFIG_PATH = "CONFIG_PATH";
 
-    public String getUrl() {
-        return url;
-    }
+    public static final String NGINX_URL = "NGINX_URL";
+    public static final String NGINX_CHALLENGE_FOLDER_PATH = "NGINX_CHALLENGE_FOLDER_PATH";
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+    public static final String ACME_URI = "ACME_URI";
+    public static final String ACME_DOMAINS = "ACME_DOMAINS";
+    public static final String ACME_USER_KEY = "ACME_USER_KEY";
 
-    public String getFolderPath() {
-        return folderPath;
-    }
-
-    public void setFolderPath(String folderPath) {
-        this.folderPath = folderPath;
-    }
+    public static final String CUSTOS_HOST = "CUSTOS_HOST";
+    public static final String CUSTOS_PORT = "CUSTOS_PORT";
+    public static final String CUSTOS_CLIENT_ID = "CUSTOS_CLIENT_ID";
+    public static final String CUSTOS_CLIENT_SECRET = "CUSTOS_CLIENT_SECRET";
 }

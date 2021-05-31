@@ -23,51 +23,55 @@ import java.util.List;
 
 public final class AcmeConfiguration {
 
-    private String sessionUri;
+    private String uri;
     private String userKey = "user.key";
     private String domainKey = "domain.key";
     private String domainChain = "domain-chain.crt";
     private int keySize = 2048;
     private List<String> domains;
 
-    public String getSessionUri() {
-        return sessionUri;
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
     }
 
     public String getUserKey() {
         return userKey;
     }
 
-    public String getDomainKey() {
-        return domainKey;
-    }
-
-    public String getDomainChain() {
-        return domainChain;
-    }
-
-    public List<String> getDomains() {
-        return domains;
-    }
-
-    public int getKeySize() {
-        return keySize;
-    }
-
-    public void setSessionUri(String sessionUri) {
-        this.sessionUri = sessionUri;
-    }
-
     public void setUserKey(String userKey) {
         this.userKey = userKey;
+    }
+
+    public String getDomainKey() {
+        return domainKey;
     }
 
     public void setDomainKey(String domainKey) {
         this.domainKey = domainKey;
     }
 
+    public String getDomainChain() {
+        return domainChain;
+    }
+
     public void setDomainChain(String domainChain) {
         this.domainChain = domainChain;
+    }
+
+    public int getKeySize() {
+        return keySize;
+    }
+
+    public void setKeySize(int keySize) {
+        this.keySize = keySize;
+    }
+
+    public List<String> getDomains() {
+        return domains;
     }
 
     public void setDomains(List<String> domains) {

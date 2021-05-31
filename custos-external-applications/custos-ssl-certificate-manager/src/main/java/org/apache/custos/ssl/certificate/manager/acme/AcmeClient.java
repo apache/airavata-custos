@@ -48,6 +48,42 @@ public class AcmeClient {
         this.config = config;
     }
 
+    public Order getCertificateOrder() throws AcmeException, IOException {
+        Session session = new Session(URI.create(config.getUri()));
+        Account account = new AccountBuilder()
+                .agreeToTermsOfService()
+                .useKeyPair(this.getUserKeyPair())
+                .createLogin(session)
+                .getAccount();
+
+        logger.info("Registered a new user, URL: {}", account.getLocation());
+
+        Order order = account.newOrder().domains(config.getDomains()).create();
+        return order;
+    }
+
+    public Certificate getCertificateCredentials(Order order) throws IOException, AcmeException {
+        KeyPair domainKeyPair = this.getDomainKeyPair();
+        CSRBuilder csrb = new CSRBuilder();
+        csrb.addDomains(this.config.getDomains());
+        csrb.sign(domainKeyPair);
+
+        order.execute(csrb.getEncoded());
+
+        try {
+            AcmeTasks.completeOrder(order);
+        } catch (InterruptedException e) {
+            logger.error("Couldn't complete order. Interrupted.");
+            throw new AcmeException("Order failed.");
+        }
+
+        Certificate certificate = order.getCertificate();
+        logger.info("Success! The certificate for domains {} has been generated!", config.getDomains());
+        logger.info("Certificate URL: {}", certificate.getLocation());
+
+        return certificate;
+    }
+
     public void authorizeDomain(Order order, NginxClient nginxClient) throws AcmeException {
         for (Authorization auth : order.getAuthorizations()) {
             logger.info("Authorization for domain {}", auth.getIdentifier().getDomain());
@@ -84,44 +120,14 @@ public class AcmeClient {
         }
     }
 
-    public Order getCertificateOrder() throws AcmeException, IOException {
-        Session session = new Session(URI.create(config.getSessionUri()));
+    private KeyPair getUserKeyPair() throws IOException {
         KeyPair accountKey = AcmeClientUtils.userKeyPair(config.getUserKey(), config.getKeySize());
-        Account account = new AccountBuilder()
-                .agreeToTermsOfService()
-                .useKeyPair(accountKey)
-                .createLogin(session)
-                .getAccount();
-
-        logger.info("Registered a new user, URL: {}", account.getLocation());
-
-        Order order = account.newOrder().domains(config.getDomains()).create();
-        return order;
+        return accountKey;
     }
 
-    public void getCertificates(Order order) throws IOException, AcmeException {
-        KeyPair domainKeyPair = AcmeClientUtils.domainKeyPair(config.getDomainKey(), config.getKeySize());
-
-        CSRBuilder csrb = new CSRBuilder();
-        csrb.addDomains(this.config.getDomains());
-        csrb.sign(domainKeyPair);
-
-        order.execute(csrb.getEncoded());
-
-        try {
-            AcmeTasks.completeOrder(order);
-        } catch (InterruptedException e) {
-            logger.error("Couldn't complete order. Interrupted.");
-            throw new AcmeException("Order≈ failed.");
-        }
-
-        Certificate certificate = order.getCertificate();
-        logger.info("Success! The certificate for domains {} has been generated!", config.getDomains());
-        logger.info("Certificate URL: {}", certificate.getLocation());
-
-        try (FileWriter fw = new FileWriter(config.getDomainChain())) {
-            certificate.writeCertificate(fw);
-        }
+    private KeyPair getDomainKeyPair() throws IOException {
+        KeyPair domainKey = AcmeClientUtils.domainKeyPair(config.getDomainKey(), config.getKeySize());
+        return domainKey;
     }
 
     private Http01Challenge httpChallenge(Authorization auth) throws AcmeException {
