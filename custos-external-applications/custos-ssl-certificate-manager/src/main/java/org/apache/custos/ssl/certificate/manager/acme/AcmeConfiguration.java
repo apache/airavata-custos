@@ -26,7 +26,7 @@ public final class AcmeConfiguration {
     private String uri;
     private String userKey = "user.key";
     private String domainKey = "domain.key";
-    private String domainChain = "domain-chain.crt";
+    private String domainCertificate = "domain.crt";
     private int keySize = 2048;
     private List<String> domains;
 
@@ -54,12 +54,12 @@ public final class AcmeConfiguration {
         this.domainKey = domainKey;
     }
 
-    public String getDomainChain() {
-        return domainChain;
+    public String getDomainCertificate() {
+        return domainCertificate;
     }
 
-    public void setDomainChain(String domainChain) {
-        this.domainChain = domainChain;
+    public void setDomainCertificate(String domainCertificate) {
+        this.domainCertificate = domainCertificate;
     }
 
     public int getKeySize() {

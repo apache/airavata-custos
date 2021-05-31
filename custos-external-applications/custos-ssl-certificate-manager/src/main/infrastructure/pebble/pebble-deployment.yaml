@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pebble-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cert-updater-pebble
+  template:
+    metadata:
+      labels:
+        app: cert-updater-pebble
+    spec:
+      containers:
+        - name: cert-updater-pebble
+          image: letsencrypt/pebble
+          ports:
+            - containerPort: 14000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-updater-pebble-service
+spec:
+  selector:
+    app: cert-updater-pebble
+  ports:
+    - port: 14000
+      targetPort: 14000

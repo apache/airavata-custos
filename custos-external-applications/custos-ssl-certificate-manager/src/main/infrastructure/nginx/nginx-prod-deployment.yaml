@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cert-updater-nginx-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cert-updater-nginx
+  template:
+    metadata:
+      labels:
+        app: cert-updater-nginx
+    spec:
+      containers:
+        - name: cert-updater-nginx
+          image: isla123/cert-updater-nginx
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-updater-nginx-service
+spec:
+  selector:
+    app: cert-updater-nginx
+  ports:
+    - port: 80
+      targetPort: 80

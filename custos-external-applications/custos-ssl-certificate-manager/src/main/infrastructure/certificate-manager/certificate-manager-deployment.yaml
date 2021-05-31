@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cert-updater-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cert-updater
+  template:
+    metadata:
+      labels:
+        app: cert-updater
+    spec:
+      containers:
+        - name: cert-updater
+          image: isla123/cert-updater
+          env:
+            - name: NGINX_URL
+              value: "http://cert-updater-nginx-service"
+            - name: NGINX_CHALLENGE_FOLDER_PATH
+              value: "/acme/challenge"
+            - name: ACME_URI
+              value: "acme://pebble/cert-updater-pebble-service"
+            - name: ACME_DOMAINS
+              value: "localhost"
+          imagePullPolicy: Never
