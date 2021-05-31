@@ -35,13 +35,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.net.URI;
 import java.security.KeyPair;
 
 public class AcmeClient {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AcmeClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
 
     AcmeConfiguration config;
 
@@ -51,7 +50,7 @@ public class AcmeClient {
 
     public void authorizeDomain(Order order, NginxClient nginxClient) throws AcmeException {
         for (Authorization auth : order.getAuthorizations()) {
-            LOG.info("Authorization for domain {}", auth.getIdentifier().getDomain());
+            logger.info("Authorization for domain {}", auth.getIdentifier().getDomain());
 
             if (auth.getStatus() == Status.VALID) {
                 return;
@@ -63,34 +62,24 @@ public class AcmeClient {
             }
 
             boolean success = nginxClient.createChallenge(challenge.getToken(), challenge.getAuthorization());
-            if (!success){
-                LOG.error("Couldn't create challenge in nginx server");
+            if (!success) {
+                logger.error("Couldn't create challenge in nginx server");
                 throw new AcmeException("Challenge failed.");
             }
 
             challenge.trigger();
-
             try {
-                int attempts = 10;
-                while (challenge.getStatus() != Status.VALID && attempts-- > 0) {
-                    if (challenge.getStatus() == Status.INVALID) {
-                        LOG.error("Challenge has failed, reason: {}", challenge.getError());
-                        throw new AcmeException("Challenge failed.");
-                    }
-
-                    Thread.sleep(3000L);
-                    challenge.update();
-                }
-            } catch (InterruptedException ex) {
-                LOG.error("Interrupted", ex);
-                Thread.currentThread().interrupt();
+                AcmeTasks.validateChallenge(challenge);
+            } catch (InterruptedException e) {
+                logger.error("Couldn't validate challenge. Interrupted.");
+                throw new AcmeException("Challenge failed.");
             }
 
             if (challenge.getStatus() != Status.VALID) {
                 throw new AcmeException("Failed to pass the challenge for domain " + auth.getIdentifier().getDomain());
             }
 
-            LOG.info("Challenge has been completed.");
+            logger.info("Challenge has been completed.");
             // TODO - Remove validation resource
         }
     }
@@ -104,7 +93,7 @@ public class AcmeClient {
                 .createLogin(session)
                 .getAccount();
 
-        LOG.info("Registered a new user, URL: {}", account.getLocation());
+        logger.info("Registered a new user, URL: {}", account.getLocation());
 
         Order order = account.newOrder().domains(config.getDomains()).create();
         return order;
@@ -120,24 +109,15 @@ public class AcmeClient {
         order.execute(csrb.getEncoded());
 
         try {
-            int attempts = 10;
-            while (order.getStatus() != Status.VALID && attempts-- > 0) {
-                if (order.getStatus() == Status.INVALID) {
-                    LOG.error("Order has failed, reason: {}", order.getError());
-                    throw new AcmeException("Order failed");
-                }
-
-                Thread.sleep(3000L);
-                order.update();
-            }
-        } catch (InterruptedException ex) {
-            LOG.error("Interrupted", ex);
-            Thread.currentThread().interrupt();
+            AcmeTasks.completeOrder(order);
+        } catch (InterruptedException e) {
+            logger.error("Couldn't complete order. Interrupted.");
+            throw new AcmeException("Order≈ failed.");
         }
 
         Certificate certificate = order.getCertificate();
-        LOG.info("Success! The certificate for domains {} has been generated!", config.getDomains());
-        LOG.info("Certificate URL: {}", certificate.getLocation());
+        logger.info("Success! The certificate for domains {} has been generated!", config.getDomains());
+        logger.info("Certificate URL: {}", certificate.getLocation());
 
         try (FileWriter fw = new FileWriter(config.getDomainChain())) {
             certificate.writeCertificate(fw);
@@ -150,9 +130,9 @@ public class AcmeClient {
             throw new AcmeException("Found no " + Http01Challenge.TYPE + " challenge");
         }
 
-        LOG.info("Domain : {}", auth.getIdentifier().getDomain());
-        LOG.info("File : {}", challenge.getToken());
-        LOG.info("Content: {}", challenge.getAuthorization());
+        logger.info("Domain : {}", auth.getIdentifier().getDomain());
+        logger.info("File : {}", challenge.getToken());
+        logger.info("Content: {}", challenge.getAuthorization());
         return challenge;
     }
 }
