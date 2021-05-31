@@ -31,8 +31,6 @@
     <artifactId>custos-ssl-certificate-manager</artifactId>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
         <bouncycastle.version>1.68</bouncycastle.version>
         <acme4j.version>2.11</acme4j.version>
         <slf4j.version>1.7.30</slf4j.version>

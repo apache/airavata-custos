@@ -38,8 +38,8 @@ public class AcmeTasks {
     final static int PERIOD = 3;
     final static int RETRY_COUNT = 10;
 
-    public static void validateChallenge(Challenge challenge) throws InterruptedException {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    public static void validateChallenge(final Challenge challenge) throws InterruptedException {
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
         TimerTask task = new TimerTask() {
             short count = 0;
@@ -69,8 +69,8 @@ public class AcmeTasks {
         executor.awaitTermination(PERIOD * RETRY_COUNT, TimeUnit.SECONDS);
     }
 
-    public static void completeOrder(Order order) throws InterruptedException {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    public static void completeOrder(final Order order) throws InterruptedException {
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
         TimerTask task = new TimerTask() {
             short count = 0;

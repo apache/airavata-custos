@@ -20,7 +20,6 @@
 package org.apache.custos.ssl.certificate.manager;
 
 import org.apache.custos.ssl.certificate.manager.acme.AcmeConfiguration;
-import org.apache.custos.ssl.certificate.manager.custos.CustosClient;
 import org.apache.custos.ssl.certificate.manager.custos.CustosConfiguration;
 import org.apache.custos.ssl.certificate.manager.nginx.NginxConfiguration;
 

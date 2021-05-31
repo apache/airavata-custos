@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -51,7 +50,7 @@ public class CertUpdater implements Job {
         Configuration config = null;
         String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
 
-        if (configPath != null && new File(configPath).exists()) {
+        if (configPath != null) {
             try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
                 Yaml yaml = new Yaml();
                 config = yaml.loadAs(in, Configuration.class);
@@ -87,7 +86,7 @@ public class CertUpdater implements Job {
 
         try {
             AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration());
-            CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
+           CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
             NginxClient nginxClient = new NginxClient(config.getNginxConfiguration());
 
             Order order = acmeClient.getCertificateOrder();
