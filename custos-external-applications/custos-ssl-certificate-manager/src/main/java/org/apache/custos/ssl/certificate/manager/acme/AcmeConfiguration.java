@@ -26,7 +26,6 @@ public final class AcmeConfiguration {
     private String sessionUri;
     private String userKey = "user.key";
     private String domainKey = "domain.key";
-    private String domainCsr = "domain.csr";
     private String domainChain = "domain-chain.crt";
     private int keySize = 2048;
     private List<String> domains;
@@ -41,10 +40,6 @@ public final class AcmeConfiguration {
 
     public String getDomainKey() {
         return domainKey;
-    }
-
-    public String getDomainCsr() {
-        return domainCsr;
     }
 
     public String getDomainChain() {
@@ -69,10 +64,6 @@ public final class AcmeConfiguration {
 
     public void setDomainKey(String domainKey) {
         this.domainKey = domainKey;
-    }
-
-    public void setDomainCsr(String domainCsr) {
-        this.domainCsr = domainCsr;
     }
 
     public void setDomainChain(String domainChain) {

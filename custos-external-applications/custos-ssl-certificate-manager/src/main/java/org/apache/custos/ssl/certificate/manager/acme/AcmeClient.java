@@ -49,7 +49,7 @@ public class AcmeClient {
         this.config = config;
     }
 
-    public void authorizeDomain(Order order, NginxClient nginxClient) throws AcmeException, InterruptedException {
+    public void authorizeDomain(Order order, NginxClient nginxClient) throws AcmeException {
         for (Authorization auth : order.getAuthorizations()) {
             LOG.info("Authorization for domain {}", auth.getIdentifier().getDomain());
 
@@ -116,10 +116,6 @@ public class AcmeClient {
         CSRBuilder csrb = new CSRBuilder();
         csrb.addDomains(this.config.getDomains());
         csrb.sign(domainKeyPair);
-
-        try (Writer out = new FileWriter(config.getDomainCsr())) {
-            csrb.write(out);
-        }
 
         order.execute(csrb.getEncoded());
 
