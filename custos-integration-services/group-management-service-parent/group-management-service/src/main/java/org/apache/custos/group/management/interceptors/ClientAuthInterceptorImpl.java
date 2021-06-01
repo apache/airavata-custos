@@ -83,6 +83,7 @@ public class ClientAuthInterceptorImpl extends MultiTenantAuthInterceptor {
                 long tenantId = cl.getTenantId();
                 return (ReqT) ((GroupRequest) reqT).toBuilder()
                         .setClientId(oauthId)
+                        .setClientSec(oauthSec)
                         .setTenantId(tenantId)
                         .setPerformedBy(cl.getPerformedBy() != null ? cl.getPerformedBy() : Constants.SYSTEM)
                         .build();

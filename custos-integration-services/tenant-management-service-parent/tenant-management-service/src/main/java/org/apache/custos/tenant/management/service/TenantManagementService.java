@@ -536,6 +536,36 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void getChildTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
+            if (response != null && !response.getTenantList().isEmpty()) {
+                List<Tenant> tenantList = new ArrayList<>();
+
+                for (Tenant tenant : response.getTenantList()) {
+
+                    GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                            .setOwnerId(tenant.getTenantId())
+                            .setType(Type.CUSTOS).build();
+
+                    CredentialMetadata metadata = credentialStoreServiceClient.
+                            getCredential(credentialRequest);
+
+
+                    if (tenant.getParentTenantId() > 0) {
+                        GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                                .setOwnerId(tenant.getParentTenantId())
+                                .setType(Type.CUSTOS).build();
+
+                        CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                                getCredential(cR);
+                        tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
+                    }
+
+                    tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
+                    tenantList.add(tenant);
+
+                }
+
+                response = response.toBuilder().clearTenant().addAllTenant(tenantList).build();
+            }
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {

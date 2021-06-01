@@ -195,7 +195,7 @@ public class UserProfileMapper {
         }
 
         if (membershipType != null ) {
-            builder.setMembershipType(DefaultGroupMembershipTypes.valueOf(membershipType));
+            builder.setMembershipType(membershipType);
         }
 
         if (profileEntity.getType() == null) {

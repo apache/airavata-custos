@@ -164,6 +164,17 @@ message SharedOwners {
     repeated string owner_ids = 1;
 }
 
+message GetAllDirectSharingsResponse {
+    repeated SharingMetadata  shared_data = 1;
+}
+
+message SharingMetadata {
+    Entity entity = 1;
+    string owner_id = 2;
+    string owner_type = 3;
+    PermissionType permission = 4;
+}
+
 service SharingService {
 
 
@@ -187,18 +198,18 @@ service SharingService {
     rpc searchEntities (SearchRequest) returns (Entities);
 
 
+
     rpc getListOfSharedUsers (SharingRequest) returns (SharedOwners);
     rpc getListOfDirectlySharedUsers (SharingRequest) returns (SharedOwners);
     rpc getListOfSharedGroups (SharingRequest) returns (SharedOwners);
     rpc getListOfDirectlySharedGroups (SharingRequest) returns (SharedOwners);
+    rpc getAllDirectSharings (SharingRequest) returns (GetAllDirectSharingsResponse);
 
     rpc shareEntityWithUsers (SharingRequest) returns (Status);
     rpc shareEntityWithGroups (SharingRequest) returns (Status);
     rpc revokeEntitySharingFromUsers (SharingRequest) returns (Status);
     rpc revokeEntitySharingFromGroups (SharingRequest) returns (Status);
     rpc userHasAccess (SharingRequest) returns (Status);
-
-
 
 
 }
