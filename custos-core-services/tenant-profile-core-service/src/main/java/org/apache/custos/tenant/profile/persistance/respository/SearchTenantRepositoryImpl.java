@@ -74,12 +74,14 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             valueMap.put("parent_id", parentId);
 
         }
-        if (type.equals("ADMIN")) {
+
+        if (type != null && type.equals("ADMIN")) {
             query = query + "E.parent_id = :" + "parent_id" + " AND ";
             valueMap.put("parent_id", 0);
         }
 
-        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0) {
+        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0
+                && (type == null || type.isEmpty()) && !type.equals("ADMIN")) {
             String directQuery = "SELECT * FROM tenant E ORDER BY E.created_at DESC";
             if (limit > 0) {
                 directQuery = directQuery + " LIMIT " + ":limit" + " OFFSET " + ":offset";
