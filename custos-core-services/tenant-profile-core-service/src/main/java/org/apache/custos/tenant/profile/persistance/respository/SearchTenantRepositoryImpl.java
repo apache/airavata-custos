@@ -40,9 +40,9 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
     EntityManager entityManager;
 
     @Override
-    public List<Tenant> searchTenants(String requestEmail, String status, long parentId, int limit, int offset) {
+    public List<Tenant> searchTenants(String requestEmail, String status, long parentId, int limit, int offset, String type) {
         Map<String, Object> valueMap = new HashMap<>();
-        String query = createSQLQuery(requestEmail, status, parentId, limit, offset, valueMap);
+        String query = createSQLQuery(requestEmail, status, type, parentId, limit, offset, valueMap);
 
         Query q = entityManager.createNativeQuery(query, Tenant.class);
         for (String key : valueMap.keySet()) {
@@ -53,7 +53,7 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
     }
 
 
-    private String createSQLQuery(String requestEmail, String status, long parentId, int limit, int offset,
+    private String createSQLQuery(String requestEmail, String status, String type, long parentId, int limit, int offset,
                                   Map<String, Object> valueMap) {
         String query = "SELECT * FROM tenant E WHERE ";
 
@@ -73,6 +73,10 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             query = query + "E.parent_id = :" + "parent_id" + " AND ";
             valueMap.put("parent_id", parentId);
 
+        }
+        if (type.equals("ADMIN")) {
+            query = query + "E.parent_id = :" + "parent_id" + " AND ";
+            valueMap.put("parent_id", 0);
         }
 
         if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0) {

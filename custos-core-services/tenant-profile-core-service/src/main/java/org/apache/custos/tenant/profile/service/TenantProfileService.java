@@ -171,14 +171,15 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             int offset = request.getOffset();
             int limit = request.getLimit();
             long parentId = request.getParentId();
+            String tenantType = request.getType().name();
 
             String requesterEmail = request.getRequesterEmail();
 
             List<Tenant> tenants = null;
             List<Tenant> total_tenants = null;
 
-            tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, limit, offset);
-            total_tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, -1, -1);
+            tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, limit, offset, tenantType);
+            total_tenants = tenantRepository.searchTenants(requesterEmail, status, parentId, -1, -1, tenantType);
 
             List<org.apache.custos.tenant.profile.service.Tenant> tenantList = new ArrayList<>();
 
