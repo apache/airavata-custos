@@ -335,7 +335,7 @@ public class AuthInterceptorImpl extends AuthInterceptor {
         try {
             String usertoken = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
             if (usertoken == null) {
-                return null;
+                return Optional.empty();
             }
 
             return authorizeUsingUserToken(usertoken);
