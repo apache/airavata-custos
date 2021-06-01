@@ -269,5 +269,9 @@ public class SharingManagementClient {
         return blockingStub.userHasAccess(request);
     }
 
+    public GetAllDirectSharingsResponse getAllDirectSharings(String clientId, SharingRequest request) {
+        request = request.toBuilder().setClientId(clientId).build();
+        return blockingStub.getAllDirectSharings(request);
+    }
 
 }

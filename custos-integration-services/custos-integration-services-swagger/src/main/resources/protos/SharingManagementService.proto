@@ -156,6 +156,13 @@ service SharingManagementService {
 
     }
 
+    rpc getAllDirectSharings (org.apache.custos.sharing.service.SharingRequest) returns (org.apache.custos.sharing.service.GetAllDirectSharingsResponse) {
+        option (google.api.http) = {
+           get: "/sharing-management/v1.0.0/share/direct"
+        };
+
+    }
+
     rpc shareEntityWithUsers (org.apache.custos.sharing.service.SharingRequest) returns (org.apache.custos.sharing.service.Status) {
         option (google.api.http) = {
            post: "/sharing-management/v1.0.0/users/share"

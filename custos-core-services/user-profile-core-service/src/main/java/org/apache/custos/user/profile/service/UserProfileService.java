@@ -253,7 +253,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
         } catch (Exception ex) {
             String msg = "Error occurred while fetching  user profile for tenant " + request.getTenantId();
-            LOGGER.error(msg);
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
