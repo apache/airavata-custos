@@ -23,19 +23,19 @@ import java.util.List;
 
 public final class AcmeConfiguration implements Configuration{
 
-    private String uri;
-    private String userKey = "user.key";
-    private String domainKey = "domain.key";
+    private String url;
+    private String userKey;
+    private String domainKey;
     private String domainCertificate = "domain.crt";
     private int keySize = 2048;
     private List<String> domains;
 
-    public String getUri() {
-        return uri;
+    public String getUrl() {
+        return url;
     }
 
-    public void setUri(String uri) {
-        this.uri = uri;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getUserKey() {

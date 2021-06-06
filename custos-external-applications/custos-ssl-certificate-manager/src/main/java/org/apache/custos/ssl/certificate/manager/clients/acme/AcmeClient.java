@@ -41,7 +41,6 @@ import java.security.KeyPair;
 public class AcmeClient {
 
     private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
-
     AcmeConfiguration config;
 
     public AcmeClient(AcmeConfiguration config) {
@@ -49,10 +48,11 @@ public class AcmeClient {
     }
 
     public Order getCertificateOrder() throws AcmeException, IOException {
-        Session session = new Session(URI.create(config.getUri()));
+        KeyPair userKey = AcmeClientUtils.getKeyPair(config.getUserKey(), config.getKeySize());
+        Session session = new Session(URI.create(config.getUrl()));
         Account account = new AccountBuilder()
                 .agreeToTermsOfService()
-                .useKeyPair(this.getUserKeyPair())
+                .useKeyPair(userKey)
                 .createLogin(session)
                 .getAccount();
 
@@ -63,7 +63,7 @@ public class AcmeClient {
     }
 
     public Certificate getCertificateCredentials(Order order) throws IOException, AcmeException {
-        KeyPair domainKeyPair = this.getDomainKeyPair();
+        KeyPair domainKeyPair = AcmeClientUtils.getKeyPair(config.getDomainKey(), config.getKeySize());
         CSRBuilder csrb = new CSRBuilder();
         csrb.addDomains(this.config.getDomains());
         csrb.sign(domainKeyPair);
@@ -71,7 +71,7 @@ public class AcmeClient {
         order.execute(csrb.getEncoded());
 
         try {
-            AcmeTasks.completeOrder(order);
+            AcmeClientTasks.completeOrder(order);
         } catch (InterruptedException e) {
             logger.error("Couldn't complete order. Interrupted.");
             throw new AcmeException("Order failed.");
@@ -105,7 +105,7 @@ public class AcmeClient {
 
             challenge.trigger();
             try {
-                AcmeTasks.validateChallenge(challenge);
+                AcmeClientTasks.validateChallenge(challenge);
             } catch (InterruptedException e) {
                 logger.error("Couldn't validate challenge. Interrupted.");
                 throw new AcmeException("Challenge failed.");
@@ -115,19 +115,9 @@ public class AcmeClient {
                 throw new AcmeException("Failed to pass the challenge for domain " + auth.getIdentifier().getDomain());
             }
 
+            nginxClient.deleteResource(challenge.getToken());
             logger.info("Challenge has been completed.");
-            // TODO - Remove validation resource
         }
-    }
-
-    private KeyPair getUserKeyPair() throws IOException {
-        KeyPair accountKey = AcmeClientUtils.userKeyPair(config.getUserKey(), config.getKeySize());
-        return accountKey;
-    }
-
-    private KeyPair getDomainKeyPair() throws IOException {
-        KeyPair domainKey = AcmeClientUtils.domainKeyPair(config.getDomainKey(), config.getKeySize());
-        return domainKey;
     }
 
     private Http01Challenge httpChallenge(Authorization auth) throws AcmeException {

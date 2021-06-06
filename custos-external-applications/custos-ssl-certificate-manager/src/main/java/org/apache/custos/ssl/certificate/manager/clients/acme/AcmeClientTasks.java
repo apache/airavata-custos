@@ -31,16 +31,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class AcmeTasks {
+public class AcmeClientTasks {
 
-    private static final Logger logger = LoggerFactory.getLogger(AcmeTasks.class);
+    private static final Logger logger = LoggerFactory.getLogger(AcmeClientTasks.class);
 
     final static int PERIOD = 3;
     final static int RETRY_COUNT = 10;
 
     public static void validateChallenge(final Challenge challenge) throws InterruptedException {
+        logger.info("Validating challenge");
         final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-
         TimerTask task = new TimerTask() {
             short count = 0;
 
@@ -67,11 +67,12 @@ public class AcmeTasks {
 
         executor.scheduleAtFixedRate(task, 0, PERIOD, TimeUnit.SECONDS);
         executor.awaitTermination(PERIOD * RETRY_COUNT, TimeUnit.SECONDS);
+        logger.info("Validating challenge ends");
     }
 
     public static void completeOrder(final Order order) throws InterruptedException {
+        logger.info("Completing order");
         final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-
         TimerTask task = new TimerTask() {
             short count = 0;
 
@@ -98,5 +99,6 @@ public class AcmeTasks {
 
         executor.scheduleAtFixedRate(task, 0, PERIOD, TimeUnit.SECONDS);
         executor.awaitTermination(PERIOD * RETRY_COUNT, TimeUnit.SECONDS);
+        logger.info("Completing order ends");
     }
 }

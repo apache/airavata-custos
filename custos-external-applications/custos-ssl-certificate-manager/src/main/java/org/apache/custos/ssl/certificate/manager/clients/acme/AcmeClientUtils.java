@@ -21,7 +21,6 @@ package org.apache.custos.ssl.certificate.manager.clients.acme;
 
 import org.shredzone.acme4j.util.KeyPairUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -29,27 +28,14 @@ import java.security.KeyPair;
 
 public class AcmeClientUtils {
 
-    static KeyPair userKeyPair(String userKey, int keySize) throws IOException {
-        if (userKey != null && !userKey.isEmpty()) {
-            try (Reader reader = new StringReader(userKey)) {
+    static KeyPair getKeyPair(String key, int keySize) throws IOException {
+        if (key != null && !key.isEmpty()) {
+            try (Reader reader = new StringReader(key)) {
                 return KeyPairUtils.readKeyPair(reader);
             }
         } else {
-            File f = new File(userKey);
-            KeyPair userKeyPair = KeyPairUtils.createKeyPair(keySize);
-            return userKeyPair;
-        }
-    }
-
-    static KeyPair domainKeyPair(String domainKey, int keySize) throws IOException {
-        if (domainKey != null && !domainKey.isEmpty()) {
-            try (Reader reader = new StringReader(domainKey)) {
-                return KeyPairUtils.readKeyPair(reader);
-            }
-        } else {
-            File f = new File(domainKey);
-            KeyPair domainKeyPair = KeyPairUtils.createKeyPair(keySize);
-            return domainKeyPair;
+            KeyPair keyPair = KeyPairUtils.createKeyPair(keySize);
+            return keyPair;
         }
     }
 }

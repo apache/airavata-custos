@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cert-updater-nginx-deployment
+  name: cert-manager-nginx-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cert-updater-nginx
+      app: cert-manager-nginx
   template:
     metadata:
       labels:
-        app: cert-updater-nginx
+        app: cert-manager-nginx
     spec:
       containers:
-        - name: cert-updater-nginx
-          image: isla123/cert-updater-nginx
+        - name: cert-manager-nginx
+          image: isla123/cert-manager-nginx
           imagePullPolicy: Never
           ports:
             - containerPort: 80
@@ -23,10 +23,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cert-updater-nginx-service
+  name: cert-manager-nginx-service
 spec:
+  type: NodePort
   selector:
-    app: cert-updater-nginx
+    app: cert-manager-nginx
   ports:
     - port: 80
       targetPort: 80
+      nodePort: 31515
