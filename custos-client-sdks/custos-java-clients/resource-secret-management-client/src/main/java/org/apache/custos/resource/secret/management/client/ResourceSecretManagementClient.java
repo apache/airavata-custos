@@ -788,6 +788,76 @@ public class ResourceSecretManagementClient extends AbstractClient {
         return blockingStub.deleteCertificateCredential(tokenRequest);
     }
 
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param key
+     * @param value
+     * @return AddResourceCredentialResponse
+     */
+    public ResourceCredentialOperationStatus addKVCredentials(String clientId, String ownerId, String key, String value) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .setValue(value)
+                .build();
+
+        return blockingStub.addKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Get certificate credentials
+     *
+     * @param clientId
+     * @return CertificateCredential
+     */
+    public KVCredential getKVCredentials(String clientId, String ownerId, String key) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .build();
+
+        return blockingStub.getKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Delete certificate credentials
+     *
+     * @param clientId
+     * @param key
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteKVCredentials(String clientId, String ownerId, String key) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setToken(key)
+                .build();
+
+        return blockingStub.deleteKVCredential(kvCredential);
+    }
+
     ManagedChannel getManagedChannel() {
         return managedChannel;
     }
