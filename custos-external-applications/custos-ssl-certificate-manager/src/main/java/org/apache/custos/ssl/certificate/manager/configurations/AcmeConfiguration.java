@@ -19,9 +19,11 @@
 
 package org.apache.custos.ssl.certificate.manager.configurations;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-public final class AcmeConfiguration implements Configuration{
+public final class AcmeConfiguration implements Configuration {
 
     private String url;
     private String userKey;
@@ -29,6 +31,16 @@ public final class AcmeConfiguration implements Configuration{
     private String domainCertificate = "domain.crt";
     private int keySize = 2048;
     private List<String> domains;
+
+    public AcmeConfiguration() {
+    }
+
+    public AcmeConfiguration(Map<String, String> env) {
+        this.url = env.get(Constants.ACME_URL);
+        this.domains = Arrays.asList(env.get(Constants.ACME_DOMAINS).split(" "));
+        this.userKey = env.get(Constants.ACME_USER_KEY);
+        this.domainKey = env.get(Constants.ACME_DOMAIN_KEY);
+    }
 
     public String getUrl() {
         return url;

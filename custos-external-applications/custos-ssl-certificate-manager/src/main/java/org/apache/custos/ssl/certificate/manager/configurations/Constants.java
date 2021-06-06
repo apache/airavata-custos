@@ -17,8 +17,20 @@
  * under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager;
+package org.apache.custos.ssl.certificate.manager.configurations;
 
 public class Constants {
-    public static final String CONFIG_PATH = "CONFIG_PATH";
+
+    public static final String NGINX_URL = "NGINX_URL";
+    public static final String NGINX_CHALLENGE_FOLDER_PATH = "NGINX_CHALLENGE_FOLDER_PATH";
+
+    public static final String ACME_URL = "ACME_URL";
+    public static final String ACME_DOMAINS = "ACME_DOMAINS";
+    public static final String ACME_USER_KEY = "ACME_USER_KEY";
+    public static final String ACME_DOMAIN_KEY = "ACME_DOMAIN_KEY";
+
+    public static final String CUSTOS_URL = "CUSTOS_URL";
+    public static final String CUSTOS_PORT = "CUSTOS_PORT";
+    public static final String CUSTOS_CLIENT_ID = "CUSTOS_CLIENT_ID";
+    public static final String CUSTOS_CLIENT_SECRET = "CUSTOS_CLIENT_SECRET";
 }

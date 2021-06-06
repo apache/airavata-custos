@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Map;
 
 public class CertUpdater implements Job {
@@ -47,9 +46,10 @@ public class CertUpdater implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
+        logger.info("##########################################################");
+        logger.info("Starting cron job");
         Configuration config = null;
         String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
-        System.out.println(configPath);
 
         if (configPath != null) {
             try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
@@ -62,23 +62,9 @@ public class CertUpdater implements Job {
             config = new Configuration();
             Map<String, String> env = System.getenv();
 
-            // Nginx client configuration
-            NginxConfiguration nginxConfiguration = new NginxConfiguration();
-            nginxConfiguration.setUrl(env.get(Constants.NGINX_URL));
-            nginxConfiguration.setFolderPath(env.get(Constants.NGINX_CHALLENGE_FOLDER_PATH));
-
-            // Acme client configuration
-            AcmeConfiguration acmeConfiguration = new AcmeConfiguration();
-            acmeConfiguration.setUri(env.get(Constants.ACME_URI));
-            acmeConfiguration.setDomains(Arrays.asList(env.get(Constants.ACME_DOMAINS).split(" ")));
-            acmeConfiguration.setUserKey(env.get(Constants.ACME_USER_KEY));
-
-            // Custos client configuration
-            CustosConfiguration custosConfiguration = new CustosConfiguration();
-            custosConfiguration.setUrl(env.get(Constants.CUSTOS_HOST));
-            custosConfiguration.setPort(Integer.parseInt(env.get(Constants.CUSTOS_PORT)));
-            custosConfiguration.setClientId(env.get(Constants.CUSTOS_CLIENT_ID));
-            custosConfiguration.setClientSecret(env.get(Constants.CUSTOS_CLIENT_SECRET));
+            NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
+            AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
+            CustosConfiguration custosConfiguration = new CustosConfiguration(env);
 
             config.setNginxConfiguration(nginxConfiguration);
             config.setAcmeConfiguration(acmeConfiguration);
@@ -93,11 +79,12 @@ public class CertUpdater implements Job {
             Order order = acmeClient.getCertificateOrder();
             acmeClient.authorizeDomain(order, nginxClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order);
-            String token = custosClient.addCertificate("test", certificate);
-            if (token == null || token.isEmpty()) {
-                logger.error("Error has occurred while adding certificate to Custos ");
-            }
+//            String token = custosClient.addCertificate("test", certificate);
+//            if (token == null || token.isEmpty()) {
+//                logger.error("Error has occurred while adding certificate to Custos ");
+//            }
         } catch (AcmeException e) {
+            e.printStackTrace();
             logger.error(e.getMessage());
         } catch (IOException e) {
             logger.error(e.getMessage());

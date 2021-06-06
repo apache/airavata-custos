@@ -19,10 +19,20 @@
 
 package org.apache.custos.ssl.certificate.manager.configurations;
 
-public final class NginxConfiguration implements Configuration{
+import java.util.Map;
+
+public final class NginxConfiguration implements Configuration {
 
     private String url;
     private String folderPath;
+
+    public NginxConfiguration() {
+    }
+
+    public NginxConfiguration(Map<String, String> env) {
+        this.url = env.get(Constants.NGINX_URL);
+        this.folderPath = env.get(Constants.NGINX_CHALLENGE_FOLDER_PATH);
+    }
 
     public String getUrl() {
         return url;

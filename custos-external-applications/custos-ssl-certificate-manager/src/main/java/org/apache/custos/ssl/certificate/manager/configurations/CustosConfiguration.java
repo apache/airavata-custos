@@ -19,13 +19,25 @@
 
 package org.apache.custos.ssl.certificate.manager.configurations;
 
-public class CustosConfiguration implements Configuration{
+import java.util.Map;
+
+public class CustosConfiguration implements Configuration {
 
     private String url;
     private int port;
     private String clientId;
     private String clientSecret;
     private String ownerId;
+
+    public CustosConfiguration() {
+    }
+
+    public CustosConfiguration(Map<String, String> env) {
+        this.url = env.get(Constants.CUSTOS_URL);
+        this.port = Integer.parseInt(env.get(Constants.CUSTOS_PORT));
+        this.clientId = env.get(Constants.CUSTOS_CLIENT_ID);
+        this.clientSecret = env.get(Constants.CUSTOS_CLIENT_SECRET);
+    }
 
     public String getUrl() {
         return url;

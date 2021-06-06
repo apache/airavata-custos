@@ -20,7 +20,7 @@ spec:
               value: "http://cert-updater-nginx-service"
             - name: NGINX_CHALLENGE_FOLDER_PATH
               value: "/acme/challenge"
-            - name: ACME_URI
+            - name: ACME_URL
               value: "acme://pebble/cert-updater-pebble-service"
             - name: ACME_DOMAINS
               value: "localhost"
