@@ -50,28 +50,23 @@ public class CertUpdater implements Job {
         logger.info("Starting cron job");
         Configuration config = null;
         String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
-
-        if (configPath != null) {
-            try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
+        try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
+            if (configPath != null) {
                 Yaml yaml = new Yaml();
                 config = yaml.loadAs(in, Configuration.class);
-            } catch (IOException e) {
-                logger.error("Error has occurred while reading config: {}", e.getMessage());
+            } else {
+                config = new Configuration();
+                Map<String, String> env = System.getenv();
+
+                NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
+                AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
+                CustosConfiguration custosConfiguration = new CustosConfiguration(env);
+
+                config.setNginxConfiguration(nginxConfiguration);
+                config.setAcmeConfiguration(acmeConfiguration);
+                config.setCustosConfiguration(custosConfiguration);
             }
-        } else {
-            config = new Configuration();
-            Map<String, String> env = System.getenv();
 
-            NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
-            AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
-            CustosConfiguration custosConfiguration = new CustosConfiguration(env);
-
-            config.setNginxConfiguration(nginxConfiguration);
-            config.setAcmeConfiguration(acmeConfiguration);
-            config.setCustosConfiguration(custosConfiguration);
-        }
-
-        try {
             AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration());
             CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
             NginxClient nginxClient = new NginxClient(config.getNginxConfiguration());
@@ -79,6 +74,7 @@ public class CertUpdater implements Job {
             Order order = acmeClient.getCertificateOrder();
             acmeClient.authorizeDomain(order, nginxClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order);
+            custosClient.close();
 //            String token = custosClient.addCertificate("test", certificate);
 //            if (token == null || token.isEmpty()) {
 //                logger.error("Error has occurred while adding certificate to Custos ");

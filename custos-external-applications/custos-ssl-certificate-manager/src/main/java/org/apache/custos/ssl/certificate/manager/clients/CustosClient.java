@@ -55,4 +55,8 @@ public class CustosClient {
 
         return res.getToken();
     }
+
+    public void close() throws IOException {
+        resourceSecretManagementClient.close();
+    }
 }

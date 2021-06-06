@@ -38,7 +38,7 @@ public class Launcher {
         Trigger trigger = TriggerBuilder
                 .newTrigger()
                 .withIdentity("cert-updater-trigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0/50 * * * * ?"))
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0/1 * 1/1 * ? *"))
                 .build();
 
         try {
