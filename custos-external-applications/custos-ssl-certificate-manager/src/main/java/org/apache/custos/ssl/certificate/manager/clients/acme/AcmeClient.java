@@ -17,9 +17,10 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.acme;
+package org.apache.custos.ssl.certificate.manager.clients.acme;
 
-import org.apache.custos.ssl.certificate.manager.nginx.NginxClient;
+import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
+import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
 import org.shredzone.acme4j.Account;
 import org.shredzone.acme4j.AccountBuilder;
 import org.shredzone.acme4j.Authorization;

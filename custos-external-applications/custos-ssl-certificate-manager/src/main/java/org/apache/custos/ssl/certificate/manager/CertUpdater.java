@@ -19,12 +19,12 @@
 
 package org.apache.custos.ssl.certificate.manager;
 
-import org.apache.custos.ssl.certificate.manager.acme.AcmeClient;
-import org.apache.custos.ssl.certificate.manager.acme.AcmeConfiguration;
-import org.apache.custos.ssl.certificate.manager.custos.CustosClient;
-import org.apache.custos.ssl.certificate.manager.custos.CustosConfiguration;
-import org.apache.custos.ssl.certificate.manager.nginx.NginxClient;
-import org.apache.custos.ssl.certificate.manager.nginx.NginxConfiguration;
+import org.apache.custos.ssl.certificate.manager.clients.acme.AcmeClient;
+import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
+import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
+import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
+import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
+import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.shredzone.acme4j.Certificate;
@@ -49,13 +49,14 @@ public class CertUpdater implements Job {
     public void execute(JobExecutionContext jobExecutionContext) {
         Configuration config = null;
         String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
+        System.out.println(configPath);
 
         if (configPath != null) {
             try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
                 Yaml yaml = new Yaml();
                 config = yaml.loadAs(in, Configuration.class);
             } catch (IOException e) {
-                logger.error("Error has occurred while reading config:{}", e.getMessage());
+                logger.error("Error has occurred while reading config: {}", e.getMessage());
             }
         } else {
             config = new Configuration();
@@ -74,7 +75,7 @@ public class CertUpdater implements Job {
 
             // Custos client configuration
             CustosConfiguration custosConfiguration = new CustosConfiguration();
-            custosConfiguration.setHost(env.get(Constants.CUSTOS_HOST));
+            custosConfiguration.setUrl(env.get(Constants.CUSTOS_HOST));
             custosConfiguration.setPort(Integer.parseInt(env.get(Constants.CUSTOS_PORT)));
             custosConfiguration.setClientId(env.get(Constants.CUSTOS_CLIENT_ID));
             custosConfiguration.setClientSecret(env.get(Constants.CUSTOS_CLIENT_SECRET));
@@ -86,7 +87,7 @@ public class CertUpdater implements Job {
 
         try {
             AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration());
-           CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
+            CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
             NginxClient nginxClient = new NginxClient(config.getNginxConfiguration());
 
             Order order = acmeClient.getCertificateOrder();

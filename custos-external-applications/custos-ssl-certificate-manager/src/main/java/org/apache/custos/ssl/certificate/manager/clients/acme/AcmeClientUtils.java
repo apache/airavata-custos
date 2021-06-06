@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.acme;
+package org.apache.custos.ssl.certificate.manager.clients.acme;
 
 import org.shredzone.acme4j.util.KeyPairUtils;
 

@@ -17,7 +17,9 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.nginx;
+package org.apache.custos.ssl.certificate.manager.clients;
+
+import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;

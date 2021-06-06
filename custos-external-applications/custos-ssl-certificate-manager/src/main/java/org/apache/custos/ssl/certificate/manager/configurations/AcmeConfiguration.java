@@ -17,11 +17,11 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.acme;
+package org.apache.custos.ssl.certificate.manager.configurations;
 
 import java.util.List;
 
-public final class AcmeConfiguration {
+public final class AcmeConfiguration implements Configuration{
 
     private String uri;
     private String userKey = "user.key";
@@ -76,5 +76,10 @@ public final class AcmeConfiguration {
 
     public void setDomains(List<String> domains) {
         this.domains = domains;
+    }
+
+    @Override
+    public void validate() {
+
     }
 }

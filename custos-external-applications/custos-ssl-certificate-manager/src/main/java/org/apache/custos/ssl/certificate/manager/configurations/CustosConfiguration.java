@@ -17,22 +17,22 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.custos;
+package org.apache.custos.ssl.certificate.manager.configurations;
 
-public class CustosConfiguration {
+public class CustosConfiguration implements Configuration{
 
-    private String host;
+    private String url;
     private int port;
     private String clientId;
     private String clientSecret;
     private String ownerId;
 
-    public String getHost() {
-        return host;
+    public String getUrl() {
+        return url;
     }
 
-    public void setHost(String host) {
-        this.host = host;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public int getPort() {
@@ -65,5 +65,10 @@ public class CustosConfiguration {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    @Override
+    public void validate() {
+
     }
 }

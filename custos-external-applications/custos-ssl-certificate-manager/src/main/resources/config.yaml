@@ -1,10 +1,16 @@
 acmeConfiguration:
-  uri: acme://pebble/localhost:14000
+  url: acme://pebble/localhost:14000
   userKey: user.key
   domainKey: domain.key
   domainCertificate: domain-chain.crt
   domains:
     - localhost
+custosConfiguration:
+  url: test.org
+  port: 31499
+  clientId: test
+  clientSecret: test
+  ownerId: test
 nginxConfiguration:
   url: http://localhost:31515
   folderPath: /acme/challenge

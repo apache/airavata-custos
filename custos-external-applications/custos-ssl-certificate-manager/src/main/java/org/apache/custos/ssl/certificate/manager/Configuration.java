@@ -19,9 +19,9 @@
 
 package org.apache.custos.ssl.certificate.manager;
 
-import org.apache.custos.ssl.certificate.manager.acme.AcmeConfiguration;
-import org.apache.custos.ssl.certificate.manager.custos.CustosConfiguration;
-import org.apache.custos.ssl.certificate.manager.nginx.NginxConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 
 public final class Configuration {
 

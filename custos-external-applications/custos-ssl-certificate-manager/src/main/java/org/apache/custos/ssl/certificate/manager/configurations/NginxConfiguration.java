@@ -17,9 +17,9 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.nginx;
+package org.apache.custos.ssl.certificate.manager.configurations;
 
-public final class NginxConfiguration {
+public final class NginxConfiguration implements Configuration{
 
     private String url;
     private String folderPath;
@@ -38,5 +38,10 @@ public final class NginxConfiguration {
 
     public void setFolderPath(String folderPath) {
         this.folderPath = folderPath;
+    }
+
+    @Override
+    public void validate() {
+
     }
 }

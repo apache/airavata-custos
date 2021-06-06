@@ -17,11 +17,12 @@
  *  under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.custos;
+package org.apache.custos.ssl.certificate.manager.clients;
 
 import org.apache.custos.clients.CustosClientProvider;
 import org.apache.custos.resource.secret.management.client.ResourceSecretManagementClient;
 import org.apache.custos.resource.secret.service.AddResourceCredentialResponse;
+import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
 import org.shredzone.acme4j.Certificate;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class CustosClient {
         this.config = config;
         CustosClientProvider provider = new CustosClientProvider
                 .Builder()
-                .setServerHost(config.getHost())
+                .setServerHost(config.getUrl())
                 .setServerPort(config.getPort())
                 .setClientId(config.getClientId())
                 .setClientSec(config.getClientSecret())
