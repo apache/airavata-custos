@@ -30,6 +30,7 @@ import "google/rpc/error_details.proto";
 import "google/protobuf/empty.proto";
 import "IamAdminService.proto";
 import "FederatedAuthenticationService.proto";
+import "MessagingService.proto";
 
 
 message CreateTenantResponse {
@@ -185,6 +186,12 @@ service TenantManagementService {
     rpc configureEventPersistence (org.apache.custos.iam.service.EventPersistenceRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            post: "/tenant-management/v1.0.0/events"
+        };
+    }
+
+    rpc enableMessaging(org.apache.custos.messaging.service.MessageEnablingRequest) returns (org.apache.custos.messaging.service.MessageEnablingResponse) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/messaging"
         };
     }
 

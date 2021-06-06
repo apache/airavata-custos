@@ -254,6 +254,20 @@
                 <version>${com.codahale.version}</version>
             </dependency>
 
+            <!-- dozer -->
+            <dependency>
+                <groupId>net.sf.dozer</groupId>
+                <artifactId>dozer</artifactId>
+                <version>${dozer.version}</version>
+            </dependency>
+
+            <!--- kafka -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -567,6 +581,10 @@
         <io.commons.version>2.7</io.commons.version>
 
         <com.codahale.version>0.7.0</com.codahale.version>
+
+        <dozer.version>5.5.1</dozer.version>
+
+        <kafka-clients.version>1.0.0</kafka-clients.version>
 
 
     </properties>

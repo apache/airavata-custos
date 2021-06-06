@@ -37,6 +37,8 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
+import org.apache.custos.messaging.client.MessagingClient;
+import org.apache.custos.messaging.service.MessageEnablingResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
 import org.apache.custos.tenant.management.utils.Constants;
@@ -80,6 +82,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private MessagingClient messagingClient;
 
 
     @Override
@@ -482,6 +487,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at configureEventPersistence " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void enableMessaging(org.apache.custos.messaging.service.MessageEnablingRequest request,
+                                StreamObserver<org.apache.custos.messaging.service.MessageEnablingResponse> responseObserver) {
+        try {
+            MessageEnablingResponse response = messagingClient.enableMessaging(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at enableMessaging " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
