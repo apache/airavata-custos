@@ -19,6 +19,7 @@
 
 package org.apache.custos.ssl.certificate.manager.clients.acme;
 
+import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
 import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
 import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
 import org.shredzone.acme4j.Account;
@@ -41,14 +42,18 @@ import java.security.KeyPair;
 public class AcmeClient {
 
     private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
-    AcmeConfiguration config;
+    private AcmeConfiguration config;
+    private CustosClient custosClient;
+    private NginxClient nginxClient;
 
-    public AcmeClient(AcmeConfiguration config) {
+    public AcmeClient(AcmeConfiguration config, CustosClient custosClient, NginxClient nginxClient) {
         this.config = config;
+        this.custosClient = custosClient;
+        this.nginxClient = nginxClient;
     }
 
     public Order getCertificateOrder() throws AcmeException, IOException {
-        KeyPair userKey = AcmeClientUtils.getKeyPair(config.getUserKey(), config.getKeySize());
+        KeyPair userKey = this.getKeyPair("user_key", config.getUserKey());
         Session session = new Session(URI.create(config.getUrl()));
         Account account = new AccountBuilder()
                 .agreeToTermsOfService()
@@ -63,12 +68,12 @@ public class AcmeClient {
     }
 
     public Certificate getCertificateCredentials(Order order) throws IOException, AcmeException {
-        KeyPair domainKeyPair = AcmeClientUtils.getKeyPair(config.getDomainKey(), config.getKeySize());
-        CSRBuilder csrb = new CSRBuilder();
-        csrb.addDomains(this.config.getDomains());
-        csrb.sign(domainKeyPair);
+        KeyPair domainKeyPair = this.getKeyPair("domain_key", config.getUserKey());
+        CSRBuilder csrBuilder = new CSRBuilder();
+        csrBuilder.addDomains(this.config.getDomains());
+        csrBuilder.sign(domainKeyPair);
 
-        order.execute(csrb.getEncoded());
+        order.execute(csrBuilder.getEncoded());
 
         try {
             AcmeClientTasks.completeOrder(order);
@@ -84,7 +89,7 @@ public class AcmeClient {
         return certificate;
     }
 
-    public void authorizeDomain(Order order, NginxClient nginxClient) throws AcmeException {
+    public void authorizeDomain(Order order) throws AcmeException {
         for (Authorization auth : order.getAuthorizations()) {
             logger.info("Authorization for domain {}", auth.getIdentifier().getDomain());
 
@@ -97,7 +102,7 @@ public class AcmeClient {
                 return;
             }
 
-            boolean success = nginxClient.createChallenge(challenge.getToken(), challenge.getAuthorization());
+            boolean success = this.nginxClient.createChallenge(challenge.getToken(), challenge.getAuthorization());
             if (!success) {
                 logger.error("Couldn't create challenge in nginx server");
                 throw new AcmeException("Challenge failed.");
@@ -118,6 +123,22 @@ public class AcmeClient {
             nginxClient.deleteResource(challenge.getToken());
             logger.info("Challenge has been completed.");
         }
+    }
+
+    private KeyPair getKeyPair(String key, String value) throws IOException {
+        String keyPairValue = value;
+        if (keyPairValue == null || keyPairValue.isEmpty()) {
+            try {
+                keyPairValue = this.custosClient.getKVCredentials(key);
+                return AcmeClientUtils.convertToKeyPair(keyPairValue);
+            } catch (Exception e) {
+                logger.error("Key {} not in custos.", key);
+            }
+        }
+
+        KeyPair keyPair = AcmeClientUtils.getKeyPair(config.getKeySize());
+        this.custosClient.addKVCredential(key, AcmeClientUtils.convertToString(keyPair));
+        return keyPair;
     }
 
     private Http01Challenge httpChallenge(Authorization auth) throws AcmeException {

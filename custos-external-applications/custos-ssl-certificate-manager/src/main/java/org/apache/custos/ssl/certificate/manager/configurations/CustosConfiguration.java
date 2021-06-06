@@ -21,7 +21,7 @@ package org.apache.custos.ssl.certificate.manager.configurations;
 
 import java.util.Map;
 
-public class CustosConfiguration implements Configuration {
+public class CustosConfiguration  {
 
     private String url;
     private int port;
@@ -77,10 +77,5 @@ public class CustosConfiguration implements Configuration {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
-    }
-
-    @Override
-    public void validate() {
-
     }
 }

@@ -21,7 +21,7 @@ package org.apache.custos.ssl.certificate.manager.configurations;
 
 import java.util.Map;
 
-public final class NginxConfiguration implements Configuration {
+public final class NginxConfiguration {
 
     private String url;
     private String folderPath;
@@ -48,10 +48,5 @@ public final class NginxConfiguration implements Configuration {
 
     public void setFolderPath(String folderPath) {
         this.folderPath = folderPath;
-    }
-
-    @Override
-    public void validate() {
-
     }
 }

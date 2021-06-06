@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public final class AcmeConfiguration implements Configuration {
+public final class AcmeConfiguration {
 
     private String url;
     private String userKey;
@@ -88,10 +88,5 @@ public final class AcmeConfiguration implements Configuration {
 
     public void setDomains(List<String> domains) {
         this.domains = domains;
-    }
-
-    @Override
-    public void validate() {
-
     }
 }

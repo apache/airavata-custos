@@ -52,8 +52,7 @@ public class CustosClient {
                 this.config.getClientId(),
                 this.config.getOwnerId(),
                 privateKey,
-                certificate.getCertificate().toString()
-        );
+                certificate.getCertificate().toString());
 
         return res.getToken();
     }
@@ -63,18 +62,16 @@ public class CustosClient {
                 this.config.getClientId(),
                 this.config.getOwnerId(),
                 key,
-                value
-        );
+                value);
 
         return res.getStatus();
     }
 
-    public String getKVCredential(String key) {
+    public String getKVCredentials(String key) {
         KVCredential kvCredential = resourceSecretManagementClient.getKVCredentials(
                 this.config.getClientId(),
                 this.config.getOwnerId(),
-                key
-        );
+                key);
 
         return kvCredential.getValue();
     }

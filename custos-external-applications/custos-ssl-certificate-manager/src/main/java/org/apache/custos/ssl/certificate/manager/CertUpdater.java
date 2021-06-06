@@ -46,9 +46,7 @@ public class CertUpdater implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
-        logger.info("##########################################################");
-        logger.info("Starting cron job");
-        Configuration config = null;
+        Configuration config;
         String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
         try (InputStream in = Files.newInputStream(Paths.get(configPath))) {
             if (configPath != null) {
@@ -67,12 +65,12 @@ public class CertUpdater implements Job {
                 config.setCustosConfiguration(custosConfiguration);
             }
 
-            AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration());
             CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
             NginxClient nginxClient = new NginxClient(config.getNginxConfiguration());
+            AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration(), custosClient, nginxClient);
 
             Order order = acmeClient.getCertificateOrder();
-            acmeClient.authorizeDomain(order, nginxClient);
+            acmeClient.authorizeDomain(order);
             Certificate certificate = acmeClient.getCertificateCredentials(order);
             custosClient.close();
 //            String token = custosClient.addCertificate("test", certificate);
@@ -80,10 +78,9 @@ public class CertUpdater implements Job {
 //                logger.error("Error has occurred while adding certificate to Custos ");
 //            }
         } catch (AcmeException e) {
-            e.printStackTrace();
-            logger.error(e.getMessage());
+            logger.error("Acme Exception : {} ", e.getMessage());
         } catch (IOException e) {
-            logger.error(e.getMessage());
+            logger.error("IO Exception: {}", e.getMessage());
         }
     }
 }

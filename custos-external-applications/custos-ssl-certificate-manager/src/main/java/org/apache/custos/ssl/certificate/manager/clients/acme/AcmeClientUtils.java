@@ -24,18 +24,27 @@ import org.shredzone.acme4j.util.KeyPairUtils;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.security.KeyPair;
 
 public class AcmeClientUtils {
 
-    static KeyPair getKeyPair(String key, int keySize) throws IOException {
-        if (key != null && !key.isEmpty()) {
-            try (Reader reader = new StringReader(key)) {
-                return KeyPairUtils.readKeyPair(reader);
-            }
-        } else {
-            KeyPair keyPair = KeyPairUtils.createKeyPair(keySize);
-            return keyPair;
+    static KeyPair getKeyPair(int keySize) throws IOException {
+        KeyPair keyPair = KeyPairUtils.createKeyPair(keySize);
+        return keyPair;
+    }
+
+    static KeyPair convertToKeyPair(String key) throws IOException {
+        try (Reader reader = new StringReader(key)) {
+            return KeyPairUtils.readKeyPair(reader);
+        }
+    }
+
+    static String convertToString(KeyPair key) throws IOException {
+        try (Writer writer = new StringWriter()) {
+            KeyPairUtils.writeKeyPair(key, writer);
+            return writer.toString();
         }
     }
 }
