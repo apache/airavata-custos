@@ -49,9 +49,7 @@ public class CustosClient {
 
     public String addCertificate(String privateKey, Certificate certificate) {
         AddResourceCredentialResponse res = resourceSecretManagementClient.addCertificateCredentials(
-                this.config.getClientId(),
-                this.config.getOwnerId(),
-                privateKey,
+                this.config.getClientId(), this.config.getOwnerId(), privateKey,
                 certificate.getCertificate().toString());
 
         return res.getToken();
@@ -59,19 +57,14 @@ public class CustosClient {
 
     public boolean addKVCredential(String key, String value) {
         ResourceCredentialOperationStatus res = resourceSecretManagementClient.addKVCredentials(
-                this.config.getClientId(),
-                this.config.getOwnerId(),
-                key,
-                value);
+                this.config.getClientId(), this.config.getOwnerId(), key, value);
 
         return res.getStatus();
     }
 
     public String getKVCredentials(String key) {
         KVCredential kvCredential = resourceSecretManagementClient.getKVCredentials(
-                this.config.getClientId(),
-                this.config.getOwnerId(),
-                key);
+                this.config.getClientId(), this.config.getOwnerId(), key);
 
         return kvCredential.getValue();
     }

@@ -29,18 +29,19 @@ import java.net.URL;
 
 public class NginxClient {
     private static final Logger logger = LoggerFactory.getLogger(NginxClient.class);
-    private String baseUrl;
+    private String challengeUrl;
 
     public NginxClient(NginxConfiguration config) {
-        this.baseUrl = config.getUrl() + config.getFolderPath();
+        challengeUrl = config.getUrl() + config.getFolderPath();
     }
 
     public boolean createChallenge(String fileName, String content) {
         HttpURLConnection con = null;
         int status = 0;
         try {
-            URL url = new URL(this.baseUrl + "?file=" + fileName + "&content=" + content);
+            URL url = new URL(this.challengeUrl + "?file=" + fileName + "&content=" + content);
             con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
             status = con.getResponseCode();
         } catch (IOException e) {
             e.printStackTrace();
@@ -49,15 +50,16 @@ public class NginxClient {
         }
 
         logger.info("Create acme challenge in nginx server status: {}", status);
-        return status == 200 ? true : false;
+        return status == HttpURLConnection.HTTP_OK ? true : false;
     }
 
     public boolean deleteResource(String fileName) {
         HttpURLConnection con = null;
         int status = 0;
         try {
-            URL url = new URL(this.baseUrl + "/delete?file=" + fileName);
+            URL url = new URL(this.challengeUrl + "?file=" + fileName);
             con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("DELETE");
             status = con.getResponseCode();
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,6 +68,6 @@ public class NginxClient {
         }
 
         logger.info("Remove acme challenge from nginx server status: {}", status);
-        return status == 200 ? true : false;
+        return status == HttpURLConnection.HTTP_OK ? true : false;
     }
 }
