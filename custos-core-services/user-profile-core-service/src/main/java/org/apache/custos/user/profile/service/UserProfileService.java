@@ -253,7 +253,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
         } catch (Exception ex) {
             String msg = "Error occurred while fetching  user profile for tenant " + request.getTenantId();
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
@@ -803,6 +803,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             List<UserGroupMembership> memberships =
                     groupMembershipRepository.findAllByGroupIdAndUserProfileId(effectiveGroupId, userId);
 
+            List<UserGroupMembership> userGroupMemberships = groupMembershipRepository
+                    .findAllByGroupIdAndUserGroupMembershipTypeId(effectiveGroupId, DefaultGroupMembershipTypes.OWNER.name());
+
+            if (userGroupMemberships != null && userGroupMemberships.size() == 1 &&
+                    userGroupMemberships.get(0).getUserProfile().getUsername().equals(username)) {
+                String msg = "Default owner " + username + " cannot be removed from group " + group_id;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             if (memberships != null && !memberships.isEmpty()) {
 
                 memberships.forEach(membership -> {
@@ -1291,6 +1302,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 String msg = "group membership not found";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            List<UserGroupMembership> userMemberships = groupMembershipRepository
+                    .findAllByGroupIdAndUserGroupMembershipTypeId(effectiveGroupId, DefaultGroupMembershipTypes.OWNER.name());
+
+            if (userMemberships != null && userMemberships.size() == 1 &&
+                    userMemberships.get(0).getUserProfile().getUsername().equals(username)) {
+                String msg = "Default owner " + username + " cannot be changed for group " + groupId;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
                 return;
             }
 
