@@ -46,6 +46,8 @@ import java.util.Map;
 public class CertUpdater implements Job {
 
     private static final Logger logger = LoggerFactory.getLogger(CertUpdater.class);
+    private final String CERT_UPDATER_USER_KEY = "cert_updater_user_key";
+    private final String CERT_UPDATER_DOMAIN_KEY = "cert_updater_domain_key";
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
@@ -53,7 +55,6 @@ public class CertUpdater implements Job {
         for (Map.Entry<String, Object> entry : jobExecutionContext.getJobDetail().getJobDataMap().entrySet()) {
             env.put(entry.getKey(), (String) entry.getValue());
         }
-
         NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
         AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
         CustosConfiguration custosConfiguration = new CustosConfiguration(env);
@@ -61,34 +62,32 @@ public class CertUpdater implements Job {
             CustosClient custosClient = new CustosClient(custosConfiguration);
             AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
-
-            KeyPair userKeyPair = getKeyPair("user_key", acmeConfiguration.getUserKey(), custosClient);
+            KeyPair userKeyPair = getKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
-            if (challenges.size() > 0) {
-                for (Http01Challenge challenge : challenges) {
-                    boolean createChallengeSuccess = nginxClient.createAcmeChallenge(challenge.getToken(),
-                            challenge.getAuthorization());
-                    if (!createChallengeSuccess) {
-                        logger.error("Couldn't create challenge in nginx server");
-                        throw new AcmeException("Challenge failed.");
-                    }
-
-                    challenge.trigger();
-                    AcmeClientTasks.validateChallenge(challenge);
-                    if (challenge.getStatus() != Status.VALID) {
-                        throw new AcmeException("Failed to pass the challenge for domain");
-                    }
-
-                    boolean deleteChallengeSuccess = nginxClient.deleteAcmeChallenge(challenge.getToken());
-                    if (!deleteChallengeSuccess) {
-                        logger.error("Couldn't delete challenge file from nginx server");
-                    }
-
-                    logger.info("Challenge has been completed.");
+            for (Http01Challenge challenge : challenges) {
+                String fileName = challenge.getToken();
+                String fileContent = challenge.getAuthorization();
+                boolean createChallengeSuccess = nginxClient.createAcmeChallenge(fileName, fileContent);
+                if (!createChallengeSuccess) {
+                    logger.error("Couldn't create challenge in nginx server");
+                    throw new AcmeException("Challenge failed.");
                 }
+
+                challenge.trigger();
+                AcmeClientTasks.validateChallenge(challenge);
+                if (challenge.getStatus() != Status.VALID) {
+                    throw new AcmeException("Failed to pass the challenge for domain");
+                }
+
+                boolean deleteChallengeSuccess = nginxClient.deleteAcmeChallenge(fileName);
+                if (!deleteChallengeSuccess) {
+                    logger.error("Couldn't delete challenge file from nginx server");
+                }
+
+                logger.info("Challenge has been completed.");
             }
-            KeyPair domainKeyPair = getKeyPair("domain_key", acmeConfiguration.getDomainKey(), custosClient);
+            KeyPair domainKeyPair = getKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(), custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
             custosClient.close();
 //            String token = custosClient.addCertificate("test", certificate);
