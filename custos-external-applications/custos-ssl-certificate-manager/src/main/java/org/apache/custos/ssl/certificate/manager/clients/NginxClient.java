@@ -19,7 +19,7 @@
 
 package org.apache.custos.ssl.certificate.manager.clients;
 
-import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
+import org.apache.custos.ssl.certificate.manager.clients.utils.QueryString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,45 +29,60 @@ import java.net.URL;
 
 public class NginxClient {
     private static final Logger logger = LoggerFactory.getLogger(NginxClient.class);
-    private String challengeUrl;
 
-    public NginxClient(NginxConfiguration config) {
-        challengeUrl = config.getUrl() + config.getFolderPath();
-    }
+    public static class RequestBuilder {
+        private String url;
+        private String method;
+        private String fileName;
+        private String fileContent;
 
-    public boolean createChallenge(String fileName, String content) {
-        HttpURLConnection con = null;
-        int status = 0;
-        try {
-            URL url = new URL(this.challengeUrl + "?file=" + fileName + "&content=" + content);
-            con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            status = con.getResponseCode();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            con.disconnect();
+        public RequestBuilder(String url) {
+            this.url = url;
         }
 
-        logger.info("Create acme challenge in nginx server status: {}", status);
-        return status == HttpURLConnection.HTTP_OK ? true : false;
-    }
-
-    public boolean deleteResource(String fileName) {
-        HttpURLConnection con = null;
-        int status = 0;
-        try {
-            URL url = new URL(this.challengeUrl + "?file=" + fileName);
-            con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("DELETE");
-            status = con.getResponseCode();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            con.disconnect();
+        public RequestBuilder setHttpMethod(String method) {
+            this.method = method;
+            return this;
         }
 
-        logger.info("Remove acme challenge from nginx server status: {}", status);
-        return status == HttpURLConnection.HTTP_OK ? true : false;
+        public RequestBuilder setFileName(String fileName) {
+            this.fileName = fileName;
+            return this;
+        }
+
+        public RequestBuilder setFileContent(String fileContent) {
+            this.fileContent = fileContent;
+            return this;
+        }
+
+        public boolean send() {
+            QueryString query = null;
+            if (this.fileName != null) {
+                query = new QueryString("file", this.fileName);
+            }
+
+            if (this.fileContent != null) {
+                if (query != null) {
+                    query.add("content", this.fileContent);
+                } else {
+                    query = new QueryString("content", this.fileContent);
+                }
+            }
+
+            HttpURLConnection con = null;
+            int status = 0;
+            try {
+                URL url = new URL(this.url + "?" + query);
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod(this.method);
+                status = con.getResponseCode();
+            } catch (IOException e) {
+                logger.info("Error in nginx client: {}", e.getMessage());
+            } finally {
+                con.disconnect();
+            }
+
+            return status == HttpURLConnection.HTTP_OK ? true : false;
+        }
     }
 }

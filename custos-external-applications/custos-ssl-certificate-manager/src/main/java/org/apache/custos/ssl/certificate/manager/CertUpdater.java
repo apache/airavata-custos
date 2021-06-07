@@ -66,10 +66,14 @@ public class CertUpdater implements Job {
             }
 
             CustosClient custosClient = new CustosClient(config.getCustosConfiguration());
-            NginxClient nginxClient = new NginxClient(config.getNginxConfiguration());
-            AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration(), custosClient, nginxClient);
+            AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration(), custosClient,
+                    config.getNginxConfiguration());
 
             Order order = acmeClient.getCertificateOrder();
+
+
+
+
             acmeClient.authorizeDomain(order);
             Certificate certificate = acmeClient.getCertificateCredentials(order);
             custosClient.close();

@@ -22,6 +22,7 @@ package org.apache.custos.ssl.certificate.manager.clients.acme;
 import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
 import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
 import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 import org.shredzone.acme4j.Account;
 import org.shredzone.acme4j.AccountBuilder;
 import org.shredzone.acme4j.Authorization;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.KeyPair;
 
@@ -44,12 +46,12 @@ public class AcmeClient {
     private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
     private AcmeConfiguration config;
     private CustosClient custosClient;
-    private NginxClient nginxClient;
+    private NginxConfiguration nginxConfiguration;
 
-    public AcmeClient(AcmeConfiguration config, CustosClient custosClient, NginxClient nginxClient) {
+    public AcmeClient(AcmeConfiguration config, CustosClient custosClient, NginxConfiguration nginxConfiguration) {
         this.config = config;
         this.custosClient = custosClient;
-        this.nginxClient = nginxClient;
+        this.nginxConfiguration = nginxConfiguration;
     }
 
     public Order getCertificateOrder() throws AcmeException, IOException {
@@ -61,8 +63,7 @@ public class AcmeClient {
                 .createLogin(session)
                 .getAccount();
 
-        logger.info("Registered a new user, URL: {}", account.getLocation());
-
+        logger.info("Registered user, URL: {}", account.getLocation());
         Order order = account.newOrder().domains(config.getDomains()).create();
         return order;
     }
@@ -89,7 +90,9 @@ public class AcmeClient {
         return certificate;
     }
 
-    public void authorizeDomain(Order order) throws AcmeException {
+    public void authorizeDomain(Order order) throws AcmeException, UnsupportedEncodingException {
+        String nginxChallengeUrl = nginxConfiguration.getUrl() + nginxConfiguration.getFolderPath();
+        NginxClient.RequestBuilder requestBuilder = new NginxClient.RequestBuilder(nginxChallengeUrl);
         for (Authorization auth : order.getAuthorizations()) {
             logger.info("Authorization for domain {}", auth.getIdentifier().getDomain());
 
@@ -102,13 +105,19 @@ public class AcmeClient {
                 return;
             }
 
-            boolean success = this.nginxClient.createChallenge(challenge.getToken(), challenge.getAuthorization());
-            if (!success) {
+            boolean createChallengeSuccess = requestBuilder.
+                    setHttpMethod("POST").
+                    setFileName(challenge.getToken()).
+                    setFileContent(challenge.getAuthorization()).
+                    send();
+
+            if (!createChallengeSuccess) {
                 logger.error("Couldn't create challenge in nginx server");
                 throw new AcmeException("Challenge failed.");
             }
 
             challenge.trigger();
+
             try {
                 AcmeClientTasks.validateChallenge(challenge);
             } catch (InterruptedException e) {
@@ -120,7 +129,15 @@ public class AcmeClient {
                 throw new AcmeException("Failed to pass the challenge for domain " + auth.getIdentifier().getDomain());
             }
 
-            nginxClient.deleteResource(challenge.getToken());
+            boolean deleteChallengeSuccess = requestBuilder.
+                    setHttpMethod("DELETE").
+                    setFileName(challenge.getToken()).
+                    send();
+
+            if (!deleteChallengeSuccess) {
+                logger.error("Couldn't delete challenge file from nginx server");
+            }
+
             logger.info("Challenge has been completed.");
         }
     }
