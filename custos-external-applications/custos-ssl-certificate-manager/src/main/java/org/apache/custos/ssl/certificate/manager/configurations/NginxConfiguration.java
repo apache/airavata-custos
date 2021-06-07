@@ -26,9 +26,6 @@ public final class NginxConfiguration {
     private String url;
     private String folderPath;
 
-    public NginxConfiguration() {
-    }
-
     public NginxConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.NGINX_URL);
         this.folderPath = env.get(Constants.NGINX_CHALLENGE_FOLDER_PATH);
@@ -38,15 +35,8 @@ public final class NginxConfiguration {
         return url;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
     public String getFolderPath() {
         return folderPath;
     }
 
-    public void setFolderPath(String folderPath) {
-        this.folderPath = folderPath;
-    }
 }

@@ -40,11 +40,7 @@ public class QueryString {
         query.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
-    public String getQuery() {
-        return query.toString();
-    }
-
     public String toString() {
-        return getQuery();
+        return query.toString();
     }
 }

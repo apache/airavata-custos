@@ -46,8 +46,6 @@ import java.util.Map;
 public class CertUpdater implements Job {
 
     private static final Logger logger = LoggerFactory.getLogger(CertUpdater.class);
-    private CustosClient custosClient;
-    private AcmeClient acmeClient;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
@@ -59,45 +57,30 @@ public class CertUpdater implements Job {
         NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
         AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
         CustosConfiguration custosConfiguration = new CustosConfiguration(env);
-
         try {
-            if (custosClient == null) {
-                custosClient = new CustosClient(custosConfiguration);
-            }
+            CustosClient custosClient = new CustosClient(custosConfiguration);
+            AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
+            NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
-            if (acmeClient == null) {
-                acmeClient = new AcmeClient(acmeConfiguration);
-            }
-
-
-            KeyPair userKeyPair = getKeyPair("user_key", acmeConfiguration.getUserKey());
+            KeyPair userKeyPair = getKeyPair("user_key", acmeConfiguration.getUserKey(), custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
             if (challenges.size() > 0) {
-                NginxClient.RequestBuilder requestBuilder = new NginxClient.RequestBuilder(
-                        nginxConfiguration.getUrl() +
-                                nginxConfiguration.getFolderPath());
-
                 for (Http01Challenge challenge : challenges) {
-                    // Create challenge file in nginx server
-                    boolean createChallengeSuccess = requestBuilder.setHttpMethod("POST").
-                            setFileName(challenge.getToken()).setFileContent(challenge.getAuthorization()).send();
+                    boolean createChallengeSuccess = nginxClient.createAcmeChallenge(challenge.getToken(),
+                            challenge.getAuthorization());
                     if (!createChallengeSuccess) {
                         logger.error("Couldn't create challenge in nginx server");
                         throw new AcmeException("Challenge failed.");
                     }
 
                     challenge.trigger();
-
-                    // Validate challenge
                     AcmeClientTasks.validateChallenge(challenge);
                     if (challenge.getStatus() != Status.VALID) {
                         throw new AcmeException("Failed to pass the challenge for domain");
                     }
 
-                    // Delete challenge file from nginx server
-                    boolean deleteChallengeSuccess = requestBuilder.setHttpMethod("DELETE").
-                            setFileName(challenge.getToken()).send();
+                    boolean deleteChallengeSuccess = nginxClient.deleteAcmeChallenge(challenge.getToken());
                     if (!deleteChallengeSuccess) {
                         logger.error("Couldn't delete challenge file from nginx server");
                     }
@@ -105,8 +88,7 @@ public class CertUpdater implements Job {
                     logger.info("Challenge has been completed.");
                 }
             }
-
-            KeyPair domainKeyPair = getKeyPair("domain_key", acmeConfiguration.getDomainKey());
+            KeyPair domainKeyPair = getKeyPair("domain_key", acmeConfiguration.getDomainKey(), custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
             custosClient.close();
 //            String token = custosClient.addCertificate("test", certificate);
@@ -122,7 +104,7 @@ public class CertUpdater implements Job {
         }
     }
 
-    private KeyPair getKeyPair(String key, String value) throws IOException {
+    private KeyPair getKeyPair(String key, String value, CustosClient custosClient) throws IOException {
         String keyPairValue = value;
         if (keyPairValue == null || keyPairValue.isEmpty()) {
             try {
@@ -132,7 +114,6 @@ public class CertUpdater implements Job {
                 logger.error("Key {} not in custos.", key);
             }
         }
-
         KeyPair keyPair = KeyUtils.getKeyPair(2048);
         custosClient.addKVCredential(key, KeyUtils.convertToString(keyPair));
         return keyPair;

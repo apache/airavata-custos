@@ -29,9 +29,6 @@ public class CustosConfiguration {
     private String clientSecret;
     private String ownerId;
 
-    public CustosConfiguration() {
-    }
-
     public CustosConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.CUSTOS_URL);
         this.port = Integer.parseInt(env.get(Constants.CUSTOS_PORT));
@@ -44,39 +41,20 @@ public class CustosConfiguration {
         return url;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
     public int getPort() {
         return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
     public String getClientSecret() {
         return clientSecret;
-    }
-
-    public void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
     }
 
     public String getOwnerId() {
         return ownerId;
     }
 
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
-    }
 }

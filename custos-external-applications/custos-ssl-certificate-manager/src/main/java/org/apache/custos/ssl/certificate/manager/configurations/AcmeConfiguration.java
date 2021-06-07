@@ -28,12 +28,7 @@ public final class AcmeConfiguration {
     private String url;
     private String userKey;
     private String domainKey;
-    private String domainCertificate = "domain.crt";
-    private int keySize = 2048;
     private List<String> domains;
-
-    public AcmeConfiguration() {
-    }
 
     public AcmeConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.ACME_URL);
@@ -46,47 +41,16 @@ public final class AcmeConfiguration {
         return url;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
     public String getUserKey() {
         return userKey;
-    }
-
-    public void setUserKey(String userKey) {
-        this.userKey = userKey;
     }
 
     public String getDomainKey() {
         return domainKey;
     }
 
-    public void setDomainKey(String domainKey) {
-        this.domainKey = domainKey;
-    }
-
-    public String getDomainCertificate() {
-        return domainCertificate;
-    }
-
-    public void setDomainCertificate(String domainCertificate) {
-        this.domainCertificate = domainCertificate;
-    }
-
-    public int getKeySize() {
-        return keySize;
-    }
-
-    public void setKeySize(int keySize) {
-        this.keySize = keySize;
-    }
-
     public List<String> getDomains() {
         return domains;
     }
 
-    public void setDomains(List<String> domains) {
-        this.domains = domains;
-    }
 }
