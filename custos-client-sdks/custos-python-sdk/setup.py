@@ -9,8 +9,8 @@ def read(fname):
 
 
 setup(
-    name='custos-python-sdk',
-    version='1.0.0',
+    name='custos-sdk',
+    version='1.0.4',
     packages=find_packages(),
     package_data={'': ['*.pem']},
     include_package_data=True,
