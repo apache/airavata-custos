@@ -19,7 +19,7 @@
 
 package org.apache.custos.ssl.certificate.manager.clients;
 
-import org.apache.custos.ssl.certificate.manager.clients.utils.QueryString;
+import org.apache.custos.ssl.certificate.manager.helpers.QueryString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ public class NginxClient {
     private static final Logger logger = LoggerFactory.getLogger(NginxClient.class);
 
     public static class RequestBuilder {
-        private String url;
+        private final String url;
         private String method;
         private String fileName;
         private String fileContent;
@@ -79,10 +79,12 @@ public class NginxClient {
             } catch (IOException e) {
                 logger.info("Error in nginx client: {}", e.getMessage());
             } finally {
-                con.disconnect();
+                if (con != null) {
+                    con.disconnect();
+                }
             }
 
-            return status == HttpURLConnection.HTTP_OK ? true : false;
+            return status == HttpURLConnection.HTTP_OK;
         }
     }
 }

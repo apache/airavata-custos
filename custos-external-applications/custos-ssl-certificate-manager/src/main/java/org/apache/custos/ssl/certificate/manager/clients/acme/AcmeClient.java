@@ -19,10 +19,7 @@
 
 package org.apache.custos.ssl.certificate.manager.clients.acme;
 
-import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
-import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
 import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
-import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 import org.shredzone.acme4j.Account;
 import org.shredzone.acme4j.AccountBuilder;
 import org.shredzone.acme4j.Authorization;
@@ -40,42 +37,33 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.KeyPair;
+import java.util.ArrayList;
 
 public class AcmeClient {
 
     private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
-    private AcmeConfiguration config;
-    private CustosClient custosClient;
-    private NginxConfiguration nginxConfiguration;
+    private final AcmeConfiguration config;
 
-    public AcmeClient(AcmeConfiguration config, CustosClient custosClient, NginxConfiguration nginxConfiguration) {
+    public AcmeClient(AcmeConfiguration config) {
         this.config = config;
-        this.custosClient = custosClient;
-        this.nginxConfiguration = nginxConfiguration;
     }
 
-    public Order getCertificateOrder() throws AcmeException, IOException {
-        KeyPair userKey = this.getKeyPair("user_key", config.getUserKey());
+    public Order getCertificateOrder(KeyPair userKey) throws AcmeException, IOException {
         Session session = new Session(URI.create(config.getUrl()));
         Account account = new AccountBuilder()
                 .agreeToTermsOfService()
                 .useKeyPair(userKey)
                 .createLogin(session)
                 .getAccount();
-
         logger.info("Registered user, URL: {}", account.getLocation());
-        Order order = account.newOrder().domains(config.getDomains()).create();
-        return order;
+        return account.newOrder().domains(config.getDomains()).create();
     }
 
-    public Certificate getCertificateCredentials(Order order) throws IOException, AcmeException {
-        KeyPair domainKeyPair = this.getKeyPair("domain_key", config.getUserKey());
+    public Certificate getCertificateCredentials(Order order, KeyPair domainKeyPair) throws IOException, AcmeException {
         CSRBuilder csrBuilder = new CSRBuilder();
         csrBuilder.addDomains(this.config.getDomains());
         csrBuilder.sign(domainKeyPair);
-
         order.execute(csrBuilder.getEncoded());
-
         try {
             AcmeClientTasks.completeOrder(order);
         } catch (InterruptedException e) {
@@ -86,76 +74,25 @@ public class AcmeClient {
         Certificate certificate = order.getCertificate();
         logger.info("Success! The certificate for domains {} has been generated!", config.getDomains());
         logger.info("Certificate URL: {}", certificate.getLocation());
-
         return certificate;
     }
 
-    public void authorizeDomain(Order order) throws AcmeException, UnsupportedEncodingException {
-        String nginxChallengeUrl = nginxConfiguration.getUrl() + nginxConfiguration.getFolderPath();
-        NginxClient.RequestBuilder requestBuilder = new NginxClient.RequestBuilder(nginxChallengeUrl);
+    public ArrayList<Http01Challenge> getChallenges(Order order) throws AcmeException, UnsupportedEncodingException {
+        ArrayList<Http01Challenge> challenges = new ArrayList<>();
         for (Authorization auth : order.getAuthorizations()) {
-            logger.info("Authorization for domain {}", auth.getIdentifier().getDomain());
-
+            logger.info("Creating challenge for {}", auth.getIdentifier().getDomain());
             if (auth.getStatus() == Status.VALID) {
-                return;
+                continue;
             }
 
             Http01Challenge challenge = httpChallenge(auth);
             if (challenge.getStatus() == Status.VALID) {
-                return;
+                continue;
             }
 
-            boolean createChallengeSuccess = requestBuilder.
-                    setHttpMethod("POST").
-                    setFileName(challenge.getToken()).
-                    setFileContent(challenge.getAuthorization()).
-                    send();
-
-            if (!createChallengeSuccess) {
-                logger.error("Couldn't create challenge in nginx server");
-                throw new AcmeException("Challenge failed.");
-            }
-
-            challenge.trigger();
-
-            try {
-                AcmeClientTasks.validateChallenge(challenge);
-            } catch (InterruptedException e) {
-                logger.error("Couldn't validate challenge. Interrupted.");
-                throw new AcmeException("Challenge failed.");
-            }
-
-            if (challenge.getStatus() != Status.VALID) {
-                throw new AcmeException("Failed to pass the challenge for domain " + auth.getIdentifier().getDomain());
-            }
-
-            boolean deleteChallengeSuccess = requestBuilder.
-                    setHttpMethod("DELETE").
-                    setFileName(challenge.getToken()).
-                    send();
-
-            if (!deleteChallengeSuccess) {
-                logger.error("Couldn't delete challenge file from nginx server");
-            }
-
-            logger.info("Challenge has been completed.");
+            challenges.add(challenge);
         }
-    }
-
-    private KeyPair getKeyPair(String key, String value) throws IOException {
-        String keyPairValue = value;
-        if (keyPairValue == null || keyPairValue.isEmpty()) {
-            try {
-                keyPairValue = this.custosClient.getKVCredentials(key);
-                return AcmeClientUtils.convertToKeyPair(keyPairValue);
-            } catch (Exception e) {
-                logger.error("Key {} not in custos.", key);
-            }
-        }
-
-        KeyPair keyPair = AcmeClientUtils.getKeyPair(config.getKeySize());
-        this.custosClient.addKVCredential(key, AcmeClientUtils.convertToString(keyPair));
-        return keyPair;
+        return challenges;
     }
 
     private Http01Challenge httpChallenge(Authorization auth) throws AcmeException {
@@ -163,7 +100,6 @@ public class AcmeClient {
         if (challenge == null) {
             throw new AcmeException("Found no " + Http01Challenge.TYPE + " challenge");
         }
-
         logger.info("Domain : {}", auth.getIdentifier().getDomain());
         logger.info("File : {}", challenge.getToken());
         logger.info("Content: {}", challenge.getAuthorization());

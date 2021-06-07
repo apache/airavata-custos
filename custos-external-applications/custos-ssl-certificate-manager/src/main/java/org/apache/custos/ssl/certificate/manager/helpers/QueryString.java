@@ -17,14 +17,13 @@
  * under the License.
  */
 
-package org.apache.custos.ssl.certificate.manager.clients.utils;
+package org.apache.custos.ssl.certificate.manager.helpers;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class QueryString {
-
-    private StringBuilder query = new StringBuilder();
+    private final StringBuilder query = new StringBuilder();
 
     public QueryString(String name, String value) {
         encode(name, value);
@@ -36,13 +35,9 @@ public class QueryString {
     }
 
     private void encode(String name, String value) {
-        try {
-            query.append(URLEncoder.encode(name, "UTF-8"));
-            query.append("=");
-            query.append(URLEncoder.encode(value, "UTF-8"));
-        } catch (UnsupportedEncodingException ex) {
-            throw new RuntimeException("Does not support UTF-8");
-        }
+        query.append(URLEncoder.encode(name, StandardCharsets.UTF_8));
+        query.append("=");
+        query.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
     public String getQuery() {
