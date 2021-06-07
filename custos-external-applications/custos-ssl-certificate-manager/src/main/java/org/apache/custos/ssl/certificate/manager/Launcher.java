@@ -21,19 +21,52 @@ package org.apache.custos.ssl.certificate.manager;
 
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
+import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.Map;
+import java.util.Properties;
 
 public class Launcher {
+    private static final Logger logger = LoggerFactory.getLogger(Launcher.class);
+
     public static void main(String[] args) {
+        JobDataMap dataMap = new JobDataMap();
+        if (args.length > 0) {
+            try (InputStream in = Files.newInputStream(Paths.get(args[0]))) {
+                Properties properties = new Properties();
+                properties.load(in);
+                Enumeration enumeration = properties.propertyNames();
+                while (enumeration.hasMoreElements()) {
+                    String key = (String) enumeration.nextElement();
+                    dataMap.put(key, properties.getProperty(key));
+                }
+            } catch (IOException e) {
+                logger.error("Error reading config file");
+            }
+        } else {
+            Map<String, String> env = System.getenv();
+            for (Map.Entry<String, String> entry : env.entrySet()) {
+                dataMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
         JobDetail job = JobBuilder
                 .newJob(CertUpdater.class)
-                .withIdentity("cert-updater")
-                .usingJobData(Constants.CONFIG_PATH, args.length > 0 ? args[0] : null)
+                .withIdentity("cert-manager")
+                .usingJobData(dataMap)
                 .build();
         Trigger trigger = TriggerBuilder
                 .newTrigger()

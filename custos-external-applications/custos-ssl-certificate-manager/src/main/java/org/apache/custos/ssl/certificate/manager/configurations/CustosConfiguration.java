@@ -21,7 +21,7 @@ package org.apache.custos.ssl.certificate.manager.configurations;
 
 import java.util.Map;
 
-public class CustosConfiguration  {
+public class CustosConfiguration {
 
     private String url;
     private int port;
@@ -37,6 +37,7 @@ public class CustosConfiguration  {
         this.port = Integer.parseInt(env.get(Constants.CUSTOS_PORT));
         this.clientId = env.get(Constants.CUSTOS_CLIENT_ID);
         this.clientSecret = env.get(Constants.CUSTOS_CLIENT_SECRET);
+        this.ownerId = env.get(Constants.CUSTOS_OWNER_ID);
     }
 
     public String getUrl() {

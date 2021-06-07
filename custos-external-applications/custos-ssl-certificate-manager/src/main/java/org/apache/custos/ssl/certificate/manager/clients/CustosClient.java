@@ -23,7 +23,6 @@ import org.apache.custos.clients.CustosClientProvider;
 import org.apache.custos.resource.secret.management.client.ResourceSecretManagementClient;
 import org.apache.custos.resource.secret.service.AddResourceCredentialResponse;
 import org.apache.custos.resource.secret.service.KVCredential;
-import org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus;
 import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
 import org.shredzone.acme4j.Certificate;
 
@@ -43,7 +42,6 @@ public class CustosClient {
                 .setClientId(config.getClientId())
                 .setClientSec(config.getClientSecret())
                 .build();
-
         this.resourceSecretManagementClient = provider.getResourceSecretManagementClient();
     }
 
@@ -51,21 +49,17 @@ public class CustosClient {
         AddResourceCredentialResponse res = resourceSecretManagementClient.addCertificateCredentials(
                 this.config.getClientId(), this.config.getOwnerId(), privateKey,
                 certificate.getCertificate().toString());
-
         return res.getToken();
     }
 
-    public boolean addKVCredential(String key, String value) {
-        ResourceCredentialOperationStatus res = resourceSecretManagementClient.addKVCredentials(
-                this.config.getClientId(), this.config.getOwnerId(), key, value);
-
-        return res.getStatus();
+    public void addKVCredential(String key, String value) {
+        resourceSecretManagementClient.addKVCredentials(this.config.getClientId(), this.config.getOwnerId(), key,
+                value);
     }
 
     public String getKVCredentials(String key) {
         KVCredential kvCredential = resourceSecretManagementClient.getKVCredentials(
                 this.config.getClientId(), this.config.getOwnerId(), key);
-
         return kvCredential.getValue();
     }
 

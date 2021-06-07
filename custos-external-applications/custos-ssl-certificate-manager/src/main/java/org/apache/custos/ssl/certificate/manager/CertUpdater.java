@@ -36,53 +36,47 @@ import org.shredzone.acme4j.challenge.Http01Challenge;
 import org.shredzone.acme4j.exception.AcmeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CertUpdater implements Job {
 
     private static final Logger logger = LoggerFactory.getLogger(CertUpdater.class);
     private CustosClient custosClient;
+    private AcmeClient acmeClient;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
-        Configuration config;
-        String configPath = jobExecutionContext.getJobDetail().getJobDataMap().get(Constants.CONFIG_PATH).toString();
+        Map<String, String> env = new HashMap<>();
+        for (Map.Entry<String, Object> entry : jobExecutionContext.getJobDetail().getJobDataMap().entrySet()) {
+            env.put(entry.getKey(), (String) entry.getValue());
+        }
+
+        NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
+        AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
+        CustosConfiguration custosConfiguration = new CustosConfiguration(env);
+
         try {
-            if (configPath != null) {
-                Yaml yaml = new Yaml();
-                config = yaml.loadAs(Files.newInputStream(Paths.get(configPath)), Configuration.class);
-            } else {
-                config = new Configuration();
-                Map<String, String> env = System.getenv();
-
-                NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
-                AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
-                CustosConfiguration custosConfiguration = new CustosConfiguration(env);
-
-                config.setNginxConfiguration(nginxConfiguration);
-                config.setAcmeConfiguration(acmeConfiguration);
-                config.setCustosConfiguration(custosConfiguration);
-            }
-
             if (custosClient == null) {
-                custosClient = new CustosClient(config.getCustosConfiguration());
+                custosClient = new CustosClient(custosConfiguration);
             }
 
-            AcmeClient acmeClient = new AcmeClient(config.getAcmeConfiguration());
-            KeyPair userKeyPair = getKeyPair("user_key", config.getAcmeConfiguration().getUserKey());
+            if (acmeClient == null) {
+                acmeClient = new AcmeClient(acmeConfiguration);
+            }
+
+
+            KeyPair userKeyPair = getKeyPair("user_key", acmeConfiguration.getUserKey());
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
             if (challenges.size() > 0) {
                 NginxClient.RequestBuilder requestBuilder = new NginxClient.RequestBuilder(
-                        config.getNginxConfiguration().getUrl() +
-                                config.getNginxConfiguration().getFolderPath());
+                        nginxConfiguration.getUrl() +
+                                nginxConfiguration.getFolderPath());
 
                 for (Http01Challenge challenge : challenges) {
                     // Create challenge file in nginx server
@@ -112,7 +106,7 @@ public class CertUpdater implements Job {
                 }
             }
 
-            KeyPair domainKeyPair = getKeyPair("domain_key", config.getAcmeConfiguration().getDomainKey());
+            KeyPair domainKeyPair = getKeyPair("domain_key", acmeConfiguration.getDomainKey());
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
             custosClient.close();
 //            String token = custosClient.addCertificate("test", certificate);

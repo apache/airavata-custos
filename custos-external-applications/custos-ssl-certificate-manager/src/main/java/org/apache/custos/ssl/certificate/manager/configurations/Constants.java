@@ -33,4 +33,5 @@ public class Constants {
     public static final String CUSTOS_PORT = "CUSTOS_PORT";
     public static final String CUSTOS_CLIENT_ID = "CUSTOS_CLIENT_ID";
     public static final String CUSTOS_CLIENT_SECRET = "CUSTOS_CLIENT_SECRET";
+    public static final String CUSTOS_OWNER_ID = "CUSTOS_OWNER_ID";
 }

@@ -32,9 +32,11 @@ public final class Configuration {
     public AcmeConfiguration getAcmeConfiguration() {
         return acmeConfiguration;
     }
+
     public CustosConfiguration getCustosConfiguration() {
         return custosConfiguration;
     }
+
     public NginxConfiguration getNginxConfiguration() {
         return nginxConfiguration;
     }
