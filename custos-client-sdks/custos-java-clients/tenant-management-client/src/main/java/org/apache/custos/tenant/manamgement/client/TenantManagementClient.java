@@ -24,6 +24,7 @@ import io.grpc.Metadata;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
@@ -39,9 +40,8 @@ import java.util.Arrays;
 /**
  * This class contains tenant management operations
  */
-public class TenantManagementClient implements Closeable {
+public class TenantManagementClient extends AbstractClient {
 
-    private ManagedChannel managedChannel;
 
     private TenantManagementServiceGrpc.TenantManagementServiceBlockingStub blockingStub;
 
@@ -49,12 +49,7 @@ public class TenantManagementClient implements Closeable {
     public TenantManagementClient(String serviceHost, int servicePort, String clientId,
                                   String clientSecret) throws IOException {
 
-        managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
-                .sslContext(GrpcSslContexts
-                        .forClient()
-                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
-                        .build())
-                .build();
+        super(serviceHost,servicePort,clientId,clientSecret);
 
         blockingStub = TenantManagementServiceGrpc.newBlockingStub(managedChannel);
 

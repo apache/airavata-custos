@@ -4,6 +4,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.group.management.service.GroupManagementServiceGrpc;
 import org.apache.custos.iam.service.GroupRequest;
@@ -16,16 +17,14 @@ import java.util.Arrays;
 /**
  * This contains group management related functions
  */
-public class GroupManagementClient {
-
-    private ManagedChannel managedChannel;
+public class GroupManagementClient extends AbstractClient {
 
     private GroupManagementServiceGrpc.GroupManagementServiceBlockingStub blockingStub;
 
 
     public GroupManagementClient(String serviceHost, int servicePort, String clientId,
                                  String clientSecret) throws IOException {
-
+        super(serviceHost,servicePort,clientId,clientSecret);
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()

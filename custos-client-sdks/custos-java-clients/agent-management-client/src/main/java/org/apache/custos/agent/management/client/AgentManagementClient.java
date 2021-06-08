@@ -7,6 +7,7 @@ import io.grpc.stub.MetadataUtils;
 import org.apache.custos.agent.management.service.AgentManagementServiceGrpc;
 import org.apache.custos.agent.management.service.AgentRegistrationResponse;
 import org.apache.custos.agent.management.service.AgentSearchRequest;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.iam.service.*;
 
@@ -16,9 +17,9 @@ import java.util.Arrays;
 /**
  * This class contains methods of Agent Management
  */
-public class AgentManagementClient {
+public class AgentManagementClient extends AbstractClient {
 
-    private ManagedChannel managedChannel;
+
 
     private AgentManagementServiceGrpc.AgentManagementServiceBlockingStub blockingStub;
 
@@ -26,13 +27,7 @@ public class AgentManagementClient {
     public AgentManagementClient(String serviceHost, int servicePort, String clientId,
                                  String clientSecret) throws IOException {
 
-        managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
-                .sslContext(GrpcSslContexts
-                        .forClient()
-                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
-                        .build())
-                .build();
-
+        super(serviceHost,servicePort,clientId,clientSecret);
         blockingStub = AgentManagementServiceGrpc.newBlockingStub(managedChannel);
         blockingStub = MetadataUtils.attachHeaders(blockingStub, ClientUtils.getAuthorizationHeader(clientId, clientSecret));
     }

@@ -19,10 +19,8 @@
 
 package org.apache.custos.sharing.management.client;
 
-import io.grpc.ManagedChannel;
-import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.sharing.management.service.SharingManagementServiceGrpc;
 import org.apache.custos.sharing.service.*;
@@ -32,22 +30,15 @@ import java.io.IOException;
 /**
  * Java client to connect with SharingManagementClient
  */
-public class SharingManagementClient {
+public class SharingManagementClient extends AbstractClient {
 
-    private ManagedChannel managedChannel;
 
     private SharingManagementServiceGrpc.SharingManagementServiceBlockingStub blockingStub;
 
 
     public SharingManagementClient(String serviceHost, int servicePort, String clientId,
                                    String clientSecret) throws IOException {
-        managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
-                .sslContext(GrpcSslContexts
-                        .forClient()
-                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
-                        .build())
-                .build();
-
+        super(serviceHost, servicePort, clientId, clientSecret);
         blockingStub = SharingManagementServiceGrpc.newBlockingStub(managedChannel);
         blockingStub = MetadataUtils.attachHeaders(blockingStub, ClientUtils.getAuthorizationHeader(clientId, clientSecret));
     }
@@ -272,6 +263,10 @@ public class SharingManagementClient {
     public GetAllDirectSharingsResponse getAllDirectSharings(String clientId, SharingRequest request) {
         request = request.toBuilder().setClientId(clientId).build();
         return blockingStub.getAllDirectSharings(request);
+    }
+
+    public boolean isShutdown() {
+        return managedChannel.isShutdown();
     }
 
 }
