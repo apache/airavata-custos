@@ -24,6 +24,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.management.service.GetAgentTokenRequest;
@@ -37,10 +38,7 @@ import java.io.IOException;
 /**
  * Java client to connect with the Custos Identity Management Service
  */
-public class IdentityManagementClient implements Closeable {
-
-
-    private ManagedChannel managedChannel;
+public class IdentityManagementClient extends AbstractClient {
 
     private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub blockingStub;
 
@@ -49,7 +47,7 @@ public class IdentityManagementClient implements Closeable {
 
     public IdentityManagementClient(String serviceHost, int servicePort, String clientId,
                                     String clientSecret) throws IOException {
-
+        super(serviceHost,servicePort,clientId,clientSecret);
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()

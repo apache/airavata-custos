@@ -347,9 +347,11 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             LOGGER.debug("Request received to deleteEntity in tenant " + request.getTenantId() +
                     "  with  entity Id " + request.getEntity().getId());
 
+            Entity exEntity  = sharingClient.getEntity(request);
             Status status = sharingClient.deleteEntity(request);
             Map<String, String> value = new HashMap<>();
             value.put("ENTITY_ID", request.getEntity().getId());
+            value.put("ENTITY_TYPE", exEntity.getType());
             eventPublisher.publishMessage(request.getClientId(),
                     request.getTenantId(),
                     "SHARING_MANAGEMENT_SERVICE", "DELETE_ENTITY",
