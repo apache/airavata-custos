@@ -708,9 +708,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while fetching groups of client " + request.getClientId() +
+                    " reason :" + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -780,9 +780,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while add user to  group at  " + request.getTenantId() +
+                    " reason :" + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -816,9 +816,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while removing user from  in client " + request.getClientId() + " reason :"
+                    + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
