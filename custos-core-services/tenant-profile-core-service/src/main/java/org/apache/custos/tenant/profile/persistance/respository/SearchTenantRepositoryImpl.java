@@ -20,6 +20,7 @@
 package org.apache.custos.tenant.profile.persistance.respository;
 
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
+import org.apache.custos.tenant.profile.service.TenantStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -67,6 +68,10 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             query = query + "E.status LIKE :" + "status" + " AND ";
             valueMap.put("status", status);
 
+        } else {
+            String defaultStatus = "'"+TenantStatus.REQUESTED.name()+ "'"+ "," +
+                    "'"+TenantStatus.ACTIVE.name()+"'" + "," + "'"+TenantStatus.DENIED.name()+"'";
+            query = query + "E.status IN (" + defaultStatus + ") AND ";
         }
 
         if (parentId > 0) {
@@ -80,20 +85,21 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             valueMap.put("parent_id", 0);
         }
 
-        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0
-                && (type == null || type.isEmpty()) && !type.equals("ADMIN")) {
-            String directQuery = "SELECT * FROM tenant E ORDER BY E.created_at DESC";
-            if (limit > 0) {
-                directQuery = directQuery + " LIMIT " + ":limit" + " OFFSET " + ":offset";
-                valueMap.put("limit", limit);
-                valueMap.put("offset", offset);
-            }
-            return directQuery;
-        }
+//        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0
+//                && (type == null || type.isEmpty()) && !type.equals("ADMIN")) {
+//            String directQuery = "SELECT * FROM tenant E ORDER BY E.created_at DESC";
+//            if (limit > 0) {
+//                directQuery = directQuery + " LIMIT " + ":limit" + " OFFSET " + ":offset";
+//                valueMap.put("limit", limit);
+//                valueMap.put("offset", offset);
+//            }
+//            return directQuery;
+//        }
 
         query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
+
 
         if (limit > 0) {
             query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
@@ -101,6 +107,7 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             valueMap.put("offset", offset);
         }
 
+        LOGGER.info(query);
         return query;
     }
 
