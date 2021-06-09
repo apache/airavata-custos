@@ -166,7 +166,15 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 org.apache.custos.tenant.profile.service.GetTenantResponse response =
                         profileClient.getTenant(tenantReq);
                 tenant = response.getTenant();
+            }
+            if (tenant.getParentTenantId() > 0) {
+                GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getParentTenantId())
+                        .setType(Type.CUSTOS).build();
 
+                CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                        getCredential(cR);
+                tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
             }
             GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                     .setOwnerId(tenant.getTenantId())
