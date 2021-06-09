@@ -609,6 +609,22 @@ public class KeycloakClient {
         }
     }
 
+    public UserRepresentation getUser(String realmId,  String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName,superAdminPassword);
+            return getUserByUsername(client, realmId, username);
+        } catch (Exception ex) {
+            String msg = "Error retrieving user, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
 
     public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
                                              String username, String firstName, String lastName, String email, String search) {
@@ -1316,7 +1332,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName,superAdminPassword);
 
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);

@@ -402,7 +402,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUser().getUsername(), request.getAccessToken());
+                    request.getUser().getUsername());
 
 
             if (!status) {
@@ -413,7 +413,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getUsername());
+                    request.getUser().getUsername());
 
             if (representation != null) {
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
@@ -643,7 +643,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUsername(), request.getAccessToken());
+                    request.getUsername());
 
 
             if (!status) {
@@ -863,7 +863,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             for (String username : request.getUsernamesList()) {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                        username, request.getAccessToken());
+                        username);
 
                 if (status) {
                     validUserNames.add(username);
