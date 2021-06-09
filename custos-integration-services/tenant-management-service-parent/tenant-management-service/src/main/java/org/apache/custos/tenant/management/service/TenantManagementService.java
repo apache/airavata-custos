@@ -168,15 +168,16 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 tenant = response.getTenant();
 
 
-                if (tenant.getParentTenantId() > 0) {
-                    GetCredentialRequest cR = GetCredentialRequest.newBuilder()
-                            .setOwnerId(tenant.getParentTenantId())
-                            .setType(Type.CUSTOS).build();
 
-                    CredentialMetadata parentMetadata = credentialStoreServiceClient.
-                            getCredential(cR);
-                    tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
-                }
+            }
+            if (tenant.getParentTenantId() > 0) {
+                GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getParentTenantId())
+                        .setType(Type.CUSTOS).build();
+
+                CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                        getCredential(cR);
+                tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
             }
             GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                     .setOwnerId(tenant.getTenantId())
