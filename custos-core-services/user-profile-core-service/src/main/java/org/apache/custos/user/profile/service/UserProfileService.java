@@ -272,7 +272,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
             attributeList.forEach(atr -> {
 
-                List<String> values = atr.getValueList();
+                List<String> values = atr.getValuesList();
                 values.forEach(val -> {
                     List<UserProfile>
                             userAttributes = userAttributeRepository.findFilteredUserProfiles(atr.getKey(), val);
