@@ -47,9 +47,12 @@ import java.util.Optional;
 public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthInterceptorImpl.class);
 
+    private CredentialStoreServiceClient credentialStoreServiceClient;
+
     @Autowired
     public AuthInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient, TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
+        this.credentialStoreServiceClient = credentialStoreServiceClient;
     }
 
     @Override
@@ -112,16 +115,13 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AddUserRolesRequest userAttributesRequest = (AddUserRolesRequest) msg;
             headers = attachUserToken(headers, userAttributesRequest.getClientId());
-            Optional<AuthClaim> claim = authorize(headers, userAttributesRequest.getClientId());
-
-
-            if (claim.isEmpty()) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
+            Optional<AuthClaim> claim =
+                    validateRoleManagementAuthorizations(headers, userAttributesRequest.getClientId());
 
             String oauthId = claim.get().getIamAuthId();
 
             long tenantId = claim.get().getTenantId();
+
 
             Optional<String> userTokenOp = getUserTokenFromUserTokenHeader(headers);
             String userToken = null;
@@ -174,12 +174,8 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             DeleteUserRolesRequest deleteUserRolesRequest = (DeleteUserRolesRequest) msg;
             headers = attachUserToken(headers, deleteUserRolesRequest.getClientId());
-            Optional<AuthClaim> claim = authorize(headers, deleteUserRolesRequest.getClientId());
-
-            if (claim.isEmpty()) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
+            Optional<AuthClaim> claim =
+                    validateRoleManagementAuthorizations(headers, deleteUserRolesRequest.getClientId());
 
             String oauthId = claim.get().getIamAuthId();
             String oauthSec = claim.get().getIamAuthSecret();
@@ -209,12 +205,8 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             UserSearchRequest userSearchRequest = (UserSearchRequest) msg;
             headers = attachUserToken(headers, userSearchRequest.getClientId());
-            Optional<AuthClaim> claim = authorize(headers, userSearchRequest.getClientId());
-
-            if (claim.isEmpty()) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
+            Optional<AuthClaim> claim =
+                    validateRoleManagementAuthorizations(headers, userSearchRequest.getClientId());
             String oauthId = claim.get().getIamAuthId();
             String oauthSec = claim.get().getIamAuthSecret();
 
@@ -262,7 +254,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("deleteUserProfile")) {
             UserProfileRequest request = (UserProfileRequest) msg;
             Optional<AuthClaim> claim = authorize(headers, request.getClientId());
-           return claim.map(cl -> {
+            return claim.map(cl -> {
                 String oauthId = cl.getIamAuthId();
                 String oauthSec = cl.getIamAuthSecret();
 
@@ -464,6 +456,16 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
             return headers;
         }
         return headers;
+    }
+
+    private Optional<AuthClaim> validateRoleManagementAuthorizations(Metadata headers, String clientId) {
+        Optional<AuthClaim> parentClaim = authorizeUsingUserToken(headers);
+        Optional<AuthClaim> claim = authorize(headers, clientId);
+
+        if (claim.isEmpty() || parentClaim.isEmpty() || !parentClaim.get().isAdmin()) {
+            throw new UnAuthorizedException("Request is not authorized", null);
+        }
+        return claim;
     }
 
 
