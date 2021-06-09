@@ -48,7 +48,7 @@ public class InterServiceModelMapper {
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
 
                 userAtrList.add(userAttribute);

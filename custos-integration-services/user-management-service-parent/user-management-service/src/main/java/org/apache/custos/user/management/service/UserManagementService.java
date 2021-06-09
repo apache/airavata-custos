@@ -125,7 +125,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                         org.apache.custos.user.profile.service.UserAttribute
                                                 .newBuilder()
                                                 .setKey(atr.getKey())
-                                                .addAllValue(atr.getValuesList())
+                                                .addAllValues(atr.getValuesList())
                                                 .build();
 
                                 userAtrList.add(userAttribute);
@@ -1342,9 +1342,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
-
                 userAtrList.add(userAttribute);
             });
             profileBuilder.addAllAttributes(userAtrList);
