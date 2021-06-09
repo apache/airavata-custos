@@ -630,7 +630,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                     UserProfile exsistingProfile = userProfileClient.getUser(req);
 
-                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().equals("")) {
+                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
                         userProfileClient.createUserProfile(req);
                     } else {
 
@@ -697,10 +697,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
-        } catch (
-                Exception ex) {
+        } catch (Exception ex) {
             String msg = "Error occurred while delete user roles,  " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg,ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
