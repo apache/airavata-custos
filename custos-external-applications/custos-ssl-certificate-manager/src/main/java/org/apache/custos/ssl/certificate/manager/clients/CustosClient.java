@@ -31,7 +31,7 @@ import java.io.IOException;
 /**
  * Custos client class to perform custos related operations
  */
-public class CustosClient {
+public class CustosClient implements AutoCloseable{
 
     private String clientId;
     private String ownerId;
@@ -96,6 +96,7 @@ public class CustosClient {
      *
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public void close() throws IOException {
         resourceSecretManagementClient.close();
     }

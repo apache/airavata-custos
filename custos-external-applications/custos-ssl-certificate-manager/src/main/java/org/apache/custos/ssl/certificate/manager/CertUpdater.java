@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.Security;
+import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,11 +57,12 @@ public class CertUpdater implements Job {
         for (Map.Entry<String, Object> entry : jobExecutionContext.getJobDetail().getJobDataMap().entrySet()) {
             env.put(entry.getKey(), (String) entry.getValue());
         }
+
         NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
         AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
         CustosConfiguration custosConfiguration = new CustosConfiguration(env);
-        try {
-            CustosClient custosClient = new CustosClient(custosConfiguration);
+
+        try (CustosClient custosClient = new CustosClient(custosConfiguration)) {
             AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
@@ -101,20 +103,20 @@ public class CertUpdater implements Job {
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
             String token = custosClient.addCertificate(CertUtils.convertToString(domainKeyPair),
                     CertUtils.certificateToString(certificate));
+
             if (token == null || token.isEmpty()) {
                 logger.error("Error has occurred while adding certificate to Custos ");
             } else {
                 logger.info("Certificate successfully saved in custos: {}", token);
             }
-            custosClient.close();
         } catch (AcmeException e) {
             logger.error("Acme Exception : {} ", e.getMessage());
         } catch (IOException e) {
             logger.error("IO Exception: {}", e.getMessage());
+        } catch (CertificateEncodingException e) {
+            logger.error("Couldn't get certificate string: {}", e.getMessage());
         } catch (InterruptedException e) {
             logger.error("Couldn't validate challenge. Interrupted.");
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
