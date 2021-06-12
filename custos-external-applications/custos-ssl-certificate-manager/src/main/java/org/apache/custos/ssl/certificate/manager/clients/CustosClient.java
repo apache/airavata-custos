@@ -23,18 +23,21 @@ import org.apache.custos.clients.CustosClientProvider;
 import org.apache.custos.resource.secret.management.client.ResourceSecretManagementClient;
 import org.apache.custos.resource.secret.service.AddResourceCredentialResponse;
 import org.apache.custos.resource.secret.service.KVCredential;
+import org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus;
 import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
-import org.shredzone.acme4j.Certificate;
 
 import java.io.IOException;
 
+/**
+ * Custos client class to perform custos related operations
+ */
 public class CustosClient {
 
-    CustosConfiguration config;
-    ResourceSecretManagementClient resourceSecretManagementClient;
+    private String clientId;
+    private String ownerId;
+    private ResourceSecretManagementClient resourceSecretManagementClient;
 
     public CustosClient(CustosConfiguration config) throws IOException {
-        this.config = config;
         CustosClientProvider provider = new CustosClientProvider
                 .Builder()
                 .setServerHost(config.getUrl())
@@ -43,26 +46,56 @@ public class CustosClient {
                 .setClientSec(config.getClientSecret())
                 .build();
         this.resourceSecretManagementClient = provider.getResourceSecretManagementClient();
+        this.clientId = config.getClientId();
+        this.ownerId = config.getOwnerId();
     }
 
-    public String addCertificate(String privateKey, Certificate certificate) {
+
+    /**
+     * Add ssl certificate to custos
+     *
+     * @param privateKey  private key
+     * @param certificate certificate
+     * @return a token received from custos
+     */
+    public String addCertificate(String privateKey, String certificate) {
         AddResourceCredentialResponse res = resourceSecretManagementClient.addCertificateCredentials(
-                this.config.getClientId(), this.config.getOwnerId(), privateKey,
-                certificate.getCertificate().toString());
+                clientId, ownerId, privateKey, certificate);
         return res.getToken();
     }
 
-    public void addKVCredential(String key, String value) {
-        resourceSecretManagementClient.addKVCredentials(this.config.getClientId(), this.config.getOwnerId(), key,
-                value);
+
+    /**
+     * Add key value credential to custos
+     *
+     * @param key   key
+     * @param value value
+     * @return status of the operation
+     */
+    public boolean addKVCredential(String key, String value) {
+        ResourceCredentialOperationStatus status =
+                resourceSecretManagementClient.addKVCredentials(clientId, ownerId, key, value);
+        return status.getStatus();
     }
 
+
+    /**
+     * Retrieves value for key from custos
+     *
+     * @param key key for the value needs to be retrieved
+     * @return value for the key
+     */
     public String getKVCredentials(String key) {
-        KVCredential kvCredential = resourceSecretManagementClient.getKVCredentials(
-                this.config.getClientId(), this.config.getOwnerId(), key);
+        KVCredential kvCredential = resourceSecretManagementClient.getKVCredentials(clientId, ownerId, key);
         return kvCredential.getValue();
     }
 
+
+    /**
+     * Close the resource management client stream
+     *
+     * @throws IOException if an I/O error occurs
+     */
     public void close() throws IOException {
         resourceSecretManagementClient.close();
     }

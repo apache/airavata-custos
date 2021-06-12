@@ -22,13 +22,23 @@ package org.apache.custos.ssl.certificate.manager.helpers;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-public class QueryString {
+/**
+ * Helper class to build query strings for a url
+ */
+public class QueryStringHelper {
     private final StringBuilder query = new StringBuilder();
 
-    public QueryString(String name, String value) {
+    public QueryStringHelper(String name, String value) {
         encode(name, value);
     }
 
+    /**
+     *
+     * Adds a new name and value to query string
+     *
+     * @param name Name of the query
+     * @param value Value of the query
+     */
     public void add(String name, String value) {
         query.append("&");
         encode(name, value);
@@ -40,6 +50,12 @@ public class QueryString {
         query.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
+    /**
+     *
+     * Returns query string
+     *
+     * @return query string
+     */
     public String toString() {
         return query.toString();
     }

@@ -21,22 +21,22 @@ package org.apache.custos.ssl.certificate.manager.configurations;
 
 import java.util.Map;
 
+/**
+ * Configuration class for Nginx
+ */
 public final class NginxConfiguration {
 
     private String url;
-    private String folderPath;
 
+    /**
+     * @param env Map containing nginx configuration through environment
+     *            variables or application.properties
+     */
     public NginxConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.NGINX_URL);
-        this.folderPath = env.get(Constants.NGINX_CHALLENGE_FOLDER_PATH);
     }
 
     public String getUrl() {
         return url;
     }
-
-    public String getFolderPath() {
-        return folderPath;
-    }
-
 }

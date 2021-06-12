@@ -19,14 +19,14 @@
 
 package org.apache.custos.ssl.certificate.manager;
 
+import org.apache.custos.ssl.certificate.manager.clients.AcmeClient;
 import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
 import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
-import org.apache.custos.ssl.certificate.manager.clients.acme.AcmeClient;
-import org.apache.custos.ssl.certificate.manager.clients.acme.AcmeClientTasks;
 import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 import org.apache.custos.ssl.certificate.manager.utils.KeyUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.shredzone.acme4j.Certificate;
@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,9 +63,11 @@ public class CertUpdater implements Job {
             CustosClient custosClient = new CustosClient(custosConfiguration);
             AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
+
             KeyPair userKeyPair = getKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
+
             for (Http01Challenge challenge : challenges) {
                 String fileName = challenge.getToken();
                 String fileContent = challenge.getAuthorization();
@@ -75,14 +78,21 @@ public class CertUpdater implements Job {
                 }
 
                 challenge.trigger();
-                AcmeClientTasks.validateChallenge(challenge);
+                boolean success = acmeClient.validateChallenge(challenge);
+                if (!success) {
+                    logger.error("Validating challenge timeout before completing.");
+                    throw new AcmeException("Failed to pass the challenge for domain.");
+                } else {
+                    logger.error("Validating challenge completes.");
+                }
+
                 if (challenge.getStatus() != Status.VALID) {
-                    throw new AcmeException("Failed to pass the challenge for domain");
+                    throw new AcmeException("Failed to pass the challenge for domain.");
                 }
 
                 boolean deleteChallengeSuccess = nginxClient.deleteAcmeChallenge(fileName);
                 if (!deleteChallengeSuccess) {
-                    logger.error("Couldn't delete challenge file from nginx server");
+                    logger.error("Couldn't delete challenge file from nginx server.");
                 }
 
                 logger.info("Challenge has been completed.");
@@ -116,5 +126,9 @@ public class CertUpdater implements Job {
         KeyPair keyPair = KeyUtils.getKeyPair(2048);
         custosClient.addKVCredential(key, KeyUtils.convertToString(keyPair));
         return keyPair;
+    }
+
+    public static void addSecurityProvider() {
+        Security.addProvider(new BouncyCastleProvider());
     }
 }

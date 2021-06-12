@@ -65,6 +65,11 @@
             <artifactId>custos-java-sdk</artifactId>
             <version>${custos.java.sdk.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk15on</artifactId>
+            <version>${bouncycastle.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

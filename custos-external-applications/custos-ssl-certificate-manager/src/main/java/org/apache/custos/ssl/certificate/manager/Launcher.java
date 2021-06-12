@@ -63,6 +63,9 @@ public class Launcher {
             }
         }
 
+        // Add BouncyCastleProvider as security provider
+        CertUpdater.addSecurityProvider();
+
         JobDetail job = JobBuilder
                 .newJob(CertUpdater.class)
                 .withIdentity("cert-manager")
@@ -79,7 +82,7 @@ public class Launcher {
             scheduler.start();
             scheduler.scheduleJob(job, trigger);
         } catch (SchedulerException e) {
-            e.printStackTrace();
+            logger.error("Error in scheduler: {}", e.getMessage());
         }
     }
 }

@@ -23,6 +23,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Configuration class for Acme
+ */
 public final class AcmeConfiguration {
 
     private String url;
@@ -30,6 +33,10 @@ public final class AcmeConfiguration {
     private String domainKey;
     private List<String> domains;
 
+    /**
+     * @param env Map containing acme configuration through environment
+     *            variables or application.properties
+     */
     public AcmeConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.ACME_URL);
         this.domains = Arrays.asList(env.get(Constants.ACME_DOMAINS).split(" "));
