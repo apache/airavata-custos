@@ -36,6 +36,9 @@
         <slf4j.version>1.7.30</slf4j.version>
         <quartz.version>2.3.2</quartz.version>
         <custos.java.sdk.version>1.0-SNAPSHOT</custos.java.sdk.version>
+        <maven.jar.plugin.version>3.1.2</maven.jar.plugin.version>
+        <dockerfile.maven.version>1.4.13</dockerfile.maven.version>
+        <docker.id>test</docker.id>
     </properties>
 
     <dependencies>
@@ -75,27 +78,38 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven.jar.plugin.version}</version>
                 <configuration>
                     <archive>
                         <manifest>
+                            <addClasspath>true</addClasspath>
                             <mainClass>org.apache.custos.ssl.certificate.manager.Launcher</mainClass>
                         </manifest>
                     </archive>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile.maven.version}</version>
                 <executions>
                     <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
+                        <id>default</id>
                         <goals>
-                            <goal>single</goal>
+                            <goal>build</goal>
+                            <goal>push</goal>
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <repository>${docker.id}/${project.artifactId}</repository>
+                    <tag>latest</tag>
+                    <buildArgs>
+                        <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

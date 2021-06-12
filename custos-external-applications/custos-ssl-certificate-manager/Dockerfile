@@ -1,4 +1,5 @@
-FROM gcr.io/distroless/java:8
-COPY /target/cert-manager-1.0-SNAPSHOT.jar /app/cert-manager.jar
-WORKDIR /app
-CMD ["cert-manager.jar"]
+FROM openjdk:11-jre-slim
+VOLUME /tmp
+ARG JAR_FILE
+ADD ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
