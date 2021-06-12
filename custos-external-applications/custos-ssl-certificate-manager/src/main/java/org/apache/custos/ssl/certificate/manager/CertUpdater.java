@@ -25,7 +25,7 @@ import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
 import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
-import org.apache.custos.ssl.certificate.manager.utils.KeyUtils;
+import org.apache.custos.ssl.certificate.manager.utils.CertUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -64,7 +64,7 @@ public class CertUpdater implements Job {
             AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
-            KeyPair userKeyPair = getKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
+            KeyPair userKeyPair = this.getKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
 
@@ -94,22 +94,27 @@ public class CertUpdater implements Job {
                 if (!deleteChallengeSuccess) {
                     logger.error("Couldn't delete challenge file from nginx server.");
                 }
-
-                logger.info("Challenge has been completed.");
             }
-            KeyPair domainKeyPair = getKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(), custosClient);
+
+            KeyPair domainKeyPair = this.getKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(),
+                    custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
+            String token = custosClient.addCertificate(CertUtils.convertToString(domainKeyPair),
+                    CertUtils.certificateToString(certificate));
+            if (token == null || token.isEmpty()) {
+                logger.error("Error has occurred while adding certificate to Custos ");
+            } else {
+                logger.info("Certificate successfully saved in custos: {}", token);
+            }
             custosClient.close();
-//            String token = custosClient.addCertificate("test", certificate);
-//            if (token == null || token.isEmpty()) {
-//                logger.error("Error has occurred while adding certificate to Custos ");
-//            }
         } catch (AcmeException e) {
             logger.error("Acme Exception : {} ", e.getMessage());
         } catch (IOException e) {
             logger.error("IO Exception: {}", e.getMessage());
         } catch (InterruptedException e) {
             logger.error("Couldn't validate challenge. Interrupted.");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -118,17 +123,20 @@ public class CertUpdater implements Job {
         if (keyPairValue == null || keyPairValue.isEmpty()) {
             try {
                 keyPairValue = custosClient.getKVCredentials(key);
-                return KeyUtils.convertToKeyPair(keyPairValue);
+                logger.info("{} is available in Custos.", key);
+                return CertUtils.convertToKeyPair(keyPairValue);
             } catch (Exception e) {
-                logger.error("Key {} not in custos.", key);
+                logger.error("Key {} isn't available in Custos.", key);
             }
         }
-        KeyPair keyPair = KeyUtils.getKeyPair(2048);
-        custosClient.addKVCredential(key, KeyUtils.convertToString(keyPair));
+
+        logger.info("Creating new {} key pair", key);
+        KeyPair keyPair = CertUtils.getKeyPair(2048);
+        custosClient.addKVCredential(key, CertUtils.convertToString(keyPair));
         return keyPair;
     }
 
-    public static void addSecurityProvider() {
+    public static void setupSecurityProvider() {
         Security.addProvider(new BouncyCastleProvider());
     }
 }

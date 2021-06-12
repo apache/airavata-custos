@@ -22,10 +22,8 @@ package org.apache.custos.ssl.certificate.manager;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
@@ -64,23 +62,18 @@ public class Launcher {
         }
 
         // Add BouncyCastleProvider as security provider
-        CertUpdater.addSecurityProvider();
+        CertUpdater.setupSecurityProvider();
 
-        JobDetail job = JobBuilder
-                .newJob(CertUpdater.class)
-                .withIdentity("cert-manager")
-                .usingJobData(dataMap)
-                .build();
-        Trigger trigger = TriggerBuilder
+        JobBuilder jobBuilder = JobBuilder.newJob(CertUpdater.class).withIdentity("cert-manager").usingJobData(dataMap);
+        TriggerBuilder triggerBuilder = TriggerBuilder
                 .newTrigger()
                 .withIdentity("cert-updater-trigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0/1 * 1/1 * ? *"))
-                .build();
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0/1 * 1/1 * ? *"));
 
         try {
             Scheduler scheduler = new StdSchedulerFactory().getScheduler();
             scheduler.start();
-            scheduler.scheduleJob(job, trigger);
+            scheduler.scheduleJob(jobBuilder.build(), triggerBuilder.build());
         } catch (SchedulerException e) {
             logger.error("Error in scheduler: {}", e.getMessage());
         }

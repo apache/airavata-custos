@@ -205,9 +205,7 @@ public class AcmeClient {
         if (challenge == null) {
             throw new AcmeException("Found no " + Http01Challenge.TYPE + " challenge");
         }
-        logger.info("Domain : {}", auth.getIdentifier().getDomain());
-        logger.info("File : {}", challenge.getToken());
-        logger.info("Content: {}", challenge.getAuthorization());
+        logger.info("Created challenge for domain : {}", auth.getIdentifier().getDomain());
         return challenge;
     }
 }
