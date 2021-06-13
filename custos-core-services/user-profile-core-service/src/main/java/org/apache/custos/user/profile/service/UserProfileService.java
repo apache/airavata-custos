@@ -740,7 +740,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
 
                     String type = request.getType();
-                    if (type == null || type.trim().equals("")) {
+                    if (type == null || type.trim().isEmpty()) {
                         type = DefaultGroupMembershipTypes.MEMBER.name();
                     } else {
                         type = type.toUpperCase();
