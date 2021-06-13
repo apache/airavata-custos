@@ -327,7 +327,8 @@ public class KeycloakAuthClient {
                 userInfo.has("given_name")?userInfo.getString("given_name"):"",
                 userInfo.has("family_name")?userInfo.getString("family_name"):"",
                 userInfo.has("email")?userInfo.getString("email"):"",
-                userInfo.getString("preferred_username"));
+                userInfo.getString("preferred_username"),
+                userInfo.getString("azp"));
     }
 
 

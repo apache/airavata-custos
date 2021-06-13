@@ -43,6 +43,7 @@ message User {
     string last_name = 4;
     string email_address = 5;
     string username = 6;
+    string client_id = 7;
 }
 
 

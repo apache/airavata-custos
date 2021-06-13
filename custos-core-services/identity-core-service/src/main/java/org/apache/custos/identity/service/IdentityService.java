@@ -125,6 +125,7 @@ public class IdentityService extends IdentityServiceImplBase {
                             .setFullName(user.getFullName())
                             .setSub(user.getSub())
                             .setUsername(user.getUsername())
+                            .setClientId(user.getClientId())
                             .build();
             responseObserver.onNext(user1);
             responseObserver.onCompleted();
