@@ -33,17 +33,15 @@ public class User {
 
     private String username;
 
-    private String clientId;
 
     public User(String sub, String fullName, String firstName, String lastName, String emailAddress,
-                String username, String clientId) {
+                String username) {
         this.sub = sub;
         this.fullName = fullName;
         this.firstName = firstName;
         this.lastName = lastName;
         this.emailAddress = emailAddress;
         this.username = username;
-        this.clientId = clientId;
     }
 
     public String getSub() {
@@ -94,11 +92,4 @@ public class User {
         this.username = username;
     }
 
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
 }
