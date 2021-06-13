@@ -101,9 +101,9 @@ public class CertUpdater implements Job {
             KeyPair domainKeyPair = this.getKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(),
                     custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
-            String token = custosClient.addCertificate(CertUtils.convertToString(domainKeyPair),
-                    CertUtils.certificateToString(certificate));
-
+            String privateKey = CertUtils.toString(domainKeyPair);
+            String certString = CertUtils.toString(certificate);
+            String token = custosClient.addCertificate(privateKey, certString);
             if (token == null || token.isEmpty()) {
                 logger.error("Error has occurred while adding certificate to Custos ");
             } else {
@@ -114,13 +114,14 @@ public class CertUpdater implements Job {
         } catch (IOException e) {
             logger.error("IO Exception: {}", e.getMessage());
         } catch (CertificateEncodingException e) {
-            logger.error("Couldn't get certificate string: {}", e.getMessage());
+            logger.error("Cert credential error: {}", e.getMessage());
         } catch (InterruptedException e) {
             logger.error("Couldn't validate challenge. Interrupted.");
         }
     }
 
-    private KeyPair getKeyPair(String key, String value, CustosClient custosClient) throws IOException {
+    private KeyPair getKeyPair(String key, String value, CustosClient custosClient)
+            throws IOException, CertificateEncodingException {
         String keyPairValue = value;
         if (keyPairValue == null || keyPairValue.isEmpty()) {
             try {
@@ -134,7 +135,7 @@ public class CertUpdater implements Job {
 
         logger.info("Creating new {} key pair", key);
         KeyPair keyPair = CertUtils.getKeyPair(2048);
-        custosClient.addKVCredential(key, CertUtils.convertToString(keyPair));
+        custosClient.addKVCredential(key, CertUtils.toString(keyPair));
         return keyPair;
     }
 

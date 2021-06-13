@@ -22,7 +22,6 @@ package org.apache.custos.ssl.certificate.manager.configurations;
 public class Constants {
 
     public static final String NGINX_URL = "NGINX_URL";
-    public static final String NGINX_CHALLENGE_FOLDER_PATH = "NGINX_CHALLENGE_FOLDER_PATH";
 
     public static final String ACME_URL = "ACME_URL";
     public static final String ACME_DOMAINS = "ACME_DOMAINS";
