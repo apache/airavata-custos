@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
+public class SearchEntityRepositoryImpl implements SearchEntityRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchEntityRepositoryImpl.class);
 
@@ -43,11 +43,10 @@ public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
     EntityManager entityManager;
 
     @Override
-    public List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria) {
+    public List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria, int limit, int offset) {
 
         Map<String, Object> valueMap = new HashMap<>();
-        String query = createSQLQuery(tenantId,searchCriteria, valueMap);
-
+        String query = createSQLQuery(tenantId, searchCriteria, valueMap, limit, offset);
 
 
         Query q = entityManager.createNativeQuery(query, Entity.class);
@@ -60,9 +59,11 @@ public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
     }
 
 
-    private String createSQLQuery(long tenantId, List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap) {
+    private String createSQLQuery(long tenantId, List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap, int limit, int offset) {
 
         String query = "SELECT * FROM entity E WHERE ";
+        query = query + "E.tenant_id = :" + "TENANT_ID" + " AND ";
+        valueMap.put("TENANT_ID", tenantId);
 
         for (SearchCriteria searchCriteria : searchCriteriaList) {
 
@@ -110,7 +111,7 @@ public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
                 } else {
                     query = query + "E.entity_type_id != :" + EntitySearchField.ENTITY_TYPE_ID.name() + " AND ";
                 }
-                valueMap.put(EntitySearchField.ENTITY_TYPE_ID.name(), searchCriteria.getValue()+"@"+tenantId);
+                valueMap.put(EntitySearchField.ENTITY_TYPE_ID.name(), searchCriteria.getValue() + "@" + tenantId);
             } else if (searchCriteria.getSearchField().equals(EntitySearchField.CREATED_AT)) {
                 if (searchCriteria.getCondition().equals(SearchCondition.GTE)) {
                     query = query + "E.created_at >= :" + EntitySearchField.CREATED_AT.name() + " AND ";
@@ -142,9 +143,15 @@ public  class SearchEntityRepositoryImpl implements SearchEntityRepository {
             }
 
         }
-        query = query.substring(0, query.length() - 5);
 
+        query = query.substring(0, query.length() - 5);
         query = query + " ORDER BY E.created_at DESC";
+
+        if (limit > 0) {
+            query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
+            valueMap.put("limit", limit);
+            valueMap.put("offset", offset);
+        }
 
         return query;
     }

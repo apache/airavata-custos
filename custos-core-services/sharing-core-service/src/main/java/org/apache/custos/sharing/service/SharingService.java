@@ -739,9 +739,10 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     + request.getTenantId());
 
             long tenantId = request.getTenantId();
+            int limit = request.getLimit() == 0 ? -1 : request.getLimit();
 
             List<org.apache.custos.sharing.persistance.model.Entity> entities = entityRepository.
-                    searchEntities(tenantId, request.getSearchCriteriaList());
+                    searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
 
             HashMap<String, org.apache.custos.sharing.service.Entity> entryMap = new HashMap<>();
 

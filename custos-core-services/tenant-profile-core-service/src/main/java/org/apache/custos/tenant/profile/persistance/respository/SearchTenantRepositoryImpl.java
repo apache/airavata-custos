@@ -85,17 +85,6 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             valueMap.put("parent_id", 0);
         }
 
-//        if ((requestEmail == null || requestEmail.isEmpty()) && (status == null || status.isEmpty()) && parentId == 0
-//                && (type == null || type.isEmpty()) && !type.equals("ADMIN")) {
-//            String directQuery = "SELECT * FROM tenant E ORDER BY E.created_at DESC";
-//            if (limit > 0) {
-//                directQuery = directQuery + " LIMIT " + ":limit" + " OFFSET " + ":offset";
-//                valueMap.put("limit", limit);
-//                valueMap.put("offset", offset);
-//            }
-//            return directQuery;
-//        }
-
         query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
@@ -107,7 +96,6 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
             valueMap.put("offset", offset);
         }
 
-        LOGGER.info(query);
         return query;
     }
 

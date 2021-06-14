@@ -239,14 +239,6 @@ public class InputValidator implements Validator {
             if (entityRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-
-            if (entityRequest.getSearchCriteriaList() == null) {
-                throw new MissingParameterException("Search Criteria  not found ", null);
-            }
-
-            if (entityRequest.getSearchCriteriaList().isEmpty()) {
-                throw new MissingParameterException("Search Criteria  not found ", null);
-            }
         } else {
             throw new RuntimeException("Unexpected input type for method " + methodName);
         }
