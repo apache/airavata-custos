@@ -168,6 +168,10 @@ message GetAllDirectSharingsResponse {
     repeated SharingMetadata  shared_data = 1;
 }
 
+message GetAllSharingsResponse {
+    repeated SharingMetadata  shared_data = 1;
+}
+
 message SharingMetadata {
     Entity entity = 1;
     string owner_id = 2;
@@ -204,6 +208,7 @@ service SharingService {
     rpc getListOfSharedGroups (SharingRequest) returns (SharedOwners);
     rpc getListOfDirectlySharedGroups (SharingRequest) returns (SharedOwners);
     rpc getAllDirectSharings (SharingRequest) returns (GetAllDirectSharingsResponse);
+    rpc getAllSharings (SharingRequest) returns (GetAllSharingsResponse);
 
     rpc shareEntityWithUsers (SharingRequest) returns (Status);
     rpc shareEntityWithGroups (SharingRequest) returns (Status);

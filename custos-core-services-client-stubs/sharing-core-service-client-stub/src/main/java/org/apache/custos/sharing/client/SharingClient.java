@@ -191,5 +191,9 @@ public class SharingClient {
         return sharingServiceBlockingStub.getAllDirectSharings(request);
     }
 
+    public GetAllSharingsResponse getAllSharings(org.apache.custos.sharing.service.SharingRequest request){
+        return sharingServiceBlockingStub.getAllSharings(request);
+    }
+
 
 }
