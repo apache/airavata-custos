@@ -347,7 +347,7 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             LOGGER.debug("Request received to deleteEntity in tenant " + request.getTenantId() +
                     "  with  entity Id " + request.getEntity().getId());
 
-            Entity exEntity  = sharingClient.getEntity(request);
+            Entity exEntity = sharingClient.getEntity(request);
             Status status = sharingClient.deleteEntity(request);
             Map<String, String> value = new HashMap<>();
             value.put("ENTITY_ID", request.getEntity().getId());
@@ -479,6 +479,23 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at getAllDirectSharings " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getAllSharings(SharingRequest request, StreamObserver<GetAllSharingsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllSharings in tenant " + request.getTenantId());
+
+            GetAllSharingsResponse response = sharingClient.getAllSharings(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllSharings " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }

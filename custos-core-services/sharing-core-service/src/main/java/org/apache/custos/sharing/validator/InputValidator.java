@@ -94,6 +94,7 @@ public class InputValidator implements Validator {
                 validateCheckAccessRequest(obj, methodName);
                 break;
             case "getAllDirectSharings":
+            case "getAllSharings":
                 validateGetAllDirectSharings(obj, methodName);
                 break;
             default:
@@ -261,13 +262,13 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Entity id is  not found ", null);
             }
 
-            if (entityRequest.getPermissionType() == null) {
-                throw new MissingParameterException("Permission Type is  not found ", null);
-            }
-
-            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
-                throw new MissingParameterException("Permission Type Id is  not found ", null);
-            }
+//            if (entityRequest.getPermissionType() == null) {
+//                throw new MissingParameterException("Permission Type is  not found ", null);
+//            }
+//
+//            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
+//                throw new MissingParameterException("Permission Type Id is  not found ", null);
+//            }
 
 
         } else {
