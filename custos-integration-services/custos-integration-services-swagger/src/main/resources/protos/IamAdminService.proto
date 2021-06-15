@@ -406,6 +406,10 @@ message GetAllResourcesResponse {
     repeated UserRepresentation users = 2;
 }
 
+message DeleteExternalIDPsRequest {
+    int64 tenant_id= 1;
+    string client_id = 2;
+}
 
 service IamAdminService {
 
@@ -429,6 +433,7 @@ service IamAdminService {
     rpc resetPassword (ResetUserPassword) returns (OperationStatus);
     rpc grantAdminPrivilege (UserSearchRequest) returns (OperationStatus);
     rpc removeAdminPrivilege (UserSearchRequest) returns (OperationStatus);
+    rpc deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest) returns (OperationStatus);
 
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);

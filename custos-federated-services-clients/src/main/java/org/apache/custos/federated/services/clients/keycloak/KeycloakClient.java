@@ -609,10 +609,10 @@ public class KeycloakClient {
         }
     }
 
-    public UserRepresentation getUser(String realmId,  String username) {
+    public UserRepresentation getUser(String realmId, String username) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName,superAdminPassword);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             return getUserByUsername(client, realmId, username);
         } catch (Exception ex) {
             String msg = "Error retrieving user, reason: " + ex.getMessage();
@@ -755,7 +755,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL,superAdminRealmID,superAdminUserName,superAdminPassword);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             for (String username : users) {
 
                 UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
@@ -799,7 +799,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL,superAdminRealmID,superAdminUserName,superAdminPassword);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
 
             if (representation != null) {
@@ -1332,7 +1332,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName,superAdminPassword);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);
@@ -1350,6 +1350,40 @@ public class KeycloakClient {
             return null;
         } catch (Exception ex) {
             String msg = "Error occurred while pulling active user sessions, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    public boolean deleteExternalIDPLinks(String realmId) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().list();
+            userResourceList.forEach(user -> {
+                UserResource userResource = realmResource.users().get(user.getId());
+                List<FederatedIdentityRepresentation> federatedIdentityRepresentations =
+                        userResource.getFederatedIdentity();
+                if (federatedIdentityRepresentations != null && !federatedIdentityRepresentations.isEmpty()) {
+                    federatedIdentityRepresentations.forEach(fed -> {
+                        userResource.removeFederatedIdentity(fed.getIdentityProvider());
+                    });
+                }
+            });
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting external IDP links of realm "
+                    + realmId + ", reason " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
 

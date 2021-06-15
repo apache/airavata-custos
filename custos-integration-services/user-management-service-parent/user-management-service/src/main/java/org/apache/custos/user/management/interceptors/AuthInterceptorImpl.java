@@ -443,6 +443,21 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                     .setPerformedBy(Constants.SYSTEM)
                     .build();
 
+        } else if (method.equals("deleteExternalIDPsOfUsers")) {
+            DeleteExternalIDPsRequest deleteExternalIDPsRequest = (DeleteExternalIDPsRequest) msg;
+
+            Optional<AuthClaim> claim = authorize(headers, deleteExternalIDPsRequest.getClientId());
+
+            if (claim.isEmpty()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            String oauthId = claim.get().getIamAuthId();
+            long tenantId = claim.get().getTenantId();
+
+            return (ReqT) ((DeleteExternalIDPsRequest) msg).toBuilder()
+                    .setTenantId(tenantId)
+                    .setClientId(oauthId)
+                    .build();
         }
 
         return msg;
