@@ -47,6 +47,12 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
 
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
+            "and s.sharing_type IN ?3", nativeQuery = true)
+    public List<Sharing> findAllByEntityAndSharingType
+            (long tenantId, String entityId,  List<String> sharingTypes);
+
+
+    @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.permission_type_id = ?3 and s.associating_id_type = ?4", nativeQuery = true)
     public List<Sharing> findAllByEntityAndPermissionTypeAndOwnerType
             (long tenantId, String entityId, String permissionTypeId, String associatingIdType);
