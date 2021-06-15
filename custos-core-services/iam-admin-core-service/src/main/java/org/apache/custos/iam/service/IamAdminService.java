@@ -538,6 +538,22 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
+    public void deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest request,
+                                              StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            boolean status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId));
+            responseObserver.onNext(org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build());
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while deletingExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
     public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         String userId = request.getUser().getUsername() + "@" + request.getTenantId();
 

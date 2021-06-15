@@ -699,7 +699,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
         } catch (Exception ex) {
             String msg = "Error occurred while delete user roles,  " + ex.getMessage();
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -1266,6 +1266,24 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
         }
     }
 
+
+    @Override
+    public void deleteExternalIDPsOfUsers(DeleteExternalIDPsRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteExternalIDPsOfUsers for " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.deleteExternalIDPLinksOfUsers(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  deleting external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
 
     @Override
     public void synchronizeUserDBs(SynchronizeUserDBRequest request, StreamObserver<OperationStatus> responseObserver) {
