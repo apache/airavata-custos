@@ -504,9 +504,11 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             List<String> sharingType = new ArrayList<>();
             sharingType.add(Constants.INDIRECT_CASCADING);
-            List<Sharing> sharings = sharingRepository.findAllByEntityAndSharingTypeAndPermissionType(tenantId,
-                    enModel.getId(),
-                    optionalPermissionType.get().getId(), sharingType);
+            sharingType.add(Constants.DIRECT_CASCADING);
+            sharingType.add(Constants.DIRECT_NON_CASCADING);
+
+            List<Sharing> sharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
+                    enModel.getId(), sharingType);
 
 
             if (sharings != null && sharings.size() > 0) {
@@ -597,9 +599,11 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             }
             List<String> sharingType = new ArrayList<>();
             sharingType.add(Constants.INDIRECT_CASCADING);
+            sharingType.add(Constants.DIRECT_CASCADING);
+            sharingType.add(Constants.DIRECT_NON_CASCADING);
 
-            List<Sharing> sharings = sharingRepository.findAllByEntityAndSharingTypeAndPermissionType(tenantId,
-                    internalEntityId, optionalPermissionType.get().getId(), sharingType);
+            List<Sharing> sharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
+                    internalEntityId, sharingType);
 
             if (sharings != null && sharings.size() > 0) {
                 newEntity.setSharedCount(sharings.size());
@@ -1298,7 +1302,6 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
         if (sharings != null && !sharings.isEmpty()) {
 
-            LOGGER.info("Sharing s found for entity with Id " + internalParentId);
             for (Sharing sharing : sharings) {
                 Sharing newShr = SharingMapper.getNewSharing(sharing, tenantId, entity);
                 newShr.setSharingType(Constants.INDIRECT_CASCADING);
@@ -1380,7 +1383,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
         Optional<org.apache.custos.sharing.persistance.model.PermissionType> optionalOwnerPermissionType =
                 permissionTypeRepository.findByExternalIdAndTenantId(Constants.OWNER, tenantId);
 
-        if (optionalOwnerPermissionType.get().equals(internalPermissionId)) {
+        if (optionalOwnerPermissionType.get().getId().equals(internalPermissionId)) {
             String msg = "Owner permission type can not be assigned";
             LOGGER.error(msg);
             responseObserver.onError(io.grpc.Status.PERMISSION_DENIED.withDescription(msg).asRuntimeException());
@@ -1426,22 +1429,48 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
         }
 
-
         if (!effectiveSharings.isEmpty()) {
             sharingRepository.saveAll(effectiveSharings);
+
+            //revoke other permissions
+            for (String userId : userIds) {
+                List<org.apache.custos.sharing.persistance.model.PermissionType> existingPermissionTypes =
+                        permissionTypeRepository.findAllByTenantId(tenantId);
+
+                existingPermissionTypes.forEach(permission -> {
+                    if (!(permission.getExternalId().equals(Constants.OWNER) || permission.getId().equals(internalPermissionId))) {
+                        sharingRepository.
+                                deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
+                                        internalEntityId,
+                                        permission.getId(),
+                                        userId,
+                                        tenantId,
+                                        internalEntityId);
+                        sharingRepository.deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAndAssociatingId(
+                                internalEntityId,
+                                permission.getId(),
+                                tenantId,
+                                Constants.INDIRECT_CASCADING,
+                                userId);
+                    }
+                });
+            }
 
 
             List<String> checkTypes = new ArrayList<>();
             checkTypes.add(Constants.INDIRECT_CASCADING);
+            checkTypes.add(Constants.DIRECT_CASCADING);
+            checkTypes.add(Constants.DIRECT_NON_CASCADING);
 
-            List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingTypeAndPermissionType(tenantId,
-                    internalEntityId, optionalPermissionType.get().getId(), checkTypes);
+            List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
+                    internalEntityId, checkTypes);
             org.apache.custos.sharing.persistance.model.Entity entity = entityOptional.get();
             if (newSharings != null && newSharings.size() > 0) {
                 entity.setSharedCount(newSharings.size());
+                entityRepository.save(entity);
             }
 
-            entityRepository.save(entity);
+
         }
 
         org.apache.custos.sharing.service.Status status = org.apache.custos.sharing.service.Status
@@ -1450,7 +1479,6 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                 .build();
         responseObserver.onNext(status);
         responseObserver.onCompleted();
-
 
     }
 
@@ -1492,7 +1520,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
         Optional<org.apache.custos.sharing.persistance.model.PermissionType> optionalOwnerPermissionType =
                 permissionTypeRepository.findByExternalIdAndTenantId(Constants.OWNER, tenantId);
 
-        if (optionalOwnerPermissionType.get().equals(internalPermissionType)) {
+        if (optionalOwnerPermissionType.get().getId().equals(internalPermissionType)) {
             String msg = "Owner permission type can not be assigned";
             LOGGER.error(msg);
             responseObserver.onError(io.grpc.Status.PERMISSION_DENIED.withDescription(msg).asRuntimeException());
@@ -1502,7 +1530,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
         for (String userId : usersList) {
 
-            LOGGER.info("deleting " + userId + ":" + internalEntityId + ":" + internalPermissionType + ":" + tenantId);
+            LOGGER.debug("deleting " + userId + ":" + internalEntityId + ":" + internalPermissionType + ":" + tenantId);
             sharingRepository.
                     deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
                             internalEntityId,
@@ -1521,15 +1549,17 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
         List<String> checkTypes = new ArrayList<>();
         checkTypes.add(Constants.INDIRECT_CASCADING);
+        checkTypes.add(Constants.DIRECT_CASCADING);
+        checkTypes.add(Constants.DIRECT_NON_CASCADING);
 
-        List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingTypeAndPermissionType(tenantId,
-                internalEntityId, optionalPermissionType.get().getId(), checkTypes);
+        List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
+                internalEntityId, checkTypes);
         org.apache.custos.sharing.persistance.model.Entity entity = entityOptional.get();
         if (newSharings != null && newSharings.size() > 0) {
             entity.setSharedCount(newSharings.size());
+            entityRepository.save(entity);
         }
 
-        entityRepository.save(entity);
 
         org.apache.custos.sharing.service.Status status = org.apache.custos.sharing.service.Status
                 .newBuilder()
