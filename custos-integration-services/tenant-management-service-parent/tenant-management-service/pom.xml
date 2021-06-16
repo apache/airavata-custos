@@ -78,6 +78,11 @@
             <artifactId>custos-integration-services-commons</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
           <dependency>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-starter-web</artifactId>
@@ -129,6 +134,12 @@
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>messaging-core-service-client-stub</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-service-client-stub</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

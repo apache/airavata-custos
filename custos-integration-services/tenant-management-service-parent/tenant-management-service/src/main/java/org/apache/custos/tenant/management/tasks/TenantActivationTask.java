@@ -33,13 +33,14 @@ import org.apache.custos.iam.service.SetUpTenantRequest;
 import org.apache.custos.iam.service.SetUpTenantResponse;
 import org.apache.custos.integration.core.ServiceException;
 import org.apache.custos.integration.core.ServiceTaskImpl;
+import org.apache.custos.sharing.client.SharingClient;
+import org.apache.custos.sharing.service.EntityType;
+import org.apache.custos.sharing.service.EntityTypeRequest;
+import org.apache.custos.sharing.service.PermissionType;
+import org.apache.custos.sharing.service.PermissionTypeRequest;
 import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.*;
-import org.apache.custos.user.profile.client.UserProfileClient;
-import org.apache.custos.user.profile.service.UserProfile;
-import org.apache.custos.user.profile.service.UserProfileRequest;
-import org.apache.custos.user.profile.service.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,9 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
     @Autowired
     private TenantProfileClient profileClient;
+
+    @Autowired
+    private SharingClient sharingClient;
 
 
     @Override
@@ -109,7 +113,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
                         UpdateStatusResponse response = null;
                         if (iamMetadata == null || iamMetadata.getId() == null || iamMetadata.getId().equals("")) {
-                             response = this.activateTenant(newTenant, Constants.SYSTEM, false);
+                            response = this.activateTenant(newTenant, Constants.SYSTEM, false);
                         } else {
                             response = this.activateTenant(newTenant, Constants.SYSTEM, true);
                         }
@@ -192,7 +196,8 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                 .setOwnerId(tenant.getTenantId())
                 .setType(Type.CILOGON).build();
 
-        String ciLogonRedirectURI = iamAdminServiceClient.getIamServerURL() + "realms" + "/" + tenant.getTenantId() + "/" + "broker" + "/" + "oidc" + "/" + "endpoint";
+        String ciLogonRedirectURI = iamAdminServiceClient.getIamServerURL() +
+                "realms" + "/" + tenant.getTenantId() + "/" + "broker" + "/" + "oidc" + "/" + "endpoint";
 
 
         List<String> arrayList = new ArrayList<>();
@@ -242,6 +247,34 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
                     .setType(FederatedIDPs.CILOGON)
                     .build();
             iamAdminServiceClient.configureFederatedIDP(request);
+
+            PermissionType permissionType = PermissionType
+                    .newBuilder()
+                    .setId("OWNER")
+                    .setName("OWNER")
+                    .setDescription("Owner permission type").build();
+
+            PermissionTypeRequest permissionTypeRequest = PermissionTypeRequest
+                    .newBuilder()
+                    .setPermissionType(permissionType)
+                    .setTenantId(tenant.getTenantId())
+                    .build();
+            sharingClient.createPermissionType(permissionTypeRequest);
+
+            EntityType entityType = EntityType
+                    .newBuilder()
+                    .setId("SECRET")
+                    .setName("SECRET")
+                    .setDescription("Secret entity type").build();
+
+            EntityTypeRequest entityTypeRequest = EntityTypeRequest
+                    .newBuilder()
+                    .setEntityType(entityType)
+                    .setTenantId(tenant.getTenantId())
+                    .build();
+            sharingClient.createEntityType(entityTypeRequest);
+
+
         }
 
         org.apache.custos.tenant.profile.service.UpdateStatusRequest updateTenantRequest =
