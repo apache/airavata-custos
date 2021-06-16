@@ -125,7 +125,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                                         org.apache.custos.user.profile.service.UserAttribute
                                                 .newBuilder()
                                                 .setKey(atr.getKey())
-                                                .addAllValue(atr.getValuesList())
+                                                .addAllValues(atr.getValuesList())
                                                 .build();
 
                                 userAtrList.add(userAttribute);
@@ -630,7 +630,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                     UserProfile exsistingProfile = userProfileClient.getUser(req);
 
-                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().equals("")) {
+                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
                         userProfileClient.createUserProfile(req);
                     } else {
 
@@ -697,10 +697,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
-        } catch (
-                Exception ex) {
+        } catch (Exception ex) {
             String msg = "Error occurred while delete user roles,  " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             if (ex.getMessage().contains("UNAUTHENTICATED")) {
                 responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
             } else {
@@ -1269,6 +1268,24 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
 
     @Override
+    public void deleteExternalIDPsOfUsers(DeleteExternalIDPsRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteExternalIDPsOfUsers for " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.deleteExternalIDPLinksOfUsers(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  deleting external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
     public void synchronizeUserDBs(SynchronizeUserDBRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
 
@@ -1343,9 +1360,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
-
                 userAtrList.add(userAttribute);
             });
             profileBuilder.addAllAttributes(userAtrList);

@@ -154,7 +154,7 @@ service IdentityManagementService {
     rpc isAgentAuthenticated(org.apache.custos.identity.service.AuthToken) returns (org.apache.custos.identity.service.IsAuthenticatedResponse) {
         option (google.api.http) = {
            post: "/identity-management/v1.0.0/agent/authentication/status"
-           body: "body"
+
          };
     }
 }

@@ -22,16 +22,14 @@ package org.apache.custos.resource.secret.management.client;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Struct;
 import io.grpc.ManagedChannel;
-import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc;
 import org.apache.custos.resource.secret.service.*;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +37,8 @@ import java.util.Map;
 /**
  * This class is responsible for managing resource secrets
  */
-public class ResourceSecretManagementClient implements Closeable {
+public class ResourceSecretManagementClient extends AbstractClient {
 
-    private ManagedChannel managedChannel;
 
     private ResourceSecretManagementServiceGrpc.ResourceSecretManagementServiceBlockingStub blockingStub;
 
@@ -51,14 +48,7 @@ public class ResourceSecretManagementClient implements Closeable {
 
     public ResourceSecretManagementClient(String serviceHost, int servicePort, String clientId,
                                           String clientSecret) throws IOException {
-
-        managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
-                .sslContext(GrpcSslContexts
-                        .forClient()
-                        .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
-                        .build())
-                .build();
-
+        super(serviceHost, servicePort, clientId, clientSecret);
         blockingStub = ResourceSecretManagementServiceGrpc.newBlockingStub(managedChannel);
 
         blockingStub = MetadataUtils.attachHeaders(blockingStub,

@@ -63,7 +63,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
         if (method.equals("authenticate")) {
             Optional<AuthClaim> claim = authorize(headers);
-           return claim.map(cl -> {
+            return claim.map(cl -> {
                 AuthenticationRequest reqCore =
                         ((AuthenticationRequest) reqT).toBuilder()
                                 .setTenantId(cl.getTenantId())
@@ -95,8 +95,11 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
                 Claim tenantClaim = Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(authClaim.get()
                         .getTenantId())).build();
+                Claim clientClaim = Claim.newBuilder().setKey("clientId").setValue(String.valueOf(authClaim.get()
+                        .getCustosId())).build();
                 authzBuilder.addClaims(userClaim);
                 authzBuilder.addClaims(tenantClaim);
+                authzBuilder.addClaims(clientClaim);
             } else {
                 throw new UnAuthorizedException("Request is not authorized, User token not found", null);
             }
@@ -153,7 +156,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
         } else if (method.equals("endUserSession")) {
             Optional<AuthClaim> claim = authorize(headers);
-           return claim.map(cl -> {
+            return claim.map(cl -> {
                 org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
                         ((EndSessionRequest) reqT).getBody().toBuilder()
                                 .setClientId(cl.getIamAuthId())

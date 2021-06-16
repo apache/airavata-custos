@@ -104,12 +104,15 @@ public class IdentityService extends IdentityServiceImplBase {
                         StreamObserver<org.apache.custos.identity.service.User> responseObserver) {
         String username = null;
         String tenantId = null;
+        String custosId = null;
         try {
             for (Claim claim : request.getClaimsList()) {
                 if (claim.getKey().equals("username")) {
                     username = claim.getValue();
                 } else if (claim.getKey().equals("tenantId")) {
                     tenantId = claim.getValue();
+                } else if (claim.getKey().equals("clientId")) {
+                    custosId = claim.getValue();
                 }
             }
 
@@ -125,6 +128,7 @@ public class IdentityService extends IdentityServiceImplBase {
                             .setFullName(user.getFullName())
                             .setSub(user.getSub())
                             .setUsername(user.getUsername())
+                            .setClientId(custosId != null ? custosId : "")
                             .build();
             responseObserver.onNext(user1);
             responseObserver.onCompleted();
@@ -138,7 +142,7 @@ public class IdentityService extends IdentityServiceImplBase {
 
     @Override
     public void isAuthenticated(AuthToken request,
-                               StreamObserver<IsAuthenticatedResponse> responseObserver) {
+                                StreamObserver<IsAuthenticatedResponse> responseObserver) {
         String username = null;
         String tenantId = null;
 
@@ -149,8 +153,8 @@ public class IdentityService extends IdentityServiceImplBase {
                 tenantId = claim.getValue();
             }
         }
-        LOGGER.debug("Authentication status checking for  " + username );
-        LOGGER.info("Authentication status checking for  " + username + " token "+ request.getAccessToken());
+        LOGGER.debug("Authentication status checking for  " + username);
+        LOGGER.info("Authentication status checking for  " + username + " token " + request.getAccessToken());
 
         String accessToken = request.getAccessToken();
 
@@ -415,7 +419,7 @@ public class IdentityService extends IdentityServiceImplBase {
                 }
             } catch (Exception ex) {
 
-                LOGGER.error("JWKS format  error",ex);
+                LOGGER.error("JWKS format  error", ex);
                 String error = object.getString("error") + " " + object.getString("error_description");
                 responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
                 return;

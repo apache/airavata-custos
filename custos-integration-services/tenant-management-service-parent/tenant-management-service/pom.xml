@@ -63,6 +63,11 @@
             <artifactId>credential-store-core-service-client-stubs</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>messaging-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
           <dependency>
               <groupId>org.apache.custos</groupId>
               <artifactId>custos-integration-core</artifactId>
@@ -71,6 +76,11 @@
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>custos-integration-services-commons</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-service-client-stub</artifactId>
             <version>${project.version}</version>
         </dependency>
           <dependency>
@@ -121,7 +131,19 @@
               <groupId>com.google.api.grpc</groupId>
               <artifactId>proto-google-common-protos</artifactId>
           </dependency>
-      </dependencies>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>messaging-core-service-client-stub</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-service-client-stub</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

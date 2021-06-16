@@ -27,5 +27,5 @@ import java.util.List;
 public interface SearchEntityRepository {
 
 
-    List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria);
+    List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria, int limit, int offset);
 }

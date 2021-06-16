@@ -37,6 +37,8 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
+import org.apache.custos.messaging.client.MessagingClient;
+import org.apache.custos.messaging.service.MessageEnablingResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
 import org.apache.custos.tenant.management.utils.Constants;
@@ -80,6 +82,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private MessagingClient messagingClient;
 
 
     @Override
@@ -161,7 +166,15 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 org.apache.custos.tenant.profile.service.GetTenantResponse response =
                         profileClient.getTenant(tenantReq);
                 tenant = response.getTenant();
+            }
+            if (tenant.getParentTenantId() > 0) {
+                GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getParentTenantId())
+                        .setType(Type.CUSTOS).build();
 
+                CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                        getCredential(cR);
+                tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
             }
             GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                     .setOwnerId(tenant.getTenantId())
@@ -482,6 +495,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at configureEventPersistence " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void enableMessaging(org.apache.custos.messaging.service.MessageEnablingRequest request,
+                                StreamObserver<org.apache.custos.messaging.service.MessageEnablingResponse> responseObserver) {
+        try {
+            MessageEnablingResponse response = messagingClient.enableMessaging(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at enableMessaging " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -831,7 +860,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
 
                 userAtrList.add(userAttribute);

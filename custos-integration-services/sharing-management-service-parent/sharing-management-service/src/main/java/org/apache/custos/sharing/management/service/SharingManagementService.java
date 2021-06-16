@@ -28,6 +28,7 @@ import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.integration.services.commons.utils.EventPublisher;
 import org.apache.custos.integration.services.commons.utils.InterServiceModelMapper;
 import org.apache.custos.sharing.client.SharingClient;
 import org.apache.custos.sharing.management.exceptions.SharingException;
@@ -42,7 +43,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @GRpcService
 public class SharingManagementService extends SharingManagementServiceImplBase {
@@ -60,6 +63,9 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
 
     @Override
@@ -341,13 +347,20 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             LOGGER.debug("Request received to deleteEntity in tenant " + request.getTenantId() +
                     "  with  entity Id " + request.getEntity().getId());
 
+            Entity exEntity = sharingClient.getEntity(request);
             Status status = sharingClient.deleteEntity(request);
+            Map<String, String> value = new HashMap<>();
+            value.put("ENTITY_ID", request.getEntity().getId());
+            value.put("ENTITY_TYPE", exEntity.getType());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "SHARING_MANAGEMENT_SERVICE", "DELETE_ENTITY",
+                    value);
             responseObserver.onNext(status);
             responseObserver.onCompleted();
-
         } catch (Exception ex) {
             String msg = "Error occurred at deleteEntity " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -471,256 +484,304 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
         }
     }
 
-        @Override
-        public void shareEntityWithUsers (SharingRequest request, StreamObserver < Status > responseObserver){
-            try {
-                LOGGER.debug("Request received to shareEntityWithUsers in tenant " + request.getTenantId() +
-                        "  for entity  " + request.getEntity().getId());
 
-                long tenantId = request.getTenantId();
+    @Override
+    public void getAllSharings(SharingRequest request, StreamObserver<GetAllSharingsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllSharings in tenant " + request.getTenantId());
 
-                String clientId = request.getClientId();
+            GetAllSharingsResponse response = sharingClient.getAllSharings(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
 
-                String clientSec = request.getClientSec();
-
-                for (String username : request.getOwnerIdList()) {
-
-                    validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-                }
-
-                Status status = sharingClient.shareEntityWithUsers(request);
-
-                responseObserver.onNext(status);
-                responseObserver.onCompleted();
-
-
-            } catch (Exception ex) {
-                String msg = "Error occurred at shareEntityWithUsers " + ex.getMessage();
-                LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllSharings " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
 
-        @Override
-        public void shareEntityWithGroups (SharingRequest request, StreamObserver < Status > responseObserver){
-            try {
-                LOGGER.debug("Request received to shareEntityWithGroups in tenant " + request.getTenantId() +
-                        "  with  entity Id  " + request.getEntity().getId());
+    @Override
+    public void shareEntityWithUsers(SharingRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to shareEntityWithUsers in tenant " + request.getTenantId() +
+                    "  for entity  " + request.getEntity().getId());
 
-                long tenantId = request.getTenantId();
+            long tenantId = request.getTenantId();
 
-                for (String groupId : request.getOwnerIdList()) {
+            String clientId = request.getClientId();
 
-                    validateAndGetGroupId(groupId, tenantId);
-                }
+            String clientSec = request.getClientSec();
 
-                Status status = sharingClient.shareEntityWithGroups(request);
+            for (String username : request.getOwnerIdList()) {
 
-                responseObserver.onNext(status);
-                responseObserver.onCompleted();
-
-            } catch (Exception ex) {
-                String msg = "Error occurred at shareEntityWithGroups " + ex.getMessage();
-                LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
+
+            Status status = sharingClient.shareEntityWithUsers(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at shareEntityWithUsers " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
 
-        @Override
-        public void revokeEntitySharingFromUsers (SharingRequest request, StreamObserver < Status > responseObserver){
-            try {
-                LOGGER.debug("Request received to revokeEntitySharingFromUsers in tenant " + request.getTenantId() +
-                        "  for entity  " + request.getEntity().getId());
+    @Override
+    public void shareEntityWithGroups(SharingRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to shareEntityWithGroups in tenant " + request.getTenantId() +
+                    "  with  entity Id  " + request.getEntity().getId());
 
-                long tenantId = request.getTenantId();
+            long tenantId = request.getTenantId();
 
-                String clientId = request.getClientId();
+            for (String groupId : request.getOwnerIdList()) {
 
-                String clientSec = request.getClientSec();
-
-                for (String username : request.getOwnerIdList()) {
-
-                    validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-                }
-
-                Status status = sharingClient.revokeEntitySharingFromUsers(request);
-
-                responseObserver.onNext(status);
-                responseObserver.onCompleted();
-
-
-            } catch (Exception ex) {
-                String msg = "Error occurred at revokeEntitySharingFromUsers " + ex.getMessage();
-                LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                validateAndGetGroupId(groupId, tenantId);
             }
+
+            Status status = sharingClient.shareEntityWithGroups(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at shareEntityWithGroups " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
 
-        @Override
-        public void revokeEntitySharingFromGroups (SharingRequest request, StreamObserver < Status > responseObserver){
-            try {
-                LOGGER.debug("Request received to revokeEntitySharingFromGroups in tenant " + request.getTenantId() +
-                        "  for entity  " + request.getEntity().getId());
+    @Override
+    public void revokeEntitySharingFromUsers(SharingRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to revokeEntitySharingFromUsers in tenant " + request.getTenantId() +
+                    "  for entity  " + request.getEntity().getId());
 
-                long tenantId = request.getTenantId();
+            long tenantId = request.getTenantId();
 
+            String clientId = request.getClientId();
 
-                for (String username : request.getOwnerIdList()) {
+            String clientSec = request.getClientSec();
 
-                    validateAndGetGroupId(username, tenantId);
-                }
+            for (String username : request.getOwnerIdList()) {
 
-                Status status = sharingClient.revokeEntitySharingFromGroups(request);
-
-                responseObserver.onNext(status);
-                responseObserver.onCompleted();
-
-
-            } catch (Exception ex) {
-                String msg = "Error occurred at revokeEntitySharingFromGroups " + ex.getMessage();
-                LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
+
+            EntityRequest entityRequest = EntityRequest.newBuilder().setEntity(request.getEntity()).build();
+            Entity entity = sharingClient.getEntity(entityRequest);
+
+            Status status = sharingClient.revokeEntitySharingFromUsers(request);
+
+
+            request.getOwnerIdList().forEach(owner -> {
+                Map<String, String> value = new HashMap<>();
+                value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
+                value.put("PERMISSION_TYPE", request.getPermissionType().getId());
+                value.put("USER_ID", owner);
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "SHARING_MANAGEMENT_SERVICE", "REVOKE_ENTITY_SHARING_FROM_USERS",
+                        value);
+            });
+
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred at revokeEntitySharingFromUsers " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
 
-        @Override
-        public void userHasAccess (SharingRequest request, StreamObserver < Status > responseObserver){
-            try {
-                LOGGER.debug("Request received to userHasAccess in tenant " + request.getTenantId() +
-                        "  for entity  " + request.getEntity().getId());
+    @Override
+    public void revokeEntitySharingFromGroups(SharingRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to revokeEntitySharingFromGroups in tenant " + request.getTenantId() +
+                    "  for entity  " + request.getEntity().getId());
 
-                String clientId = request.getClientId();
-
-                String clientSec = request.getClientSec();
-
-                long tenantId = request.getTenantId();
+            long tenantId = request.getTenantId();
 
 
-                UserProfile profile = UserProfile.newBuilder().setUsername(request.getOwnerId(0)).build();
+            for (String username : request.getOwnerIdList()) {
 
-                UserProfileRequest userProfileRequest = UserProfileRequest.newBuilder()
-                        .setTenantId(tenantId)
-                        .setProfile(profile)
-                        .build();
-                GetAllGroupsResponse response = userProfileClient.getAllGroupsOfUser(userProfileRequest);
-
-                List<Group> groups = response.getGroupsList();
-
-                if (groups != null && !groups.isEmpty()) {
-
-                    for (Group group : groups) {
-                        request = request.toBuilder().addOwnerId(group.getId()).build();
-                    }
-                }
-
-                Status status = sharingClient.userHasAccess(request);
-
-                responseObserver.onNext(status);
-                responseObserver.onCompleted();
-
-                for (String username : request.getOwnerIdList()) {
-
-                    validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-                }
-
-            } catch (Exception ex) {
-                String msg = "Error occurred at userHasAccess " + ex.getMessage();
-                LOGGER.error(msg);
-                responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+                validateAndGetGroupId(username, tenantId);
             }
+
+            EntityRequest entityRequest = EntityRequest.newBuilder().setEntity(request.getEntity()).build();
+            Entity entity = sharingClient.getEntity(entityRequest);
+
+            Status status = sharingClient.revokeEntitySharingFromGroups(request);
+
+
+            request.getOwnerIdList().forEach(owner -> {
+                Map<String, String> value = new HashMap<>();
+                value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
+                value.put("PERMISSION_TYPE", request.getPermissionType().getId());
+                value.put("USER_ID", owner);
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "SHARING_MANAGEMENT_SERVICE", "REVOKE_ENTITY_SHARING_FROM_GROUPS",
+                        value);
+            });
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at revokeEntitySharingFromGroups " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
+    }
+
+    @Override
+    public void userHasAccess(SharingRequest request, StreamObserver<Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to userHasAccess in tenant " + request.getTenantId() +
+                    "  for entity  " + request.getEntity().getId());
+
+            String clientId = request.getClientId();
+
+            String clientSec = request.getClientSec();
+
+            long tenantId = request.getTenantId();
 
 
-        private String validateAndGetUserProfile (String username, String clientId, String clientSec,long tenantId){
+            UserProfile profile = UserProfile.newBuilder().setUsername(request.getOwnerId(0)).build();
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+            UserProfileRequest userProfileRequest = UserProfileRequest.newBuilder()
+                    .setTenantId(tenantId)
+                    .setProfile(profile)
+                    .build();
+            GetAllGroupsResponse response = userProfileClient.getAllGroupsOfUser(userProfileRequest);
+
+            List<Group> groups = response.getGroupsList();
+
+            if (groups != null && !groups.isEmpty()) {
+
+                for (Group group : groups) {
+                    request = request.toBuilder().addOwnerId(group.getId()).build();
+                }
+            }
+
+            Status status = sharingClient.userHasAccess(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+            for (String username : request.getOwnerIdList()) {
+
+                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at userHasAccess " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    private String validateAndGetUserProfile(String username, String clientId, String clientSec, long tenantId) {
+
+        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setClientSecret(clientSec)
+                .setTenantId(tenantId)
+                .build();
+        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+        if (token != null && token.getAccessToken() != null) {
+
+            UserSearchMetadata searchMetadata = UserSearchMetadata
                     .newBuilder()
-                    .setClientId(clientId)
-                    .setClientSecret(clientSec)
+                    .setUsername(username)
+                    .build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setTenantId(tenantId)
+                    .setAccessToken(token.getAccessToken())
+                    .setUser(searchMetadata)
+                    .build();
+
+            CheckingResponse response = iamAdminServiceClient.isUserExist(searchRequest);
+            if (!response.getIsExist()) {
+                throw new SharingException("User " + username + " not found", null);
+            }
+
+            UserProfile userProfile = UserProfile
+                    .newBuilder()
+                    .setUsername(username)
+                    .build();
+
+            UserProfileRequest request = UserProfileRequest
+                    .newBuilder()
+                    .setProfile(userProfile)
                     .setTenantId(tenantId)
                     .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-            if (token != null && token.getAccessToken() != null) {
+            UserProfile profile = userProfileClient.getUser(request);
 
-                UserSearchMetadata searchMetadata = UserSearchMetadata
+            if (profile == null || profile.getUsername() == null || profile.getUsername().equals("")) {
+
+                UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+                UserProfile exProfile = InterServiceModelMapper.convert(representation);
+
+                UserProfileRequest req = UserProfileRequest
                         .newBuilder()
-                        .setUsername(username)
-                        .build();
-
-                UserSearchRequest searchRequest = UserSearchRequest
-                        .newBuilder()
-                        .setTenantId(tenantId)
-                        .setAccessToken(token.getAccessToken())
-                        .setUser(searchMetadata)
-                        .build();
-
-                CheckingResponse response = iamAdminServiceClient.isUserExist(searchRequest);
-                if (!response.getIsExist()) {
-                    throw new SharingException("User " + username + " not found", null);
-                }
-
-                UserProfile userProfile = UserProfile
-                        .newBuilder()
-                        .setUsername(username)
-                        .build();
-
-                UserProfileRequest request = UserProfileRequest
-                        .newBuilder()
-                        .setProfile(userProfile)
+                        .setProfile(exProfile)
                         .setTenantId(tenantId)
                         .build();
 
-                UserProfile profile = userProfileClient.getUser(request);
+                userProfileClient.createUserProfile(req);
+                return exProfile.getUsername();
 
-                if (profile == null || profile.getUsername() == null || profile.getUsername().equals("")) {
-
-                    UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
-
-                    UserProfile exProfile = InterServiceModelMapper.convert(representation);
-
-                    UserProfileRequest req = UserProfileRequest
-                            .newBuilder()
-                            .setProfile(exProfile)
-                            .setTenantId(tenantId)
-                            .build();
-
-                    userProfileClient.createUserProfile(req);
-                    return exProfile.getUsername();
-
-                }
-
-                return profile.getUsername();
-
-            } else {
-
-                throw new SharingException("User management token not found ", null);
             }
 
+            return profile.getUsername();
 
-        }
+        } else {
 
-        private String validateAndGetGroupId (String groupId,long tenantId){
-
-
-            Group group = Group.newBuilder().setId(groupId).build();
-
-            GroupRequest groupRequest = GroupRequest
-                    .newBuilder()
-                    .setTenantId(tenantId)
-                    .setGroup(group).build();
-
-            Group exGroup = userProfileClient.getGroup(groupRequest);
-
-            if (exGroup == null || exGroup.getId() == null || exGroup.getId().equals("")) {
-
-                throw new SharingException("Group with Id  " + groupId + " not found", null);
-            }
-
-            return exGroup.getId();
-
-
+            throw new SharingException("User management token not found ", null);
         }
 
 
     }
+
+    private String validateAndGetGroupId(String groupId, long tenantId) {
+
+
+        Group group = Group.newBuilder().setId(groupId).build();
+
+        GroupRequest groupRequest = GroupRequest
+                .newBuilder()
+                .setTenantId(tenantId)
+                .setGroup(group).build();
+
+        Group exGroup = userProfileClient.getGroup(groupRequest);
+
+        if (exGroup == null || exGroup.getId() == null || exGroup.getId().equals("")) {
+
+            throw new SharingException("Group with Id  " + groupId + " not found", null);
+        }
+
+        return exGroup.getId();
+
+
+    }
+
+
+}

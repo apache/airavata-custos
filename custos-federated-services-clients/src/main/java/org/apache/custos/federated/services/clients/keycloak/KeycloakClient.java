@@ -21,6 +21,7 @@ package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
 import org.apache.custos.core.services.commons.util.Constants;
+import org.apache.custos.federated.services.clients.keycloak.auth.KeycloakAuthClient;
 import org.apache.http.HttpStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
@@ -29,6 +30,7 @@ import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +59,9 @@ public class KeycloakClient {
     private final static int ACCESS_TOKEN_LIFE_SPAN = 1800;
 
     private final static int SESSION_IDLE_TIMEOUT = 3600;
+
+    @Autowired
+    private KeycloakAuthClient keycloakAuthClient;
 
     @Value("${iam.server.client.id:admin-cli}")
     private String clientId;
@@ -604,6 +609,22 @@ public class KeycloakClient {
         }
     }
 
+    public UserRepresentation getUser(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            return getUserByUsername(client, realmId, username);
+        } catch (Exception ex) {
+            String msg = "Error retrieving user, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
 
     public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
                                              String username, String firstName, String lastName, String email, String search) {
@@ -734,8 +755,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
-
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             for (String username : users) {
 
                 UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
@@ -779,7 +799,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
 
             if (representation != null) {
@@ -1312,7 +1332,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);
@@ -1330,6 +1350,40 @@ public class KeycloakClient {
             return null;
         } catch (Exception ex) {
             String msg = "Error occurred while pulling active user sessions, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
+    public boolean deleteExternalIDPLinks(String realmId) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().list();
+            userResourceList.forEach(user -> {
+                UserResource userResource = realmResource.users().get(user.getId());
+                List<FederatedIdentityRepresentation> federatedIdentityRepresentations =
+                        userResource.getFederatedIdentity();
+                if (federatedIdentityRepresentations != null && !federatedIdentityRepresentations.isEmpty()) {
+                    federatedIdentityRepresentations.forEach(fed -> {
+                        userResource.removeFederatedIdentity(fed.getIdentityProvider());
+                    });
+                }
+            });
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting external IDP links of realm "
+                    + realmId + ", reason " + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
 
@@ -1868,6 +1922,19 @@ public class KeycloakClient {
             }
         }
         return realmManagementClientId;
+    }
+
+    private Optional<String> getRealmManagementClientSecret(Keycloak client, String realmId) {
+        List<ClientRepresentation> realmClients = client.realm(realmId).clients().findAll();
+        String realmManagementClientId = null;
+        for (ClientRepresentation realmClient : realmClients) {
+            if (realmClient.getClientId().equals("realm-management")) {
+                realmManagementClientId = realmClient.getClientId();
+                String ClientUUID = client.realms().realm(realmId).clients().findByClientId(realmManagementClientId).get(0).getId();
+                return Optional.ofNullable(client.realms().realm(realmId).clients().get(ClientUUID).getSecret().getValue());
+            }
+        }
+        return Optional.empty();
     }
 
 
