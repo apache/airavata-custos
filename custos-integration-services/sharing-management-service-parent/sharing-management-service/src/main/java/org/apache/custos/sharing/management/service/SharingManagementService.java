@@ -573,11 +573,17 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
 
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
+            Entity entity = sharingClient.getEntity(entityRequest);
+
             Status status = sharingClient.revokeEntitySharingFromUsers(request);
+
 
             request.getOwnerIdList().forEach(owner -> {
                 Map<String, String> value = new HashMap<>();
                 value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
                 value.put("PERMISSION_TYPE", request.getPermissionType().getId());
                 value.put("USER_ID", owner);
                 eventPublisher.publishMessage(request.getClientId(),
@@ -610,12 +616,18 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetGroupId(username, tenantId);
             }
 
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
+
+            Entity entity = sharingClient.getEntity(entityRequest);
+
             Status status = sharingClient.revokeEntitySharingFromGroups(request);
 
 
             request.getOwnerIdList().forEach(owner -> {
                 Map<String, String> value = new HashMap<>();
                 value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
                 value.put("PERMISSION_TYPE", request.getPermissionType().getId());
                 value.put("USER_ID", owner);
                 eventPublisher.publishMessage(request.getClientId(),

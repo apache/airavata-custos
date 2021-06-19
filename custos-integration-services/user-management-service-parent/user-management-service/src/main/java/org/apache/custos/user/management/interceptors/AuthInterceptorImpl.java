@@ -115,27 +115,26 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             AddUserRolesRequest userAttributesRequest = (AddUserRolesRequest) msg;
             headers = attachUserToken(headers, userAttributesRequest.getClientId());
-            Optional<AuthClaim> claim =
-                    validateRoleManagementAuthorizations(headers, userAttributesRequest.getClientId());
+            Optional<AuthClaim> claim = authorize(headers, userAttributesRequest.getClientId());
+            if (claim.isEmpty()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+
 
             String oauthId = claim.get().getIamAuthId();
 
             long tenantId = claim.get().getTenantId();
 
-
-            Optional<String> userTokenOp = getUserTokenFromUserTokenHeader(headers);
-            String userToken = null;
-
-            if (userTokenOp.isEmpty()) {
-                userToken = getToken(headers);
-            } else {
-                userToken = userTokenOp.get();
+            AuthToken token = getSAToken(claim.get().getIamAuthId(), claim.get().getIamAuthSecret(),
+                    claim.get().getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
             }
 
             return (ReqT) ((AddUserRolesRequest) msg).toBuilder()
                     .setClientId(oauthId)
                     .setTenantId(tenantId)
-                    .setAccessToken(userToken)
+                    .setAccessToken(token.getAccessToken())
                     .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
@@ -174,28 +173,29 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
             DeleteUserRolesRequest deleteUserRolesRequest = (DeleteUserRolesRequest) msg;
             headers = attachUserToken(headers, deleteUserRolesRequest.getClientId());
-            Optional<AuthClaim> claim =
-                    validateRoleManagementAuthorizations(headers, deleteUserRolesRequest.getClientId());
+            Optional<AuthClaim> claim = authorize(headers, deleteUserRolesRequest.getClientId());
 
-            String oauthId = claim.get().getIamAuthId();
-            String oauthSec = claim.get().getIamAuthSecret();
-            Optional<String> userTokenOp = getUserTokenFromUserTokenHeader(headers);
-
-            String userToken = null;
-
-            if (userTokenOp.isEmpty()) {
-                userToken = getToken(headers);
-            } else {
-                userToken = userTokenOp.get();
+            if (claim.isEmpty()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
+
+            String oauthId = claim.get().getIamAuthId();
+
             long tenantId = claim.get().getTenantId();
+
+            AuthToken token = getSAToken(claim.get().getIamAuthId(), claim.get().getIamAuthSecret(),
+                    claim.get().getTenantId());
+            if (token == null || token.getAccessToken() == null) {
+                throw new UnAuthorizedException("Request is not authorized SA token is invalid", null);
+            }
+
             DeleteUserRolesRequest operationRequest = ((DeleteUserRolesRequest) msg)
                     .toBuilder()
                     .setClientId(oauthId)
-                    .setAccessToken(userToken)
+                    .setAccessToken(token.getAccessToken())
                     .setTenantId(tenantId)
-                    .setPerformedBy(claim.get().getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy().isEmpty()?Constants.SYSTEM:claim.get().getPerformedBy())
                     .build();
 
             return (ReqT) operationRequest;
@@ -474,12 +474,12 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
     }
 
     private Optional<AuthClaim> validateRoleManagementAuthorizations(Metadata headers, String clientId) {
-        Optional<AuthClaim> parentClaim = authorizeUsingUserToken(headers);
+//        Optional<AuthClaim> parentClaim = authorizeUsingUserToken(headers);
         Optional<AuthClaim> claim = authorize(headers, clientId);
 
-        if (claim.isEmpty() || parentClaim.isEmpty() || !parentClaim.get().isAdmin()) {
-            throw new UnAuthorizedException("Request is not authorized", null);
-        }
+//        if (claim.isEmpty() || parentClaim.isEmpty() || !parentClaim.get().isAdmin()) {
+//            throw new UnAuthorizedException("Request is not authorized", null);
+//        }
         return claim;
     }
 
