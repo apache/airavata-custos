@@ -573,7 +573,8 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
 
-            EntityRequest entityRequest = EntityRequest.newBuilder().setEntity(request.getEntity()).build();
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
             Entity entity = sharingClient.getEntity(entityRequest);
 
             Status status = sharingClient.revokeEntitySharingFromUsers(request);
@@ -615,7 +616,9 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetGroupId(username, tenantId);
             }
 
-            EntityRequest entityRequest = EntityRequest.newBuilder().setEntity(request.getEntity()).build();
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
+
             Entity entity = sharingClient.getEntity(entityRequest);
 
             Status status = sharingClient.revokeEntitySharingFromGroups(request);
