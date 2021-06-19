@@ -1890,10 +1890,6 @@ public class KeycloakClient {
         adminRole.setName("admin");
         adminRole.setDescription("Admin role for PGA users");
         defaultRoles.add(adminRole);
-        RoleRepresentation adminReadOnlyRole = new RoleRepresentation();
-        adminReadOnlyRole.setName("tenant-requester");
-        adminReadOnlyRole.setDescription("Tenant requester role");
-        defaultRoles.add(adminReadOnlyRole);
 //        RoleRepresentation gatewayUserRole = new RoleRepresentation();
 //        gatewayUserRole.setName("gateway-user");
 //        gatewayUserRole.setDescription("default role for PGA users");
