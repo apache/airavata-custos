@@ -28,7 +28,20 @@ import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc;
-import org.apache.custos.resource.secret.service.*;
+import org.apache.custos.resource.secret.service.AddResourceCredentialResponse;
+import org.apache.custos.resource.secret.service.CertificateCredential;
+import org.apache.custos.resource.secret.service.CredentialMap;
+import org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest;
+import org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest;
+import org.apache.custos.resource.secret.service.GetSecretRequest;
+import org.apache.custos.resource.secret.service.KVCredential;
+import org.apache.custos.resource.secret.service.PasswordCredential;
+import org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus;
+import org.apache.custos.resource.secret.service.ResourceCredentialSummaries;
+import org.apache.custos.resource.secret.service.ResourceOwnerType;
+import org.apache.custos.resource.secret.service.ResourceType;
+import org.apache.custos.resource.secret.service.SSHCredential;
+import org.apache.custos.resource.secret.service.SecretMetadata;
 
 import java.io.IOException;
 import java.util.List;
@@ -787,6 +800,34 @@ public class ResourceSecretManagementClient extends AbstractClient {
 
         return blockingStub.deleteCertificateCredential(tokenRequest);
     }
+
+    /**
+     * Update certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus updateCertificateCredentials(String clientId, String ownerId, String token,
+                                                                          String privateKey, String x509Cert) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.updateCertificateCredential(certificateCredential);
+    }
+
 
     /**
      * Save certificate credentials
