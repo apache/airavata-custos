@@ -524,4 +524,36 @@ public class ResourceSecretService extends ResourceSecretServiceGrpc.ResourceSec
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+    @Override
+    public void updateCertificateCredential(CertificateCredential request,
+                                            StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        try {
+            LOGGER.debug(" Request received to updateCertificateCredential in tenant " + request.getMetadata().getTenantId() +
+                    " with key  " + request.getMetadata().getToken());
+
+            Credential credential = credentialGeneratorFactory.getCredential(request);
+
+            org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential certificateCredential =
+                    (org.apache.custos.resource.secret.manager.adaptor.outbound.CertificateCredential) credential;
+            certificateCredential.setToken(request.getMetadata().getToken());
+
+            credentialWriter
+                    .updateCertificateCredential(certificateCredential);
+
+
+            ResourceCredentialOperationStatus operationStatus = ResourceCredentialOperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Exception occurred while updating certificate " +
+                    " : " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }

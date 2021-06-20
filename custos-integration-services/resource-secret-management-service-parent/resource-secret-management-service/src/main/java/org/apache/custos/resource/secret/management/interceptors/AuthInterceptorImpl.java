@@ -143,6 +143,20 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                 throw new UnAuthorizedException("Request is not authorized", null);
             });
 
+        } else if (method.equals("updateCertificateCredential")) {
+            String clientId = ((CertificateCredential) reqT).getMetadata().getClientId();
+
+            Optional<AuthClaim> claim = authorize(headers, clientId);
+            return claim.map(cl -> {
+                SecretMetadata metadata = ((CertificateCredential) reqT).getMetadata()
+                        .toBuilder().setTenantId(cl.getTenantId()).build();
+
+                return (ReqT) ((CertificateCredential) reqT).toBuilder().setMetadata(metadata).build();
+
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
         } else if (method.equals("getSSHCredential") || method.equals("getPasswordCredential") || method.equals("getCertificateCredential")
                 || method.equals("deleteSSHCredential") || method.equals("deletePWDCredential") || method.equals("deleteCertificateCredential")
                 || method.equals("getResourceCredentialSummary")) {
