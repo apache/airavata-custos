@@ -50,6 +50,7 @@ public class CertUpdater implements Job {
     private static final Logger logger = LoggerFactory.getLogger(CertUpdater.class);
     private final String CERT_UPDATER_USER_KEY = "cert_updater_user_key";
     private final String CERT_UPDATER_DOMAIN_KEY = "cert_updater_domain_key";
+    private final String DOMAIN_CERTIFICATE_TOKEN_KEY = "domain_certificate_token_key";
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
@@ -66,7 +67,7 @@ public class CertUpdater implements Job {
             AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
-            KeyPair userKeyPair = this.getKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
+            KeyPair userKeyPair = this.saveKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
 
@@ -98,17 +99,10 @@ public class CertUpdater implements Job {
                 }
             }
 
-            KeyPair domainKeyPair = this.getKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(),
+            KeyPair domainKeyPair = this.saveKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(),
                     custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
-            String privateKey = CertUtils.toString(domainKeyPair);
-            String certString = CertUtils.toString(certificate);
-            String token = custosClient.addCertificate(privateKey, certString);
-            if (token == null || token.isEmpty()) {
-                logger.error("Error has occurred while adding certificate to Custos ");
-            } else {
-                logger.info("Certificate successfully saved in custos: {}", token);
-            }
+            saveCertificate(CertUtils.toString(domainKeyPair), CertUtils.toString(certificate), custosClient);
         } catch (AcmeException e) {
             logger.error("Acme Exception : {} ", e.getMessage());
         } catch (IOException e) {
@@ -120,7 +114,7 @@ public class CertUpdater implements Job {
         }
     }
 
-    private KeyPair getKeyPair(String key, String value, CustosClient custosClient)
+    private KeyPair saveKeyPair(String key, String value, CustosClient custosClient)
             throws IOException, CertificateEncodingException {
         String keyPairValue = value;
         if (keyPairValue == null || keyPairValue.isEmpty()) {
@@ -137,6 +131,33 @@ public class CertUpdater implements Job {
         KeyPair keyPair = CertUtils.getKeyPair(2048);
         custosClient.addKVCredential(key, CertUtils.toString(keyPair));
         return keyPair;
+    }
+
+    private void saveCertificate(String privateKey, String cert, CustosClient custosClient) throws AcmeException {
+        try {
+            String token = custosClient.getKVCredentials(DOMAIN_CERTIFICATE_TOKEN_KEY);
+            logger.info("Certificate token is available in Custos.Updating certificate.");
+            System.out.println(token);
+            boolean success = custosClient.updateCertificateCredentials(token, privateKey, cert);
+            if (!success) {
+                throw new AcmeException("Error occurred while updating certificate");
+            } else {
+                logger.info("Successfully updated certificate.");
+            }
+            return;
+        } catch (Exception e) {
+            logger.error("Key {} isn't available in Custos.", DOMAIN_CERTIFICATE_TOKEN_KEY);
+        }
+
+        logger.info("Saving certificate credentials in custos.");
+        String token = custosClient.addCertificate(privateKey, cert);
+        if (token == null || token.isEmpty()) {
+            throw new AcmeException("Error occurred while adding certificate to custos");
+        } else {
+            logger.info("Certificate successfully saved in custos: {}", token);
+        }
+        logger.info("Creating new {} ", DOMAIN_CERTIFICATE_TOKEN_KEY);
+        custosClient.addKVCredential(DOMAIN_CERTIFICATE_TOKEN_KEY, token);
     }
 
     public static void setupSecurityProvider() {

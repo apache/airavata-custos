@@ -31,7 +31,7 @@ import java.io.IOException;
 /**
  * Custos client class to perform custos related operations
  */
-public class CustosClient implements AutoCloseable{
+public class CustosClient implements AutoCloseable {
 
     private String clientId;
     private String ownerId;
@@ -62,6 +62,21 @@ public class CustosClient implements AutoCloseable{
         AddResourceCredentialResponse res = resourceSecretManagementClient.addCertificateCredentials(
                 clientId, ownerId, privateKey, certificate);
         return res.getToken();
+    }
+
+
+    /**
+     * Update ssl certificate in custos
+     *
+     * @param token       token
+     * @param privateKey  private key
+     * @param certificate certificate
+     * @return update status
+     */
+    public boolean updateCertificateCredentials(String token, String privateKey, String certificate) {
+        ResourceCredentialOperationStatus status  = resourceSecretManagementClient.updateCertificateCredentials(
+                clientId, ownerId, token, privateKey, certificate);
+        return status.getStatus();
     }
 
 
