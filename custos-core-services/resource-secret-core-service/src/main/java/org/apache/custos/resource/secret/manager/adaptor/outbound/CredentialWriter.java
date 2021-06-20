@@ -528,4 +528,48 @@ public class CredentialWriter {
     }
 
 
+    public boolean updateCertificateCredential(CertificateCredential credential) {
+        Optional<Secret> exSecret = repository.findById(credential.getToken());
+
+        if (exSecret.isEmpty()) {
+            String msg = " Credential with token " + credential.getToken() + " not found";
+            LOGGER.error(msg);
+            throw new CredentialStoreException("Invalid token", null);
+        }
+
+        String path = Constants.VAULT_RESOURCE_SECRETS_PATH + credential.getTenantId() + "/" + credential.getOwnerId() +
+                "/" + Constants.CERTIFICATES + "/" + credential.getToken();
+
+
+        Certificate certificate = new Certificate(credential.getCert(),
+                String.valueOf(credential.getLifetime()),
+                credential.getNotBefore(),
+                credential.getNotAfter(),
+                credential.getPrivateKey());
+
+        vaultTemplate.write(path, certificate);
+
+        VaultResponseSupport<Certificate> response = vaultTemplate.read(path, Certificate.class);
+
+        if (response == null || response.getData() == null && response.getData().getCertificate() == null) {
+            String msg = " Certificate credential of tenant " + credential.getTenantId() +
+                    " of user " + credential.getOwnerId() + " is not saved in vault";
+            LOGGER.error(msg);
+            throw new CredentialStoreException(msg, null);
+        }
+
+        Secret secret = new Secret();
+        secret.setId(credential.getToken());
+        secret.setDiscription(credential.getDescription());
+        secret.setOwnerId(credential.getOwnerId());
+        secret.setOwnerType(credential.getResourceOwnerType().name());
+        secret.setSecretType(ResourceSecretType.X509_CERTIFICATE.name());
+        secret.setTenantId(credential.getTenantId());
+        secret.setExternalId(credential.getExternalId());
+        secret.setType(credential.getType());
+        repository.save(secret);
+        return true;
+    }
+
+
 }

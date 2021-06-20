@@ -124,4 +124,8 @@ public class ResourceSecretClient {
         return resourceSecretServiceBlockingStub.deleteCredentialMap(request);
     }
 
+
+    public ResourceCredentialOperationStatus updateCertificate(CertificateCredential request) {
+        return resourceSecretServiceBlockingStub.updateCertificateCredential(request);
+    }
 }
