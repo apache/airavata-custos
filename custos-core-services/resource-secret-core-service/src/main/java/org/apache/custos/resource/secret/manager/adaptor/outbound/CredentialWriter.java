@@ -567,6 +567,7 @@ public class CredentialWriter {
         secret.setTenantId(credential.getTenantId());
         secret.setExternalId(credential.getExternalId());
         secret.setType(credential.getType());
+        secret.setCreatedAt(exSecret.get().getCreatedAt());
         repository.save(secret);
         return true;
     }
