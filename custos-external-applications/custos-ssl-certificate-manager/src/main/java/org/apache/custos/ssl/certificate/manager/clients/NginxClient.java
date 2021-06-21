@@ -34,10 +34,10 @@ import java.net.URL;
  */
 public class NginxClient {
     private static final Logger logger = LoggerFactory.getLogger(NginxClient.class);
-    private final String acmeChallengeUrl;
+    private final String caChallengeUrl;
 
     public NginxClient(NginxConfiguration config) {
-        acmeChallengeUrl = config.getUrl() + "/acme/challenge";
+        caChallengeUrl = config.getUrl() + "/ca/challenge";
     }
 
 
@@ -71,7 +71,7 @@ public class NginxClient {
         HttpURLConnection con = null;
         int status = 0;
         try {
-            URL url = new URL(acmeChallengeUrl + "?" + query);
+            URL url = new URL(caChallengeUrl + "?" + query);
             con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod(method);
             status = con.getResponseCode();

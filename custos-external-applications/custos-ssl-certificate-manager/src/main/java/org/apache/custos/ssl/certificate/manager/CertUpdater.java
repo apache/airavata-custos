@@ -19,10 +19,10 @@
 
 package org.apache.custos.ssl.certificate.manager;
 
-import org.apache.custos.ssl.certificate.manager.clients.AcmeClient;
+import org.apache.custos.ssl.certificate.manager.clients.CaClient;
 import org.apache.custos.ssl.certificate.manager.clients.CustosClient;
 import org.apache.custos.ssl.certificate.manager.clients.NginxClient;
-import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.CaConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.CustosConfiguration;
 import org.apache.custos.ssl.certificate.manager.configurations.NginxConfiguration;
 import org.apache.custos.ssl.certificate.manager.utils.CertUtils;
@@ -60,11 +60,11 @@ public class CertUpdater implements Job {
         }
 
         NginxConfiguration nginxConfiguration = new NginxConfiguration(env);
-        AcmeConfiguration acmeConfiguration = new AcmeConfiguration(env);
+        CaConfiguration acmeConfiguration = new CaConfiguration(env);
         CustosConfiguration custosConfiguration = new CustosConfiguration(env);
 
         try (CustosClient custosClient = new CustosClient(custosConfiguration)) {
-            AcmeClient acmeClient = new AcmeClient(acmeConfiguration);
+            CaClient acmeClient = new CaClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
             KeyPair userKeyPair = this.saveKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);

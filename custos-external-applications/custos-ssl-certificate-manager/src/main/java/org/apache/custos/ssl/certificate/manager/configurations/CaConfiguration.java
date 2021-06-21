@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Configuration class for Acme
  */
-public final class AcmeConfiguration {
+public final class CaConfiguration {
 
     private String url;
     private String userKey;
@@ -37,11 +37,11 @@ public final class AcmeConfiguration {
      * @param env Map containing acme configuration through environment
      *            variables or application.properties
      */
-    public AcmeConfiguration(Map<String, String> env) {
-        this.url = env.get(Constants.ACME_URL);
-        this.domains = Arrays.asList(env.get(Constants.ACME_DOMAINS).split(" "));
-        this.userKey = env.get(Constants.ACME_USER_KEY);
-        this.domainKey = env.get(Constants.ACME_DOMAIN_KEY);
+    public CaConfiguration(Map<String, String> env) {
+        this.url = env.get(Constants.CA_URL);
+        this.domains = Arrays.asList(env.get(Constants.CA_DOMAINS).split(" "));
+        this.userKey = env.get(Constants.CA_USER_KEY);
+        this.domainKey = env.get(Constants.CA_DOMAIN_KEY);
     }
 
     public String getUrl() {

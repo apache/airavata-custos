@@ -23,10 +23,10 @@ public class Constants {
 
     public static final String NGINX_URL = "NGINX_URL";
 
-    public static final String ACME_URL = "ACME_URL";
-    public static final String ACME_DOMAINS = "ACME_DOMAINS";
-    public static final String ACME_USER_KEY = "ACME_USER_KEY";
-    public static final String ACME_DOMAIN_KEY = "ACME_DOMAIN_KEY";
+    public static final String CA_URL = "CA_URL";
+    public static final String CA_DOMAINS = "CA_DOMAINS";
+    public static final String CA_USER_KEY = "CA_USER_KEY";
+    public static final String CA_DOMAIN_KEY = "CA_DOMAIN_KEY";
 
     public static final String CUSTOS_URL = "CUSTOS_URL";
     public static final String CUSTOS_PORT = "CUSTOS_PORT";

@@ -33,7 +33,7 @@ in `/etc/nginx/conf.d/default.conf` should have following location directives al
 
 ```conf
 server {
-    location /acme/challenge {
+    location /ca/challenge {
         if ($request_method = POST ) {
             content_by_lua_block {
                 local output = "echo -n ".. ngx.var.arg_content.." >> /var/www/letsencrypt/.well-known/acme-challenge/".. ngx.var.arg_file
@@ -81,8 +81,8 @@ RUN chmod -R 777 /var/www/letsencrypt/.well-known/acme-challenge/
 ```properties
 CRON_EXPRESSION=<cron_expression>
 NGINX_URL=<challenge_server_url>
-ACME_URL=<CA_server_url>
-ACME_DOMAINS=<space_seperated_domains>
+CA_URL=<CA_server_url>
+CA_DOMAINS=<space_seperated_domains>
 CUSTOS_URL=<custos_url>
 CUSTOS_PORT=<custos_port>
 CUSTOS_CLIENT_ID=<custos_client_id>
@@ -91,8 +91,8 @@ CUSTOS_OWNER_ID=<custos_owner_id>
 ```
 - `CRON_EXPRESSION`: Certificate manager uses quartz as job scheduling library. You must provide a valid cron 
   expression in order to successfully run the application. Eg- `0 0/1 * 1/1 * ? *` Runs in one minute intervals
-- `ACME_URL`: For testing purposed you can use `acme://letsencrypt.org/staging` and `acme://letsencrypt.org`for 
+- `CA_URL`: For testing purposed you can use `acme://letsencrypt.org/staging` and `acme://letsencrypt.org`for 
   production.
-- `ACME_DOMAINS`: Space separated domains you need to renew certificates for. Eg: `example.com example.org`
+- `CA_DOMAINS`: Space separated domains you need to renew certificates for. Eg: `example.com example.org`
 
 3. You can build a docker image using the jar. In this case properties should be provided as environment variables.

@@ -19,7 +19,7 @@
 
 package org.apache.custos.ssl.certificate.manager.clients;
 
-import org.apache.custos.ssl.certificate.manager.configurations.AcmeConfiguration;
+import org.apache.custos.ssl.certificate.manager.configurations.CaConfiguration;
 import org.shredzone.acme4j.Account;
 import org.shredzone.acme4j.AccountBuilder;
 import org.shredzone.acme4j.Authorization;
@@ -47,16 +47,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * Acme client class to perform CA related operations
  */
-public class AcmeClient {
+public class CaClient {
 
-    final static int PERIOD = 3;
-    final static int RETRY_COUNT = 10;
+    private final static int PERIOD = 3;
+    private final static int RETRY_COUNT = 10;
+    private static final Logger logger = LoggerFactory.getLogger(CaClient.class);
+    private final CaConfiguration config;
 
-    private static final Logger logger = LoggerFactory.getLogger(AcmeClient.class);
-
-    private final AcmeConfiguration config;
-
-    public AcmeClient(AcmeConfiguration config) {
+    public CaClient(CaConfiguration config) {
         this.config = config;
     }
 
