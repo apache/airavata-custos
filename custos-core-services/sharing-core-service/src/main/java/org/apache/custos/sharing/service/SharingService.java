@@ -1285,8 +1285,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching all sharings " + request.getTenantId();
-            LOGGER.error(msg);
+            String msg = "Error occurred while fetching all sharings " + request.getTenantId() +ex.getMessage();
+            LOGGER.error(msg,ex);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
