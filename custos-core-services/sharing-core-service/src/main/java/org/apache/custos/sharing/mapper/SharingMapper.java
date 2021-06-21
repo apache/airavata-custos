@@ -107,7 +107,8 @@ public class SharingMapper {
                                     .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder().
                                             setId(shr.getPermissionType().getExternalId())
                                             .setName(shr.getPermissionType().getName()
-                                            ).setDescription(shr.getPermissionType().getDescription()).
+                                            ).setDescription(shr.getPermissionType().getDescription()==null?
+                                                    "":shr.getPermissionType().getDescription()).
                                                     setCreatedAt(shr.getCreatedAt().getTime())
                                             .setUpdatedAt(shr.getLastModifiedAt().getTime()).build())
                                     .setOwnerType(shr.getAssociatingIdType())
