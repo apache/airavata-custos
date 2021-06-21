@@ -86,7 +86,7 @@ public class CertUpdater implements Job {
                     logger.error("Validating challenge timeout before completing.");
                     throw new AcmeException("Failed to pass the challenge for domain.");
                 } else {
-                    logger.error("Validating challenge completes.");
+                    logger.debug("Validating challenge completes.");
                 }
 
                 if (challenge.getStatus() != Status.VALID) {
@@ -120,14 +120,13 @@ public class CertUpdater implements Job {
         if (keyPairValue == null || keyPairValue.isEmpty()) {
             try {
                 keyPairValue = custosClient.getKVCredentials(key);
-                logger.info("{} is available in Custos.", key);
+                logger.debug("{} is available in Custos.", key);
                 return CertUtils.convertToKeyPair(keyPairValue);
             } catch (Exception e) {
-                logger.error("Key {} isn't available in Custos.", key);
+                logger.debug("Key {} isn't available in Custos.", key);
             }
         }
 
-        logger.info("Creating new {} key pair", key);
         KeyPair keyPair = CertUtils.getKeyPair(2048);
         custosClient.addKVCredential(key, CertUtils.toString(keyPair));
         return keyPair;
@@ -136,27 +135,23 @@ public class CertUpdater implements Job {
     private void saveCertificate(String privateKey, String cert, CustosClient custosClient) throws AcmeException {
         try {
             String token = custosClient.getKVCredentials(DOMAIN_CERTIFICATE_TOKEN_KEY);
-            logger.info("Certificate token is available in Custos.Updating certificate.");
-            System.out.println(token);
             boolean success = custosClient.updateCertificateCredentials(token, privateKey, cert);
             if (!success) {
                 throw new AcmeException("Error occurred while updating certificate");
             } else {
                 logger.info("Successfully updated certificate.");
+                return;
             }
-            return;
         } catch (Exception e) {
-            logger.error("Key {} isn't available in Custos.", DOMAIN_CERTIFICATE_TOKEN_KEY);
+            logger.debug("Key {} isn't available in Custos.", DOMAIN_CERTIFICATE_TOKEN_KEY);
         }
 
-        logger.info("Saving certificate credentials in custos.");
         String token = custosClient.addCertificate(privateKey, cert);
         if (token == null || token.isEmpty()) {
             throw new AcmeException("Error occurred while adding certificate to custos");
         } else {
-            logger.info("Certificate successfully saved in custos: {}", token);
+            logger.info("A new entry for certificate created in custos: {}", token);
         }
-        logger.info("Creating new {} ", DOMAIN_CERTIFICATE_TOKEN_KEY);
         custosClient.addKVCredential(DOMAIN_CERTIFICATE_TOKEN_KEY, token);
     }
 

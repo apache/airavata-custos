@@ -90,7 +90,7 @@ public class AcmeClient {
                 logger.error("Process timeout before completing order.");
                 throw new AcmeException("Order failed.");
             } else {
-                logger.info("Order completes.");
+                logger.debug("Order completes.");
             }
         } catch (InterruptedException e) {
             logger.error("Couldn't complete order. Interrupted.");
@@ -98,7 +98,7 @@ public class AcmeClient {
         }
 
         Certificate certificate = order.getCertificate();
-        logger.info("Success! The certificate for domains {} has been generated!", config.getDomains());
+        logger.info("The certificate for domains {} has been generated!", config.getDomains());
         logger.info("Certificate URL: {}", certificate.getLocation());
         return certificate;
     }
@@ -114,7 +114,7 @@ public class AcmeClient {
     public ArrayList<Http01Challenge> getChallenges(Order order) throws AcmeException, UnsupportedEncodingException {
         ArrayList<Http01Challenge> challenges = new ArrayList<>();
         for (Authorization auth : order.getAuthorizations()) {
-            logger.info("Creating challenge for {}", auth.getIdentifier().getDomain());
+            logger.debug("Creating challenge for {}", auth.getIdentifier().getDomain());
             if (auth.getStatus() == Status.VALID) {
                 continue;
             }

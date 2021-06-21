@@ -39,6 +39,7 @@ import java.util.Properties;
 
 public class Launcher {
     private static final Logger logger = LoggerFactory.getLogger(Launcher.class);
+    private static final String CRON_EXPRESSION = "CRON_EXPRESSION";
 
     public static void main(String[] args) {
         JobDataMap dataMap = new JobDataMap();
@@ -68,7 +69,7 @@ public class Launcher {
         TriggerBuilder triggerBuilder = TriggerBuilder
                 .newTrigger()
                 .withIdentity("cert-updater-trigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0/1 * 1/1 * ? *"));
+                .withSchedule(CronScheduleBuilder.cronSchedule(dataMap.getString(CRON_EXPRESSION)));
 
         try {
             Scheduler scheduler = new StdSchedulerFactory().getScheduler();
