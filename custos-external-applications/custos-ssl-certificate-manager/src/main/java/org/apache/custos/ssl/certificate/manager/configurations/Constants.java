@@ -25,8 +25,8 @@ public class Constants {
 
     public static final String CA_URL = "CA_URL";
     public static final String CA_DOMAINS = "CA_DOMAINS";
-    public static final String CA_USER_KEY = "CA_USER_KEY";
-    public static final String CA_DOMAIN_KEY = "CA_DOMAIN_KEY";
+    public static final String CA_USER_KEY_PATH = "CA_USER_KEY_PATH";
+    public static final String CA_DOMAIN_KEY_PATH = "CA_DOMAIN_KEY_PATH";
 
     public static final String CUSTOS_URL = "CUSTOS_URL";
     public static final String CUSTOS_PORT = "CUSTOS_PORT";

@@ -29,8 +29,8 @@ import java.util.Map;
 public final class CaConfiguration {
 
     private String url;
-    private String userKey;
-    private String domainKey;
+    private String userKeyPath;
+    private String domainKeyPath;
     private List<String> domains;
 
     /**
@@ -40,20 +40,20 @@ public final class CaConfiguration {
     public CaConfiguration(Map<String, String> env) {
         this.url = env.get(Constants.CA_URL);
         this.domains = Arrays.asList(env.get(Constants.CA_DOMAINS).split(" "));
-        this.userKey = env.get(Constants.CA_USER_KEY);
-        this.domainKey = env.get(Constants.CA_DOMAIN_KEY);
+        this.userKeyPath = env.get(Constants.CA_USER_KEY_PATH);
+        this.domainKeyPath = env.get(Constants.CA_DOMAIN_KEY_PATH);
     }
 
     public String getUrl() {
         return url;
     }
 
-    public String getUserKey() {
-        return userKey;
+    public String getUserKeyPath() {
+        return userKeyPath;
     }
 
-    public String getDomainKey() {
-        return domainKey;
+    public String getDomainKeyPath() {
+        return domainKeyPath;
     }
 
     public List<String> getDomains() {

@@ -38,6 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
@@ -67,7 +69,8 @@ public class CertUpdater implements Job {
             CaClient acmeClient = new CaClient(acmeConfiguration);
             NginxClient nginxClient = new NginxClient(nginxConfiguration);
 
-            KeyPair userKeyPair = this.saveKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKey(), custosClient);
+            KeyPair userKeyPair = this.saveKeyPair(CERT_UPDATER_USER_KEY, acmeConfiguration.getUserKeyPath(),
+                    custosClient);
             Order order = acmeClient.getCertificateOrder(userKeyPair);
             ArrayList<Http01Challenge> challenges = acmeClient.getChallenges(order);
 
@@ -99,7 +102,7 @@ public class CertUpdater implements Job {
                 }
             }
 
-            KeyPair domainKeyPair = this.saveKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKey(),
+            KeyPair domainKeyPair = this.saveKeyPair(CERT_UPDATER_DOMAIN_KEY, acmeConfiguration.getDomainKeyPath(),
                     custosClient);
             Certificate certificate = acmeClient.getCertificateCredentials(order, domainKeyPair);
             saveCertificate(CertUtils.toString(domainKeyPair), CertUtils.toString(certificate), custosClient);
@@ -114,20 +117,22 @@ public class CertUpdater implements Job {
         }
     }
 
-    private KeyPair saveKeyPair(String key, String value, CustosClient custosClient)
+    private KeyPair saveKeyPair(String key, String filePath, CustosClient custosClient)
             throws IOException, CertificateEncodingException {
-        String keyPairValue = value;
-        if (keyPairValue == null || keyPairValue.isEmpty()) {
-            try {
-                keyPairValue = custosClient.getKVCredentials(key);
-                logger.debug("{} is available in Custos.", key);
-                return CertUtils.convertToKeyPair(keyPairValue);
-            } catch (Exception e) {
-                logger.debug("Key {} isn't available in Custos.", key);
-            }
+        try {
+            String keyPairValue = custosClient.getKVCredentials(key);
+            logger.debug("{} is available in Custos.", key);
+            return CertUtils.convertToKeyPair(keyPairValue);
+        } catch (Exception e) {
+            logger.debug("Key {} isn't available in Custos.", key);
         }
 
-        KeyPair keyPair = CertUtils.getKeyPair(2048);
+        String keyValue = null;
+        if (filePath != null && !filePath.isEmpty()) {
+            keyValue = new String(Files.readAllBytes(Paths.get(filePath)));
+        }
+
+        KeyPair keyPair = keyValue != null ? CertUtils.convertToKeyPair(keyValue) : CertUtils.getKeyPair(2048);
         custosClient.addKVCredential(key, CertUtils.toString(keyPair));
         return keyPair;
     }
