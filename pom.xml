@@ -292,19 +292,19 @@
                             <release>${java.version}</release>
                         </configuration>
                     </plugin>
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <version>${spring.boot.version}</version>
-                        <executions>
-                            <execution>
-                                <id>default</id>
-                                <goals>
-                                    <goal>repackage</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
+<!--                    <plugin>-->
+<!--                        <groupId>org.springframework.boot</groupId>-->
+<!--                        <artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--                        <version>${spring.boot.version}</version>-->
+<!--                        <executions>-->
+<!--                            <execution>-->
+<!--                                <id>default</id>-->
+<!--                                <goals>-->
+<!--                                    <goal>repackage</goal>-->
+<!--                                </goals>-->
+<!--                            </execution>-->
+<!--                        </executions>-->
+<!--                    </plugin>-->
                     <plugin>
                         <groupId>org.xolstice.maven.plugins</groupId>
                         <artifactId>protobuf-maven-plugin</artifactId>
