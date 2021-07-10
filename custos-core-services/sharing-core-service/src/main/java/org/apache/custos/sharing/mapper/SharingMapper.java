@@ -44,6 +44,7 @@ public class SharingMapper {
                                         String ownerId,
                                         String ownerType,
                                         String sharingType,
+                                        String sharedBy,
                                         long tenantId) {
 
         String id = entity.getId() + "_" +
@@ -58,6 +59,9 @@ public class SharingMapper {
         sharing.setInheritedParent(inheritedEntity);
         sharing.setTenantId(tenantId);
         sharing.setId(id);
+        if (sharedBy != null) {
+            sharing.setSharedBy(sharedBy);
+        }
         return sharing;
     }
 
@@ -74,6 +78,9 @@ public class SharingMapper {
         sharing.setAssociatingIdType(oldSharing.getAssociatingIdType());
         sharing.setInheritedParent(oldSharing.getInheritedParent());
         sharing.setCreatedAt(oldSharing.getCreatedAt());
+        if (oldSharing.getSharedBy() != null) {
+            sharing.setSharedBy(oldSharing.getSharedBy());
+        }
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;
@@ -107,13 +114,14 @@ public class SharingMapper {
                                     .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder().
                                             setId(shr.getPermissionType().getExternalId())
                                             .setName(shr.getPermissionType().getName()
-                                            ).setDescription(shr.getPermissionType().getDescription()==null?
-                                                    "":shr.getPermissionType().getDescription()).
+                                            ).setDescription(shr.getPermissionType().getDescription() == null ?
+                                                    "" : shr.getPermissionType().getDescription()).
                                                     setCreatedAt(shr.getCreatedAt().getTime())
                                             .setUpdatedAt(shr.getLastModifiedAt().getTime()).build())
                                     .setOwnerType(shr.getAssociatingIdType())
                                     .setOwnerId(shr.getAssociatingId())
                                     .setEntity(EntityMapper.createEntity(shr.getEntity()))
+                                    .setSharedBy(shr.getSharedBy() != null ? shr.getSharedBy() : "")
                                     .build();
                             return metadata;
                         } catch (SQLException throwables) {

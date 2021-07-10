@@ -518,6 +518,11 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
 
+            String sharedBy = request.getSharedBy();
+            if (!sharedBy.isEmpty()) {
+                validateAndGetUserProfile(sharedBy, clientId, clientSec, tenantId);
+            }
+
             Status status = sharingClient.shareEntityWithUsers(request);
 
             responseObserver.onNext(status);
@@ -543,6 +548,11 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
                 validateAndGetGroupId(groupId, tenantId);
             }
+            String sharedBy = request.getSharedBy();
+            if (!sharedBy.isEmpty()) {
+                validateAndGetUserProfile(sharedBy, request.getClientId(), request.getClientSec(), tenantId);
+            }
+
 
             Status status = sharingClient.shareEntityWithGroups(request);
 
