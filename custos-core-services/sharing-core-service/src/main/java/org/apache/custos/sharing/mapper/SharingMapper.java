@@ -104,6 +104,19 @@ public class SharingMapper {
 
     }
 
+    public static SharingMetadata getSharingMetadata(Sharing sharing, Entity entity,
+                                                     PermissionType permissionType, String type) throws SQLException {
+        org.apache.custos.sharing.service.Entity en = EntityMapper.createEntity(entity);
+        return SharingMetadata.newBuilder()
+                .setEntity(en)
+                .setOwnerId(sharing.getAssociatingId())
+                .setOwnerType(type)
+                .setSharedBy(sharing.getSharedBy()!=null?sharing.getSharedBy():"")
+                .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder()
+                        .setId(permissionType.getExternalId()).build()).build();
+
+    }
+
     public static Optional<List<SharingMetadata>> getSharingMetadata(List<Sharing> sharingList) {
         if (sharingList != null && !sharingList.isEmpty()) {
 
