@@ -1176,59 +1176,38 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             List<org.apache.custos.sharing.service.Entity> arrayList = new ArrayList<>();
             List<SharingMetadata> sharingMetadata = new ArrayList<>();
             entities.forEach(entity -> {
-                try {
-                    Entity en = EntityMapper.createEntity(entity);
-                    permissionTypes.forEach(perm -> {
-                        String permId = perm.getId();
-                        List<String> sharingList = new ArrayList<>();
-                        sharingList.add(Constants.DIRECT_CASCADING);
-                        sharingList.add(Constants.DIRECT_NON_CASCADING);
+                permissionTypes.forEach(perm -> {
+                    String permId = perm.getId();
+                    List<String> sharingList = new ArrayList<>();
+                    sharingList.add(Constants.DIRECT_CASCADING);
+                    sharingList.add(Constants.DIRECT_NON_CASCADING);
 
-                        List<Sharing> sharings = sharingRepository.
-                                findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(request.getTenantId(), entity.getId(),
-                                        permId, Constants.USER, sharingList);
-                        org.apache.custos.sharing.service.SharedOwners owners = SharingMapper.getSharedOwners(sharings);
-
-                        if (owners != null) {
-                            owners.getOwnerIdsList().forEach(ownerId -> {
-                                SharingMetadata metadata =
-                                        SharingMetadata.newBuilder()
-                                                .setEntity(en)
-                                                .setOwnerId(ownerId)
-                                                .setOwnerType(Constants.USER)
-                                                .setPermission(PermissionType.newBuilder()
-                                                        .setId(perm.getExternalId()).build()).build();
-                                sharingMetadata.add(metadata);
-
-                            });
-
-                        }
-
-                        List<Sharing> sharingsGroups = sharingRepository.
-                                findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(request.getTenantId(), entity.getId(),
-                                        permId, Constants.GROUP, sharingList);
-                        org.apache.custos.sharing.service.SharedOwners groupOwners = SharingMapper.getSharedOwners(sharingsGroups);
-
-                        if (groupOwners != null) {
-                            groupOwners.getOwnerIdsList().forEach(ownerId -> {
-                                SharingMetadata metadata =
-                                        SharingMetadata.newBuilder()
-                                                .setEntity(en)
-                                                .setOwnerId(ownerId)
-                                                .setOwnerType(Constants.GROUP)
-                                                .setPermission(PermissionType.newBuilder().
-                                                        setId(perm.getExternalId()).build()).build();
-                                sharingMetadata.add(metadata);
-
-                            });
-
+                    List<Sharing> sharings = sharingRepository.
+                            findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(request.getTenantId(), entity.getId(),
+                                    permId, Constants.USER, sharingList);
+                    sharings.forEach(shr -> {
+                        try {
+                            sharingMetadata.add(SharingMapper.getSharingMetadata(shr, entity, perm, Constants.USER));
+                        } catch (SQLException throwables) {
+                            String msg = "Error occurred while transforming entity" + entity.getId();
+                            LOGGER.error(msg);
                         }
                     });
 
-                } catch (SQLException throwables) {
-                    String msg = "Error occurred while transforming entity" + entity.getId();
-                    LOGGER.error(msg);
-                }
+
+                    List<Sharing> sharingsGroups = sharingRepository.
+                            findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(request.getTenantId(), entity.getId(),
+                                    permId, Constants.GROUP, sharingList);
+                    sharingsGroups.forEach(shr -> {
+                        try {
+                            sharingMetadata.add(SharingMapper.getSharingMetadata(shr, entity, perm, Constants.GROUP));
+                        } catch (SQLException throwables) {
+                            String msg = "Error occurred while transforming entity" + entity.getId();
+                            LOGGER.error(msg);
+                        }
+                    });
+                });
+
             });
             GetAllDirectSharingsResponse response = GetAllDirectSharingsResponse
                     .newBuilder().addAllSharedData(sharingMetadata).build();
