@@ -134,6 +134,7 @@ message SharingRequest {
     repeated string owner_id = 5;
     bool cascade = 6;
     string client_sec = 7;
+    string shared_by = 8;
 }
 
 message SharesFilteringRequest {
@@ -177,6 +178,7 @@ message SharingMetadata {
     string owner_id = 2;
     string owner_type = 3;
     PermissionType permission = 4;
+    string shared_by = 5;
 }
 
 service SharingService {
