@@ -53,8 +53,9 @@ class AgentManagementClient(object):
         try:
             token = "Bearer " + token
             metadata = (('authorization', token),)
+            request = AgentClientMetadata()
 
-            return self.agent_stub.enableAgents(metadata=metadata)
+            return self.agent_stub.enableAgents(request, metadata=metadata)
         except Exception:
             logger.exception("Error occurred while enabling agents")
             raise

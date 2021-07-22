@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.security.KeyStore;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -1828,6 +1829,8 @@ public class KeycloakClient {
 
     private ResteasyClient getRestClient() {
         return new ResteasyClientBuilder()
+                .establishConnectionTimeout(100, TimeUnit.SECONDS)
+                .socketTimeout(10, TimeUnit.SECONDS)
                 .connectionPoolSize(POOL_SIZE)
                 .trustStore(loadKeyStore())
                 .build();
