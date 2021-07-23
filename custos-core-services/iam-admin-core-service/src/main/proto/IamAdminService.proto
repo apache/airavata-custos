@@ -409,6 +409,7 @@ message GetAllResourcesResponse {
 message DeleteExternalIDPsRequest {
     int64 tenant_id= 1;
     string client_id = 2;
+    repeated string user_id=3;
 }
 
 service IamAdminService {
