@@ -542,7 +542,12 @@ public class IamAdminService extends IamAdminServiceImplBase {
                                               StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         try {
             long tenantId = request.getTenantId();
-            boolean status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId));
+            boolean status = false;
+            if (request.getUserIdList().isEmpty()) {
+                status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId));
+            } else {
+                status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId), request.getUserIdList());
+            }
             responseObserver.onNext(org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build());
             responseObserver.onCompleted();
         } catch (Exception ex) {
