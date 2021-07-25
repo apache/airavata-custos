@@ -28,6 +28,9 @@ import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
+import org.apache.custos.messaging.email.service.EmailDisablingRequest;
+import org.apache.custos.messaging.email.service.EmailEnablingRequest;
+import org.apache.custos.messaging.email.service.FetchEmailTemplatesRequest;
 import org.apache.custos.messaging.service.MessageEnablingRequest;
 import org.apache.custos.tenant.management.service.Credentials;
 import org.apache.custos.tenant.management.service.DeleteTenantRequest;
@@ -261,6 +264,48 @@ public class AuthInterceptorImpl extends AuthInterceptor {
 
             Optional<AuthClaim> claim = authorizeUsingUserToken(headers);
             MessageEnablingRequest rolesRequest = ((MessageEnablingRequest) msg);
+            return claim.map(cl -> {
+                return (ReqT) rolesRequest.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientId(cl.getCustosId())
+                        .build();
+            }).orElseThrow(() -> {
+                String error = "Request is not authorized, token not found";
+                throw new UnAuthorizedException(error, null);
+            });
+
+        } else if (method.equals("enableEmail")) {
+
+            Optional<AuthClaim> claim = authorizeUsingUserToken(headers);
+            EmailEnablingRequest rolesRequest = ((EmailEnablingRequest) msg);
+            return claim.map(cl -> {
+                return (ReqT) rolesRequest.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientId(cl.getCustosId())
+                        .build();
+            }).orElseThrow(() -> {
+                String error = "Request is not authorized, token not found";
+                throw new UnAuthorizedException(error, null);
+            });
+
+        } else if (method.equals("disableEmail")) {
+
+            Optional<AuthClaim> claim = authorizeUsingUserToken(headers);
+            EmailDisablingRequest rolesRequest = ((EmailDisablingRequest) msg);
+            return claim.map(cl -> {
+                return (ReqT) rolesRequest.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientId(cl.getCustosId())
+                        .build();
+            }).orElseThrow(() -> {
+                String error = "Request is not authorized, token not found";
+                throw new UnAuthorizedException(error, null);
+            });
+
+        } else if (method.equals("getEmailTemplates")) {
+
+            Optional<AuthClaim> claim = authorizeUsingUserToken(headers);
+            FetchEmailTemplatesRequest rolesRequest = ((FetchEmailTemplatesRequest) msg);
             return claim.map(cl -> {
                 return (ReqT) rolesRequest.toBuilder()
                         .setTenantId(cl.getTenantId())

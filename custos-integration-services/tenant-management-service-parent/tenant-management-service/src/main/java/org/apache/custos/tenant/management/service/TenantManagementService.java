@@ -38,6 +38,7 @@ import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
 import org.apache.custos.messaging.client.MessagingClient;
+import org.apache.custos.messaging.email.service.*;
 import org.apache.custos.messaging.service.MessageEnablingResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
@@ -836,6 +837,61 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
         responseObserver.onCompleted();
     }
 
+
+    @Override
+    public void enableEmail(EmailEnablingRequest request,
+                            StreamObserver<EmailTemplate> responseObserver) {
+        try {
+            LOGGER.debug("Request received to enable emails for tenant " + request.getTenantId());
+
+            EmailTemplate emailTemplate = messagingClient.enableEmail(request);
+            responseObserver.onNext(emailTemplate);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while enabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void disableEmail(EmailDisablingRequest request,
+                             StreamObserver<org.apache.custos.messaging.email.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to disable emails for tenant " + request.getTenantId());
+
+            org.apache.custos.messaging.email.service.Status status = messagingClient.disableEmail(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while disabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void getEmailTemplates(FetchEmailTemplatesRequest request,
+                                  StreamObserver<FetchEmailTemplatesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get email templates for tenant " + request.getTenantId());
+            FetchEmailTemplatesResponse response = messagingClient.getEmailTemplates(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching emails for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
 
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();

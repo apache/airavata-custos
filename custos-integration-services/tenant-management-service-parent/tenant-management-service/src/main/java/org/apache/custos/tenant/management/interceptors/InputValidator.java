@@ -87,6 +87,9 @@ public class InputValidator implements IntegrationServiceInterceptor {
             case "getTenantRoles":
             case "deleteRole":
             case "enableMessaging":
+            case "enableEmail":
+            case "disableEmail":
+            case "getEmailTemplates":
                 validationAuthorizationHeader(headers);
                 break;
             default:
