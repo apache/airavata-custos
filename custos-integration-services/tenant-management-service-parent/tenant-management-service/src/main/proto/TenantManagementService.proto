@@ -271,7 +271,7 @@ service TenantManagementService {
 
     rpc getEmailTemplates(org.apache.custos.messaging.email.service.FetchEmailTemplatesRequest) returns (org.apache.custos.messaging.email.service.FetchEmailTemplatesResponse) {
         option (google.api.http) = {
-           post: "/tenant-management/v1.0.0/email/templates"
+           get: "/tenant-management/v1.0.0/email/templates"
         };
     }
 

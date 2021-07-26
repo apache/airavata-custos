@@ -78,7 +78,7 @@ message FetchEmailTemplatesRequest {
 }
 
 message FetchEmailTemplatesResponse {
-    EmailTemplate templates = 1;
+   repeated EmailTemplate templates = 1;
 }
 
 service EmailService {

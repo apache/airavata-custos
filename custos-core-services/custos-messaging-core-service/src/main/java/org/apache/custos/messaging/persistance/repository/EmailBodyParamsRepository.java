@@ -19,17 +19,8 @@
 
 package org.apache.custos.messaging.persistance.repository;
 
-import org.apache.custos.messaging.persistance.model.EmailTemplate;
+import org.apache.custos.messaging.persistance.model.EmailBodyParams;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-import java.util.Optional;
-
-public interface EmailTemplateRepository extends JpaRepository<EmailTemplate, Long> {
-    public Optional<EmailTemplate> findByTenantIdAndCustosEvent(long tenantId, String custosEvent);
-
-    public List<EmailTemplate> findByTenantId(long tenantId);
-
+public interface EmailBodyParamsRepository extends JpaRepository<EmailBodyParams, Long> {
 }
-
-

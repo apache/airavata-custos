@@ -36,7 +36,8 @@ import java.util.Set;
 public class EmailTemplate {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "email_template_id_generator")
+    @SequenceGenerator(name = "email_template_id_generator", sequenceName = "tenant_sequence", initialValue = 1000000000, allocationSize = 100)
     private Long id;
 
     @Column(nullable = false)
@@ -58,6 +59,9 @@ public class EmailTemplate {
     @Column(nullable = false)
     private String custosEvent;
 
+    @Column(nullable = false)
+    private boolean status;
+
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "emailTemplate", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<EmailBodyParams> bodyParams;
@@ -65,8 +69,6 @@ public class EmailTemplate {
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "emailTemplate", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<EmailReceivers> emailReceivers;
-
-
 
     public Long getId() {
         return id;
@@ -130,5 +132,13 @@ public class EmailTemplate {
 
     public void setEmailReceivers(Set<EmailReceivers> emailReceivers) {
         this.emailReceivers = emailReceivers;
+    }
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
     }
 }
