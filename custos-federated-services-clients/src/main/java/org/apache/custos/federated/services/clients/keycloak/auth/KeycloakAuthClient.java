@@ -332,6 +332,7 @@ public class KeycloakAuthClient {
 
 
     private String getOpenIDConfigurationUrl(String realm) {
+        LOGGER.info("Connecting to "+ idpServerURL);
         return idpServerURL + "realms/" + realm + "/.well-known/openid-configuration";
     }
 
