@@ -1229,6 +1229,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             List<org.apache.custos.sharing.service.Entity> arrayList = new ArrayList<>();
             List<org.apache.custos.sharing.persistance.model.Entity> entities = new ArrayList<>();
             List<SharingMetadata> sharingMetadata = new ArrayList<>();
+            List<SharingMetadata> selectedList = new ArrayList<>();
             if (request.hasEntity() && !request.getEntity().getId().isEmpty()) {
                 arrayList.add(request.getEntity());
                 String entityId = request.getEntity().getId() + "@" + request.getTenantId();
@@ -1259,8 +1260,25 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                 }
 
             });
+
+            //TODO: replace with proper query
+            sharingMetadata.forEach(shr -> {
+                if (selectedList.isEmpty()) {
+                    selectedList.add(shr);
+                } else {
+                    new ArrayList<>(selectedList).forEach(selVar -> {
+                        if (!(shr.getEntity().getId().equals(selVar.getEntity().getId())
+                                && shr.getOwnerId().equals(selVar.getOwnerId()) &&
+                                shr.getPermission().getId().equals(selVar.getPermission().getId()))) {
+                            selectedList.add(shr);
+                        }
+                    });
+                }
+            });
+
+
             GetAllSharingsResponse response = GetAllSharingsResponse
-                    .newBuilder().addAllSharedData(sharingMetadata).build();
+                    .newBuilder().addAllSharedData(selectedList).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 

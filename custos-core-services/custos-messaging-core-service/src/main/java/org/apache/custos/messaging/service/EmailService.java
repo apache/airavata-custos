@@ -22,7 +22,9 @@ package org.apache.custos.messaging.service;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.messaging.email.service.Status;
 import org.apache.custos.messaging.email.service.*;
+import org.apache.custos.messaging.events.email.EmailSender;
 import org.apache.custos.messaging.mapper.EmailMapper;
+import org.apache.custos.messaging.persistance.model.EmailBodyParams;
 import org.apache.custos.messaging.persistance.repository.EmailBodyParamsRepository;
 import org.apache.custos.messaging.persistance.repository.EmailReceiversRepository;
 import org.apache.custos.messaging.persistance.repository.EmailTemplateRepository;
@@ -30,10 +32,9 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @GRpcService
 public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
@@ -49,10 +50,74 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
     @Autowired
     private EmailReceiversRepository emailReceiversRepository;
 
+    @Value("${mail.smtp.auth:true}")
+    private String mailSmtpAuth;
+
+    @Value("${mail.smtp.starttls.enable:true}")
+    private String mailSmtpStarttlsEnable;
+
+    @Value("${mail.smtp.host:smtp.gmail.com}")
+    private String mailSmtpHost;
+
+    @Value("${mail.smtp.port:587}")
+    private String mailSmtpPort;
+
+    @Value("${mail.smtp.ssl.trust:smtp.gmail.com}")
+    private String mailSmtpSslTrust;
+
+    @Value("${mail.sender.username:custosemailagent@gmail.com}")
+    private String senderUserName;
+    @Value("${mail.sender.password}")
+    private String senderPassword;
+
 
     @Override
     public void send(EmailMessageSendingRequest request, StreamObserver<Status> responseObserver) {
-        super.send(request, responseObserver);
+        try {
+            long tenantId = request.getTenantId();
+            CustosEvent event = request.getMessage().getCustosEvent();
+
+            Optional<org.apache.custos.messaging.persistance.model.EmailTemplate> emailTemplate = emailTemplateRepository
+                    .findByTenantIdAndCustosEvent(tenantId, event.name());
+            if (emailTemplate.isPresent()) {
+                org.apache.custos.messaging.persistance.model.EmailTemplate template = emailTemplate.get();
+
+                String subject = template.getSubject();
+                String body = template.getBody();
+                Set<EmailBodyParams> emailBodyParams = template.getBodyParams();
+                Map<String, String> bodyValues = request.getMessage().getParametersMap();
+                LOGGER.info(body);
+                for (EmailBodyParams val : emailBodyParams) {
+                    if (bodyValues.containsKey(val.getValue())) {
+                        body = body.replace(val.getValue(), bodyValues.get(val.getValue()));
+                    }
+                }
+                LOGGER.info(body);
+
+                Properties properties = new Properties();
+                properties.put("mail.smtp.auth", mailSmtpAuth);
+                properties.put("mail.smtp.starttls.enable", mailSmtpStarttlsEnable);
+                properties.put("mail.smtp.host", mailSmtpHost);
+                properties.put("mail.smtp.port", mailSmtpPort);
+                properties.put("mail.smtp.ssl.trust", mailSmtpSslTrust);
+
+                List<String> emails = request.getMessage().getReceiverEmailList();
+                EmailSender.sendEmail(properties, senderUserName, senderPassword, subject, body, (String[]) emails.toArray());
+
+            }
+
+            org.apache.custos.messaging.email.service.Status status = org.apache.custos.messaging.email.service.Status
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while sending email reason : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
     @Override

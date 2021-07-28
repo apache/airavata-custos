@@ -30,10 +30,13 @@ import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.*;
+import org.apache.custos.messaging.client.MessagingClient;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.GetTenantRequest;
 import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.Tenant;
+import org.apache.custos.user.profile.client.UserProfileClient;
+import org.apache.custos.user.profile.service.UserProfile;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +58,12 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
     @Autowired
     private CredentialStoreServiceClient credentialStoreServiceClient;
+
+    @Autowired
+    private UserProfileClient userProfileClient;
+
+    @Autowired
+    private MessagingClient messagingClient;
 
     @Override
     public void authenticate(AuthenticationRequest request, StreamObserver<AuthToken> responseObserver) {
@@ -190,6 +199,38 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
             LOGGER.debug("Request received  to token endpoint " + request.getTenantId());
 
             Struct response = identityClient.getAccessToken(request);
+
+            if (response.getFieldsMap().get("access_token").isInitialized()) {
+                String accessToken = response.getFieldsMap().get("access_token").getStringValue();
+                long tenantId = request.getTenantId();
+                String clientId = request.getClientId();
+                AuthToken authToken = AuthToken.newBuilder()
+                        .setAccessToken(accessToken)
+                        .addClaims(Claim.newBuilder().setKey("clientId").setValue(clientId).build())
+                        .addClaims(Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(tenantId))
+                                .build()).build();
+                User user = identityClient.getUser(authToken);
+
+                UserProfile userProfile = UserProfile.newBuilder()
+                        .setUsername(user.getUsername())
+                        .setFirstName(user.getFirstName())
+                        .setLastName(user.getLastName())
+                        .setEmail(user.getEmailAddress())
+                        .build();
+                org.apache.custos.user.profile.service.UserProfileRequest req =
+                        org.apache.custos.user.profile.service.UserProfileRequest
+                                .newBuilder()
+                                .setTenantId(request.getTenantId())
+                                .setProfile(userProfile)
+                                .build();
+
+
+                UserProfile exsistingProfile = userProfileClient.getUser(req);
+
+                if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
+                    userProfileClient.createUserProfile(req);
+                }
+            }
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();

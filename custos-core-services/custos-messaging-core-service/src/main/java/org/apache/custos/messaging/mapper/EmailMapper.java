@@ -69,6 +69,7 @@ public class EmailMapper {
 
         emailTemplate.setBodyParams(paramSet);
         emailTemplate.setEmailReceivers(emailReceivers);
+        emailTemplate.setBody(emailEnablingRequest.getEmailTemplate().getBody());
         return emailTemplate;
     }
 
@@ -102,6 +103,7 @@ public class EmailMapper {
                 .addAllReceivingUsers(receivingUsers)
                 .addAllReceivingGroups(receivingGroups)
                 .addAllBodyParams(bodyParams)
+                .setBody(emailTemplate.getBody())
                 .build();
         return template;
 

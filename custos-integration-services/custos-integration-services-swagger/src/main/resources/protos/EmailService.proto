@@ -47,6 +47,7 @@ message EmailTemplate {
     repeated string body_params = 4;
     repeated string receiving_users = 5;
     repeated string receiving_groups = 6;
+    string body = 7;
 }
 
 message EmailEnablingRequest {

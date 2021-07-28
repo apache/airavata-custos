@@ -62,6 +62,9 @@ public class EmailTemplate {
     @Column(nullable = false)
     private boolean status;
 
+    @Column(nullable = false)
+    private String body;
+
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "emailTemplate", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<EmailBodyParams> bodyParams;
@@ -140,5 +143,13 @@ public class EmailTemplate {
 
     public void setStatus(boolean status) {
         this.status = status;
+    }
+
+    public String getBody() {
+        return body;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
     }
 }
