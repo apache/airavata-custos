@@ -20,6 +20,7 @@
 package org.apache.custos.identity.management.service;
 
 import com.google.protobuf.Struct;
+import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
@@ -30,14 +31,21 @@ import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.management.utils.Constants;
 import org.apache.custos.identity.service.*;
+import org.apache.custos.integration.services.commons.utils.EmailSender;
+import org.apache.custos.messaging.email.service.CustosEvent;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.apache.custos.tenant.profile.service.GetTenantRequest;
 import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.Tenant;
+import org.apache.custos.user.profile.client.UserProfileClient;
+import org.apache.custos.user.profile.service.UserProfile;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The grpc service class to use for Identity management related services
@@ -55,6 +63,13 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
     @Autowired
     private CredentialStoreServiceClient credentialStoreServiceClient;
+
+    @Autowired
+    private UserProfileClient userProfileClient;
+
+
+    @Autowired
+    private EmailSender emailSender;
 
     @Override
     public void authenticate(AuthenticationRequest request, StreamObserver<AuthToken> responseObserver) {
@@ -191,6 +206,57 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
 
             Struct response = identityClient.getAccessToken(request);
 
+            Context ctx = Context.current().fork();
+            ctx.run(() -> {
+                long tenantId = request.getTenantId();
+                if (response.getFieldsMap().get("access_token").isInitialized() &&
+                        !response.getFieldsMap().get("access_token").equals("")) {
+                    String accessToken = response.getFieldsMap().get("access_token").getStringValue();
+                    LOGGER.info(accessToken);
+                    String clientId = request.getClientId();
+                    AuthToken authToken = AuthToken.newBuilder()
+                            .setAccessToken(accessToken)
+                            .addClaims(Claim.newBuilder().setKey("clientId").setValue(clientId).build())
+                            .addClaims(Claim.newBuilder().setKey("username").setValue("isjarana"))
+                            .addClaims(Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(tenantId))
+                                    .build()).build();
+                    User user = identityClient.getUser(authToken);
+                    LOGGER.info("User" + user.getUsername());
+
+                    UserProfile userProfile = UserProfile.newBuilder()
+                            .setUsername(user.getUsername())
+                            .setFirstName(user.getFirstName())
+                            .setLastName(user.getLastName())
+                            .setEmail(user.getEmailAddress())
+                            .build();
+                    org.apache.custos.user.profile.service.UserProfileRequest req =
+                            org.apache.custos.user.profile.service.UserProfileRequest
+                                    .newBuilder()
+                                    .setTenantId(request.getTenantId())
+                                    .setProfile(userProfile)
+                                    .build();
+
+                    UserProfile exsistingProfile = userProfileClient.getUser(req);
+                    Map<String, String> values = new HashMap<>();
+                    values.put("param:username", user.getUsername());
+                    values.put("param:first_name", user.getFirstName());
+                    values.put("param:last_name", user.getLastName());
+                    values.put("param:email", user.getEmailAddress());
+                    values.put("param:tenant_id", request.getClientId());
+
+                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
+                        userProfileClient.createUserProfile(req);
+                        org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
+                                org.apache.custos.tenant.profile.service.GetTenantRequest
+                                        .newBuilder().setTenantId(request.getTenantId()).build();
+
+                        org.apache.custos.tenant.profile.service.GetTenantResponse tenantResponse =
+                                tenantProfileClient.getTenant(tenantReq);
+                        values.put("param:tenant_name", tenantResponse.getTenant().getClientName());
+                        emailSender.sendEmail(tenantId, CustosEvent.NEW_USER_SIGNUP, values);
+                    }
+                }
+            });
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 

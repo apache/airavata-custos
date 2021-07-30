@@ -268,6 +268,13 @@
                 <version>${kafka-clients.version}</version>
             </dependency>
 
+            <!--- email sending -->
+            <dependency>
+                <groupId>javax.mail</groupId>
+                <artifactId>mail</artifactId>
+                <version>${email.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -292,19 +299,19 @@
                             <release>${java.version}</release>
                         </configuration>
                     </plugin>
-<!--                    <plugin>-->
-<!--                        <groupId>org.springframework.boot</groupId>-->
-<!--                        <artifactId>spring-boot-maven-plugin</artifactId>-->
-<!--                        <version>${spring.boot.version}</version>-->
-<!--                        <executions>-->
-<!--                            <execution>-->
-<!--                                <id>default</id>-->
-<!--                                <goals>-->
-<!--                                    <goal>repackage</goal>-->
-<!--                                </goals>-->
-<!--                            </execution>-->
-<!--                        </executions>-->
-<!--                    </plugin>-->
+                    <!--                    <plugin>-->
+                    <!--                        <groupId>org.springframework.boot</groupId>-->
+                    <!--                        <artifactId>spring-boot-maven-plugin</artifactId>-->
+                    <!--                        <version>${spring.boot.version}</version>-->
+                    <!--                        <executions>-->
+                    <!--                            <execution>-->
+                    <!--                                <id>default</id>-->
+                    <!--                                <goals>-->
+                    <!--                                    <goal>repackage</goal>-->
+                    <!--                                </goals>-->
+                    <!--                            </execution>-->
+                    <!--                        </executions>-->
+                    <!--                    </plugin>-->
                     <plugin>
                         <groupId>org.xolstice.maven.plugins</groupId>
                         <artifactId>protobuf-maven-plugin</artifactId>
@@ -412,7 +419,7 @@
                         <configuration>
                             <chartName>${project.artifactId}</chartName>
                             <chartFolder>src/main/helm</chartFolder>
-<!--                            <chartRepoUrl>null</chartRepoUrl>-->
+                            <!--                            <chartRepoUrl>null</chartRepoUrl>-->
                             <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
                             <helmVersion>2.16.0</helmVersion>
                             <strictLint>true</strictLint>
@@ -443,12 +450,15 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>/Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos</outputDirectory>   <!-- output directory -->
+                                    <outputDirectory>
+                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
+                                    </outputDirectory>   <!-- output directory -->
                                     <resources>
                                         <resource>
-                                            <directory>${basedir}/src/main/proto</directory>         <!-- source directory -->
+                                            <directory>${basedir}/src/main/proto
+                                            </directory>         <!-- source directory -->
                                             <includes>
-                                                <include> **/*.proto</include>
+                                                <include>**/*.proto</include>
                                             </includes>
                                             <filtering>true</filtering>
                                         </resource>
@@ -585,6 +595,8 @@
         <dozer.version>5.5.1</dozer.version>
 
         <kafka-clients.version>1.0.0</kafka-clients.version>
+
+        <email.version>1.5.0-b01</email.version>
 
 
     </properties>

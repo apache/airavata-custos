@@ -31,6 +31,7 @@ import "google/protobuf/empty.proto";
 import "IamAdminService.proto";
 import "FederatedAuthenticationService.proto";
 import "MessagingService.proto";
+import "EmailService.proto";
 
 
 message CreateTenantResponse {
@@ -252,6 +253,31 @@ service TenantManagementService {
     rpc getInstitutions (org.apache.custos.federated.authentication.service.CacheManipulationRequest) returns (org.apache.custos.federated.authentication.service.GetInstitutionsResponse) {
         option (google.api.http) = {
            get: "/tenant-management/v1.0.0/institutions/CILogon"
+        };
+    }
+
+
+    rpc enableEmail(org.apache.custos.messaging.email.service.EmailEnablingRequest) returns (org.apache.custos.messaging.email.service.EmailTemplate) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/email/activation"
+        };
+    }
+
+    rpc disableEmail(org.apache.custos.messaging.email.service.EmailDisablingRequest) returns (org.apache.custos.messaging.email.service.Status) {
+        option (google.api.http) = {
+           post: "/tenant-management/v1.0.0/email/deactivation"
+        };
+    }
+
+    rpc getEmailTemplates(org.apache.custos.messaging.email.service.FetchEmailTemplatesRequest) returns (org.apache.custos.messaging.email.service.FetchEmailTemplatesResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/email/templates"
+        };
+    }
+
+    rpc getEmailFriendlyEvents(org.apache.custos.messaging.email.service.FetchEmailFriendlyEvents) returns (org.apache.custos.messaging.email.service.FetchEmailFriendlyEventsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/email/events"
         };
     }
 

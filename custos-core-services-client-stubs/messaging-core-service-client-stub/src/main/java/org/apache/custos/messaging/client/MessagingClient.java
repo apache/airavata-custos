@@ -23,6 +23,8 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import org.apache.custos.messaging.email.service.*;
+import org.apache.custos.messaging.service.Status;
 import org.apache.custos.messaging.service.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -39,6 +41,10 @@ public class MessagingClient {
     private List<ClientInterceptor> clientInterceptorList;
 
 
+    private EmailServiceGrpc.EmailServiceBlockingStub emailServiceBlockingStub;
+    private EmailServiceGrpc.EmailServiceStub emailServiceStub;
+
+
     public MessagingClient(List<ClientInterceptor> clientInterceptorList,
                            @Value("${messaging.core.service.dns.name}") String serviceHost,
                            @Value("${messaging.core.service.port}") int servicePort) {
@@ -47,6 +53,8 @@ public class MessagingClient {
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
         messagingServiceBlockingStub = MessagingServiceGrpc.newBlockingStub(managedChannel);
         messagingServiceFutureStub = MessagingServiceGrpc.newStub(managedChannel);
+        emailServiceStub = EmailServiceGrpc.newStub(managedChannel);
+        emailServiceBlockingStub = EmailServiceGrpc.newBlockingStub(managedChannel);
     }
 
 
@@ -58,8 +66,30 @@ public class MessagingClient {
         return this.messagingServiceBlockingStub.publish(request);
     }
 
+    public void sendEmailAsync(EmailMessageSendingRequest request,
+                               StreamObserver<org.apache.custos.messaging.email.service.Status> streamObserver) {
+        this.emailServiceStub.send(request, streamObserver);
+    }
+
+
     public void publishAsync(Message request, StreamObserver<Status> streamObserver) {
-        this.messagingServiceFutureStub.publish(request,streamObserver);
+        this.messagingServiceFutureStub.publish(request, streamObserver);
+    }
+
+    public EmailTemplate enableEmail(EmailEnablingRequest emailEnablingRequest) {
+        return this.emailServiceBlockingStub.enable(emailEnablingRequest);
+    }
+
+    public org.apache.custos.messaging.email.service.Status disableEmail(EmailDisablingRequest emailDisablingRequest) {
+        return this.emailServiceBlockingStub.disable(emailDisablingRequest);
+    }
+
+    public FetchEmailTemplatesResponse getEmailTemplates(FetchEmailTemplatesRequest fetchEmailTemplatesRequest) {
+        return this.emailServiceBlockingStub.getTemplates(fetchEmailTemplatesRequest);
+    }
+
+    public FetchEmailFriendlyEventsResponse fetchEmailFriendlyEvents(FetchEmailFriendlyEvents fetchEmailFriendlyEvents) {
+        return this.emailServiceBlockingStub.getEmailFriendlyEvents(fetchEmailFriendlyEvents);
     }
 
 
