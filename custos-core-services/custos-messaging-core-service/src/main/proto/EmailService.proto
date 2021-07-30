@@ -82,6 +82,22 @@ message FetchEmailTemplatesResponse {
    repeated EmailTemplate templates = 1;
 }
 
+message FetchEmailFriendlyEvents {
+    int64 tenant_id = 1;
+    string client_id = 2;
+}
+
+
+message CustosEmailEvent {
+    CustosEvent event = 1;
+    repeated string body_params = 2;
+}
+
+message FetchEmailFriendlyEventsResponse {
+    repeated CustosEmailEvent events = 1;
+}
+
+
 service EmailService {
 
     rpc send (EmailMessageSendingRequest) returns (Status);
@@ -91,4 +107,6 @@ service EmailService {
     rpc disable (EmailDisablingRequest) returns (Status);
 
     rpc getTemplates (FetchEmailTemplatesRequest) returns (FetchEmailTemplatesResponse);
+
+    rpc getEmailFriendlyEvents(FetchEmailFriendlyEvents) returns(FetchEmailFriendlyEventsResponse);
 }

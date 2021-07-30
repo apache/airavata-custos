@@ -66,6 +66,12 @@ public class MessagingClient {
         return this.messagingServiceBlockingStub.publish(request);
     }
 
+    public void sendEmailAsync(EmailMessageSendingRequest request,
+                               StreamObserver<org.apache.custos.messaging.email.service.Status> streamObserver) {
+        this.emailServiceStub.send(request, streamObserver);
+    }
+
+
     public void publishAsync(Message request, StreamObserver<Status> streamObserver) {
         this.messagingServiceFutureStub.publish(request, streamObserver);
     }
@@ -81,5 +87,10 @@ public class MessagingClient {
     public FetchEmailTemplatesResponse getEmailTemplates(FetchEmailTemplatesRequest fetchEmailTemplatesRequest) {
         return this.emailServiceBlockingStub.getTemplates(fetchEmailTemplatesRequest);
     }
+
+    public FetchEmailFriendlyEventsResponse fetchEmailFriendlyEvents(FetchEmailFriendlyEvents fetchEmailFriendlyEvents) {
+        return this.emailServiceBlockingStub.getEmailFriendlyEvents(fetchEmailFriendlyEvents);
+    }
+
 
 }

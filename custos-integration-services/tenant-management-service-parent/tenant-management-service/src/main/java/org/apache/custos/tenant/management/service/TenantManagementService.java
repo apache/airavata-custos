@@ -893,6 +893,23 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
         }
     }
 
+
+    @Override
+    public void getEmailFriendlyEvents(FetchEmailFriendlyEvents request, StreamObserver<FetchEmailFriendlyEventsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get getEmailFriendlyEvents for tenant " + request.getTenantId());
+            FetchEmailFriendlyEventsResponse response = messagingClient.fetchEmailFriendlyEvents(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching email events for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
 

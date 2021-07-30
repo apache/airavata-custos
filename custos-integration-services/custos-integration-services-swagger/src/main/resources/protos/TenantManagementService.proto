@@ -275,5 +275,11 @@ service TenantManagementService {
         };
     }
 
+    rpc getEmailFriendlyEvents(org.apache.custos.messaging.email.service.FetchEmailFriendlyEvents) returns (org.apache.custos.messaging.email.service.FetchEmailFriendlyEventsResponse) {
+        option (google.api.http) = {
+           get: "/tenant-management/v1.0.0/email/events"
+        };
+    }
+
 
 }

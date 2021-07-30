@@ -25,6 +25,7 @@ package org.apache.custos.messaging.service;
 
 import "google/protobuf/empty.proto";
 
+
 option go_package = "./pb";
 
 

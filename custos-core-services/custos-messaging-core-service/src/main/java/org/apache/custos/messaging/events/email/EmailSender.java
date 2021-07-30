@@ -19,16 +19,16 @@
 
 package org.apache.custos.messaging.events.email;
 
+import org.slf4j.LoggerFactory;
+
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 
 public class EmailSender {
-
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(EmailSender.class);
 
     public static void sendEmail(Properties prop, String senderEmail, String senderPassword, String subject,
                                  String body, String[] recipient) throws MessagingException {
@@ -44,13 +44,13 @@ public class EmailSender {
         Message message = new MimeMessage(session);
         message.setFrom(new InternetAddress(senderEmail));
 
-        List<Address[]> addressList = new ArrayList<>();
-        for (String recp : recipient) {
-            addressList.add(InternetAddress.parse(recp));
-        }
+        Address[] addresses = new Address[recipient.length];
 
+        for (int i = 0; i < recipient.length; i++) {
+            addresses[i] = new InternetAddress(recipient[i]);
+        }
         message.setRecipients(
-                Message.RecipientType.TO, (Address[]) addressList.toArray());
+                Message.RecipientType.TO, addresses);
         message.setSubject(subject);
 
         message.setContent(body, "text/html");

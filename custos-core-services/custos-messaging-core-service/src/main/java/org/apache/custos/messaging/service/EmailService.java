@@ -25,9 +25,12 @@ import org.apache.custos.messaging.email.service.*;
 import org.apache.custos.messaging.events.email.EmailSender;
 import org.apache.custos.messaging.mapper.EmailMapper;
 import org.apache.custos.messaging.persistance.model.EmailBodyParams;
+import org.apache.custos.messaging.persistance.model.EmailReceivers;
 import org.apache.custos.messaging.persistance.repository.EmailBodyParamsRepository;
 import org.apache.custos.messaging.persistance.repository.EmailReceiversRepository;
 import org.apache.custos.messaging.persistance.repository.EmailTemplateRepository;
+import org.apache.custos.user.profile.client.UserProfileClient;
+import org.apache.custos.user.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +52,10 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
 
     @Autowired
     private EmailReceiversRepository emailReceiversRepository;
+
+    @Autowired
+    private UserProfileClient userProfileClient;
+
 
     @Value("${mail.smtp.auth:true}")
     private String mailSmtpAuth;
@@ -101,9 +108,45 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
                 properties.put("mail.smtp.port", mailSmtpPort);
                 properties.put("mail.smtp.ssl.trust", mailSmtpSslTrust);
 
-                List<String> emails = request.getMessage().getReceiverEmailList();
-                EmailSender.sendEmail(properties, senderUserName, senderPassword, subject, body, (String[]) emails.toArray());
 
+                Set<EmailReceivers> emailReceivers = emailTemplate.get().getEmailReceivers();
+
+                List<String> emails = new ArrayList<>();
+
+                emailReceivers.forEach(emailReceiver -> {
+                    if (emailReceiver.getUserType().equals("USER")) {
+                        UserProfile profile = UserProfile.newBuilder()
+                                .setUsername(emailReceiver.getUserId())
+                                .build();
+                        UserProfileRequest userProfileRequest = UserProfileRequest.newBuilder()
+                                .setTenantId(tenantId)
+                                .setProfile(profile).build();
+                        UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
+                        if (userProfile.isInitialized() && !userProfile.getUsername().isEmpty()) {
+                            LOGGER.info("Adding receiver email " + userProfile.getEmail());
+                            emails.add(userProfile.getEmail());
+                        }
+                    } else if (emailReceiver.getUserType().equals("GROUP")) {
+                        Group group = Group.newBuilder().setId(emailReceiver.getUserId()).build();
+                        GroupRequest groupRequest = GroupRequest.newBuilder()
+                                .setTenantId(tenantId)
+                                .setGroup(group)
+                                .build();
+                        GetAllUserProfilesResponse userProfilesResponse = userProfileClient.getAllChildUsers(groupRequest);
+
+                        List<UserProfile> userProfiles = userProfilesResponse.getProfilesList();
+                        userProfiles.forEach(profile -> {
+                            LOGGER.info("Adding receiver email " + profile.getEmail());
+                            emails.add(profile.getEmail());
+                        });
+                    }
+                });
+
+                if (!emails.isEmpty()) {
+                    String[] emailArray = new String[emails.size()];
+                    emails.toArray(emailArray);
+                    EmailSender.sendEmail(properties, senderUserName, senderPassword, subject, body, emailArray);
+                }
             }
 
             org.apache.custos.messaging.email.service.Status status = org.apache.custos.messaging.email.service.Status
@@ -204,6 +247,34 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
 
         } catch (Exception ex) {
             String msg = " Error occurred while disabling email template reason : " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
+    public void getEmailFriendlyEvents(FetchEmailFriendlyEvents request, StreamObserver<FetchEmailFriendlyEventsResponse> responseObserver) {
+        try {
+
+
+            CustosEmailEvent custosEmailEvent = CustosEmailEvent.newBuilder()
+                    .setEvent(CustosEvent.NEW_USER_SIGNUP)
+                    .addBodyParams("param:tenant_id")
+                    .addBodyParams("param:tenant_name")
+                    .addBodyParams("param:username")
+                    .addBodyParams("param:first_name")
+                    .addBodyParams("param:last_name")
+                    .addBodyParams("param:email")
+                    .build();
+            FetchEmailFriendlyEventsResponse emailFriendlyEvents = FetchEmailFriendlyEventsResponse
+                    .newBuilder().addEvents(custosEmailEvent).build();
+
+            responseObserver.onNext(emailFriendlyEvents);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching getEmailFriendlyEvents reason : " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
