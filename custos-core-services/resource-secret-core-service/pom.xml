@@ -103,6 +103,7 @@
             <artifactId>json</artifactId>
         </dependency>
 
+
     </dependencies>
 
 
@@ -118,6 +119,13 @@
             <plugin>
                 <groupId>com.deviceinsight.helm</groupId>
                 <artifactId>helm-maven-plugin</artifactId>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
                 </configuration>

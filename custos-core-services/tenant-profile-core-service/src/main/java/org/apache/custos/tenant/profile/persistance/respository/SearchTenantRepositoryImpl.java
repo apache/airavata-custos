@@ -64,7 +64,7 @@ public class SearchTenantRepositoryImpl implements SearchTenantRepository {
 
         }
 
-        if (status != null && !status.isEmpty()) {
+        if (status != null  && !status.isEmpty()) {
             query = query + "E.status LIKE :" + "status" + " AND ";
             valueMap.put("status", status);
 

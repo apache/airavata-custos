@@ -89,3 +89,6 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 1
   successThreshold: 1
+
+deployment:
+  host: service.staging.usecustos.org
