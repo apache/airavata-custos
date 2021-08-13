@@ -412,6 +412,23 @@ message DeleteExternalIDPsRequest {
     repeated string user_id=3;
 }
 
+message GetExternalIDPsRequest {
+    int64 tenant_id= 1;
+    string client_id = 2;
+    string user_id=3;
+}
+
+
+message ExternalIDPLink {
+    string provider_alias = 1;
+    string provider_user_id =2;
+    string provider_username = 3;
+}
+
+message GetExternalIDPsResponse {
+  repeated   ExternalIDPLink idp_links = 1;
+}
+
 service IamAdminService {
 
     rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
@@ -435,6 +452,7 @@ service IamAdminService {
     rpc grantAdminPrivilege (UserSearchRequest) returns (OperationStatus);
     rpc removeAdminPrivilege (UserSearchRequest) returns (OperationStatus);
     rpc deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest) returns (OperationStatus);
+    rpc getExternalIDPLinksOfUsers(GetExternalIDPsRequest) returns (GetExternalIDPsResponse);
 
     rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
     rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);

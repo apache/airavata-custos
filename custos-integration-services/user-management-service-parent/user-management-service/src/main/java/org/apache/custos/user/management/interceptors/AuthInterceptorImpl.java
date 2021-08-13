@@ -195,7 +195,7 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                     .setClientId(oauthId)
                     .setAccessToken(token.getAccessToken())
                     .setTenantId(tenantId)
-                    .setPerformedBy(claim.get().getPerformedBy().isEmpty()?Constants.SYSTEM:claim.get().getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy().isEmpty() ? Constants.SYSTEM : claim.get().getPerformedBy())
                     .build();
 
             return (ReqT) operationRequest;
@@ -455,6 +455,21 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
             long tenantId = claim.get().getTenantId();
 
             return (ReqT) ((DeleteExternalIDPsRequest) msg).toBuilder()
+                    .setTenantId(tenantId)
+                    .setClientId(oauthId)
+                    .build();
+        } else if (method.equals("getExternalIDPsOfUsers")) {
+            GetExternalIDPsRequest getExternalIDPsRequest = (GetExternalIDPsRequest) msg;
+
+            Optional<AuthClaim> claim = authorize(headers, getExternalIDPsRequest.getClientId());
+
+            if (claim.isEmpty()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            String oauthId = claim.get().getIamAuthId();
+            long tenantId = claim.get().getTenantId();
+
+            return (ReqT) ((GetExternalIDPsRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setClientId(oauthId)
                     .build();

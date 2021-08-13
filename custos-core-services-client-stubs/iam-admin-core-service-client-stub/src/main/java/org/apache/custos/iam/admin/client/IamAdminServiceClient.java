@@ -362,6 +362,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.deleteTenant(request);
     }
 
+    public GetExternalIDPsResponse getExternalIDPLinks(GetExternalIDPsRequest request) {
+        return iamAdminServiceBlockingStub.getExternalIDPLinksOfUsers(request);
+    }
+
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {
         final Object[] response = new Object[1];
         StreamObserver observer = new StreamObserver() {
