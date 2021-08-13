@@ -31,10 +31,8 @@ import org.apache.custos.federated.services.clients.keycloak.UnauthorizedExcepti
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
 import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
-import org.keycloak.representations.idm.EventRepresentation;
-import org.keycloak.representations.idm.ProtocolMapperRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.keycloak.representations.idm.UserSessionRepresentation;
+import org.keycloak.representations.idm.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -556,6 +554,28 @@ public class IamAdminService extends IamAdminServiceImplBase {
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
+    }
+
+    @Override
+    public void getExternalIDPLinksOfUsers(GetExternalIDPsRequest request, StreamObserver<GetExternalIDPsResponse> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            List<FederatedIdentityRepresentation> identityRepresentations = keycloakClient.getExternalIDPLinks(String.valueOf(tenantId), request.getUserId());
+            GetExternalIDPsResponse.Builder response = GetExternalIDPsResponse.newBuilder();
+            identityRepresentations.forEach(rep -> {
+                response.addIdpLinks(ExternalIDPLink.newBuilder()
+                        .setProviderAlias(rep.getIdentityProvider())
+                        .setProviderUsername(rep.getUserName())
+                        .setProviderUserId(rep.getUserId()));
+            });
+
+            responseObserver.onNext(response.build());
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while getExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
     }
 
     @Override

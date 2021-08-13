@@ -141,6 +141,10 @@ public class InputValidator implements Validator {
             case "deleteExternalIDPLinksOfUsers":
                 validateDeleteExternalIDPsLinks(obj);
                 break;
+            case "getExternalIDPLinksOfUsers":
+                validateGetExternalIDPsLinks(obj);
+                break;
+
 
             default:
 
@@ -930,6 +934,23 @@ public class InputValidator implements Validator {
 
         } else {
             throw new RuntimeException("Unexpected input type for method deleteExternalIDPLinks");
+        }
+        return true;
+    }
+
+    private boolean validateGetExternalIDPsLinks(Object obj) {
+        if (obj instanceof GetExternalIDPsRequest) {
+            GetExternalIDPsRequest request = (GetExternalIDPsRequest) obj;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+            if (request.getUserId().isEmpty()) {
+                throw new MissingParameterException("User Id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method getExternalIDPLinks");
         }
         return true;
     }
