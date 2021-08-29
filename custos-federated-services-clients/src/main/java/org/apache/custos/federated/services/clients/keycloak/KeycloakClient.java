@@ -1444,6 +1444,43 @@ public class KeycloakClient {
     }
 
 
+    public List<FederatedIdentityRepresentation> getExternalIDPLinks(String realmId, String requestedUser) {
+
+        Keycloak client = null;
+        List<FederatedIdentityRepresentation> arrayList = new ArrayList<>();
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().list();
+            userResourceList.forEach(user -> {
+                if (requestedUser.equals(user.getUsername())) {
+                    UserResource userResource = realmResource.users().get(user.getId());
+                    List<FederatedIdentityRepresentation> federatedIdentityRepresentations =
+                            userResource.getFederatedIdentity();
+                    if (federatedIdentityRepresentations != null && !federatedIdentityRepresentations.isEmpty()) {
+                        federatedIdentityRepresentations.forEach(fed -> {
+                            arrayList.add(fed);
+                        });
+                    }
+                }
+            });
+            return arrayList;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting external IDP links of realm "
+                    + realmId + ", reason " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+
     /**
      * creates groups and child groups in Keycloak
      *
