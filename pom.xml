@@ -33,7 +33,7 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
 
     <modules>
         <module>custos-core-services</module>
@@ -354,20 +354,20 @@
         <profile>
             <id>container</id>
             <properties>
-                <spring.profiles.active>dev</spring.profiles.active>
-                <vault.token>s.Pnt4HWJ25JYDhii1YFEfQBQq</vault.token>
-                <vault.scheme>https</vault.scheme>
-                <vault.host>vault.custos.scigap.org</vault.host>
-                <vault.port>31190</vault.port>
-                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
+                <spring.profiles.active>staging</spring.profiles.active>
+                <vault.token>s.SI6Bnv0uLhFgEn4mI2tq8HmQ</vault.token>
+                <vault.scheme>http</vault.scheme>
+                <vault.host>vault.vault.svc.cluster.local</vault.host>
+                <vault.port>8200</vault.port>
+                <vault.uri>http://vault.vault.svc.cluster.local:8200</vault.uri>
                 <iam.dev.username>admin</iam.dev.username>
                 <iam.dev.password>5SocwZ78TEUyyj0R</iam.dev.password>
-                <iam.staging.username>{{token}}</iam.staging.username>
-                <iam.staging.password>{{token}}</iam.staging.password>
+                <iam.staging.username>admin</iam.staging.username>
+                <iam.staging.password>MMnq_cScydhyhQ==</iam.staging.password>
                 <cilogon.dev.id>cilogon:/adminClient/22dc117c021f7787a3df8519438d4235/1581020563144</cilogon.dev.id>
                 <cilogon.dev.sec>c3o_634Ej3IpLCi98LZAx8JX8TE8WhfRtUSFB1qEPaoBKXblNzdCd6VC8pSCh0-SmWC8Tb729Rs6Mh2nQytL5g</cilogon.dev.sec>
-                <cilogon.staging.id>{{token}}</cilogon.staging.id>
-                <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
+                <cilogon.staging.id>cilogon:/adminClient/3780a3dde0578aea1696f3cb66def7f1/1617845726483</cilogon.staging.id>
+                <cilogon.staging.sec>wK9v3ufJ82K4jp61US27K5WuUdPKaY9_bBHUVkRMNppFrCFnup97ZLBTw2IthUNZ4rzHuN8GFqsap3_8WOh6yw</cilogon.staging.sec>
                 <custos.email.password>rockApacheCustos@1234</custos.email.password>
 
             </properties>
