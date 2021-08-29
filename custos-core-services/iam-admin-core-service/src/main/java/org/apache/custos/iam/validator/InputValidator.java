@@ -138,7 +138,9 @@ public class InputValidator implements Validator {
             case "getAllResources":
                 validateGetAllResources(obj);
                 break;
-
+            case "deleteExternalIDPLinksOfUsers":
+                validateDeleteExternalIDPsLinks(obj);
+                break;
 
             default:
 
@@ -918,4 +920,17 @@ public class InputValidator implements Validator {
         return true;
     }
 
+    private boolean validateDeleteExternalIDPsLinks(Object obj) {
+        if (obj instanceof DeleteExternalIDPsRequest) {
+            DeleteExternalIDPsRequest request = (DeleteExternalIDPsRequest) obj;
+
+            if (request.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id should not be null", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method deleteExternalIDPLinks");
+        }
+        return true;
+    }
 }

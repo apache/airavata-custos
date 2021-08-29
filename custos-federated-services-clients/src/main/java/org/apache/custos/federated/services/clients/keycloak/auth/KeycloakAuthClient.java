@@ -332,15 +332,16 @@ public class KeycloakAuthClient {
         String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");
         JSONObject userInfo = new JSONObject(getFromUrl(userInfoEndPoint, token));
         return new User(userInfo.getString("sub"),
-                userInfo.has("name")?userInfo.getString("name"):"",
-                userInfo.has("given_name")?userInfo.getString("given_name"):"",
-                userInfo.has("family_name")?userInfo.getString("family_name"):"",
-                userInfo.has("email")?userInfo.getString("email"):"",
+                userInfo.has("name") ? userInfo.getString("name") : "",
+                userInfo.has("given_name") ? userInfo.getString("given_name") : "",
+                userInfo.has("family_name") ? userInfo.getString("family_name") : "",
+                userInfo.has("email") ? userInfo.getString("email") : "",
                 userInfo.getString("preferred_username"));
     }
 
 
     private String getOpenIDConfigurationUrl(String realm) {
+        LOGGER.info("Connecting to "+ idpServerURL);
         return idpServerURL + "realms/" + realm + "/.well-known/openid-configuration";
     }
 
@@ -561,9 +562,6 @@ public class KeycloakAuthClient {
             }
         }
     }
-
-
-
 
 
 }

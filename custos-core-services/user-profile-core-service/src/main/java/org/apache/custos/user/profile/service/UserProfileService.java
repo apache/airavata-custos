@@ -253,7 +253,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
         } catch (Exception ex) {
             String msg = "Error occurred while fetching  user profile for tenant " + request.getTenantId();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
 
@@ -272,7 +272,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
             attributeList.forEach(atr -> {
 
-                List<String> values = atr.getValueList();
+                List<String> values = atr.getValuesList();
                 values.forEach(val -> {
                     List<UserProfile>
                             userAttributes = userAttributeRepository.findFilteredUserProfiles(atr.getKey(), val);
@@ -708,9 +708,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while fetching groups of client " + request.getClientId() +
+                    " reason :" + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -740,7 +740,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
 
 
                     String type = request.getType();
-                    if (type == null || type.trim().equals("")) {
+                    if (type == null || type.trim().isEmpty()) {
                         type = DefaultGroupMembershipTypes.MEMBER.name();
                     } else {
                         type = type.toUpperCase();
@@ -780,9 +780,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while add user to  group at  " + request.getTenantId() +
+                    " reason :" + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -803,6 +803,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             List<UserGroupMembership> memberships =
                     groupMembershipRepository.findAllByGroupIdAndUserProfileId(effectiveGroupId, userId);
 
+            List<UserGroupMembership> userGroupMemberships = groupMembershipRepository
+                    .findAllByGroupIdAndUserGroupMembershipTypeId(effectiveGroupId, DefaultGroupMembershipTypes.OWNER.name());
+
+            if (userGroupMemberships != null && userGroupMemberships.size() == 1 &&
+                    userGroupMemberships.get(0).getUserProfile().getUsername().equals(username)) {
+                String msg = "Default owner " + username + " cannot be removed from group " + group_id;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
+                return;
+            }
+
             if (memberships != null && !memberships.isEmpty()) {
 
                 memberships.forEach(membership -> {
@@ -816,9 +827,9 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching groups for " + request.getTenantId() + "at "
-                    + request.getTenantId() + " reason :" + ex.getMessage();
-            LOGGER.error(msg);
+            String msg = "Error occurred while removing user from  in client " + request.getClientId() + " reason :"
+                    + ex;
+            LOGGER.error(msg,ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -1291,6 +1302,17 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
                 String msg = "group membership not found";
                 LOGGER.error(msg);
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            List<UserGroupMembership> userMemberships = groupMembershipRepository
+                    .findAllByGroupIdAndUserGroupMembershipTypeId(effectiveGroupId, DefaultGroupMembershipTypes.OWNER.name());
+
+            if (userMemberships != null && userMemberships.size() == 1 &&
+                    userMemberships.get(0).getUserProfile().getUsername().equals(username)) {
+                String msg = "Default owner " + username + " cannot be changed for group " + groupId;
+                LOGGER.error(msg);
+                responseObserver.onError(Status.ABORTED.withDescription(msg).asRuntimeException());
                 return;
             }
 

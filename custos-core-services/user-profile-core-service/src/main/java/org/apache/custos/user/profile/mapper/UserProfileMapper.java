@@ -76,8 +76,8 @@ public class UserProfileMapper {
 
 
             userProfile.getAttributesList().forEach(atr -> {
-                if (atr.getValueList() != null && !atr.getValueList().isEmpty()) {
-                    for (String value : atr.getValueList()) {
+                if (atr.getValuesList() != null && !atr.getValuesList().isEmpty()) {
+                    for (String value : atr.getValuesList()) {
                         UserAttribute userAttribute = new UserAttribute();
                         userAttribute.setKey(atr.getKey());
                         userAttribute.setValue(value);
@@ -167,7 +167,7 @@ public class UserProfileMapper {
                         .UserAttribute
                         .newBuilder()
                         .setKey(key)
-                        .addAllValue(atrMap.get(key))
+                        .addAllValues(atrMap.get(key))
                         .build();
                 attributeList.add(attribute);
             });
@@ -195,7 +195,7 @@ public class UserProfileMapper {
         }
 
         if (membershipType != null ) {
-            builder.setMembershipType(DefaultGroupMembershipTypes.valueOf(membershipType));
+            builder.setMembershipType(membershipType);
         }
 
         if (profileEntity.getType() == null) {

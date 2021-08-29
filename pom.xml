@@ -195,6 +195,11 @@
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger-common</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
 
             <!-- SCIM-->
             <dependency>
@@ -248,6 +253,28 @@
                 <artifactId>shamir</artifactId>
                 <version>${com.codahale.version}</version>
             </dependency>
+
+            <!-- dozer -->
+            <dependency>
+                <groupId>net.sf.dozer</groupId>
+                <artifactId>dozer</artifactId>
+                <version>${dozer.version}</version>
+            </dependency>
+
+            <!--- kafka -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
+            </dependency>
+
+            <!--- email sending -->
+            <dependency>
+                <groupId>javax.mail</groupId>
+                <artifactId>mail</artifactId>
+                <version>${email.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -273,15 +300,31 @@
                         </configuration>
                     </plugin>
                     <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <version>${spring.boot.version}</version>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.0.2</version>
                         <executions>
                             <execution>
-                                <id>default</id>
+                                <id>copy-resources</id>
+                                <!-- here the phase you need -->
+                                <phase>install</phase>
                                 <goals>
-                                    <goal>repackage</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
+                                <configuration>
+                                    <outputDirectory>
+                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
+                                    </outputDirectory>   <!-- output directory -->
+                                    <resources>
+                                        <resource>
+                                            <directory>${basedir}/src/main/proto
+                                            </directory>         <!-- source directory -->
+                                            <includes>
+                                                <include>**/*.proto</include>
+                                            </includes>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -312,19 +355,21 @@
             <id>container</id>
             <properties>
                 <spring.profiles.active>staging</spring.profiles.active>
-                <vault.token>token</vault.token>
-                <vault.scheme>http</vault.scheme>
-                <vault.host>vault.vault.svc.cluster.local</vault.host>
-                <vault.port>8200</vault.port>
-                <vault.uri>http://vault.vault.svc.cluster.local:8200</vault.uri>
-                <iam.dev.username>token</iam.dev.username>
-                <iam.dev.password>token</iam.dev.password>
-                <iam.staging.username>token</iam.staging.username>
-                <iam.staging.password>token==</iam.staging.password>
-                <cilogon.dev.id>token</cilogon.dev.id>
-                <cilogon.dev.sec>token</cilogon.dev.sec>
-                <cilogon.staging.id>token</cilogon.staging.id>
-                <cilogon.staging.password>token</cilogon.staging.password>
+                <vault.token>{{token}}</vault.token>
+                <vault.scheme>https</vault.scheme>
+                <vault.host>vault.custos.scigap.org</vault.host>
+                <vault.port>31190</vault.port>
+                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
+                <iam.dev.username>{{token}}</iam.dev.username>
+                <iam.dev.password>{{token}}</iam.dev.password>
+                <iam.staging.username>{{token}}</iam.staging.username>
+                <iam.staging.password>{{token}}</iam.staging.password>
+                <cilogon.dev.id>{{token}}</cilogon.dev.id>
+                <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
+                <cilogon.staging.id>{{token}}</cilogon.staging.id>
+                <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
+                <custos.email.password>{{token}}</custos.email.password>
+
             </properties>
             <activation>
                 <activeByDefault>true</activeByDefault>
@@ -637,6 +682,12 @@
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
         <ssh.passphrase>isjarana</ssh.passphrase>
+        <dozer.version>5.5.1</dozer.version>
+
+        <kafka-clients.version>1.0.0</kafka-clients.version>
+
+        <email.version>1.5.0-b01</email.version>
+
 
     </properties>
 

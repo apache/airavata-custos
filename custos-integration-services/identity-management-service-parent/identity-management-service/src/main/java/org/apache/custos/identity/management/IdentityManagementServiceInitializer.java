@@ -26,7 +26,6 @@ import io.grpc.ServerInterceptor;
 import org.apache.custos.identity.management.interceptors.AgentAuthInterceptor;
 import org.apache.custos.identity.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.identity.management.interceptors.InputValidator;
-import org.apache.custos.identity.management.interceptors.ResponseInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
@@ -82,7 +81,6 @@ public class IdentityManagementServiceInitializer {
     ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
         return new ServiceInterceptor(integrationServiceInterceptors);
     }
-
 
 
 }

@@ -1,0 +1,2119 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "GroupManagementService.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "GroupManagementService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/group-management/v1.0.0/group": {
+      "get": {
+        "operationId": "GroupManagementService_findGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroup"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_createGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroup"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/group/membership": {
+      "delete": {
+        "operationId": "GroupManagementService_removeChildGroupFromParentGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "child_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_addChildGroupToParentGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/group/{id}": {
+      "delete": {
+        "operationId": "GroupManagementService_deleteGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "GroupManagementService_updateGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroup"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/groups": {
+      "get": {
+        "operationId": "GroupManagementService_getAllGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/groups/memberships": {
+      "get": {
+        "operationId": "GroupManagementService_getAllParentGroupsOfGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/groups/memberships/child": {
+      "get": {
+        "operationId": "GroupManagementService_getAllChildGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/keycloak/group": {
+      "get": {
+        "operationId": "GroupManagementService_findKeycloakGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroupRepresentation"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "accessToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.ownerId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/keycloak/group/{id}": {
+      "delete": {
+        "operationId": "GroupManagementService_deleteKeycloakGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "accessToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.ownerId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "GroupManagementService_updateKeycloakGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroupRepresentation"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/keycloak/groups": {
+      "get": {
+        "operationId": "GroupManagementService_getAllKeycloakGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "accessToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.ownerId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_createKeycloakGroups",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/keycloak/user/group/membership": {
+      "delete": {
+        "operationId": "GroupManagementService_removeUserFromKeycloakGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "accessToken",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_addUserToKeycloakGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceOperationStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/user/group/access": {
+      "get": {
+        "operationId": "GroupManagementService_hasAccess",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/user/group/membership": {
+      "delete": {
+        "operationId": "GroupManagementService_removeUserFromGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clientSec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_addUserToGroup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "put": {
+        "operationId": "GroupManagementService_changeUserMembershipType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/user/group/membership/type": {
+      "delete": {
+        "operationId": "GroupManagementService_removeUserGroupMembershipType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "GroupManagementService_addGroupMembershipType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/profileserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/user/group/memberships": {
+      "get": {
+        "operationId": "GroupManagementService_getAllGroupsOfUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "profile.username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "profile.email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "profile.first_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "profile.last_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "profile.created_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "profile.status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "CONFIRMED",
+              "APPROVED",
+              "DELETED",
+              "DUPLICATE",
+              "GRACE_PERIOD",
+              "INVITED",
+              "DENIED",
+              "PENDING",
+              "PENDING_APPROVAL",
+              "PENDING_CONFIRMATION",
+              "SUSPENDED",
+              "DECLINED",
+              "EXPIRED"
+            ],
+            "default": "ACTIVE"
+          },
+          {
+            "name": "profile.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "profile.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "profile.last_modified_at",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "profile.type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "END_USER",
+              "COMMUNITY"
+            ],
+            "default": "END_USER"
+          },
+          {
+            "name": "profile.membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    },
+    "/group-management/v1.0.0/user/group/memberships/child": {
+      "get": {
+        "operationId": "GroupManagementService_getAllChildUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceGetAllUserProfilesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.realm_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.client_roles",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "group.parent_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.created_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.last_modified_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "group.description",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "group.owner_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "performed_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "membership_type",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "default": "OWNER"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "client_sec",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GroupManagementService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "custosiamserviceUserAttribute": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "profileserviceStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "serviceDefaultGroupMembershipTypes": {
+      "type": "string",
+      "enum": [
+        "OWNER",
+        "ADMIN",
+        "MEMBER"
+      ],
+      "default": "OWNER"
+    },
+    "serviceGetAllGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceGroup"
+          }
+        }
+      }
+    },
+    "serviceGetAllUserProfilesResponse": {
+      "type": "object",
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceUserProfile"
+          }
+        }
+      }
+    },
+    "serviceGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "realm_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "client_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parent_id": {
+          "type": "string"
+        },
+        "created_time": {
+          "type": "string",
+          "format": "int64"
+        },
+        "last_modified_time": {
+          "type": "string",
+          "format": "int64"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceGroupAttribute"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceGroupAttribute": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "serviceGroupRepresentation": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "realm_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "client_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/custosiamserviceUserAttribute"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceUserRepresentation"
+          }
+        },
+        "sub_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceGroupRepresentation"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "ownerId": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceGroupRepresentation"
+          }
+        }
+      }
+    },
+    "serviceOperationStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    },
+    "serviceUserProfile": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "status": {
+          "$ref": "#/definitions/serviceUserStatus"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/userprofileserviceUserAttribute"
+          }
+        },
+        "client_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "realm_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "last_modified_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "type": {
+          "$ref": "#/definitions/serviceUserTypes"
+        },
+        "membership_type": {
+          "$ref": "#/definitions/serviceDefaultGroupMembershipTypes"
+        }
+      }
+    },
+    "serviceUserRepresentation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "temporary_password": {
+          "type": "boolean"
+        },
+        "realm_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "client_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/custosiamserviceUserAttribute"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "creation_time": {
+          "type": "number",
+          "format": "double"
+        },
+        "last_login_at": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "serviceUserStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CONFIRMED",
+        "APPROVED",
+        "DELETED",
+        "DUPLICATE",
+        "GRACE_PERIOD",
+        "INVITED",
+        "DENIED",
+        "PENDING",
+        "PENDING_APPROVAL",
+        "PENDING_CONFIRMATION",
+        "SUSPENDED",
+        "DECLINED",
+        "EXPIRED"
+      ],
+      "default": "ACTIVE"
+    },
+    "serviceUserTypes": {
+      "type": "string",
+      "enum": [
+        "END_USER",
+        "COMMUNITY"
+      ],
+      "default": "END_USER"
+    },
+    "userprofileserviceUserAttribute": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

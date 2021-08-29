@@ -85,7 +85,8 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
     }
 
     public AddResourceCredentialResponse addPasswordCredential(String userToken, String agentToken,
-                                                               String clientId, String description, String ownerId,  String userId,String password) {
+                                                               String clientId, String description,
+                                                               String ownerId,  String userId,String password) {
         return super.addPasswordCredential(clientId,
                 description, ownerId, userId, password,attachedHeaders(userToken, agentToken));
     }

@@ -486,4 +486,21 @@ public class ResourceSecretManagementService extends ResourceSecretManagementSer
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
+
+
+    @Override
+    public void updateCertificateCredential(CertificateCredential request, StreamObserver<ResourceCredentialOperationStatus> responseObserver) {
+        LOGGER.debug("Request received to updateCertificateCredential in tenant " + request.getMetadata().getTenantId()
+                + " of user " + request.getMetadata().getOwnerId() + "for key " + request.getMetadata().getToken());
+        try {
+            ResourceCredentialOperationStatus status = resourceSecretClient.updateCertificate(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting  Credential Map :  " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
 }

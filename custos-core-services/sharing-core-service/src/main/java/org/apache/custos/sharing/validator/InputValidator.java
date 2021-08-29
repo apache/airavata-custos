@@ -23,11 +23,6 @@ package org.apache.custos.sharing.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.sharing.service.*;
-import org.apache.custos.sharing.service.EntityRequest;
-import org.apache.custos.sharing.service.EntityTypeRequest;
-import org.apache.custos.sharing.service.PermissionTypeRequest;
-import org.apache.custos.sharing.service.SearchRequest;
-import org.apache.custos.sharing.service.SharingRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +92,10 @@ public class InputValidator implements Validator {
 
             case "userHasAccess":
                 validateCheckAccessRequest(obj, methodName);
+                break;
+            case "getAllDirectSharings":
+            case "getAllSharings":
+                validateGetAllDirectSharings(obj, methodName);
                 break;
             default:
                 throw new RuntimeException("Method not implemented");
@@ -241,14 +240,6 @@ public class InputValidator implements Validator {
             if (entityRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-
-            if (entityRequest.getSearchCriteriaList() == null) {
-                throw new MissingParameterException("Search Criteria  not found ", null);
-            }
-
-            if (entityRequest.getSearchCriteriaList().isEmpty()) {
-                throw new MissingParameterException("Search Criteria  not found ", null);
-            }
         } else {
             throw new RuntimeException("Unexpected input type for method " + methodName);
         }
@@ -271,13 +262,13 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException("Entity id is  not found ", null);
             }
 
-            if (entityRequest.getPermissionType() == null) {
-                throw new MissingParameterException("Permission Type is  not found ", null);
-            }
-
-            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
-                throw new MissingParameterException("Permission Type Id is  not found ", null);
-            }
+//            if (entityRequest.getPermissionType() == null) {
+//                throw new MissingParameterException("Permission Type is  not found ", null);
+//            }
+//
+//            if (entityRequest.getPermissionType().getId() == null || entityRequest.getPermissionType().getId().equals("")) {
+//                throw new MissingParameterException("Permission Type Id is  not found ", null);
+//            }
 
 
         } else {
@@ -344,6 +335,19 @@ public class InputValidator implements Validator {
 
             if (entityRequest.getOwnerIdList() == null || entityRequest.getOwnerIdList().isEmpty()) {
                 throw new MissingParameterException("Owner  Id list   not found ", null);
+            }
+
+        } else {
+            throw new RuntimeException("Unexpected input type for method " + methodName);
+        }
+        return true;
+    }
+
+    private boolean validateGetAllDirectSharings(Object object, String methodName) {
+        if (object instanceof SharingRequest) {
+            SharingRequest entityRequest = (SharingRequest) object;
+            if (entityRequest.getTenantId() == 0) {
+                throw new MissingParameterException("Tenant Id not found ", null);
             }
 
         } else {

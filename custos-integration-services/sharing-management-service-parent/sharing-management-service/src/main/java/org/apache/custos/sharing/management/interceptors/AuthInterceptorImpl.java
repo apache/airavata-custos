@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
  * This validates custos credentials
  */
@@ -50,51 +52,78 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        AuthClaim authClaim;
+        Optional<AuthClaim> authClaim;
         if (msg instanceof EntityTypeRequest) {
             EntityTypeRequest req = ((EntityTypeRequest) msg);
             authClaim = validateAuth(headers, req.getClientId());
-            req = req.toBuilder()
-                    .setTenantId(authClaim.getTenantId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .build();
-            return (ReqT) req;
+            return authClaim.map(cl -> {
+                EntityTypeRequest request = ((EntityTypeRequest) msg);
+                request = request.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientSec(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
+
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
         } else if (msg instanceof SearchRequest) {
             SearchRequest req = ((SearchRequest) msg);
             authClaim = validateAuth(headers, req.getClientId());
-            req = req.toBuilder()
-                    .setTenantId(authClaim.getTenantId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .build();
-            return (ReqT) req;
+            return authClaim.map(cl -> {
+                SearchRequest request = ((SearchRequest) msg);
+                request = request.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientSec(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
 
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
         } else if (msg instanceof PermissionTypeRequest) {
             PermissionTypeRequest req = ((PermissionTypeRequest) msg);
             authClaim = validateAuth(headers, req.getClientId());
-            req = req.toBuilder()
-                    .setTenantId(authClaim.getTenantId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .build();
-            return (ReqT) req;
+           return authClaim.map(cl -> {
+                PermissionTypeRequest request = ((PermissionTypeRequest) msg);
+                request = request.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientSec(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
 
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
         } else if (msg instanceof EntityRequest) {
             EntityRequest req = ((EntityRequest) msg);
             authClaim = validateAuth(headers, req.getClientId());
-            req = req.toBuilder()
-                    .setTenantId(authClaim.getTenantId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .build();
-            return (ReqT) req;
+            return authClaim.map(cl -> {
+                EntityRequest request = ((EntityRequest) msg);
+                request = request.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientSec(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
 
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
         } else if (msg instanceof SharingRequest) {
             SharingRequest req = ((SharingRequest) msg);
             authClaim = validateAuth(headers, req.getClientId());
-            req = req.toBuilder()
-                    .setTenantId(authClaim.getTenantId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .build();
-            return (ReqT) req;
+           return authClaim.map(cl -> {
+                SharingRequest request = ((SharingRequest) msg);
+                request = request.toBuilder()
+                        .setTenantId(cl.getTenantId())
+                        .setClientSec(cl.getIamAuthSecret())
+                        .build();
+                return (ReqT) request;
 
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
         }
 
         return (ReqT) msg;
@@ -102,19 +131,14 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
     }
 
 
-    private AuthClaim validateAuth(Metadata headers, String clientId) {
-        AuthClaim claim = null;
+    private Optional<AuthClaim> validateAuth(Metadata headers, String clientId) {
         try {
 
-            claim = authorize(headers, clientId);
+            return authorize(headers, clientId);
         } catch (Exception ex) {
             LOGGER.error(" Authorizing error " + ex.getMessage());
             throw new UnAuthorizedException("Request is not authorized", ex);
         }
-        if (claim == null) {
-            throw new UnAuthorizedException("Request is not authorized", null);
-        }
-        return claim;
     }
 
 

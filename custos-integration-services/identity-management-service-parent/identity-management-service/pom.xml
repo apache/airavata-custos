@@ -107,6 +107,16 @@
             <artifactId>proto-google-common-protos</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>messaging-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>user-profile-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

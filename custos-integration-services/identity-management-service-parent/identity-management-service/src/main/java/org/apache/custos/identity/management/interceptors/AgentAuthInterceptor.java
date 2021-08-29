@@ -32,6 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
  * Responsible for authorize agent specific methods
  */
@@ -48,35 +50,38 @@ public class AgentAuthInterceptor extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
         if (method.equals("getAgentToken")) {
-            AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((GetAgentTokenRequest) msg).getClientId());
-            if (claim == null) {
-                throw new UnAuthorizedException("Request is not authorized", null);
-            }
-            GetAgentTokenRequest reqCore =
-                    ((GetAgentTokenRequest) msg).toBuilder()
-                            .setTenantId(claim.getTenantId())
-                            .setAgentClientId(claim.getAgentClientId())
-                            .setAgentClientSecret(claim.getAgentClientSecret())
-                            .setAgentId(claim.getAgentId())
-                            .setAgentPassword(claim.getAgentPassword())
-                            .build();
+            Optional<AuthClaim> claim =
+                    authorizeUsingAgentBasicToken(headers, ((GetAgentTokenRequest) msg).getClientId());
+            return claim.map(cl -> {
+                GetAgentTokenRequest reqCore =
+                        ((GetAgentTokenRequest) msg).toBuilder()
+                                .setTenantId(cl.getTenantId())
+                                .setAgentClientId(cl.getAgentClientId())
+                                .setAgentClientSecret(cl.getAgentClientSecret())
+                                .setAgentId(cl.getAgentId())
+                                .setAgentPassword(cl.getAgentPassword())
+                                .build();
 
-            return (ReqT) reqCore;
+                return (ReqT) reqCore;
+            }).orElseThrow(() -> {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            });
+
         } else if (method.equals("endAgentSession")) {
-            LOGGER.info("ClientId " + ((EndSessionRequest) msg).getClientId());
-            AuthClaim claim = authorizeUsingAgentBasicToken(headers, ((EndSessionRequest) msg).getClientId());
-            if (claim == null) {
+            Optional<AuthClaim> claim = authorizeUsingAgentBasicToken(headers, ((EndSessionRequest) msg).getClientId());
+            return claim.map(cl -> {
+                org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
+                        ((EndSessionRequest) msg).getBody().toBuilder()
+                                .setClientId(cl.getAgentClientId())
+                                .setClientSecret(cl.getAgentClientSecret())
+                                .setTenantId(cl.getTenantId())
+                                .build();
+                return (ReqT) ((EndSessionRequest) msg).toBuilder().setBody(endSessionRequest).build();
+
+
+            }).orElseThrow(() -> {
                 throw new UnAuthorizedException("Request is not authorized", null);
-            }
-
-
-            org.apache.custos.identity.service.EndSessionRequest endSessionRequest =
-                    ((EndSessionRequest) msg).getBody().toBuilder()
-                            .setClientId(claim.getAgentClientId())
-                            .setClientSecret(claim.getAgentClientSecret())
-                            .setTenantId(claim.getTenantId())
-                            .build();
-            return (ReqT) ((EndSessionRequest) msg).toBuilder().setBody(endSessionRequest).build();
+            });
 
         }
         return msg;

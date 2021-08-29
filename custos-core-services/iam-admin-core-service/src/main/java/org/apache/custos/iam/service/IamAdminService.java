@@ -402,7 +402,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUser().getUsername(), request.getAccessToken());
+                    request.getUser().getUsername());
 
 
             if (!status) {
@@ -413,7 +413,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
             UserRepresentation representation = keycloakClient.getUser(String.valueOf(request.getTenantId()),
-                    request.getAccessToken(), request.getUser().getUsername());
+                    request.getUser().getUsername());
 
             if (representation != null) {
                 org.apache.custos.iam.service.UserRepresentation user = getUser(representation, request.getClientId());
@@ -538,6 +538,27 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
 
     @Override
+    public void deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest request,
+                                              StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            boolean status = false;
+            if (request.getUserIdList().isEmpty()) {
+                status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId));
+            } else {
+                status = keycloakClient.deleteExternalIDPLinks(String.valueOf(tenantId), request.getUserIdList());
+            }
+            responseObserver.onNext(org.apache.custos.iam.service.OperationStatus.newBuilder().setStatus(status).build());
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while deletingExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+
+    }
+
+    @Override
     public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         String userId = request.getUser().getUsername() + "@" + request.getTenantId();
 
@@ -643,7 +664,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
             LOGGER.debug("Request received to deleteRoleFromUser for " + request.getTenantId());
 
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                    request.getUsername(), request.getAccessToken());
+                    request.getUsername());
 
 
             if (!status) {
@@ -863,7 +884,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
 
             for (String username : request.getUsernamesList()) {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
-                        username, request.getAccessToken());
+                        username);
 
                 if (status) {
                     validUserNames.add(username);

@@ -32,6 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthInterceptor {
 
@@ -51,7 +53,7 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
 
         if (method.equals("updateTenantStatus")) {
             if (!((UpdateStatusRequest) msg).getSuperTenant()) {
-                AuthClaim claim = null;
+                Optional<AuthClaim> claim = null;
                 String token = getToken(headers);
                 try {
                     claim = authorizeUsingUserToken(headers);
@@ -59,36 +61,36 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
                     LOGGER.error(" Authorizing error " + ex.getMessage());
                     throw new UnAuthorizedException("Request is not authorized", ex);
                 }
-                if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
+                if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant() || !claim.get().isAdmin()) {
                     throw new UnAuthorizedException("Request is not authorized", null);
                 }
-                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy())
+                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.get().getPerformedBy())
                         .setAccessToken(token).build();
             }
             return msg;
 
         } else if (method.equals("getAllTenants")) {
-            AuthClaim claim = null;
+            Optional<AuthClaim> claim = null;
             try {
                 claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
                 throw new UnAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant()) {
+            if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             return msg;
 
         } else if (method.equals("validateTenant")) {
-            AuthClaim claim = null;
+            Optional<AuthClaim> claim = null;
             try {
                 claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
                 LOGGER.error(" Authorizing error " + ex.getMessage());
                 throw new UnAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant()) {
+            if (claim == null || claim.isEmpty()|| !claim.get().isSuperTenant()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 

@@ -1,0 +1,245 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "LogManagementService.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "LogManagementService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/log-management/v1.0.0/logs": {
+      "get": {
+        "operationId": "LogManagementService_getLogEvents",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/serviceLogEvents"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "remote_ip",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "service_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "LogManagementService"
+        ]
+      }
+    },
+    "/log-management/v1.0.0/status": {
+      "get": {
+        "operationId": "LogManagementService_isLogEnabled",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/loggingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "LogManagementService"
+        ]
+      },
+      "post": {
+        "operationId": "LogManagementService_enable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/loggingserviceStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "LogManagementService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "loggingserviceStatus": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "serviceLogEvent": {
+      "type": "object",
+      "properties": {
+        "created_time": {
+          "type": "string",
+          "format": "int64"
+        },
+        "service_name": {
+          "type": "string"
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "client_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "external_ip": {
+          "type": "string"
+        }
+      }
+    },
+    "serviceLogEvents": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceLogEvent"
+          }
+        }
+      }
+    }
+  }
+}

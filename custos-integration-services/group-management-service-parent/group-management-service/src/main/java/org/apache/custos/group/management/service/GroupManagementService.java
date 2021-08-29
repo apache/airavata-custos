@@ -29,6 +29,7 @@ import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.integration.services.commons.utils.EventPublisher;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
@@ -36,9 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @GRpcService
 public class GroupManagementService extends GroupManagementServiceGrpc.GroupManagementServiceImplBase {
@@ -54,6 +53,9 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
 
     //TODO: improve error handling to avoid database consistency
@@ -428,6 +430,14 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             userProfileClient.deleteGroup(request);
             org.apache.custos.user.profile.service.Status status =
                     org.apache.custos.user.profile.service.Status.newBuilder().setStatus(true).build();
+
+                Map<String, String> value = new HashMap<>();
+                value.put("GROUP_ID", request.getGroup().getId());
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "GROUP_MANAGEMENT_SERVICE", "DELETE_GROUP",
+                        value);
+
             responseObserver.onNext(status);
             responseObserver.onCompleted();
 
@@ -497,6 +507,14 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             LOGGER.debug("Request received to removeUserFromGroup for  user  " + request.getUsername() + " of tenant "
                     + request.getTenantId());
             org.apache.custos.user.profile.service.Status status = userProfileClient.removeUserFromGroup(request);
+
+            Map<String, String> value = new HashMap<>();
+            value.put("GROUP_ID", request.getGroupId());
+            value.put("USER_ID",request.getUsername());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "REMOVE_USER_FROM_GROUP",
+                    value);
             responseObserver.onNext(status);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -536,6 +554,15 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                     " to remove " + request.getParentId() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status status = userProfileClient.removeChildGroupFromParentGroup(request);
+
+            Map<String, String> value = new HashMap<>();
+            value.put("PARENT_GROUP_ID", request.getParentId());
+            value.put("CHILD_GROUP_ID",request.getChildId());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "REMOVE_CHILD_GROUP_FROM_PARENT_GROUP",
+                    value);
+
 
             responseObserver.onNext(status);
             responseObserver.onCompleted();
@@ -636,6 +663,15 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
                     + request.getUsername() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status response = userProfileClient.changeUserMembershipType(request);
+
+            Map<String, String> value = new HashMap<>();
+            value.put("USER_ID", request.getUsername());
+            value.put("GROUP_ID",request.getGroupId());
+            value.put("MEMBERSHIP_TYPE",request.getType());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "CHANGE_USER_MEMBERSHIP",
+                    value);
 
 
             responseObserver.onNext(response);

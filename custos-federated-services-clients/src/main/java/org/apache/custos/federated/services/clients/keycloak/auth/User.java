@@ -33,7 +33,9 @@ public class User {
 
     private String username;
 
-    public User(String sub, String fullName, String firstName, String lastName, String emailAddress, String username) {
+
+    public User(String sub, String fullName, String firstName, String lastName, String emailAddress,
+                String username) {
         this.sub = sub;
         this.fullName = fullName;
         this.firstName = firstName;
@@ -89,4 +91,5 @@ public class User {
     public void setUsername(String username) {
         this.username = username;
     }
+
 }

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "helm.name" . }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: tenant-management-service-mapping
+      prefix: /tenant-management/
+      rewrite: ""
+      service: tenant-management-service.custos:50000
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "helm.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

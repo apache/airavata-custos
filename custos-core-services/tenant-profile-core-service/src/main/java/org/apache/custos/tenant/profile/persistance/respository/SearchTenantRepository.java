@@ -27,5 +27,5 @@ import java.util.List;
 public interface SearchTenantRepository {
 
 
-    List<Tenant> searchTenants(String requestEmail, String status, long parentId, int limit, int offset);
+    List<Tenant> searchTenants(String requestEmail, String status, long parentId, int limit, int offset, String type);
 }

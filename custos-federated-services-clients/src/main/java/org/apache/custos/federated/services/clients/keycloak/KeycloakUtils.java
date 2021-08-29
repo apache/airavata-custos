@@ -40,6 +40,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.concurrent.TimeUnit;
 import java.security.cert.CertificateFactory;
 
 public class KeycloakUtils {
@@ -80,6 +81,8 @@ public class KeycloakUtils {
     private static ResteasyClient getRestClient(String trustorePath, String trustorePassword, String profile,
                                                 ClusterManagementClient clusterManagementClient) {
         return new ResteasyClientBuilder()
+                .establishConnectionTimeout(100, TimeUnit.SECONDS)
+                .socketTimeout(10, TimeUnit.SECONDS)
                 .connectionPoolSize(POOL_SIZE)
                 .trustStore(loadKeyStore(trustorePath, trustorePassword, profile, clusterManagementClient))
                 .build();

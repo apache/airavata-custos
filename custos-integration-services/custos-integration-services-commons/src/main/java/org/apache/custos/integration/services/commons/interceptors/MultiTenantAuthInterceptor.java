@@ -27,6 +27,8 @@ import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * Responsible for authorization  of  multi tenant middleware requests
  */
@@ -50,33 +52,37 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
     }
 
 
-    public AuthClaim authorize(Metadata headers, String clientId) {
+    public Optional<AuthClaim> authorize(Metadata headers, String clientId) {
 
         try {
 
-            if (clientId != null && clientId.trim().equals("")) {
+            if (clientId != null && clientId.trim().isEmpty()) {
                 clientId = null;
             }
 
-            String userToken = getUserTokenFromUserTokenHeader(headers);
             boolean agentAuthenticationEnabled = isAgentAuthenticationEnabled(headers);
 
             if (agentAuthenticationEnabled) {
                 return authorizeUsingAgentAndUserJWTTokens(headers);
             }
+            Optional<String> userToken = getUserTokenFromUserTokenHeader(headers);
+            boolean isBasicAuth = isBasicAuth(headers);
 
-            if (clientId == null && userToken == null) {
+            if (clientId == null && userToken.isEmpty() && isBasicAuth) {
                 return authorize(headers);
-            } else if (clientId != null && userToken == null) {
-                return authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
-            } else if (clientId != null && userToken != null) {
-                return authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(headers, clientId, userToken);
+            } else if (clientId != null && userToken.isEmpty() && isBasicAuth) {
+                return authorizeParentChildTenantValidationWithBasicAuth(headers, clientId);
+            } else if (clientId != null && userToken.isPresent()) {
+                return authorizeParentChildTenantWithBasicAuthAndUserTokenValidation(headers, clientId, userToken.get());
+            } else if (clientId != null && isUserToken(headers)) {
+                return authorizeParentChildTenantWithUserTokenValidation(headers, clientId);
             } else {
                 return authorizeUsingUserToken(headers);
             }
 
         } catch (Exception ex) {
-            cleatUserTokenFromHeader(headers);
+            LOGGER.error(ex.getMessage(),ex);
+            clearUserTokenFromHeader(headers);
             throw ex;
         }
     }

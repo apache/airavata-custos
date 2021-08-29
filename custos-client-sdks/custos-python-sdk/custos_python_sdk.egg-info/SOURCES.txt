@@ -1,3 +1,4 @@
+LICENSE
 README.md
 setup.cfg
 setup.py
@@ -18,6 +19,7 @@ custos/samples/__init__.py
 custos/samples/agent_management_samples.py
 custos/samples/group_management_samples.py
 custos/samples/identity_management_samples.py
+custos/samples/resource_secert_management.py
 custos/samples/tenant_management_samples.py
 custos/samples/user_management_samples.py
 custos/samples/resources/__init__.py
@@ -35,6 +37,10 @@ custos/server/core/IamAdminService_pb2.py
 custos/server/core/IamAdminService_pb2_grpc.py
 custos/server/core/IdentityService_pb2.py
 custos/server/core/IdentityService_pb2_grpc.py
+custos/server/core/LoggingService_pb2.py
+custos/server/core/LoggingService_pb2_grpc.py
+custos/server/core/MessagingService_pb2.py
+custos/server/core/MessagingService_pb2_grpc.py
 custos/server/core/ResourceSecretService_pb2.py
 custos/server/core/ResourceSecretService_pb2_grpc.py
 custos/server/core/SharingService_pb2.py
@@ -46,10 +52,14 @@ custos/server/core/UserProfileService_pb2_grpc.py
 custos/server/core/__init__.py
 custos/server/integration/AgentManagementService_pb2.py
 custos/server/integration/AgentManagementService_pb2_grpc.py
+custos/server/integration/ClusterManagementService_pb2.py
+custos/server/integration/ClusterManagementService_pb2_grpc.py
 custos/server/integration/GroupManagementService_pb2.py
 custos/server/integration/GroupManagementService_pb2_grpc.py
 custos/server/integration/IdentityManagementService_pb2.py
 custos/server/integration/IdentityManagementService_pb2_grpc.py
+custos/server/integration/LogManagementService_pb2.py
+custos/server/integration/LogManagementService_pb2_grpc.py
 custos/server/integration/ResourceSecretManagementService_pb2.py
 custos/server/integration/ResourceSecretManagementService_pb2_grpc.py
 custos/server/integration/SharingManagementService_pb2.py

@@ -37,6 +37,9 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
+import org.apache.custos.messaging.client.MessagingClient;
+import org.apache.custos.messaging.email.service.*;
+import org.apache.custos.messaging.service.MessageEnablingResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
 import org.apache.custos.tenant.management.utils.Constants;
@@ -84,6 +87,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Value("${tenant.base.uri}")
     private String TENANT_BASE_URI;
+
+    @Autowired
+    private MessagingClient messagingClient;
 
 
     @Override
@@ -165,7 +171,15 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                 org.apache.custos.tenant.profile.service.GetTenantResponse response =
                         profileClient.getTenant(tenantReq);
                 tenant = response.getTenant();
+            }
+            if (tenant.getParentTenantId() > 0) {
+                GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getParentTenantId())
+                        .setType(Type.CUSTOS).build();
 
+                CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                        getCredential(cR);
+                tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
             }
             GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                     .setOwnerId(tenant.getTenantId())
@@ -492,6 +506,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
     @Override
+    public void enableMessaging(org.apache.custos.messaging.service.MessageEnablingRequest request,
+                                StreamObserver<org.apache.custos.messaging.service.MessageEnablingResponse> responseObserver) {
+        try {
+            MessageEnablingResponse response = messagingClient.enableMessaging(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at enableMessaging " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void getAllTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
@@ -507,6 +537,17 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
                     CredentialMetadata metadata = credentialStoreServiceClient.
                             getCredential(credentialRequest);
+
+
+                    if (tenant.getParentTenantId() > 0) {
+                        GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                                .setOwnerId(tenant.getParentTenantId())
+                                .setType(Type.CUSTOS).build();
+
+                        CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                                getCredential(cR);
+                        tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
+                    }
 
                     tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
                     tenantList.add(tenant);
@@ -529,6 +570,36 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void getChildTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
+            if (response != null && !response.getTenantList().isEmpty()) {
+                List<Tenant> tenantList = new ArrayList<>();
+
+                for (Tenant tenant : response.getTenantList()) {
+
+                    GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                            .setOwnerId(tenant.getTenantId())
+                            .setType(Type.CUSTOS).build();
+
+                    CredentialMetadata metadata = credentialStoreServiceClient.
+                            getCredential(credentialRequest);
+
+
+                    if (tenant.getParentTenantId() > 0) {
+                        GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                                .setOwnerId(tenant.getParentTenantId())
+                                .setType(Type.CUSTOS).build();
+
+                        CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                                getCredential(cR);
+                        tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
+                    }
+
+                    tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
+                    tenantList.add(tenant);
+
+                }
+
+                response = response.toBuilder().clearTenant().addAllTenant(tenantList).build();
+            }
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -771,6 +842,78 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
 
+    @Override
+    public void enableEmail(EmailEnablingRequest request,
+                            StreamObserver<EmailTemplate> responseObserver) {
+        try {
+            LOGGER.debug("Request received to enable emails for tenant " + request.getTenantId());
+
+            EmailTemplate emailTemplate = messagingClient.enableEmail(request);
+            responseObserver.onNext(emailTemplate);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while enabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void disableEmail(EmailDisablingRequest request,
+                             StreamObserver<org.apache.custos.messaging.email.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to disable emails for tenant " + request.getTenantId());
+
+            org.apache.custos.messaging.email.service.Status status = messagingClient.disableEmail(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while disabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void getEmailTemplates(FetchEmailTemplatesRequest request,
+                                  StreamObserver<FetchEmailTemplatesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get email templates for tenant " + request.getTenantId());
+            FetchEmailTemplatesResponse response = messagingClient.getEmailTemplates(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching emails for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+
+    @Override
+    public void getEmailFriendlyEvents(FetchEmailFriendlyEvents request, StreamObserver<FetchEmailFriendlyEventsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get getEmailFriendlyEvents for tenant " + request.getTenantId());
+            FetchEmailFriendlyEventsResponse response = messagingClient.fetchEmailFriendlyEvents(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching email events for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
 
@@ -794,7 +937,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
 
                 userAtrList.add(userAttribute);

@@ -29,7 +29,9 @@ import org.json.JSONObject;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 
+import javax.swing.text.html.Option;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class AuthHandler extends AuthInterceptor {
@@ -46,16 +48,16 @@ public class AuthHandler extends AuthInterceptor {
         return token.trim();
     }
 
-    public AuthClaim validateAndConfigure(String header, boolean userTokenValidation) throws HttpStatusCodeException {
+    public Optional<AuthClaim> validateAndConfigure(String header, boolean userTokenValidation) throws HttpStatusCodeException {
         String token = this.getToken(header);
-        AuthClaim claim = null;
+        Optional<AuthClaim> claim = null;
         if (userTokenValidation) {
             claim = authorizeUsingUserToken(token);
         } else {
             claim = authorize(token);
         }
 
-        if (claim == null) {
+        if (claim.isEmpty()) {
             throw new NotAuthorizedException();
         }
 

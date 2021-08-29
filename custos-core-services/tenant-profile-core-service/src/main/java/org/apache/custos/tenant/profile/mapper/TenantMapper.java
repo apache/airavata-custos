@@ -53,7 +53,7 @@ public class TenantMapper {
         tenantEntity.setAdminLastName(tenant.getAdminLastName());
         tenantEntity.setAdminEmail(tenant.getAdminEmail());
         tenantEntity.setRequesterEmail(tenant.getRequesterEmail());
-        tenantEntity.setLogoURI(tenant.getClientUri());
+        tenantEntity.setLogoURI(tenant.getLogoUri());
         tenantEntity.setScope(tenant.getScope());
         tenantEntity.setDomain(tenant.getDomain());
         tenantEntity.setAdminUsername(tenant.getAdminUsername());
@@ -132,7 +132,7 @@ public class TenantMapper {
                 .setAdminFirstName(tenantEntity.getAdminFirstName())
                 .setAdminLastName(tenantEntity.getAdminLastName())
                 .setDomain(tenantEntity.getDomain())
-                .setClientUri(tenantEntity.getLogoURI())
+                .setClientUri(tenantEntity.getUri()==null?tenantEntity.getLogoURI():tenantEntity.getUri())
                 .setRequesterEmail(tenantEntity.getRequesterEmail())
                 .setScope(tenantEntity.getScope())
                 .addAllContacts(contactList)
