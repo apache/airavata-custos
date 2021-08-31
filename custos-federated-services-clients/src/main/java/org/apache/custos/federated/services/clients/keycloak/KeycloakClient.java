@@ -19,12 +19,10 @@
 
 package org.apache.custos.federated.services.clients.keycloak;
 
-import org.apache.catalina.security.SecurityUtil;
+import org.apache.custos.cluster.management.client.ClusterManagementClient;
 import org.apache.custos.core.services.commons.util.Constants;
 import org.apache.custos.federated.services.clients.keycloak.auth.KeycloakAuthClient;
 import org.apache.http.HttpStatus;
-import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.*;
@@ -37,12 +35,7 @@ import org.springframework.stereotype.Component;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -53,7 +46,6 @@ import java.util.stream.Collectors;
 @Component
 public class KeycloakClient {
     private final static Logger LOGGER = LoggerFactory.getLogger(KeycloakClient.class);
-
 
     private final static int POOL_SIZE = 10;
 
@@ -99,6 +91,12 @@ public class KeycloakClient {
 
     @Value("${iam.federated.cilogon.jwksUri:https://cilogon.org/oauth2/certs}")
     private String jwksUri;
+
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
+    @Autowired
+    private ClusterManagementClient clusterManagementClient;
 
     public void createRealm(String realmId, String displayName) {
         Keycloak client = null;
@@ -166,7 +164,8 @@ public class KeycloakClient {
         }
     }
 
-    public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+    public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname,
+                                           String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -222,7 +221,8 @@ public class KeycloakClient {
     }
 
 
-    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname,
+                                           String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -265,7 +265,8 @@ public class KeycloakClient {
 
                 String realmManagementClientId = getRealmManagementClientId(client, realmId);
 
-                retrievedUser.roles().clientLevel(realmManagementClientId).add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
+                retrievedUser.roles().clientLevel(realmManagementClientId).
+                        add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
                 return true;
 
             } else {
@@ -295,9 +296,11 @@ public class KeycloakClient {
                 RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
                 retrievedUser.roles().realmLevel().remove(Arrays.asList(adminRoleResource.toRepresentation()));
                 String realmManagementClientId = getRealmManagementClientId(client, realmId);
-                List<RoleRepresentation> representations = retrievedUser.roles().clientLevel(realmManagementClientId).listEffective();
+                List<RoleRepresentation> representations = retrievedUser.roles().
+                        clientLevel(realmManagementClientId).listEffective();
 
-                retrievedUser.roles().clientLevel(realmManagementClientId).remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
+                retrievedUser.roles().clientLevel(realmManagementClientId).
+                        remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
                 return true;
 
             } else {
@@ -317,7 +320,8 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret configureClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+    public KeycloakClientSecret configureClient(String realmId, String clientName,
+                                                @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -362,13 +366,15 @@ public class KeycloakClient {
             LOGGER.debug("Realm client configuration exited with code : " + httpResponse.getStatus() + " : " + httpResponse.getStatusInfo());
 
             // Add the manage-users role to the web client
-            UserRepresentation serviceAccountUserRepresentation = getUserByUsername(client, realmId, "service-account-" + pgaClient.getClientId());
+            UserRepresentation serviceAccountUserRepresentation =
+                    getUserByUsername(client, realmId, "service-account-" + pgaClient.getClientId());
             UserResource serviceAccountUser = client.realms().realm(realmId).users().get(serviceAccountUserRepresentation.getId());
             String realmManagementClientId = getRealmManagementClientId(client, realmId);
-            List<RoleRepresentation> manageUsersRole = serviceAccountUser.roles().clientLevel(realmManagementClientId).listAvailable()
-                    .stream()
-                    .filter(r -> r.getName().equals("manage-users"))
-                    .collect(Collectors.toList());
+            List<RoleRepresentation> manageUsersRole =
+                    serviceAccountUser.roles().clientLevel(realmManagementClientId).listAvailable()
+                            .stream()
+                            .filter(r -> r.getName().equals("manage-users"))
+                            .collect(Collectors.toList());
             serviceAccountUser.roles().clientLevel(realmManagementClientId).add(manageUsersRole);
 
             if (httpResponse.getStatus() == HttpStatus.SC_CREATED) {
@@ -394,7 +400,8 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret updateClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+    public KeycloakClientSecret updateClient(String realmId, String clientName,
+                                             @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -467,7 +474,8 @@ public class KeycloakClient {
 
 
     public boolean createUser(String realmId, String username, String newPassword, String firstName,
-                              String lastName, String emailAddress, boolean tempPassowrd, String accessToken) throws UnauthorizedException {
+                              String lastName, String emailAddress,
+                              boolean tempPassowrd, String accessToken) throws UnauthorizedException {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -628,7 +636,8 @@ public class KeycloakClient {
 
 
     public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
-                                             String username, String firstName, String lastName, String email, String search) {
+                                             String username, String firstName, String lastName,
+                                             String email, String search) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -752,7 +761,8 @@ public class KeycloakClient {
     }
 
 
-    public boolean addRolesToUsers(String accessToken, String realmId, List<String> users, List<String> roles, String clientId, boolean clientLevel) {
+    public boolean addRolesToUsers(String accessToken, String realmId, List<String> users,
+                                   List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
@@ -796,7 +806,8 @@ public class KeycloakClient {
     }
 
 
-    public boolean removeRoleFromUser(String accessToken, String realmId, String username, List<String> roles, String clientId, boolean clientLevel) {
+    public boolean removeRoleFromUser(String accessToken, String realmId, String username,
+                                      List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
@@ -856,6 +867,7 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             // get client
+            LOGGER.info("IAM server URL "+ iamServerURL);
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             RealmResource realmResource = client.realm(realmId);
@@ -1900,63 +1912,18 @@ public class KeycloakClient {
     }
 
 
-    private ResteasyClient getRestClient() {
-        return new ResteasyClientBuilder()
-                .establishConnectionTimeout(100, TimeUnit.SECONDS)
-                .socketTimeout(10, TimeUnit.SECONDS)
-                .connectionPoolSize(POOL_SIZE)
-                .trustStore(loadKeyStore())
-                .build();
-    }
+
 
     private Keycloak getClient(String adminUrl, String realm, String loginUsername, String password) {
 
         return KeycloakUtils.getClient(adminUrl, realm, loginUsername,
-                password, clientId, trustStorePath, truststorePassword);
+                password, clientId, trustStorePath, truststorePassword, activeProfile, clusterManagementClient);
     }
 
     private Keycloak getClient(String adminUrl, String realm, String accessToken) {
 
-        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword);
-    }
-
-    private KeyStore loadKeyStore() {
-
-        InputStream is = null;
-        try {
-
-
-            File trustStoreFile = new File(trustStorePath);
-
-            if (trustStoreFile.exists()) {
-                LOGGER.debug("Loading trust store file from path " + trustStorePath);
-                is = new FileInputStream(trustStorePath);
-            } else {
-                LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
-                is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
-                if (is != null) {
-                    LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
-                }
-            }
-
-            if (is == null) {
-                throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
-            }
-
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            ks.load(is, truststorePassword.toCharArray());
-            return ks;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load trust store KeyStore instance", e);
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    LOGGER.error("Failed to close trust store FileInputStream", e);
-                }
-            }
-        }
+        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword,
+                activeProfile, clusterManagementClient);
     }
 
 

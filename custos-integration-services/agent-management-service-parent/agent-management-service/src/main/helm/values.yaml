@@ -70,7 +70,7 @@ affinity: {}
 
 proxy:
    repository: apachecustos/agent-management-service-sidecar
-   tag: 1.0-SNAPSHOT
+   tag: 1.1-SNAPSHOT
    port: 50000
    adminport: 9901
 
@@ -83,3 +83,6 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 1
   successThreshold: 1
+
+deployment:
+  host: custos.scigap.org
