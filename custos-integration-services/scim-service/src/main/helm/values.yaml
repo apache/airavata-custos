@@ -79,5 +79,5 @@ readinessProbe:
 
 
 deployment:
-  host: service.staging.usecustos.org
+  host: custos.scigap.org
 
