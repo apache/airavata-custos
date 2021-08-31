@@ -104,12 +104,15 @@ public class IdentityService extends IdentityServiceImplBase {
                         StreamObserver<org.apache.custos.identity.service.User> responseObserver) {
         String username = null;
         String tenantId = null;
+        String custosId = null;
         try {
             for (Claim claim : request.getClaimsList()) {
                 if (claim.getKey().equals("username")) {
                     username = claim.getValue();
                 } else if (claim.getKey().equals("tenantId")) {
                     tenantId = claim.getValue();
+                } else if (claim.getKey().equals("clientId")) {
+                    custosId = claim.getValue();
                 }
             }
 
@@ -125,6 +128,7 @@ public class IdentityService extends IdentityServiceImplBase {
                             .setFullName(user.getFullName())
                             .setSub(user.getSub())
                             .setUsername(user.getUsername())
+                            .setClientId(custosId != null ? custosId : "")
                             .build();
             responseObserver.onNext(user1);
             responseObserver.onCompleted();
@@ -137,8 +141,8 @@ public class IdentityService extends IdentityServiceImplBase {
     }
 
     @Override
-    public void isAuthenticate(AuthToken request,
-                               StreamObserver<IsAuthenticateResponse> responseObserver) {
+    public void isAuthenticated(AuthToken request,
+                                StreamObserver<IsAuthenticatedResponse> responseObserver) {
         String username = null;
         String tenantId = null;
 
@@ -149,8 +153,9 @@ public class IdentityService extends IdentityServiceImplBase {
                 tenantId = claim.getValue();
             }
         }
-        LOGGER.debug("Authentication status checking for  " + username
-        );
+        LOGGER.debug("Authentication status checking for  " + username);
+        LOGGER.info("Authentication status checking for  " + username + " token " + request.getAccessToken());
+
         String accessToken = request.getAccessToken();
 
 
@@ -193,7 +198,7 @@ public class IdentityService extends IdentityServiceImplBase {
             } else {
                 LOGGER.debug("User" + username + "in gateway" + tenantId + "is not authenticated");
             }
-            IsAuthenticateResponse isAuthenticateResponse = IsAuthenticateResponse
+            IsAuthenticatedResponse isAuthenticateResponse = IsAuthenticatedResponse
                     .newBuilder()
                     .setAuthenticated(isAuthenticated)
                     .build();
@@ -201,7 +206,7 @@ public class IdentityService extends IdentityServiceImplBase {
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred while checking authentication for  user " + username + " " + ex.getMessage();
+            String msg = "Error occurred while validating authentication status of  user " + username + " " + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
         }
@@ -414,7 +419,7 @@ public class IdentityService extends IdentityServiceImplBase {
                 }
             } catch (Exception ex) {
 
-                LOGGER.error("JWKS format  error",ex);
+                LOGGER.error("JWKS format  error", ex);
                 String error = object.getString("error") + " " + object.getString("error_description");
                 responseObserver.onError(Status.INTERNAL.withDescription(error).asRuntimeException());
                 return;

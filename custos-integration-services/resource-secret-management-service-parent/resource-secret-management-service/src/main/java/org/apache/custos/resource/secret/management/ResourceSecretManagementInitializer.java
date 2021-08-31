@@ -26,9 +26,8 @@ import io.grpc.ServerInterceptor;
 import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
 import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
 import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
-import org.apache.custos.resource.secret.management.interceptors.ClientAuthInterceptorImpl;
+import org.apache.custos.resource.secret.management.interceptors.AuthInterceptorImpl;
 import org.apache.custos.resource.secret.management.interceptors.InputValidator;
-import org.apache.custos.resource.secret.management.interceptors.UserAuthInterceptorImpl;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -66,13 +65,11 @@ public class ResourceSecretManagementInitializer {
 
     @Bean
     public Stack<IntegrationServiceInterceptor> getInterceptorSet(InputValidator validator,
-                                                                  ClientAuthInterceptorImpl authInterceptor,
-                                                                  UserAuthInterceptorImpl userAuthInterceptor,
+                                                                  AuthInterceptorImpl authInterceptor,
                                                                   LoggingInterceptor loggingInterceptor) {
         Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
         interceptors.add(validator);
         interceptors.add(authInterceptor);
-        interceptors.add(userAuthInterceptor);
         interceptors.add(loggingInterceptor);
 
         return interceptors;

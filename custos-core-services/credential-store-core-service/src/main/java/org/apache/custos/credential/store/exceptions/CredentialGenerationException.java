@@ -21,5 +21,6 @@ package org.apache.custos.credential.store.exceptions;
 
 public class CredentialGenerationException extends RuntimeException {
     public CredentialGenerationException(String s, Exception exception) {
+        super(s,exception);
     }
 }

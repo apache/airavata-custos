@@ -22,7 +22,7 @@ package org.apache.custos.tenant.management.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.Credentials;
@@ -31,6 +31,8 @@ import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthInterceptor {
@@ -50,34 +52,46 @@ public class SuperTenantRestrictedOperationsInterceptorImpl extends AuthIntercep
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
         if (method.equals("updateTenantStatus")) {
-            if ( !((UpdateStatusRequest)msg).getSuperTenant() ) {
-                AuthClaim claim = null;
+            if (!((UpdateStatusRequest) msg).getSuperTenant()) {
+                Optional<AuthClaim> claim = null;
                 String token = getToken(headers);
                 try {
                     claim = authorizeUsingUserToken(headers);
                 } catch (Exception ex) {
                     LOGGER.error(" Authorizing error " + ex.getMessage());
-                    throw new NotAuthorizedException("Request is not authorized", ex);
+                    throw new UnAuthorizedException("Request is not authorized", ex);
                 }
-                if (claim == null || !claim.isSuperTenant() || !claim.isAdmin()) {
-                    throw new NotAuthorizedException("Request is not authorized", null);
+                if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant() || !claim.get().isAdmin()) {
+                    throw new UnAuthorizedException("Request is not authorized", null);
                 }
-                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.getPerformedBy())
+                return (ReqT) ((UpdateStatusRequest) msg).toBuilder().setUpdatedBy(claim.get().getPerformedBy())
                         .setAccessToken(token).build();
             }
             return msg;
 
         } else if (method.equals("getAllTenants")) {
-            AuthClaim claim = null;
+            Optional<AuthClaim> claim = null;
             try {
-                claim = authorize(headers);
-                LOGGER.info("Claim "+ claim);
-                LOGGER.info("Claim Auth "+ claim.isSuperTenant());
+                claim = authorizeUsingUserToken(headers);
             } catch (Exception ex) {
-                throw new NotAuthorizedException("Request is not authorized", ex);
+                throw new UnAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || !claim.isSuperTenant()) {
-                throw new NotAuthorizedException("Request is not authorized", null);
+            if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+
+            return msg;
+
+        } else if (method.equals("validateTenant")) {
+            Optional<AuthClaim> claim = null;
+            try {
+                claim = authorizeUsingUserToken(headers);
+            } catch (Exception ex) {
+                LOGGER.error(" Authorizing error " + ex.getMessage());
+                throw new UnAuthorizedException("Request is not authorized", ex);
+            }
+            if (claim == null || claim.isEmpty()|| !claim.get().isSuperTenant()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
             }
 
             return msg;

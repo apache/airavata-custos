@@ -22,11 +22,12 @@ package org.apache.custos.integration.services.commons.interceptors;
 import io.grpc.Metadata;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
 
 /**
  * Responsible for authorization  of  multi tenant middleware requests
@@ -51,27 +52,40 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
     }
 
 
-    public AuthClaim authorize(Metadata headers, String clientId) {
+    public Optional<AuthClaim> authorize(Metadata headers, String clientId) {
 
-        if (clientId != null && clientId.trim().equals("")) {
-            clientId = null;
-        }
+        try {
 
-        String userToken = headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
+            if (clientId != null && clientId.trim().isEmpty()) {
+                clientId = null;
+            }
 
-        if (clientId == null && userToken == null) {
-            return authorize(headers);
-        } else if (clientId != null && userToken == null) {
-            return authorizeWithParentChildTenantValidationByBasicAuth(headers, clientId);
-        } else if (clientId != null && userToken != null) {
-            return authorizeWithParentChildTenantValidationByBasicAuthAndUserTokenValidation(headers, clientId, userToken);
-        } else {
-            return authorizeUsingUserToken(headers);
+            boolean agentAuthenticationEnabled = isAgentAuthenticationEnabled(headers);
+
+            if (agentAuthenticationEnabled) {
+                return authorizeUsingAgentAndUserJWTTokens(headers);
+            }
+            Optional<String> userToken = getUserTokenFromUserTokenHeader(headers);
+            boolean isBasicAuth = isBasicAuth(headers);
+
+            if (clientId == null && userToken.isEmpty() && isBasicAuth) {
+                return authorize(headers);
+            } else if (clientId != null && userToken.isEmpty() && isBasicAuth) {
+                return authorizeParentChildTenantValidationWithBasicAuth(headers, clientId);
+            } else if (clientId != null && userToken.isPresent()) {
+                return authorizeParentChildTenantWithBasicAuthAndUserTokenValidation(headers, clientId, userToken.get());
+            } else if (clientId != null && isUserToken(headers)) {
+                return authorizeParentChildTenantWithUserTokenValidation(headers, clientId);
+            } else {
+                return authorizeUsingUserToken(headers);
+            }
+
+        } catch (Exception ex) {
+            LOGGER.error(ex.getMessage(),ex);
+            clearUserTokenFromHeader(headers);
+            throw ex;
         }
     }
 
 
-    public String getUserTokenFromUserTokenHeader(Metadata headers) {
-        return headers.get(Metadata.Key.of(Constants.USER_TOKEN, Metadata.ASCII_STRING_MARSHALLER));
-    }
 }

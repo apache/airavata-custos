@@ -25,6 +25,13 @@ body {
   color: #ff6f01;
 }
 
+.htrc-body-text {
+  color: #333333;
+  font-family: "Roboto", sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
 a {
   color: #ff6f01;
 }
@@ -121,7 +128,7 @@ a:focus {
   font-size: 14px;
 }
 
-.login-form > form > button {
+.login-form > form > button, .htrc-btn-confirm {
   font-family: "Roboto", sans-serif;
   text-transform: uppercase;
   outline: 0;
@@ -140,7 +147,7 @@ a:focus {
 
 .login-form > form > button:hover,
 .login-form > form > button:active,
-.login-form > form > button:focus {
+.login-form > form > button:focus, .htrc-btn-confirm:hover, .htrc-btn-confirm:active, .htrc-btn-confirm:focus {
   background: #ffb688;
 }
 

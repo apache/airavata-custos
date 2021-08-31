@@ -55,6 +55,7 @@ public class Entity {
     private String description;
 
     @Column
+    @Lob
     private String fullText;
 
     @Column

@@ -34,6 +34,7 @@ import org.wso2.charon3.core.protocol.SCIMResponse;
 import org.wso2.charon3.core.protocol.endpoints.UserResourceManager;
 
 import java.util.Map;
+import java.util.Optional;
 
 
 @RestController
@@ -68,18 +69,19 @@ public class UserResource extends AbstractResource {
                                   @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
                                   @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
         JSONObject newObj = new JSONObject();
-
-        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
-        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
-        newObj.put(Constants.ID, id);
-        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
-        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
-
-
         JSONObject custosExtention = new JSONObject();
+        if (claim.isPresent()) {
+            newObj.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            newObj.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            newObj.put(Constants.ID, id);
+            newObj.put(Constants.TENANT_ID, String.valueOf(claim.get().getTenantId()));
+            newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+
+        }
         custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
 
         // create charon-SCIM user endpoint and hand-over the request.
@@ -107,19 +109,20 @@ public class UserResource extends AbstractResource {
                                      @RequestBody Map<String, Object> payload,
                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
         JSONObject object = new JSONObject(payload);
 
         JSONObject custosExtension = new JSONObject();
 
-        custosExtension.put(Constants.CLIENT_ID, claim.getIamAuthId());
-        custosExtension.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
-        custosExtension.put(Constants.TENANT_ID, claim.getTenantId());
-        custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        if (claim.isPresent()) {
+            custosExtension.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            custosExtension.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            custosExtension.put(Constants.TENANT_ID, claim.get().getTenantId());
+            custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
 
-        object.put(Constants.CUSTOS_EXTENSION, custosExtension);
-
+            object.put(Constants.CUSTOS_EXTENSION, custosExtension);
+        }
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
 
@@ -145,19 +148,19 @@ public class UserResource extends AbstractResource {
                                      @PathVariable(Constants.ID) String id,
                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
 
         JSONObject newObj = new JSONObject();
-
-
-        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
-        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
-        newObj.put(Constants.ID, id);
-        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
-        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
-
         JSONObject custosExtention = new JSONObject();
+        if (claim.isPresent()) {
+            newObj.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            newObj.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            newObj.put(Constants.ID, id);
+            newObj.put(Constants.TENANT_ID, String.valueOf(claim.get().getTenantId()));
+            newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        }
+
         custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
 
         // create charon-SCIM user endpoint and hand-over the request.
@@ -186,15 +189,15 @@ public class UserResource extends AbstractResource {
                                   @ApiParam(value = Constants.FILTER_DESC, required = false)
                                   @RequestParam(value = Constants.FILTER, required = false) String filter,
                                   @ApiParam(value = Constants.START_INDEX_DESC, required = false)
-                                  @RequestParam(value =Constants.START_INDEX, required = false) int startIndex,
+                                  @RequestParam(value = Constants.START_INDEX, required = false) int startIndex,
                                   @ApiParam(value = Constants.COUNT_DESC, required = false)
-                                  @RequestParam(value= Constants.COUNT, required = false) int count,
+                                  @RequestParam(value = Constants.COUNT, required = false) int count,
                                   @ApiParam(value = Constants.SORT_BY_DESC, required = false)
-                                  @RequestParam(value =Constants.SORT_BY, required = false) String sortBy,
+                                  @RequestParam(value = Constants.SORT_BY, required = false) String sortBy,
                                   @ApiParam(value = Constants.SORT_ORDER_DESC, required = false)
                                   @RequestParam(value = Constants.SORT_ORDER, required = false) String sortOrder,
                                   @ApiParam(value = Constants.DOMAIN_DESC, required = false)
-                                  @RequestParam(value= Constants.DOMAIN, required = false) String domainName,
+                                  @RequestParam(value = Constants.DOMAIN, required = false) String domainName,
                                   @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
         authHandler.validateAndConfigure(authorizationHeader, false);
 
@@ -244,33 +247,32 @@ public class UserResource extends AbstractResource {
                                      @ApiParam(value = Constants.ATTRIBUTES_DESC, required = false)
                                      @RequestParam(value = Constants.ATTRIBUTES, required = false) String attribute,
                                      @ApiParam(value = Constants.EXCLUDED_ATTRIBUTES_DESC, required = false)
-                                     @RequestParam(value =Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
+                                     @RequestParam(value = Constants.EXCLUDE_ATTRIBUTES, required = false) String excludedAttributes,
                                      @RequestBody Map<String, Object> payload,
                                      @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        AuthClaim claim = authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
         JSONObject object = new JSONObject(payload);
 
         JSONObject custosExtension = new JSONObject();
-
-        custosExtension.put(Constants.CLIENT_ID, claim.getIamAuthId());
-        custosExtension.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
-        custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
-        custosExtension.put(Constants.TENANT_ID, claim.getTenantId());
-        object.put(Constants.CUSTOS_EXTENSION, custosExtension);
-
-
-
         JSONObject newObj = new JSONObject();
 
-        newObj.put(Constants.CLIENT_ID, claim.getIamAuthId());
-        newObj.put(Constants.CLIENT_SEC, claim.getIamAuthSecret());
-        newObj.put(Constants.ID, id);
-        newObj.put(Constants.TENANT_ID, String.valueOf(claim.getTenantId()));
-        newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        if (claim.isPresent()) {
+            custosExtension.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            custosExtension.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            custosExtension.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+            custosExtension.put(Constants.TENANT_ID, claim.get().getTenantId());
+            object.put(Constants.CUSTOS_EXTENSION, custosExtension);
 
 
+            newObj.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            newObj.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            newObj.put(Constants.ID, id);
+            newObj.put(Constants.TENANT_ID, String.valueOf(claim.get().getTenantId()));
+            newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+
+        }
         JSONObject custosExt = new JSONObject();
         custosExt.put(Constants.CUSTOS_EXTENSION, newObj);
 

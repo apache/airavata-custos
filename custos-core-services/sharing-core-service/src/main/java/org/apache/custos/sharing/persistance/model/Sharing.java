@@ -33,6 +33,7 @@ import java.util.Date;
 public class Sharing {
 
     @Id
+    @Column(length = 1000)
     private String id;
 
     @Column(nullable = false)
@@ -43,6 +44,9 @@ public class Sharing {
 
     @Column(nullable = false)
     private String sharingType;
+
+
+    private String sharedBy;
 
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -73,6 +77,14 @@ public class Sharing {
     @ManyToOne
     private org.apache.custos.sharing.persistance.model.Entity inheritedParent;
 
+
+    public String getSharedBy() {
+        return sharedBy;
+    }
+
+    public void setSharedBy(String sharedBy) {
+        this.sharedBy = sharedBy;
+    }
 
     public String getAssociatingId() {
         return associatingId;

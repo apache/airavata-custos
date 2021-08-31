@@ -27,7 +27,6 @@ import org.apache.custos.credential.store.service.*;
 import org.apache.custos.federated.authentication.client.FederatedAuthenticationClient;
 import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
-import org.apache.custos.federated.authentication.service.GetInstitutionsIdsAsResponse;
 import org.apache.custos.federated.authentication.service.GetInstitutionsResponse;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.OperationStatus;
@@ -38,10 +37,14 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.integration.core.ServiceCallback;
 import org.apache.custos.integration.core.ServiceChain;
 import org.apache.custos.integration.core.ServiceException;
+import org.apache.custos.messaging.client.MessagingClient;
+import org.apache.custos.messaging.email.service.*;
+import org.apache.custos.messaging.service.MessageEnablingResponse;
 import org.apache.custos.tenant.management.service.TenantManagementServiceGrpc.TenantManagementServiceImplBase;
 import org.apache.custos.tenant.management.tasks.TenantActivationTask;
 import org.apache.custos.tenant.management.utils.Constants;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.GetTenantResponse;
 import org.apache.custos.tenant.profile.service.*;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.UserProfile;
@@ -50,9 +53,9 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -81,6 +84,12 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Value("${tenant.base.uri}")
+    private String TENANT_BASE_URI;
+
+    @Autowired
+    private MessagingClient messagingClient;
 
 
     @Override
@@ -123,7 +132,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             }
 
-            String tenantBaseURI = Constants.TENANT_BASE_URI + "?client_id=" + resp.getId();
+            String tenantBaseURI = TENANT_BASE_URI + "?client_id=" + resp.getId();
 
 
             CreateTenantResponse tenantResponse = CreateTenantResponse.newBuilder()
@@ -149,7 +158,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
     @Override
-    public void getTenant(GetTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
+    public void getTenant(GetTenantRequest request, StreamObserver<Tenant> responseObserver) {
         try {
 
             Tenant tenant = request.getTenant(); // retrieved cached tenant from interceptors
@@ -163,49 +172,25 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                         profileClient.getTenant(tenantReq);
                 tenant = response.getTenant();
             }
-
-            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
-
-            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
-
-                GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
-                        .setOwnerId(tenant.getTenantId())
-                        .setId(request.getClientId())
+            if (tenant.getParentTenantId() > 0) {
+                GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                        .setOwnerId(tenant.getParentTenantId())
                         .setType(Type.CUSTOS).build();
 
-                clientIdIssuedAt = credentialStoreServiceClient.
-                        getCredential(credentialRequest).getClientIdIssuedAt();
+                CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                        getCredential(cR);
+                tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
             }
+            GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CUSTOS).build();
 
+            CredentialMetadata metadata = credentialStoreServiceClient.
+                    getCredential(credentialRequest);
 
-            String[] grantTypes = {Constants.AUTHORIZATION_CODE};
+            tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
 
-            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setAdminEmail(tenant.getAdminEmail())
-                    .setAdminFirstName(tenant.getAdminFirstName())
-                    .setAdminLastName(tenant.getAdminLastName())
-                    .setAdminUsername(tenant.getAdminUsername())
-                    .setRequesterEmail(tenant.getRequesterEmail())
-                    .setApplicationType(tenant.getApplicationType())
-                    .setClientName(tenant.getClientName())
-                    .setClientUri(tenant.getClientUri())
-                    .setComment(tenant.getComment())
-                    .setDomain(tenant.getDomain())
-                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
-                    .setJwksUri(tenant.getJwksUri())
-                    .addAllContacts(tenant.getContactsList())
-                    .addAllRedirectUris(tenant.getRedirectUrisList())
-                    .setLogoUri(tenant.getLogoUri())
-                    .setPolicyUri(tenant.getPolicyUri())
-                    .setTosUri(tenant.getTosUri())
-                    .setScope(tenant.getScope())
-                    .setSoftwareId(tenant.getSoftwareId())
-                    .setSoftwareVersion(tenant.getSoftwareVersion())
-                    .addAllGrantTypes(Arrays.asList(grantTypes))
-                    .setClientIdIssuedAt(clientIdIssuedAt)
-                    .build();
-            responseObserver.onNext(tenantResponse);
+            responseObserver.onNext(tenant);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -217,115 +202,109 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
-    public void updateTenant(UpdateTenantRequest request, StreamObserver<GetTenantResponse> responseObserver) {
+    public void updateTenant(UpdateTenantRequest request, StreamObserver<Tenant> responseObserver) {
 
         try {
             Tenant tenant = request.getBody();
 
             tenant = tenant.toBuilder().setTenantId(request.getTenantId()).build();
 
+            org.apache.custos.tenant.profile.service.GetTenantRequest tenantRequest =
+                    org.apache.custos.tenant.profile.service.GetTenantRequest.newBuilder()
+                            .setTenantId(request.getTenantId()).build();
+
+            GetTenantResponse tenantResponse = profileClient.getTenant(tenantRequest);
+
+            if (tenantResponse.getTenant() == null && tenantResponse.getTenant().getTenantId() == 0) {
+                String msg = "Cannot find tenant with Tenant name" + tenant.getClientName();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(msg).asRuntimeException());
+                return;
+            }
+
+            Tenant exTenant = tenantResponse.getTenant();
+
+            tenant = tenant.toBuilder().setTenantStatus(exTenant.getTenantStatus()).build();
+
+            GetCredentialRequest passwordRequest = GetCredentialRequest
+                    .newBuilder()
+                    .setId(tenant.getAdminUsername())
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.INDIVIDUAL)
+                    .build();
+            CredentialMetadata metadata = credentialStoreServiceClient.getCredential(passwordRequest);
+
+            if (metadata != null && metadata.getSecret() != null) {
+                tenant = tenant.toBuilder().setAdminPassword(metadata.getSecret()).build();
+            }
+
             Tenant updateTenant = profileClient.updateTenant(tenant);
 
-            tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN, true);
+            GetCredentialRequest clientIdRequest = GetCredentialRequest.newBuilder()
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CUSTOS).build();
 
-            double clientIdIssuedAt = request.getCredentials().getCustosClientIdIssuedAt();
+            CredentialMetadata idMeta = credentialStoreServiceClient.
+                    getCredential(clientIdRequest);
 
+            tenant = tenant.toBuilder().setClientId(idMeta.getId()).build();
 
-            if (!request.getCredentials().getCustosClientId().equals(request.getClientId())) {
+            if (tenant.getTenantStatus().equals(TenantStatus.ACTIVE)) {
 
+                tenantActivationTask.activateTenant(updateTenant, Constants.GATEWAY_ADMIN, true);
                 GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
                         .setOwnerId(tenant.getTenantId())
                         .setId(request.getClientId())
-                        .setType(Type.CUSTOS).build();
+                        .setType(Type.IAM).build();
 
-                clientIdIssuedAt = credentialStoreServiceClient.
-                        getCredential(credentialRequest).getClientIdIssuedAt();
-            }
-
-
-            String[] grantTypes = {Constants.AUTHORIZATION_CODE,
-                    Constants.CLIENT_CREDENTIALS,
-                    Constants.PASSWORD_GRANT_TYPE,
-                    Constants.REFRESH_TOKEN};
-
-            GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
-                    .setOwnerId(tenant.getTenantId())
-                    .setId(request.getClientId())
-                    .setType(Type.IAM).build();
-
-            CredentialMetadata iamCredential = credentialStoreServiceClient.
-                    getCredential(credentialRequest);
+                CredentialMetadata iamCredential = credentialStoreServiceClient.
+                        getCredential(credentialRequest);
 
 
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                    .newBuilder()
-                    .setClientId(iamCredential.getId())
-                    .setClientSecret(iamCredential.getSecret())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-                UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                         .newBuilder()
-                        .setUsername(tenant.getAdminUsername())
-                        .build();
-
-                UserSearchRequest searchRequest = UserSearchRequest.newBuilder().
-                        setTenantId(request.getTenantId())
-                        .setPerformedBy(Constants.GATEWAY_ADMIN)
-                        .setAccessToken(token.getAccessToken())
-                        .setUser(userSearchMetadata)
-                        .build();
-
-                UserRepresentation userRepresentation = iamAdminServiceClient.getUser(searchRequest);
-
-                UserProfile profile = convertToProfile(userRepresentation);
-
-                UserProfileRequest userProfileRequest = UserProfileRequest
-                        .newBuilder()
-                        .setProfile(profile)
-                        .setPerformedBy(Constants.GATEWAY_ADMIN)
+                        .setClientId(iamCredential.getId())
+                        .setClientSecret(iamCredential.getSecret())
                         .setTenantId(request.getTenantId())
                         .build();
+                AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-                UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
+                if (token != null && token.getAccessToken() != null) {
+                    UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                            .newBuilder()
+                            .setUsername(tenant.getAdminUsername())
+                            .build();
 
-                if (userProfile == null || userProfile.getUsername().equals("")) {
-                    userProfileClient.createUserProfile(userProfileRequest);
-                } else {
-                    userProfileClient.updateUserProfile(userProfileRequest);
+                    UserSearchRequest searchRequest = UserSearchRequest.newBuilder().
+                            setTenantId(request.getTenantId())
+                            .setPerformedBy(Constants.GATEWAY_ADMIN)
+                            .setAccessToken(token.getAccessToken())
+                            .setUser(userSearchMetadata)
+                            .build();
+
+                    UserRepresentation userRepresentation = iamAdminServiceClient.getUser(searchRequest);
+
+                    UserProfile profile = convertToProfile(userRepresentation);
+
+                    UserProfileRequest userProfileRequest = UserProfileRequest
+                            .newBuilder()
+                            .setProfile(profile)
+                            .setPerformedBy(Constants.GATEWAY_ADMIN)
+                            .setTenantId(request.getTenantId())
+                            .build();
+
+                    UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
+
+                    if (userProfile == null || userProfile.getUsername().equals("")) {
+                        userProfileClient.createUserProfile(userProfileRequest);
+                    } else {
+                        userProfileClient.updateUserProfile(userProfileRequest);
+                    }
                 }
-
 
             }
 
-            GetTenantResponse tenantResponse = GetTenantResponse.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setAdminEmail(tenant.getAdminEmail())
-                    .setAdminFirstName(tenant.getAdminFirstName())
-                    .setAdminLastName(tenant.getAdminLastName())
-                    .setRequesterEmail(tenant.getRequesterEmail())
-                    .setApplicationType(tenant.getApplicationType())
-                    .setClientName(tenant.getClientName())
-                    .setClientUri(tenant.getClientUri())
-                    .setComment(tenant.getComment())
-                    .setDomain(tenant.getDomain())
-                    .setExampleExtensionParameter(tenant.getExampleExtensionParameter())
-                    .setJwksUri(tenant.getJwksUri())
-                    .addAllContacts(tenant.getContactsList())
-                    .addAllRedirectUris(tenant.getRedirectUrisList())
-                    .setLogoUri(tenant.getLogoUri())
-                    .setPolicyUri(tenant.getPolicyUri())
-                    .setTosUri(tenant.getTosUri())
-                    .setScope(tenant.getScope())
-                    .setSoftwareId(tenant.getSoftwareId())
-                    .setSoftwareVersion(tenant.getSoftwareVersion())
-                    .addAllGrantTypes(Arrays.asList(grantTypes))
-                    .setClientIdIssuedAt(clientIdIssuedAt)
-                    .build();
-
-            responseObserver.onNext(tenantResponse);
+            responseObserver.onNext(tenant);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
@@ -420,6 +399,35 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
 
     @Override
+    public void validateTenant(TenantValidationRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            GetCredentialRequest credentialRequest = GetCredentialRequest
+                    .newBuilder()
+                    .setId(request.getClientId()).build();
+
+
+            CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(credentialRequest);
+
+            if (metadata.getSecret() != null && metadata.getSecret().trim().
+                    equals(request.getClientSec().trim())) {
+                OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            } else {
+                OperationStatus status = OperationStatus.newBuilder().setStatus(false).build();
+                responseObserver.onNext(status);
+                responseObserver.onCompleted();
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while validating tenant with Id " + request.getClientId()
+                    + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void addTenantRoles(AddRolesRequest request, StreamObserver<AllRoles> responseObserver) {
         try {
             AllRoles allRoles = iamAdminServiceClient.addRolesToTenant(request);
@@ -445,6 +453,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
         } catch (Exception ex) {
             String msg = "Error occurred at getTenantRoles " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void deleteRole(DeleteRoleRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            OperationStatus operationStatus = iamAdminServiceClient.deleteRole(request);
+
+            responseObserver.onNext(operationStatus);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at deleteRole " + request.getRole() + " of tenant "
+                    + request.getTenantId() + ex.getMessage();
             LOGGER.error(msg);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
@@ -482,6 +506,22 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
     @Override
+    public void enableMessaging(org.apache.custos.messaging.service.MessageEnablingRequest request,
+                                StreamObserver<org.apache.custos.messaging.service.MessageEnablingResponse> responseObserver) {
+        try {
+            MessageEnablingResponse response = messagingClient.enableMessaging(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at enableMessaging " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void getAllTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
@@ -497,6 +537,17 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
                     CredentialMetadata metadata = credentialStoreServiceClient.
                             getCredential(credentialRequest);
+
+
+                    if (tenant.getParentTenantId() > 0) {
+                        GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                                .setOwnerId(tenant.getParentTenantId())
+                                .setType(Type.CUSTOS).build();
+
+                        CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                                getCredential(cR);
+                        tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
+                    }
 
                     tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
                     tenantList.add(tenant);
@@ -519,6 +570,36 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     public void getChildTenants(GetTenantsRequest request, StreamObserver<GetAllTenantsResponse> responseObserver) {
         try {
             GetAllTenantsResponse response = profileClient.getAllTenants(request);
+            if (response != null && !response.getTenantList().isEmpty()) {
+                List<Tenant> tenantList = new ArrayList<>();
+
+                for (Tenant tenant : response.getTenantList()) {
+
+                    GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
+                            .setOwnerId(tenant.getTenantId())
+                            .setType(Type.CUSTOS).build();
+
+                    CredentialMetadata metadata = credentialStoreServiceClient.
+                            getCredential(credentialRequest);
+
+
+                    if (tenant.getParentTenantId() > 0) {
+                        GetCredentialRequest cR = GetCredentialRequest.newBuilder()
+                                .setOwnerId(tenant.getParentTenantId())
+                                .setType(Type.CUSTOS).build();
+
+                        CredentialMetadata parentMetadata = credentialStoreServiceClient.
+                                getCredential(cR);
+                        tenant = tenant.toBuilder().setParentClientId(parentMetadata.getId()).build();
+                    }
+
+                    tenant = tenant.toBuilder().setClientId(metadata.getId()).build();
+                    tenantList.add(tenant);
+
+                }
+
+                response = response.toBuilder().clearTenant().addAllTenant(tenantList).build();
+            }
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -761,6 +842,78 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     }
 
 
+    @Override
+    public void enableEmail(EmailEnablingRequest request,
+                            StreamObserver<EmailTemplate> responseObserver) {
+        try {
+            LOGGER.debug("Request received to enable emails for tenant " + request.getTenantId());
+
+            EmailTemplate emailTemplate = messagingClient.enableEmail(request);
+            responseObserver.onNext(emailTemplate);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while enabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void disableEmail(EmailDisablingRequest request,
+                             StreamObserver<org.apache.custos.messaging.email.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to disable emails for tenant " + request.getTenantId());
+
+            org.apache.custos.messaging.email.service.Status status = messagingClient.disableEmail(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while disabling emails for tenant " + request.getTenantId() + " for event "
+                    + request.getEmailTemplate().getCustosEvent().name();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void getEmailTemplates(FetchEmailTemplatesRequest request,
+                                  StreamObserver<FetchEmailTemplatesResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get email templates for tenant " + request.getTenantId());
+            FetchEmailTemplatesResponse response = messagingClient.getEmailTemplates(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching emails for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+
+    @Override
+    public void getEmailFriendlyEvents(FetchEmailFriendlyEvents request, StreamObserver<FetchEmailFriendlyEventsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to get getEmailFriendlyEvents for tenant " + request.getTenantId());
+            FetchEmailFriendlyEventsResponse response = messagingClient.fetchEmailFriendlyEvents(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = " Error occurred while fetching email events for tenant " + request.getTenantId();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
     private UserProfile convertToProfile(UserRepresentation representation) {
         UserProfile.Builder profileBuilder = UserProfile.newBuilder();
 
@@ -784,7 +937,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                         org.apache.custos.user.profile.service.UserAttribute
                                 .newBuilder()
                                 .setKey(atr.getKey())
-                                .addAllValue(atr.getValuesList())
+                                .addAllValues(atr.getValuesList())
                                 .build();
 
                 userAtrList.add(userAttribute);

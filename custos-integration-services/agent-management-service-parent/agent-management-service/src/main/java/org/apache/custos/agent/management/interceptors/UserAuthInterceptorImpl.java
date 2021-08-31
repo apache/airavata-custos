@@ -27,7 +27,7 @@ import org.apache.custos.credential.store.service.GetCredentialRequest;
 import org.apache.custos.credential.store.service.Type;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
-import org.apache.custos.integration.core.exceptions.NotAuthorizedException;
+import org.apache.custos.integration.core.exceptions.UnAuthorizedException;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
@@ -35,6 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 /**
  * Responsible for validate user specific authorization
@@ -55,12 +57,12 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
         String token = getToken(headers);
-        AuthClaim claim = authorizeUsingUserToken(headers);
-        long tenantId = claim.getTenantId();
+        Optional<AuthClaim> claim = authorizeUsingUserToken(headers);
 
-        if (claim == null) {
-            throw new NotAuthorizedException("Request is not authorized", null);
+        if (claim.isEmpty()) {
+            throw new UnAuthorizedException("Request is not authorized", null);
         }
+        long tenantId = claim.get().getTenantId();
 
         if (!method.equals("enableAgents")) {
 
@@ -72,7 +74,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
             if (metadata == null || metadata.getId().equals("")) {
-                throw new NotAuthorizedException("Agent creation is not enabled", null);
+                throw new UnAuthorizedException("Agent creation is not enabled", null);
             }
 
         }
@@ -82,7 +84,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((AgentClientMetadata) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
         } else if (method.equals("registerAndEnableAgent")) {
 
@@ -90,7 +92,8 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((RegisterUserRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setClientId(claim.get().getCustosId())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("getAgent") || method.equals("deleteAgent") || method.equals("disableAgent") ||
@@ -100,7 +103,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((AgentSearchRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("addAgentAttributes")) {
@@ -108,7 +111,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((AddUserAttributesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("deleteAgentAttributes")) {
@@ -116,7 +119,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((DeleteUserAttributeRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("addRolesToAgent")) {
@@ -124,7 +127,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((AddUserRolesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("deleteRolesFromAgent")) {
@@ -132,7 +135,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
             return (ReqT) ((DeleteUserRolesRequest) msg).toBuilder()
                     .setTenantId(tenantId)
                     .setAccessToken(token)
-                    .setPerformedBy(claim.getPerformedBy())
+                    .setPerformedBy(claim.get().getPerformedBy())
                     .build();
 
         } else if (method.equals("addProtocolMapper")) {
@@ -145,7 +148,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
             if (metadata == null || metadata.getId().equals("")) {
-                throw new NotAuthorizedException("Agent creation is not enabled", null);
+                throw new UnAuthorizedException("Agent creation is not enabled", null);
             }
 
             return (ReqT) ((AddProtocolMapperRequest) msg).toBuilder()
@@ -162,7 +165,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
             if (metadata == null || metadata.getId().equals("")) {
-                throw new NotAuthorizedException("Agent creation is not enabled", null);
+                throw new UnAuthorizedException("Agent creation is not enabled", null);
             }
 
             return (ReqT) ((AddRolesRequest) msg).toBuilder()
@@ -178,7 +181,7 @@ public class UserAuthInterceptorImpl extends AuthInterceptor {
 
             CredentialMetadata metadata = this.credentialStoreServiceClient.getCredential(request);
             if (metadata == null || metadata.getId().equals("")) {
-                throw new NotAuthorizedException("Agent creation is not enabled", null);
+                throw new UnAuthorizedException("Agent creation is not enabled", null);
             }
 
             return (ReqT) ((GetAllResources) msg).toBuilder()

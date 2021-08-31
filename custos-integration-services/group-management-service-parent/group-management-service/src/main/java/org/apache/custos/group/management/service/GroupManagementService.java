@@ -29,6 +29,7 @@ import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.integration.services.commons.utils.EventPublisher;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
@@ -36,8 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @GRpcService
 public class GroupManagementService extends GroupManagementServiceGrpc.GroupManagementServiceImplBase {
@@ -54,10 +54,13 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     @Autowired
     private IdentityClient identityClient;
 
+    @Autowired
+    private EventPublisher eventPublisher;
+
 
     //TODO: improve error handling to avoid database consistency
     @Override
-    public void createGroups(GroupsRequest request, StreamObserver<GroupsResponse> responseObserver) {
+    public void createKeycloakGroups(GroupsRequest request, StreamObserver<GroupsResponse> responseObserver) {
         try {
             LOGGER.debug("Request received create Groups for tenant " + request.getTenantId());
 
@@ -89,13 +92,13 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
     //TODO: improve error handling to avoid database consistency
     @Override
-    public void updateGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
+    public void updateKeycloakGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
         try {
             LOGGER.debug("Request received to updateGroup for tenant " + request.getTenantId());
 
             GroupRepresentation gr = request.getGroup();
 
-            if (request.getId() != null && ! request.getId().trim().equals("")) {
+            if (request.getId() != null && !request.getId().trim().equals("")) {
                 gr = gr.toBuilder().setId(request.getId()).build();
             }
             request = request.toBuilder().setGroup(gr).build();
@@ -140,12 +143,12 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
     //TODO: improve error handling to avoid database consistency
     @Override
-    public void deleteGroup(GroupRequest request, StreamObserver<OperationStatus> responseObserver) {
+    public void deleteKeycloakGroup(GroupRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to updateGroup for tenant " + request.getTenantId());
 
             GroupRepresentation gr = request.getGroup();
-            if (request.getId() != null && ! request.getId().trim().equals("")) {
+            if (request.getId() != null && !request.getId().trim().equals("")) {
                 gr = gr.toBuilder().setId(request.getId()).build();
             }
             request = request.toBuilder().setGroup(gr).build();
@@ -180,7 +183,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     }
 
     @Override
-    public void findGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
+    public void findKeycloakGroup(GroupRequest request, StreamObserver<GroupRepresentation> responseObserver) {
         try {
             LOGGER.debug("Request received findGroup for group Id " + request.getGroup().getId() + " of  tenant "
                     + request.getTenantId());
@@ -220,7 +223,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     }
 
     @Override
-    public void getAllGroups(GroupRequest request, StreamObserver<GroupsResponse> responseObserver) {
+    public void getAllKeycloakGroups(GroupRequest request, StreamObserver<GroupsResponse> responseObserver) {
         try {
             LOGGER.debug("Request received getAllGroups for  tenant "
                     + request.getTenantId());
@@ -259,7 +262,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
     }
 
     @Override
-    public void addUserToGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
+    public void addUserToKeycloakGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to addUserToGroup for  user  " + request.getUsername() + " of tenant "
                     + request.getTenantId());
@@ -299,7 +302,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
 
     @Override
-    public void removeUserFromGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
+    public void removeUserFromKeycloakGroup(UserGroupMappingRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
             LOGGER.debug("Request received to removeUserFromGroup for  user  " + request.getUsername() + " of tenant "
                     + request.getTenantId());
@@ -337,53 +340,239 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
 
 
     @Override
+    public void createGroup(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to createGroup   " + request.getGroup().getName() + " of tenant "
+                    + request.getTenantId());
+
+            String id = request.getGroup().getId();
+
+            updateProfile(request.getClientId(), request.getClientSec(),
+                    request.getTenantId(), request.getGroup().getOwnerId());
+            if (id != null && !id.trim().equals("")) {
+                Group group = Group.newBuilder()
+                        .setId(id)
+                        .build();
+
+                org.apache.custos.user.profile.service.GroupRequest groupRequest = org.apache.custos.user.profile.service.GroupRequest
+                        .newBuilder().
+                                setTenantId(request.getTenantId()).
+                                setPerformedBy(request.getPerformedBy()).
+                                setGroup(group).build();
+                Group exGroup = userProfileClient.getGroup(groupRequest);
+
+                if (exGroup.getName() != null && !exGroup.getName().trim().equals("")) {
+                    String msg = "Group already exist with given id " + id;
+                    LOGGER.error(msg);
+                    responseObserver.onError(Status.ALREADY_EXISTS.withDescription(msg).asRuntimeException());
+                }
+
+            } else {
+                id = request.getGroup().
+                        getName().toLowerCase().replace(" ", "_") + "_" + UUID.randomUUID();
+            }
+            Group group = request.getGroup().toBuilder().setId(id).build();
+            request = request.toBuilder().setGroup(group).build();
+            Group creadredGroup = userProfileClient.createGroup(request);
+            responseObserver.onNext(creadredGroup);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at createGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void updateGroup(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to updateGroup for  group  " + request.getGroup().getId() + " of tenant "
+                    + request.getTenantId());
+
+
+            if (request.getId() != null && !request.getId().trim().equals("")) {
+                Group group = request.getGroup().toBuilder().setId(request.getId()).build();
+                request = request.toBuilder().setGroup(group).build();
+            }
+
+            Group exGroup = userProfileClient.getGroup(request);
+            if (exGroup.getName() != null && !exGroup.getName().trim().equals("")) {
+                Group group = request.getGroup().toBuilder().setParentId(exGroup.getParentId()).build();
+                request = request.toBuilder().setGroup(group).build();
+                Group updatedGr = userProfileClient.updateGroup(request);
+                responseObserver.onNext(updatedGr);
+                responseObserver.onCompleted();
+            } else {
+                String msg = "Cannot find a group with id " + request.getId();
+                LOGGER.error(msg);
+                responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at updateGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void deleteGroup(org.apache.custos.user.profile.service.GroupRequest request,
+                            StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to deleteGroup for  group  " + request.getGroup().getId() + " of tenant "
+                    + request.getTenantId());
+            if (request.getId() != null && !request.getId().trim().equals("")) {
+                Group group = request.getGroup().toBuilder().setId(request.getId()).build();
+                request = request.toBuilder().setGroup(group).build();
+            }
+            userProfileClient.deleteGroup(request);
+            org.apache.custos.user.profile.service.Status status =
+                    org.apache.custos.user.profile.service.Status.newBuilder().setStatus(true).build();
+
+                Map<String, String> value = new HashMap<>();
+                value.put("GROUP_ID", request.getGroup().getId());
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "GROUP_MANAGEMENT_SERVICE", "DELETE_GROUP",
+                        value);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void findGroup(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<Group> responseObserver) {
+        try {
+            LOGGER.debug("Request received to findGroup  of tenant " + request.getTenantId());
+            Group group = userProfileClient.getGroup(request);
+            responseObserver.onNext(group);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void getAllGroups(org.apache.custos.user.profile.service.GroupRequest request, StreamObserver<GetAllGroupsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllGroups of tenant " + request.getTenantId());
+            GetAllGroupsResponse response = userProfileClient.getAllGroups(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void addUserToGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addUserToGroup for  user  " + request.getUsername() + " of tenant "
+                    + request.getTenantId());
+
+            updateProfile(request.getClientId(), request.getClientSec(), request.getTenantId(), request.getUsername());
+
+            org.apache.custos.user.profile.service.Status status = userProfileClient.addUserToGroup(request);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addUserToGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void removeUserFromGroup(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserFromGroup for  user  " + request.getUsername() + " of tenant "
+                    + request.getTenantId());
+            org.apache.custos.user.profile.service.Status status = userProfileClient.removeUserFromGroup(request);
+
+            Map<String, String> value = new HashMap<>();
+            value.put("GROUP_ID", request.getGroupId());
+            value.put("USER_ID",request.getUsername());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "REMOVE_USER_FROM_GROUP",
+                    value);
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
     public void addChildGroupToParentGroup(GroupToGroupMembership request,
-                                           StreamObserver<OperationStatus> responseObserver) {
+                                           StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to addChildGroupToParentGroup for  group  " + request.getChildId() +
                     " to add " + request.getParentId() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status status = userProfileClient.addChildGroupToParentGroup(request);
 
-            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status.getStatus()).build();
 
-            responseObserver.onNext(operationStatus);
+            responseObserver.onNext(status);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred at addChildGroupToParentGroup " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
     @Override
     public void removeChildGroupFromParentGroup(GroupToGroupMembership request,
-                                                StreamObserver<OperationStatus> responseObserver) {
+                                                StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to removeUserFromGroup for  group  " + request.getChildId() +
                     " to remove " + request.getParentId() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status status = userProfileClient.removeChildGroupFromParentGroup(request);
 
-            OperationStatus operationStatus = OperationStatus.newBuilder().setStatus(status.getStatus()).build();
+            Map<String, String> value = new HashMap<>();
+            value.put("PARENT_GROUP_ID", request.getParentId());
+            value.put("CHILD_GROUP_ID",request.getChildId());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "REMOVE_CHILD_GROUP_FROM_PARENT_GROUP",
+                    value);
 
-            responseObserver.onNext(operationStatus);
+
+            responseObserver.onNext(status);
             responseObserver.onCompleted();
 
 
         } catch (Exception ex) {
             String msg = "Error occurred at removeChildGroupFromParentGroup " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
@@ -403,11 +592,8 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         } catch (Exception ex) {
             String msg = "Error occurred at getAllGroupsOfUser " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
@@ -426,11 +612,8 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         } catch (Exception ex) {
             String msg = "Error occurred at getAllParentGroupsOfGroup " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
@@ -449,11 +632,8 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         } catch (Exception ex) {
             String msg = "Error occurred at getAllChildUsers " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
@@ -471,62 +651,155 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
         } catch (Exception ex) {
             String msg = "Error occurred at getAllChildGroups " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
     @Override
-    public void changeUserMembershipType(GroupMembership request, StreamObserver<OperationStatus> responseObserver) {
+    public void changeUserMembershipType(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to changeUserMembershipType for  user  "
                     + request.getUsername() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status response = userProfileClient.changeUserMembershipType(request);
 
-            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getStatus()).build();
+            Map<String, String> value = new HashMap<>();
+            value.put("USER_ID", request.getUsername());
+            value.put("GROUP_ID",request.getGroupId());
+            value.put("MEMBERSHIP_TYPE",request.getType());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "GROUP_MANAGEMENT_SERVICE", "CHANGE_USER_MEMBERSHIP",
+                    value);
 
-            responseObserver.onNext(status);
+
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
 
         } catch (Exception ex) {
             String msg = "Error occurred at changeUserMembershipType " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
 
     @Override
-    public void hasAccess(GroupMembership request, StreamObserver<OperationStatus> responseObserver) {
+    public void hasAccess(GroupMembership request, StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
         try {
             LOGGER.debug("Request received to hasAccess for  user  "
                     + request.getUsername() + " of tenant " + request.getTenantId());
 
             org.apache.custos.user.profile.service.Status response = userProfileClient.hasAccess(request);
 
-            OperationStatus status = OperationStatus.newBuilder().setStatus(response.getStatus()).build();
-
-            responseObserver.onNext(status);
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
             String msg = "Error occurred at hasAccess " + ex.getMessage();
             LOGGER.error(msg, ex);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                responseObserver.onError(Status.UNAUTHENTICATED.withDescription(msg).asRuntimeException());
-            } else {
-                responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
-            }
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
         }
     }
+
+    @Override
+    public void addGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                       StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addGroupMembershipType for  tenant " + request.getTenantId()
+                    + ", type " + request.getType());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.addUserMembershipType(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at addGroupMembershipType " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+
+    }
+
+    @Override
+    public void removeUserGroupMembershipType(UserGroupMembershipTypeRequest request,
+                                              StreamObserver<org.apache.custos.user.profile.service.Status> responseObserver) {
+        try {
+            LOGGER.debug("Request received to removeUserGroupMembershipType for  tenant " + request.getTenantId()
+                    + ", type " + request.getType());
+
+            org.apache.custos.user.profile.service.Status response = userProfileClient.removeUserMembershipType(request);
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at removeUserGroupMembershipType " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+
+    }
+
+    private void updateProfile(String clientId, String clientSec, long tenantId, String username) {
+
+        UserProfile userProfile = UserProfile.newBuilder().setUsername(username).build();
+        UserProfileRequest userProfileRequest = UserProfileRequest
+                .newBuilder()
+                .setTenantId(tenantId)
+                .setProfile(userProfile)
+                .build();
+
+        UserProfile exUser = userProfileClient.getUser(userProfileRequest);
+        if (exUser.getUsername().isBlank()) {
+
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(clientId)
+                    .setClientSecret(clientSec)
+                    .setTenantId(tenantId)
+                    .build();
+
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+            UserSearchMetadata userSearchMetadata = UserSearchMetadata
+                    .newBuilder().setUsername(username).build();
+
+            UserSearchRequest searchRequest = UserSearchRequest
+                    .newBuilder()
+                    .setClientId(clientId)
+                    .setTenantId(tenantId)
+                    .setAccessToken(token.getAccessToken())
+                    .setUser(userSearchMetadata)
+                    .build();
+
+            UserRepresentation representation = iamAdminServiceClient.getUser(searchRequest);
+
+            UserProfile profile = UserProfile
+                    .newBuilder()
+                    .setUsername(username)
+                    .setFirstName(representation.getFirstName())
+                    .setLastName(representation.getLastName())
+                    .setEmail(representation.getEmail())
+                    .build();
+
+            UserProfileRequest profileRequest = UserProfileRequest
+                    .newBuilder()
+                    .setTenantId(tenantId)
+                    .setProfile(profile)
+                    .build();
+
+            userProfileClient.createUserProfile(profileRequest);
+        }
+
+
+    }
+
 
     private org.apache.custos.user.profile.service.GroupRequest createGroup(GroupRepresentation representation,
                                                                             String parentId,

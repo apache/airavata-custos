@@ -1,0 +1,112 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.messaging.email.service;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "./pb";
+
+enum CustosEvent {
+    UNKNOWN = 0;
+    NEW_USER_SIGNUP = 1;
+    GROUP_MEMBERSHIP_CHANGE = 2;
+}
+
+message Email {
+    string sender_email = 3;
+    repeated string receiver_email = 4;
+    CustosEvent custos_event = 5;
+    map<string, string> parameters = 6;
+}
+
+message EmailTemplate {
+    int64 template_id = 1;
+    CustosEvent custos_event = 2;
+    string subject = 3;
+    repeated string body_params = 4;
+    repeated string receiving_users = 5;
+    repeated string receiving_groups = 6;
+    string body = 7;
+}
+
+message EmailEnablingRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    EmailTemplate email_template = 3;
+}
+
+message EmailDisablingRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    EmailTemplate email_template = 3;
+}
+
+message Status {
+    bool status = 1;
+}
+
+
+message EmailMessageSendingRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    Email message = 3;
+}
+
+message FetchEmailTemplatesRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+}
+
+message FetchEmailTemplatesResponse {
+   repeated EmailTemplate templates = 1;
+}
+
+message FetchEmailFriendlyEvents {
+    int64 tenant_id = 1;
+    string client_id = 2;
+}
+
+
+message CustosEmailEvent {
+    CustosEvent event = 1;
+    repeated string body_params = 2;
+}
+
+message FetchEmailFriendlyEventsResponse {
+    repeated CustosEmailEvent events = 1;
+}
+
+
+service EmailService {
+
+    rpc send (EmailMessageSendingRequest) returns (Status);
+
+    rpc enable (EmailEnablingRequest) returns (EmailTemplate);
+
+    rpc disable (EmailDisablingRequest) returns (Status);
+
+    rpc getTemplates (FetchEmailTemplatesRequest) returns (FetchEmailTemplatesResponse);
+
+    rpc getEmailFriendlyEvents(FetchEmailFriendlyEvents) returns(FetchEmailFriendlyEventsResponse);
+}

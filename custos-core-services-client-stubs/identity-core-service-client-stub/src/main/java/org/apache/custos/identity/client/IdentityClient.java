@@ -63,7 +63,7 @@ public class IdentityClient {
 
     public void isAuthenticatedAsync(AuthToken request, final ServiceCallback callback) {
         StreamObserver observer = this.getObserver(callback, "isAuthenticated task failed");
-        identityServiceStub.isAuthenticate(request, observer);
+        identityServiceStub.isAuthenticated(request, observer);
     }
 
 
@@ -83,8 +83,8 @@ public class IdentityClient {
     }
 
 
-    public IsAuthenticateResponse isAuthenticated(AuthToken request) {
-        return identityServiceBlockingStub.isAuthenticate(request);
+    public IsAuthenticatedResponse isAuthenticated(AuthToken request) {
+        return identityServiceBlockingStub.isAuthenticated(request);
     }
 
 

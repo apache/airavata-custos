@@ -19,6 +19,7 @@
 
 package org.apache.custos.federated.services.clients.keycloak.auth;
 
+import org.apache.custos.cluster.management.client.ClusterManagementClient;
 import org.apache.custos.federated.services.clients.keycloak.KeycloakUtils;
 import org.apache.http.Consts;
 import org.apache.http.HttpHeaders;
@@ -41,6 +42,7 @@ import org.keycloak.authorization.client.Configuration;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -97,6 +99,12 @@ public class KeycloakAuthClient {
     @Value("${user.info.endpoint}")
     private String userInfoEndpoint;
 
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
+    @Autowired
+    private ClusterManagementClient clusterManagementClient;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakAuthClient.class);
 
     public KeycloakAuthClient() {
@@ -108,7 +116,8 @@ public class KeycloakAuthClient {
             KeyStoreException, KeyManagementException, IOException {
         try {
             LOGGER.info("initializing security requirements");
-            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword);
+            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword,
+                    activeProfile, clusterManagementClient);
         } catch (Exception ex) {
             LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
             throw ex;
@@ -160,7 +169,7 @@ public class KeycloakAuthClient {
             }
             return true;
         } catch (Exception e) {
-            String msg = "Error occurred while checking if user: " + username + " is authorized in gateway: " + realmId;
+            String msg = "Error occurred while validating if user: " + username + " is authorized in gateway: " + realmId;
             LOGGER.error(msg, e);
             throw new RuntimeException(msg, e);
         }
@@ -323,15 +332,16 @@ public class KeycloakAuthClient {
         String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");
         JSONObject userInfo = new JSONObject(getFromUrl(userInfoEndPoint, token));
         return new User(userInfo.getString("sub"),
-                userInfo.getString("name"),
-                userInfo.getString("given_name"),
-                userInfo.getString("family_name"),
-                userInfo.getString("email"),
+                userInfo.has("name") ? userInfo.getString("name") : "",
+                userInfo.has("given_name") ? userInfo.getString("given_name") : "",
+                userInfo.has("family_name") ? userInfo.getString("family_name") : "",
+                userInfo.has("email") ? userInfo.getString("email") : "",
                 userInfo.getString("preferred_username"));
     }
 
 
     private String getOpenIDConfigurationUrl(String realm) {
+        LOGGER.info("Connecting to "+ idpServerURL);
         return idpServerURL + "realms/" + realm + "/.well-known/openid-configuration";
     }
 
@@ -552,9 +562,6 @@ public class KeycloakAuthClient {
             }
         }
     }
-
-
-
 
 
 }

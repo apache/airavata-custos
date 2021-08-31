@@ -28,6 +28,10 @@ public interface EntityRepository  extends JpaRepository<Entity, String>, Search
 
     public List<Entity> findAllByExternalParentIdAndTenantId(String externalParentId, long tenantId);
 
+    public List<Entity> findAllByTenantId(long tenantId);
+
+
+
 
 
 }

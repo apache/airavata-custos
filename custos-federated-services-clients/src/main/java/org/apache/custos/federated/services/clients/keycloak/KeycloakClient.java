@@ -19,29 +19,25 @@
 
 package org.apache.custos.federated.services.clients.keycloak;
 
-import org.apache.catalina.security.SecurityUtil;
+import org.apache.custos.cluster.management.client.ClusterManagementClient;
 import org.apache.custos.core.services.commons.util.Constants;
+import org.apache.custos.federated.services.clients.keycloak.auth.KeycloakAuthClient;
 import org.apache.http.HttpStatus;
-import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.*;
 import org.keycloak.representations.idm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.security.KeyStore;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -51,12 +47,14 @@ import java.util.stream.Collectors;
 public class KeycloakClient {
     private final static Logger LOGGER = LoggerFactory.getLogger(KeycloakClient.class);
 
-
     private final static int POOL_SIZE = 10;
 
     private final static int ACCESS_TOKEN_LIFE_SPAN = 1800;
 
     private final static int SESSION_IDLE_TIMEOUT = 3600;
+
+    @Autowired
+    private KeycloakAuthClient keycloakAuthClient;
 
     @Value("${iam.server.client.id:admin-cli}")
     private String clientId;
@@ -93,6 +91,12 @@ public class KeycloakClient {
 
     @Value("${iam.federated.cilogon.jwksUri:https://cilogon.org/oauth2/certs}")
     private String jwksUri;
+
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
+    @Autowired
+    private ClusterManagementClient clusterManagementClient;
 
     public void createRealm(String realmId, String displayName) {
         Keycloak client = null;
@@ -160,7 +164,8 @@ public class KeycloakClient {
         }
     }
 
-    public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+    public boolean createRealmAdminAccount(String realmId, String adminUsername, String adminFirstname,
+                                           String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -216,7 +221,8 @@ public class KeycloakClient {
     }
 
 
-    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname, String adminLastname, String adminEmail, String adminPassword) {
+    public boolean updateRealmAdminAccount(String realmId, String adminUsername, String adminFirstname,
+                                           String adminLastname, String adminEmail, String adminPassword) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -259,7 +265,8 @@ public class KeycloakClient {
 
                 String realmManagementClientId = getRealmManagementClientId(client, realmId);
 
-                retrievedUser.roles().clientLevel(realmManagementClientId).add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
+                retrievedUser.roles().clientLevel(realmManagementClientId).
+                        add(retrievedUser.roles().clientLevel(realmManagementClientId).listAvailable());
                 return true;
 
             } else {
@@ -289,9 +296,11 @@ public class KeycloakClient {
                 RoleResource adminRoleResource = client.realm(realmId).roles().get("admin");
                 retrievedUser.roles().realmLevel().remove(Arrays.asList(adminRoleResource.toRepresentation()));
                 String realmManagementClientId = getRealmManagementClientId(client, realmId);
-                List<RoleRepresentation> representations = retrievedUser.roles().clientLevel(realmManagementClientId).listEffective();
+                List<RoleRepresentation> representations = retrievedUser.roles().
+                        clientLevel(realmManagementClientId).listEffective();
 
-                retrievedUser.roles().clientLevel(realmManagementClientId).remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
+                retrievedUser.roles().clientLevel(realmManagementClientId).
+                        remove(retrievedUser.roles().clientLevel(realmManagementClientId).listEffective());
                 return true;
 
             } else {
@@ -311,7 +320,8 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret configureClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+    public KeycloakClientSecret configureClient(String realmId, String clientName,
+                                                @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -356,13 +366,15 @@ public class KeycloakClient {
             LOGGER.debug("Realm client configuration exited with code : " + httpResponse.getStatus() + " : " + httpResponse.getStatusInfo());
 
             // Add the manage-users role to the web client
-            UserRepresentation serviceAccountUserRepresentation = getUserByUsername(client, realmId, "service-account-" + pgaClient.getClientId());
+            UserRepresentation serviceAccountUserRepresentation =
+                    getUserByUsername(client, realmId, "service-account-" + pgaClient.getClientId());
             UserResource serviceAccountUser = client.realms().realm(realmId).users().get(serviceAccountUserRepresentation.getId());
             String realmManagementClientId = getRealmManagementClientId(client, realmId);
-            List<RoleRepresentation> manageUsersRole = serviceAccountUser.roles().clientLevel(realmManagementClientId).listAvailable()
-                    .stream()
-                    .filter(r -> r.getName().equals("manage-users"))
-                    .collect(Collectors.toList());
+            List<RoleRepresentation> manageUsersRole =
+                    serviceAccountUser.roles().clientLevel(realmManagementClientId).listAvailable()
+                            .stream()
+                            .filter(r -> r.getName().equals("manage-users"))
+                            .collect(Collectors.toList());
             serviceAccountUser.roles().clientLevel(realmManagementClientId).add(manageUsersRole);
 
             if (httpResponse.getStatus() == HttpStatus.SC_CREATED) {
@@ -388,7 +400,8 @@ public class KeycloakClient {
     }
 
 
-    public KeycloakClientSecret updateClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
+    public KeycloakClientSecret updateClient(String realmId, String clientName,
+                                             @NotNull String tenantURL, List<String> redirectUris) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
@@ -461,7 +474,8 @@ public class KeycloakClient {
 
 
     public boolean createUser(String realmId, String username, String newPassword, String firstName,
-                              String lastName, String emailAddress, boolean tempPassowrd, String accessToken) throws UnauthorizedException {
+                              String lastName, String emailAddress,
+                              boolean tempPassowrd, String accessToken) throws UnauthorizedException {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -604,9 +618,26 @@ public class KeycloakClient {
         }
     }
 
+    public UserRepresentation getUser(String realmId, String username) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+            return getUserByUsername(client, realmId, username);
+        } catch (Exception ex) {
+            String msg = "Error retrieving user, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+
 
     public List<UserRepresentation> getUsers(String accessToken, String realmId, int offset, int limit,
-                                             String username, String firstName, String lastName, String email, String search) {
+                                             String username, String firstName, String lastName,
+                                             String email, String search) {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, realmId, accessToken);
@@ -730,12 +761,12 @@ public class KeycloakClient {
     }
 
 
-    public boolean addRolesToUsers(String accessToken, String realmId, List<String> users, List<String> roles, String clientId, boolean clientLevel) {
+    public boolean addRolesToUsers(String accessToken, String realmId, List<String> users,
+                                   List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
-
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             for (String username : users) {
 
                 UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
@@ -775,11 +806,12 @@ public class KeycloakClient {
     }
 
 
-    public boolean removeRoleFromUser(String accessToken, String realmId, String username, List<String> roles, String clientId, boolean clientLevel) {
+    public boolean removeRoleFromUser(String accessToken, String realmId, String username,
+                                      List<String> roles, String clientId, boolean clientLevel) {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
             UserRepresentation representation = getUserByUsername(client, realmId, username.toLowerCase());
 
             if (representation != null) {
@@ -835,6 +867,7 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             // get client
+            LOGGER.info("IAM server URL "+ iamServerURL);
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             RealmResource realmResource = client.realm(realmId);
@@ -1128,6 +1161,42 @@ public class KeycloakClient {
         return true;
     }
 
+    /**
+     * Delete Roles in keycloak Realm or Client
+     *
+     * @param realmId
+     * @param clientScope if true add roles to client else to realm
+     * @return
+     */
+    public boolean deleteRole(String id, String realmId, String clientId, boolean clientScope) {
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+
+            if (clientScope) {
+                ClientRepresentation representation = realmResource.clients().findByClientId(clientId).get(0);
+                realmResource.clients().get(representation.getId()).roles().deleteRole(id);
+
+            } else {
+                realmResource.roles().deleteRole(id);
+
+            }
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while delete role" + id +
+                    " in Keycloak Server, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+        return true;
+    }
+
 
     /**
      * Provides all Roles belongs to client, if clientId not present, provides all
@@ -1252,8 +1321,8 @@ public class KeycloakClient {
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling events, reason: " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new RuntimeException(msg, ex);
+            LOGGER.warn(msg, ex);
+            return null;
 
         } finally {
             if (client != null) {
@@ -1276,7 +1345,7 @@ public class KeycloakClient {
 
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);
@@ -1304,6 +1373,76 @@ public class KeycloakClient {
         }
 
     }
+
+
+    public boolean deleteExternalIDPLinks(String realmId) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().list();
+            userResourceList.forEach(user -> {
+                UserResource userResource = realmResource.users().get(user.getId());
+                List<FederatedIdentityRepresentation> federatedIdentityRepresentations =
+                        userResource.getFederatedIdentity();
+                if (federatedIdentityRepresentations != null && !federatedIdentityRepresentations.isEmpty()) {
+                    federatedIdentityRepresentations.forEach(fed -> {
+                        userResource.removeFederatedIdentity(fed.getIdentityProvider());
+                    });
+                }
+            });
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting external IDP links of realm "
+                    + realmId + ", reason " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
+    public boolean deleteExternalIDPLinks(String realmId, List<String> users) {
+
+        Keycloak client = null;
+        try {
+            client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            RealmResource realmResource = client.realm(realmId);
+            List<UserRepresentation> userResourceList = client.realm(realmId).users().list();
+            userResourceList.forEach(user -> {
+                if (users.contains(user.getUsername())) {
+                    UserResource userResource = realmResource.users().get(user.getId());
+                    List<FederatedIdentityRepresentation> federatedIdentityRepresentations =
+                            userResource.getFederatedIdentity();
+                    if (federatedIdentityRepresentations != null && !federatedIdentityRepresentations.isEmpty()) {
+                        federatedIdentityRepresentations.forEach(fed -> {
+                            userResource.removeFederatedIdentity(fed.getIdentityProvider());
+                        });
+                    }
+                }
+            });
+            return true;
+        } catch (Exception ex) {
+            String msg = "Error occurred while deleting external IDP links of realm "
+                    + realmId + ", reason " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+    }
+
 
     /**
      * creates groups and child groups in Keycloak
@@ -1736,61 +1875,18 @@ public class KeycloakClient {
     }
 
 
-    private ResteasyClient getRestClient() {
-        return new ResteasyClientBuilder()
-                .connectionPoolSize(POOL_SIZE)
-                .trustStore(loadKeyStore())
-                .build();
-    }
+
 
     private Keycloak getClient(String adminUrl, String realm, String loginUsername, String password) {
 
         return KeycloakUtils.getClient(adminUrl, realm, loginUsername,
-                password, clientId, trustStorePath, truststorePassword);
+                password, clientId, trustStorePath, truststorePassword, activeProfile, clusterManagementClient);
     }
 
     private Keycloak getClient(String adminUrl, String realm, String accessToken) {
 
-        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword);
-    }
-
-    private KeyStore loadKeyStore() {
-
-        InputStream is = null;
-        try {
-
-
-            File trustStoreFile = new File(trustStorePath);
-
-            if (trustStoreFile.exists()) {
-                LOGGER.debug("Loading trust store file from path " + trustStorePath);
-                is = new FileInputStream(trustStorePath);
-            } else {
-                LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
-                is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
-                if (is != null) {
-                    LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
-                }
-            }
-
-            if (is == null) {
-                throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
-            }
-
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            ks.load(is, truststorePassword.toCharArray());
-            return ks;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load trust store KeyStore instance", e);
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    LOGGER.error("Failed to close trust store FileInputStream", e);
-                }
-            }
-        }
+        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword,
+                activeProfile, clusterManagementClient);
     }
 
 
@@ -1800,22 +1896,18 @@ public class KeycloakClient {
         adminRole.setName("admin");
         adminRole.setDescription("Admin role for PGA users");
         defaultRoles.add(adminRole);
-        RoleRepresentation adminReadOnlyRole = new RoleRepresentation();
-        adminReadOnlyRole.setName("admin-read-only");
-        adminReadOnlyRole.setDescription("Read only role for PGA Admin users");
-        defaultRoles.add(adminReadOnlyRole);
-        RoleRepresentation gatewayUserRole = new RoleRepresentation();
-        gatewayUserRole.setName("gateway-user");
-        gatewayUserRole.setDescription("default role for PGA users");
-        defaultRoles.add(gatewayUserRole);
-        RoleRepresentation pendingUserRole = new RoleRepresentation();
-        pendingUserRole.setName("user-pending");
-        pendingUserRole.setDescription("role for newly registered PGA users");
-        defaultRoles.add(pendingUserRole);
-        RoleRepresentation gatewayProviderRole = new RoleRepresentation();
-        gatewayProviderRole.setName("gateway-provider");
-        gatewayProviderRole.setDescription("role for gateway providers in the super-admin PGA");
-        defaultRoles.add(gatewayProviderRole);
+//        RoleRepresentation gatewayUserRole = new RoleRepresentation();
+//        gatewayUserRole.setName("gateway-user");
+//        gatewayUserRole.setDescription("default role for PGA users");
+//        defaultRoles.add(gatewayUserRole);
+//        RoleRepresentation pendingUserRole = new RoleRepresentation();
+//        pendingUserRole.setName("user-pending");
+//        pendingUserRole.setDescription("role for newly registered PGA users");
+//        defaultRoles.add(pendingUserRole);
+//        RoleRepresentation gatewayProviderRole = new RoleRepresentation();
+//        gatewayProviderRole.setName("gateway-provider");
+//        gatewayProviderRole.setDescription("role for gateway providers in the super-admin PGA");
+//        defaultRoles.add(gatewayProviderRole);
         RolesRepresentation rolesRepresentation = new RolesRepresentation();
         rolesRepresentation.setRealm(defaultRoles);
         realmDetails.setRoles(rolesRepresentation);
@@ -1832,6 +1924,19 @@ public class KeycloakClient {
             }
         }
         return realmManagementClientId;
+    }
+
+    private Optional<String> getRealmManagementClientSecret(Keycloak client, String realmId) {
+        List<ClientRepresentation> realmClients = client.realm(realmId).clients().findAll();
+        String realmManagementClientId = null;
+        for (ClientRepresentation realmClient : realmClients) {
+            if (realmClient.getClientId().equals("realm-management")) {
+                realmManagementClientId = realmClient.getClientId();
+                String ClientUUID = client.realms().realm(realmId).clients().findByClientId(realmManagementClientId).get(0).getId();
+                return Optional.ofNullable(client.realms().realm(realmId).clients().get(ClientUUID).getSecret().getValue());
+            }
+        }
+        return Optional.empty();
     }
 
 

@@ -195,6 +195,11 @@
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger-common</artifactId>
+                <version>${springfox.swagger.version}</version>
+            </dependency>
 
             <!-- SCIM-->
             <dependency>
@@ -242,6 +247,34 @@
                 <version>${io.commons.version}</version>
             </dependency>
 
+            <!-- Secret handling dependencies -->
+            <dependency>
+                <groupId>com.codahale</groupId>
+                <artifactId>shamir</artifactId>
+                <version>${com.codahale.version}</version>
+            </dependency>
+
+            <!-- dozer -->
+            <dependency>
+                <groupId>net.sf.dozer</groupId>
+                <artifactId>dozer</artifactId>
+                <version>${dozer.version}</version>
+            </dependency>
+
+            <!--- kafka -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
+            </dependency>
+
+            <!--- email sending -->
+            <dependency>
+                <groupId>javax.mail</groupId>
+                <artifactId>mail</artifactId>
+                <version>${email.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -267,15 +300,31 @@
                         </configuration>
                     </plugin>
                     <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <version>${spring.boot.version}</version>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.0.2</version>
                         <executions>
                             <execution>
-                                <id>default</id>
+                                <id>copy-resources</id>
+                                <!-- here the phase you need -->
+                                <phase>install</phase>
                                 <goals>
-                                    <goal>repackage</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
+                                <configuration>
+                                    <outputDirectory>
+                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
+                                    </outputDirectory>   <!-- output directory -->
+                                    <resources>
+                                        <resource>
+                                            <directory>${basedir}/src/main/proto
+                                            </directory>         <!-- source directory -->
+                                            <includes>
+                                                <include>**/*.proto</include>
+                                            </includes>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -304,7 +353,42 @@
         </profile>
         <profile>
             <id>container</id>
+            <properties>
+                <spring.profiles.active>staging</spring.profiles.active>
+                <vault.token>{{token}}</vault.token>
+                <vault.scheme>https</vault.scheme>
+                <vault.host>vault.custos.scigap.org</vault.host>
+                <vault.port>31190</vault.port>
+                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
+                <iam.dev.username>{{token}}</iam.dev.username>
+                <iam.dev.password>{{token}}</iam.dev.password>
+                <iam.staging.username>{{token}}</iam.staging.username>
+                <iam.staging.password>{{token}}</iam.staging.password>
+                <cilogon.dev.id>{{token}}</cilogon.dev.id>
+                <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
+                <cilogon.staging.id>{{token}}</cilogon.staging.id>
+                <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
+                <custos.email.password>{{token}}</custos.email.password>
+
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <filtering>true</filtering>
+<!--                        <excludes>-->
+<!--                            <exclude>vault-client-truststore.pkcs12</exclude>-->
+<!--                            <exclude>keycloak-client-truststore.pkcs12</exclude>-->
+<!--                        </excludes>-->
+                        <includes>
+                            <include>**/*.pcks12</include>
+                            <include>**/*.properties</include>
+                        </includes>
+                    </resource>
+                </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -386,7 +470,11 @@
                         <configuration>
                             <chartName>${project.artifactId}</chartName>
                             <chartFolder>src/main/helm</chartFolder>
-                            <chartRepoUrl>https://kubernetes-charts.storage.googleapis.com/</chartRepoUrl>
+                            <chartRepoUrl>https://charts.helm.sh/stable</chartRepoUrl>
+                            <!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
+                            <helmVersion>3.4.2</helmVersion>
+                            <!--                            <chartRepoUrl>null</chartRepoUrl>-->
+                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
                             <helmVersion>2.16.0</helmVersion>
                             <strictLint>true</strictLint>
                             <valuesFile>src/main/helm/values.yaml</valuesFile>
@@ -404,7 +492,66 @@
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>scp-to-remote</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>ant</groupId>
+                                <artifactId>ant-commons-net</artifactId>
+                                <version>1.6.5</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.apache.ant</groupId>
+                                <artifactId>ant-jsch</artifactId>
+                                <version>1.10.9</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <target>
 
+                                <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
+                                     remoteToFile="ubuntu@${host}:/home/ubuntu/custos/artifacts"
+                                     verbose="true"
+                                     keyfile="${ssh.privatekey}"
+                                     passphrase="${ssh.passphrase}" trust="true">
+                                </scp>
+                                <sshexec host="${host}"
+                                         username="ubuntu"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm delete ${project.artifactId} -n custos"/>
+
+                                <sshexec host="${host}"
+                                         username="ubuntu"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm install ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>
+
+                                <!-- SSH -->
+                                <taskdef name="sshexec"
+                                         classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHExec"
+                                         classpathref="maven.plugin.classpath" />
+
+                            </target>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -459,6 +606,7 @@
                 <version>${os.maven.plugin}</version>
             </extension>
         </extensions>
+
     </build>
 
     <properties>
@@ -496,13 +644,13 @@
         <docker.image.repo>custos</docker.image.repo>
         <docker.plugin.version>1.4.13</docker.plugin.version>
 
-        <helm.maven.plugin.version>2.1.0</helm.maven.plugin.version>
+        <helm.maven.plugin.version>2.8.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
         <javax.persistance>1.0.2</javax.persistance>
 
-        <keycloak.admin.version>7.0.0</keycloak.admin.version>
+        <keycloak.admin.version>9.0.2</keycloak.admin.version>
 
         <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
 
@@ -526,6 +674,19 @@
         <com.jcraft.version>0.1.55</com.jcraft.version>
 
         <io.commons.version>2.7</io.commons.version>
+
+        <com.codahale.version>0.7.0</com.codahale.version>
+
+        <host>service.staging.usecustos.org</host>
+
+        <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
+
+        <ssh.passphrase>isjarana</ssh.passphrase>
+        <dozer.version>5.5.1</dozer.version>
+
+        <kafka-clients.version>1.0.0</kafka-clients.version>
+
+        <email.version>1.5.0-b01</email.version>
 
 
     </properties>

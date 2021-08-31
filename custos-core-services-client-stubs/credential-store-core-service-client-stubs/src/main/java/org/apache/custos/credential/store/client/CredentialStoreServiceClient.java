@@ -168,6 +168,13 @@ public class CredentialStoreServiceClient {
         return credentialStoreServiceBlockingStub.getCredentialByAgentBasicAuth(request);
     }
 
+    public GetAllCredentialsResponse getCredentialByAgentJWTToken(TokenRequest request) {
+        return credentialStoreServiceBlockingStub.getCredentialByAgentJWTToken(request);
+    }
+
+    public OperationStatus validateAgentJWTToken(TokenRequest request) {
+        return credentialStoreServiceBlockingStub.validateAgentJWTToken(request);
+    }
 
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {

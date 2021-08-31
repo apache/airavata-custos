@@ -24,6 +24,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.credential.store.service.Credentials;
 import org.apache.custos.identity.management.service.GetAgentTokenRequest;
@@ -31,15 +32,13 @@ import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
 import org.apache.custos.identity.service.*;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * Java client to connect with the Custos Identity Management Service
  */
-public class IdentityManagementClient {
-
-
-    private ManagedChannel managedChannel;
+public class IdentityManagementClient extends AbstractClient {
 
     private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub blockingStub;
 
@@ -48,7 +47,7 @@ public class IdentityManagementClient {
 
     public IdentityManagementClient(String serviceHost, int servicePort, String clientId,
                                     String clientSecret) throws IOException {
-
+        super(serviceHost,servicePort,clientId,clientSecret);
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()
@@ -189,5 +188,30 @@ public class IdentityManagementClient {
 
     }
 
+    public User getUser(String accessToken) {
+        AuthToken authToken = AuthToken.newBuilder()
+                .setAccessToken(accessToken)
+                .build();
+        return blockingStub.getUser(authToken);
 
+    }
+
+    public boolean isAuthenticated(String accessToken) {
+        try {
+            AuthToken authToken = AuthToken
+                    .newBuilder()
+                    .setAccessToken(accessToken)
+                    .build();
+            IsAuthenticatedResponse authenticatedResponse = blockingStub.isAuthenticated(authToken);
+            return authenticatedResponse.getAuthenticated();
+        } catch (Exception ex) {
+            return false;
+        }
+
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.managedChannel.shutdown();
+    }
 }

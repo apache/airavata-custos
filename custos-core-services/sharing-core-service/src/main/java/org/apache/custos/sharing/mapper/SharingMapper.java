@@ -23,11 +23,14 @@ import org.apache.custos.sharing.persistance.model.Entity;
 import org.apache.custos.sharing.persistance.model.PermissionType;
 import org.apache.custos.sharing.persistance.model.Sharing;
 import org.apache.custos.sharing.service.SharedOwners;
+import org.apache.custos.sharing.service.SharingMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SharingMapper {
@@ -41,6 +44,7 @@ public class SharingMapper {
                                         String ownerId,
                                         String ownerType,
                                         String sharingType,
+                                        String sharedBy,
                                         long tenantId) {
 
         String id = entity.getId() + "_" +
@@ -55,6 +59,9 @@ public class SharingMapper {
         sharing.setInheritedParent(inheritedEntity);
         sharing.setTenantId(tenantId);
         sharing.setId(id);
+        if (sharedBy != null) {
+            sharing.setSharedBy(sharedBy);
+        }
         return sharing;
     }
 
@@ -71,6 +78,9 @@ public class SharingMapper {
         sharing.setAssociatingIdType(oldSharing.getAssociatingIdType());
         sharing.setInheritedParent(oldSharing.getInheritedParent());
         sharing.setCreatedAt(oldSharing.getCreatedAt());
+        if (oldSharing.getSharedBy() != null) {
+            sharing.setSharedBy(oldSharing.getSharedBy());
+        }
         sharing.setTenantId(tenantId);
         sharing.setId(id);
         return sharing;
@@ -90,8 +100,53 @@ public class SharingMapper {
                     map(shr -> shr.getAssociatingId()).collect(Collectors.toList());
 
         }
-
         return builder.addAllOwnerIds(ownerIds).build();
+
+    }
+
+    public static SharingMetadata getSharingMetadata(Sharing sharing, Entity entity,
+                                                     PermissionType permissionType, String type) throws SQLException {
+        org.apache.custos.sharing.service.Entity en = EntityMapper.createEntity(entity);
+        return SharingMetadata.newBuilder()
+                .setEntity(en)
+                .setOwnerId(sharing.getAssociatingId())
+                .setOwnerType(type)
+                .setSharedBy(sharing.getSharedBy()!=null?sharing.getSharedBy():"")
+                .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder()
+                        .setId(permissionType.getExternalId()).build()).build();
+
+    }
+
+    public static Optional<List<SharingMetadata>> getSharingMetadata(List<Sharing> sharingList) {
+        if (sharingList != null && !sharingList.isEmpty()) {
+
+            return Optional.ofNullable(sharingList.stream().
+                    map(shr -> {
+                        try {
+                            SharingMetadata metadata = SharingMetadata.newBuilder()
+                                    .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder().
+                                            setId(shr.getPermissionType().getExternalId())
+                                            .setName(shr.getPermissionType().getName()
+                                            ).setDescription(shr.getPermissionType().getDescription() == null ?
+                                                    "" : shr.getPermissionType().getDescription()).
+                                                    setCreatedAt(shr.getCreatedAt().getTime())
+                                            .setUpdatedAt(shr.getLastModifiedAt().getTime()).build())
+                                    .setOwnerType(shr.getAssociatingIdType())
+                                    .setOwnerId(shr.getAssociatingId())
+                                    .setEntity(EntityMapper.createEntity(shr.getEntity()))
+                                    .setSharedBy(shr.getSharedBy() != null ? shr.getSharedBy() : "")
+                                    .build();
+                            return metadata;
+                        } catch (SQLException throwables) {
+                            String msg = "Error occurred while creating metadata " + throwables.getMessage();
+                            LOGGER.error(msg, throwables);
+                        }
+                        ;
+                        return null;
+                    }).collect(Collectors.toList()));
+
+        }
+        return Optional.empty();
 
     }
 

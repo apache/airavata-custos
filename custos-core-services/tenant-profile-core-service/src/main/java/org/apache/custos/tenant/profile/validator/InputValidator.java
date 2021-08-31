@@ -156,10 +156,6 @@ public class InputValidator implements Validator {
                 throw new MissingParameterException(" Admin username should not be null", null);
             }
 
-            if (tenant.getAdminPassword() == null || tenant.getAdminPassword().trim() == "") {
-                throw new MissingParameterException(" Admin password should not be null", null);
-            }
-
             if (tenant.getRequesterEmail() == null || tenant.getRequesterEmail().trim() == "") {
                 throw new MissingParameterException("Tenant requester email  should not be null", null);
             }

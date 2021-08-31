@@ -28,7 +28,7 @@ import org.apache.custos.iam.service.UserSearchRequest;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
-import org.apache.custos.identity.service.User;
+import org.apache.custos.integration.services.commons.utils.EventPublisher;
 import org.apache.custos.integration.services.commons.utils.InterServiceModelMapper;
 import org.apache.custos.sharing.client.SharingClient;
 import org.apache.custos.sharing.management.exceptions.SharingException;
@@ -43,7 +43,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @GRpcService
 public class SharingManagementService extends SharingManagementServiceImplBase {
@@ -61,6 +63,9 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
     @Autowired
     private IdentityClient identityClient;
+
+    @Autowired
+    private EventPublisher eventPublisher;
 
 
     @Override
@@ -342,13 +347,20 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             LOGGER.debug("Request received to deleteEntity in tenant " + request.getTenantId() +
                     "  with  entity Id " + request.getEntity().getId());
 
+            Entity exEntity = sharingClient.getEntity(request);
             Status status = sharingClient.deleteEntity(request);
+            Map<String, String> value = new HashMap<>();
+            value.put("ENTITY_ID", request.getEntity().getId());
+            value.put("ENTITY_TYPE", exEntity.getType());
+            eventPublisher.publishMessage(request.getClientId(),
+                    request.getTenantId(),
+                    "SHARING_MANAGEMENT_SERVICE", "DELETE_ENTITY",
+                    value);
             responseObserver.onNext(status);
             responseObserver.onCompleted();
-
         } catch (Exception ex) {
             String msg = "Error occurred at deleteEntity " + ex.getMessage();
-            LOGGER.error(msg);
+            LOGGER.error(msg, ex);
             responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -365,14 +377,14 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             UserProfileRequest profileRequest = UserProfileRequest.newBuilder()
                     .setProfile(profile).setTenantId(request.getTenantId()).build();
 
-           GetAllGroupsResponse response =  userProfileClient.getAllGroupsOfUser(profileRequest);
+            GetAllGroupsResponse response = userProfileClient.getAllGroupsOfUser(profileRequest);
 
-           List<String> associatingIds = new ArrayList<>();
-           associatingIds.add(userId);
+            List<String> associatingIds = new ArrayList<>();
+            associatingIds.add(userId);
 
-           for (Group gr: response.getGroupsList()) {
-               associatingIds.add(gr.getId());
-           }
+            for (Group gr : response.getGroupsList()) {
+                associatingIds.add(gr.getId());
+            }
 
             request = request.toBuilder().addAllAssociatingIds(associatingIds).build();
 
@@ -457,6 +469,39 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
     }
 
     @Override
+    public void getAllDirectSharings(SharingRequest request, StreamObserver<GetAllDirectSharingsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllDirectSharings in tenant " + request.getTenantId());
+
+            GetAllDirectSharingsResponse response = sharingClient.getAllDirectSharings(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllDirectSharings " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
+    public void getAllSharings(SharingRequest request, StreamObserver<GetAllSharingsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getAllSharings in tenant " + request.getTenantId());
+
+            GetAllSharingsResponse response = sharingClient.getAllSharings(request);
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred at getAllSharings " + ex.getMessage();
+            LOGGER.error(msg);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
     public void shareEntityWithUsers(SharingRequest request, StreamObserver<Status> responseObserver) {
         try {
             LOGGER.debug("Request received to shareEntityWithUsers in tenant " + request.getTenantId() +
@@ -471,6 +516,11 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             for (String username : request.getOwnerIdList()) {
 
                 validateAndGetUserProfile(username, clientId, clientSec, tenantId);
+            }
+
+            String sharedBy = request.getSharedBy();
+            if (!sharedBy.isEmpty()) {
+                validateAndGetUserProfile(sharedBy, clientId, clientSec, tenantId);
             }
 
             Status status = sharingClient.shareEntityWithUsers(request);
@@ -498,6 +548,11 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
                 validateAndGetGroupId(groupId, tenantId);
             }
+            String sharedBy = request.getSharedBy();
+            if (!sharedBy.isEmpty()) {
+                validateAndGetUserProfile(sharedBy, request.getClientId(), request.getClientSec(), tenantId);
+            }
+
 
             Status status = sharingClient.shareEntityWithGroups(request);
 
@@ -528,12 +583,28 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
                 validateAndGetUserProfile(username, clientId, clientSec, tenantId);
             }
 
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
+            Entity entity = sharingClient.getEntity(entityRequest);
+
             Status status = sharingClient.revokeEntitySharingFromUsers(request);
+
+
+            request.getOwnerIdList().forEach(owner -> {
+                Map<String, String> value = new HashMap<>();
+                value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
+                value.put("PERMISSION_TYPE", request.getPermissionType().getId());
+                value.put("USER_ID", owner);
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "SHARING_MANAGEMENT_SERVICE", "REVOKE_ENTITY_SHARING_FROM_USERS",
+                        value);
+            });
+
 
             responseObserver.onNext(status);
             responseObserver.onCompleted();
-
-
         } catch (Exception ex) {
             String msg = "Error occurred at revokeEntitySharingFromUsers " + ex.getMessage();
             LOGGER.error(msg);
@@ -552,10 +623,28 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
 
             for (String username : request.getOwnerIdList()) {
 
-                validateAndGetGroupId(username,  tenantId);
+                validateAndGetGroupId(username, tenantId);
             }
 
+            EntityRequest entityRequest = EntityRequest.newBuilder().setTenantId(tenantId)
+                    .setEntity(request.getEntity()).build();
+
+            Entity entity = sharingClient.getEntity(entityRequest);
+
             Status status = sharingClient.revokeEntitySharingFromGroups(request);
+
+
+            request.getOwnerIdList().forEach(owner -> {
+                Map<String, String> value = new HashMap<>();
+                value.put("ENTITY_ID", request.getEntity().getId());
+                value.put("ENTITY_TYPE", entity.getType());
+                value.put("PERMISSION_TYPE", request.getPermissionType().getId());
+                value.put("USER_ID", owner);
+                eventPublisher.publishMessage(request.getClientId(),
+                        request.getTenantId(),
+                        "SHARING_MANAGEMENT_SERVICE", "REVOKE_ENTITY_SHARING_FROM_GROUPS",
+                        value);
+            });
 
             responseObserver.onNext(status);
             responseObserver.onCompleted();
@@ -581,13 +670,7 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             long tenantId = request.getTenantId();
 
 
-            for (String username : request.getOwnerIdList()) {
-
-                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-            }
-
             UserProfile profile = UserProfile.newBuilder().setUsername(request.getOwnerId(0)).build();
-
 
             UserProfileRequest userProfileRequest = UserProfileRequest.newBuilder()
                     .setTenantId(tenantId)
@@ -609,6 +692,10 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             responseObserver.onNext(status);
             responseObserver.onCompleted();
 
+            for (String username : request.getOwnerIdList()) {
+
+                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
+            }
 
         } catch (Exception ex) {
             String msg = "Error occurred at userHasAccess " + ex.getMessage();

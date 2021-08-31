@@ -1,4 +1,4 @@
-FROM openjdk:11-jre-slim
+FROM openjdk:11.0.5-jdk-slim
 COPY src/main/resources/custos_user_schema_extention.json /home/ubuntu/schemas/custos_user_schema_extention.json
 VOLUME /tmp
 ARG JAR_FILE

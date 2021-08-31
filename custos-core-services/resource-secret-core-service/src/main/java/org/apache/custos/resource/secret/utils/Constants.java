@@ -25,6 +25,8 @@ public final class Constants {
     public static final String SSH_CREDENTIALS = "ssh";
     public static  final String CERTIFICATES = "certificates";
     public static final String PASSWORD = "passwd";
+    public static final String  KV_SECRET = "keyValue";
+    public static final String SECRET_MAP = "secretMap";
 
 
 }

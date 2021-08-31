@@ -18,10 +18,10 @@ package org.apache.custos.user.management.client;/*
  */
 
 
-import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
+import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.user.management.service.UserManagementServiceGrpc;
@@ -35,20 +35,18 @@ import java.util.Arrays;
 /**
  * The class containes operations permitted for user management client
  */
-public class UserManagementClient {
-
-    private ManagedChannel managedChannel;
+public class UserManagementClient extends AbstractClient {
 
     private UserManagementServiceGrpc.UserManagementServiceBlockingStub blockingStub;
 
-    private String clientId ;
+    private String clientId;
 
     private String clientSec;
 
 
     public UserManagementClient(String serviceHost, int servicePort, String clientId,
                                 String clientSecret) throws IOException {
-
+        super(serviceHost, servicePort, clientId, clientSecret);
         managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
                 .sslContext(GrpcSslContexts
                         .forClient()
@@ -365,7 +363,7 @@ public class UserManagementClient {
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
                 MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
-        unAuthorizedStub =MetadataUtils.attachHeaders(unAuthorizedStub,
+        unAuthorizedStub = MetadataUtils.attachHeaders(unAuthorizedStub,
                 ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
 
         AddUserRolesRequest request = AddUserRolesRequest
@@ -386,7 +384,7 @@ public class UserManagementClient {
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
                 MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getUserTokenHeader(adminToken));
-        unAuthorizedStub =MetadataUtils.attachHeaders(unAuthorizedStub,
+        unAuthorizedStub = MetadataUtils.attachHeaders(unAuthorizedStub,
                 ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
 
         DeleteUserRolesRequest request = DeleteUserRolesRequest
@@ -521,9 +519,9 @@ public class UserManagementClient {
 
         UserManagementServiceGrpc.UserManagementServiceBlockingStub stub =
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
-                stub = MetadataUtils.attachHeaders(stub,
-                        ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
-                MetadataUtils.attachHeaders(stub, ClientUtils.getUserTokenHeader(adminToken));
+        stub = MetadataUtils.attachHeaders(stub,
+                ClientUtils.getAuthorizationHeader(this.clientId, this.clientSec));
+        MetadataUtils.attachHeaders(stub, ClientUtils.getUserTokenHeader(adminToken));
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()

@@ -42,6 +42,7 @@
         <module>resource-secret-management-service-parent</module>
         <module>sharing-management-service-parent</module>
         <module>log-management-service-parent</module>
+        <module>custos-integration-services-swagger</module>
 
     </modules>
 

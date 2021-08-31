@@ -80,6 +80,7 @@ proxy:
    webport: 50001
    adminport: 9901
 
+
 rollingUpdate:
   maxSurge: 1
   maxUnavailable: 25%
@@ -88,3 +89,6 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 1
   successThreshold: 1
+
+deployment:
+  host: service.staging.usecustos.org

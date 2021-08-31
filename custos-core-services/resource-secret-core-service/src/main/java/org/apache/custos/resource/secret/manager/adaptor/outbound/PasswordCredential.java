@@ -28,10 +28,14 @@ public class PasswordCredential extends ResourceCredential {
 
     private String password;
 
+    private String userId;
+
     public PasswordCredential(GeneratedMessageV3 message) {
         super(message);
         if (message instanceof org.apache.custos.resource.secret.service.PasswordCredential) {
           this.password =   ((org.apache.custos.resource.secret.service.PasswordCredential) message).getPassword();
+          this.userId = ((org.apache.custos.resource.secret.service.PasswordCredential) message).getUserId();
+
         }
     }
 
@@ -41,5 +45,13 @@ public class PasswordCredential extends ResourceCredential {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }
