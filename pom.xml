@@ -299,35 +299,35 @@
                             <release>${java.version}</release>
                         </configuration>
                     </plugin>
-                    <plugin>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>3.0.2</version>
-                        <executions>
-                            <execution>
-                                <id>copy-resources</id>
-                                <!-- here the phase you need -->
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>
-                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
-                                    </outputDirectory>   <!-- output directory -->
-                                    <resources>
-                                        <resource>
-                                            <directory>${basedir}/src/main/proto
-                                            </directory>         <!-- source directory -->
-                                            <includes>
-                                                <include>**/*.proto</include>
-                                            </includes>
-                                            <filtering>true</filtering>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
+<!--                    <plugin>-->
+<!--                        <artifactId>maven-resources-plugin</artifactId>-->
+<!--                        <version>3.0.2</version>-->
+<!--                        <executions>-->
+<!--                            <execution>-->
+<!--                                <id>copy-resources</id>-->
+<!--                                &lt;!&ndash; here the phase you need &ndash;&gt;-->
+<!--                                <phase>install</phase>-->
+<!--                                <goals>-->
+<!--                                    <goal>copy-resources</goal>-->
+<!--                                </goals>-->
+<!--                                <configuration>-->
+<!--                                    <outputDirectory>-->
+<!--                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos-->
+<!--                                    </outputDirectory>   &lt;!&ndash; output directory &ndash;&gt;-->
+<!--                                    <resources>-->
+<!--                                        <resource>-->
+<!--                                            <directory>${basedir}/src/main/proto-->
+<!--                                            </directory>         &lt;!&ndash; source directory &ndash;&gt;-->
+<!--                                            <includes>-->
+<!--                                                <include>**/*.proto</include>-->
+<!--                                            </includes>-->
+<!--                                            <filtering>true</filtering>-->
+<!--                                        </resource>-->
+<!--                                    </resources>-->
+<!--                                </configuration>-->
+<!--                            </execution>-->
+<!--                        </executions>-->
+<!--                    </plugin>-->
                     <plugin>
                         <groupId>org.xolstice.maven.plugins</groupId>
                         <artifactId>protobuf-maven-plugin</artifactId>
