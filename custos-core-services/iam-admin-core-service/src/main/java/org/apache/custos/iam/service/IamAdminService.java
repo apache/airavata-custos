@@ -579,6 +579,35 @@ public class IamAdminService extends IamAdminServiceImplBase {
     }
 
     @Override
+    public void addExternalIDPLinksOfUsers(AddExternalIDPLinksRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            List<ExternalIDPLink> externalIDPLinkList = request.getIdpLinksList();
+            List<FederatedIdentityRepresentation> federatedIdentityRepresentations = new ArrayList<>();
+            externalIDPLinkList.forEach(link -> {
+                FederatedIdentityRepresentation representation = new FederatedIdentityRepresentation();
+                representation.setUserId(link.getProviderUserId());
+                representation.setUserName(link.getProviderUsername());
+                representation.setIdentityProvider(link.getProviderAlias());
+                federatedIdentityRepresentations.add(representation);
+
+            });
+            keycloakClient.addExternalIDPLinks(String.valueOf(tenantId), federatedIdentityRepresentations);
+            org.apache.custos.iam.service.OperationStatus status = org.apache.custos.iam.service.OperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while getExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+
+    @Override
     public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
         String userId = request.getUser().getUsername() + "@" + request.getTenantId();
 

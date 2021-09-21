@@ -473,6 +473,21 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
                     .setTenantId(tenantId)
                     .setClientId(oauthId)
                     .build();
+        } else if (method.equals("addExternalIDPsOfUsers")) {
+            AddExternalIDPLinksRequest getExternalIDPsRequest = (AddExternalIDPLinksRequest) msg;
+
+            Optional<AuthClaim> claim = authorize(headers, getExternalIDPsRequest.getClientId());
+
+            if (claim.isEmpty()) {
+                throw new UnAuthorizedException("Request is not authorized", null);
+            }
+            String oauthId = claim.get().getIamAuthId();
+            long tenantId = claim.get().getTenantId();
+
+            return (ReqT) ((AddExternalIDPLinksRequest) msg).toBuilder()
+                    .setTenantId(tenantId)
+                    .setClientId(oauthId)
+                    .build();
         }
 
         return msg;
