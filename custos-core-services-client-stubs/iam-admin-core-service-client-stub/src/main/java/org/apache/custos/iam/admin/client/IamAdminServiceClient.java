@@ -349,6 +349,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.deleteExternalIDPLinksOfUsers(deleteExternalIDPsRequest);
     }
 
+    public  OperationStatus addExternalIDPLinksOfUsers(AddExternalIDPLinksRequest addExternalIDPLinksRequest) {
+        return iamAdminServiceBlockingStub.addExternalIDPLinksOfUsers(addExternalIDPLinksRequest);
+    }
+
     public Agent getAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getAgent(request);
     }
