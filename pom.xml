@@ -33,7 +33,7 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
 
     <modules>
         <module>custos-core-services</module>
@@ -354,25 +354,29 @@
         <profile>
             <id>container</id>
             <properties>
-                <spring.profiles.active>staging</spring.profiles.active>
-                <vault.token>{{token}}</vault.token>
-                <vault.scheme>https</vault.scheme>
-                <vault.host>vault.custos.scigap.org</vault.host>
-                <vault.port>31190</vault.port>
-                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
+                <spring.profiles.active>production</spring.profiles.active>
+                <vault.token>s.lbUqzSY5jNi6McKy7sgmwYOI</vault.token>
+                <vault.scheme>http</vault.scheme>
+                <vault.host>vault.vault.svc.cluster.local</vault.host>
+                <vault.port>8200</vault.port>
+                <vault.uri>http://vault.vault.svc.cluster.local:8200</vault.uri>
                 <iam.dev.username>{{token}}</iam.dev.username>
                 <iam.dev.password>{{token}}</iam.dev.password>
                 <iam.staging.username>{{token}}</iam.staging.username>
                 <iam.staging.password>{{token}}</iam.staging.password>
+                <iam.production.username>admin</iam.production.username>
+                <iam.production.password>ihb8wfFjOTiu6A==</iam.production.password>
                 <cilogon.dev.id>{{token}}</cilogon.dev.id>
                 <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
                 <cilogon.staging.id>{{token}}</cilogon.staging.id>
                 <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
-                <custos.email.password>{{token}}</custos.email.password>
+                <cilogon.production.id>cilogon:/adminClient/2f039527fe4715c2f6f19eb0ae327ba7/1633292562101</cilogon.production.id>
+                <cilogon.production.sec>qiOYx_WR3BAfFeE3y9tLFPAsRn2ytblkXIMCVwGJzl07GAdwmBQRfgVc2eW65ZzA2L2Wy7ByZexS0wTqWtUHRA</cilogon.production.sec>
+                <custos.email.password>rockApacheCustos@1234</custos.email.password>
 
             </properties>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <build>
                 <resources>
@@ -677,7 +681,7 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
-        <host>service.staging.usecustos.org</host>
+        <host>custos01.sciencegateways.iu.edu</host>
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
