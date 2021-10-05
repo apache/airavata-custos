@@ -373,6 +373,8 @@
                 <cilogon.production.id>cilogon:/adminClient/2f039527fe4715c2f6f19eb0ae327ba7/1633292562101</cilogon.production.id>
                 <cilogon.production.sec>qiOYx_WR3BAfFeE3y9tLFPAsRn2ytblkXIMCVwGJzl07GAdwmBQRfgVc2eW65ZzA2L2Wy7ByZexS0wTqWtUHRA</cilogon.production.sec>
                 <custos.email.password>rockApacheCustos@1234</custos.email.password>
+                <spring.datasource.username>root</spring.datasource.username>
+                <spring.datasource.password>UtahSALTlakeCITY</spring.datasource.password>
 
             </properties>
             <activation>
