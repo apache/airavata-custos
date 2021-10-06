@@ -6,7 +6,7 @@ replicaCount: 2
 
 image:
   repository: apachecustos/${artifactId}
-  tag: ${project.version}
+  tag: "${project.version}"
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -75,7 +75,7 @@ role:
 
 proxy:
    repository: apachecustos/${artifactId}
-   tag: ${project.version}
+   tag: "${project.version}"
    port: 40000
    adminport: 9901
 

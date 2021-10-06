@@ -64,22 +64,22 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <configuration>
-                    <target>
-                        <!-- keyfile+passphrase or  password, choose one -->
-                        <!--
-                        <scp localFile="${project.basedir}/target/qos-spark-1.0.jar"
-                          remoteToFile="root@192.168.203.156:/usr/sanss" verbose="true"
-                          keyfile="C:\Users\shengw\.ssh\192.168.203.156\id_rsa"
-                          passphrase="">
-                        </scp>
-                         -->
-                        <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
-                             remoteToFile="ubuntu@${host}:/home/ubuntu/custos/artifacts"
-                             verbose="true"
-                             keyfile="/Users/isururanawaka/.ssh/custos/id_rsa"
-                             passphrase="isjarana" trust="true">
-                        </scp>
-                    </target>
+<!--                    <target>-->
+<!--                        &lt;!&ndash; keyfile+passphrase or  password, choose one &ndash;&gt;-->
+<!--                        &lt;!&ndash;-->
+<!--                        <scp localFile="${project.basedir}/target/qos-spark-1.0.jar"-->
+<!--                          remoteToFile="root@192.168.203.156:/usr/sanss" verbose="true"-->
+<!--                          keyfile="C:\Users\shengw\.ssh\192.168.203.156\id_rsa"-->
+<!--                          passphrase="">-->
+<!--                        </scp>-->
+<!--                         &ndash;&gt;-->
+<!--                        <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"-->
+<!--                             remoteToFile="ubuntu@${host}:/home/ubuntu/custos/artifacts"-->
+<!--                             verbose="true"-->
+<!--                             keyfile="/Users/isururanawaka/.ssh/custos/id_rsa"-->
+<!--                             passphrase="isjarana" trust="true">-->
+<!--                        </scp>-->
+<!--                    </target>-->
                     <skip>false</skip>
                 </configuration>
             </plugin>
