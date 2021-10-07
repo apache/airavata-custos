@@ -543,11 +543,11 @@
                                          passphrase="${ssh.passphrase}" trust="true"
                                          command="helm delete ${project.artifactId} -n custos"/>
 
-                                <sshexec host="${host}"
-                                         username="custos"
-                                         keyfile="${ssh.privatekey}"
-                                         passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install ${project.artifactId} /home/custos/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>
+<!--                                <sshexec host="${host}"-->
+<!--                                         username="custos"-->
+<!--                                         keyfile="${ssh.privatekey}"-->
+<!--                                         passphrase="${ssh.passphrase}" trust="true"-->
+<!--                                         command="helm install ${project.artifactId} /home/custos/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>-->
 
                                 <!-- SSH -->
                                 <taskdef name="sshexec"

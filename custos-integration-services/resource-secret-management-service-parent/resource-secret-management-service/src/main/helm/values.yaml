@@ -7,7 +7,7 @@ replicaCount: 2
 image:
   repository: apachecustos/${artifactId}
   tag: "${project.version}"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
@@ -90,4 +90,4 @@ readinessProbe:
   successThreshold: 1
 
 deployment:
-  host: service.staging.usecustos.org
+  host: custos01.sciencegateways.iu.edu
