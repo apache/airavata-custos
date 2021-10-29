@@ -42,9 +42,9 @@ static_resources:
               common_tls_context:
                 tls_certificates:
                     - certificate_chain:
-                        filename: "/etc/tls/tls-secret/tls.crt"
+                        filename: "/etc/tls/tls-services-secret/tls.crt"
                       private_key:
-                        filename: "/etc/tls/tls-secret/tls.key"
+                        filename: "/etc/tls/tls-services-secret/tls.key"
   clusters:
     - name: resource-secret-backend-service
       connect_timeout: 1.25s
