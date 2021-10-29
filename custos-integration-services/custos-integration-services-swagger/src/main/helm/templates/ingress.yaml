@@ -19,4 +19,4 @@ spec:
   tls:
     - hosts:
         - custos.scigap.org
-      secretName: tls-secret
+      secretName: tls-services-secret

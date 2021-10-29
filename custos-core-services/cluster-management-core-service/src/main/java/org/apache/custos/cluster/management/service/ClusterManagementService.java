@@ -44,7 +44,7 @@ public class ClusterManagementService extends ClusterManagementServiceImplBase {
     @Autowired
     private StatusUpdater statusUpdater;
 
-    @Value("${custos.server.secret.name:tls-secret}")
+    @Value("${custos.server.secret.name:tls-services-secret}")
     private String custosServerSecretName;
 
     @Value("${custos.server.kube.namespace:custos}")

@@ -19,4 +19,4 @@ spec:
   tls:
     - hosts:
         - {{ .Values.deployment.host }}
-      secretName: tls-secret
+      secretName: tls-services-secret

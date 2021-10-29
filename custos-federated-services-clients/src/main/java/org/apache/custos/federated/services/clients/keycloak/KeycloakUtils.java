@@ -96,8 +96,8 @@ public class KeycloakUtils {
         try {
 
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            if (profile.equals("staging")) {
-                LOGGER.debug("Profile inside  " + profile);
+            if (profile.equals("staging") || profile.equals("production")) {
+                LOGGER.info("Profile inside  " + profile);
                 GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
                         .newBuilder()
                         .setNamespace("keycloak")
@@ -105,30 +105,14 @@ public class KeycloakUtils {
                         .build();
                 GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                LOGGER.debug(response.getCertificate());
+                LOGGER.info(response.getCertificate());
                 InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
                 Certificate certs = cf.generateCertificate(targetStream);
                 // Add the certificate
                 ks.load(null, null);
                 ks.setCertificateEntry("custos", certs);
 
-            } else if (profile.equals("production")) {
-                LOGGER.debug("Profile inside  " + profile);
-                //TODO fetch secretName from configuration
-                GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
-                        .newBuilder()
-                        .setNamespace("keycloak")
-                        .setSecretName("tls-secret")
-                        .build();
-                GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
-                LOGGER.debug(response.getCertificate());
-                CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
-                Certificate certs = cf.generateCertificate(targetStream);
-                // Add the certificate
-                ks.load(null, null);
-                ks.setCertificateEntry("custos", certs);
-            } else {
+            }  else {
 
                 File trustStoreFile = new File(trustStorePath);
 
@@ -170,7 +154,7 @@ public class KeycloakUtils {
             IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
 
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        if (profile.equals("staging") || profile.equals("prod")) {
+        if (profile.equals("staging") || profile.equals("production")) {
             GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
                     .newBuilder()
                     .setNamespace("keycloak")
@@ -183,8 +167,7 @@ public class KeycloakUtils {
             trustStore.load(null, null);
             trustStore.setCertificateEntry("custos", certs);
 
-
-        } else {
+        }  else {
             File trustStoreFile = new File(trustStorePath);
             InputStream is;
             if (trustStoreFile.exists()) {
@@ -204,7 +187,6 @@ public class KeycloakUtils {
             char[] trustPassword = trustStorePassword.toCharArray();
             trustStore.load(is, trustPassword);
         }
-
 
         // initialize a trust manager factory
         TrustManagerFactory trustFactory =
