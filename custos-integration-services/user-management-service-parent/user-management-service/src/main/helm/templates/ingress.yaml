@@ -4,7 +4,8 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /user-management/$2
-    cert-manager.io/cluster-issuer: letsencrypt-production
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
 spec:
   rules:
     - host: {{ .Values.deployment.host }}
@@ -18,4 +19,4 @@ spec:
   tls:
     - hosts:
         - {{ .Values.deployment.host }}
-      secretName: tls-secret
+      secretName: tls-services-secret

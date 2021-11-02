@@ -3,4 +3,4 @@ COPY src/main/resources/keycloak-client-truststore.pkcs12 /home/ubuntu/keystore/
 VOLUME /tmp
 ARG JAR_FILE
 ADD ${JAR_FILE} app.jar
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+ENTRYPOINT ["java","-Xms300m", "-Xmx300m", "-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
