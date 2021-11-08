@@ -76,7 +76,7 @@ role:
 
 proxy:
    repository: apachecustos/resource-secret-management-service-sidecar
-   tag: "${project.version}
+   tag: "${project.version}"
    port: 50000
    webport: 50001
    adminport: 9901
