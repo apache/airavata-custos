@@ -355,7 +355,7 @@
             <id>container</id>
             <properties>
                 <spring.profiles.active>dev</spring.profiles.active>
-                <vault.token>{token}</vault.token>
+                <vault.token>s.Pnt4HWJ25JYDhii1YFEfQBQq</vault.token>
                 <vault.scheme>https</vault.scheme>
                 <vault.host>vault.custos.scigap.org</vault.host>
                 <vault.port>31190</vault.port>
