@@ -140,10 +140,13 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while creating password key")
             raise
 
-    def set_KV_credential(self, token, user_token, client_id, key, value):
+    def set_KV_credential(self, token, client_id, key, value, user_token=None, user_name=None):
         try:
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, value=value, metadata=secret_metadata)
 
@@ -153,10 +156,13 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while creating KV credential")
             raise
 
-    def update_KV_credential(self, token,user_token, client_id, key, value):
+    def update_KV_credential(self, token, client_id, key, value, user_token=None, user_name=None):
         try:
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, value=value, metadata=secret_metadata)
 
@@ -166,10 +172,13 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while updating KV credential")
             raise
 
-    def delete_KV_credential(self, token, user_token, client_id, key):
+    def delete_KV_credential(self, token, client_id, key, user_token=None, user_name=None):
         try:
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, metadata=secret_metadata)
 
@@ -180,10 +189,13 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while deleting KV credential")
             raise
 
-    def get_KV_credential(self, token, user_token, client_id, key):
+    def get_KV_credential(self, token, client_id, key, user_token=None, user_name=None):
         try:
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, metadata=secret_metadata)
 

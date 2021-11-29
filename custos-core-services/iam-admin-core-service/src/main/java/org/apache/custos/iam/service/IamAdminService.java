@@ -451,7 +451,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
     public void findUsers(FindUsersRequest request, StreamObserver<FindUsersResponse> responseObserver) {
         try {
             LOGGER.debug("Request received to getUsers for " + request.getUser().getUsername());
-
+             long initiationTime = System.currentTimeMillis();
             List<UserRepresentation> representation = keycloakClient.getUsers(request.getAccessToken(),
                     String.valueOf(request.getTenantId()), request.getOffset(), request.getLimit(),
                     request.getUser().getUsername(), request.getUser().getFirstName(),
@@ -485,8 +485,9 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 }
 
             });
-
-
+            long endTime = System.currentTimeMillis();
+            long total = endTime - initiationTime;
+            LOGGER.info("request received: "+ initiationTime+" request end time"+ endTime+" difference " + total);
             FindUsersResponse response = FindUsersResponse.newBuilder().addAllUsers(users).build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
