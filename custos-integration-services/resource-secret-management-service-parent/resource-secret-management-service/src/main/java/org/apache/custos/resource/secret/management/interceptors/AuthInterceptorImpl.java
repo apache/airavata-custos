@@ -172,12 +172,15 @@ public class AuthInterceptorImpl extends MultiTenantAuthInterceptor {
         } else if (method.equals("getKVCredential") || method.equals("addKVCredential") || method.equals("updateKVCredential")
                 || method.equals("deleteKVCredential")) {
             String clientId = ((KVCredential) reqT).getMetadata().getClientId();
+            String username = ((KVCredential) reqT).getMetadata().getOwnerId();
 
             Optional<AuthClaim> claim = authorize(headers, clientId);
             return claim.map(cl -> {
                 SecretMetadata metadata = ((KVCredential) reqT)
                         .getMetadata()
-                        .toBuilder().setOwnerId(cl.getUsername()).setTenantId(cl.getTenantId()).build();
+                        .toBuilder().setOwnerId(cl.getUsername() != null &&
+                                !cl.getUsername().isEmpty() ? cl.getUsername() : username)
+                        .setTenantId(cl.getTenantId()).build();
                 return (ReqT) ((KVCredential) reqT).toBuilder().setMetadata(metadata).build();
             }).orElseThrow(() -> {
                 throw new UnAuthorizedException("Request is not authorized", null);

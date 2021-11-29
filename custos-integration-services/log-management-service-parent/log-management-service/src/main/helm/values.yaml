@@ -2,12 +2,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: apachecustos/${artifactId}
-  tag: ${project.version}
-  pullPolicy: IfNotPresent
+  tag: "${project.version}"
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
@@ -75,7 +75,7 @@ role:
 
 proxy:
    repository: apachecustos/log-management-service-sidecar
-   tag: 1.1-SNAPSHOT
+   tag: "${project.version}
    port: 50000
    webport: 50001
    adminport: 9901

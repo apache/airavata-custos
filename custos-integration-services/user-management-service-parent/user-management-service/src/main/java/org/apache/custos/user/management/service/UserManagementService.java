@@ -530,6 +530,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void findUsers(FindUsersRequest request, StreamObserver<FindUsersResponse> responseObserver) {
         try {
+            long initiationTime = System.currentTimeMillis();
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
                     .setClientId(request.getClientId())
@@ -542,6 +543,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
                 FindUsersResponse user = iamAdminServiceClient.getUsers(request);
+                long endTime = System.currentTimeMillis();
+                long total = endTime - initiationTime;
+                LOGGER.info("request received: "+ initiationTime+" request end time"+ endTime+" difference " + total);
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {

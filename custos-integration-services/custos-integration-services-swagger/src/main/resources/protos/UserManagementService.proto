@@ -145,6 +145,12 @@ service UserManagementService {
          };
     }
 
+    rpc addExternalIDPsOfUsers (org.apache.custos.iam.service.AddExternalIDPLinksRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
 
     rpc getExternalIDPsOfUsers (org.apache.custos.iam.service.GetExternalIDPsRequest) returns (org.apache.custos.iam.service.GetExternalIDPsResponse) {
         option (google.api.http) = {
