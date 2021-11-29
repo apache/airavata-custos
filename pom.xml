@@ -496,7 +496,7 @@
             </build>
         </profile>
         <profile>
-            <id>scp-to-remote</id>
+            <id>scp-to-remote-staging</id>
             <build>
                 <plugins>
                     <plugin>
