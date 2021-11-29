@@ -2,11 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: apachecustos/${artifactId}
-  tag: ${project.version}
+  tag: "${project.version}"
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -70,7 +70,7 @@ affinity: {}
 
 proxy:
    repository: apachecustos/identity-management-service-sidecar
-   tag: 1.0-SNAPSHOT
+   tag: "${project.version}"
    port: 50000
    adminport: 9901
 
@@ -85,4 +85,4 @@ readinessProbe:
   successThreshold: 1
 
 deployment:
-  host: service.staging.usecustos.org
+  host: custos.scigap.org

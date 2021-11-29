@@ -530,6 +530,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     @Override
     public void findUsers(FindUsersRequest request, StreamObserver<FindUsersResponse> responseObserver) {
         try {
+            long initiationTime = System.currentTimeMillis();
             GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
                     .newBuilder()
                     .setClientId(request.getClientId())
@@ -542,6 +543,9 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
                 FindUsersResponse user = iamAdminServiceClient.getUsers(request);
+                long endTime = System.currentTimeMillis();
+                long total = endTime - initiationTime;
+                LOGGER.info("request received: "+ initiationTime+" request end time"+ endTime+" difference " + total);
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
@@ -1279,6 +1283,43 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
         } catch (Exception ex) {
             String msg = "Error occurred while  deleting external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
+    public void getExternalIDPsOfUsers(GetExternalIDPsRequest request, StreamObserver<GetExternalIDPsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getExternalIDPs of users in " + request.getTenantId());
+
+            GetExternalIDPsResponse status = iamAdminServiceClient.getExternalIDPLinks(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  fetching external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+
+    @Override
+    public void addExternalIDPsOfUsers(AddExternalIDPLinksRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addExternalIDPsOfUsers of users in " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.addExternalIDPLinksOfUsers(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  adding external IDPs of Users " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
 
