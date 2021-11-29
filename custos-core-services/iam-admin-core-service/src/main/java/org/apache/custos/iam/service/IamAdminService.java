@@ -463,10 +463,27 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
                         r.getUsername(), request.getAccessToken());
 
-
                 if (status) {
-                    users.add(this.getUser(r, request.getClientId()));
+
+                    org.apache.custos.iam.service.UserRepresentation user = this.getUser(r, request.getClientId());
+
+                    UserSessionRepresentation sessionRepresentation = keycloakClient.getLatestSession(String.valueOf(request.getTenantId()),
+                            request.getClientId(), null, r.getUsername());
+                    if (sessionRepresentation != null) {
+                        user = user.toBuilder().setLastLoginAt(sessionRepresentation.getLastAccess()).build();
+                    } else {
+                        EventRepresentation eventRepresentation = keycloakClient.
+                                getLastLoginEvent(String.valueOf(request.getTenantId()), request.getClientId()
+                                        , r.getUsername());
+
+                        if (eventRepresentation != null) {
+                            user = user.toBuilder().setLastLoginAt(eventRepresentation.getTime()).build();
+                        }
+                    }
+
+                    users.add(user);
                 }
+
             });
 
 

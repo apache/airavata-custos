@@ -7,7 +7,7 @@ replicaCount: 2
 image:
   repository: apachecustos/${artifactId}
   tag: ${project.version}
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
