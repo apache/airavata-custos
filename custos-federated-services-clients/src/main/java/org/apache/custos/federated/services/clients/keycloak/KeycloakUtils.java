@@ -40,8 +40,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.util.concurrent.TimeUnit;
 import java.security.cert.CertificateFactory;
+import java.util.concurrent.TimeUnit;
 
 public class KeycloakUtils {
 
@@ -96,8 +96,7 @@ public class KeycloakUtils {
         try {
 
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            LOGGER.info("Profile " + profile);
-            if (profile.equals("staging") || profile.equals("prod")) {
+            if (profile.equals("staging") || profile.equals("production")) {
                 LOGGER.info("Profile inside  " + profile);
                 GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
                         .newBuilder()
@@ -113,7 +112,7 @@ public class KeycloakUtils {
                 ks.load(null, null);
                 ks.setCertificateEntry("custos", certs);
 
-            } else {
+            }  else {
 
                 File trustStoreFile = new File(trustStorePath);
 
@@ -155,7 +154,7 @@ public class KeycloakUtils {
             IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
 
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        if (profile.equals("staging") || profile.equals("prod")) {
+        if (profile.equals("staging") || profile.equals("production")) {
             GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
                     .newBuilder()
                     .setNamespace("keycloak")
@@ -168,8 +167,7 @@ public class KeycloakUtils {
             trustStore.load(null, null);
             trustStore.setCertificateEntry("custos", certs);
 
-
-        } else {
+        }  else {
             File trustStoreFile = new File(trustStorePath);
             InputStream is;
             if (trustStoreFile.exists()) {
@@ -189,7 +187,6 @@ public class KeycloakUtils {
             char[] trustPassword = trustStorePassword.toCharArray();
             trustStore.load(is, trustPassword);
         }
-
 
         // initialize a trust manager factory
         TrustManagerFactory trustFactory =
