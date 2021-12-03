@@ -75,7 +75,7 @@ role:
 
 proxy:
    repository: apachecustos/log-management-service-sidecar
-   tag: "${project.version}
+   tag: "${project.version}"
    port: 50000
    webport: 50001
    adminport: 9901

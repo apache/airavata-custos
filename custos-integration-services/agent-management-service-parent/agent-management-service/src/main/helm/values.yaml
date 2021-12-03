@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: apachecustos/${artifactId}
   tag: "${project.version}"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
@@ -70,7 +70,7 @@ affinity: {}
 
 proxy:
    repository: apachecustos/agent-management-service-sidecar
-   tag: "${project.version}
+   tag: "${project.version}"
    port: 50000
    adminport: 9901
 

@@ -70,7 +70,7 @@ affinity: {}
 
 proxy:
    repository: apachecustos/group-management-service-sidecar
-   tag: "${project.version}
+   tag: "${project.version}"
    port: 50000
    adminport: 9901
 
