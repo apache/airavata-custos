@@ -270,8 +270,8 @@
 
             <!--- email sending -->
             <dependency>
-                <groupId>javax.mail</groupId>
-                <artifactId>mail</artifactId>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>javax.mail</artifactId>
                 <version>${email.version}</version>
             </dependency>
 
@@ -480,8 +480,8 @@
                             <!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
                             <helmVersion>3.4.2</helmVersion>
                             <!--                            <chartRepoUrl>null</chartRepoUrl>-->
-                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
-                            <helmVersion>2.16.0</helmVersion>
+<!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
+<!--                            <helmVersion>2.16.0</helmVersion>-->
                             <strictLint>true</strictLint>
                             <valuesFile>src/main/helm/values.yaml</valuesFile>
                             <skip>true</skip>
@@ -692,7 +692,7 @@
 
         <kafka-clients.version>1.0.0</kafka-clients.version>
 
-        <email.version>1.5.0-b01</email.version>
+        <email.version>1.6.2</email.version>
 
 
     </properties>

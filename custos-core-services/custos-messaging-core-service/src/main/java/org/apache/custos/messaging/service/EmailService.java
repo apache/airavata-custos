@@ -108,9 +108,9 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
                 properties.put("mail.smtp.starttls.enable", mailSmtpStarttlsEnable);
                 properties.put("mail.smtp.host", mailSmtpHost);
                 properties.put("mail.smtp.port", mailSmtpPort);
-                properties.put("mail.smtp.ssl.trust", mailSmtpSslTrust);
-//                properties.put("mail.smtp.ssl.protocols", mailTLSProtocol);
-//                properties.put("mail.transport.protocol","smpts");
+                properties.put("mail.smtp.ssl.trust", "*");
+                properties.put("mail.smtp.ssl.protocols", mailTLSProtocol);
+                properties.put("mail.transport.protocol","smpts");
 
 
                 Set<EmailReceivers> emailReceivers = emailTemplate.get().getEmailReceivers();
