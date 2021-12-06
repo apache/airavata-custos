@@ -86,3 +86,4 @@ readinessProbe:
 
 deployment:
   host: "${host}"
+  clusterIssuer: "${clusterIssuer}"
