@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @GRpcService
 public class SharingService extends org.apache.custos.sharing.service.SharingServiceGrpc.SharingServiceImplBase {
@@ -1261,18 +1262,23 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             });
 
+
             //TODO: replace with proper query
             sharingMetadata.forEach(shr -> {
                 if (selectedList.isEmpty()) {
                     selectedList.add(shr);
                 } else {
+                    AtomicBoolean matched = new AtomicBoolean(false);
                     new ArrayList<>(selectedList).forEach(selVar -> {
-                        if (!(shr.getEntity().getId().equals(selVar.getEntity().getId())
+                        if ((shr.getEntity().getId().equals(selVar.getEntity().getId())
                                 && shr.getOwnerId().equals(selVar.getOwnerId()) &&
                                 shr.getPermission().getId().equals(selVar.getPermission().getId()))) {
-                            selectedList.add(shr);
+                            matched.set(true);
                         }
                     });
+                    if (!matched.get()) {
+                        selectedList.add(shr);
+                    }
                 }
             });
 
