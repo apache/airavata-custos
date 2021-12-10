@@ -79,5 +79,5 @@ readinessProbe:
 
 
 deployment:
-  host: custos.scigap.org
-
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"

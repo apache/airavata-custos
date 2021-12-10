@@ -33,7 +33,7 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
 
     <modules>
         <module>custos-core-services</module>
@@ -354,12 +354,12 @@
         <profile>
             <id>container</id>
             <properties>
-                <spring.profiles.active>dev</spring.profiles.active>
+                <spring.profiles.active>staging</spring.profiles.active>
                 <vault.token>{{token}}</vault.token>
-                <vault.scheme>https</vault.scheme>
-                <vault.host>https://vault.custos.scigap.org</vault.host>
-                <vault.port>31190</vault.port>
-                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
+                <vault.scheme>http</vault.scheme>
+                <vault.host>vault.vault.svc.cluster.local</vault.host>
+                <vault.port>8200</vault.port>
+                <vault.uri>http://vault.vault.svc.cluster.local:8200</vault.uri>
                 <iam.dev.username>{{token}}</iam.dev.username>
                 <iam.dev.password>{{token}}</iam.dev.password>
                 <iam.staging.username>{{token}}</iam.staging.username>
@@ -541,13 +541,13 @@
                                          username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm delete --purge ${project.artifactId} "/>
+                                         command="helm delete  ${project.artifactId} -n custos "/>
 
                                 <sshexec host="${host}"
                                          username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install --name ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz  --namespace custos"/>
+                                         command="helm install  ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz  -n custos"/>
 
                                 <!-- SSH -->
                                 <taskdef name="sshexec"
@@ -683,8 +683,8 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
-<!--        <host>service.staging.usecustos.org</host>-->
-        <host>custos.scigap.org</host>
+        <host>service.staging.usecustos.org</host>
+<!--        <host>custos.scigap.org</host>-->
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
@@ -695,6 +695,8 @@
 
         <email.version>1.5.0-b01</email.version>
         <ssh.username>ubuntu</ssh.username>
+        <project.version>1.0-SNAPSHOT</project.version>
+        <clusterIssuer>letsencrypt-staging</clusterIssuer>
 
 
     </properties>

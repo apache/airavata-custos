@@ -90,4 +90,5 @@ readinessProbe:
   successThreshold: 1
 
 deployment:
-  host: custos.scigap.org
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"
