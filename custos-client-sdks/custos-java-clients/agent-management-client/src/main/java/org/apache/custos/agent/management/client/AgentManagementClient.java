@@ -319,5 +319,12 @@ public class AgentManagementClient extends AbstractClient {
 
     }
 
+    @Override
+    public void close() throws IOException {
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
+    }
+
 
 }

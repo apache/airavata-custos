@@ -269,4 +269,11 @@ public class SharingManagementClient extends AbstractClient {
         return managedChannel.isShutdown();
     }
 
+    @Override
+    public void close() throws IOException {
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
+    }
+
 }
