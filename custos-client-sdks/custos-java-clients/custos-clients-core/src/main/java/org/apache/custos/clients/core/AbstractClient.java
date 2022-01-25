@@ -45,7 +45,9 @@ public class AbstractClient implements Closeable {
 
     @Override
     public void close() throws IOException {
-        managedChannel.shutdown();
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
     }
 
     public boolean isShutdown() {
