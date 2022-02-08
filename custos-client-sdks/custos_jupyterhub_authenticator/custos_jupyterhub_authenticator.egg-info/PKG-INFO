@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: custos-jupyterhub-authenticator
+Version: 1.0.0
+Summary: Apache Custos Juypterhub  Authenticator
+Home-page: https://airavata.apache.org/custos/
+Author: Custos Developers
+Author-email: dev@airavata.apache.org
+License: Apache License 2.0
+Description: UNKNOWN
+Platform: UNKNOWN

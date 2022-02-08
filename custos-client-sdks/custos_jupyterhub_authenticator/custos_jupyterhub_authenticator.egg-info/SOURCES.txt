@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+custos_jupyterhub_authenticator.egg-info/PKG-INFO
+custos_jupyterhub_authenticator.egg-info/SOURCES.txt
+custos_jupyterhub_authenticator.egg-info/dependency_links.txt
+custos_jupyterhub_authenticator.egg-info/requires.txt
+custos_jupyterhub_authenticator.egg-info/top_level.txt
+custosauthenticator/__init__.py
+custosauthenticator/custos.py
