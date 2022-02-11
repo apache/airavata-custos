@@ -19,5 +19,5 @@ setup(
     author='Custos Developers',
     author_email='dev@airavata.apache.org',
     install_requires=['oauthenticator>=14.2.0'],
-    description='Apache Custos Juypterhub  Authenticator'
+    description='Apache Custos Jupyterhub  Authenticator'
 )
