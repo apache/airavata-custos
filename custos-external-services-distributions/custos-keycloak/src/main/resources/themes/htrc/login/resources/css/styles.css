@@ -116,13 +116,13 @@ a:focus {
   color: #fff;
 }
 
-.login-form > form > input {
+.login-form > form > input, .login-field {
   font-family: "Roboto", sans-serif;
   outline: 0;
   background: #f2f2f2;
   width: 100%;
   border: 0;
-  margin: 0 0 15px;
+  margin: 5px 0 15px;
   padding: 15px;
   box-sizing: border-box;
   font-size: 14px;
@@ -152,6 +152,41 @@ a:focus {
 }
 
 .link-group {
+  padding: 4px;
   font-size: 14px;
   text-align: center;
+}
+
+.update-info {
+  font-family: "Roboto", sans-serif;
+}
+
+.btn-update-info {
+  margin-top: 20px;
+}
+
+#kc-link-confirm {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  max-width: 460px;
+  margin: 0 auto 10px;
+  padding: 45px;
+  border-radius: 2px;
+  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
+  color: #ff6f01;
+}
+
+#kc-link-confirm-header > p {
+  font-weight: bold;
+  font-size: 1.4rem;
+  border-bottom: #dddddd 1px solid;
+  padding-bottom: 5px;
+}
+
+.htrc-inst-text {
+  color: #333333;
+  font-family: "Roboto", sans-serif;
+  font-size: 16px;
+  line-height: 24px;
 }
