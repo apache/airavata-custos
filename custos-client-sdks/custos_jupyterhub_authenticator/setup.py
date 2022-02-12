@@ -8,9 +8,15 @@ def read(fname):
         return f.read()
 
 
+from pathlib import Path
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name='custos_jupyterhub_authenticator',
-    version='1.0.1',
+    long_description_content_type="text/markdown",
+    version='1.0.2',
     packages=find_packages(),
     package_data={'': ['*.pem']},
     include_package_data=True,
@@ -20,6 +26,5 @@ setup(
     author_email='dev@airavata.apache.org',
     install_requires=['oauthenticator>=14.2.0'],
     description='Apache Custos Jupyterhub  Authenticator',
-    long_description='Custos authenticator provides CILogon based federated authentication for Jupyterhub. In addition it provides '
-                     'Identity and Access Management solutions such as Fine-Grained Authorization, Secret Management ..etc',
+    long_description=long_description,
 )
