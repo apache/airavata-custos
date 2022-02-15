@@ -532,7 +532,7 @@
                             <target>
 
                                 <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
-                                     remoteToFile="${ssh.username}@${host}:/home/ubuntu/custos/artifacts"
+                                     remoteToFile="${ssh.username}@${host}:/home/${ssh.username}/custos/artifacts"
                                      verbose="true"
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
@@ -547,7 +547,7 @@
                                          username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install  ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz  -n custos"/>
+                                         command="helm install  ${project.artifactId} /home/${ssh.username}/custos/artifacts/${project.artifactId}-${project.version}.tgz  -n custos"/>
 
                                 <!-- SSH -->
                                 <taskdef name="sshexec"
@@ -693,7 +693,7 @@
         <kafka-clients.version>1.0.0</kafka-clients.version>
 
         <email.version>1.5.0-b01</email.version>
-        <ssh.username>ubuntu</ssh.username>
+        <ssh.username>custos</ssh.username>
         <project.version>1.0</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
 
