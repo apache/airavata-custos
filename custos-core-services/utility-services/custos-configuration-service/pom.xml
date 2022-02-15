@@ -24,7 +24,7 @@
     <parent>
         <artifactId>custos-core-services</artifactId>
         <groupId>org.apache.custos</groupId>
-        <version>1.1-SNAPSHOT</version>
+        <version>1.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -80,7 +80,7 @@
 <!--                             passphrase="isjarana" trust="true">-->
 <!--                        </scp>-->
 <!--                    </target>-->
-                    <skip>true</skip>
+                    <skip>false</skip>
                 </configuration>
             </plugin>
         </plugins>
