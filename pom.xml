@@ -33,7 +33,7 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
 
     <modules>
         <module>custos-core-services</module>
@@ -354,7 +354,7 @@
         <profile>
             <id>container</id>
             <properties>
-                <spring.profiles.active>staging</spring.profiles.active>
+                <spring.profiles.active>production</spring.profiles.active>
                 <vault.token>{{token}}</vault.token>
                 <vault.scheme>http</vault.scheme>
                 <vault.host>vault.vault.svc.cluster.local</vault.host>
@@ -374,7 +374,7 @@
                 <cilogon.production.sec>{{token}}</cilogon.production.sec>
                 <custos.email.password>{{token}}</custos.email.password>
                 <spring.datasource.username>root</spring.datasource.username>
-                <spring.datasource.password>root</spring.datasource.password>
+                <spring.datasource.password>{{token}}</spring.datasource.password>
 
             </properties>
             <activation>
@@ -683,8 +683,7 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
-        <host>service.staging.usecustos.org</host>
-<!--        <host>custos.scigap.org</host>-->
+        <host>services.usecustos.org</host>
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
@@ -695,8 +694,8 @@
 
         <email.version>1.5.0-b01</email.version>
         <ssh.username>ubuntu</ssh.username>
-        <project.version>1.0-SNAPSHOT</project.version>
-        <clusterIssuer>letsencrypt-staging</clusterIssuer>
+        <project.version>1.0</project.version>
+        <clusterIssuer>letsencrypt-prod</clusterIssuer>
 
 
     </properties>

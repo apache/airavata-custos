@@ -244,7 +244,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
                     values.put("param:email", user.getEmailAddress());
                     values.put("param:tenant_id", request.getClientId());
 
-                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
+//                    if (exsistingProfile == null || exsistingProfile.getUsername().trim().isEmpty()) {
                         userProfileClient.createUserProfile(req);
                         org.apache.custos.tenant.profile.service.GetTenantRequest tenantReq =
                                 org.apache.custos.tenant.profile.service.GetTenantRequest
@@ -254,7 +254,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
                                 tenantProfileClient.getTenant(tenantReq);
                         values.put("param:tenant_name", tenantResponse.getTenant().getClientName());
                         emailSender.sendEmail(tenantId, CustosEvent.NEW_USER_SIGNUP, values);
-                    }
+//                    }
                 }
             });
             responseObserver.onNext(response);

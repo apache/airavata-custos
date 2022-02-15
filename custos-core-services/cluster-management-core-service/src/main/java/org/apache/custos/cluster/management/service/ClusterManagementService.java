@@ -66,6 +66,10 @@ public class ClusterManagementService extends ClusterManagementServiceImplBase {
             String namespace = request.getNamespace();
             String secretName = request.getSecretName();
 
+            LOGGER.info("Requested certificate name",secretName);
+            LOGGER.info("Requested default name",custosServerSecretName);
+
+            LOGGER.info("Requested default name",custosNameSpace);
 
             V1Secret secret = api.readNamespacedSecret(secretName.isEmpty() ? custosServerSecretName : secretName,
                     namespace.isEmpty() ? custosNameSpace : namespace, null, null, null);
