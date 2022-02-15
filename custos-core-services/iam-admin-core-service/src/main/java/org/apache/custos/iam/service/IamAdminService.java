@@ -31,10 +31,8 @@ import org.apache.custos.federated.services.clients.keycloak.UnauthorizedExcepti
 import org.apache.custos.iam.service.IamAdminServiceGrpc.IamAdminServiceImplBase;
 import org.apache.custos.iam.utils.IAMOperations;
 import org.apache.custos.iam.utils.Status;
-import org.keycloak.representations.idm.EventRepresentation;
-import org.keycloak.representations.idm.ProtocolMapperRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.keycloak.representations.idm.UserSessionRepresentation;
+import org.keycloak.representations.idm.*;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -465,10 +463,27 @@ public class IamAdminService extends IamAdminServiceImplBase {
                 boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()),
                         r.getUsername(), request.getAccessToken());
 
-
                 if (status) {
-                    users.add(this.getUser(r, request.getClientId()));
+
+                    org.apache.custos.iam.service.UserRepresentation user = this.getUser(r, request.getClientId());
+
+                    UserSessionRepresentation sessionRepresentation = keycloakClient.getLatestSession(String.valueOf(request.getTenantId()),
+                            request.getClientId(), null, r.getUsername());
+                    if (sessionRepresentation != null) {
+                        user = user.toBuilder().setLastLoginAt(sessionRepresentation.getLastAccess()).build();
+                    } else {
+                        EventRepresentation eventRepresentation = keycloakClient.
+                                getLastLoginEvent(String.valueOf(request.getTenantId()), request.getClientId()
+                                        , r.getUsername());
+
+                        if (eventRepresentation != null) {
+                            user = user.toBuilder().setLastLoginAt(eventRepresentation.getTime()).build();
+                        }
+                    }
+
+                    users.add(user);
                 }
+
             });
             long endTime = System.currentTimeMillis();
             long total = endTime - initiationTime;
@@ -558,6 +573,57 @@ public class IamAdminService extends IamAdminServiceImplBase {
         }
 
     }
+
+    @Override
+    public void getExternalIDPLinksOfUsers(GetExternalIDPsRequest request, StreamObserver<GetExternalIDPsResponse> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            List<FederatedIdentityRepresentation> identityRepresentations = keycloakClient.getExternalIDPLinks(String.valueOf(tenantId), request.getUserId());
+            GetExternalIDPsResponse.Builder response = GetExternalIDPsResponse.newBuilder();
+            identityRepresentations.forEach(rep -> {
+                response.addIdpLinks(ExternalIDPLink.newBuilder()
+                        .setProviderAlias(rep.getIdentityProvider())
+                        .setProviderUsername(rep.getUserName())
+                        .setProviderUserId(rep.getUserId()));
+            });
+
+            responseObserver.onNext(response.build());
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while getExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void addExternalIDPLinksOfUsers(AddExternalIDPLinksRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {
+        try {
+            long tenantId = request.getTenantId();
+            List<ExternalIDPLink> externalIDPLinkList = request.getIdpLinksList();
+            List<FederatedIdentityRepresentation> federatedIdentityRepresentations = new ArrayList<>();
+            externalIDPLinkList.forEach(link -> {
+                FederatedIdentityRepresentation representation = new FederatedIdentityRepresentation();
+                representation.setUserId(link.getProviderUserId());
+                representation.setUserName(link.getProviderUsername());
+                representation.setIdentityProvider(link.getProviderAlias());
+                federatedIdentityRepresentations.add(representation);
+
+            });
+            keycloakClient.addExternalIDPLinks(String.valueOf(tenantId), federatedIdentityRepresentations);
+            org.apache.custos.iam.service.OperationStatus status = org.apache.custos.iam.service.OperationStatus
+                    .newBuilder()
+                    .setStatus(true)
+                    .build();
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+        } catch (Exception ex) {
+            String msg = "Error occurred while getExternalIDPLinksOfUsers" + ex;
+            LOGGER.error(msg, ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());
+        }
+    }
+
 
     @Override
     public void updateUserProfile(UpdateUserProfileRequest request, StreamObserver<org.apache.custos.iam.service.OperationStatus> responseObserver) {

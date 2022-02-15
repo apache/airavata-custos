@@ -25,6 +25,7 @@
         <artifactId>custos</artifactId>
         <groupId>org.apache.custos</groupId>
         <version>1.0</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -82,7 +83,7 @@
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>cluster-management-core-service-client-stub</artifactId>
-            <version>1.0</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

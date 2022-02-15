@@ -349,6 +349,10 @@ public class IamAdminServiceClient {
         return iamAdminServiceBlockingStub.deleteExternalIDPLinksOfUsers(deleteExternalIDPsRequest);
     }
 
+    public  OperationStatus addExternalIDPLinksOfUsers(AddExternalIDPLinksRequest addExternalIDPLinksRequest) {
+        return iamAdminServiceBlockingStub.addExternalIDPLinksOfUsers(addExternalIDPLinksRequest);
+    }
+
     public Agent getAgent(UserSearchRequest request) {
         return iamAdminServiceBlockingStub.getAgent(request);
     }
@@ -360,6 +364,10 @@ public class IamAdminServiceClient {
 
     public Empty deleteTenant(DeleteTenantRequest request) {
         return iamAdminServiceBlockingStub.deleteTenant(request);
+    }
+
+    public GetExternalIDPsResponse getExternalIDPLinks(GetExternalIDPsRequest request) {
+        return iamAdminServiceBlockingStub.getExternalIDPLinksOfUsers(request);
     }
 
     private StreamObserver getObserver(ServiceCallback callback, String failureMsg) {

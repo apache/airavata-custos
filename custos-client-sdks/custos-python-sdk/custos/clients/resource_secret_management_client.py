@@ -17,6 +17,8 @@
 
 import logging
 import grpc
+import json
+import custos.clients.utils.utilities as utl
 
 from custos.transport.settings import CustosServerClientSettings
 
@@ -26,6 +28,9 @@ from custos.server.core.ResourceSecretService_pb2 import GetSecretRequest, Secre
     ResourceSource, KVCredential, ResourceType, SSHCredential, PasswordCredential, GetResourceCredentialByTokenRequest
 from google.protobuf.json_format import MessageToJson
 from custos.clients.utils.certificate_fetching_rest_client import CertificateFetchingRestClient
+
+from custos.clients.utils.exceptions.CustosExceptions import CustosException, KeyAlreadyExist, InvalidCredentials, \
+    KeyDoesNotExist
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -140,56 +145,111 @@ class ResourceSecretManagementClient(object):
             logger.exception("Error occurred while creating password key")
             raise
 
-    def set_KV_credential(self, token, user_token, client_id, key, value):
+    def set_kv_credential(self, key, value, client_id=None, token=None, user_token=None, user_name=None):
         try:
+            if token is None:
+                token = utl.get_token(self.custos_settings)
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if client_id is None:
+                client_id = self.custos_settings.CUSTOS_CLIENT_ID
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, value=value, metadata=secret_metadata)
+            try:
+                fetchRequest = KVCredential(key=key, metadata=secret_metadata)
+                msg = self.resource_sec_client.getKVCredential(request=fetchRequest, metadata=metadata)
+                msg = json.loads(MessageToJson(msg))
+                if 'key' in msg.keys():
+                    msg = self.resource_sec_client.updateKVCredential(request=request, metadata=metadata)
+                else:
+                    msg = self.resource_sec_client.addKVCredential(request=request, metadata=metadata)
+            except Exception as e:
+                msg = self.resource_sec_client.addKVCredential(request=request, metadata=metadata)
 
-            msg = self.resource_sec_client.addKVCredential(request=request, metadata=metadata)
-            return MessageToJson(msg)
-        except Exception:
-            logger.exception("Error occurred while creating KV credential")
-            raise
+            return json.loads(MessageToJson(msg))
+        except Exception as e:
+            logger.exception("Error occurred while setting KV credential", e)
+            raise CustosException("Error occurred while setting KV credential")
 
-    def update_KV_credential(self, token,user_token, client_id, key, value):
+    def create_kv_credential(self, key, value, client_id=None, token=None, user_token=None, user_name=None):
         try:
+            if token is None:
+                token = utl.get_token(self.custos_settings)
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if client_id is None:
+                client_id = self.custos_settings.CUSTOS_CLIENT_ID
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
+            secret_metadata = SecretMetadata(client_id=client_id)
+            request = KVCredential(key=key, value=value, metadata=secret_metadata)
+            msg = self.resource_sec_client.addKVCredential(request=request, metadata=metadata)
+            return json.loads(MessageToJson(msg))
+        except Exception as e:
+            logger.exception("Error occurred while creating KV credential", e)
+            raise KeyAlreadyExist("Error occurred while creating KV credential, provided key already exist")
+
+    def update_kv_credential(self, client_id, key, value, token=None, user_token=None, user_name=None):
+        try:
+            if token is None:
+                token = utl.get_token(self.custos_settings)
+            token = "Bearer " + token
+            if client_id is None:
+                client_id = self.custos_settings.CUSTOS_CLIENT_ID
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, value=value, metadata=secret_metadata)
 
             msg = self.resource_sec_client.updateKVCredential(request=request, metadata=metadata)
-            return MessageToJson(msg)
-        except Exception:
-            logger.exception("Error occurred while updating KV credential")
-            raise
+            return json.loads(MessageToJson(msg))
+        except Exception as e:
+            logger.exception("Error occurred while updating KV credential", e)
+            raise KeyDoesNotExist("Error occurred while updating KV credential, provided key does not exist")
 
-    def delete_KV_credential(self, token, user_token, client_id, key):
+    def delete_kv_credential(self, client_id, key, token=None, user_token=None, user_name=None):
         try:
+            if token is None:
+                token = utl.get_token(self.custos_settings)
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if client_id is None:
+                client_id = self.custos_settings.CUSTOS_CLIENT_ID
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, metadata=secret_metadata)
 
             msg = self.resource_sec_client.deleteKVCredential(request=request, metadata=metadata)
-            return MessageToJson(msg)
+            return json.loads(MessageToJson(msg))
 
-        except Exception:
-            logger.exception("Error occurred while deleting KV credential")
-            raise
+        except Exception as e:
+            logger.exception("Error occurred while deleting KV credential", e)
+            raise KeyDoesNotExist("Error occurred while deleting KV credential, provided key does not exist")
 
-    def get_KV_credential(self, token, user_token, client_id, key):
+    def get_kv_credential(self, key, client_id=None, token=None, user_token=None, user_name=None):
         try:
+            if token is None:
+                token = utl.get_token(self.custos_settings)
             token = "Bearer " + token
-            metadata = (('authorization', token),('user_token', user_token),)
+            if client_id is None:
+                client_id = self.custos_settings.CUSTOS_CLIENT_ID
+            if user_token is None:
+                metadata = (('authorization', token), ('owner_id', user_name),)
+            else:
+                metadata = (('authorization', token), ('user_token', user_token),)
             secret_metadata = SecretMetadata(client_id=client_id)
             request = KVCredential(key=key, metadata=secret_metadata)
-
             msg = self.resource_sec_client.getKVCredential(request=request, metadata=metadata)
-            return MessageToJson(msg)
+            return json.loads(MessageToJson(msg))
 
-        except Exception:
-            logger.exception("Error occurred while get KV credential")
-            raise
+        except Exception as e:
+            logger.exception("Error occurred while get KV credential", e)
+            raise KeyDoesNotExist("Error occurred while get KV credential, provided key does not exist")

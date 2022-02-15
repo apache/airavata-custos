@@ -77,6 +77,8 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
     @Value("${mail.sender.password}")
     private String senderPassword;
 
+    private String mailTLSProtocol = "TLSv1.2";
+
 
     @Override
     public void send(EmailMessageSendingRequest request, StreamObserver<Status> responseObserver) {
@@ -106,7 +108,9 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
                 properties.put("mail.smtp.starttls.enable", mailSmtpStarttlsEnable);
                 properties.put("mail.smtp.host", mailSmtpHost);
                 properties.put("mail.smtp.port", mailSmtpPort);
-                properties.put("mail.smtp.ssl.trust", mailSmtpSslTrust);
+                properties.put("mail.smtp.ssl.trust", "*");
+                properties.put("mail.smtp.ssl.protocols", mailTLSProtocol);
+                properties.put("mail.transport.protocol","smpts");
 
 
                 Set<EmailReceivers> emailReceivers = emailTemplate.get().getEmailReceivers();

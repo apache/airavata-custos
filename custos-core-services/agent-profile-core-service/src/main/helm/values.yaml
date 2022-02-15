@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: apachecustos/${artifactId}
   tag: "${project.version}"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
@@ -57,10 +57,10 @@ resources:
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
    limits:
 #     cpu: 100m
-             memory: 150Mi
+ #            memory: 150Mi
    requests:
   #   cpu: 100m
-            memory: 150Mi
+  #          memory: 150Mi
 
 nodeSelector:
     custosServiceWorker: "enabled"

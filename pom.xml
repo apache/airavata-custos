@@ -478,10 +478,10 @@
                             <chartFolder>src/main/helm</chartFolder>
                             <chartRepoUrl>https://charts.helm.sh/stable</chartRepoUrl>
                             <!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
-                            <helmVersion>3.4.2</helmVersion>
+                            <helmVersion>3.5.2</helmVersion>
                             <!--                            <chartRepoUrl>null</chartRepoUrl>-->
-                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
-                            <helmVersion>2.16.0</helmVersion>
+<!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
+<!--                            <helmVersion>2.16.0</helmVersion>-->
                             <strictLint>true</strictLint>
                             <valuesFile>src/main/helm/values.yaml</valuesFile>
                             <skip>true</skip>
@@ -532,22 +532,22 @@
                             <target>
 
                                 <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
-                                     remoteToFile="custos@${host}:/home/custos/custos/artifacts"
+                                     remoteToFile="${ssh.username}@${host}:/home/${ssh.username}/custos/artifacts"
                                      verbose="true"
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
                                 </scp>
                                 <sshexec host="${host}"
-                                         username="custos"
+                                         username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm delete ${project.artifactId} -n custos"/>
+                                         command="helm delete  ${project.artifactId} -n custos "/>
 
                                 <sshexec host="${host}"
-                                         username="custos"
+                                         username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install ${project.artifactId} /home/custos/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>
+                                         command="helm install  ${project.artifactId} /home/${ssh.username}/custos/artifacts/${project.artifactId}-${project.version}.tgz  -n custos"/>
 
                                 <!-- SSH -->
                                 <taskdef name="sshexec"
@@ -693,6 +693,9 @@
         <kafka-clients.version>1.0.0</kafka-clients.version>
 
         <email.version>1.5.0-b01</email.version>
+        <ssh.username>custos</ssh.username>
+        <project.version>1.0</project.version>
+        <clusterIssuer>letsencrypt-prod</clusterIssuer>
 
 
     </properties>
