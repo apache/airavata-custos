@@ -270,7 +270,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     @Override
     public void getOIDCConfiguration(GetOIDCConfiguration request, StreamObserver<Struct> responseObserver) {
         try {
-            LOGGER.debug("Request received  to fetch OIDC configuration " + request.getTenantId());
+            LOGGER.info("Request received  to fetch OIDC configuration " + request.getTenantId());
 
             String clientId = request.getClientId();
 

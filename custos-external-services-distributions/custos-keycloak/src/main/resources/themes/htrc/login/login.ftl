@@ -49,6 +49,9 @@
                 <div class="link-group">
                     <a id="passwordRecoverLink" href="${client.baseUrl}\passwordresetrequestpage">Forgot Password?</a> | <a id="usernameRecoverLink" href="${client.baseUrl}\useridrequestpage">Forgot Username?</a> | <a id="userSignUpLink" href="${client.baseUrl}\signuppage">Create Account</a>
                 </div>
+                <div class="link-group">
+                    Have more questions? See our <a id="faqLink" href="${client.baseUrl}\faq">FAQ</a> page
+                </div>
             </div>
         </#if>
         <#if social.providers??>

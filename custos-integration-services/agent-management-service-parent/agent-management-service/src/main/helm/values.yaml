@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: apachecustos/${artifactId}
   tag: "${project.version}"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
@@ -62,8 +62,7 @@ resources:
     #   cpu: 100m
    # memory: 150Mi
 
-nodeSelector:
-    custosServiceWorker: "enabled"
+nodeSelector: {}
 
 tolerations: []
 
@@ -86,4 +85,5 @@ readinessProbe:
   successThreshold: 1
 
 deployment:
-  host: service.staging.usecustos.org
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"

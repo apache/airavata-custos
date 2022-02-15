@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name='custos-sdk',
-    version='1.0.7',
+    version='1.0.17',
     packages=find_packages(),
     package_data={'': ['*.pem']},
     include_package_data=True,

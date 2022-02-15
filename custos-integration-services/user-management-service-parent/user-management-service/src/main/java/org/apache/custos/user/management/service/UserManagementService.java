@@ -1290,6 +1290,43 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
     }
 
     @Override
+    public void getExternalIDPsOfUsers(GetExternalIDPsRequest request, StreamObserver<GetExternalIDPsResponse> responseObserver) {
+        try {
+            LOGGER.debug("Request received to getExternalIDPs of users in " + request.getTenantId());
+
+            GetExternalIDPsResponse status = iamAdminServiceClient.getExternalIDPLinks(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  fetching external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+
+    @Override
+    public void addExternalIDPsOfUsers(AddExternalIDPLinksRequest request, StreamObserver<OperationStatus> responseObserver) {
+        try {
+            LOGGER.debug("Request received to addExternalIDPsOfUsers of users in " + request.getTenantId());
+
+            OperationStatus status = iamAdminServiceClient.addExternalIDPLinksOfUsers(request);
+
+            responseObserver.onNext(status);
+            responseObserver.onCompleted();
+
+        } catch (Exception ex) {
+            String msg = "Error occurred while  adding external IDPs of Users " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+
+        }
+    }
+
+    @Override
     public void synchronizeUserDBs(SynchronizeUserDBRequest request, StreamObserver<OperationStatus> responseObserver) {
         try {
 
