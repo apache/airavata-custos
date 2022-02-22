@@ -16,9 +16,9 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name='custos_jupyterhub_authenticator',
     long_description_content_type="text/markdown",
-    version='1.0.2',
+    version='1.0.3',
     packages=find_packages(),
-    package_data={'': ['*.pem']},
+    package_data={'': ['*.md']},
     include_package_data=True,
     url='https://github.com/apache/airavata-custos/tree/develop/custos-client-sdks/custos_jupyterhub_authenticator',
     license='Apache License 2.0',
