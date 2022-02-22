@@ -1,5 +1,12 @@
 # Apache Custos Jupyterhub Authenticator
-The Apache Custos Jupyterhub Authenticator
+The Apache Custos Jupyterhub Authenticator provides CILogon based federated authentication for Jupyterhub. In addtion it provides access to Custos IAM solutions such as
+ - Fine-Grained Authorization
+
+ - Secret Management
+
+- Service Accounts ..etc.
+
+Additional Information : https://airavata.apache.org/custos/
 
 
 ### Folder Structure

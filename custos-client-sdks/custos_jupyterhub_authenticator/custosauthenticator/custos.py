@@ -27,12 +27,14 @@ import os
 from jupyterhub.auth import LocalAuthenticator
 from tornado import web
 from tornado.httpclient import HTTPRequest
+from tornado.web import HTTPError
 from tornado.httputil import url_concat
 from traitlets import Bool
 from traitlets import default
 from traitlets import List
 from traitlets import Unicode
 from traitlets import validate
+from tornado.log import app_log
 
 from oauthenticator.oauth2 import OAuthenticator
 from oauthenticator.oauth2 import OAuthLoginHandler
@@ -65,6 +67,7 @@ class CustosOAuthenticator(OAuthenticator):
         x = super().client_id.split("-")
         tenant_id = x[len(x) - 1]
         self.iam_uri = "https://{}/auth/realms/{}/protocol/openid-connect/".format(iam_host, tenant_id)
+        self.group_uri = "https://{}/apiserver/group-management/v1.0.0/user/group/memberships".format(self.custos_host)
 
     @default("authorize_url")
     def _authorize_url_default(self):
@@ -83,6 +86,9 @@ class CustosOAuthenticator(OAuthenticator):
         At least 'openid' is required.
         """, )
 
+    allowed_groups = List(
+        config=True, )
+
     @validate('scope')
     def _validate_scope(self, proposal):
         """ensure openid is requested"""
@@ -95,6 +101,7 @@ class CustosOAuthenticator(OAuthenticator):
         """We set up auth_state based on additional Custos info if we
             receive it.
             """
+        
         code = handler.get_argument("code")
 
         authS = "{}:{}".format(self.client_id, self.client_secret)
@@ -125,7 +132,7 @@ class CustosOAuthenticator(OAuthenticator):
             url_concat("https://{}/apiserver/identity-management/v1.0.0/user".format(self.custos_host), params),
             headers=headers,
         )
-        resp_json = await self.fetch(req)
+        resp_json = await  self.fetch(req)
 
         userdict = {"name": resp_json['username']}
         # Now we set up auth_state
@@ -139,3 +146,51 @@ class CustosOAuthenticator(OAuthenticator):
         auth_state['access_token'] = access_token
         auth_state['custos_user'] = resp_json
         return userdict
+
+    async def pre_spawn_start(self, user, spawner):
+        """Pass upstream_token to spawner via environment variable"""
+        app_log.debug("Calling pre_spawn_start")
+        auth_state = await user.get_auth_state()
+        if not auth_state:
+            # auth_state not enabled
+            app_log.debug("Auth state not enabled")
+            return
+
+        authentication_status = await self.is_user_authorized_to_spawn_server(user.name)
+        if not authentication_status:
+            msg = "User {} is not authorized to start a server".format(user.name)
+            raise HTTPError(401, msg)
+        spawner.environment['UPSTREAM_TOKEN'] = auth_state['access_token']
+
+    async def is_user_authorized_to_spawn_server(self, username):
+
+        authS = "{}:{}".format(self.client_id, self.client_secret)
+        tokenByte = authS.encode('utf-8')
+        encodedBytes = base64.b64encode(tokenByte)
+        auth_string = encodedBytes.decode('utf-8')
+        headers = {"Accept": "application/json", "User-Agent": "JupyterHub",
+                   "Authorization": "Bearer {}".format(auth_string)}
+
+        # Determine who the logged in user is
+        key = ['profile.username']
+        value = [username]
+
+        params = dict(zip(key, value))
+
+        url = url_concat(self.group_uri, params)
+
+        req = HTTPRequest(url, headers=headers, method="GET")
+
+        group_response = await self.fetch(req)
+
+        user_groups = group_response['groups']
+        matched = False
+
+        for group in user_groups:
+            if group['id']  in self.allowed_groups:
+                matched = True
+                return matched
+
+        return matched
+
+
