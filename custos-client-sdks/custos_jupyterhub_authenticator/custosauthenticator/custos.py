@@ -101,7 +101,7 @@ class CustosOAuthenticator(OAuthenticator):
         """We set up auth_state based on additional Custos info if we
             receive it.
             """
-        app_log.info("Authenticating with Custos")
+        
         code = handler.get_argument("code")
 
         authS = "{}:{}".format(self.client_id, self.client_secret)
