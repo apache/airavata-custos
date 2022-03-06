@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /tenant-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: tenant-management-service
-              servicePort: envoyhttp
+              service:
+                name: tenant-management-service
+                port:
+                  name: envoyhttp
 
   tls:
     - hosts:

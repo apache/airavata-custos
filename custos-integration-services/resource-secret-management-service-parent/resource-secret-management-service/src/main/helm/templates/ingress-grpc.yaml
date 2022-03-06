@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.resource.secret.management.service.ResourceSecretManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: resource-secret-management-service
-              servicePort: grpc
+              service:
+                  name: resource-secret-management-service
+                  port:
+                     name: grpc
 
   tls:
     - hosts:

@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.agent.management.service.AgentManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: agent-management-service
-              servicePort: grpc
+              service:
+                  name: agent-management-service
+                  port:
+                     name: grpc
 
   tls:
     - hosts:

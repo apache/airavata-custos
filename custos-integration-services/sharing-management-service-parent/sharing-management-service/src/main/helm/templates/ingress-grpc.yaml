@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.sharing.management.service.SharingManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: sharing-management-service
-              servicePort: grpc
+              service:
+                name: sharing-management-service
+                port:
+                   name: grpc
 
   tls:
     - hosts:

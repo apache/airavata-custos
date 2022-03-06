@@ -80,7 +80,7 @@
 <!--                             passphrase="isjarana" trust="true">-->
 <!--                        </scp>-->
 <!--                    </target>-->
-                    <skip>false</skip>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>

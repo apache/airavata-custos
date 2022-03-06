@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.tenant.management.service.TenantManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: tenant-management-service
-              servicePort: grpc
+              service:
+                name: tenant-management-service
+                port:
+                  name: grpc
 
   tls:
     - hosts:

@@ -537,11 +537,11 @@
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
                                 </scp>
-                                <sshexec host="${host}"
-                                         username="${ssh.username}"
-                                         keyfile="${ssh.privatekey}"
-                                         passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm delete  ${project.artifactId} -n custos "/>
+<!--                                <sshexec host="${host}"-->
+<!--                                         username="${ssh.username}"-->
+<!--                                         keyfile="${ssh.privatekey}"-->
+<!--                                         passphrase="${ssh.passphrase}" trust="true"-->
+<!--                                         command="helm delete  ${project.artifactId} -n custos "/>-->
 
                                 <sshexec host="${host}"
                                          username="${ssh.username}"

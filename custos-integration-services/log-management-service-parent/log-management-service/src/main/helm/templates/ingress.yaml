@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /log-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: log-management-service
-              servicePort: envoyhttp
+              service:
+                 name: log-management-service
+                 port:
+                    name: envoyhttp
 
   tls:
     - hosts:

@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /resource-secret-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: resource-secret-management-service
-              servicePort: envoyhttp
+              service:
+                   name: resource-secret-management-service
+                   port:
+                      name: envoyhttp
 
   tls:
     - hosts:

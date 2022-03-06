@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /scim(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: scim-service
-              servicePort: http
+              service:
+                name: scim-service
+                port:
+                   name: http
 
   tls:
     - hosts:

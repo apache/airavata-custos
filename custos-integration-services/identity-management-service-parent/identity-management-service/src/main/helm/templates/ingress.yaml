@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /identity-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: identity-management-service
-              servicePort: envoyhttp
+              service:
+                 name: identity-management-service
+                 port:
+                    name: envoyhttp
 
   tls:
     - hosts:

@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /services(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: custos-integration-services-swagger
-              servicePort: http
+              service:
+                 name: custos-integration-services-swagger
+                 port:
+                    name: http
 
   tls:
     - hosts:

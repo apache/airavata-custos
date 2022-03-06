@@ -1,25 +1,5 @@
 <#import "template.ftl" as layout>
 <@layout.registrationLayout; section>
-    <style>
-        #kc-link-confirm {
-            position: relative;
-            z-index: 1;
-            background: #ffffff;
-            max-width: 460px;
-            margin: 0 auto 10px;
-            padding: 45px;
-            border-radius: 2px;
-            box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
-            color: #ff6f01;
-        }
-
-        #kc-link-confirm-header > p {
-            font-weight: bold;
-            font-size: 1.4rem;
-            border-bottom: #dddddd 1px solid;
-            padding-bottom: 5px;
-        }
-    </style>
     <#if section = "header">
 <#--        ${msg("emailLinkIdpTitle", idpAlias)}-->
     <#elseif section = "form">
