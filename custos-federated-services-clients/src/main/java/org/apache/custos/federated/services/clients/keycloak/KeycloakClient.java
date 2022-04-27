@@ -866,7 +866,6 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             // get client
-            LOGGER.info("IAM server URL " + iamServerURL);
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
             RealmResource realmResource = client.realm(realmId);

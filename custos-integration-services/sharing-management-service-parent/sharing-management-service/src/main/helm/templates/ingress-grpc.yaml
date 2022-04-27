@@ -4,7 +4,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.sharing.management.service.SharingManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: sharing-management-service
-              servicePort: grpc
+              service:
+                name: sharing-management-service
+                port:
+                   name: grpc
 
   tls:
     - hosts:

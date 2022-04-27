@@ -4,17 +4,20 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: custos.scigap.org
+    - host: "${host}"
       http:
         paths:
           - path: /services(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: custos-integration-services-swagger
-              servicePort: http
+              service:
+                 name: custos-integration-services-swagger
+                 port:
+                    name: http
 
   tls:
     - hosts:

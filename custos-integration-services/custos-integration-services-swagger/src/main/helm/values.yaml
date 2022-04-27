@@ -61,8 +61,8 @@ resources:
     #   cpu: 100m
    # memory: 150Mi
 
-nodeSelector: {}
-    #custosServiceWorker: "enabled"
+nodeSelector:
+    custosServiceWorker: "enabled"
 
 tolerations: []
 
@@ -81,3 +81,7 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 1
   successThreshold: 1
+
+deployment:
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"

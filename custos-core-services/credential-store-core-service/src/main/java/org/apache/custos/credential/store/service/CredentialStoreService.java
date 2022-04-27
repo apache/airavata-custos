@@ -343,7 +343,8 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             Credential credential = credentialManager.decodeToken(token);
 
             if (credential == null || credential.getId() == null) {
-                LOGGER.error("Invalid access token");
+                LOGGER.error("" +
+                        "Invalid access token");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
                 return;
             }
@@ -377,7 +378,8 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             Credential credential = credentialManager.decodeToken(token);
 
             if (credential == null || credential.getId() == null) {
-                LOGGER.error("Invalid access token");
+                LOGGER.error("" +
+                        "Invalid access token");
                 responseObserver.onError(Status.NOT_FOUND.asRuntimeException());
                 return;
             }

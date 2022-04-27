@@ -5,16 +5,19 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
 spec:
   rules:
     - host: {{ .Values.deployment.host }}
       http:
         paths:
           - path: /scim(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: scim-service
-              servicePort: http
+              service:
+                name: scim-service
+                port:
+                   name: http
 
   tls:
     - hosts:

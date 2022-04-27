@@ -62,7 +62,8 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+    custosServiceWorker: "enabled"
 
 tolerations: []
 
@@ -79,5 +80,5 @@ readinessProbe:
 
 
 deployment:
-  host: custos.scigap.org
-
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"
