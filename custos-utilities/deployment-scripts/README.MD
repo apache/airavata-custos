@@ -35,14 +35,14 @@
 ##### Deploying Custos Services
 
 - First change the following parameters in pom.xml
-    - <ssh.username>CHANGE_ME</ssh.username>   (your ssh key password)
-    - <ssh.privatekey>CHANGE_ME</ssh.privatekey> (your ssh privatekey)
-    - <host>CHANGE_ME</host> (your host)
-    - <spring.profiles.active>dev</spring.profiles.active> (yout profile)
-    - <vault.token>CHANGE_ME</vault.token> (your vault token)
+    - <ssh.username>CHANGE_ME</ssh.username>   ( local ssh key password)
+    - <ssh.privatekey>CHANGE_ME</ssh.privatekey> (local ssh privatekey)
+    -  <host> CHANGE_ME</host> ( K8 cluster master rhost)
+    - <spring.profiles.active>dev</spring.profiles.active> (current active profile)
+    - <vault.token>CHANGE_ME</vault.token> ( vault token)
     - <iam.dev.username>CHANGE_ME}</iam.dev.username> ( keycloak  username)
     - <iam.dev.password>CHANGE_ME}</iam.dev.password> ( keycloak password)
-    - <cilogon.dev.id>CHANGE_ME</cilogon.dev.id> (cilogon client id  )
+    - <cilogon.dev.id>CHANGE_ME</cilogon.dev.id> (cilogon client id, contact help@cilogon.org to obtain admin tenant) 
     - <cilogon.dev.sec>CHANGE_ME</cilogon.dev.sec> (cilogon client sec)
     - <custos.email.password>CHANGE_ME</custos.email.password> (your email)
     - <spring.datasource.username>CHANGE_ME</spring.datasource.username> (mysql database username)
