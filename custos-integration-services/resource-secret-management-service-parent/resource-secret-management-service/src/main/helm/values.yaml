@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -75,7 +75,7 @@ role:
 
 
 proxy:
-   repository: apachecustos/resource-secret-management-service-sidecar
+   repository: ${docker.image.prefix}/resource-secret-management-service-sidecar
    tag: "${project.version}"
    port: 50000
    webport: 50001

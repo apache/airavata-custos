@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -75,7 +75,7 @@ role:
 
 
 proxy:
-   repository: apachecustos/${artifactId}
+   repository: ${docker.image.prefix}/${artifactId}
    tag: "${project.version}"
    port: 40000
    adminport: 9901

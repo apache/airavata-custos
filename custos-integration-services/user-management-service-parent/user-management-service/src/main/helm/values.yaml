@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -70,7 +70,7 @@ tolerations: []
 affinity: {}
 
 proxy:
-   repository: apachecustos/user-management-service-sidecar
+   repository: ${docker.image.prefix}/user-management-service-sidecar
    tag: "${project.version}"
    port: 50000
    adminport: 9901
