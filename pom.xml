@@ -355,7 +355,7 @@
             <id>container</id>
             <properties>
                 <spring.profiles.active>production</spring.profiles.active>
-                <vault.token>s.SoaSEW6VF1zAHwiRp5hpzSf2</vault.token>
+                <vault.token>s.MPWg0bgDK7piUogO03sxIomv</vault.token>
                 <vault.scheme>http</vault.scheme>
                 <vault.host>vault.vault.svc.cluster.local</vault.host>
                 <vault.port>8200</vault.port>
@@ -365,7 +365,7 @@
                 <iam.staging.username>{{token}}</iam.staging.username>
                 <iam.staging.password>{{token}}</iam.staging.password>
                 <iam.production.username>admin</iam.production.username>
-                <iam.production.password>dwqZkp5OOfKiew==</iam.production.password>
+                <iam.production.password>SjWYZZqgwUP4aA==</iam.production.password>
                 <cilogon.dev.id>{{token}}</cilogon.dev.id>
                 <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
                 <cilogon.staging.id>{{token}}</cilogon.staging.id>
@@ -537,11 +537,11 @@
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
                                 </scp>
-<!--                                <sshexec host="${host}"-->
-<!--                                         username="${ssh.username}"-->
-<!--                                         keyfile="${ssh.privatekey}"-->
-<!--                                         passphrase="${ssh.passphrase}" trust="true"-->
-<!--                                         command="helm delete  ${project.artifactId} -n custos "/>-->
+                                <sshexec host="${host}"
+                                         username="${ssh.username}"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm delete  ${project.artifactId} -n custos "/>
 
                                 <sshexec host="${host}"
                                          username="${ssh.username}"
@@ -697,7 +697,7 @@
         <email.version>1.5.0-b01</email.version>
 <!--        <ssh.username>custos</ssh.username>-->
         <ssh.username>custosadmin</ssh.username>
-        <project.version>1.0</project.version>
+        <project.version>1.1</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
 
 

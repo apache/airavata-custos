@@ -60,6 +60,7 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
                 clientId = null;
             }
 
+            LOGGER.info("clientId :"+ clientId);
             boolean agentAuthenticationEnabled = isAgentAuthenticationEnabled(headers);
 
             if (agentAuthenticationEnabled) {
@@ -68,7 +69,11 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
             Optional<String> userToken = getUserTokenFromUserTokenHeader(headers);
             boolean isBasicAuth = isBasicAuth(headers);
 
+            LOGGER.info("userToken present:"+ userToken.isPresent());
+            LOGGER.info("userToken :"+ (userToken.isPresent()?userToken.get():""));
+
             if (clientId == null && userToken.isEmpty() && isBasicAuth) {
+                LOGGER.info("Authorizing basic auth client Id :"+ clientId+ " isBasicAuth" + isBasicAuth);
                 return authorize(headers);
             } else if (clientId != null && userToken.isEmpty() && isBasicAuth) {
                 return authorizeParentChildTenantValidationWithBasicAuth(headers, clientId);
@@ -77,6 +82,7 @@ public abstract class MultiTenantAuthInterceptor extends AuthInterceptor {
             } else if (clientId != null && isUserToken(headers)) {
                 return authorizeParentChildTenantWithUserTokenValidation(headers, clientId);
             } else {
+                LOGGER.info("Authorizing usertoken");
                 return authorizeUsingUserToken(headers);
             }
 

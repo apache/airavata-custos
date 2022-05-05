@@ -8,8 +8,7 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /scim(/|$)(.*)
             pathType: "Prefix"
@@ -18,8 +17,3 @@ spec:
                 name: scim-service
                 port:
                    name: http
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret

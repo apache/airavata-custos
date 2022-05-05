@@ -8,8 +8,7 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /user-management(/|$)(.*)
             pathType: "Prefix"
@@ -18,8 +17,3 @@ spec:
                 name: user-management-service
                 port:
                   name: envoyhttp
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret

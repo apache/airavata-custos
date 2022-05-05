@@ -8,8 +8,7 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /org.apache.custos.user.management.service.UserManagementService(/|$)(.*)
             pathType: "Prefix"
@@ -18,9 +17,3 @@ spec:
                   name: user-management-service
                   port:
                     name: grpc
-
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret

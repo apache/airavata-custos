@@ -327,6 +327,8 @@ public class KeycloakAuthClient {
     }
 
     private User getUserInfo(String realmId, String token) throws Exception {
+        LOGGER.info("userToken :"+token);
+
         String openIdConnectUrl = getOpenIDConfigurationUrl(realmId);
         JSONObject openIdConnectConfig = new JSONObject(getFromUrl(openIdConnectUrl, null));
         String userInfoEndPoint = openIdConnectConfig.getString("userinfo_endpoint");

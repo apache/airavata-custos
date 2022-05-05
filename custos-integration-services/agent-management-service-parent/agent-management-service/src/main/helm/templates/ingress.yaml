@@ -4,12 +4,11 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /agent-management/$2
-    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
+#    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /agent-management(/|$)(.*)
             pathType: "Prefix"
@@ -18,8 +17,3 @@ spec:
                   name: agent-management-service
                   port:
                      name: envoyhttp
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret

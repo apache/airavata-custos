@@ -8,8 +8,7 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - host: {{ .Values.deployment.host }}
-       http:
+     - http:
         paths:
           - path: /org.apache.custos.tenant.management.service.TenantManagementService(/|$)(.*)
             pathType: "Prefix"
@@ -18,8 +17,3 @@ spec:
                 name: tenant-management-service
                 port:
                   name: grpc
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret

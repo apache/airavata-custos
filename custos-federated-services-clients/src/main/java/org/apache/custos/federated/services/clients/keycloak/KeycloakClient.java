@@ -1345,6 +1345,11 @@ public class KeycloakClient {
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
 
+            LOGGER.info("iamServerURL "+ iamServerURL);
+            LOGGER.info("SuperAdminRealmId "+ superAdminRealmID);
+            LOGGER.info("SuperAdminUserName "+ superAdminUserName);
+            LOGGER.info("SuperAdminPassword "+ superAdminPassword);
+
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);
 

@@ -70,7 +70,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
     public Optional<AuthClaim> authorize(Metadata headers) {
         try {
             String formattedToken = getToken(headers);
-
+             LOGGER.info("Token "+ formattedToken);
             if (formattedToken == null) {
                 throw new UnAuthorizedException(" token not found ", null);
             }
