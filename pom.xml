@@ -355,7 +355,7 @@
             <id>container</id>
             <properties>
                 <spring.profiles.active>production</spring.profiles.active>
-                <vault.token>s.MPWg0bgDK7piUogO03sxIomv</vault.token>
+                <vault.token>{{token}</vault.token>
                 <vault.scheme>http</vault.scheme>
                 <vault.host>vault.vault.svc.cluster.local</vault.host>
                 <vault.port>8200</vault.port>
@@ -364,17 +364,20 @@
                 <iam.dev.password>{{token}}</iam.dev.password>
                 <iam.staging.username>{{token}}</iam.staging.username>
                 <iam.staging.password>{{token}}</iam.staging.password>
-                <iam.production.username>admin</iam.production.username>
-                <iam.production.password>SjWYZZqgwUP4aA==</iam.production.password>
+                <iam.production.username>{{token}</iam.production.username>
+                <iam.production.password>{{token}</iam.production.password>
+                <iam.dev.serverurl>https://keycloak.custos.scigap.org:31000/auth/</iam.dev.serverurl>
+                <iam.staging.serverurl>https://keycloak.staging.usecustos.org:30170/auth/</iam.staging.serverurl>
+                <iam.production.serverurl>https://prod.keycloak.usecustos.org/auth/</iam.production.serverurl>
                 <cilogon.dev.id>{{token}}</cilogon.dev.id>
                 <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
                 <cilogon.staging.id>{{token}}</cilogon.staging.id>
                 <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
-                <cilogon.production.id>cilogon:/adminClient/2f039527fe4715c2f6f19eb0ae327ba7/1633292562101</cilogon.production.id>
-                <cilogon.production.sec>qiOYx_WR3BAfFeE3y9tLFPAsRn2ytblkXIMCVwGJzl07GAdwmBQRfgVc2eW65ZzA2L2Wy7ByZexS0wTqWtUHRA</cilogon.production.sec>
-                <custos.email.password>{{token}}</custos.email.password>
+                <cilogon.production.id>{{token}</cilogon.production.id>
+                <cilogon.production.sec>{{token}</cilogon.production.sec>
+                <custos.email.password>{{token}</custos.email.password>
                 <spring.datasource.username>root</spring.datasource.username>
-                <spring.datasource.password>UtahSALTlakeCITY</spring.datasource.password>
+                <spring.datasource.password>{{token}</spring.datasource.password>
 
             </properties>
             <activation>

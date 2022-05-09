@@ -52,8 +52,6 @@ public class KeycloakClient {
 
     private final static int SESSION_IDLE_TIMEOUT = 3600;
 
-    @Autowired
-    private KeycloakAuthClient keycloakAuthClient;
 
     @Value("${iam.server.client.id:admin-cli}")
     private String clientId;
