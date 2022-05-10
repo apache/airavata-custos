@@ -31,6 +31,8 @@ import org.apache.custos.identity.management.service.GetAgentTokenRequest;
 import org.apache.custos.identity.management.service.GetCredentialsRequest;
 import org.apache.custos.identity.management.service.IdentityManagementServiceGrpc;
 import org.apache.custos.identity.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -39,6 +41,8 @@ import java.io.IOException;
  * Java client to connect with the Custos Identity Management Service
  */
 public class IdentityManagementClient extends AbstractClient {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityManagementClient.class);
 
     private IdentityManagementServiceGrpc.IdentityManagementServiceBlockingStub blockingStub;
 
@@ -212,7 +216,9 @@ public class IdentityManagementClient extends AbstractClient {
 
     @Override
     public void close() throws IOException {
+        LOGGER.info("Calling close on IdentityManagementClient");
         if (managedChannel != null) {
+            LOGGER.info("Calling channel shutdown");
             managedChannel.shutdown();
         }
     }
