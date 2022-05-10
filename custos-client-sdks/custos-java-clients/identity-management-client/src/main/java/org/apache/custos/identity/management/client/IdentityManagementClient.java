@@ -212,6 +212,8 @@ public class IdentityManagementClient extends AbstractClient {
 
     @Override
     public void close() throws IOException {
-        this.managedChannel.shutdown();
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
     }
 }
