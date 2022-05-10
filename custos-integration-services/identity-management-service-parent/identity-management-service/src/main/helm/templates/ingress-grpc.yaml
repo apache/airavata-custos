@@ -4,7 +4,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
@@ -12,9 +12,12 @@ spec:
        http:
         paths:
          - path: /org.apache.custos.identity.management.service.IdentityManagementService(/|$)(.*)
+           pathType: "Prefix"
            backend:
-              serviceName: identity-management-service
-              servicePort: grpc
+              service:
+                 name: identity-management-service
+                 port:
+                    name: grpc
 
   tls:
     - hosts:

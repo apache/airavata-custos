@@ -78,3 +78,5 @@ def deleteKVCredential():
     resp = resource_secret_client.delete_KV_credential(token=token, user_token=token,
                                                        client_id='CHANGE_ME', key='Your key')
     print(resp)
+
+

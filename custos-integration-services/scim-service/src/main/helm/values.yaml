@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -62,7 +62,8 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+    custosServiceWorker: "enabled"
 
 tolerations: []
 
@@ -79,5 +80,5 @@ readinessProbe:
 
 
 deployment:
-  host: custos.scigap.org
-
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"

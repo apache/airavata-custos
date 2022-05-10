@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -62,8 +62,8 @@ resources:
   #   cpu: 100m
    #    memory: 150Mi
 
-nodeSelector: {}
-    #custosServiceWorker: "enabled"
+nodeSelector:
+    custosServiceWorker: "enabled"
 
 tolerations: []
 

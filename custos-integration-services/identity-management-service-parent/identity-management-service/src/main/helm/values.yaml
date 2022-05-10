@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: apachecustos/${artifactId}
+  repository: ${docker.image.prefix}/${artifactId}
   tag: "${project.version}"
   pullPolicy: Always
 
@@ -62,14 +62,15 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+    custosServiceWorker: "enabled"
 
 tolerations: []
 
 affinity: {}
 
 proxy:
-   repository: apachecustos/identity-management-service-sidecar
+   repository: ${docker.image.prefix}/identity-management-service-sidecar
    tag: "${project.version}"
    port: 50000
    adminport: 9901
@@ -85,4 +86,5 @@ readinessProbe:
   successThreshold: 1
 
 deployment:
-  host: custos.scigap.org
+  host: "${host}"
+  clusterIssuer: "${clusterIssuer}"

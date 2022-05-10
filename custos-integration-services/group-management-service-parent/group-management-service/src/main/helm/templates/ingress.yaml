@@ -4,7 +4,7 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /group-management/$2
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /group-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: group-management-service
-              servicePort: envoyhttp
+              service:
+                  name: group-management-service
+                  port:
+                    name: envoyhttp
 
   tls:
     - hosts:
