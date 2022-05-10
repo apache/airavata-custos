@@ -54,54 +54,37 @@ public class CustosClientProvider {
 
 
     public IdentityManagementClient getIdentityManagementClient() throws IOException {
-        try (IdentityManagementClient identityManagementClient = new IdentityManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return identityManagementClient;
-        }
+        return new IdentityManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
 
     }
 
 
     public TenantManagementClient getTenantManagementClient() throws IOException {
-        try (TenantManagementClient tenantManagementClient = new TenantManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return tenantManagementClient;
-        }
+        return new TenantManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public AgentManagementClient getAgentManagementClient() throws IOException {
-        try (AgentManagementClient agentManagementClient = new AgentManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return agentManagementClient;
-        }
+        return new AgentManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public GroupManagementClient getGroupManagementClient() throws IOException {
-        try (GroupManagementClient groupManagementClient = new GroupManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return groupManagementClient;
-        }
+        return new GroupManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public ResourceSecretManagementClient getResourceSecretManagementClient() throws IOException {
-        try (ResourceSecretManagementClient resourceSecretManagementClient = new ResourceSecretManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return resourceSecretManagementClient;
-        }
+        return new ResourceSecretManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public SharingManagementClient getSharingManagementClient() throws IOException {
-        try (SharingManagementClient sharingManagementClient = new SharingManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return sharingManagementClient;
-        }
+        return new SharingManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public UserManagementClient getUserManagementClient() throws IOException {
-        try (UserManagementClient userManagementClient = new UserManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return userManagementClient;
-        }
+        return new UserManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
     public ResourceSecretManagementClient getResourceSecretManagementClientForAgents() throws IOException {
-        try (ResourceSecretManagementClient resourceSecretManagementClient = new ResourceSecretManagementAgentClient
-                (this.serverHost, this.serverPort, this.clientId, this.clientSec)) {
-            return resourceSecretManagementClient;
-        }
+        return  new ResourceSecretManagementAgentClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
 
