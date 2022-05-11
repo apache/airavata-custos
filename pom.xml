@@ -312,7 +312,7 @@
                                 </goals>
                                 <configuration>
                                     <outputDirectory>
-                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
+                                        ${project.basedir}/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
                                     </outputDirectory>   <!-- output directory -->
                                     <resources>
                                         <resource>
