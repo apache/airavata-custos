@@ -274,6 +274,7 @@ public class TenantManagementClient extends AbstractClient {
 
     @Override
     public void close() throws IOException {
+        super.close();
         if (this.managedChannel != null) {
             this.managedChannel.shutdown();
         }
