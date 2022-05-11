@@ -161,6 +161,7 @@ public class ResourceSecretManagementAgentClient extends ResourceSecretManagemen
 
     @Override
     public void close() throws IOException {
+        super.close();
         if (this.managedChannel != null) {
             this.managedChannel.shutdown();
         }

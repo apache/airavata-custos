@@ -541,17 +541,17 @@
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
                                 </scp>
-<!--                                <sshexec host="${host}"-->
-<!--                                         username="${ssh.username}"-->
-<!--                                         keyfile="${ssh.privatekey}"-->
-<!--                                         passphrase="${ssh.passphrase}" trust="true"-->
-<!--                                         command="helm delete  ${project.artifactId} -n custos "/>-->
+                                <sshexec host="${host}"
+                                         username="${ssh.username}"
+                                         keyfile="${ssh.privatekey}"
+                                         passphrase="${ssh.passphrase}" trust="true"
+                                         command="helm delete  --purge ${project.artifactId} "/>
 
                                 <sshexec host="${host}"
                                          username="${ssh.username}"
                                          keyfile="${ssh.privatekey}"
                                          passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install  ${project.artifactId} /home/${ssh.username}/custos/artifacts/${project.artifactId}-${project.version}.tgz  -n custos"/>
+                                         command="helm install  --name ${project.artifactId} /home/${ssh.username}/custos/artifacts/${project.artifactId}-${project.version}.tgz  --namespace custos"/>
 
                                 <!-- SSH -->
                                 <taskdef name="sshexec"
@@ -689,7 +689,7 @@
 
 <!--        <host>prod.custos.usecustos.org</host>-->
 
-        <host>custos10.sciencegateways.iu.edu</host>
+        <host>custos.scigap.org</host>
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
@@ -700,7 +700,7 @@
 
         <email.version>1.5.0-b01</email.version>
 <!--        <ssh.username>custos</ssh.username>-->
-        <ssh.username>custosadmin</ssh.username>
+        <ssh.username>ubuntu</ssh.username>
         <project.version>1.1-SNAPSHOT</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
 
