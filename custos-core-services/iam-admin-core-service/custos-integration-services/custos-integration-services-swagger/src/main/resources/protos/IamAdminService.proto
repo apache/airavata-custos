@@ -1,0 +1,507 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.iam.service;
+
+import "google/protobuf/empty.proto";
+option go_package = "./pb";
+
+enum FederatedIDPs {
+    CILOGON = 0;
+    FACEBOOK = 1;
+    GOOGLE = 2;
+    LINKEDIN = 3;
+    TWITTER = 4;
+    CUSTOM_OIDC = 5;
+}
+
+
+message SetUpTenantRequest {
+    int64 tenant_id = 1;
+    string tenant_name = 2;
+    string admin_username = 3;
+    string admin_firstname = 4;
+    string admin_lastname = 5;
+    string admin_email = 6;
+    string admin_password = 7;
+    string tenant_uRL = 8;
+    string requester_email = 9;
+    repeated string redirect_uRIs = 10;
+    string custos_client_id = 11;
+
+}
+
+message ConfigureFederateIDPRequest {
+    int64 tenant_id = 1;
+    FederatedIDPs type = 2;
+    string client_iD = 3;
+    string client_sec = 4;
+    map<string, string> config_map = 5;
+    string requester_email = 6;
+    string idp_id = 7;
+    string scope = 8;
+}
+
+
+message FederateIDPResponse {
+    bool status = 1;
+}
+
+message SetUpTenantResponse {
+    string client_id = 1;
+    string client_secret = 2;
+}
+
+message IsUsernameAvailableRequest {
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string user_name = 3;
+
+}
+
+message CheckingResponse {
+    bool is_exist = 1;
+}
+
+
+message UserRepresentation {
+    string id = 1;
+    string username = 3;
+    string first_name = 4;
+    string last_name = 5;
+    string password = 6;
+    string email = 7;
+    bool temporary_password = 8;
+    repeated string realm_roles = 9;
+    repeated string client_roles = 10;
+    repeated UserAttribute attributes = 11;
+    string state = 12;
+    double creation_time = 13;
+    double last_login_at = 14;
+}
+
+
+message GroupRepresentation {
+    string name = 1;
+    string id = 2;
+    repeated string realm_roles = 3;
+    repeated string client_roles = 4;
+    repeated UserAttribute attributes = 5;
+    repeated UserRepresentation users = 6;
+    repeated GroupRepresentation sub_groups = 7;
+    string description = 8;
+    string ownerId = 9;
+}
+
+
+message RegisterUserRequest {
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string client_id = 3;
+    string client_sec = 4;
+    UserRepresentation user = 5;
+    string performed_by = 6;
+}
+
+
+message RegisterUsersRequest {
+    repeated UserRepresentation users = 1;
+    int64 tenant_id = 2;
+    string access_token = 3;
+    string client_id = 4;
+    string performed_by = 5;
+}
+
+message RegisterUserResponse {
+    bool is_registered = 1;
+}
+
+message RegisterUsersResponse {
+    bool all_useres_registered = 1;
+    repeated UserRepresentation failed_users = 2;
+}
+
+
+message UserSearchMetadata {
+    string username = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string email = 4;
+    string id = 5;
+}
+
+message FindUsersRequest {
+    UserSearchMetadata user = 3;
+    int32 offset = 4;
+    int32 limit = 5;
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string client_id = 6;
+    string client_sec = 7;
+
+}
+
+message UserSearchRequest {
+    UserSearchMetadata user = 1;
+    int64 tenant_id = 2;
+    string access_token = 3;
+    string client_id = 4;
+    string client_sec = 5;
+    string performed_by = 6;
+}
+
+message FindUsersResponse {
+    repeated UserRepresentation users = 1;
+}
+
+message ResetUserPassword {
+    string username = 1;
+    string password = 2;
+    int64 tenant_id = 3;
+    string access_token = 4;
+    string client_id = 5;
+    string client_sec = 6;
+}
+
+
+message DeleteUserRolesRequest {
+    int64 tenant_id = 1;
+    string username = 2;
+    repeated string client_roles = 3;
+    repeated string roles = 4;
+    string access_token = 5;
+    string client_id = 6;
+    string performed_by = 7;
+    string id = 8;
+}
+
+message AddUserRolesRequest {
+    int64 tenant_id = 1;
+    repeated string usernames = 2;
+    repeated string roles = 3;
+    string access_token = 4;
+    string client_id = 5;
+    bool client_level = 6;
+    string performed_by = 7;
+    repeated string agents = 8;
+}
+
+message UpdateUserProfileRequest {
+    string access_token = 1;
+    int64 tenant_id = 2;
+    UserRepresentation user = 3;
+
+}
+
+message AddUserResponse {
+    string code = 1;
+}
+
+message GetOperationsMetadataRequest {
+    int64 trace_id = 1;
+}
+
+message OperationMetadata {
+    string event = 1;
+    string status = 2;
+    string time_stamp = 3;
+    string performed_by = 4;
+}
+message GetOperationsMetadataResponse {
+    repeated OperationMetadata metadata = 1;
+}
+
+message DeleteTenantRequest {
+    int64 tenant_id = 1;
+}
+
+message AddRolesRequest {
+    repeated RoleRepresentation roles = 1;
+    bool client_level = 2;
+    int64 tenant_id = 3;
+    string client_id = 4;
+}
+
+message GetRolesRequest {
+    bool client_level = 1;
+    int64 tenant_id = 2;
+    string client_id = 3;
+}
+
+message RoleRepresentation {
+    string name = 1;
+    string description = 2;
+    bool composite = 3;
+    string id = 4;
+}
+
+message DeleteRoleRequest {
+    bool client_level = 1;
+    int64 tenant_id = 2;
+    string client_id = 3;
+    RoleRepresentation role = 4;
+}
+
+message AllRoles {
+    repeated RoleRepresentation roles = 1;
+    string scope = 2;
+}
+
+message AddProtocolMapperRequest {
+    string name = 1;
+    string attribute_name = 2;
+    string claim_name = 3;
+    ClaimJSONTypes claim_type = 4;
+    int64 tenant_id = 6;
+    string client_id = 7;
+    MapperTypes mapper_type = 8;
+    bool add_to_id_token = 9;
+    bool add_to_access_token = 10;
+    bool add_to_user_info = 11;
+    bool multi_valued = 12;
+    bool aggregate_attribute_values = 13;
+}
+
+enum MapperTypes {
+    USER_ATTRIBUTE = 0;
+    USER_REALM_ROLE = 1;
+    USER_CLIENT_ROLE = 2;
+}
+
+enum ClaimJSONTypes {
+    STRING = 0;
+    LONG = 1;
+    INTEGER = 2;
+    BOOLEAN = 3;
+    JSON = 4;
+}
+
+enum ResourceTypes {
+    USER =0;
+    AGENT = 1;
+}
+
+message OperationStatus {
+    bool status = 1;
+}
+
+message AddUserAttributesRequest {
+    repeated UserAttribute attributes = 1;
+    repeated string users = 2;
+    int64 tenant_id = 3;
+    string client_id = 4;
+    string access_token = 5;
+    string performedBy = 6;
+    repeated string agents = 7;
+}
+
+message DeleteUserAttributeRequest {
+    repeated UserAttribute attributes = 1;
+    repeated string users = 2;
+    int64 tenant_id = 3;
+    string client_id = 4;
+    string access_token = 5;
+    string performedBy = 6;
+    repeated string agents = 7;
+}
+
+message UserAttribute {
+    string key = 1;
+    repeated string values = 2;
+}
+
+message EventPersistenceRequest {
+    int64 tenantId = 1;
+    bool admin_event = 2;
+    string event = 3;
+    bool enable = 4;
+    int64 persistence_time = 5;
+    string performedBy = 6;
+}
+
+
+message GroupsRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    repeated GroupRepresentation groups = 6;
+}
+
+message GroupRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string id = 6;
+    GroupRepresentation group = 7;
+}
+
+message GroupsResponse {
+    repeated GroupRepresentation groups = 1;
+}
+
+message UserGroupMappingRequest {
+    int64 tenantId = 1;
+    string accessToken = 2;
+    string performedBy = 3;
+    string clientId = 4;
+    string clientSec = 5;
+    string username = 6;
+    string group_id = 7;
+    string membership_type = 8;
+}
+
+message AgentClientMetadata {
+    int64 tenantId = 1;
+    string tenantURL = 2;
+    repeated string redirectURIs = 3;
+    string clientName = 4;
+    int64 access_token_life_time = 5;
+    string performedBy = 6;
+    string access_token = 7;
+}
+
+message Agent {
+    string id = 1;
+    repeated string realm_roles = 2;
+    repeated UserAttribute attributes = 3;
+    bool isEnabled = 4;
+    double creation_time = 5;
+    double last_modified_at = 6;
+    repeated string client_roles = 7;
+}
+
+
+message GetAllResources {
+    int64 tenantId = 1;
+    string clientId = 2;
+    ResourceTypes resource_type = 3;
+}
+
+message GetAllResourcesResponse {
+    repeated Agent agents = 1;
+    repeated UserRepresentation users = 2;
+}
+
+message DeleteExternalIDPsRequest {
+    int64 tenant_id= 1;
+    string client_id = 2;
+    repeated string user_id=3;
+}
+
+message GetExternalIDPsRequest {
+    int64 tenant_id= 1;
+    string client_id = 2;
+    string user_id=3;
+}
+
+
+message ExternalIDPLink {
+    string provider_alias = 1;
+    string provider_user_id =2;
+    string provider_username = 3;
+}
+
+message GetExternalIDPsResponse {
+  repeated   ExternalIDPLink idp_links = 1;
+}
+
+message AddExternalIDPLinksRequest {
+   repeated ExternalIDPLink idp_links = 1;
+   int64 tenant_id= 2;
+   string client_id = 3;
+}
+
+service IamAdminService {
+
+    rpc setUPTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc updateTenant (SetUpTenantRequest) returns (SetUpTenantResponse);
+    rpc deleteTenant (DeleteTenantRequest) returns (google.protobuf.Empty);
+    rpc configureFederatedIDP (ConfigureFederateIDPRequest) returns (FederateIDPResponse);
+    rpc addRolesToTenant (AddRolesRequest) returns (AllRoles);
+    rpc addProtocolMapper (AddProtocolMapperRequest) returns (OperationStatus);
+    rpc getRolesOfTenant (GetRolesRequest) returns (AllRoles);
+    rpc deleteRole (DeleteRoleRequest) returns (OperationStatus);
+
+    rpc isUsernameAvailable (UserSearchRequest) returns (OperationStatus);
+    rpc registerUser (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc enableUser (UserSearchRequest) returns (UserRepresentation);
+    rpc disableUser (UserSearchRequest) returns (UserRepresentation);
+    rpc isUserEnabled (UserSearchRequest) returns (OperationStatus);
+    rpc isUserExist (UserSearchRequest) returns (CheckingResponse);
+    rpc getUser (UserSearchRequest) returns (UserRepresentation);
+    rpc findUsers (FindUsersRequest) returns (FindUsersResponse);
+    rpc resetPassword (ResetUserPassword) returns (OperationStatus);
+    rpc grantAdminPrivilege (UserSearchRequest) returns (OperationStatus);
+    rpc removeAdminPrivilege (UserSearchRequest) returns (OperationStatus);
+    rpc deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest) returns (OperationStatus);
+    rpc getExternalIDPLinksOfUsers(GetExternalIDPsRequest) returns (GetExternalIDPsResponse);
+    rpc addExternalIDPLinksOfUsers(AddExternalIDPLinksRequest) returns (OperationStatus);
+
+    rpc registerAndEnableUsers (RegisterUsersRequest) returns (RegisterUsersResponse);
+    rpc addUserAttributes (AddUserAttributesRequest) returns (OperationStatus);
+    rpc deleteUserAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
+    rpc addRolesToUsers (AddUserRolesRequest) returns (OperationStatus);
+
+    rpc deleteUser (UserSearchRequest) returns (OperationStatus);
+
+    rpc deleteRolesFromUser (DeleteUserRolesRequest) returns (OperationStatus);
+
+    rpc updateUserProfile (UpdateUserProfileRequest) returns (OperationStatus);
+
+    rpc getOperationMetadata (GetOperationsMetadataRequest) returns (GetOperationsMetadataResponse);
+
+    rpc configureEventPersistence (EventPersistenceRequest) returns (OperationStatus);
+
+    rpc createGroups (GroupsRequest) returns (GroupsResponse);
+    rpc updateGroup (GroupRequest) returns (GroupRepresentation);
+    rpc deleteGroup (GroupRequest) returns (OperationStatus);
+    rpc findGroup (GroupRequest) returns (GroupRepresentation);
+    rpc getAllGroups (GroupRequest) returns (GroupsResponse);
+
+    rpc addUserToGroup (UserGroupMappingRequest) returns (OperationStatus);
+    rpc removeUserFromGroup (UserGroupMappingRequest) returns (OperationStatus);
+
+    rpc createAgentClient (AgentClientMetadata) returns (SetUpTenantResponse);
+    rpc configureAgentClient (AgentClientMetadata) returns (OperationStatus);
+
+
+    rpc isAgentNameAvailable (UserSearchRequest) returns (OperationStatus);
+    rpc registerAndEnableAgent (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc deleteAgent (UserSearchRequest) returns (OperationStatus);
+    rpc getAgent (UserSearchRequest) returns (Agent);
+    rpc disableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc enableAgent (UserSearchRequest) returns (OperationStatus);
+    rpc addAgentAttributes (AddUserAttributesRequest) returns (OperationStatus);
+    rpc deleteAgentAttributes (DeleteUserAttributeRequest) returns (OperationStatus);
+    rpc addRolesToAgent (AddUserRolesRequest) returns (OperationStatus);
+    rpc deleteAgentRoles (DeleteUserRolesRequest) returns (OperationStatus);
+
+
+    rpc getAllResources (GetAllResources) returns (GetAllResourcesResponse);
+
+
+}
