@@ -979,6 +979,8 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                             .newBuilder()
                             .setProfile(request.getUserProfile())
                             .setTenantId(request.getTenantId())
+                            .setOffset(request.getOffset())
+                            .setLimit(request.getLimit())
                             .build();
 
 

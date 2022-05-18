@@ -21,12 +21,16 @@ package org.apache.custos.user.profile.persistance.repository;
 
 import org.apache.custos.user.profile.persistance.model.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
 public interface UserRepository extends JpaRepository<UserProfile, String> {
 
     public List<UserProfile> findByTenantId(long tenantId);
+
+    @Query(value = "select * from user_profile t where t.tenant_id LIKE ?1 order by t.id limit ?2 offset ?3", nativeQuery = true)
+    public List<UserProfile> findByTenantIdWithPagination(long tenantId, long limit, long offset);
 
 
 }

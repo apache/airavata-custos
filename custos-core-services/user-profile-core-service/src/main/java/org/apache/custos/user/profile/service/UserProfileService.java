@@ -232,14 +232,24 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         try {
             LOGGER.debug("Request received to getAllUserProfilesInTenant for " + request.getTenantId());
             long tenantId = request.getTenantId();
+            int limit = request.getLimit();
+            int offset = request.getOffset();
+            
+            List<UserProfile> profileList = new ArrayList<>();
 
-            List<UserProfile> profileList = repository.findByTenantId(tenantId);
+            if (limit > 0) {
+                profileList = repository.findByTenantIdWithPagination(tenantId, limit, offset);
+            } else {
+                profileList = repository.findByTenantId(tenantId);
+            }
+
 
             List<org.apache.custos.user.profile.service.UserProfile> userProfileList = new ArrayList<>();
 
             if (profileList != null && profileList.size() > 0) {
                 for (UserProfile entity : profileList) {
-                    org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper.createUserProfileFromUserProfileEntity(entity, null);
+                    org.apache.custos.user.profile.service.UserProfile prof = UserProfileMapper
+                            .createUserProfileFromUserProfileEntity(entity, null);
                     userProfileList.add(prof);
                 }
             }
@@ -710,7 +720,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while fetching groups of client " + request.getClientId() +
                     " reason :" + ex;
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -782,7 +792,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while add user to  group at  " + request.getTenantId() +
                     " reason :" + ex;
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }
@@ -829,7 +839,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
         } catch (Exception ex) {
             String msg = "Error occurred while removing user from  in client " + request.getClientId() + " reason :"
                     + ex;
-            LOGGER.error(msg,ex);
+            LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
         }
     }

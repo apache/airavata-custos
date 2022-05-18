@@ -1,0 +1,137 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.identity.service;
+import "google/protobuf/struct.proto";
+option go_package = "./pb";
+
+message AuthToken {
+    string access_token = 1;
+    repeated Claim claims = 2;
+}
+
+
+message Claim {
+    string key = 1;
+    string value = 2;
+}
+
+message User {
+    string sub = 1;
+    string full_name = 2;
+    string first_name = 3;
+    string last_name = 4;
+    string email_address = 5;
+    string username = 6;
+    string client_id = 7;
+}
+
+
+message GetTokenRequest {
+    int64 tenant_id = 1;
+    string client_id = 2;
+    string client_secret = 3;
+    string redirect_uri = 4;
+    string code = 6;
+    string username = 7;
+    string password = 8;
+    string refresh_token = 9;
+    string grant_type = 10;
+}
+
+message TokenResponse {
+    string access_token = 1;
+    double expires_in = 2;
+    double refresh_expires_in = 3;
+    string refresh_token = 4;
+    string token_type = 5;
+    string id_token = 6;
+    double not_before_policy = 7;
+    string session_state = 8;
+    string scope = 9;
+}
+
+
+message AuthenticationRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+    string username = 4;
+    string password = 5;
+}
+
+message IsAuthenticatedResponse {
+    bool authenticated = 1;
+}
+
+message GetUserManagementSATokenRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+}
+
+message GetAuthorizationEndpointRequest {
+    int64 tenant_id = 1;
+}
+
+message AuthorizationResponse {
+    string authorization_endpoint = 2;
+}
+
+message GetOIDCConfiguration {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+}
+
+message GetJWKSRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+}
+
+message EndSessionRequest {
+    string client_id = 1;
+    string client_secret = 2;
+    int64 tenant_id = 3;
+    string refresh_token = 4;
+}
+
+message OperationStatus {
+    bool status = 1;
+}
+
+service IdentityService {
+    rpc authenticate (AuthenticationRequest) returns (AuthToken);
+    rpc isAuthenticated (AuthToken) returns (IsAuthenticatedResponse);
+    rpc getUser (AuthToken) returns (User);
+    rpc getUserManagementServiceAccountAccessToken (GetUserManagementSATokenRequest) returns (AuthToken);
+    rpc getToken (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getAuthorizeEndpoint (GetAuthorizationEndpointRequest) returns (AuthorizationResponse);
+    rpc getOIDCConfiguration (GetOIDCConfiguration) returns (google.protobuf.Struct);
+    rpc getTokenByPasswordGrantType (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getTokenByRefreshTokenGrantType (GetTokenRequest) returns (google.protobuf.Struct);
+    rpc getJWKS (GetJWKSRequest) returns (google.protobuf.Struct);
+    rpc endSession(EndSessionRequest) returns (OperationStatus);
+
+}
