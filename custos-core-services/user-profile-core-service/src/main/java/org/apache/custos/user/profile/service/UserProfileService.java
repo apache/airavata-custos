@@ -234,7 +234,7 @@ public class UserProfileService extends UserProfileServiceGrpc.UserProfileServic
             long tenantId = request.getTenantId();
             int limit = request.getLimit();
             int offset = request.getOffset();
-            
+
             List<UserProfile> profileList = new ArrayList<>();
 
             if (limit > 0) {
