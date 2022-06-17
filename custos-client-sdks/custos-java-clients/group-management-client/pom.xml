@@ -24,7 +24,7 @@
     <parent>
         <artifactId>custos-java-clients</artifactId>
         <groupId>org.apache.custos</groupId>
-        <version>1.0-SNAPSHOT</version>
+       <version>1.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -44,12 +44,47 @@
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>group-management-service</artifactId>
+            <artifactId>custos-clients-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
-            <artifactId>custos-clients-core</artifactId>
+            <artifactId>tenant-profile-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>iam-admin-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>identity-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>user-profile-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>federated-authentication-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>credential-store-core-service-client-stubs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>messaging-core-service-client-stub</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-service-client-stub</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

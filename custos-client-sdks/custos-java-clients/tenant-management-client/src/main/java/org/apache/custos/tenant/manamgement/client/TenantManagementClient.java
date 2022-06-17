@@ -165,6 +165,14 @@ public class TenantManagementClient extends AbstractClient {
         return attachedHeaders(userToken).getTenant(tenantRequest);
     }
 
+    public Tenant getTenant(String clientId) {
+        GetTenantRequest tenantRequest = GetTenantRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .build();
+        return blockingStub.getTenant(tenantRequest);
+    }
+
 
     /**
      * delete tenant identified by clientId
@@ -173,6 +181,11 @@ public class TenantManagementClient extends AbstractClient {
     public void deleteTenant(String userToken, String clientId) {
         DeleteTenantRequest tenantRequest = DeleteTenantRequest.newBuilder().setClientId(clientId).build();
         attachedHeaders(userToken).deleteTenant(tenantRequest);
+    }
+
+    public void deleteTenant(String clientId) {
+        DeleteTenantRequest tenantRequest = DeleteTenantRequest.newBuilder().setClientId(clientId).build();
+        blockingStub.deleteTenant(tenantRequest);
     }
 
 
@@ -261,6 +274,7 @@ public class TenantManagementClient extends AbstractClient {
 
     @Override
     public void close() throws IOException {
+        super.close();
         if (this.managedChannel != null) {
             this.managedChannel.shutdown();
         }

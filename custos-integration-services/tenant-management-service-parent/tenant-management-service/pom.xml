@@ -24,7 +24,8 @@
     <parent>
         <artifactId>tenant-management-service-parent</artifactId>
         <groupId>org.apache.custos</groupId>
-        <version>1.0-SNAPSHOT</version>
+       <version>1.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -134,13 +135,13 @@
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>messaging-core-service-client-stub</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
             <artifactId>sharing-core-service-client-stub</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

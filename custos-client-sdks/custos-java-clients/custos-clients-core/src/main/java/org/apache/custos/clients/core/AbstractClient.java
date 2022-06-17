@@ -22,6 +22,8 @@ package org.apache.custos.clients.core;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,7 +31,9 @@ import java.io.IOException;
 /**
  * This client will work as an Abstract client for all Java clients
  */
-public class AbstractClient implements Closeable {
+public abstract  class AbstractClient implements Closeable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClient.class);
 
     public ManagedChannel managedChannel;
 
@@ -45,7 +49,9 @@ public class AbstractClient implements Closeable {
 
     @Override
     public void close() throws IOException {
-        managedChannel.shutdown();
+        if (managedChannel != null){
+            managedChannel.shutdown();
+        }
     }
 
     public boolean isShutdown() {

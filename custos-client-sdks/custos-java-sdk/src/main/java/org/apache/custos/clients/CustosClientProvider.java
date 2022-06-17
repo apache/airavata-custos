@@ -55,6 +55,7 @@ public class CustosClientProvider {
 
     public IdentityManagementClient getIdentityManagementClient() throws IOException {
         return new IdentityManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
+
     }
 
 
@@ -83,8 +84,7 @@ public class CustosClientProvider {
     }
 
     public ResourceSecretManagementClient getResourceSecretManagementClientForAgents() throws IOException {
-        return new ResourceSecretManagementAgentClient
-                (this.serverHost, this.serverPort, this.clientId, this.clientSec);
+        return  new ResourceSecretManagementAgentClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
 

@@ -35,6 +35,8 @@ message UserProfileRequest {
     string access_token = 4;
     string client_secret = 5;
     string performed_by = 6;
+    int32 limit = 7;
+    int32 offset=8;
 }
 
 message GetUserRequest {
@@ -142,6 +144,19 @@ service UserManagementService {
     rpc deleteExternalIDPsOfUsers (org.apache.custos.iam.service.DeleteExternalIDPsRequest) returns (org.apache.custos.iam.service.OperationStatus) {
         option (google.api.http) = {
            delete: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
+    rpc addExternalIDPsOfUsers (org.apache.custos.iam.service.AddExternalIDPLinksRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
+
+    rpc getExternalIDPsOfUsers (org.apache.custos.iam.service.GetExternalIDPsRequest) returns (org.apache.custos.iam.service.GetExternalIDPsResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users/federatedIDPs"
          };
     }
 

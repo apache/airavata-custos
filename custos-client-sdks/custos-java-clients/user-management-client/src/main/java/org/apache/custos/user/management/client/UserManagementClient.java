@@ -234,11 +234,11 @@ public class UserManagementClient extends AbstractClient {
         }
 
         if (lastName != null) {
-            builder = builder.setFirstName(lastName);
+            builder = builder.setLastName(lastName);
         }
 
         if (email != null) {
-            builder = builder.setFirstName(email);
+            builder = builder.setEmail(email);
         }
         UserSearchMetadata metadata = builder.build();
 
@@ -476,11 +476,11 @@ public class UserManagementClient extends AbstractClient {
         }
 
         if (lastName != null) {
-            builder = builder.setFirstName(lastName);
+            builder = builder.setLastName(lastName);
         }
 
         if (email != null) {
-            builder = builder.setFirstName(email);
+            builder = builder.setEmail(email);
         }
 
         if (searchString != null) {
@@ -558,6 +558,14 @@ public class UserManagementClient extends AbstractClient {
 
         return blockingStub.updateUserProfile(userProfileRequest);
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
     }
 
 }

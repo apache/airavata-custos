@@ -1,22 +1,25 @@
-apiVersion: networking.k8s.io/v1beta1 # for versions before 1.14 use extensions/v1beta1
+apiVersion: networking.k8s.io/v1 # for versions before 1.14 use extensions/v1beta1
 kind: Ingress
 metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: letsencrypt-production
+    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
 spec:
   rules:
     - host: {{ .Values.deployment.host }}
       http:
         paths:
           - path: /scim(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: scim-service
-              servicePort: http
+              service:
+                name: scim-service
+                port:
+                   name: http
 
   tls:
     - hosts:
         - {{ .Values.deployment.host }}
-      secretName: tls-secret
+      secretName: tls-services-secret

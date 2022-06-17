@@ -28,7 +28,7 @@ import javax.persistence.*;
  * Represents Log event
  */
 @Entity
-@Table(name = "log_events")
+@Table(name = "LOG_EVENTS")
 @EntityListeners(AuditingEntityListener.class)
 public class LogEvent {
 

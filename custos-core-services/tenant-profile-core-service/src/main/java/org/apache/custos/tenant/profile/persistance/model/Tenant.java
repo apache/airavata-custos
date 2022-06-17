@@ -109,10 +109,10 @@ public class Tenant {
     private Set<RedirectURI> redirectURIS;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
-    private Set<AttributeUpdateMetadata> attributeUpdateMetadata;
+    private Set<TenantAttributeUpdateMetadata> attributeUpdateMetadata;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL)
-    private Set<StatusUpdateMetadata> statusUpdateMetadata;
+    private Set<TenantStatusUpdateMetadata> statusUpdateMetadata;
 
 
     public Long getId() {
@@ -212,19 +212,19 @@ public class Tenant {
         this.redirectURIS = redirectURIS;
     }
 
-    public Set<AttributeUpdateMetadata> getAttributeUpdateMetadata() {
+    public Set<TenantAttributeUpdateMetadata> getAttributeUpdateMetadata() {
         return attributeUpdateMetadata;
     }
 
-    public void setAttributeUpdateMetadata(Set<AttributeUpdateMetadata> attributeUpdateMetadata) {
+    public void setAttributeUpdateMetadata(Set<TenantAttributeUpdateMetadata> attributeUpdateMetadata) {
         this.attributeUpdateMetadata = attributeUpdateMetadata;
     }
 
-    public Set<StatusUpdateMetadata> getStatusUpdateMetadata() {
+    public Set<TenantStatusUpdateMetadata> getStatusUpdateMetadata() {
         return statusUpdateMetadata;
     }
 
-    public void setStatusUpdateMetadata(Set<StatusUpdateMetadata> statusUpdateMetadata) {
+    public void setStatusUpdateMetadata(Set<TenantStatusUpdateMetadata> statusUpdateMetadata) {
         this.statusUpdateMetadata = statusUpdateMetadata;
     }
 
