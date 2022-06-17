@@ -21,5 +21,5 @@ package org.apache.custos.core.services.commons;
 
 public interface Validator {
 
-    public void validate (String methodName, Object body);
+    public <ReqT> ReqT validate (String methodName, ReqT body);
 }

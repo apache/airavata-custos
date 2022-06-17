@@ -19,11 +19,10 @@
 
 package org.apache.custos.tenant.profile.mapper;
 
-import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.TenantAttributeUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Contact;
 import org.apache.custos.tenant.profile.persistance.model.RedirectURI;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
-import org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -42,11 +41,11 @@ public class AttributeUpdateMetadataMapper {
      * @param updatedBy
      * @return
      */
-    public static Set<AttributeUpdateMetadata> createAttributeUpdateMetadataEntity(Tenant oldTenant, Tenant newTenant, String updatedBy) {
+    public static Set<TenantAttributeUpdateMetadata> createAttributeUpdateMetadataEntity(Tenant oldTenant, Tenant newTenant, String updatedBy) {
 
-        Set<AttributeUpdateMetadata> metadataSet = new HashSet<>();
+        Set<TenantAttributeUpdateMetadata> metadataSet = new HashSet<>();
         if (!oldTenant.getName().equals(newTenant.getName())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("name");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getName());
@@ -56,7 +55,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getAdminEmail().equals(newTenant.getAdminEmail())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("adminEmail");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getAdminEmail());
@@ -66,7 +65,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getAdminFirstName().equals(newTenant.getAdminFirstName())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("adminFirstName");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getAdminFirstName());
@@ -76,7 +75,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getAdminLastName().equals(newTenant.getAdminLastName())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("adminLastName");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getAdminLastName());
@@ -86,7 +85,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getDomain().equals(newTenant.getDomain())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("domain");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getDomain());
@@ -96,7 +95,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getLogoURI().equals(newTenant.getLogoURI())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("logoURI");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getLogoURI());
@@ -106,7 +105,7 @@ public class AttributeUpdateMetadataMapper {
         }
 
         if (!oldTenant.getRequesterEmail().equals(newTenant.getRequesterEmail())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("requesterEmail");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getRequesterEmail());
@@ -117,7 +116,7 @@ public class AttributeUpdateMetadataMapper {
 
 
         if (!oldTenant.getScope().equals(newTenant.getScope())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("scope");
             attributeUpdateMetadata.setUpdatedFieldValue(newTenant.getScope());
@@ -129,7 +128,7 @@ public class AttributeUpdateMetadataMapper {
          Set diff =   difference(oldTenant.getRedirectURIS(), newTenant.getRedirectURIS());
 
         if (!diff.isEmpty()) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("redirectURIS");
             attributeUpdateMetadata.setUpdatedFieldValue(setToString(diff));
@@ -140,7 +139,7 @@ public class AttributeUpdateMetadataMapper {
 
         Set conDiff = difference(oldTenant.getContacts(), newTenant.getContacts());
         if (!conDiff.isEmpty()) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            TenantAttributeUpdateMetadata attributeUpdateMetadata = new TenantAttributeUpdateMetadata();
             attributeUpdateMetadata.setTenant(newTenant);
             attributeUpdateMetadata.setUpdatedFieldKey("contacts");
             attributeUpdateMetadata.setUpdatedFieldValue(setToString(conDiff));
@@ -157,9 +156,9 @@ public class AttributeUpdateMetadataMapper {
      * @param metadata
      * @return
      */
-    public static TenantAttributeUpdateMetadata createAttributeUpdateMetadataFromEntity (AttributeUpdateMetadata metadata) {
+    public static org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata createAttributeUpdateMetadataFromEntity (TenantAttributeUpdateMetadata metadata) {
 
-        return TenantAttributeUpdateMetadata.newBuilder()
+        return org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata.newBuilder()
                  .setUpdatedAt(metadata.getUpdatedAt().toString())
                 .setUpdatedBy(metadata.getUpdatedBy())
                 .setUpdatedAttributeValue(metadata.getUpdatedFieldValue())

@@ -19,10 +19,9 @@
 
 package org.apache.custos.tenant.profile.mapper;
 
-import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.TenantStatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.apache.custos.tenant.profile.service.TenantStatus;
-import org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -40,11 +39,11 @@ public class StatusUpdateMetadataMapper {
      * @param updatedBy
      * @return
      */
-    public static Set<StatusUpdateMetadata>  createStatusUpdateMetadataEntity(Tenant tenant, String updatedBy) {
+    public static Set<TenantStatusUpdateMetadata>  createStatusUpdateMetadataEntity(Tenant tenant, String updatedBy) {
 
-        Set<StatusUpdateMetadata> metaDataSet = new HashSet<>();
+        Set<TenantStatusUpdateMetadata> metaDataSet = new HashSet<>();
 
-        StatusUpdateMetadata metadata = new StatusUpdateMetadata();
+        TenantStatusUpdateMetadata metadata = new TenantStatusUpdateMetadata();
         metadata.setTenant(tenant);
         metadata.setUpdatedBy(updatedBy);
         metadata.setUpdatedStatus(tenant.getStatus());
@@ -60,8 +59,8 @@ public class StatusUpdateMetadataMapper {
      * @param metadata
      * @return TenantStatusUpdateMetadata
      */
-    public static TenantStatusUpdateMetadata createTenantStatusMetadataFrom(StatusUpdateMetadata metadata) {
-        return TenantStatusUpdateMetadata.newBuilder()
+    public static org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata createTenantStatusMetadataFrom(TenantStatusUpdateMetadata metadata) {
+        return org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata.newBuilder()
                 .setUpdatedAt(metadata.getUpdatedAt().toString())
                 .setUpdatedBy(metadata.getUpdatedBy())
                 .setUpdatedStatus(TenantStatus.valueOf(metadata.getUpdatedStatus())).build();

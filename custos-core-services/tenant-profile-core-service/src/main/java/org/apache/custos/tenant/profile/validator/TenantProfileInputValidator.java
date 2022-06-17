@@ -22,11 +22,13 @@ package org.apache.custos.tenant.profile.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.tenant.profile.exceptions.MissingParameterException;
 import org.apache.custos.tenant.profile.service.*;
+import org.springframework.stereotype.Component;
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class TenantProfileInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -35,7 +37,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "addTenant":
@@ -63,7 +65,7 @@ public class InputValidator implements Validator {
             default:
 
         }
-
+       return obj;
 
     }
 

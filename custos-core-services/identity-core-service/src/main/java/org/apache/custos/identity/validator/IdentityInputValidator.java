@@ -26,14 +26,16 @@ import org.apache.custos.identity.service.*;
 import org.apache.custos.identity.utils.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class IdentityInputValidator implements Validator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityInputValidator.class);
 
     /**
      * Input parameter validater
@@ -42,7 +44,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "authenticate":
@@ -80,7 +82,7 @@ public class InputValidator implements Validator {
             default:
                 throw new RuntimeException("Method not implemented");
         }
-
+       return obj;
     }
 
     private boolean validateAuthenticate(Object obj) {

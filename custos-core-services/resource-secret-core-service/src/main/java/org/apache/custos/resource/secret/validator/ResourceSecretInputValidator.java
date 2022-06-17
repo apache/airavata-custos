@@ -23,12 +23,14 @@ package org.apache.custos.resource.secret.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.resource.secret.service.*;
+import org.springframework.stereotype.Component;
 
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class ResourceSecretInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -37,7 +39,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "getAllResourceCredentialSummaries":
@@ -62,6 +64,7 @@ public class InputValidator implements Validator {
                 break;
             default:
         }
+        return obj;
     }
 
     private boolean validateGetResourceCredentialByToken(Object obj, String methodName) {

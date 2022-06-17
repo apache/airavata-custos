@@ -26,11 +26,13 @@ import org.apache.custos.federated.authentication.service.CacheManipulationReque
 import org.apache.custos.federated.authentication.service.ClientMetadata;
 import org.apache.custos.federated.authentication.service.DeleteClientRequest;
 import org.apache.custos.federated.authentication.service.GetClientRequest;
+import org.springframework.stereotype.Component;
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class FederatedAuthenticationInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -39,7 +41,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "addClient":
@@ -66,6 +68,7 @@ public class InputValidator implements Validator {
                 break;
             default:
         }
+        return obj;
     }
 
     private boolean validateClientMetadata(Object obj, String method) {

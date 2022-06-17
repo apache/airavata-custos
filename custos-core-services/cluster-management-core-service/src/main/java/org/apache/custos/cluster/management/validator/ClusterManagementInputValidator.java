@@ -17,16 +17,19 @@
  *  under the License.
  */
 
-package org.apache.custos.agent.profile.validator;
+package org.apache.custos.cluster.management.validator;
 
-import org.apache.custos.agent.profile.service.AgentRequest;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.springframework.stereotype.Component;
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class ClusterManagementInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -35,38 +38,26 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
-            case "createAgent":
-            case "updateAgent":
-            case "deleteAgent":
-            case "getAgent":
-                validateAgentRequest(obj);
+            case "getCustosServerCertificate":
+                validateGetCustosServerCertificate(obj, methodName);
                 break;
             default:
+                throw new NotImplementedException("UnImplemented method");
 
         }
 
+      return obj;
     }
 
-    private boolean validateAgentRequest(Object obj) {
-        if (obj instanceof AgentRequest) {
-            AgentRequest request = (AgentRequest) obj;
-            if (request.getTenantId() == 0) {
-                throw new MissingParameterException("TenantId should not be null", null);
-            }
-            if (request.getAgent() == null) {
-                throw new MissingParameterException("Agent should not be null", null);
-            }
+    private boolean validateGetCustosServerCertificate(Object obj, String method) {
 
-            if (request.getAgent().getId() == null || request.getAgent().getId().equals("")) {
-                throw new MissingParameterException("AgentId should not be null", null);
-            }
-
+        if (obj instanceof GetServerCertificateRequest) {
+           return true;
         }
         return true;
     }
-
 
 }

@@ -26,19 +26,23 @@ import javax.persistence.*;
 import java.util.Date;
 
 /**
- * Keeps the track of status updated metadata
+ * Keeps track of attribute updated metadata
  */
 @Entity
-@Table(name = "status_update_metadata")
+@Table(name = "tenant_attribute_update_metadata")
 @EntityListeners(AuditingEntityListener.class)
-public class StatusUpdateMetadata {
+public class TenantAttributeUpdateMetadata {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @Column(nullable = false)
-    private String updatedStatus;
+    private String updatedFieldKey;
+
+    @Lob
+    @Column(nullable = false)
+    private String updatedFieldValue;
 
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -52,6 +56,7 @@ public class StatusUpdateMetadata {
     @JoinColumn(name = "tenant_id")
     private Tenant tenant;
 
+
     public Long getId() {
         return id;
     }
@@ -60,19 +65,25 @@ public class StatusUpdateMetadata {
         this.id = id;
     }
 
-    public String getUpdatedStatus() {
-        return updatedStatus;
+    public String getUpdatedFieldKey() {
+        return updatedFieldKey;
     }
 
-    public void setUpdatedStatus(String updatedStatus) {
-        this.updatedStatus = updatedStatus;
+    public void setUpdatedFieldKey(String updatedFieldKey) {
+        this.updatedFieldKey = updatedFieldKey;
+    }
+
+    public String getUpdatedFieldValue() {
+        return updatedFieldValue;
+    }
+
+    public void setUpdatedFieldValue(String updatedFieldValue) {
+        this.updatedFieldValue = updatedFieldValue;
     }
 
     public Date getUpdatedAt() {
         return updatedAt;
     }
-
-
 
     public String getUpdatedBy() {
         return updatedBy;

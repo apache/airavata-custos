@@ -28,7 +28,7 @@ import javax.persistence.*;
  * Represents Logging enabled status for tenant
  */
 @Entity
-@Table(name = "logging_enabled_status")
+@Table(name = "LOGGING_ENABLED_STATUS")
 @EntityListeners(AuditingEntityListener.class)
 public class LoggingEnabledStatus {
 

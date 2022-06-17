@@ -23,13 +23,15 @@ package org.apache.custos.iam.validator;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.iam.exceptions.MissingParameterException;
 import org.apache.custos.iam.service.*;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class IAMInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -38,7 +40,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "setUPTenant":
@@ -149,7 +151,7 @@ public class InputValidator implements Validator {
             default:
 
         }
-
+      return obj;
     }
 
     private boolean validateSetUPTenant(Object obj) {

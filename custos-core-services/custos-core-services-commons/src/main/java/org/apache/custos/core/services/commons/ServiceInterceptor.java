@@ -24,6 +24,9 @@ import org.apache.custos.core.services.commons.exceptions.MissingParameterExcept
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
+import java.util.Stack;
+
 /**
  * This class intercepts incoming requests and forwarding for validation
  */
@@ -31,10 +34,10 @@ public class ServiceInterceptor implements ServerInterceptor {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ServiceInterceptor.class);
 
-    private Validator validator;
+    private Stack<Validator> validators;
 
-    public ServiceInterceptor(Validator validator) {
-        this.validator = validator;
+    public ServiceInterceptor(Stack<Validator> validator) {
+        this.validators = validator;
     }
 
     @Override
@@ -47,11 +50,18 @@ public class ServiceInterceptor implements ServerInterceptor {
         LOGGER.debug("Calling method : " + serverCall.getMethodDescriptor().getFullMethodName());
 
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
+
+            ReqT resp = null;
             @Override
             public void onMessage(ReqT message) {
                 try {
-                    validator.validate(methodName, message);
-                    super.onMessage(message);
+
+                    Iterator it = validators.iterator();
+                    while (it.hasNext()) {
+                        Validator interceptor = (Validator) it.next();
+                        resp = interceptor.validate(methodName, (resp == null) ? message : resp);
+                    }
+                    super.onMessage(resp);
                 } catch (Exception ex) {
                     String msg = "Error while validating method " + methodName + " " + ex.getMessage();
                     LOGGER.error(msg);

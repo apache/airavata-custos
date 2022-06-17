@@ -17,19 +17,21 @@
  *  under the License.
  */
 
-package validator;
+package org.apache.custos.logging.validator;
 
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.logging.service.LogEvent;
 import org.apache.custos.logging.service.LogEventRequest;
 import org.apache.custos.logging.service.LoggingConfigurationRequest;
+import org.springframework.stereotype.Component;
 
 
 /**
  * This class validates the  requests
  */
-public class InputValidator implements Validator {
+@Component
+public class CustosLoggingInputValidator implements Validator {
 
     /**
      * Input parameter validater
@@ -38,7 +40,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "addLogEvent":
@@ -55,7 +57,7 @@ public class InputValidator implements Validator {
                 validateEnable(methodName, obj);
                 break;
         }
-
+        return obj;
     }
 
 

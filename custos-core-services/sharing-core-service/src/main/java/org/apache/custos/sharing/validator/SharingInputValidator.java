@@ -25,14 +25,16 @@ import org.apache.custos.core.services.commons.exceptions.MissingParameterExcept
 import org.apache.custos.sharing.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 
 /**
  * This class validates the  request parameter
  */
-public class InputValidator implements Validator {
+@Component
+public class SharingInputValidator implements Validator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InputValidator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SharingInputValidator.class);
 
     /**
      * Input parameter validater
@@ -41,7 +43,7 @@ public class InputValidator implements Validator {
      * @param obj
      * @return
      */
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
 
         switch (methodName) {
             case "createEntityType":
@@ -100,7 +102,7 @@ public class InputValidator implements Validator {
             default:
                 throw new RuntimeException("Method not implemented");
         }
-
+       return obj;
     }
 
     private boolean validateEntityTypeRequest(Object obj, String methodName) {

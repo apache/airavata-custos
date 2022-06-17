@@ -22,13 +22,15 @@ package org.apache.custos.user.profile.validators;
 import org.apache.custos.core.services.commons.Validator;
 import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
 import org.apache.custos.user.profile.service.*;
+import org.springframework.stereotype.Component;
 
 /**
  * Validate inputs
  */
-public class InputValidator implements Validator {
+@Component
+public class UserProfileInputValidator implements Validator {
     @Override
-    public void validate(String methodName, Object obj) {
+    public <ReqT> ReqT validate(String methodName, ReqT obj) {
         switch (methodName) {
             case "createUserProfile":
             case "updateUserProfile":
@@ -86,6 +88,7 @@ public class InputValidator implements Validator {
             default:
 
         }
+        return obj;
     }
 
 

@@ -24,8 +24,8 @@ import io.grpc.stub.StreamObserver;
 import org.apache.custos.tenant.profile.mapper.AttributeUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.StatusUpdateMetadataMapper;
 import org.apache.custos.tenant.profile.mapper.TenantMapper;
-import org.apache.custos.tenant.profile.persistance.model.AttributeUpdateMetadata;
-import org.apache.custos.tenant.profile.persistance.model.StatusUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.TenantAttributeUpdateMetadata;
+import org.apache.custos.tenant.profile.persistance.model.TenantStatusUpdateMetadata;
 import org.apache.custos.tenant.profile.persistance.model.Tenant;
 import org.apache.custos.tenant.profile.persistance.respository.*;
 import org.apache.custos.tenant.profile.service.TenantProfileServiceGrpc.TenantProfileServiceImplBase;
@@ -51,10 +51,10 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
     private TenantRepository tenantRepository;
 
     @Autowired
-    private StatusUpdateMetadataRepository statusUpdateMetadataRepository;
+    private TenantStatusUpdateMetadataRepository tenantStatusUpdateMetadataRepository;
 
     @Autowired
-    private AttributeUpdateMetadataRepository attributeUpdateMetadataRepository;
+    private TenantAttributeUpdateMetadataRepository tenantAttributeUpdateMetadataRepository;
 
     @Autowired
     private ContactRepository contactRepository;
@@ -74,7 +74,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             tenant.setStatus(TenantStatus.REQUESTED.name());
 
-            Set<StatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
+            Set<TenantStatusUpdateMetadata> metadataSet = StatusUpdateMetadataMapper.
                     createStatusUpdateMetadataEntity(tenant, tenant.getRequesterEmail());
 
             tenant.setStatusUpdateMetadata(metadataSet);
@@ -135,7 +135,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
             tenantEntity.setCreatedAt(exTenant.getCreatedAt());
 
 
-            Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
+            Set<TenantAttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
                     createAttributeUpdateMetadataEntity(exTenant, tenantEntity, updatedBy);
 
             tenantEntity.setAttributeUpdateMetadata(metadata);
@@ -268,12 +268,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long id = Long.valueOf(request.getTenantId());
 
-            List<AttributeUpdateMetadata> tenantList = attributeUpdateMetadataRepository.findAllByTenantId(id);
-            List<TenantAttributeUpdateMetadata> metadata = new ArrayList<>();
+            List<TenantAttributeUpdateMetadata> tenantList = tenantAttributeUpdateMetadataRepository.findAllByTenantId(id);
+            List<org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata> metadata = new ArrayList<>();
 
-            for (AttributeUpdateMetadata attributeUpdateMetadata : tenantList) {
+            for (TenantAttributeUpdateMetadata attributeUpdateMetadata : tenantList) {
 
-                TenantAttributeUpdateMetadata updatedMetadata = AttributeUpdateMetadataMapper.
+                org.apache.custos.tenant.profile.service.TenantAttributeUpdateMetadata updatedMetadata = AttributeUpdateMetadataMapper.
                         createAttributeUpdateMetadataFromEntity(attributeUpdateMetadata);
                 metadata.add(updatedMetadata);
 
@@ -302,12 +302,12 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
             Long id = request.getTenantId();
 
-            List<StatusUpdateMetadata> tenantList = statusUpdateMetadataRepository.findAllByTenantId(id);
-            List<TenantStatusUpdateMetadata> metadata = new ArrayList<>();
+            List<TenantStatusUpdateMetadata> tenantList = tenantStatusUpdateMetadataRepository.findAllByTenantId(id);
+            List<org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata> metadata = new ArrayList<>();
 
-            for (StatusUpdateMetadata statusUpdateMetadata : tenantList) {
+            for (TenantStatusUpdateMetadata statusUpdateMetadata : tenantList) {
 
-                TenantStatusUpdateMetadata updatedMetadata = StatusUpdateMetadataMapper
+                org.apache.custos.tenant.profile.service.TenantStatusUpdateMetadata updatedMetadata = StatusUpdateMetadataMapper
                         .createTenantStatusMetadataFrom(statusUpdateMetadata);
                 metadata.add(updatedMetadata);
 
@@ -367,7 +367,7 @@ public class TenantProfileService extends TenantProfileServiceImplBase {
 
                 t.setStatus(status);
 
-                Set<StatusUpdateMetadata> metadata = StatusUpdateMetadataMapper
+                Set<TenantStatusUpdateMetadata> metadata = StatusUpdateMetadataMapper
                         .createStatusUpdateMetadataEntity(t, updatedBy);
                 t.setStatusUpdateMetadata(metadata);
 
