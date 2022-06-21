@@ -45,6 +45,7 @@
         <module>custos-tests</module>
         <module>custos-external-services-distributions</module>
         <module>custos-core-services-server</module>
+        <module>custos-integration-services-server</module>
     </modules>
 
     <dependencyManagement>
