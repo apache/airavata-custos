@@ -191,7 +191,7 @@
                         </goals>
                         <configuration>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <finalName>${artifactId}-${project.version}</finalName>
+                            <finalName>Custos-Core-Services-Server-${project.version}</finalName>
                             <descriptors>
                                 <descriptor>src/main/dist/${artifactId}-assembly.xml</descriptor>
                             </descriptors>

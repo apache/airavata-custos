@@ -45,8 +45,8 @@ public class IdentityClient {
 
 
     public IdentityClient(List<ClientInterceptor> clientInterceptorList,
-                          @Value("${identity.service.dns.name}") String serviceHost,
-                          @Value("${identity.service.port}") int servicePort) {
+                          @Value("${core.services.server.hostname}") String serviceHost,
+                          @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

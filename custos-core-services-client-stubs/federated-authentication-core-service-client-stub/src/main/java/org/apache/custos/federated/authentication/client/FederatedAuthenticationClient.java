@@ -44,8 +44,8 @@ public class FederatedAuthenticationClient {
 
 
     public FederatedAuthenticationClient(List<ClientInterceptor> clientInterceptorList,
-                                         @Value("${federated.authentication.service.dns.name}") String serviceHost,
-                                         @Value("${federated.authentication.service.port}") int servicePort) {
+                                         @Value("${core.services.server.hostname}") String serviceHost,
+                                         @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

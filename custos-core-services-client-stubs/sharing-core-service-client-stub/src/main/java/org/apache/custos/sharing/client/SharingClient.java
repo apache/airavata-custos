@@ -42,8 +42,8 @@ public class SharingClient {
 
 
     public SharingClient(List<ClientInterceptor> clientInterceptorList,
-                         @Value("${sharing.core.service.dns.name}") String serviceHost,
-                         @Value("${sharing.core.service.port}") int servicePort) {
+                         @Value("${core.services.server.hostname}") String serviceHost,
+                         @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

@@ -45,8 +45,8 @@ public class CredentialStoreServiceClient {
 
 
     public CredentialStoreServiceClient(List<ClientInterceptor> clientInterceptorList,
-                                        @Value("${credential.store.service.dns.name}") String serviceHost,
-                                        @Value("${credential.store.service.port}") int servicePort) {
+                                        @Value("${core.services.server.hostname}") String serviceHost,
+                                        @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

@@ -37,8 +37,8 @@ public class ResourceSecretClient {
     private final List<ClientInterceptor> clientInterceptorList;
 
     public ResourceSecretClient(List<ClientInterceptor> clientInterceptorList,
-                                @Value("${resource.secret.service.dns.name}") String serviceHost,
-                                @Value("${resource.secret.service.port}") int servicePort) {
+                                @Value("${core.services.server.hostname}") String serviceHost,
+                                @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

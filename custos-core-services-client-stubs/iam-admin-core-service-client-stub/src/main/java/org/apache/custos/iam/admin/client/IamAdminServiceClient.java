@@ -47,8 +47,8 @@ public class IamAdminServiceClient {
 
 
     public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList,
-                                 @Value("${iam.admin.service.dns.name}") String serviceHost,
-                                 @Value("${iam.admin.service.port}") int servicePort,
+                                 @Value("${core.services.server.hostname}") String serviceHost,
+                                 @Value("${core.services.server.port}") int servicePort,
                                  @Value("${iam.server.url}") String url) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(

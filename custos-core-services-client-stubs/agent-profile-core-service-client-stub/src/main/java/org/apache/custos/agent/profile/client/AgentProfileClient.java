@@ -46,8 +46,8 @@ public class AgentProfileClient {
 
 
     public AgentProfileClient(List<ClientInterceptor> clientInterceptorList,
-                              @Value("${agent.profile.core.service.dns.name}") String serviceHost,
-                              @Value("${agent.profile.core.service.port}") int servicePort) {
+                              @Value("${core.services.server.hostname}") String serviceHost,
+                              @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
