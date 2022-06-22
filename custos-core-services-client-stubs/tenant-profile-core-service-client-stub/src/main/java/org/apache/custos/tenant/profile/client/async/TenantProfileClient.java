@@ -47,8 +47,8 @@ public class TenantProfileClient {
 
 
     public TenantProfileClient(List<ClientInterceptor> clientInterceptorList,
-                               @Value("${tenant.profile.core.service.dns.name}") String serviceHost,
-                               @Value("${tenant.profile.core.service.port}") int servicePort) {
+                               @Value("${core.services.server.hostname}") String serviceHost,
+                               @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

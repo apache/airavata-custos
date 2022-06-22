@@ -19,66 +19,108 @@
 
 package org.apache.custos.integration.services.api;
 
+import io.grpc.ServerInterceptor;
+import org.apache.custos.agent.management.interceptors.AgentManagementClientAuthInterceptorImpl;
+import org.apache.custos.agent.management.interceptors.AgentManagementInputValidator;
+import org.apache.custos.agent.management.interceptors.AgentManagementSuperTenantRestrictedOperationsInterceptorImpl;
+import org.apache.custos.agent.management.interceptors.AgentManagementUserAuthInterceptorImpl;
+import org.apache.custos.group.management.interceptors.GroupManagementClientAuthInterceptorImpl;
+import org.apache.custos.group.management.interceptors.GroupManagementInputValidator;
+import org.apache.custos.identity.management.interceptors.IdentityManagementAgentAuthInterceptor;
+import org.apache.custos.identity.management.interceptors.IdentityManagementAuthInterceptorImpl;
+import org.apache.custos.identity.management.interceptors.IdentityManagementInputValidator;
+import org.apache.custos.integration.core.interceptor.IntegrationServiceInterceptor;
+import org.apache.custos.integration.core.interceptor.ServiceInterceptor;
+import org.apache.custos.integration.services.commons.interceptors.LoggingInterceptor;
+import org.apache.custos.log.management.interceptors.LogManagementAuthInterceptorImpl;
+import org.apache.custos.log.management.interceptors.LogManagementInputValidator;
+import org.apache.custos.resource.secret.management.interceptors.ResourceSecretManagementAuthInterceptorImpl;
+import org.apache.custos.resource.secret.management.interceptors.ResourceSecretManagementInputValidator;
+import org.apache.custos.sharing.management.interceptors.SharingManagementAuthInterceptorImpl;
+import org.apache.custos.sharing.management.interceptors.SharingManagementInputValidator;
+import org.apache.custos.tenant.management.interceptors.TenantManagementAuthInterceptorImpl;
+import org.apache.custos.tenant.management.interceptors.TenantManagementDynamicRegistrationValidator;
+import org.apache.custos.tenant.management.interceptors.TenantManagementInputValidator;
+import org.apache.custos.tenant.management.interceptors.TenantManagementSuperTenantRestrictedOperationsInterceptorImpl;
+import org.apache.custos.user.management.interceptors.UserManagementAuthInterceptorImpl;
+import org.apache.custos.user.management.interceptors.UserManagementInputValidator;
+import org.apache.custos.user.management.interceptors.UserManagementSuperTenantRestrictedOperationsInterceptorImpl;
+import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+import java.util.Stack;
 
 
 @SpringBootApplication
-@EnableJpaAuditing
-@EnableJpaRepositories(basePackages = "org.apache.custos")
 @ComponentScan(basePackages = "org.apache.custos")
-@EntityScan(basePackages = "org.apache.custos")
 public class IntegrationServicesServer {
     public static void main(String[] args) {
         SpringApplication.run(IntegrationServicesServer.class, args);
     }
 
 
-//
-//    @Bean
-//    public Stack<Validator> getInterceptorSet(AgentInputValidator inputValidator,
-//                                                       ClusterManagementInputValidator clusterManagementInputValidator,
-//                                                       CredentialStoreInputValidator credentialStoreInputValidator,
-//                                                       CustosLoggingInputValidator custosLoggingInputValidator,
-//                                                       FederatedAuthenticationInputValidator federatedAuthenticationInputValidator,
-//                                                       IAMInputValidator iamInputValidator,
-//                                                       IdentityInputValidator identityInputValidator,
-//                                                       ResourceSecretInputValidator resourceSecretInputValidator,
-//                                                       SharingInputValidator sharingInputValidator,
-//                                                       TenantProfileInputValidator tenantProfileInputValidator,
-//                                                       UserProfileInputValidator userProfileInputValidator) {
-//        Stack<Validator> interceptors = new Stack<>();
-//        interceptors.add(inputValidator);
-//        interceptors.add(clusterManagementInputValidator);
-//        interceptors.add(credentialStoreInputValidator);
-//        interceptors.add(custosLoggingInputValidator);
-//        interceptors.add(federatedAuthenticationInputValidator);
-//        interceptors.add(iamInputValidator);
-//        interceptors.add(identityInputValidator);
-//        interceptors.add(resourceSecretInputValidator);
-//        interceptors.add(sharingInputValidator);
-//        interceptors.add(tenantProfileInputValidator);
-//        interceptors.add(userProfileInputValidator);
-//
-//        return interceptors;
-//    }
-//
-//
-//
-//
-//    @Bean
-//    @GRpcGlobalInterceptor
-//    ServerInterceptor validationInterceptor(Stack<Validator> validators){
-//        return new ServiceInterceptor(validators);
-//    }
-//
-//    @Bean
-//    public MessageProducer registerMessageProducer(@Value("${core.messaging.service.broker.url}") String borkerURL,
-//                                                   @Value("${core.messaging.service.publisher.id}") String publisherId) {
-//        return new MessageProducer(borkerURL, publisherId);
-//    }
+
+    @Bean
+    public Stack<IntegrationServiceInterceptor> getInterceptorSet(AgentManagementClientAuthInterceptorImpl agentManagementClientAuthInterceptor,
+                                                                  AgentManagementInputValidator agentManagementInputValidator,
+                                                                  AgentManagementSuperTenantRestrictedOperationsInterceptorImpl agentManagementSuperTenantRestrictedOperationsInterceptor,
+                                                                  AgentManagementUserAuthInterceptorImpl agentManagementUserAuthInterceptor,
+                                                                  GroupManagementClientAuthInterceptorImpl groupManagementClientAuthInterceptor,
+                                                                  GroupManagementInputValidator groupManagementInputValidator,
+                                                                  IdentityManagementAgentAuthInterceptor identityManagementAgentAuthInterceptor,
+                                                                  IdentityManagementAuthInterceptorImpl identityManagementAuthInterceptor,
+                                                                  IdentityManagementInputValidator identityManagementInputValidator,
+                                                                  LogManagementInputValidator logManagementInputValidator,
+                                                                  LogManagementAuthInterceptorImpl logManagementAuthInterceptor,
+                                                                  ResourceSecretManagementAuthInterceptorImpl resourceSecretManagementAuthInterceptor,
+                                                                  ResourceSecretManagementInputValidator resourceSecretManagementInputValidator,
+                                                                  SharingManagementAuthInterceptorImpl sharingManagementAuthInterceptor,
+                                                                  SharingManagementInputValidator sharingManagementInputValidator,
+                                                                  TenantManagementAuthInterceptorImpl tenantManagementAuthInterceptor,
+                                                                  TenantManagementDynamicRegistrationValidator tenantManagementDynamicRegistrationValidator,
+                                                                  TenantManagementInputValidator tenantManagementInputValidator,
+                                                                  TenantManagementSuperTenantRestrictedOperationsInterceptorImpl tenantManagementSuperTenantRestrictedOperationsInterceptor,
+                                                                  UserManagementAuthInterceptorImpl userManagementAuthInterceptor,
+                                                                  UserManagementInputValidator userManagementInputValidator,
+                                                                  UserManagementSuperTenantRestrictedOperationsInterceptorImpl userManagementSuperTenantRestrictedOperationsInterceptor,
+                                                                  LoggingInterceptor loggingInterceptor) {
+        Stack<IntegrationServiceInterceptor> interceptors = new Stack<>();
+        interceptors.add(agentManagementClientAuthInterceptor);
+        interceptors.add(agentManagementInputValidator);
+        interceptors.add(agentManagementSuperTenantRestrictedOperationsInterceptor);
+        interceptors.add(agentManagementUserAuthInterceptor);
+        interceptors.add(groupManagementClientAuthInterceptor);
+        interceptors.add(groupManagementInputValidator);
+        interceptors.add(identityManagementAgentAuthInterceptor);
+        interceptors.add(identityManagementAuthInterceptor);
+        interceptors.add(logManagementInputValidator);
+        interceptors.add(logManagementAuthInterceptor);
+        interceptors.add(identityManagementInputValidator);
+        interceptors.add(resourceSecretManagementAuthInterceptor);
+        interceptors.add(resourceSecretManagementInputValidator);
+        interceptors.add(sharingManagementAuthInterceptor);
+        interceptors.add(sharingManagementInputValidator);
+        interceptors.add(tenantManagementAuthInterceptor);
+        interceptors.add(tenantManagementDynamicRegistrationValidator);
+        interceptors.add(tenantManagementInputValidator);
+        interceptors.add(tenantManagementSuperTenantRestrictedOperationsInterceptor);
+        interceptors.add(userManagementAuthInterceptor);
+        interceptors.add(userManagementInputValidator);
+        interceptors.add(userManagementSuperTenantRestrictedOperationsInterceptor);
+        interceptors.add(loggingInterceptor);
+
+
+        return interceptors;
+    }
+
+    @Bean
+    @GRpcGlobalInterceptor
+    ServerInterceptor validationInterceptor(Stack<IntegrationServiceInterceptor> integrationServiceInterceptors) {
+        return new ServiceInterceptor(integrationServiceInterceptors);
+    }
+
+
 }

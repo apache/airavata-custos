@@ -47,8 +47,8 @@ public class LoggingClient {
 
 
     public LoggingClient(List<ClientInterceptor> clientInterceptorList,
-                         @Value("${custos.logging.core.service.dns.name}") String serviceHost,
-                         @Value("${custos.logging.core.service.port}") int servicePort) {
+                         @Value("${core.services.server.hostname}") String serviceHost,
+                         @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

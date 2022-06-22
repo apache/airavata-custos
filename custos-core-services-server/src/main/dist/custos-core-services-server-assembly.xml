@@ -34,7 +34,7 @@
 
     <id>bin</id>
     <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>${artifactId}-${project.version}</baseDirectory>
+    <baseDirectory>Custos-Core-Services-Server-${project.version}</baseDirectory>
     <formats>
         <format>tar.gz</format>
         <format>zip</format>

@@ -41,8 +41,8 @@ public class ClusterManagementClient {
 
 
     public ClusterManagementClient(List<ClientInterceptor> clientInterceptorList,
-                                   @Value("${cluster.management.core.service.dns.name}") String serviceHost,
-                                   @Value("${cluster.management.core.service.port}") int servicePort) {
+                                   @Value("${core.services.server.hostname}") String serviceHost,
+                                   @Value("${core.services.server.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
