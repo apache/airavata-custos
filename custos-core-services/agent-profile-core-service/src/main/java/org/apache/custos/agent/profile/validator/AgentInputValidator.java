@@ -20,8 +20,8 @@
 package org.apache.custos.agent.profile.validator;
 
 import org.apache.custos.agent.profile.service.AgentRequest;
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.springframework.stereotype.Component;
 
 /**

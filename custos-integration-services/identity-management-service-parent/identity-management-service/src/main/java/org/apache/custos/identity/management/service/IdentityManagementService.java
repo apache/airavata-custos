@@ -236,7 +236,6 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
                                     .setProfile(userProfile)
                                     .build();
 
-                    UserProfile exsistingProfile = userProfileClient.getUser(req);
                     Map<String, String> values = new HashMap<>();
                     values.put("param:username", user.getUsername());
                     values.put("param:first_name", user.getFirstName());

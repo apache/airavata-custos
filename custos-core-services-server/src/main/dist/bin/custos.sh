@@ -51,7 +51,7 @@ do
             fi
         ;;
         -h)
-            echo "Usage: drms.sh"
+            echo "Usage: custos.sh"
 
             echo "command options:"
             echo "  -xdebug             Start DRMS Server under JPDA debugger"

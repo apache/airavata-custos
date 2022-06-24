@@ -20,9 +20,9 @@
 package org.apache.custos.federated.authentication.service;
 
 import io.grpc.stub.StreamObserver;
-import org.apache.custos.core.services.commons.StatusUpdater;
-import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
-import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
+import org.apache.custos.core.services.api.commons.StatusUpdater;
+import org.apache.custos.core.services.api.commons.persistance.model.OperationStatus;
+import org.apache.custos.core.services.api.commons.persistance.model.StatusEntity;
 import org.apache.custos.federated.authentication.exceptions.FederatedAuthenticationServiceException;
 import org.apache.custos.federated.authentication.mapper.ModelMapper;
 import org.apache.custos.federated.authentication.persistance.model.CILogonInstitution;

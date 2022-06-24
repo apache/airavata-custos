@@ -19,8 +19,8 @@
 
 package org.apache.custos.user.profile.validators;
 
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.apache.custos.user.profile.service.*;
 import org.springframework.stereotype.Component;
 
@@ -118,8 +118,6 @@ public class UserProfileInputValidator implements Validator {
                     !profile.getProfile().getType().equals(UserTypes.COMMUNITY)) {
                 throw new MissingParameterException("emailAddress should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
     }
@@ -181,8 +179,6 @@ public class UserProfileInputValidator implements Validator {
                 throw new MissingParameterException("Name should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
 
@@ -206,8 +202,6 @@ public class UserProfileInputValidator implements Validator {
                 throw new MissingParameterException("Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
 
@@ -227,8 +221,6 @@ public class UserProfileInputValidator implements Validator {
             if (profile.getGroup().getId() == null) {
                 throw new MissingParameterException("Group Id be valid ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
     }
@@ -250,8 +242,6 @@ public class UserProfileInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
 
@@ -275,8 +265,6 @@ public class UserProfileInputValidator implements Validator {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + method);
         }
         return true;
 
@@ -289,8 +277,6 @@ public class UserProfileInputValidator implements Validator {
             if (profileReq.getTenantId() == 0) {
                 throw new MissingParameterException("tenantId should be valid ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
 
@@ -310,8 +296,6 @@ public class UserProfileInputValidator implements Validator {
             if (profileReq.getParentId() == null || profileReq.getParentId().trim().equals("")) {
                 throw new MissingParameterException("ParentId should not be null ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
 
@@ -329,8 +313,6 @@ public class UserProfileInputValidator implements Validator {
                 throw new MissingParameterException("Username should not be null ", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
 
@@ -346,8 +328,6 @@ public class UserProfileInputValidator implements Validator {
                     || profileReq.getGroup().getId().equals("")) {
                 throw new MissingParameterException("groupId should not be null ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
     }
@@ -360,8 +340,6 @@ public class UserProfileInputValidator implements Validator {
                     || profileReq.getType().equals("")) {
                 throw new MissingParameterException("Membership type is null ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
 
@@ -378,8 +356,6 @@ public class UserProfileInputValidator implements Validator {
                     || profileReq.getGroup().getId().equals("")) {
                 throw new MissingParameterException("groupId should not be null ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method" + method);
         }
         return true;
     }

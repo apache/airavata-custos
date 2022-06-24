@@ -27,13 +27,18 @@ import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Secret;
 import io.kubernetes.client.util.ClientBuilder;
 import org.apache.custos.cluster.management.service.ClusterManagementServiceGrpc.ClusterManagementServiceImplBase;
-import org.apache.custos.core.services.commons.StatusUpdater;
+import org.apache.custos.core.services.api.commons.StatusUpdater;
 import org.lognet.springboot.grpc.GRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.util.Map;
 
 @GRpcService
@@ -44,39 +49,44 @@ public class ClusterManagementService extends ClusterManagementServiceImplBase {
     @Autowired
     private StatusUpdater statusUpdater;
 
-    @Value("${custos.server.secret.name:tls-services-secret}")
-    private String custosServerSecretName;
-
-    @Value("${custos.server.kube.namespace:custos}")
-    private String custosNameSpace;
+    @Value("${custos.server.host:dev.services.usecustos.org}")
+    private String custosServerHostName;
 
     @Override
     public void getCustosServerCertificate(org.apache.custos.cluster.management.service.GetServerCertificateRequest request,
                                            StreamObserver<org.apache.custos.cluster.management.service.GetServerCertificateResponse> responseObserver) {
         try {
 
-            ApiClient client = ClientBuilder.cluster().build();
+//            ApiClient client = ClientBuilder.cluster().build();
+//
+//            // set the global default api-client to the in-cluster one from above
+//            Configuration.setDefaultApiClient(client);
+//
+//            // the CoreV1Api loads default api-client from global configuration.
+//            CoreV1Api api = new CoreV1Api();
+//
+//            String namespace = request.getNamespace();
+//            String secretName = request.getSecretName();
+//
+//
+//            V1Secret secret = api.readNamespacedSecret(secretName.isEmpty() ? custosServerSecretName : secretName,
+//                    namespace.isEmpty() ? custosNameSpace : namespace, null, null, null);
+//            Map<String, byte[]> map = secret.getData();
+//            byte[] cert = map.get("tls.crt");
 
-            // set the global default api-client to the in-cluster one from above
-            Configuration.setDefaultApiClient(client);
+            SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+            SSLSocket socket = (SSLSocket) factory.createSocket(custosServerHostName, 443);
+            socket.startHandshake();
+            Certificate[] certs = socket.getSession().getPeerCertificates();
+            Certificate cert = certs[0];
+            PublicKey key = cert.getPublicKey();
 
-            // the CoreV1Api loads default api-client from global configuration.
-            CoreV1Api api = new CoreV1Api();
-
-            String namespace = request.getNamespace();
-            String secretName = request.getSecretName();
-
-
-            V1Secret secret = api.readNamespacedSecret(secretName.isEmpty() ? custosServerSecretName : secretName,
-                    namespace.isEmpty() ? custosNameSpace : namespace, null, null, null);
-            Map<String, byte[]> map = secret.getData();
-            byte[] cert = map.get("tls.crt");
-            if (cert == null || cert.length == 0) {
+            if (cert == null || cert.getEncoded().length == 0) {
                 GetServerCertificateResponse response = GetServerCertificateResponse.newBuilder().build();
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
             } else {
-                String certificate = new String(cert);
+                String certificate = new String(cert.getEncoded());
                 GetServerCertificateResponse response = GetServerCertificateResponse
                         .newBuilder()
                         .setCertificate(certificate)

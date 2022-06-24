@@ -20,7 +20,7 @@
 package org.apache.custos.credential.store.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.credential.store.exceptions.MissingParameterException;
 import org.apache.custos.credential.store.service.*;
 import org.springframework.stereotype.Component;
@@ -92,8 +92,6 @@ public class CredentialStoreInputValidator implements Validator {
                 throw new MissingParameterException("Type cannot be null at " + method, null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
     }
@@ -111,8 +109,6 @@ public class CredentialStoreInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
     }
@@ -128,8 +124,6 @@ public class CredentialStoreInputValidator implements Validator {
                 throw new MissingParameterException("Type cannot be null at " + method, null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
 
@@ -142,8 +136,6 @@ public class CredentialStoreInputValidator implements Validator {
                 throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
 
@@ -156,8 +148,6 @@ public class CredentialStoreInputValidator implements Validator {
                 throw new MissingParameterException("Token cannot be null at " + method, null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
 
@@ -170,8 +160,6 @@ public class CredentialStoreInputValidator implements Validator {
                 throw new MissingParameterException("OwnerId cannot be null at " + method, null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
 
@@ -183,8 +171,6 @@ public class CredentialStoreInputValidator implements Validator {
             if (request.getId() == null || request.getId().equals("")) {
                 throw new MissingParameterException("Client Id cannot be null at " + method, null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
     }

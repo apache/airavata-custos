@@ -20,8 +20,8 @@
 package org.apache.custos.sharing.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.apache.custos.sharing.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +100,7 @@ public class SharingInputValidator implements Validator {
                 validateGetAllDirectSharings(obj, methodName);
                 break;
             default:
-                throw new RuntimeException("Method not implemented");
+
         }
        return obj;
     }
@@ -122,8 +122,6 @@ public class SharingInputValidator implements Validator {
                     getEntityType().getName().trim().equals("")) {
                 throw new MissingParameterException("Entity type name not found", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -141,8 +139,6 @@ public class SharingInputValidator implements Validator {
                     getEntityType().getId().equals("")) {
                 throw new MissingParameterException("Entity type id not found", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -154,8 +150,6 @@ public class SharingInputValidator implements Validator {
             if (entityTypeRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -173,8 +167,6 @@ public class SharingInputValidator implements Validator {
                     getPermissionType().getId().equals("")) {
                 throw new MissingParameterException("Permission type id not found", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -206,8 +198,6 @@ public class SharingInputValidator implements Validator {
                 throw new MissingParameterException("Owner Id  not found", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
 
@@ -228,8 +218,6 @@ public class SharingInputValidator implements Validator {
             if (entityRequest.getEntity().getId() == null || entityRequest.getEntity().getId().equals("")) {
                 throw new MissingParameterException("Entity Id  not found", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
 
@@ -242,8 +230,6 @@ public class SharingInputValidator implements Validator {
             if (entityRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -273,8 +259,6 @@ public class SharingInputValidator implements Validator {
 //            }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -306,8 +290,6 @@ public class SharingInputValidator implements Validator {
                 throw new MissingParameterException("Owner  Id list   not found ", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -339,8 +321,6 @@ public class SharingInputValidator implements Validator {
                 throw new MissingParameterException("Owner  Id list   not found ", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -352,8 +332,6 @@ public class SharingInputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }

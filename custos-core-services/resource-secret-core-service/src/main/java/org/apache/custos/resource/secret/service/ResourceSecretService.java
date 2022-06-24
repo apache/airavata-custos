@@ -21,8 +21,8 @@ package org.apache.custos.resource.secret.service;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import org.apache.custos.core.services.commons.StatusUpdater;
-import org.apache.custos.core.services.commons.persistance.model.OperationStatus;
+import org.apache.custos.core.services.api.commons.StatusUpdater;
+import org.apache.custos.core.services.api.commons.persistance.model.OperationStatus;
 import org.apache.custos.resource.secret.manager.Credential;
 import org.apache.custos.resource.secret.manager.CredentialGeneratorFactory;
 import org.apache.custos.resource.secret.manager.adaptor.inbound.CredentialReader;

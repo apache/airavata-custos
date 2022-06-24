@@ -80,9 +80,15 @@ public class LoggingInterceptor implements IntegrationServiceInterceptor {
                         get(Metadata.Key.of(Constants.SERVICE_NAME, Metadata.ASCII_STRING_MARSHALLER));
                 String externaIP = headers.
                         get(Metadata.Key.of(Constants.X_FORWARDED_FOR, Metadata.ASCII_STRING_MARSHALLER));
-                logEventBuilder.setServiceName(servicename);
-                logEventBuilder.setEventType(method);
-                logEventBuilder.setExternalIp(externaIP);
+                if (servicename != null){
+                    logEventBuilder.setServiceName(servicename);
+                }
+                if (method!= null){
+                    logEventBuilder.setEventType(method);
+                }
+                if (externaIP!= null){
+                    logEventBuilder.setEventType(externaIP);
+                }
                 logEventBuilder.setCreatedTime(System.currentTimeMillis());
             }
 
