@@ -19,8 +19,8 @@
 
 package org.apache.custos.logging.validator;
 
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.apache.custos.logging.service.LogEvent;
 import org.apache.custos.logging.service.LogEventRequest;
 import org.apache.custos.logging.service.LoggingConfigurationRequest;
@@ -81,8 +81,6 @@ public class CustosLoggingInputValidator implements Validator {
             if (entityTypeRequest.getExternalIp() == null || entityTypeRequest.getExternalIp().equals("")) {
                 throw new MissingParameterException("External Ip  not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -93,8 +91,6 @@ public class CustosLoggingInputValidator implements Validator {
             if (entityTypeRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -105,8 +101,6 @@ public class CustosLoggingInputValidator implements Validator {
             if (entityTypeRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }
@@ -117,8 +111,6 @@ public class CustosLoggingInputValidator implements Validator {
             if (entityTypeRequest.getTenantId() == 0) {
                 throw new MissingParameterException("Tenant Id not found ", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
     }

@@ -20,7 +20,7 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.custos.cluster.management.client.ClusterManagementClient;
-import org.apache.custos.core.services.commons.util.Constants;
+import org.apache.custos.core.services.api.commons.util.Constants;
 import org.apache.custos.federated.services.clients.keycloak.auth.KeycloakAuthClient;
 import org.apache.http.HttpStatus;
 import org.keycloak.admin.client.Keycloak;
@@ -93,9 +93,6 @@ public class KeycloakClient {
 
     @Value("${spring.profiles.active}")
     private String activeProfile;
-
-    @Autowired
-    private ClusterManagementClient clusterManagementClient;
 
     public void createRealm(String realmId, String displayName) {
         Keycloak client = null;
@@ -639,7 +636,7 @@ public class KeycloakClient {
                                              String email, String search) {
         Keycloak client = null;
         try {
-            client = getClient(iamServerURL, realmId, accessToken);
+            client = getClient(iamServerURL,superAdminRealmID, superAdminUserName, superAdminPassword);
             return searchUsers(client, realmId, username, firstName, lastName, email, search, offset, limit);
 
         } catch (Exception ex) {
@@ -1944,13 +1941,12 @@ public class KeycloakClient {
     private Keycloak getClient(String adminUrl, String realm, String loginUsername, String password) {
 
         return KeycloakUtils.getClient(adminUrl, realm, loginUsername,
-                password, clientId, trustStorePath, truststorePassword, activeProfile, clusterManagementClient);
+                password, clientId, trustStorePath, truststorePassword);
     }
 
     private Keycloak getClient(String adminUrl, String realm, String accessToken) {
 
-        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword,
-                activeProfile, clusterManagementClient);
+        return KeycloakUtils.getClient(adminUrl, realm, accessToken, trustStorePath, truststorePassword);
     }
 
 

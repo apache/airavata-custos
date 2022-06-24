@@ -17,12 +17,12 @@
  *  under the License.
  */
 
-package org.apache.custos.integration.services.api;
+package org.apache.custos.core.services.api;
 import io.grpc.ServerInterceptor;
 import org.apache.custos.agent.profile.validator.AgentInputValidator;
 import org.apache.custos.cluster.management.validator.ClusterManagementInputValidator;
-import org.apache.custos.core.services.commons.ServiceInterceptor;
-import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.api.commons.ServiceInterceptor;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.credential.store.validator.CredentialStoreInputValidator;
 import org.apache.custos.federated.authentication.validator.FederatedAuthenticationInputValidator;
 import org.apache.custos.iam.validator.IAMInputValidator;

@@ -20,7 +20,7 @@
 package org.apache.custos.federated.authentication.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.federated.authentication.exceptions.MissingParameterException;
 import org.apache.custos.federated.authentication.service.CacheManipulationRequest;
 import org.apache.custos.federated.authentication.service.ClientMetadata;
@@ -93,8 +93,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
                 throw new MissingParameterException("Performed by should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + method);
         }
         return true;
     }
@@ -112,8 +110,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method getClient");
         }
         return true;
     }
@@ -133,8 +129,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
             if (request.getPerformedBy() == null || request.getPerformedBy().trim().equals("")) {
                 throw new MissingParameterException("Performed By should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method deleteClient");
         }
         return true;
     }
@@ -155,8 +149,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
             if (request.getType() == null) {
                 throw new MissingParameterException("Type should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method addToCache");
         }
         return true;
 
@@ -176,8 +168,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
                 throw new MissingParameterException("Institutional id list is empty", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
 
@@ -196,8 +186,6 @@ public class FederatedAuthenticationInputValidator implements Validator {
                 throw new MissingParameterException("Type cannot be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method " + methodName);
         }
         return true;
 

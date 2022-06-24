@@ -21,8 +21,8 @@ package org.apache.custos.credential.store.service;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import org.apache.custos.core.services.commons.StatusUpdater;
-import org.apache.custos.core.services.commons.persistance.model.StatusEntity;
+import org.apache.custos.core.services.api.commons.StatusUpdater;
+import org.apache.custos.core.services.api.commons.persistance.model.StatusEntity;
 import org.apache.custos.credential.store.credential.CredentialManager;
 import org.apache.custos.credential.store.model.Credential;
 import org.apache.custos.credential.store.model.CredentialTypes;
@@ -82,7 +82,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
                 statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.SUCCESS,
                         request.getOwnerId(),
                         null);
 
@@ -97,7 +97,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 LOGGER.error(msg);
 
                 statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -110,7 +110,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             LOGGER.error(msg);
 
             statusUpdater.updateStatus(Operations.PUT_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                     request.getOwnerId(),
                     null);
 
@@ -220,7 +220,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
             statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.SUCCESS,
                     request.getOwnerId(),
                     null);
             responseObserver.onNext(secretStatus);
@@ -230,7 +230,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             String msg = " operation failed for " + request.getOwnerId();
 
             statusUpdater.updateStatus(Operations.DELETE_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                     request.getOwnerId(),
                     null);
 
@@ -285,7 +285,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -295,7 +295,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
             statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.SUCCESS,
                     request.getOwnerId(),
                     null);
 
@@ -306,7 +306,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_CUSTOS_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -728,7 +728,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -741,7 +741,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                 String msg = "Prohibited agent Id  " + request.getId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -763,7 +763,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -780,7 +780,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                         + request.getId() + "at tenant " + request.getOwnerId();
                 LOGGER.error(msg);
                 statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
-                        org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                        org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                         request.getOwnerId(),
                         null);
 
@@ -790,7 +790,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
             statusUpdater.updateStatus(Operations.GENERATE_AGENT_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.SUCCESS,
                     request.getOwnerId(),
                     null);
 
@@ -841,7 +841,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             OperationStatus secretStatus = OperationStatus.newBuilder().setState(true).build();
 
             statusUpdater.updateStatus(Operations.DELETE_AGENT_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.SUCCESS,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.SUCCESS,
                     request.getOwnerId(),
                     null);
             responseObserver.onNext(secretStatus);
@@ -852,7 +852,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             String msg = " Delete agent credential failed  " + ex;
             LOGGER.error(msg);
             statusUpdater.updateStatus(Operations.DELETE_AGENT_CREDENTIAL.name(),
-                    org.apache.custos.core.services.commons.persistance.model.OperationStatus.FAILED,
+                    org.apache.custos.core.services.api.commons.persistance.model.OperationStatus.FAILED,
                     request.getOwnerId(),
                     null);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());

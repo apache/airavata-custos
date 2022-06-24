@@ -19,7 +19,7 @@
 
 package org.apache.custos.tenant.profile.validator;
 
-import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.tenant.profile.exceptions.MissingParameterException;
 import org.apache.custos.tenant.profile.service.*;
 import org.springframework.stereotype.Component;

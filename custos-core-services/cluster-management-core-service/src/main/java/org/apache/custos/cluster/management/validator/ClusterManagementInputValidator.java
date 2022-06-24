@@ -21,8 +21,7 @@ package org.apache.custos.cluster.management.validator;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.springframework.stereotype.Component;
 
 /**
@@ -44,9 +43,6 @@ public class ClusterManagementInputValidator implements Validator {
             case "getCustosServerCertificate":
                 validateGetCustosServerCertificate(obj, methodName);
                 break;
-            default:
-                throw new NotImplementedException("UnImplemented method");
-
         }
 
       return obj;

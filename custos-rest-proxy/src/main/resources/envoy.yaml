@@ -20,7 +20,7 @@ static_resources:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/" }
+                        - match: { prefix: "/", grpc: {}}
                           route: { cluster: grpc-custos-service, timeout: { seconds: 60 } }
                 access_log:
                   - name: envoy.file_access_log
@@ -29,7 +29,7 @@ static_resources:
                 http_filters:
                   - name: envoy.grpc_json_transcoder
                     config:
-                      proto_descriptor: "/data/drms.pb"
+                      proto_descriptor: "/data/custos.pb"
                       services: ["org.apache.custos.agent.management.service.AgentManagementService",
                                  "org.apache.custos.group.management.service.GroupManagementService",
                                  "org.apache.custos.identity.management.service.IdentityManagementService",
@@ -43,7 +43,7 @@ static_resources:
                         add_whitespace: true
                         always_print_primitive_fields: true
                         always_print_enums_as_ints: false
-                        preserve_proto_field_names: false
+                        preserve_proto_field_names: true
                   - name: envoy.router
   clusters:
     - name: grpc-custos-service

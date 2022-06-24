@@ -33,7 +33,7 @@ SUBSET=""
 DEFAULT_LOG_FILE="${AIRAVATA_HOME}/logs/custos-daemon.out"
 LOG_FILE=$DEFAULT_LOG_FILE
 
-SERVICE_NAME="DRMS"
+SERVICE_NAME="Custos"
 PID_PATH_NAME="${AIRAVATA_HOME}/bin/service-pid"
 
 case $1 in
@@ -98,7 +98,7 @@ case $1 in
         fi
     ;;
     -h)
-        echo "Usage: orch-api-server-daemon.sh"
+        echo "Usage: custos-daemon.sh"
 
         echo "command options:"
         echo "  start               Start server in daemon mode"

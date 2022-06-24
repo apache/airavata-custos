@@ -20,8 +20,8 @@
 package org.apache.custos.resource.secret.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.apache.custos.resource.secret.service.*;
 import org.springframework.stereotype.Component;
 
@@ -80,8 +80,6 @@ public class ResourceSecretInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + methodName);
         }
         return true;
 
@@ -96,8 +94,6 @@ public class ResourceSecretInputValidator implements Validator {
                 throw new MissingParameterException("TenantId should be set", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + methodName);
         }
         return true;
     }
@@ -108,8 +104,6 @@ public class ResourceSecretInputValidator implements Validator {
 
             validateSecretMetadata(request.getMetadata());
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + methodName);
         }
         return true;
     }
@@ -125,8 +119,6 @@ public class ResourceSecretInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + methodName);
         }
         return true;
     }
@@ -141,8 +133,6 @@ public class ResourceSecretInputValidator implements Validator {
                 throw new MissingParameterException("Certificate should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method  " + methodName);
         }
         return true;
     }

@@ -20,7 +20,7 @@
 package org.apache.custos.iam.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
+import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.iam.exceptions.MissingParameterException;
 import org.apache.custos.iam.service.*;
 import org.springframework.stereotype.Component;
@@ -187,8 +187,6 @@ public class IAMInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method setUPTenant");
         }
         return true;
     }
@@ -223,8 +221,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Email should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method registerUser");
         }
         return true;
     }
@@ -272,8 +268,6 @@ public class IAMInputValidator implements Validator {
 
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method registerUsers");
         }
         return true;
     }
@@ -293,8 +287,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method userAccess");
         }
         return true;
     }
@@ -320,8 +312,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Password should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method resetPassword");
         }
         return true;
     }
@@ -341,8 +331,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Atleast one user search string is required", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method findUsers");
         }
         return true;
     }
@@ -374,8 +362,6 @@ public class IAMInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method updateUserProfile");
         }
         return true;
     }
@@ -409,8 +395,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Performed By should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
         }
         return true;
     }
@@ -438,8 +422,6 @@ public class IAMInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method configureFederatedIDP");
         }
         return true;
     }
@@ -459,8 +441,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("There should be at least one role", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }
@@ -501,8 +481,6 @@ public class IAMInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }
@@ -537,8 +515,6 @@ public class IAMInputValidator implements Validator {
                 }
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }
@@ -565,8 +541,6 @@ public class IAMInputValidator implements Validator {
                 }
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateCreateGroups");
         }
         return true;
 
@@ -589,8 +563,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Group id and name should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }
@@ -611,8 +583,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Group id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
     }
@@ -634,8 +604,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Group id or name should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
 
@@ -649,8 +617,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateAddRoleToTenant");
         }
         return true;
 
@@ -673,8 +639,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Username should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
 
@@ -696,8 +660,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Client name should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
     }
@@ -713,8 +675,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Client name should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
     }
@@ -736,8 +696,6 @@ public class IAMInputValidator implements Validator {
             if (request.getUser().getId() == null || request.getUser().getId().equals("")) {
                 throw new MissingParameterException("Agent Id should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for request UserSearchRequest");
         }
         return true;
     }
@@ -762,8 +720,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Agent password should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateRegisterAndEnableAgent");
         }
         return true;
     }
@@ -797,8 +753,6 @@ public class IAMInputValidator implements Validator {
                     throw new MissingParameterException("Attribute value should not be null", null);
                 }
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
     }
@@ -832,8 +786,6 @@ public class IAMInputValidator implements Validator {
                 }
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateUserGroupMapping");
         }
         return true;
     }
@@ -864,8 +816,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Performed By should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
         }
         return true;
 
@@ -896,8 +846,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Performed By should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method roleOperationsRequest");
         }
         return true;
     }
@@ -920,8 +868,6 @@ public class IAMInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method getAllResources");
         }
         return true;
     }
@@ -934,8 +880,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method deleteExternalIDPLinks");
         }
         return true;
     }
@@ -951,8 +895,6 @@ public class IAMInputValidator implements Validator {
                 throw new MissingParameterException("User Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method getExternalIDPLinks");
         }
         return true;
     }

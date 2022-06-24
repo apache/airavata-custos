@@ -51,21 +51,19 @@ public class KeycloakUtils {
 
 
     public static Keycloak getClient(String serverURL, String realm, String accessToken,
-                                     String trustStorePath, String trustorePassword, String profile,
-                                     ClusterManagementClient clusterManagementClient) {
+                                     String trustStorePath, String trustorePassword) {
 
         return KeycloakBuilder.builder()
                 .serverUrl(serverURL)
                 .realm(realm)
                 .authorization(accessToken)
-                .resteasyClient(getRestClient(trustStorePath, trustorePassword, profile, clusterManagementClient))
+                .resteasyClient(getRestClient(trustStorePath, trustorePassword))
                 .build();
     }
 
 
     public static Keycloak getClient(String serverURL, String realm, String loginUsername,
-                                     String password, String clientId, String trustStorePath, String trustorePassword, String profile,
-                                     ClusterManagementClient clusterManagementClient) {
+                                     String password, String clientId, String trustStorePath, String trustorePassword) {
 
         return KeycloakBuilder.builder()
                 .serverUrl(serverURL)
@@ -73,46 +71,44 @@ public class KeycloakUtils {
                 .username(loginUsername)
                 .password(password)
                 .clientId(clientId)
-                .resteasyClient(getRestClient(trustStorePath, trustorePassword, profile, clusterManagementClient))
+                .resteasyClient(getRestClient(trustStorePath, trustorePassword))
                 .build();
     }
 
 
-    private static ResteasyClient getRestClient(String trustorePath, String trustorePassword, String profile,
-                                                ClusterManagementClient clusterManagementClient) {
+    private static ResteasyClient getRestClient(String trustorePath, String trustorePassword) {
         return new ResteasyClientBuilder()
                 .establishConnectionTimeout(100, TimeUnit.SECONDS)
                 .socketTimeout(10, TimeUnit.SECONDS)
                 .connectionPoolSize(POOL_SIZE)
-                .trustStore(loadKeyStore(trustorePath, trustorePassword, profile, clusterManagementClient))
+                .trustStore(loadKeyStore(trustorePath, trustorePassword))
                 .build();
     }
 
 
-    private static KeyStore loadKeyStore(String trustStorePath, String trustorePassword,
-                                         String profile, ClusterManagementClient clusterManagementClient) {
+    private static KeyStore loadKeyStore(String trustStorePath, String trustorePassword) {
 
         InputStream is = null;
         try {
 
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            if (profile.equals("staging") || profile.equals("production")) {
-                LOGGER.info("Profile inside  " + profile);
-                GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
-                        .newBuilder()
-                        .setNamespace("keycloak")
-                        .setSecretName("tls-keycloak-secret")
-                        .build();
-                GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
-                CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                LOGGER.info(response.getCertificate());
-                InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
-                Certificate certs = cf.generateCertificate(targetStream);
-                // Add the certificate
-                ks.load(null, null);
-                ks.setCertificateEntry("custos", certs);
-
-            }  else {
+//            if (profile.equals("staging") || profile.equals("production")) {
+//                LOGGER.info("Profile inside  " + profile);
+//                GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
+//                        .newBuilder()
+//                        .setNamespace("keycloak")
+//                        .setSecretName("tls-keycloak-secret")
+//                        .build();
+//                GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
+//                CertificateFactory cf = CertificateFactory.getInstance("X.509");
+//                LOGGER.info(response.getCertificate());
+//                InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
+//                Certificate certs = cf.generateCertificate(targetStream);
+//                // Add the certificate
+//                ks.load(null, null);
+//                ks.setCertificateEntry("custos", certs);
+//
+//            }  else {
 
                 File trustStoreFile = new File(trustStorePath);
 
@@ -133,7 +129,7 @@ public class KeycloakUtils {
 
 
                 ks.load(is, trustorePassword.toCharArray());
-            }
+//            }
             return ks;
         } catch (Exception e) {
             throw new RuntimeException("Failed to load trust store KeyStore instance", e);

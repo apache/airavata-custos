@@ -20,8 +20,8 @@
 package org.apache.custos.identity.validator;
 
 
-import org.apache.custos.core.services.commons.Validator;
-import org.apache.custos.core.services.commons.exceptions.MissingParameterException;
+import org.apache.custos.core.services.api.commons.Validator;
+import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;
 import org.apache.custos.identity.service.*;
 import org.apache.custos.identity.utils.Constants;
 import org.slf4j.Logger;
@@ -78,9 +78,8 @@ public class IdentityInputValidator implements Validator {
             case "endSession":
                 validateEndSessionRequest(obj);
                 break;
-
             default:
-                throw new RuntimeException("Method not implemented");
+
         }
        return obj;
     }
@@ -105,8 +104,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException(" password should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method setUPTenant");
         }
         return true;
     }
@@ -139,8 +136,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException("TenantId should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method isUsernameAvailable");
         }
         return true;
     }
@@ -161,8 +156,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException("Client secret should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method userAccess");
         }
         return true;
     }
@@ -208,8 +201,6 @@ public class IdentityInputValidator implements Validator {
                 }
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method userAccess");
         }
         return true;
     }
@@ -237,8 +228,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException("Password should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method getTokenByPasswordGrantType");
         }
         return true;
     }
@@ -263,8 +252,6 @@ public class IdentityInputValidator implements Validator {
             }
 
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
         }
         return true;
     }
@@ -276,8 +263,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateGetAuthorizationEndpoint");
         }
         return true;
     }
@@ -289,8 +274,6 @@ public class IdentityInputValidator implements Validator {
                 throw new MissingParameterException("Tenant Id should not be null", null);
             }
 
-        } else {
-            throw new RuntimeException("Unexpected input type for method validateGetOIDCConfiguration");
         }
         return true;
     }
@@ -309,8 +292,6 @@ public class IdentityInputValidator implements Validator {
             if (request.getClientSecret() == null || request.getClientSecret().trim().equals("")) {
                 throw new MissingParameterException("Client secret should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
         }
         return true;
     }
@@ -334,8 +315,6 @@ public class IdentityInputValidator implements Validator {
             if (request.getRefreshToken() == null || request.getRefreshToken().trim().equals("")) {
                 throw new MissingParameterException("Refresh token should not be null", null);
             }
-        } else {
-            throw new RuntimeException("Unexpected input type for method getTokenByRefreshTokenGrantType");
         }
         return true;
     }
