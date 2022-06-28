@@ -110,7 +110,7 @@
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}</pluginArtifact>
                     <protoSourceRoot>
-                        ../../../custos-integration-services/resource-secret-management-service-parent/resource-secret-management-service/src/main/proto
+                        ../../../custos-integration-services/resource-secret-management-service/src/main/proto
                     </protoSourceRoot>
                 </configuration>
                 <executions>

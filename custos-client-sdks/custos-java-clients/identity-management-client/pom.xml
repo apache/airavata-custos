@@ -106,7 +106,7 @@
                     <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}</pluginArtifact>
-                    <protoSourceRoot>../../../custos-integration-services/identity-management-service-parent/identity-management-service/src/main/proto</protoSourceRoot>
+                    <protoSourceRoot>../../../custos-integration-services/identity-management-service/src/main/proto</protoSourceRoot>
                 </configuration>
                 <executions>
                     <execution>
