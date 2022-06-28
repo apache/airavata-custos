@@ -31,18 +31,18 @@
     <artifactId>custos-integration-services</artifactId>
      <packaging>pom</packaging>
     <modules>
-        <module>tenant-management-service-parent</module>
-        <module>identity-management-service-parent</module>
+        <module>tenant-management-service</module>
+        <module>identity-management-service</module>
         <module>custos-integration-services-commons</module>
-        <module>user-management-service-parent</module>
+        <module>user-management-service</module>
 
         <module>scim-service</module>
 
-        <module>group-management-service-parent</module>
-        <module>agent-management-service-parent</module>
-        <module>resource-secret-management-service-parent</module>
-        <module>sharing-management-service-parent</module>
-        <module>log-management-service-parent</module>
+        <module>group-management-service</module>
+        <module>agent-management-service</module>
+        <module>resource-secret-management-service</module>
+        <module>sharing-management-service</module>
+        <module>log-management-service</module>
         <module>custos-integration-services-swagger</module>
 
     </modules>
