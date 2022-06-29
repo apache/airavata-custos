@@ -1,0 +1,208 @@
+- name: Install Custos pre-requireties (RedHat)
+  yum: name={{ item }} state=latest update_cache=yes
+  with_items:
+    - maven
+  become: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install Custos pre-requireties (Debian)
+  apt: name={{ item }} state=latest update_cache=yes
+  with_items:
+    - maven
+  become: yes
+  when: ansible_os_family == "Debian"
+
+#- name: open firewall port 8443 for DRMS REST connections
+#  firewalld: port="8443/tcp"
+#    zone=public permanent=true state=enabled immediate=yes
+#  become: yes
+#
+#- name: open firewall port 7070 for DRMS Grpc connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="7070" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open firewall port 80 for HTTP connections
+#  firewalld: port="80/tcp"
+#    zone=public permanent=true state=enabled immediate=yes
+#  become: yes
+#
+#- name: open firewall port 443 for HTTPS connections
+#  firewalld: port="443/tcp"
+#    zone=public permanent=true state=enabled immediate=yes
+#  become: yes
+#
+#- name: open firewall port 9092 for Kafka connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="9092" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open firewall port 6060 for Data Orchestrator Grpc connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="6060" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open firewall port {{ datalake_data_orch_http_port }} for Data Orchestrator HTTP connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_orch_http_port }}" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open firewall port {{ datalake_data_orch_grpc_port }} for Data Orchestrator gRPC connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_orch_grpc_port }}" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open firewall port {{ datalake_data_drms_rest_port }} for DRMS REST connections
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_drms_rest_port }}" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+
+- name: Create Datalake deployment directory {{ custos_deployment_dir }}
+  become: yes
+  file: path={{ custos_deployment_dir }}
+    state=directory
+    mode=0755
+    owner={{ user }}
+    group={{ group }}
+
+- name: Create Custos source directory
+  become: yes
+  file: path={{ custos_source_dir }}
+    state=directory
+    mode=0755
+    owner={{ user }}
+    group={{ group }}
+
+- name: git checkout from Custos github repo {{ custos_repo }} branch {{ custos_git_branch }}
+  git: repo="{{ custos_repo }}"
+    dest="{{ custos_source_dir }}"
+    version="{{ custos_git_branch }}"
+  register: checkout
+  tags: update
+  become: yes
+  become_user: "{{ user }}"
+
+- name: Run Custos maven build
+  command: mvn clean install -Dmaven.test.skip=true chdir="{{ custos_source_dir }}/"
+  environment:
+    MAVEN_OPTS: "-Xmx2048m"
+  register: build
+  tags: update
+  become: yes
+  become_user: "{{ user }}"
+
+#- name: Stop drms  service
+#  command: systemctl daemon-reload
+#  notify: stop drms-service
+#  become: yes
+#
+#- name: Stop custos synchronizer  service
+#  command: systemctl daemon-reload
+#  notify: stop drms-custos-sync
+#  become: yes
+#
+#- name: Stop orchestrator  service
+#  command: systemctl daemon-reload
+#  notify: stop orch-service
+#  become: yes
+
+
+- name: Delete lib directories of the distributions
+  file:
+    state: absent
+    path: "{{ custos_deployment_dir }}/{{ item }}"
+  with_items:
+    - "Custos-Core-Services-Server-{{custos_distribution_version}}/lib"
+    - "Custos-Integration-Services-Server-{{custos_distribution_version}}/lib"
+  become: yes
+  become_user: "{{ user }}"
+  ignore_errors: yes
+
+- name: Copy Custos distributions to Datalake deployment directory
+  unarchive: "src={{ custos_source_dir }}/{{ item }}
+              dest={{ custos_deployment_dir }}/ copy=no"
+  with_items:
+    - "custos-core-services-server/target/Custos-Core-Services-Server-{{custos_distribution_version}}-bin.zip"
+    - "custos-integration-services-server/target/Custos-Integration-Services-Server-{{custos_distribution_version}}-bin.zip"
+  become: yes
+  become_user: "{{ user }}"
+
+#- name: Copy Datalake property files
+#  template: "src={{ item.name }}
+#            dest={{ datalake_deployment_dir }}/{{ item.dir }}/conf/{{ item.target }}
+#            owner={{ user }}
+#            group={{ group }}
+#            mode=\"u=rw,g=r,o=r\""
+#  with_items:
+#    - { name: drms/application.properties.j2,
+#        dir: "DRMS-{{datalake_distribution_version}}",
+#        target: application.properties}
+#    - { name: custos-data-synchronizer/config.yml.j2,
+#        dir: "DRMS-Custos-Synchronizer-{{datalake_distribution_version}}",
+#        target: config.yml }
+#    - { name: data-orchestrator/application.properties.j2,
+#        dir: "Orchestrator-API-Service-{{datalake_distribution_version}}",
+#        target: application.properties }
+#    - { name: data-orchestrator/config.yml.j2,
+#        dir: "Orchestrator-API-Service-{{datalake_distribution_version}}",
+#        target: config.yml }
+#  become: yes
+#  become_user: "{{ user }}"
+#
+#- name: Start drms  service
+#  command: systemctl daemon-reload
+#  notify: start drms-service
+#  become: yes
+#
+#- name: Start custos synchronizer  service
+#  command: systemctl daemon-reload
+#  notify: start drms-custos-sync
+#  become: yes
+#
+#- name: Start orchestrator  service
+#  command: systemctl daemon-reload
+#  notify: start orch-service
+#  become: yes
+#
+#
+#- name: Start Envoy  proxy
+#  command: systemctl daemon-reload
+#  notify: start envoy
+#  become: yes
+#
