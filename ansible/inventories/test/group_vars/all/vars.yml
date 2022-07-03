@@ -136,16 +136,35 @@ workflow_manager_custos_port: 31499
 workflow_manager_custos_id: "{{ vault_workflow_manager_custos_id }}"
 workflow_manager_custos_secret: "{{ vault_workflow_manager_custos_secret }}"
 
-sharing_subnets:
-  - "149.163.0.0/16"
-  - "140.182.0.0/16"
-  - "149.165.0.0/16"
-  - "192.68.133.0/24"
-  - "192.12.206.0/24"
-  - "149.159.0.0/16"
-  - "156.56.0.0/16"
-  - "149.161.0.0/16"
-  - "149.160.0.0/16"
-  - "149.166.0.0/16"
-  - "134.68.0.0/16"
-  - "129.79.0.0/16"
+# Database related variables
+#db_server: "{{ groups['database'][0] }}"
+#db_server_port: "3306"
+#mysql_users:
+#  name: custos_user
+#  password: user*password
+#db_password: "CHANGEME"
+mysql_root_password: root*password
+#ansible_python_interpreter: /usr/bin/python3
+#app_catalog: "app_catalog"
+#exp_catalog: "experiment_catalog"
+#replica_catalog: "replica_catalog"
+#sharing_catalog: "sharing_catalog"
+#workflow_catalog: "workflow_catalog"
+#credential_store: "credential_store"
+#profile_service: "profile_service"
+
+#mysql_connector_jar: "mysql-connector-java-5.1.37-bin.jar"
+
+#sharing_subnets:
+#  - "149.163.0.0/16"
+#  - "140.182.0.0/16"
+#  - "149.165.0.0/16"
+#  - "192.68.133.0/24"
+#  - "192.12.206.0/24"
+#  - "149.159.0.0/16"
+#  - "156.56.0.0/16"
+#  - "149.161.0.0/16"
+#  - "149.160.0.0/16"
+#  - "149.166.0.0/16"
+#  - "134.68.0.0/16"
+#  - "129.79.0.0/16"

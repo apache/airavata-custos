@@ -19,16 +19,21 @@
 #
 
 ---
-- hosts: custos
+#- hosts: custos
+#  roles:
+##    - env_setup
+##    - zookeeper
+##    - kafka
+#    - custos
+##    - consul
+##    - data_lake
+##    - mft
+##    - workflow-engine
+
+- hosts: database
+  become: yes
   roles:
-    - env_setup
-#    - zookeeper
-#    - kafka
-    - custos
-#    - consul
-#    - data_lake
-#    - mft
-#    - workflow-engine
+    - database
 
 #- hosts: emc-portal
 #  roles:

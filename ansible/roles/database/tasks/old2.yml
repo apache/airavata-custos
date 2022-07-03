@@ -1,0 +1,143 @@
+##
+##
+## Licensed to the Apache Software Foundation (ASF) under one
+## or more contributor license agreements.  See the NOTICE file
+## distributed with this work for additional information
+## regarding copyright ownership.  The ASF licenses this file
+## to you under the Apache License, Version 2.0 (the
+## "License"); you may not use this file except in compliance
+## with the License.  You may obtain a copy of the License at
+##
+##   http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.
+##
+#
+#---
+#
+#- name: Remove mysql
+#  apt:
+#    name:
+#      - mysql-server
+#      - libmysqlclient-dev
+#      - gcc
+#    state: absent
+#  become: true
+#
+##  RAN KID ELY BLUR COD BAIT AUTO BONG SINK HAUL YALE
+#
+#- name: Removes all anonymous user accounts
+#  mysql_user:
+#    name: ''
+#    host_all: yes
+#    state: absent
+#
+##- name: Ensure required packages are installed
+##  apt:
+##    name:
+##      - bundler
+##      - mysql-server
+##      - mysql-client
+##      - libmysqlclient-dev
+##      - python3-mysqldb
+##      - build-essential
+##    state: latest
+##  become: true
+##
+##- name: Update mysql root password for all root accounts "{{ mysql_root_password }}"
+##  mysql_user: name=root password="{{ mysql_root_password }}" priv="*.*:ALL,GRANT"
+##
+##- name: Install and upgrade pip
+##  pip:
+##    name: pip
+##    extra_args: --upgrade
+##    executable: pip3
+##
+##- name: Install Required pip modules
+##  pip:
+##    name:
+##      - PyMySQL
+##    state: present
+##    executable: pip3
+##
+###- name: Ensure mysql service is running
+###  systemd:
+###    daemon_reload: yes
+###    name: mysqld
+###    state: started
+###    enabled: yes
+###  become: true
+##
+###- name: Ensure root user can only login from localhost
+###  mysql_user:
+###    login_unix_socket: /var/run/mysqld/mysqld.sock
+###    login_password: "{{ mysql_root_password }}"
+###    check_implicit_admin: yes
+###    name: root
+###    host: "{{ item }}"
+###    password: "{{ mysql_root_password }}"
+###    state: present
+###  with_items:
+###    - localhost
+###    - 127.0.0.1
+###    - ::1
+##
+###- name: update mysql root password for root account
+###  mysql_user:
+###    name: root
+###    login_unix_socket: /var/run/mysqld/mysqld.sock
+###    host_all: yes
+###    password: '{{ mysql_root_password }}'
+###    priv: "*.*:ALL,GRANT"
+###    check_implicit_admin: true
+##
+##- name: Add .my.cnf to user home
+##  template:
+##    src: my.cnf.j2
+##    dest: /root/.my.cnf
+##
+##- name: Reload privilege tables
+##  command: |
+##    mysql -p{{ mysql_root_password }} -ne "{{ item }}"
+##  with_items:
+##    - FLUSH PRIVILEGES
+##  changed_when: False
+##
+##- name: Remove anonymous users
+##  command: |
+##    mysql -p{{ mysql_root_password }} -ne "{{ item }}"
+##  with_items:
+##    - DELETE FROM mysql.user WHERE User=''
+##  changed_when: False
+##
+##- name: Disallow root login remotely
+##  command: |
+##    mysql -p{{ mysql_root_password }} -ne "{{ item }}"
+##  with_items:
+##    - DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')
+##  changed_when: False
+##
+##- name: Remove test database and access to it
+##  command: |
+##    mysql -p{{ mysql_root_password }} -ne "{{ item }}"
+##  with_items:
+##    - DROP DATABASE IF EXISTS test
+##    - DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'
+##  changed_when: False
+##
+##- name: Reload privilege tables
+##  command: |
+##    mysql -p{{ mysql_root_password }} -ne "{{ item }}"
+##  with_items:
+##    - FLUSH PRIVILEGES
+##  changed_when: False
+##
+##- name: Delete .my.conf
+##  file:
+##    path: /root/.my.cnf
+##    state: absent

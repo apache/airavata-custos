@@ -26,4 +26,4 @@ Now you should be ready to run `ansible-playbook` and other ansible commands.
 
 ## Useful commands
 
-- Deploy Data Lake: `ansible-playbook -i inventories/{inventory}/ --vault-password-file=vault-password.txt custos.yml`
+- Deploy Data Lake: `ansible-playbook -i inventories/{inventory}/ --ask-pass custos.yml`
