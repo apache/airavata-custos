@@ -18,24 +18,4 @@
 # under the License.
 #
 
----
-- hosts: custos
-  roles:
-##    - env_setup
-    - zookeeper
-    - kafka
-#    - custos
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
-
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
-
-#- hosts: emc-portal
-#  roles:
-#    - env_setup
-#    - emc_portal
+mysql_root_password: "admin"

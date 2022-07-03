@@ -31,7 +31,7 @@ custos_source_dir: "{{ user_home }}/custos-source"
 custos_repo: "https://github.com/apache/airavata-custos.git"
 custos_git_branch: berametal
 kafka_listener_port: 9092
-kafka_url: "{{ groups['data-lake'][0] }}:9092"
+kafka_url: "{{ groups['custos'][0] }}:9092"
 custos_kafka_url: 149.165.156.200:9092
 zookeeper_client_port: 2181
 zookeeper_connection_url: localhost:2181
@@ -39,102 +39,100 @@ zookeeper_connection_url: localhost:2181
 custos_host: custos.scigap.org
 custos_port: 31499
 
-mft_deployment_dir: "{{ user_home }}/mft-deployment"
-mft_source_dir: "{{ user_home }}/mft-source"
-mft_repo: "https://github.com/apache/airavata-mft.git"
-mft_git_branch: develop
-mft_distribution_version: 0.01
+#mft_deployment_dir: "{{ user_home }}/mft-deployment"
+#mft_source_dir: "{{ user_home }}/mft-source"
+#mft_repo: "https://github.com/apache/airavata-mft.git"
+#mft_git_branch: develop
+#mft_distribution_version: 0.01
 
 custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
 custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
-custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_git_branch: berametal
 
-mft_default_agent_id: agent0
-mft_default_agent_host: "{{ ansible_default_ipv4.address }}"
-mft_default_agent_advertised_url: https://beta.iubemcenter.scigap.org:8443/downloads
-mft_default_agent_port: 3333
-
-mft_api_service_host: localhost
-mft_api_service_http_port: 8088
-mft_api_service_grpc_port: 7004
-mft_api_service_id: 0
-
-mft_resource_service_host: localhost
-mft_resource_service_http_port: 8089
-mft_resource_service_grpc_port: 7002
-mft_resource_service_backend: org.apache.airavata.mft.resource.server.backend.datalake.DatalakeResourceBackend
-mft_resource_service_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
-mft_resource_service_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
-
-mft_secret_service_host: localhost
-mft_secret_service_http_port: 8081
-mft_secret_service_grpc_port: 7003
-mft_secret_service_backend: org.apache.airavata.mft.secret.server.backend.custos.CustosSecretBackend
-mft_secret_service_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
-mft_secret_service_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
-
-mft_consul_host: localhost
-mft_consul_port: 8500
-consul_version: 1.7.1
-consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
-consul_install_dir: /usr/local/bin
-consul_config_dir: /etc/consul
-consul_data_dir: /var/data
-
-custos_distribution_version: 1.1-SNAPSHOT
-datalake_drms_host: localhost
-datalake_drms_grpc_port: 7070
-
-datalake_drms_neo4j_uri: bolt://149.165.156.173:7687
-datalake_drms_neo4j_user: "{{ vault_datalake_drms_neo4j_user }}"
-datalake_drms_neo4j_password: "{{ vault_datalake_drms_neo4j_password }}"
-datalake_drms_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
-datalake_drms_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
-datalake_drms_custos_host: custos.scigap.org
-datalake_drms_custos_port: 31499
-datalake_drms_http_port: 8900
-
-datalake_synch_broker_url: "{{ custos_kafka_url }}"
-datalake_synch_broker_consumer_group: custosEventsGroup
-datalake_synch_broker_topic: 10002640-561b67b4-fa7d-4368-8643-dcd9d0159c1d
-datalake_synch_tenant_id: custos-ii8g0cfwsz6ruwezykn9-10002640
-
-datalake_data_orch_datasource_url: jdbc:mysql://localhost:3306/data_orchestrator?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
-datalake_data_orch_datasource_username: "{{ vault_datalake_data_orch_datasource_username }}"
-datalake_data_orch_datasource_password: "{{ vault_datalake_data_orch_datasource_password }}"
-datalake_data_orch_host: localhost
-datalake_data_orch_http_port: 8899
-datalake_data_orch_grpc_port: 6566
-datalake_data_orch_broker_url: "{{ kafka_url }}"
-datalake_data_orch_broker_consumer_group: DataOrchestratorGroup2
-datalake_data_orch_broker_topic: data-orchestrator-file-events
-datalake_data_orch_user_group: emc-users_e8a37f6d-e3b3-4e4a-9081-265bb42b1b99
-datalake_data_orch_admin_group: admin-group_c1aac070-1512-4e98-b1d1-e06a94f03665
-
-workflow_deployment_dir: "{{ user_home }}/workflow-deployment"
-workflow_zookeeper_url: "{{ zookeeper_connection_url }}"
-workflow_helix_cluster_name: datalake
-
-workflow_datasync_wm_name: datasync_wf
-workflow_parsing_wm_name: parsing_wf
-
-workflow_worker_kafka_url: "{{ kafka_url }}"
-workflow_worker_kafka_publisher_name: mft-status-publisher
-workflow_worker_kafka_publish_topic: mft-status-topic
-workflow_worker_kafka_consumner_group: mft-even-group
-
-workflow_manager_host: localhost
-workflow_manager_grpc_port: 6565
-
-workflow_manager_mft_callback_url: "{{ groups['data-lake'][0] }}:33335"
-workflow_manager_mft_client_id: "{{ vault_workflow_manager_mft_client_id }}"
-workflow_manager_mft_client_secret: "{{ vault_workflow_manager_mft_client_secret }}"
-
-workflow_manager_custos_host: custos.scigap.org
-workflow_manager_custos_port: 31499
-workflow_manager_custos_id: "{{ vault_workflow_manager_custos_id }}"
-workflow_manager_custos_secret: "{{ vault_workflow_manager_custos_secret }}"
+#mft_default_agent_id: agent0
+#mft_default_agent_host: "{{ ansible_default_ipv4.address }}"
+#mft_default_agent_advertised_url: https://beta.iubemcenter.scigap.org:8443/downloads
+#mft_default_agent_port: 3333
+#
+#mft_api_service_host: localhost
+#mft_api_service_http_port: 8088
+#mft_api_service_grpc_port: 7004
+#mft_api_service_id: 0
+#
+#mft_resource_service_host: localhost
+#mft_resource_service_http_port: 8089
+#mft_resource_service_grpc_port: 7002
+#mft_resource_service_backend: org.apache.airavata.mft.resource.server.backend.datalake.DatalakeResourceBackend
+#mft_resource_service_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
+#mft_resource_service_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
+#
+#mft_secret_service_host: localhost
+#mft_secret_service_http_port: 8081
+#mft_secret_service_grpc_port: 7003
+#mft_secret_service_backend: org.apache.airavata.mft.secret.server.backend.custos.CustosSecretBackend
+#mft_secret_service_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
+#mft_secret_service_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
+#
+#mft_consul_host: localhost
+#mft_consul_port: 8500
+#consul_version: 1.7.1
+#consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
+#consul_install_dir: /usr/local/bin
+#consul_config_dir: /etc/consul
+#consul_data_dir: /var/data
+#
+#custos_distribution_version: 1.1-SNAPSHOT
+#datalake_drms_host: localhost
+#datalake_drms_grpc_port: 7070
+#
+#datalake_drms_neo4j_uri: bolt://149.165.156.173:7687
+#datalake_drms_neo4j_user: "{{ vault_datalake_drms_neo4j_user }}"
+#datalake_drms_neo4j_password: "{{ vault_datalake_drms_neo4j_password }}"
+#datalake_drms_custos_client_id: "{{ vault_mft_resource_service_custos_client_id }}"
+#datalake_drms_custos_client_secret: "{{ vault_mft_resource_service_custos_client_secret }}"
+#datalake_drms_custos_host: custos.scigap.org
+#datalake_drms_custos_port: 31499
+#datalake_drms_http_port: 8900
+#
+#datalake_synch_broker_url: "{{ custos_kafka_url }}"
+#datalake_synch_broker_consumer_group: custosEventsGroup
+#datalake_synch_broker_topic: 10002640-561b67b4-fa7d-4368-8643-dcd9d0159c1d
+#datalake_synch_tenant_id: custos-ii8g0cfwsz6ruwezykn9-10002640
+#
+#datalake_data_orch_datasource_url: jdbc:mysql://localhost:3306/data_orchestrator?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
+#datalake_data_orch_datasource_username: "{{ vault_datalake_data_orch_datasource_username }}"
+#datalake_data_orch_datasource_password: "{{ vault_datalake_data_orch_datasource_password }}"
+#datalake_data_orch_host: localhost
+#datalake_data_orch_http_port: 8899
+#datalake_data_orch_grpc_port: 6566
+#datalake_data_orch_broker_url: "{{ kafka_url }}"
+#datalake_data_orch_broker_consumer_group: DataOrchestratorGroup2
+#datalake_data_orch_broker_topic: data-orchestrator-file-events
+#datalake_data_orch_user_group: emc-users_e8a37f6d-e3b3-4e4a-9081-265bb42b1b99
+#datalake_data_orch_admin_group: admin-group_c1aac070-1512-4e98-b1d1-e06a94f03665
+#
+#workflow_deployment_dir: "{{ user_home }}/workflow-deployment"
+#workflow_zookeeper_url: "{{ zookeeper_connection_url }}"
+#workflow_helix_cluster_name: datalake
+#
+#workflow_datasync_wm_name: datasync_wf
+#workflow_parsing_wm_name: parsing_wf
+#
+#workflow_worker_kafka_url: "{{ kafka_url }}"
+#workflow_worker_kafka_publisher_name: mft-status-publisher
+#workflow_worker_kafka_publish_topic: mft-status-topic
+#workflow_worker_kafka_consumner_group: mft-even-group
+#
+#workflow_manager_host: localhost
+#workflow_manager_grpc_port: 6565
+#
+##workflow_manager_mft_callback_url: "{{ groups['data-lake'][0] }}:33335"
+#workflow_manager_mft_client_id: "{{ vault_workflow_manager_mft_client_id }}"
+#workflow_manager_mft_client_secret: "{{ vault_workflow_manager_mft_client_secret }}"
+#
+#workflow_manager_custos_host: custos.scigap.org
+#workflow_manager_custos_port: 31499
+#workflow_manager_custos_id: "{{ vault_workflow_manager_custos_id }}"
+#workflow_manager_custos_secret: "{{ vault_workflow_manager_custos_secret }}"
 
 # Database related variables
 #db_server: "{{ groups['database'][0] }}"
@@ -155,8 +153,8 @@ mysql_root_password: root*password
 
 #mysql_connector_jar: "mysql-connector-java-5.1.37-bin.jar"
 
-#sharing_subnets:
-#  - "149.163.0.0/16"
+sharing_subnets:
+  - "149.165.152.112/16"
 #  - "140.182.0.0/16"
 #  - "149.165.0.0/16"
 #  - "192.68.133.0/24"

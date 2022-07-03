@@ -93,7 +93,7 @@
 #  with_items:
 #    - "{{ sharing_subnets }}"
 
-- name: Create Datalake deployment directory {{ custos_deployment_dir }}
+- name: Create Custos deployment directory {{ custos_deployment_dir }}
   become: yes
   file: path={{ custos_deployment_dir }}
     state=directory

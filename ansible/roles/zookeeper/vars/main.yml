@@ -19,23 +19,19 @@
 #
 
 ---
-- hosts: custos
-  roles:
-##    - env_setup
-    - zookeeper
-    - kafka
-#    - custos
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
+#Variables associated with this role
+# zookeeper related variable
+zookeeper_version: 3.4.8
+zookeeper_url: http://archive.apache.org/dist/zookeeper/zookeeper-{{zookeeper_version}}/zookeeper-{{zookeeper_version}}.tar.gz
 
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
+apt_cache_timeout: 3600
+client_port: "{{ zookeeper_client_port }}" 
+init_limit: 5
+sync_limit: 2
+tick_time: 2000
+data_dir: /var/lib/zookeeper
+log_dir: /var/log/zookeeper
+zookeeper_dir: "{{ user_home }}/zookeeper-{{zookeeper_version}}"
+zookeeper_data_dir: "{{ zookeeper_dir }}/data"
 
-#- hosts: emc-portal
-#  roles:
-#    - env_setup
-#    - emc_portal
+...

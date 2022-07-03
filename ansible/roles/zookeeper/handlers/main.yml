@@ -19,23 +19,14 @@
 #
 
 ---
-- hosts: custos
-  roles:
-##    - env_setup
-    - zookeeper
-    - kafka
-#    - custos
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
+- name: start zookeeper
+  service: name=zookeeper state=started enabled=yes
+  become: yes
 
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
+- name: stop zookeeper
+  service: name=zookeeper state=stopped
+  become: yes
 
-#- hosts: emc-portal
-#  roles:
-#    - env_setup
-#    - emc_portal
+- name: restart zookeeper
+  service: name=zookeeper state=restarted enabled=yes
+  become: yes
