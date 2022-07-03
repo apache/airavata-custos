@@ -2,4 +2,4 @@
 149.165.152.82 ansible_user=exouser
 
 [database]
-149.165.153.157 ansible_user=exouser ansible_become=truegit
+149.165.153.157 ansible_user=exouser ansible_become=true
