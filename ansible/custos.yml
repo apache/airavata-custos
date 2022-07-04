@@ -24,7 +24,7 @@
 ##    - env_setup
     - zookeeper
     - kafka
-#    - custos
+    - custos
 ##    - consul
 ##    - data_lake
 ##    - mft

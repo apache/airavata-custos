@@ -1,11 +1,11 @@
-- name: Install Custos pre-requireties (RedHat)
+- name: Install Custos pre-requisites (RedHat)
   yum: name={{ item }} state=latest update_cache=yes
   with_items:
     - maven
   become: yes
   when: ansible_os_family == "RedHat"
 
-- name: Install Custos pre-requireties (Debian)
+- name: Install Custos pre-requisites (Debian)
   apt: name={{ item }} state=latest update_cache=yes
   with_items:
     - maven
