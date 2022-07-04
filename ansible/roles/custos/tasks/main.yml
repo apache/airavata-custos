@@ -163,27 +163,24 @@
   become: yes
   become_user: "{{ user }}"
 
-#- name: Copy Datalake property files
-#  template: "src={{ item.name }}
-#            dest={{ datalake_deployment_dir }}/{{ item.dir }}/conf/{{ item.target }}
-#            owner={{ user }}
-#            group={{ group }}
-#            mode=\"u=rw,g=r,o=r\""
-#  with_items:
-#    - { name: drms/application.properties.j2,
-#        dir: "DRMS-{{datalake_distribution_version}}",
-#        target: application.properties}
-#    - { name: custos-data-synchronizer/config.yml.j2,
-#        dir: "DRMS-Custos-Synchronizer-{{datalake_distribution_version}}",
-#        target: config.yml }
-#    - { name: data-orchestrator/application.properties.j2,
-#        dir: "Orchestrator-API-Service-{{datalake_distribution_version}}",
-#        target: application.properties }
-#    - { name: data-orchestrator/config.yml.j2,
-#        dir: "Orchestrator-API-Service-{{datalake_distribution_version}}",
-#        target: config.yml }
-#  become: yes
-#  become_user: "{{ user }}"
+- name: Copy Custos property files
+  template: "src={{ item.name }}
+            dest={{ custos_deployment_dir }}/{{ item.dir }}/conf/{{ item.target }}
+            owner={{ user }}
+            group={{ group }}
+            mode=\"u=rw,g=r,o=r\""
+  with_items:
+    - { name: custos-core-services/application.properties.j2,
+        dir: "Custos-Core-Services-Server-{{custos_distribution_version}}",
+        target: application.properties}
+    - { name: custos-core-services/bootstrap.properties.j2,
+        dir: "Custos-Core-Services-Server-{{custos_distribution_version}}",
+        target: bootstrap.properties }
+    - { name: custos-integration-services/application.properties.j2,
+        dir: "Custos-Integration-Services-Server-{{custos_distribution_version}}",
+        target: application.properties }
+  become: yes
+  become_user: "{{ user }}"
 #
 #- name: Start drms  service
 #  command: systemctl daemon-reload
