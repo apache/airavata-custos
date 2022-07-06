@@ -62,8 +62,8 @@ resources:
   #   cpu: 100m
          memory: 500Mi
 
-nodeSelector:
-    custosServiceWorker: "enabled"
+#nodeSelector:
+#    custosServiceWorker: "enabled"
 
 tolerations: []
 
