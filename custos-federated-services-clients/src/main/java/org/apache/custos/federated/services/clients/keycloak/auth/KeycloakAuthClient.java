@@ -116,8 +116,7 @@ public class KeycloakAuthClient {
             KeyStoreException, KeyManagementException, IOException {
         try {
             LOGGER.info("initializing security requirements");
-            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword,
-                    activeProfile, clusterManagementClient);
+            KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword);
         } catch (Exception ex) {
             LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
             throw ex;

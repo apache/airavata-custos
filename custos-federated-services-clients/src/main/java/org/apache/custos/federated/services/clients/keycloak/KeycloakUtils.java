@@ -20,9 +20,6 @@
 package org.apache.custos.federated.services.clients.keycloak;
 
 import org.apache.catalina.security.SecurityUtil;
-import org.apache.custos.cluster.management.client.ClusterManagementClient;
-import org.apache.custos.cluster.management.service.GetServerCertificateRequest;
-import org.apache.custos.cluster.management.service.GetServerCertificateResponse;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.keycloak.admin.client.Keycloak;
@@ -33,14 +30,15 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.concurrent.TimeUnit;
 
 public class KeycloakUtils {
@@ -110,25 +108,25 @@ public class KeycloakUtils {
 //
 //            }  else {
 
-                File trustStoreFile = new File(trustStorePath);
+            File trustStoreFile = new File(trustStorePath);
 
-                if (trustStoreFile.exists()) {
-                    LOGGER.debug("Loading trust store file from path " + trustStorePath);
-                    is = new FileInputStream(trustStorePath);
-                } else {
-                    LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
-                    is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
-                    if (is != null) {
-                        LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
-                    }
+            if (trustStoreFile.exists()) {
+                LOGGER.debug("Loading trust store file from path " + trustStorePath);
+                is = new FileInputStream(trustStorePath);
+            } else {
+                LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
+                is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
+                if (is != null) {
+                    LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
                 }
+            }
 
-                if (is == null) {
-                    throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
-                }
+            if (is == null) {
+                throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
+            }
 
 
-                ks.load(is, trustorePassword.toCharArray());
+            ks.load(is, trustorePassword.toCharArray());
 //            }
             return ks;
         } catch (Exception e) {
@@ -145,44 +143,43 @@ public class KeycloakUtils {
     }
 
 
-    public static SSLContext initializeTrustStoreManager(String trustStorePath, String trustStorePassword,
-                                                         String profile, ClusterManagementClient clusterManagementClient) throws
+    public static SSLContext initializeTrustStoreManager(String trustStorePath, String trustStorePassword) throws
             IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
 
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        if (profile.equals("staging") || profile.equals("production")) {
-            GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
-                    .newBuilder()
-                    .setNamespace("keycloak")
-                    .setSecretName("tls-keycloak-secret")
-                    .build();
-            GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
-            Certificate certs = cf.generateCertificate(targetStream);
-            trustStore.load(null, null);
-            trustStore.setCertificateEntry("custos", certs);
-
-        }  else {
-            File trustStoreFile = new File(trustStorePath);
-            InputStream is;
-            if (trustStoreFile.exists()) {
-                LOGGER.debug("Loading trust store file from path " + trustStorePath);
-                is = new FileInputStream(trustStorePath);
-            } else {
-                LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
-                is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
-                if (is != null) {
-                    LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
-                }
+//        if (profile.equals("staging") || profile.equals("production")) {
+//            GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest
+//                    .newBuilder()
+//                    .setNamespace("keycloak")
+//                    .setSecretName("tls-keycloak-secret")
+//                    .build();
+//            GetServerCertificateResponse response = clusterManagementClient.getCustosServerCertificate(getServerCertificateRequest);
+//            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+//            InputStream targetStream = new ByteArrayInputStream(response.getCertificate().getBytes());
+//            Certificate certs = cf.generateCertificate(targetStream);
+//            trustStore.load(null, null);
+//            trustStore.setCertificateEntry("custos", certs);
+//
+//        }  else {
+        File trustStoreFile = new File(trustStorePath);
+        InputStream is;
+        if (trustStoreFile.exists()) {
+            LOGGER.debug("Loading trust store file from path " + trustStorePath);
+            is = new FileInputStream(trustStorePath);
+        } else {
+            LOGGER.debug("Trying to load trust store file form class path " + trustStorePath);
+            is = SecurityUtil.class.getClassLoader().getResourceAsStream(trustStorePath);
+            if (is != null) {
+                LOGGER.debug("Trust store file was loaded form class path " + trustStorePath);
             }
-
-            if (is == null) {
-                throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
-            }
-            char[] trustPassword = trustStorePassword.toCharArray();
-            trustStore.load(is, trustPassword);
         }
+
+        if (is == null) {
+            throw new RuntimeException("Could not find a trust store file in path " + trustStorePath);
+        }
+        char[] trustPassword = trustStorePassword.toCharArray();
+        trustStore.load(is, trustPassword);
+//        }
 
         // initialize a trust manager factory
         TrustManagerFactory trustFactory =
