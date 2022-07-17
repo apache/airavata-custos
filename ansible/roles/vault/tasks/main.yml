@@ -1,0 +1,35 @@
+- name: add gpg key
+  apt_key:
+    url: https://apt.releases.hashicorp.com/gpg
+    state: present
+  become: yes
+
+- name: add hashicorp linux repo
+  apt_repository:
+    repo: deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
+    state: present
+  become: yes
+
+# install vault and consul
+- name: Install vault and consul
+  apt:
+    name:
+      - vault
+#      - consul
+  become: yes
+
+# configure vault backend with consul
+- name: Configure vault backend with consul
+  template: >
+    src=vault.hcl.j2
+    dest="/etc/vault.d/vault.hcl"
+    owner="{{ user }}"
+    group="{{ group }}"
+    mode="u=rw,g=r,o=r"
+  become: yes
+
+- name: Restart vault
+  ansible.builtin.service:
+    name: vault
+    state: restarted
+  become: yes

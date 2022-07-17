@@ -3,3 +3,9 @@
 
 [database]
 149.165.153.157 ansible_user=exouser ansible_become=true
+
+[keycloak]
+149.165.155.212 ansible_user=exouser
+
+[hashicorp]
+149.165.152.76 ansible_user=exouser

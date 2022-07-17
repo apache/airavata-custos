@@ -39,6 +39,19 @@ zookeeper_connection_url: localhost:2181
 custos_host: custos.scigap.org
 custos_port: 31499
 
+# Letsencrypt
+letsencrypt_email: "abhinav7sinha@gmail.com"
+
+# vault variables
+vault_port: 443 # ${vault.port}
+
+#Keycloak
+#keycloak_vhost_servername: "iamdev.scigap.org"
+keycloak_vhost_servername: 149.165.152.82
+keycloak_repo: https://github.com/keycloak/keycloak.git
+#keycloak_git_branch:
+keycloak_source_dir: "{{ user_home }}/keycloak-source"
+
 #mft_deployment_dir: "{{ user_home }}/mft-deployment"
 #mft_source_dir: "{{ user_home }}/mft-source"
 #mft_repo: "https://github.com/apache/airavata-mft.git"
@@ -152,6 +165,12 @@ mysql_root_password: root*password
 #profile_service: "profile_service"
 
 #mysql_connector_jar: "mysql-connector-java-5.1.37-bin.jar"
+
+consul_version: 1.7.1
+consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
+consul_install_dir: /usr/local/bin
+consul_config_dir: /etc/consul
+consul_data_dir: /var/data
 
 sharing_subnets:
   - "149.165.152.112/16"

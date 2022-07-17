@@ -19,35 +19,20 @@
 #
 
 ---
-#- hosts: custos
-#  roles:
-###    - env_setup
-#    - zookeeper
-#    - kafka
-#    - custos
-##    - database
-##    - sep host
-#    - postgresql
-#    - keycloak
-##    - sep host
-#    - Hashicorp vault
-#    - hashicorp consul
-#    -
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
 
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
+# Setup keycloak user and database
+- name: create keycloak database
+  mysql_db: name="keycloak" state=present encoding=utf8
+  when: "'keycloak' in groups"
 
-#- hosts: keycloak
-#  roles:
-#    - keycloak
+- name: give access to {{ keycloak_db_username }} from remote
+  mysql_user: name="{{ keycloak_db_username }}" password="{{ keycloak_db_password }}" host="{{ item }}"
+  with_items:
+    - "{{ groups['keycloak'] }}"
 
-- hosts: hashicorp
-  roles:
-    - vault
-    - consul
+- name: create new user {{ keycloak_db_username }} with all privilege
+  mysql_user: name="{{ keycloak_db_username }}"
+              password="{{ keycloak_db_password }}"
+              append_privs=yes
+              host_all=yes
+              priv=keycloak.*:ALL,GRANT state=present

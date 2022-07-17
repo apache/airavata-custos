@@ -19,35 +19,16 @@
 #
 
 ---
-#- hosts: custos
-#  roles:
-###    - env_setup
-#    - zookeeper
-#    - kafka
-#    - custos
-##    - database
-##    - sep host
-#    - postgresql
-#    - keycloak
-##    - sep host
-#    - Hashicorp vault
-#    - hashicorp consul
-#    -
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
+- name: start mariadb
+  service: name=mariadb state=started enabled=yes
+  become: yes
 
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
+- name: stop mariadb
+  service: name=mariadb state=stopped
+  become: yes
 
-#- hosts: keycloak
-#  roles:
-#    - keycloak
+- name: restart mariadb
+  service: name=mariadb state=restarted enabled=yes
+  become: yes
 
-- hosts: hashicorp
-  roles:
-    - vault
-    - consul
+...

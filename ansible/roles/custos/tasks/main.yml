@@ -154,7 +154,7 @@
   become_user: "{{ user }}"
   ignore_errors: yes
 
-- name: Copy Custos distributions to Datalake deployment directory
+- name: Copy Custos distributions to Custos deployment directory
   unarchive: "src={{ custos_source_dir }}/{{ item }}
               dest={{ custos_deployment_dir }}/ copy=no"
   with_items:
