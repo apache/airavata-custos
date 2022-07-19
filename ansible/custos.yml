@@ -19,34 +19,16 @@
 #
 
 ---
-#- hosts: custos
-#  roles:
-###    - env_setup
-#    - zookeeper
-#    - kafka
-#    - custos
-##    - database
-##    - sep host
-#    - postgresql
-#    - keycloak
-##    - sep host
-#    - Hashicorp vault
-#    - hashicorp consul
-#    -
-##    - consul
-##    - data_lake
-##    - mft
-##    - workflow-engine
-
-#- hosts: database
-#  become: yes
-#  roles:
-#    - database
-
-#- hosts: keycloak
-#  roles:
-#    - keycloak
-
+- hosts: custos
+  roles:
+    - env_setup
+    - zookeeper
+    - kafka
+    - custos
+    - database
+- hosts: keycloak
+  roles:
+    - keycloak
 - hosts: hashicorp
   roles:
     - vault
