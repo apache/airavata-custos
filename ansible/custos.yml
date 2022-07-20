@@ -22,10 +22,10 @@
 - hosts: custos
   roles:
     - env_setup
+    - database
     - zookeeper
     - kafka
     - custos
-    - database
 - hosts: keycloak
   roles:
     - keycloak

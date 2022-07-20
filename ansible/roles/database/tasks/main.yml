@@ -4,6 +4,7 @@
     name:
     - mysql-server
     - python3-pymysql
+  become: yes
 
 - name: Start the MySQL service
   service:

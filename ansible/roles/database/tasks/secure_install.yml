@@ -33,6 +33,7 @@
     priv: '*.*:ALL,GRANT'
     host: 'localhost'
     state: present
+  become: yes
 
 - name: Copy .my.cnf file
   template: src=my.cnf.j2 dest="{{ user_home }}/.my.cnf"
