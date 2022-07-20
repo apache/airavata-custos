@@ -2,7 +2,7 @@
 149.165.152.226 ansible_user=exouser ansible_ssh_pass="{{ custos_password }}"
 
 [keycloak]
-149.165.155.212 ansible_user=exouser ansible_ssh_pass="{{ keycloak_password }}"
+149.165.154.45 ansible_user=exouser ansible_ssh_pass="{{ keycloak_password }}"
 
 [hashicorp]
 149.165.152.76 ansible_user=exouser ansible_ssh_pass="{{ hashicorp_password }}"
