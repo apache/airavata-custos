@@ -19,17 +19,20 @@
 #
 
 ---
-- hosts: custos
+#- hosts: custos
+#  roles:
+#    - env_setup
+#    - database
+#    - zookeeper
+#    - kafka
+#    - custos
+#- hosts: keycloak
+#  roles:
+#    - keycloak
+#- hosts: hashicorp
+#  roles:
+#    - vault
+#    - consul
+- hosts: testcustos
   roles:
-    - env_setup
-    - database
-    - zookeeper
-    - kafka
-    - custos
-- hosts: keycloak
-  roles:
-    - keycloak
-- hosts: hashicorp
-  roles:
-    - vault
-    - consul
+    - nginx
