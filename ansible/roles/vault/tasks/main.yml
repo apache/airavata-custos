@@ -10,12 +10,11 @@
     state: present
   become: yes
 
-# install vault and consul
-- name: Install vault and consul
+# install vault
+- name: Install vault
   apt:
     name:
       - vault
-#      - consul
   become: yes
 
 # configure vault backend with consul

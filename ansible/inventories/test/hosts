@@ -6,3 +6,6 @@
 
 [hashicorp]
 149.165.152.76 ansible_user=exouser ansible_ssh_pass="{{ hashicorp_password }}"
+
+[testcustos]
+149.165.152.168 ansible_user=exouser ansible_ssh_pass="{{ testcustos_password }}"
