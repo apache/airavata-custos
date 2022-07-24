@@ -26,4 +26,14 @@ Now you should be ready to run `ansible-playbook` and other ansible commands.
 
 ## Useful commands
 
-- Deploy Data Lake: `ansible-playbook -i inventories/{inventory}/ --ask-pass custos.yml`
+- Deploy Custos:
+
+  `ansible-playbook -i inventories/{inventory}/ custos.yml --ask-vault-pass`
+
+
+- Deploy Custos with verbose option for debug messages:
+
+  `ansible-playbook -i inventories/{inventory}/ custos.yml --ask-vault-pass -vvv`
+
+  Adding multiple -v will increase the verbosity, the builtin plugins currently evaluate up to -vvvvvv. A reasonable level to start is -vvv, connection debugging might require -vvvv.
+
