@@ -31,11 +31,10 @@
     state: latest
   become: yes
 
-- name: allow ssh
+- name: allow OpenSSH
   ufw:
     rule: allow
-    port: 22
-    proto: tcp
+    name: "OpenSSH"
     state: enabled
   become: yes
 
@@ -59,7 +58,7 @@
     group: "{{ group }}"
   become: yes
 
-- name: delete default nginx site
+- name: delete default nginx config
   file:
     path: /etc/nginx/sites-enabled/default
     state: absent
@@ -98,20 +97,6 @@
     mode="u=rw,g=r,o=r"
   become: yes
 
-- name: Restart nginx
-  service:
-    name: nginx
-    state: restarted
-  become: yes
-
-- name: install certbot
-  apt:
-    name:
-      - certbot
-      - python3-certbot-nginx
-    state: latest
-  become: yes
-
 - name: allow HTTPS traffic
   ufw:
     rule: allow
@@ -125,4 +110,18 @@
     name: "Nginx HTTP"
     delete: yes
     state: enabled # enable the ufw rule
+  become: yes
+
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted
+  become: yes
+
+- name: install certbot
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: latest
   become: yes
