@@ -21,24 +21,24 @@
 ---
 - name: "create certs directory"
   file:
-    path: /opt/certs
+    path: /{{ user_home }}/certs
     state: directory
     mode: '0775'
     owner: "{{ user }}"
     group: "{{ group }}"
-  become: yes
 
-- name: Generate PKCS#12 file
+- name: Generate PKCS#12 file "{{ domain }}-truststore"
   community.crypto.openssl_pkcs12:
     action: export
-    path: /opt/certs/{{ pkcs12_filename }}
-    friendly_name: ansible
+    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
+    friendly_name: "{{ domain }}-truststore"
     privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
     certificate_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
     state: present
+    mode: 0600 #0777
   become: yes
 
 #- name: Remove PKCS#12 file
 #  community.crypto.openssl_pkcs12:
-#    path: # CHANGE ME
+#    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
 #    state: absent

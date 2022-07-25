@@ -31,11 +31,13 @@
   roles:
     - nginx
     - keycloak
+    - pkcs12
 - hosts: hashicorp
   roles:
     - nginx
     - vault
     - consul
+    - pkcs12
 #- hosts: testcustos
 #  roles:
 #    - nginx
