@@ -28,8 +28,10 @@ user_home: "/home/{{ user }}"
 # deployment related variables
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
-custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_git_branch: berametal
+#custos_repo: "https://github.com/apache/airavata-custos.git"
+custos_repo: "https://github.com/abhinav7sinha/airavata-custos.git"
+#custos_git_branch: berametal
+custos_git_branch: ansible-baremetal
 kafka_listener_port: 9092
 kafka_url: "{{ groups['custos'][0] }}:9092"
 custos_kafka_url: 149.165.156.200:9092
