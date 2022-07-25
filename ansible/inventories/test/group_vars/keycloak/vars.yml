@@ -20,6 +20,7 @@
 
 ---
 domain: bm-dev-2.usecustos.org
+pkcs12_filename: 'keycloak-client-truststore.pkcs12'
 ansible_ssh_password:
   !vault |
   $ANSIBLE_VAULT;1.1;AES256
