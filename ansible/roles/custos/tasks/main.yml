@@ -202,6 +202,17 @@
         target: application.properties }
   become: yes
   become_user: "{{ user }}"
+
+- name: Copy hashicorp and keycloak truststore files
+  copy:
+    src: "{{ custos_source_dir }}/custos-core-services-server/src/main/dist/conf/{{ item }}"
+    dest: /home/ubuntu/{{ item }}
+    remote_src: yes
+  with_items:
+    - keycloak-client-truststore.pkcs12
+    - vault-client-truststore.pkcs12
+  become: yes
+
 #
 #- name: Start drms  service
 #  command: systemctl daemon-reload

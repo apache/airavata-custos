@@ -49,8 +49,8 @@ vault:
   port: 443
   token: XXXXXXX
   scheme: https
-  host: dev.vault.usecustos.org
-  uri: https://dev.vault.usecustos.org
+  host: bm-dev-1.usecustos.org
+  uri: https://bm-dev-1.usecustos.org
 
 #Keycloak
 #keycloak_vhost_servername: "iamdev.scigap.org"
