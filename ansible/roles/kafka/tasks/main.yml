@@ -69,27 +69,37 @@
     mode="u=rw,g=r,o=r"
   become: yes
 
-- name: open kafka proxy port
-  firewalld:
-    zone: public
-    permanent: yes
-    state: enabled
-    immediate: yes
-    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ kafka_listener_port }}" protocol=tcp accept
-  become: yes
-  with_items:
-    - "{{ sharing_subnets }}"
+#- name: uninstall firewalld # install firewalld
+#  apt:
+#    name: firewalld
+#    state: absent #latest
+#  become: yes
 
-- name: open kafka rest proxy port
-  firewalld:
-    zone: public
-    permanent: yes
-    state: enabled
-    immediate: yes
-    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ kafka_rest_proxy_listener_port }}" protocol=tcp accept
-  become: yes
-  with_items:
-    - "{{ sharing_subnets }}"
+#- name: start firewalld #and python-firewall
+#  service: name=firewalld state=started
+#  become: yes
+
+#- name: open kafka proxy port
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ kafka_listener_port }}" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
+#
+#- name: open kafka rest proxy port
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ kafka_rest_proxy_listener_port }}" protocol=tcp accept
+#  become: yes
+#  with_items:
+#    - "{{ sharing_subnets }}"
 
 - name: systemd install kafka service script
   template: src=kafka.service.j2

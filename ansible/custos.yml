@@ -21,7 +21,6 @@
 ---
 - hosts: custos
   roles:
-    - env_setup
     - nginx
     - database
     - zookeeper

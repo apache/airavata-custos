@@ -29,11 +29,6 @@
   user: name={{ user }} group={{ group }}
   become: yes
 
-#- name: Install Firewalld (RedHat)
-#  yum: name=firewalld state=latest update_cache=yes
-#  become: yes
-#  when: ansible_os_family == "RedHat"
-
 - name: Install Firewalld (Debian)
   apt: name=firewalld state=latest update_cache=yes
   become: yes
@@ -49,14 +44,6 @@
 #     - iptables
 #     - ip6tables
 
-#- name: Install Git (RedHat)
-#  yum:
-#    name:
-#    - git
-#    state: latest
-#    update_cache: yes
-#  become: yes
-#  when: ansible_os_family == "RedHat"
 
 - name: Install Git (Debian)
   apt:
