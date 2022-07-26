@@ -118,13 +118,11 @@ public class KeycloakAuthClient {
             LOGGER.info("initializing security requirements");
             KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword,
                     activeProfile, clusterManagementClient);
-            LOGGER.info("initializeTrustStoreManager done!");
         } catch (Exception ex) {
             LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
             throw ex;
         }
     }
-
 
     public String authenticate(String clientId, String clientSecret, String realmId, String username, String password) {
 
