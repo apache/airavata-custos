@@ -161,7 +161,7 @@ custos_distribution_version: 1.1-SNAPSHOT
 #  name: custos_user
 #  password: user*password
 #db_password: "CHANGEME"
-mysql_root_password: root*password
+mysql_root_password: Custosdatabase@1
 #ansible_python_interpreter: /usr/bin/python3
 #app_catalog: "app_catalog"
 #exp_catalog: "experiment_catalog"

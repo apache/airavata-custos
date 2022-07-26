@@ -57,7 +57,7 @@
     owner={{ user }}
     group={{ group }}
     mode="u=rw,g=r,o=r"
-  notify: restart kafka
+#  notify: restart kafka
   become: yes
 
 # Config rest proxy and start
@@ -107,7 +107,7 @@
     owner={{ user }}
     group={{ group }}
     mode="u=rw,g=r,o=r"
-  notify: start kafka
+#  notify: start kafka
   become: yes
 
 - name: systemd install kafka rest proxy service script
@@ -120,12 +120,20 @@
 
 - name: Reload systemd daemons
   command: systemctl daemon-reload
-  notify: restart kafka
+#  notify: restart kafka
   become: yes
 
 - name: Reload systemd daemons
   command: systemctl daemon-reload
-  notify: restart kafka-rest-proxy
+#  notify: restart kafka-rest-proxy
+  become: yes
+
+- name: restart kafka
+  service: name=kafka state=restarted enabled=yes
+  become: yes
+
+- name: restart kafka-rest-proxy
+  service: name=kafka-rest-proxy state=restarted enabled=yes
   become: yes
 
 ...

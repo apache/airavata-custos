@@ -20,6 +20,8 @@
 
 ---
 domain: bm-dev-1.usecustos.org
+pkcs12_filename: 'custos-client-truststore.pkcs12'
+pkcs12_passphrase:
 ansible_ssh_password:
   !vault |
   $ANSIBLE_VAULT;1.1;AES256

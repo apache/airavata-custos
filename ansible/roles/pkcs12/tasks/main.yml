@@ -27,18 +27,20 @@
     owner: "{{ user }}"
     group: "{{ group }}"
 
-- name: Generate PKCS#12 file "{{ domain }}-truststore"
-  community.crypto.openssl_pkcs12:
-    action: export
-    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
-    friendly_name: "{{ domain }}-truststore"
-    privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
-    certificate_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
-    state: present
-    mode: 0600 #0777
-  become: yes
+#- name: Generate PKCS#12 file "{{ domain }}-truststore"
+#  community.crypto.openssl_pkcs12:
+#    action: export
+#    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
+#    friendly_name: "{{ domain }}-truststore"
+#    privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
+#    certificate_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+#    state: present
+#    mode: 0777 #0700
+#    passphrase: "{{ pkcs12_passphrase }}"
+#  become: yes
 
 #- name: Remove PKCS#12 file
 #  community.crypto.openssl_pkcs12:
 #    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
 #    state: absent
+#  become: yes

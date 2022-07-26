@@ -56,4 +56,8 @@
 - name: reload systemd daemons
   command: systemctl daemon-reload
   become: yes
+
+- name: restart zookeeper
+  service: name=zookeeper state=restarted enabled=yes
+  become: yes
 ...

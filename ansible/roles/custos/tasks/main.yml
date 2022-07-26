@@ -19,13 +19,6 @@
 #
 
 ---
-- name: Install Custos pre-requisites (RedHat)
-  yum: name={{ item }} state=latest update_cache=yes
-  with_items:
-    - maven
-  become: yes
-  when: ansible_os_family == "RedHat"
-
 - name: Install Custos pre-requisites (Debian)
   apt: name={{ item }} state=latest update_cache=yes
   with_items:
@@ -33,86 +26,15 @@
   become: yes
   when: ansible_os_family == "Debian"
 
-#- name: open firewall port 8443 for DRMS REST connections
-#  firewalld: port="8443/tcp"
-#    zone=public permanent=true state=enabled immediate=yes
-#  become: yes
-#
-#- name: open firewall port 7070 for DRMS Grpc connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="7070" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
-#
-#- name: open firewall port 80 for HTTP connections
-#  firewalld: port="80/tcp"
-#    zone=public permanent=true state=enabled immediate=yes
-#  become: yes
-#
-#- name: open firewall port 443 for HTTPS connections
-#  firewalld: port="443/tcp"
-#    zone=public permanent=true state=enabled immediate=yes
-#  become: yes
-#
-#- name: open firewall port 9092 for Kafka connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="9092" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
-#
-#- name: open firewall port 6060 for Data Orchestrator Grpc connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="6060" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
-#
-#- name: open firewall port {{ datalake_data_orch_http_port }} for Data Orchestrator HTTP connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_orch_http_port }}" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
-#
-#- name: open firewall port {{ datalake_data_orch_grpc_port }} for Data Orchestrator gRPC connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_orch_grpc_port }}" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
-#
-#- name: open firewall port {{ datalake_data_drms_rest_port }} for DRMS REST connections
-#  firewalld:
-#    zone: public
-#    permanent: yes
-#    state: enabled
-#    immediate: yes
-#    rich_rule: rule family=ipv4 source address="{{ item }}" port port="{{ datalake_data_drms_rest_port }}" protocol=tcp accept
-#  become: yes
-#  with_items:
-#    - "{{ sharing_subnets }}"
+- name: Copy hashicorp and keycloak truststore files
+  copy:
+    src: "{{ custos_source_dir }}/custos-core-services-server/src/main/dist/conf/{{ item }}"
+    dest: /home/ubuntu/{{ item }}
+    remote_src: yes
+  with_items:
+    - keycloak-client-truststore.pkcs12
+    - vault-client-truststore.pkcs12
+  become: yes
 
 - name: Create Custos deployment directory {{ custos_deployment_dir }}
   become: yes
@@ -147,22 +69,6 @@
   tags: update
   become: yes
   become_user: "{{ user }}"
-
-#- name: Stop drms  service
-#  command: systemctl daemon-reload
-#  notify: stop drms-service
-#  become: yes
-#
-#- name: Stop custos synchronizer  service
-#  command: systemctl daemon-reload
-#  notify: stop drms-custos-sync
-#  become: yes
-#
-#- name: Stop orchestrator  service
-#  command: systemctl daemon-reload
-#  notify: stop orch-service
-#  become: yes
-
 
 - name: Delete lib directories of the distributions
   file:
@@ -202,36 +108,3 @@
         target: application.properties }
   become: yes
   become_user: "{{ user }}"
-
-- name: Copy hashicorp and keycloak truststore files
-  copy:
-    src: "{{ custos_source_dir }}/custos-core-services-server/src/main/dist/conf/{{ item }}"
-    dest: /home/ubuntu/{{ item }}
-    remote_src: yes
-  with_items:
-    - keycloak-client-truststore.pkcs12
-    - vault-client-truststore.pkcs12
-  become: yes
-
-#
-#- name: Start drms  service
-#  command: systemctl daemon-reload
-#  notify: start drms-service
-#  become: yes
-#
-#- name: Start custos synchronizer  service
-#  command: systemctl daemon-reload
-#  notify: start drms-custos-sync
-#  become: yes
-#
-#- name: Start orchestrator  service
-#  command: systemctl daemon-reload
-#  notify: start orch-service
-#  become: yes
-#
-#
-#- name: Start Envoy  proxy
-#  command: systemctl daemon-reload
-#  notify: start envoy
-#  become: yes
-#
