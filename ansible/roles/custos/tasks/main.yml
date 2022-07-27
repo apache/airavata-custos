@@ -108,3 +108,11 @@
         target: application.properties }
   become: yes
   become_user: "{{ user }}"
+
+- name: Start Custos Core and Integration services
+  service:
+    name:
+      - corecustos
+      - intcustos
+    state: restarted
+  become: yes

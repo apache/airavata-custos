@@ -19,6 +19,15 @@
 #
 
 ---
+- hosts: hashicorp
+  roles:
+    - nginx
+    - vault
+    - consul
+- hosts: keycloak
+  roles:
+    - nginx
+    - keycloak
 - hosts: custos
   roles:
     - nginx
@@ -26,15 +35,6 @@
     - zookeeper
     - kafka
     - custos
-- hosts: keycloak
-  roles:
-    - nginx
-    - keycloak
-- hosts: hashicorp
-  roles:
-    - nginx
-    - vault
-    - consul
 #- hosts: testcustos
 #  roles:
 #    - nginx
