@@ -74,7 +74,7 @@
 
 - name: copy nginx site.conf
   template:
-    src: {{ nginx_site_config }}
+    src: "{{ nginx_site_config }}"
     dest: /etc/nginx/sites-available/{{ domain }}
     owner: root
     group: root
