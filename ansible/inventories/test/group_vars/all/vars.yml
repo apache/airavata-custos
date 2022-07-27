@@ -37,6 +37,7 @@ kafka_url: "{{ groups['custos'][0] }}:9092"
 custos_kafka_url: 149.165.156.200:9092
 zookeeper_client_port: 2181
 zookeeper_connection_url: localhost:2181
+zookeeper_connection_timeout: 18000
 
 custos_host: custos.scigap.org
 custos_port: 31499

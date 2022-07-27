@@ -28,12 +28,12 @@ broker.id={{ broker_id }}
 #     listeners = listener_name://host_name:port
 #   EXAMPLE:
 #     listeners = PLAINTEXT://your.host.name:9092
-listeners=PLAINTEXT://0.0.0.0:{{ kafka_listener_port }}
+#listeners=PLAINTEXT://0.0.0.0:{{ kafka_listener_port }}
 
 # Hostname and port the broker will advertise to producers and consumers. If not set,
 # it uses the value for "listeners" if configured.  Otherwise, it will use the value
 # returned from java.net.InetAddress.getCanonicalHostName().
-advertised.listeners=PLAINTEXT://{{ kafka_url }}
+#advertised.listeners=PLAINTEXT://{{ kafka_url }}
 
 # Maps listener names to security protocols, the default is for them to be the same. See the config documentation for more details
 #listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
@@ -123,7 +123,7 @@ log.retention.check.interval.ms={{ log_retention_check_interval }}
 zookeeper.connect={{ zookeeper_connection_url }}
 
 # Timeout in ms for connecting to zookeeper
-zookeeper.connection.timeout.ms=6000
+zookeeper.connection.timeout.ms={{ zookeeper_connection_timeout }}
 
 ##################### Confluent Metrics Reporter #######################
 # Confluent Control Center and Confluent Auto Data Balancer integration
@@ -193,3 +193,9 @@ confluent.metadata.topic.replication.factor=1
 #confluent.metadata.server.listeners=http://0.0.0.0:8090
 # Advertised listeners for metadata server
 #confluent.metadata.server.advertised.listeners=http://127.0.0.1:8090
+
+############################# Additional fixes #######################
+delete.topic.enable = true
+auto.create.topics.enable=true
+listeners=PLAINTEXT://0.0.0.0:9092
+advertised.listeners = PLAINTEXT://{{ domain }}:9092
