@@ -66,7 +66,7 @@
 
 - name: copy sample index.html to /var/www/{{ domain }}/html
   template: >
-    src=index.html.j2
+    src={{ domain }}/index.html.j2
     dest="/var/www/{{ domain }}/index.html"
     owner="{{ user }}"
     group="{{ group }}"
@@ -74,7 +74,7 @@
 
 - name: copy nginx site.conf
   template:
-    src: "{{ nginx_site_config }}"
+    src: "{{ domain }}/site.conf.j2"
     dest: /etc/nginx/sites-available/{{ domain }}
     owner: root
     group: root
@@ -90,7 +90,7 @@
 
 - name: adjust server_names_hash_bucket_size
   template: >
-    src=nginx.conf.j2
+    src={{ domain }}/nginx.conf.j2
     dest="/etc/nginx/nginx.conf"
     owner="{{ user }}"
     group="{{ group }}"
