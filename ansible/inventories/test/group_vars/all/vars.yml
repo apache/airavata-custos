@@ -54,7 +54,7 @@ vault:
 
 #Keycloak
 #keycloak_vhost_servername: "iamdev.scigap.org"
-keycloak_vhost_servername: 149.165.152.82
+keycloak_vhost_servername: bm-dev-2.usecustos.org
 keycloak_repo: https://github.com/keycloak/keycloak.git
 #keycloak_git_branch:
 keycloak_source_dir: "{{ user_home }}/keycloak-source"

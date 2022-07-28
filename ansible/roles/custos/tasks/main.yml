@@ -115,7 +115,7 @@
     state: restarted
   become: yes
 
-- name: Start Custos Core service
+- name: Start Custos Integration service
   service:
     name: intcustos
     state: restarted
