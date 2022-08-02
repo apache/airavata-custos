@@ -1,6 +1,6 @@
 # Airavata Custos Ansible
 
-Ansible script to deploy Apache Airavata and PGA. 
+Asnible scripts to configure and install Airavata Custos pre-requisites and deploy the application on bare-metal web servers. 
 There are ansible roles to install Airavata pre-requisites (RabbitMQ, Zookeeper, MariaDB).
 
 ## Ansible installation
