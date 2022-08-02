@@ -73,6 +73,7 @@ custos_distribution_version: 1.1-SNAPSHOT
 #  password: user*password
 #db_password: "CHANGEME"
 mysql_root_password: Custosdatabase@1
+db_name: custos_db
 #ansible_python_interpreter: /usr/bin/python3
 
 #mysql_connector_jar: "mysql-connector-java-5.1.37-bin.jar"

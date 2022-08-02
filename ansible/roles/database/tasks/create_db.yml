@@ -20,9 +20,9 @@
 
 ---
 
-- name: Create a new database with name {{ db_name }}
+- name: Create a new database with name "{{ db_name }}"
   community.mysql.mysql_db:
-    name: db_name
+    name: "{{ db_name }}"
     state: present
     encoding: "UTF8mb3"
     collation: "utf8_general_ci"
