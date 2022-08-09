@@ -77,10 +77,10 @@ keycloak_pkcs12_passphrase: !vault |
 # deployment related variables
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
-#custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_repo: "https://github.com/abhinav7sinha/airavata-custos.git"
-#custos_git_branch: berametal
-custos_git_branch: ansible-baremetal
+custos_repo: "https://github.com/apache/airavata-custos.git"
+#custos_repo: "https://github.com/abhinav7sinha/airavata-custos.git"
+custos_git_branch: berametal
+#custos_git_branch: ansible-baremetal
 kafka_listener_port: 9092
 kafka_url: "{{ ansible_host }}:9092"
 zookeeper_client_port: 2181
