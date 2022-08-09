@@ -27,13 +27,13 @@
     owner: "{{ user }}"
     group: "{{ group }}"
 
-#- name: Generate PKCS#12 file "{{ domain }}-truststore"
+#- name: Generate PKCS#12 file "{{ ansible_hostname }}-truststore"
 #  community.crypto.openssl_pkcs12:
 #    action: export
 #    path: /{{ user_home }}/certs/{{ pkcs12_filename }}
-#    friendly_name: "{{ domain }}-truststore"
-#    privatekey_path: /etc/letsencrypt/live/{{ domain }}/privkey.pem
-#    certificate_path: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+#    friendly_name: "{{ ansible_host }}-truststore"
+#    privatekey_path: /etc/letsencrypt/live/{{ ansible_host }}/privkey.pem
+#    certificate_path: /etc/letsencrypt/live/{{ ansible_host }}/fullchain.pem
 #    state: present
 #    mode: 0777 #0700
 #    passphrase: "{{ pkcs12_passphrase }}"

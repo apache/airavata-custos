@@ -19,7 +19,6 @@
 #
 
 ---
-domain: "{{ keycloak_domain }}"
 pkcs12_filename: 'keycloak-client-truststore.pkcs12'
 pkcs12_passphrase: "{{ keycloak_pkcs12_passphrase }}"
 ansible_ssh_password: "{{ keycloak_ssh_password }}"

@@ -198,4 +198,4 @@ confluent.metadata.topic.replication.factor=1
 delete.topic.enable = true
 auto.create.topics.enable=true
 # listeners=PLAINTEXT://0.0.0.0:9092
-advertised.listeners = PLAINTEXT://{{ domain }}:9092
+advertised.listeners = PLAINTEXT://{{ ansible_host }}:9092

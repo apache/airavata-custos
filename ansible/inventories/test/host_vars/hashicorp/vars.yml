@@ -19,7 +19,6 @@
 #
 
 ---
-domain: "{{ hashicorp_domain }}"
 pkcs12_filename: 'vault-client-truststore.pkcs12'
 pkcs12_passphrase: "{{ hashicorp_pkcs12_passphrase }}"
 ansible_ssh_password: "{{ hashicorp_ssh_password }}"

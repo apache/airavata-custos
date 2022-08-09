@@ -8,9 +8,9 @@ server {
 }
 server {
   listen 443 ssl;
-  server_name {{ domain }};
-  ssl_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+  server_name {{ ansible_host }};
+  ssl_certificate /etc/letsencrypt/live/{{ ansible_host }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ ansible_host }}/privkey.pem;
   ssl_prefer_server_ciphers on;
 
   add_header 'Access-Control-Allow-Origin' '*' always;

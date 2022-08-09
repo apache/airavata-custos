@@ -49,9 +49,9 @@
     state: enabled # enable the ufw rule
   become: yes
 
-- name: "create www directory"
+- name: create www directory at "/var/www/{{ ansible_host }}"
   file:
-    path: /var/www/{{ domain }}
+    path: /var/www/{{ ansible_host }}
     state: directory
     mode: '0775'
     owner: "{{ user }}"
@@ -64,18 +64,18 @@
     state: absent
   become: yes
 
-- name: copy sample index.html to /var/www/{{ domain }}/html
+- name: copy sample index.html from {{ inventory_hostname }} to /var/www/{{ ansible_host }}/html
   template: >
-    src={{ domain }}/index.html.j2
-    dest="/var/www/{{ domain }}/index.html"
+    src={{ inventory_hostname }}/index.html.j2
+    dest="/var/www/{{ ansible_host }}/index.html"
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
 
 - name: copy nginx site.conf
   template:
-    src: "{{ domain }}/site.conf.j2"
-    dest: /etc/nginx/sites-available/{{ domain }}
+    src: "{{ inventory_hostname }}/site.conf.j2"
+    dest: /etc/nginx/sites-available/{{ ansible_host }}
     owner: root
     group: root
     mode: '0644'
@@ -83,14 +83,14 @@
 
 - name: link sample html to sites-enabled directory
   file:
-    src: /etc/nginx/sites-available/{{ domain }}
-    dest: /etc/nginx/sites-enabled/{{ domain }}
+    src: /etc/nginx/sites-available/{{ ansible_host }}
+    dest: /etc/nginx/sites-enabled/{{ ansible_host }}
     state: link
   become: yes
 
 - name: adjust server_names_hash_bucket_size
   template: >
-    src={{ domain }}/nginx.conf.j2
+    src={{ inventory_hostname }}/nginx.conf.j2
     dest="/etc/nginx/nginx.conf"
     owner="{{ user }}"
     group="{{ group }}"

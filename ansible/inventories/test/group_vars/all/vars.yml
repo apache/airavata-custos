@@ -26,9 +26,9 @@ group: exouser
 user_home: "/home/{{ user }}"
 
 # Domain names for VMs
-keycloak_domain: bm-dev-2.usecustos.org
-hashicorp_domain: bm-dev-3.usecustos.org
-custos_domain: bm-dev-1.usecustos.org
+keycloak_domain: "{{ hostvars['keycloak']['domain'] }}"
+hashicorp_domain: "{{ hostvars['hashicorp']['domain'] }}"
+custos_domain: "{{ hostvars['custos']['domain'] }}"
 
 # ssh passwords for VMs
 keycloak_ssh_password: !vault |
@@ -82,7 +82,7 @@ custos_repo: "https://github.com/abhinav7sinha/airavata-custos.git"
 #custos_git_branch: berametal
 custos_git_branch: ansible-baremetal
 kafka_listener_port: 9092
-kafka_url: "{{ hostvars['custos']['domain'] }}:9092"
+kafka_url: "{{ ansible_host }}:9092"
 zookeeper_client_port: 2181
 zookeeper_connection_url: localhost:2181
 zookeeper_connection_timeout: 18000

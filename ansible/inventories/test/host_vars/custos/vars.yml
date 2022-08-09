@@ -19,7 +19,6 @@
 #
 
 ---
-domain: "{{ custos_domain }}"
 pkcs12_filename: 'custos-client-truststore.pkcs12'
 pkcs12_passphrase:
 ansible_ssh_password: "{{ custos_ssh_password }}"
