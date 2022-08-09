@@ -74,6 +74,7 @@ keycloak_pkcs12_passphrase: !vault |
   61363964376534616137653764303034616433626539306563333536316433396562353337646631
   3536616534633033650a343730636632343764343834303933336266653063616335313962333137
   64373562643465653532323839613237383762383637326332396330613831303961
+
 # deployment related variables
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
@@ -89,6 +90,96 @@ zookeeper_connection_timeout: 18000
 
 custos_host: custos.scigap.org
 custos_port: 31499
+
+# application properties for Custos Core services
+custos_core_grpc_port: 7071
+custos_core_server_port: 8081
+custos_core_spring_app_name: Custos-Core-Services-Server
+custos_core_spring_zipkin_baseUrl: http://149.165.169.49:9411/
+custos_core_spring_sleuth_sampler_probability: 1
+custos_core_spring_main_allow_bean_definition_overriding: true
+custos_core_management_security_enabled: false
+custos_core_management_endpoints_web_exposure_include: *
+custos_core_management_endpoint_metrics_enabled: true
+custos_core_spring_jmx_enabled: true
+custos_core_spring_datasource_url: jdbc:mysql://localhost:3306/core_services_server_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
+custos_core_spring_datasource_username: root
+custos_core_spring_datasource_password: Custosdatabase@1
+
+## Hibernate Properties for Custos Core services
+# The SQL dialect makes Hibernate generate better SQL for the chosen database
+custos_core_spring_jpa_properties_hibernate_dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+custos_core_spring_jpa_properties_hibernate_enable_lazy_load_no_trans: true
+# Hibernate ddl auto (create, create-drop, validate, update)
+custos_core_spring_jpa_hibernate_ddl_auto: update
+custos_core_spring_profiles_active: dev
+custos_core_logging_level_root: INFO
+
+custos_core_ciLogon_admin_client_id: XXXX
+custos_core_ciLogon_admin_client_secret: XXXX
+custos_core_ciLogon_admin_auth_endpoint: https://test.cilogon.org/oauth2/oidc-cm
+
+custos_core_iam_server_client_id: admin-cli
+custos_core_iam_server_truststore_path: /home/ubuntu/keycloak-client-truststore.pkcs12
+custos_core_iam_server_truststore_password: Keycloakpassword1
+custos_core_iam_server_url: https://bm-dev-2.usecustos.org/auth/
+custos_core_iam_server_admin_username: XXXX
+custos_core_iam_server_admin_password: XXXXXX
+custos_core_iam_server_super_admin_realm_id: master
+custos_core_iam_federated_cilogon_authorization_endpoint: https://cilogon.org/authorize
+custos_core_iam_federated_cilogon_token_endpoint: https://cilogon.org/oauth2/token
+custos_core_iam_federated_cilogon_token_userinfo_endpoint: https://cilogon.org/oauth2/userinfo
+custos_core_iam_federated_cilogon_issuer: https://cilogon.org
+custos_core_iam_federated_cilogon_jwksUri: https://cilogon.org/oauth2/certs
+custos_core_introspection_endpoint: https://custos.scigap.org:32036/identity-management/v1.0.0/token/introspect
+custos_core_issuer: https://custos.scigap.org/
+custos_core_authorization_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/authorize
+custos_core_token_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/token
+custos_core_end_session_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/logout
+custos_core_user_info_endpoint: https://custos.scigap.org/apiserver/user-management/v1.0.0/userinfo
+custos_core_jwks_uri: https://custos.scigap.org/apiserver/identity-management/v1.0.0/certs
+custos_core_registration_endpoint: https://custos.scigap.org/apiserver/tenant-management/v1.0.0/oauth2/tenant
+custos_core_cluster_management_core_service_dns_name: cluster-management-core-service.keycloak.svc.cluster.local
+custos_core_cluster_management_core_service_port: 7000
+
+custos_core_services_server_hostname: localhost
+custos_core_services_server_port: 7000
+
+custos_core_custos_identity_auth_cache_enabled: true
+custos_core_custos_identity_auth_cache_size: 1024
+
+custos_core_core_messaging_service_broker_url: localhost:9092
+custos_core_core_messaging_service_publisher_id: custosEventPublisher
+custos_core_mail_smtp_auth: true
+custos_core_mail_smtp_starttls_enable: true
+custos_core_mail_smtp_host: smtp.gmail.com
+custos_core_mail_smtp_port: 587
+custos_core_mail_smtp_ssl_trust: smtp.gmail.com
+custos_core_mail_sender_username: custosemailagent@gmail.com
+custos_core_mail_sender_password: XXXXXX
+
+custos_core_user_profile_core_service_dns_name: user-profile-core-service.custos.svc.cluster.local
+custos_core_user_profile_core_service_port: 7000
+
+# application properties for Custos Integration services
+custos_int_grpc_port: 7070
+custos_int_server_port: 8080
+##custos_int_spring_zipkin_baseUrl: http://149.165.169.49:9411/
+custos_int_spring_application_name: custos-integrations-services-server
+##custos_int_spring_sleuth_sampler_probability: 1
+custos_int_spring_main_allow_bean_definition_overriding: true
+custos_int_management_security_enabled: false
+custos_int_management_endpoints_web_exposure_include: *
+custos_int_management_endpoint_metrics_enabled: true
+custos_int_spring_jmx_enabled: true
+
+custos_int_spring_profiles_active: dev
+custos_int_logging_level_root: INFO
+
+custos_int_core_services_server_port: 7071
+custos_int_core_services_server_hostname: localhost
+custos_int_iam_server_url: https://bm-dev-2.usecustos.org/auth//auth/
+custos_int_tenant_base_uri: https://bm-dev-2.usecustos.org/auth/apiserver/tenant-management/v1.0.0/oauth2/tenant
 
 # Letsencrypt
 letsencrypt_email: "abhinav7sinha@gmail.com"

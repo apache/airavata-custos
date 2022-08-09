@@ -17,21 +17,21 @@
 #  under the License.
 #
 
-grpc.port=7070
-server.port=8080
-##spring.zipkin.baseUrl=http://149.165.169.49:9411/
-spring.application.name=custos-integrations-services-server
-##spring.sleuth.sampler.probability=1
-spring.main.allow-bean-definition-overriding=true
-management.security.enabled=false
-management.endpoints.web.exposure.include=*
-management.endpoint.metrics.enabled=true
-spring.jmx.enabled=true
+grpc.port={{ custos_int_grpc_port }}
+server.port={{ custos_int_server_port }}
+##spring.zipkin.baseUrl={{ custos_int_spring_zipkin_baseUrl }}
+spring.application.name={{ custos_int_spring_application_name }}
+##spring.sleuth.sampler.probability={{ custos_int_spring_sleuth_sampler_probability }}
+spring.main.allow-bean-definition-overriding={{ custos_int_spring_main_allow_bean_definition_overriding }}
+management.security.enabled={{ custos_int_management_security_enabled }}
+management.endpoints.web.exposure.include={{ custos_int_management_endpoints_web_exposure_include }}
+management.endpoint.metrics.enabled={{ custos_int_management_endpoint_metrics_enabled }}
+spring.jmx.enabled={{ custos_int_spring_jmx_enabled }}
 
-spring.profiles.active=dev
-logging.level.root=INFO
+spring.profiles.active={{ custos_int_spring_profiles_active }}
+logging.level.root={{ custos_int_logging_level_root }}
 
-core.services.server.port=7071
-core.services.server.hostname=localhost
-iam.server.url=https://bm-dev-2.usecustos.org/auth//auth/
-tenant.base.uri=https://bm-dev-2.usecustos.org/auth/apiserver/tenant-management/v1.0.0/oauth2/tenant
+core.services.server.port={{ custos_int_core_services_server_port }}
+core.services.server.hostname={{ custos_int_core_services_server_hostname }}
+iam.server.url={{ custos_int_iam_server_url }}
+tenant.base.uri={{ custos_int_tenant_base_uri }}
