@@ -22,4 +22,4 @@
 pkcs12_filename: 'keycloak-client-truststore.pkcs12'
 pkcs12_passphrase: "{{ keycloak_pkcs12_passphrase }}"
 ansible_ssh_password: "{{ keycloak_ssh_password }}"
-nginx_site_config: bm-dev-2.usecustos.org.j2
+nginx_site_config: "{{ ansible_host }}.j2"
