@@ -30,197 +30,35 @@ keycloak_domain: "{{ hostvars['keycloak']['domain'] }}"
 hashicorp_domain: "{{ hostvars['hashicorp']['domain'] }}"
 custos_domain: "{{ hostvars['custos']['domain'] }}"
 
-# ssh passwords for VMs
-keycloak_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  36363039363662616335356566613665346161396138303131616334616666623361633765356434
-  3234326462633763636563343562656264376366623631310a363030326163393336643663323631
-  33626432663465646262373661383362623038623238383462356334633063363961303130623630
-  3832616438366637340a386639396561616161393033626363613964393137353665356630636330
-  38613661313031366135303033303538646561326232313466646139316366393566633734376363
-  35303164623261343532366330633730353266306631363863356631623261613336313832303433
-  363238623135326235396536643161313064
-hashicorp_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  62633531346536643234303565373639626464326135653732323266396335353166346132383230
-  3333316665623861326164653162393361666665376466390a356535613332333838303037323535
-  61636665633334646564323336376363656464396466613535646666373033336336356562323032
-  6539363064373966300a303137666237613065326635643630326438646162326663363732303431
-  66333562666232376133643661336264356637636335323630313339343231306431616538363439
-  65626635323634653866636438663738626165366261363333313736386238373933343230386236
-  333266663739323034626462353738656662
-custos_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  64356232636232646134616539663065393435386163373736366231373736326136663436316337
-  3538366264623564343862653330373238376161643232320a323935376361376362386432626330
-  62323464646334613231613664353963666362313133393937623430396132646364316264613061
-  3062343230636137370a353138333038636631303366653763636631313739623637363039356561
-  37643230623134303132343231613364383036353437643064636663653366306133376338623235
-  61613138373934653036643735323432313336646131336266386565376532333533383430663537
-  376666653633346237353065626463633330
-
-# pkcs12 passwords
-hashicorp_pkcs12_passphrase: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  65646665313232613265363038633662393438376265663363333434303361656565653763313539
-  3937356538373262333031333463346338666538623566610a353232353565353566653564313239
-  37333962393564346261343837646564333737636637613861313532666431333136383836626539
-  6630353236613838340a383863333366383938353662356366333833393761383935663837353037
-  6537
-keycloak_pkcs12_passphrase: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  63303962613033353165646639633338306538666233363735393266386432376663656536633663
-  6231316333363164383230303239366537366365346236620a396463313838373937653264343165
-  61363964376534616137653764303034616433626539306563333536316433396562353337646631
-  3536616534633033650a343730636632343764343834303933336266653063616335313962333137
-  64373562643465653532323839613237383762383637326332396330613831303961
-
 # deployment related variables
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
 custos_repo: "https://github.com/apache/airavata-custos.git"
-#custos_repo: "https://github.com/abhinav7sinha/airavata-custos.git"
 custos_git_branch: berametal
-#custos_git_branch: ansible-baremetal
+custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
+custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
+custos_distribution_version: 1.1-SNAPSHOT
+
+# kafka variables
 kafka_listener_port: 9092
 kafka_url: "{{ ansible_host }}:9092"
 zookeeper_client_port: 2181
 zookeeper_connection_url: localhost:2181
 zookeeper_connection_timeout: 18000
 
-custos_host: custos.scigap.org
+custos_host: "{{ hostvars['custos_host'].ansible_host }}"
 custos_port: 31499
-
-# application properties for Custos Core services
-custos_core_grpc_port: 7071
-custos_core_server_port: 8081
-custos_core_spring_app_name: Custos-Core-Services-Server
-custos_core_spring_zipkin_baseUrl: http://149.165.169.49:9411/
-custos_core_spring_sleuth_sampler_probability: 1
-custos_core_spring_main_allow_bean_definition_overriding: true
-custos_core_management_security_enabled: false
-custos_core_management_endpoints_web_exposure_include: "*"
-custos_core_management_endpoint_metrics_enabled: true
-custos_core_spring_jmx_enabled: true
-custos_core_spring_datasource_url: jdbc:mysql://localhost:3306/core_services_server_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
-custos_core_spring_datasource_username: root
-custos_core_spring_datasource_password: Custosdatabase@1
-
-## Hibernate Properties for Custos Core services
-# The SQL dialect makes Hibernate generate better SQL for the chosen database
-custos_core_spring_jpa_properties_hibernate_dialect: org.hibernate.dialect.MySQL5InnoDBDialect
-custos_core_spring_jpa_properties_hibernate_enable_lazy_load_no_trans: true
-# Hibernate ddl auto (create, create-drop, validate, update)
-custos_core_spring_jpa_hibernate_ddl_auto: update
-custos_core_spring_profiles_active: dev
-custos_core_logging_level_root: INFO
-
-custos_core_ciLogon_admin_client_id: XXXX
-custos_core_ciLogon_admin_client_secret: XXXX
-custos_core_ciLogon_admin_auth_endpoint: https://test.cilogon.org/oauth2/oidc-cm
-
-custos_core_iam_server_client_id: admin-cli
-custos_core_iam_server_truststore_path: /home/ubuntu/keycloak-client-truststore.pkcs12
-custos_core_iam_server_truststore_password: Keycloakpassword1
-custos_core_iam_server_url: https://bm-dev-2.usecustos.org/auth/
-custos_core_iam_server_admin_username: XXXX
-custos_core_iam_server_admin_password: XXXXXX
-custos_core_iam_server_super_admin_realm_id: master
-custos_core_iam_federated_cilogon_authorization_endpoint: https://cilogon.org/authorize
-custos_core_iam_federated_cilogon_token_endpoint: https://cilogon.org/oauth2/token
-custos_core_iam_federated_cilogon_token_userinfo_endpoint: https://cilogon.org/oauth2/userinfo
-custos_core_iam_federated_cilogon_issuer: https://cilogon.org
-custos_core_iam_federated_cilogon_jwksUri: https://cilogon.org/oauth2/certs
-custos_core_introspection_endpoint: https://custos.scigap.org:32036/identity-management/v1.0.0/token/introspect
-custos_core_issuer: https://custos.scigap.org/
-custos_core_authorization_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/authorize
-custos_core_token_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/token
-custos_core_end_session_endpoint: https://custos.scigap.org/apiserver/identity-management/v1.0.0/logout
-custos_core_user_info_endpoint: https://custos.scigap.org/apiserver/user-management/v1.0.0/userinfo
-custos_core_jwks_uri: https://custos.scigap.org/apiserver/identity-management/v1.0.0/certs
-custos_core_registration_endpoint: https://custos.scigap.org/apiserver/tenant-management/v1.0.0/oauth2/tenant
-custos_core_cluster_management_core_service_dns_name: cluster-management-core-service.keycloak.svc.cluster.local
-custos_core_cluster_management_core_service_port: 7000
-
-custos_core_services_server_hostname: localhost
-custos_core_services_server_port: 7000
-
-custos_core_custos_identity_auth_cache_enabled: true
-custos_core_custos_identity_auth_cache_size: 1024
-
-custos_core_core_messaging_service_broker_url: localhost:9092
-custos_core_core_messaging_service_publisher_id: custosEventPublisher
-custos_core_mail_smtp_auth: true
-custos_core_mail_smtp_starttls_enable: true
-custos_core_mail_smtp_host: smtp.gmail.com
-custos_core_mail_smtp_port: 587
-custos_core_mail_smtp_ssl_trust: smtp.gmail.com
-custos_core_mail_sender_username: custosemailagent@gmail.com
-custos_core_mail_sender_password: XXXXXX
-
-custos_core_user_profile_core_service_dns_name: user-profile-core-service.custos.svc.cluster.local
-custos_core_user_profile_core_service_port: 7000
-
-# application properties for Custos Integration services
-custos_int_grpc_port: 7070
-custos_int_server_port: 8080
-custos_int_spring_zipkin_baseUrl: http://149.165.169.49:9411/
-custos_int_spring_application_name: custos-integrations-services-server
-custos_int_spring_sleuth_sampler_probability: 1
-custos_int_spring_main_allow_bean_definition_overriding: true
-custos_int_management_security_enabled: false
-custos_int_management_endpoints_web_exposure_include: "*"
-custos_int_management_endpoint_metrics_enabled: true
-custos_int_spring_jmx_enabled: true
-
-custos_int_spring_profiles_active: dev
-custos_int_logging_level_root: INFO
-
-custos_int_core_services_server_port: 7071
-custos_int_core_services_server_hostname: localhost
-custos_int_iam_server_url: https://bm-dev-2.usecustos.org/auth//auth/
-custos_int_tenant_base_uri: https://bm-dev-2.usecustos.org/auth/apiserver/tenant-management/v1.0.0/oauth2/tenant
 
 # Letsencrypt
 letsencrypt_email: "abhinav7sinha@gmail.com"
 
-# vault variables
-vault_port: 443
-vault_token: XXXXXXX
-vault_scheme: https
-vault_host: bm-dev-1.usecustos.org
-vault_uri: https://bm-dev-1.usecustos.org
-
 #Keycloak
-keycloak_vhost_servername: bm-dev-2.usecustos.org
+keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"
 keycloak_repo: https://github.com/keycloak/keycloak.git
-#keycloak_git_branch:
 keycloak_source_dir: "{{ user_home }}/keycloak-source"
 
-custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
-custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
-
-
-custos_distribution_version: 1.1-SNAPSHOT
-
 # Database related variables
-#db_server: "{{ groups['database'][0] }}"
-#db_server_port: "3306"
-#mysql_users:
-#  name: custos_user
-#  password: user*password
-#db_password: "CHANGEME"
-mysql_root_password: Custosdatabase@1
 db_name: custos_db
-#ansible_python_interpreter: /usr/bin/python3
-
-#mysql_connector_jar: "mysql-connector-java-5.1.37-bin.jar"
-
-consul_version: 1.7.1
-consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
-consul_install_dir: /usr/local/bin
-consul_config_dir: /etc/consul
-consul_data_dir: /var/data
 
 sharing_subnets:
   - "149.165.152.112/16"

@@ -27,9 +27,9 @@
     check_implicit_admin: yes
     login_unix_socket: /var/run/mysqld/mysqld.sock  # default path
     login_user: root
-    login_password: "{{ mysql_root_password }}"
+    login_password: "{{ custos_core_spring_datasource_password }}"
     name: root
-    password: "{{ mysql_root_password }}"
+    password: "{{ custos_core_spring_datasource_password }}"
     priv: '*.*:ALL,GRANT'
     host: 'localhost'
     state: present
@@ -40,12 +40,12 @@
   # become: yes
 
 - name: Removes all anonymous user accounts
-  mysql_user: name='' host_all=yes state=absent login_password="{{ mysql_root_password }}"
+  mysql_user: name='' host_all=yes state=absent login_password="{{ custos_core_spring_datasource_password }}"
 
 - name: Secures the MySQL root user for all hosts
-  mysql_user: user=root login_password="{{ mysql_root_password }}" host_all=yes
+  mysql_user: user=root login_password="{{ custos_core_spring_datasource_password }}" host_all=yes
 
 - name: Removes the MySQL test database
-  mysql_db: db=test state=absent login_password="{{ mysql_root_password }}"
+  mysql_db: db=test state=absent login_password="{{ custos_core_spring_datasource_password }}"
 
 ...

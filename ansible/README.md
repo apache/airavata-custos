@@ -150,4 +150,8 @@ systemctl status corecustos
 ansible-playbook -i inventories/{inventory}/ custos.yml --ask-vault-pass -vvv
 ```
 Adding multiple -v will increase the verbosity, the builtin plugins currently evaluate up to -vvvvvv. A reasonable level to start is -vvv, connection debugging might require -vvvv.
+- Decrypt ansible-vault strings
+```bash
+ansible all -i inventories/test/ -e '@inventories/test/group_vars/all/vars.yml' --ask-vault-pass -m debug -a 'var=secret_string'
+```
 
