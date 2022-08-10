@@ -1,0 +1,122 @@
+#
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+---
+- name: Install Custos pre-requisites (Debian)
+  apt: name={{ item }} state=latest update_cache=yes
+  with_items:
+    - maven
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Copy hashicorp and keycloak truststore files
+  copy:
+    src: "{{ custos_source_dir }}/custos-core-services-server/src/main/dist/conf/{{ item }}"
+    dest: /home/ubuntu/{{ item }}
+    remote_src: yes
+  with_items:
+    - keycloak-client-truststore.pkcs12
+    - vault-client-truststore.pkcs12
+  become: yes
+
+- name: Create Custos deployment directory {{ custos_deployment_dir }}
+  become: yes
+  file: path={{ custos_deployment_dir }}
+    state=directory
+    mode=0755
+    owner={{ user }}
+    group={{ group }}
+
+- name: Create Custos source directory
+  become: yes
+  file: path={{ custos_source_dir }}
+    state=directory
+    mode=0755
+    owner={{ user }}
+    group={{ group }}
+
+- name: git checkout from Custos github repo {{ custos_repo }} branch {{ custos_git_branch }}
+  git: repo="{{ custos_repo }}"
+    dest="{{ custos_source_dir }}"
+    version="{{ custos_git_branch }}"
+  register: checkout
+  tags: update
+  become: yes
+  become_user: "{{ user }}"
+
+- name: Run Custos maven build
+  command: mvn clean install -Dmaven.test.skip=true chdir="{{ custos_source_dir }}/"
+  environment:
+    MAVEN_OPTS: "-Xmx2048m"
+  register: build
+  tags: update
+  become: yes
+  become_user: "{{ user }}"
+
+- name: Delete lib directories of the distributions
+  file:
+    state: absent
+    path: "{{ custos_deployment_dir }}/{{ item }}"
+  with_items:
+    - "Custos-Core-Services-Server-{{custos_distribution_version}}/lib"
+    - "Custos-Integration-Services-Server-{{custos_distribution_version}}/lib"
+  become: yes
+  become_user: "{{ user }}"
+  ignore_errors: yes
+
+- name: Copy Custos distributions to Custos deployment directory
+  unarchive: "src={{ custos_source_dir }}/{{ item }}
+              dest={{ custos_deployment_dir }}/ copy=no"
+  with_items:
+    - "custos-core-services-server/target/Custos-Core-Services-Server-{{custos_distribution_version}}-bin.zip"
+    - "custos-integration-services-server/target/Custos-Integration-Services-Server-{{custos_distribution_version}}-bin.zip"
+  become: yes
+  become_user: "{{ user }}"
+
+- name: Copy Custos property files
+  template: "src={{ item.name }}
+            dest={{ custos_deployment_dir }}/{{ item.dir }}/conf/{{ item.target }}
+            owner={{ user }}
+            group={{ group }}
+            mode=\"u=rw,g=r,o=r\""
+  with_items:
+    - { name: custos-core-services/application.properties.j2,
+        dir: "Custos-Core-Services-Server-{{custos_distribution_version}}",
+        target: application.properties}
+    - { name: custos-core-services/bootstrap.properties.j2,
+        dir: "Custos-Core-Services-Server-{{custos_distribution_version}}",
+        target: bootstrap.properties }
+    - { name: custos-integration-services/application.properties.j2,
+        dir: "Custos-Integration-Services-Server-{{custos_distribution_version}}",
+        target: application.properties }
+  become: yes
+  become_user: "{{ user }}"
+
+- name: Start Custos Core service
+  service:
+    name: corecustos
+    state: restarted
+  become: yes
+
+- name: Start Custos Integration service
+  service:
+    name: intcustos
+    state: restarted
+  become: yes

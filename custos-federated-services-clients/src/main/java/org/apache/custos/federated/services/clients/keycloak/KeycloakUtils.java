@@ -145,7 +145,6 @@ public class KeycloakUtils {
 
     public static SSLContext initializeTrustStoreManager(String trustStorePath, String trustStorePassword) throws
             IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, KeyManagementException {
-
         KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 //        if (profile.equals("staging") || profile.equals("production")) {
 //            GetServerCertificateRequest getServerCertificateRequest = GetServerCertificateRequest

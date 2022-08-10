@@ -1,0 +1,32 @@
+#
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+---
+domain: testcustos-ub20.com
+ansible_ssh_password:
+  !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  63353537323261646536313439313664393466616161373836346462386638376532636230356531
+  3133326663666630323332666238366534353039303838390a643233393131323165303034653333
+  30633362376530363330616132306230313939386430336135333131363437326131343032363039
+  3636626562373463380a343464636437393536653931343664313630363663626536343232393936
+  32376561636334396264666336336432666465626234333163326536386336613165313336373265
+  64663931643462623634363438333839396666356464323931376164373333633866623632323163
+  623132306164346131313066613337316133

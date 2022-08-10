@@ -123,7 +123,6 @@ public class KeycloakAuthClient {
         }
     }
 
-
     public String authenticate(String clientId, String clientSecret, String realmId, String username, String password) {
 
         try {
