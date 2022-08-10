@@ -35,7 +35,3 @@
     - zookeeper
     - kafka
     - custos
-#- hosts: testcustos
-#  roles:
-#    - nginx
-#    - pkcs12
