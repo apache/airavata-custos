@@ -99,7 +99,7 @@ custos_core_spring_zipkin_baseUrl: http://149.165.169.49:9411/
 custos_core_spring_sleuth_sampler_probability: 1
 custos_core_spring_main_allow_bean_definition_overriding: true
 custos_core_management_security_enabled: false
-custos_core_management_endpoints_web_exposure_include: *
+custos_core_management_endpoints_web_exposure_include: "*"
 custos_core_management_endpoint_metrics_enabled: true
 custos_core_spring_jmx_enabled: true
 custos_core_spring_datasource_url: jdbc:mysql://localhost:3306/core_services_server_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
@@ -164,12 +164,12 @@ custos_core_user_profile_core_service_port: 7000
 # application properties for Custos Integration services
 custos_int_grpc_port: 7070
 custos_int_server_port: 8080
-##custos_int_spring_zipkin_baseUrl: http://149.165.169.49:9411/
+custos_int_spring_zipkin_baseUrl: http://149.165.169.49:9411/
 custos_int_spring_application_name: custos-integrations-services-server
-##custos_int_spring_sleuth_sampler_probability: 1
+custos_int_spring_sleuth_sampler_probability: 1
 custos_int_spring_main_allow_bean_definition_overriding: true
 custos_int_management_security_enabled: false
-custos_int_management_endpoints_web_exposure_include: *
+custos_int_management_endpoints_web_exposure_include: "*"
 custos_int_management_endpoint_metrics_enabled: true
 custos_int_spring_jmx_enabled: true
 
@@ -185,15 +185,13 @@ custos_int_tenant_base_uri: https://bm-dev-2.usecustos.org/auth/apiserver/tenant
 letsencrypt_email: "abhinav7sinha@gmail.com"
 
 # vault variables
-vault:
-  port: 443
-  token: XXXXXXX
-  scheme: https
-  host: bm-dev-1.usecustos.org
-  uri: https://bm-dev-1.usecustos.org
+vault_port: 443
+vault_token: XXXXXXX
+vault_scheme: https
+vault_host: bm-dev-1.usecustos.org
+vault_uri: https://bm-dev-1.usecustos.org
 
 #Keycloak
-#keycloak_vhost_servername: "iamdev.scigap.org"
 keycloak_vhost_servername: bm-dev-2.usecustos.org
 keycloak_repo: https://github.com/keycloak/keycloak.git
 #keycloak_git_branch:
