@@ -23,9 +23,9 @@ python3 --version
 ```
 Clone Custos git repo and switch branch.
 ```bash
-git clone https://github.com/abhinav7sinha/airavata-custos.git
+git clone https://github.com/apache/airavata-custos.git
 cd airavata-custos
-git switch ansible-baremetal
+git switch baremetal
 ```
 Create a virtual environment in the ansible directory
 ```bash
