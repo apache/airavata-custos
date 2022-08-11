@@ -85,7 +85,7 @@ custos_ssh_password: !vault |
 ```
 Now that you've configured the ssh user and password details for your VMs, we can install nginx on each of these servers at once by running the following command:
 ```bash
-ansible-playbook -i inventories/test/ env_setup.yml --ask-vault-pass
+ansible-playbook -i inventories/test/ custos.yml --ask-vault-pass --tags env_setup
 ```
 Enter the Vault Password (that you set up while encrypting your ssh password strings) when prompted by ansible.
 
