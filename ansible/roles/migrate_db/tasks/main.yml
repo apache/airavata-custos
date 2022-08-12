@@ -19,20 +19,8 @@
 #
 
 ---
-all:
-  hosts:
-    custos:
-      ansible_host: bm-dev-1.usecustos.org
-      ansible_user: exouser
-      ansible_ssh_pass: "{{ ansible_ssh_password }}"
-    keycloak:
-      ansible_host: bm-dev-2.usecustos.org
-      ansible_user: exouser
-      ansible_ssh_pass: "{{ ansible_ssh_password }}"
-    hashicorp:
-      ansible_host: bm-dev-3.usecustos.org
-      ansible_user: exouser
-      ansible_ssh_pass: "{{ ansible_ssh_password }}"
-    old_server:
-      ansible_host: dev.custos.usecustos.org
-      ansible_user: ubuntu
+- name: Copy dump file from old server to master node
+  fetch:
+    src: /home/ubuntu/temp_backup/core_services_server_db_arch.sql
+    dest: tmp/
+    flat: yes

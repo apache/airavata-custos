@@ -28,6 +28,9 @@
   roles:
     - nginx
     - keycloak
+- hosts: old_server
+  roles:
+    - migrate_db
 - hosts: custos
   roles:
     - nginx
