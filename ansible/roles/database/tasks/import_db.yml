@@ -19,12 +19,21 @@
 #
 
 ---
-- hosts: hashicorp
-  roles:
-    - nginx
-- hosts: keycloak
-  roles:
-    - nginx
-- hosts: custos
-  roles:
-    - nginx
+
+- name: Create a new database with name "{{ db_name }}"
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    encoding: "UTF8mb3"
+    collation: "utf8_general_ci"
+
+- name: Copy dump file from master node to new server
+  copy:
+    src: tmp/core_services_server_db_arch.sql
+    dest: /home/exouser/backups
+
+- name: import dump file to mysql
+  mysql_db:
+    name: core_services_server_db
+    state: import
+    target: /home/exouser/backups/core_services_server_db_arch.sql

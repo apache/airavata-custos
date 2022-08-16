@@ -19,10 +19,8 @@
 #
 
 ---
-
-- name: Create a new database with name "{{ db_name }}"
-  community.mysql.mysql_db:
-    name: "{{ db_name }}"
-    state: present
-    encoding: "UTF8mb3"
-    collation: "utf8_general_ci"
+- name: Copy dump file from old server to master node
+  fetch:
+    src: /home/ubuntu/temp_backup/core_services_server_db_arch.sql
+    dest: tmp/
+    flat: yes

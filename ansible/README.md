@@ -49,45 +49,52 @@ You will need 3 Linux VMs (Preferably Ubuntu 20.04) for Custos Deployment. Make 
 ### Configure Ansible vars with VM details
 Now, you need to configure Ansible vars with the domain names of these VMs so that ansible knows where to install custos dependencies.
 
-Open the file `test/group_vars/all/vars.yml`. Look for `keycloak_domain`, `hashicorp_domain` and `custos_domain` variables. Set these variables with their respective domain names. For ex:
-```yml
-⋮
-# Domain names for VMs
-keycloak_domain: my-keycloak-domain.com
-hashicorp_domain: my-hashicorp-domain.com
-custos_domain: my-custos-domain.com
-⋮
-```
-Ansible connects to these VMs using `ssh`. To allow ansible to do this, you will also need to provide it with ssh passwords for these VMs. To maintain security, these passwords cannot be exposed in plaintext. You can make use of ansible's `ansible-vault` command to encrypt these password strings.
+Open the file `test/hosts.yml`. Set `ansible_host` for `custos`, `keycloak` and `hashicorp` with their respective domain names. For ex:
 
-Use the following command to encrypt any string:
+```yml
+all:
+  hosts:
+    custos:
+      ansible_host: my-custos-domain.com
+      ⋮
+    keycloak:
+      ansible_host: my-keycloak-domain.com
+      ⋮
+    hashicorp:
+      ansible_host: my-hashicorp-domain.com
+      ⋮
+```
+Ansible connects to these VMs using `ssh`. To allow ansible to do this, you will also need to provide it with ssh passwords for these VMs. To maintain security, these passwords cannot be exposed in plaintext. We use ansible's `ansible-vault` command to encrypt these password strings.
+
+Open the file `test/group_vars/all/vault.yml`. You will need to decrypt the file to access it (it's been encrypted using ansible-vault for security).
+Here's the command:
 ```bash
-ansible-vault encrypt_string "<mysecurepassword>" --ask-vault-pass
+ansible-vault decrypt inventories/test/group_vars/all/vault.yml
 ```
-Ansible will ask you to set up a new vault password everytime you run this command. Make sure to use the same password everytime.
+You will be prompted to provide the `ansible-vault` password. You can reach out to the dev team to get the password for test env.
 
-In the file `test/group_vars/all/vars.yml`. Look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective encrypted password strings. For ex:
+After you've set the respective passwords, don't forget to encrypot the 
+
+In the file `test/group_vars/all/vault.yml`. Look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective password strings. For ex:
 ```yml
 ⋮
-keycloak_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  36363039363662616335356566613665346161396138303131616334616666623361633765356434
-  3234326462633763636...43161313064
-hashicorp_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  62633531346536643234303565373639626464326135653732323266396335353166346132383230
-  3333316665623861326...462353738656662
-custos_ssh_password: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  643562326362326461334303565373639626464326135653732323266396335353166346132383230
-  3333316665623861326...065626463633330
+keycloak_ssh_password: XXX..XXX
+hashicorp_ssh_password: YYY...YYY
+custos_ssh_password: ZZZ...ZZZ
 ⋮
 ```
+
+Anytime you change the `vault.yml` file, don't forget to encrypt it back again.
+Here's the command to encrypt:
+```bash
+ansible-vault encrypt inventories/test/group_vars/all/vault.yml
+```
+
 Now that you've configured the ssh user and password details for your VMs, we can install nginx on each of these servers at once by running the following command:
 ```bash
-ansible-playbook -i inventories/test/ env_setup.yml --ask-vault-pass
+ansible-playbook -i inventories/test/ custos.yml --ask-vault-pass --tags env_setup
 ```
-Enter the Vault Password (that you set up while encrypting your ssh password strings) when prompted by ansible.
+Enter the Vault Password (that you got from airavata dev) when prompted by ansible.
 
 ## Generate SSL certificates<a name="generate-ssl-certificates"/>
 The `env_setup.yml` playbook installed `certbot` along with `nginx` in your VMs. **Certbot** helps manage letsencrypt SSL certificates. You need to generate SSL certs for each of your 3 VMs.
@@ -116,18 +123,12 @@ openssl pkcs12 -export -out certs/keycloak-client-truststore.pkcs12 -inkey /etc/
 ```
 Now, you need to add the pkcs12 passwords in the ansible vars.
 
-Encrypt the passwords using `ansible-vault` just like you did for the ssh passwords. Make sure you still use the same vault password as before. In the file `test/group_vars/all/vars.yml`. Look for `hashicorp_pkcs12_passphrase` and `keycloak_pkcs12_passphrase` variables. Set these variables with their respective encrypted password strings. For ex:
+In the file `test/group_vars/all/vault.yml`. Look for `hashicorp_pkcs12_passphrase` and `keycloak_pkcs12_passphrase` variables. Set these variables with their respective password strings. For ex:
 ```yml
 ⋮
 # pkcs12 passwords
-hashicorp_pkcs12_passphrase: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  65646665313232613265363038633662393438376265663363333434303361656565653763313539
-  393735653837326...537
-keycloak_pkcs12_passphrase: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  63303962613033353165646639633338306538666233363735393266386432376663656536633663
-  62313163333631...831303961
+hashicorp_pkcs12_passphrase: XXX...XXX
+keycloak_pkcs12_passphrase: YYY...YYY
 ⋮
 ```
 
