@@ -19,6 +19,15 @@
 #
 
 ---
+- hosts: old_custos
+  roles:
+    - migrate_db
+- hosts: old_keycloak
+  roles:
+    - migrate_db
+- hosts: old_hashicorp
+  roles:
+    - migrate_db
 - hosts: hashicorp
   roles:
     - nginx
@@ -28,9 +37,6 @@
   roles:
     - nginx
     - keycloak
-- hosts: old_server
-  roles:
-    - migrate_db
 - hosts: custos
   roles:
     - nginx
