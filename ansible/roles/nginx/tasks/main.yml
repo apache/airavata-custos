@@ -89,6 +89,18 @@
   become: yes
   tags: env_setup
 
+# Conditonal task (run only if host is hashicorp)
+- name: For hashicorp vault - copy vault.conf to /etc/nginx/conf.d
+  template:
+    src: "{{ inventory_hostname }}/vault.conf.j2"
+    dest: /etc/nginx/conf.d/vault.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  tags: env_setup
+  when: inventory_hostname == 'hashicorp'
+
 - name: link sample html to sites-enabled directory
   file:
     src: /etc/nginx/sites-available/{{ ansible_host }}

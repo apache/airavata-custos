@@ -18,51 +18,6 @@
 #
 
 ---
-#- name: Install httpd
-#  apt: name="httpd" state=latest update_cache=yes
-#  become: yes
-#
-#- name: allow httpd to proxy to Keycloak process
-#  seboolean:
-#    name: httpd_can_network_connect
-#    state: yes
-#    persistent: yes
-#  become: yes
-#
-#- name: Enable http/s service on public zone (for certbot verification)
-#  firewalld: service={{ item }} permanent=true state=enabled zone=public immediate=True
-#  with_items:
-#    - http
-#    - https
-#  become: yes
-#
-## TODO: it seems like a virtual host config of some type is needed for the following to work
-#- name: copy basic virtual host file so certbot can verify domain
-#  template: src="basic-vhost.conf.j2" dest=/etc/httpd/conf.d/basic-vhost.conf backup=yes
-#  become: yes
-#
-#- name: start httpd
-#  service: name=httpd state=started enabled=yes
-#  become: yes
-#
-#- name: check if SSL certificate exists
-#  stat:
-#    path: "{{ keycloak_ssl_certificate_file }}"
-#  register: stat_ssl_cert_result
-#  become: yes
-#
-#- name: generate certificate if it doesn't exist
-#  command: certbot --apache --non-interactive --agree-tos --email "{{ letsencrypt_email }}" -d {{ keycloak_vhost_servername }} certonly
-#  become: yes
-#  when: not stat_ssl_cert_result.stat.exists
-#
-#- name: Add keycloak virtual host config that proxies to the keycloak server
-#  template: src="vhost.conf.j2" dest=/etc/httpd/conf.d/keycloak.conf backup=yes
-#  become: yes
-#  notify:
-#    - restart httpd
-
-
 - name: Install Keycloak pre-requisites (Debian)
   apt: name={{ item }} state=latest update_cache=yes
   with_items:
@@ -125,6 +80,7 @@
   become: yes
   become_user: "{{ user }}"
 
+
 # setup postgresql for keycloak
 - name: Install postgresql and postgresql-contrib
   apt:
@@ -134,59 +90,71 @@
   become: yes
 #  become_user: "{{ user }}"
 
+- name: "Install Python packages"
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - python3-psycopg2
+  become: yes
+
+- name: "Find out if PostgreSQL is initialized"
+  ansible.builtin.stat:
+    path: "/var/lib/pgsql/data/pg_hba.conf"
+  register: postgres_data
+  become: yes
+
 - name: Start the postgresql service
   service:
     name: postgresql
     state: started
     enabled: yes
   become: yes
-  become_user: "{{ user }}"
-#
-## <---------------------------- Setup Mysql database for keycloak ------------------->
-#
-## create folder structure
-#- file:
-#    path: "{{user_home}}/{{ keycloak_inkeycloak_install_dir }}/modules/system/layers/keycloak/org/mysql/main"
-#    state: directory
-#    mode: 0755
-#  become: true
 #  become_user: "{{ user }}"
-#  tags:
-#       - always
-#
-#- name: Download and unarchive mysql jdbc driver
-#  unarchive: src="{{ mysql_db_connector_download_url }}"
-#      dest="{{ user_home }}"
-#      copy=no
-#      owner="{{ user }}"
-#      group="{{ group }}"
-#      creates="{{user_home}}/{{keycloak_db_connector_name}}/{{keycloak_db_connector_name}}-bin.jar"
-#  become: true
+
+- name: "Create database"
+  postgresql_db:
+    state: present
+    name: "{{ keycloak_db_schema_name }}"
+  become: yes
+  become_user: postgres
+
+- name: "Create db user"
+  postgresql_user:
+    state: present
+    name: "{{ keycloak_db_username }}"
+    password: "{{ keycloak_db_password }}"
+  become: yes
+  become_user: postgres
+
+- name: "Grant db user access to app db"
+  postgresql_privs:
+    type: database
+    database: "{{ keycloak_db_schema_name }}"
+    roles: "{{ keycloak_db_username }}"
+    grant_option: no
+    privs: all
+  become: yes
+  become_user: postgres
+
+- name: "Allow md5 connection for the db user"
+  postgresql_pg_hba:
+    dest: "/etc/postgresql/12/main/pg_hba.conf"
+    contype: host
+    databases: all
+    method: md5
+    users: "{{ keycloak_db_username }}"
+    create: true
+  become: yes
+  become_user: postgres
+
+- name: Retart the postgresql service
+  service:
+    name: postgresql
+    state: restarted
+  become: yes
 #  become_user: "{{ user }}"
-#  tags:
-#       - always
-#
-#- name: move jdbc connector to keycloak module
-#  command: mv {{user_home}}/{{keycloak_db_connector_name}}/{{keycloak_db_connector_name}}-bin.jar {{user_home}}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/mysql/main/
-#  become: true
-#  become_user: "{{ user }}"
-#  tags:
-#       - always
-#
-#- name: copy jdbc module configuration file
-#  template: >
-#    src=module.j2
-#    dest="{{user_home}}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/mysql/main/module.xml"
-#    owner="{{ user }}"
-#    group="{{ group }}"
-#    mode="u=rw,g=r,o=r"
-#  become: true
-#  become_user: "{{ user }}"
-#  tags:
-#       - always
-#
-## </---------------------------- Setup Mysql database for keycloak - END ------------------->
-#
+
 # <---------------------------- Server Configuration -------------------------------->
 
 # SSL Configuration & postgresql
@@ -264,4 +232,3 @@
   become_user: root
   tags:
        - always
-...
