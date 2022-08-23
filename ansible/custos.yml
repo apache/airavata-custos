@@ -21,11 +21,14 @@
 ---
 - hosts: hashicorp
   roles:
+    - env_setup
     - nginx
-    - vault
     - consul
+    - vault
+
 - hosts: keycloak
   roles:
+    - env_setup
     - nginx
     - keycloak
 - hosts: old_server
@@ -33,6 +36,7 @@
     - migrate_db
 - hosts: custos
   roles:
+    - env_setup
     - nginx
     - database
     - zookeeper

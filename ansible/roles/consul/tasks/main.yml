@@ -60,5 +60,9 @@
     src: consul.service.j2
     force: yes
     mode: 0644
+  become: yes
+
+- name: Reload systemd daemons
+  command: systemctl daemon-reload
   notify: restart consul
   become: yes
