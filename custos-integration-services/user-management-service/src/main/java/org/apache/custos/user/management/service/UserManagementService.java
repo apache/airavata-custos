@@ -545,7 +545,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                 FindUsersResponse user = iamAdminServiceClient.getUsers(request);
                 long endTime = System.currentTimeMillis();
                 long total = endTime - initiationTime;
-                LOGGER.info("request received: "+ initiationTime+" request end time"+ endTime+" difference " + total);
+                LOGGER.debug("request received: "+ initiationTime+" request end time"+ endTime+" difference " + total);
                 responseObserver.onNext(user);
                 responseObserver.onCompleted();
             } else {
@@ -1346,7 +1346,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
 
                     for (org.apache.custos.iam.service.UserRepresentation userRepresentation : response.getUsersList()) {
 
-                        LOGGER.info("User Name " + userRepresentation.getUsername());
+                        LOGGER.debug("User Name " + userRepresentation.getUsername());
                         UserProfile profile = convertToProfile(userRepresentation);
 
                         org.apache.custos.user.profile.service.UserProfileRequest profileRequest = org.apache.custos.user.profile.service.UserProfileRequest
@@ -1365,7 +1365,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                         }
                     }
                 } else {
-                    LOGGER.info("Empty");
+                    LOGGER.debug("Empty");
                 }
 
                 OperationStatus status = OperationStatus.newBuilder().setStatus(true).build();

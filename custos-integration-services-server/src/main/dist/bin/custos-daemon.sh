@@ -41,7 +41,7 @@ case $1 in
         echo "Starting $SERVICE_NAME ..."
         if [ ! -f $PID_PATH_NAME ]; then
             nohup java ${JAVA_OPTS} -classpath "${AIRAVATA_CLASSPATH}" \
-            oorg.apache.custos.integration.services.api.IntegrationServicesServer ${AIRAVATA_COMMAND} $* > $LOG_FILE 2>&1 &
+            org.apache.custos.integration.services.api.IntegrationServicesServer ${AIRAVATA_COMMAND} $* > $LOG_FILE 2>&1 &
             echo $! > $PID_PATH_NAME
             echo "$SERVICE_NAME started ..."
         else

@@ -154,7 +154,7 @@ public class IdentityService extends IdentityServiceImplBase {
             }
         }
         LOGGER.debug("Authentication status checking for  " + username);
-        LOGGER.info("Authentication status checking for  " + username + " token " + request.getAccessToken());
+        LOGGER.debug("Authentication status checking for  " + username + " token " + request.getAccessToken());
 
         String accessToken = request.getAccessToken();
 

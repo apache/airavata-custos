@@ -47,7 +47,7 @@ public class AgentManagementTests {
     @BeforeClass(groups = {"agent-management"})
     public void setup(String serverHost, String serverPort, String clientId, String clientSec,
                       String adminUsername, String adminPassword) throws IOException {
-        LOGGER.info("Initiating agent management test cases  " + LOG_SUFFIX);
+        LOGGER.debug("Initiating agent management test cases  " + LOG_SUFFIX);
         agentManagementClient = new AgentManagementClient(serverHost, Integer.valueOf(serverPort), clientId, clientSec);
         identityManagementClient = new IdentityManagementClient(serverHost, Integer.valueOf(serverPort), clientId, clientSec);
         Struct struct = identityManagementClient.getToken(null,

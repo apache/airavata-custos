@@ -115,7 +115,7 @@ public class KeycloakAuthClient {
     public void initializeSecurity() throws CertificateException, NoSuchAlgorithmException,
             KeyStoreException, KeyManagementException, IOException {
         try {
-            LOGGER.info("initializing security requirements");
+            LOGGER.debug("initializing security requirements");
             KeycloakUtils.initializeTrustStoreManager(trustStorePath, trustStorePassword);
         } catch (Exception ex) {
             LOGGER.error("Keycloak Authclient initialization failed " + ex.getMessage());
@@ -339,7 +339,7 @@ public class KeycloakAuthClient {
 
 
     private String getOpenIDConfigurationUrl(String realm) {
-        LOGGER.info("Connecting to "+ idpServerURL);
+        LOGGER.debug("Connecting to "+ idpServerURL);
         return idpServerURL + "realms/" + realm + "/.well-known/openid-configuration";
     }
 

@@ -95,13 +95,13 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
                 String body = template.getBody();
                 Set<EmailBodyParams> emailBodyParams = template.getBodyParams();
                 Map<String, String> bodyValues = request.getMessage().getParametersMap();
-                LOGGER.info(body);
+                LOGGER.debug(body);
                 for (EmailBodyParams val : emailBodyParams) {
                     if (bodyValues.containsKey(val.getValue())) {
                         body = body.replace(val.getValue(), bodyValues.get(val.getValue()));
                     }
                 }
-                LOGGER.info(body);
+                LOGGER.debug(body);
 
                 Properties properties = new Properties();
                 properties.put("mail.smtp.auth", mailSmtpAuth);
@@ -127,7 +127,7 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
                                 .setProfile(profile).build();
                         UserProfile userProfile = userProfileClient.getUser(userProfileRequest);
                         if (userProfile.isInitialized() && !userProfile.getUsername().isEmpty()) {
-                            LOGGER.info("Adding receiver email " + userProfile.getEmail());
+                            LOGGER.debug("Adding receiver email " + userProfile.getEmail());
                             emails.add(userProfile.getEmail());
                         }
                     } else if (emailReceiver.getUserType().equals("GROUP")) {
@@ -140,7 +140,7 @@ public class EmailService extends EmailServiceGrpc.EmailServiceImplBase {
 
                         List<UserProfile> userProfiles = userProfilesResponse.getProfilesList();
                         userProfiles.forEach(profile -> {
-                            LOGGER.info("Adding receiver email " + profile.getEmail());
+                            LOGGER.debug("Adding receiver email " + profile.getEmail());
                             emails.add(profile.getEmail());
                         });
                     }
