@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.custos.user.profile.validators;
+package org.apache.custos.user.profile.validator;
 
 import org.apache.custos.core.services.api.commons.Validator;
 import org.apache.custos.core.services.api.commons.exceptions.MissingParameterException;

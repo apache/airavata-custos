@@ -52,6 +52,7 @@ public class ServiceInterceptor implements ServerInterceptor {
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(serverCallHandler.startCall(serverCall, metadata)) {
 
             ReqT resp = null;
+
             @Override
             public void onMessage(ReqT message) {
                 try {
@@ -59,7 +60,10 @@ public class ServiceInterceptor implements ServerInterceptor {
                     Iterator it = validators.iterator();
                     while (it.hasNext()) {
                         Validator interceptor = (Validator) it.next();
-                        resp = interceptor.validate(methodName, (resp == null) ? message : resp);
+                        if (fullMethod.split("/")[0].split(".service")[0]
+                                .equals(interceptor.toString().split(".validator")[0])) {
+                            resp = interceptor.validate(methodName, (resp == null) ? message : resp);
+                        }
                     }
                     super.onMessage(resp);
                 } catch (Exception ex) {
