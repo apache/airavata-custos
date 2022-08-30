@@ -47,9 +47,9 @@ public class IamAdminServiceClient {
 
 
     public IamAdminServiceClient(List<ClientInterceptor> clientInterceptorList,
-                                 @Value("${core.services.server.hostname}") String serviceHost,
-                                 @Value("${core.services.server.port}") int servicePort,
-                                 @Value("${iam.server.url}") String url) {
+                                 @Value("${core.services.server.hostname:localhost}") String serviceHost,
+                                 @Value("${core.services.server.port:7070}") int servicePort,
+                                 @Value("${iam.server.url:https://localhost/auth}") String url) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
                 serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();

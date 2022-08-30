@@ -116,7 +116,7 @@ public class IdentityInputValidator implements Validator {
 
 
             for (Claim claim : request.getClaimsList()) {
-                LOGGER.info("Key " + claim.getKey() + "Value " + claim.getValue());
+                LOGGER.debug("Key " + claim.getKey() + "Value " + claim.getValue());
                 if (claim.getKey().equals("username")) {
                     username = claim.getValue();
                 } else if (claim.getKey().equals("tenantId")) {

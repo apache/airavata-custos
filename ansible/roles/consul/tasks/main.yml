@@ -73,3 +73,8 @@
     dest: /home/exouser/backups/
 
 #- name: import snapshot to consul server
+
+- name: Reload systemd daemons
+  command: systemctl daemon-reload
+  notify: restart consul
+  become: yes

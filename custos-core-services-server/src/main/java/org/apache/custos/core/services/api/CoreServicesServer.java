@@ -31,7 +31,7 @@ import org.apache.custos.messaging.events.publisher.MessageProducer;
 import org.apache.custos.resource.secret.validator.ResourceSecretInputValidator;
 import org.apache.custos.sharing.validator.SharingInputValidator;
 import org.apache.custos.tenant.profile.validator.TenantProfileInputValidator;
-import org.apache.custos.user.profile.validators.UserProfileInputValidator;
+import org.apache.custos.user.profile.validator.UserProfileInputValidator;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;

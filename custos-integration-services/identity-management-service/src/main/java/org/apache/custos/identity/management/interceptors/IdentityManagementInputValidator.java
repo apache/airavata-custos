@@ -55,6 +55,7 @@ public class IdentityManagementInputValidator implements IntegrationServiceInter
                 break;
             case "endAgentSession":
                 validationAuthorizationHeader(headers);
+                break;
             default:
         }
         return msg;

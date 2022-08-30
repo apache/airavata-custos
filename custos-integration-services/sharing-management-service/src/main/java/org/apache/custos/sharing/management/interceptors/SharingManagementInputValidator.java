@@ -45,9 +45,10 @@ public class SharingManagementInputValidator implements IntegrationServiceInterc
      * @return
      */
     private void validate(String methodName, Object body, Metadata headers) {
-        validationAuthorizationHeader(headers);
+
 
         if (methodName.equals("createEntity") || methodName.equals("updateEntity")) {
+            validationAuthorizationHeader(headers);
             if (body instanceof EntityRequest) {
                 EntityRequest request = (EntityRequest) body;
 
@@ -62,6 +63,7 @@ public class SharingManagementInputValidator implements IntegrationServiceInterc
 
 
         } else if (methodName.equals("shareEntityWithUsers") || methodName.equals("revokeEntitySharingFromUsers")) {
+            validationAuthorizationHeader(headers);
             if (body instanceof SharingRequest) {
                 SharingRequest request = (SharingRequest) body;
 
@@ -75,6 +77,7 @@ public class SharingManagementInputValidator implements IntegrationServiceInterc
             }
 
         } else if (methodName.equals("shareEntityWithGroups") || methodName.equals("revokeEntitySharingFromGroups")) {
+            validationAuthorizationHeader(headers);
             if (body instanceof SharingRequest) {
                 SharingRequest request = (SharingRequest) body;
 

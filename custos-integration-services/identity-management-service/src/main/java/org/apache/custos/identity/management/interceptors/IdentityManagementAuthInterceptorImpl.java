@@ -57,7 +57,7 @@ public class IdentityManagementAuthInterceptorImpl extends MultiTenantAuthInterc
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT reqT) {
 
-        LOGGER.info("request received ....." + method);
+        LOGGER.debug("request received ....." + method);
         if (method.equals("authorize") || method.equals("getAgentToken") || method.equals("endAgentSession")) {
             return reqT;
         }

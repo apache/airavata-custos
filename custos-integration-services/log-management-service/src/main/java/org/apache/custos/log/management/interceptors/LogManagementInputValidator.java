@@ -60,7 +60,15 @@ public class LogManagementInputValidator implements IntegrationServiceIntercepto
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        validate(method, msg, headers);
+
+        switch (method) {
+            case "getLogEvents":
+            case "isLogEnabled":
+            case "enable":
+                validate(method, msg, headers);
+                break;
+            default:
+        }
         return msg;
     }
 }
