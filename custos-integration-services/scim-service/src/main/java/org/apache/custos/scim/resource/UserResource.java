@@ -86,7 +86,7 @@ public class UserResource extends AbstractResource {
 
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
-        LOGGER.info("Id Before  " + custosExtention.toString());
+        LOGGER.debug("Id Before  " + custosExtention.toString());
         SCIMResponse response = userResourceManager.get(custosExtention.toString(), resourceManager, attribute, excludedAttributes);
 
         return buildResponse(response);
@@ -126,7 +126,7 @@ public class UserResource extends AbstractResource {
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
 
-        LOGGER.info(object.toString());
+        LOGGER.debug(object.toString());
 
         SCIMResponse response = userResourceManager.create(object.toString(), resourceManager,
                 attribute, excludedAttributes);
@@ -165,7 +165,7 @@ public class UserResource extends AbstractResource {
 
         // create charon-SCIM user endpoint and hand-over the request.
         UserResourceManager userResourceManager = new UserResourceManager();
-        LOGGER.info("Id Before  " + custosExtention.toString());
+        LOGGER.debug("Id Before  " + custosExtention.toString());
         SCIMResponse response = userResourceManager.delete(custosExtention.toString(), resourceManager);
 
         return buildResponse(response);

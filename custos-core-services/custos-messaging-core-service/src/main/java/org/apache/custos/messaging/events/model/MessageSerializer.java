@@ -41,7 +41,7 @@ public class MessageSerializer implements Serializer<Message> {
         try {
             final var jsonPrinter = JsonFormat.printer();
             final var json = jsonPrinter.print(message);
-            LOGGER.info(json);
+            LOGGER.debug(json);
             return json.getBytes();
         } catch (Exception ex) {
             String msg = "Error occurred while processing message " + ex.getMessage();

@@ -64,13 +64,15 @@ public class ResourceSecretManagementInputValidator implements IntegrationServic
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        validate(method, msg, headers);
+
 
         if (method.equals("addSSHCredential") || method.equals("addPasswordCredential")
                 || method.equals("addCertificateCredential")) {
+            validate(method, msg, headers);
             validateSecretMetadata(msg, method);
         } else if (method.equals("addKVCredential") || method.equals("getKVCredential") ||
                 method.equals("updateKVCredential") || method.equals("deleteKVCredential")) {
+            validate(method, msg, headers);
             if (msg instanceof KVCredential) {
                 String key = ((KVCredential) msg).getKey();
                 String value = (((KVCredential) msg)).getValue();

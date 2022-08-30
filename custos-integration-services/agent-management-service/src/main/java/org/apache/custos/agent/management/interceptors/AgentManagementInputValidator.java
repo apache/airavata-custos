@@ -60,7 +60,26 @@ public class AgentManagementInputValidator implements IntegrationServiceIntercep
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
-        validate(method, msg, headers);
+        switch (method) {
+            case "enableAgents":
+            case "configureAgentClient":
+            case "addRolesToClient":
+            case "registerAndEnableAgent":
+            case "getAgent":
+            case "deleteAgent":
+            case "disableAgent":
+            case "enableAgent":
+            case "addAgentAttributes":
+            case "deleteAgentAttributes":
+            case "addRolesToAgent":
+            case "deleteRolesFromAgent":
+            case "addProtocolMapper":
+            case "getAllAgents":
+            case "synchronizeAgentDBs":
+                validate(method, msg, headers);
+                break;
+            default:
+        }
         return msg;
     }
 }

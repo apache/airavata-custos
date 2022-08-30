@@ -212,7 +212,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
                 if (response.getFieldsMap().get("access_token").isInitialized() &&
                         !response.getFieldsMap().get("access_token").equals("")) {
                     String accessToken = response.getFieldsMap().get("access_token").getStringValue();
-                    LOGGER.info(accessToken);
+                    LOGGER.debug(accessToken);
                     String clientId = request.getClientId();
                     AuthToken authToken = AuthToken.newBuilder()
                             .setAccessToken(accessToken)
@@ -221,7 +221,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
                             .addClaims(Claim.newBuilder().setKey("tenantId").setValue(String.valueOf(tenantId))
                                     .build()).build();
                     User user = identityClient.getUser(authToken);
-                    LOGGER.info("User" + user.getUsername());
+                    LOGGER.debug("User" + user.getUsername());
 
                     UserProfile userProfile = UserProfile.newBuilder()
                             .setUsername(user.getUsername())
@@ -269,7 +269,7 @@ public class IdentityManagementService extends IdentityManagementServiceGrpc.Ide
     @Override
     public void getOIDCConfiguration(GetOIDCConfiguration request, StreamObserver<Struct> responseObserver) {
         try {
-            LOGGER.info("Request received  to fetch OIDC configuration " + request.getTenantId());
+            LOGGER.debug("Request received  to fetch OIDC configuration " + request.getTenantId());
 
             String clientId = request.getClientId();
 

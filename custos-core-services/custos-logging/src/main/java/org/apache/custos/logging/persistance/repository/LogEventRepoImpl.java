@@ -135,7 +135,7 @@ public class LogEventRepoImpl implements LogEventRepo {
             valueMap.put("offset", logEventRequest.getOffset());
         }
 
-        LOGGER.info("Query ####" + query);
+        LOGGER.debug("Query ####" + query);
 
 
         return query;
