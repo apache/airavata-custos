@@ -111,14 +111,4 @@
   become: yes
   become_user: "{{ user }}"
 
-- name: Start Custos Core service
-  service:
-    name: corecustos
-    state: restarted
-  become: yes
-
-- name: Start Custos Integration service
-  service:
-    name: intcustos
-    state: restarted
-  become: yes
+- include: start_custos.yml

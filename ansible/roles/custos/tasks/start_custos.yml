@@ -19,6 +19,31 @@
 #
 
 ---
-pkcs12_filename: 'keycloak-client-truststore.pkcs12'
-pkcs12_passphrase: "{{ keycloak_pkcs12_passphrase }}"
-nginx_site_config: "{{ ansible_host }}.j2"
+- name: Copy Custos systemd files
+  template: "src={{ item.name }}
+            dest=/etc/systemd/system/{{ item.target }}
+            owner={{ user }}
+            group={{ group }}
+            mode=\"u=rw,g=r,o=r\""
+  with_items:
+    - { name: corecustos.service.j2,
+        target: corecustos.service}
+    - { name: intcustos.service.j2,
+        target: intcustos.service}
+  become: yes
+
+- name: reload systemctl daemon
+  command: systemctl daemon-reload
+  become: yes
+
+- name: Start Custos Core service
+  service:
+    name: corecustos
+    state: restarted
+  become: yes
+
+- name: Start Custos Integration service
+  service:
+    name: intcustos
+    state: restarted
+  become: yes

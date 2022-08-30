@@ -21,8 +21,8 @@
 ---
 ansible_connection: ssh
 
-user: ubuntu
-group: ubuntu
+user: exouser
+group: exouser
 user_home: "/home/{{ user }}"
 
 # Domain names for VMs
