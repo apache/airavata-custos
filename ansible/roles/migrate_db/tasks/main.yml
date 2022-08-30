@@ -32,3 +32,10 @@
     dest: tmp/
     flat: yes
   when: inventory_hostname == 'old_keycloak'
+
+- name: Copy consul dump file from old server to master node
+  fetch:
+    src: /home/ubuntu/temp_backup/primary.snap
+    dest: tmp/
+    flat: yes
+  when: inventory_hostname == 'old_hashicorp'

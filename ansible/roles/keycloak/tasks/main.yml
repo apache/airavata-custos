@@ -26,7 +26,6 @@
   when: ansible_os_family == "Debian"
 
 - name: Create Keycloak deployment directory {{ keycloak_install_dir }}
-  become: yes
   file: path={{ keycloak_install_dir }}
     state=directory
     mode=0755
@@ -34,7 +33,6 @@
     group={{ group }}
 
 - name: Create Keycloak source directory
-  become: yes
   file: path={{ keycloak_source_dir }}
     state=directory
     mode=0755
@@ -50,24 +48,20 @@
     force: yes
   register: checkout
   tags: update
-  become: yes
   become_user: "{{ user }}"
 
 - name: Run Keycloak maven build
   command: mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install chdir="{{ keycloak_source_dir }}/"
-#  mvn clean install -Dmaven.test.skip=true chdir="{{ keycloak_source_dir }}/"
   environment:
     MAVEN_OPTS: "-Xmx2048m"
   register: build
   tags: update
-  become: yes
   become_user: "{{ user }}"
 
 - name: Delete configuration directories of the distributions
   file:
     state: absent
     path: "{{ keycloak_install_dir }}/standalone/configuration"
-  become: yes
   become_user: "{{ user }}"
   ignore_errors: yes
 
@@ -77,9 +71,32 @@
     src: "{{ keycloak_source_dir }}/distribution/server-dist/target/keycloak-{{ keycloak_version }}.zip"
     dest: "{{ user_home }}"
     copy: no
+  become_user: "{{ user }}"
+
+- name: Create modules/system/layers/keycloak/org/postgresql directory
+  become: yes
+  file:
+    path: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main"
+    state: directory
+    mode: 0755
+    owner: "{{ user }}"
+    group: "{{ group }}"
+
+- name: copy module.xml to org/postgresql dir
+  template:
+    src: module.xml.j2
+    dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/module.xml"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: '0644'
   become: yes
   become_user: "{{ user }}"
 
+- name: Download postgresql jar
+  ansible.builtin.get_url:
+    url: https://jdbc.postgresql.org/download/postgresql-42.3.6.jar
+    dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/postgresql-42.3.6.jar"
+    mode: '0644'
 
 # setup postgresql for keycloak
 - name: Install postgresql and postgresql-contrib
@@ -88,7 +105,6 @@
       - postgresql
       - postgresql-contrib
   become: yes
-#  become_user: "{{ user }}"
 
 - name: "Install Python packages"
   apt:
@@ -104,7 +120,6 @@
     state: started
     enabled: yes
   become: yes
-#  become_user: "{{ user }}"
 
 - name: "Create database"
   postgresql_db:
@@ -148,7 +163,6 @@
     name: postgresql
     state: restarted
   become: yes
-#  become_user: "{{ user }}"
 
 - name: Copy dump file from master node to new server
   copy:
@@ -175,7 +189,6 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
-  become: true
   become_user: "{{ user }}"
   tags:
        - standalone
@@ -184,61 +197,47 @@
 
 # <---------- setup init script for keycloak, starts the server after reboot ----------->
 
-# Init script to start keycloak in Standalone mode
-- name: copy init script file (Standalone)
+- name: Create Keycloak run directory
+  become: yes
+  file:
+    path: "{{ user_home }}/run"
+    state: directory
+    mode: 0755
+    owner: "{{ user }}"
+    group: "{{ group }}"
+
+- name: Copy keycloak script to run directory
   template: >
     src=keycloak-standalone-init.j2
-    dest="/etc/init.d/keycloak"
+    dest="{{ user_home }}/run/keycloak.sh"
+    owner="{{ user }}"
+    group="{{ group }}"
+    mode="u=rwx,g=rx,o=rx"
+  become_user: "{{ user }}"
+  tags:
+    - standalone
+
+- name: copy systemd script file (Standalone) for {{ user }}
+  template: >
+    src=keycloak.service.j2
+    dest="/etc/systemd/system/keycloak.service"
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rwx,g=rx,o=rx"
   become: yes
-  become_user: root
   tags:
-       - standalone
-
-## System command to add the init script to enable on startup
-#- name: add init script to chkconfig and startup on boot
-#  command: chkconfig --level 345 keycloak on
-#  become: yes
-#  become_user: root
-#  tags:
-#       - always
-
-# </---------- setup init script for keycloak, starts the server after reboot ----------->
-
-# <-------------------------Initialize a new admin for keycloak-------------------------->
-
-- name: Add master realm admin account
-  command: "{{user_home}}/{{ keycloak_install_dir }}/bin/add-user-keycloak.sh -r master -u {{ keycloak_master_account_username }} -p {{ keycloak_master_account_password }}"
-  args:
-    creates: "{{user_home}}/{{ keycloak_install_dir }}/standalone/configuration/keycloak-add-user.json"
-  become: yes
-  become_user: root
-  tags:
-       - always
-
+    - standalone
 
 # <--------------------------start keycloak Identity server------------------------------>
-- name: reload Keycloak init script
+- name: reload systemctl daemon
   command: systemctl daemon-reload
   become: yes
-  become_user: root
-  tags:
-       - always
-
-# FIXME: restarting Keycloak server doesn't work
-- name: stop Keycloak server
-  service: name=keycloak state=stopped
-  ignore_errors: yes
-  become: yes
-  become_user: root
   tags:
        - always
 
 - name: start Keycloak server
-  service: name=keycloak state=started
+  service:
+    name: keycloak
+    state: restarted
+    enabled: yes
   become: yes
-  become_user: root
-  tags:
-       - always

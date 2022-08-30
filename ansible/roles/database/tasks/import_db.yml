@@ -30,7 +30,7 @@
 - name: Copy dump file from master node to new server
   copy:
     src: tmp/core_services_server_db_arch.sql
-    dest: /home/exouser/backups
+    dest: /home/exouser/backups/
 
 - name: import dump file to mysql
   mysql_db:

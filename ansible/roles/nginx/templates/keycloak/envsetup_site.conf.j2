@@ -1,0 +1,8 @@
+upstream keycloak {
+  server localhost:8080 ;
+}
+server {
+   listen 80;
+   server_name bm-dev-2.usecustos.org;
+   return 301 https://bm-dev-2.usecustos.org$request_uri;
+}

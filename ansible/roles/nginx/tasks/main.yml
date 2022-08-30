@@ -48,7 +48,6 @@
   ufw:
     rule: allow
     name: "Nginx HTTP"
-#    delete: yes
     state: enabled # enable the ufw rule
   become: yes
   tags: env_setup
@@ -63,13 +62,6 @@
   become: yes
   tags: env_setup
 
-- name: delete default nginx config
-  file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  become: yes
-  tags: env_setup
-
 - name: copy sample index.html from {{ inventory_hostname }} to /var/www/{{ ansible_host }}/html
   template: >
     src={{ inventory_hostname }}/index.html.j2
@@ -77,6 +69,23 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
+  tags: env_setup
+
+- name: delete default nginx config
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: yes
+  tags: env_setup
+
+- name: copy nginx site.conf
+  template:
+    src: "{{ inventory_hostname }}/envsetup_site.conf.j2"
+    dest: /etc/nginx/sites-available/{{ ansible_host }}
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
   tags: env_setup
 
 - name: copy nginx site.conf
@@ -87,19 +96,7 @@
     group: root
     mode: '0644'
   become: yes
-  tags: env_setup
-
-# Conditonal task (run only if host is hashicorp)
-- name: For hashicorp vault - copy vault.conf to /etc/nginx/conf.d
-  template:
-    src: "{{ inventory_hostname }}/vault.conf.j2"
-    dest: /etc/nginx/conf.d/vault.conf
-    owner: root
-    group: root
-    mode: '0644'
-  become: yes
-  tags: env_setup
-  when: inventory_hostname == 'hashicorp'
+#  tags: env_setup
 
 - name: link sample html to sites-enabled directory
   file:
@@ -117,7 +114,7 @@
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
   become: yes
-  tags: env_setup
+#  tags: env_setup
 
 - name: allow HTTPS traffic
   ufw:
@@ -150,4 +147,11 @@
       - python3-certbot-nginx
     state: latest
   become: yes
+  tags: env_setup
+
+- name: Create certs directory
+  ansible.builtin.file:
+    path: "{{ user_home }}/certs"
+    state: directory
+    mode: '0755'
   tags: env_setup

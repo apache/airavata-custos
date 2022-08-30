@@ -31,8 +31,8 @@
 - hosts: hashicorp
   roles:
     - nginx
-    - vault
     - consul
+    - vault
 - hosts: keycloak
   roles:
     - nginx
