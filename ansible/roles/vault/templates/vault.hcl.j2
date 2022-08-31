@@ -11,21 +11,23 @@ ui = true
 
 storage "consul" {
   address = "127.0.0.1:8500"
-  path    = "vault"
+  path    = "vault/"
 }
 
 # HTTP listener
-#listener "tcp" {
-#  address = "127.0.0.1:8200"
-#  tls_disable = 1
-#}
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = 1
+  tls_cert_file = "/etc/letsencrypt/live/bm-dev-3.usecustos.org/fullchain.pem"
+  tls_key_file = "/etc/letsencrypt/live/bm-dev-3.usecustos.org/privkey.pem"
+}
 
 # HTTPS listener
-listener "tcp" {
-  address       = "0.0.0.0:8200"
+#listener "tcp" {
+#  address       = "0.0.0.0:8200"
 #  tls_cert_file = "/opt/vault/tls/tls.crt"
-  #tls_key_file  = "/opt/vault/tls/tls.key"
-}
+#  tls_key_file  = "/opt/vault/tls/tls.key"
+#}
 
 # Enterprise license_path
 # This will be required for enterprise as of v1.8

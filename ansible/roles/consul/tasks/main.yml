@@ -51,7 +51,6 @@
   template:
     dest: "{{ consul_config_dir }}/config.json"
     src: consul.config.j2
-  notify: restart consul
   become: yes
 
 - name: ensure consul service file exists
@@ -61,6 +60,19 @@
     force: yes
     mode: 0644
   become: yes
+
+- name: restart consul
+  service:
+    name: consul
+    state: restarted
+  become: yes
+
+- name: Copy snapshot from master node to new server
+  copy:
+    src: tmp/primary.snap
+    dest: /home/exouser/backups/
+
+#- name: import snapshot to consul server
 
 - name: Reload systemd daemons
   command: systemctl daemon-reload

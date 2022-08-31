@@ -24,12 +24,14 @@
     update_cache: yes
     cache_valid_time: 86400
   become: yes
+  tags: env_setup
 
 - name: install nginx
   apt:
     name: nginx
     state: latest
   become: yes
+  tags: env_setup
 
 - name: allow OpenSSH
   ufw:
@@ -37,6 +39,7 @@
     name: "OpenSSH"
     state: enabled
   become: yes
+  tags: env_setup
 
 # It is recommended to enable the most restrictive profile
 #  that will still allow the traffic you’ve configured.
@@ -45,10 +48,9 @@
   ufw:
     rule: allow
     name: "Nginx HTTP"
-#    delete: yes
     state: enabled # enable the ufw rule
   become: yes
-
+  tags: env_setup
 
 - name: create www directory at "/var/www/{{ ansible_host }}"
   file:
@@ -58,14 +60,7 @@
     owner: "{{ user }}"
     group: "{{ group }}"
   become: yes
-
-
-- name: delete default nginx config
-  file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  become: yes
-
+  tags: env_setup
 
 - name: copy sample index.html from {{ inventory_hostname }} to /var/www/{{ ansible_host }}/html
   template: >
@@ -74,7 +69,24 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
+  tags: env_setup
 
+- name: delete default nginx config
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: yes
+  tags: env_setup
+
+- name: copy nginx site.conf
+  template:
+    src: "{{ inventory_hostname }}/envsetup_site.conf.j2"
+    dest: /etc/nginx/sites-available/{{ ansible_host }}
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  tags: env_setup
 
 - name: copy nginx site.conf
   template:
@@ -84,7 +96,7 @@
     group: root
     mode: '0644'
   become: yes
-
+#  tags: env_setup
 
 - name: link sample html to sites-enabled directory
   file:
@@ -92,7 +104,7 @@
     dest: /etc/nginx/sites-enabled/{{ ansible_host }}
     state: link
   become: yes
-
+  tags: env_setup
 
 - name: adjust server_names_hash_bucket_size
   template: >
@@ -102,7 +114,7 @@
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
   become: yes
-
+#  tags: env_setup
 
 - name: allow HTTPS traffic
   ufw:
@@ -110,7 +122,7 @@
     name: "Nginx Full"
     state: enabled # enable the ufw rule
   become: yes
-
+  tags: env_setup
 
 - name: delete redundant Nginx HTTP
   ufw:
@@ -119,12 +131,14 @@
     delete: yes
     state: enabled # enable the ufw rule
   become: yes
+  tags: env_setup
 
 - name: Restart nginx
   service:
     name: nginx
     state: restarted
   become: yes
+  tags: env_setup
 
 - name: install certbot
   apt:
@@ -133,4 +147,11 @@
       - python3-certbot-nginx
     state: latest
   become: yes
+  tags: env_setup
 
+- name: Create certs directory
+  ansible.builtin.file:
+    path: "{{ user_home }}/certs"
+    state: directory
+    mode: '0755'
+  tags: env_setup

@@ -19,26 +19,28 @@
 #
 
 ---
-#- hosts: hashicorp
-#  roles:
-#    - env_setup
-#    - nginx
-#    - consul
-#    - vault
-#
-#- hosts: keycloak
-#  roles:
-#    - env_setup
-#    - nginx
-#    - keycloak
-#- hosts: old_server
-#  roles:
-#    - migrate_db
+- hosts: old_custos
+  roles:
+    - migrate_db
+- hosts: old_keycloak
+  roles:
+    - migrate_db
+- hosts: old_hashicorp
+  roles:
+    - migrate_db
+- hosts: hashicorp
+  roles:
+    - nginx
+    - consul
+    - vault
+- hosts: keycloak
+  roles:
+    - nginx
+    - keycloak
 - hosts: custos
   roles:
-#    - env_setup
-#    - nginx
-#    - database
-#    - zookeeper
-#    - kafka
+    - nginx
+    - database
+    - zookeeper
+    - kafka
     - custos

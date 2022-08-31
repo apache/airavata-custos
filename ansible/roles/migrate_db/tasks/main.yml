@@ -19,8 +19,23 @@
 #
 
 ---
-- name: Copy dump file from old server to master node
+- name: Copy mysql dump file from old server to master node
   fetch:
     src: /home/ubuntu/temp_backup/core_services_server_db_arch.sql
     dest: tmp/
     flat: yes
+  when: inventory_hostname == 'old_custos'
+
+- name: Copy postgresql dump file from old server to master node
+  fetch:
+    src: /home/ubuntu/temp_backup/postgresDB_arch.sql
+    dest: tmp/
+    flat: yes
+  when: inventory_hostname == 'old_keycloak'
+
+- name: Copy consul dump file from old server to master node
+  fetch:
+    src: /home/ubuntu/temp_backup/primary.snap
+    dest: tmp/
+    flat: yes
+  when: inventory_hostname == 'old_hashicorp'

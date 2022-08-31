@@ -67,13 +67,11 @@ all:
 Ansible connects to these VMs using `ssh`. To allow ansible to do this, you will also need to provide it with ssh passwords for these VMs. To maintain security, these passwords cannot be exposed in plaintext. We use ansible's `ansible-vault` command to encrypt these password strings.
 
 Open the file `test/group_vars/all/vault.yml`. You will need to decrypt the file to access it (it's been encrypted using ansible-vault for security).
+Make sure you put the password text in this file - `ansible/vault_pass`. You can reach out to the dev team to get the password for test env.
 Here's the command:
 ```bash
 ansible-vault decrypt inventories/test/group_vars/all/vault.yml
 ```
-You will be prompted to provide the `ansible-vault` password. You can reach out to the dev team to get the password for test env.
-
-After you've set the respective passwords, don't forget to encrypot the 
 
 In the file `test/group_vars/all/vault.yml`. Look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective password strings. For ex:
 ```yml
@@ -92,12 +90,13 @@ ansible-vault encrypt inventories/test/group_vars/all/vault.yml
 
 Now that you've configured the ssh user and password details for your VMs, we can install nginx on each of these servers at once by running the following command:
 ```bash
-ansible-playbook -i inventories/test/ custos.yml --ask-vault-pass --tags env_setup
+ansible-playbook -i inventories/test/ custos.yml --tags env_setup
 ```
-Enter the Vault Password (that you got from airavata dev) when prompted by ansible.
 
 ## Generate SSL certificates<a name="generate-ssl-certificates"/>
-The `env_setup.yml` playbook installed `certbot` along with `nginx` in your VMs. **Certbot** helps manage letsencrypt SSL certificates. You need to generate SSL certs for each of your 3 VMs.
+The `env_setup.yml` playbook installed `certbot` along with `nginx` in your VMs. 
+
+Now **Certbot** will help us manage letsencrypt SSL certificates. You need to generate SSL certs for each of your 3 VMs.
 
 ### Generate letsencrypt certificates
 SSH into your VMs with your user:
@@ -115,12 +114,14 @@ Run the following commands to generate pkcs12 truststore files from you cert and
 
 In the hashicorp VM:
 ```bash
-openssl pkcs12 -export -out certs/vault-client-truststore.pkcs12 -inkey /etc/letsencrypt/live/<my-hashicorp-domain.com>/privkey.pem -in /etc/letsencrypt/live/<my-hashicorp-domain.com>/fullchain.pem
+sudo openssl pkcs12 -export -out certs/vault-client-truststore.pkcs12 -inkey /etc/letsencrypt/live/<my-hashicorp-domain.com>/privkey.pem -in /etc/letsencrypt/live/<my-hashicorp-domain.com>/fullchain.pem
 ```
 In the keycloak VM:
 ```bash
-openssl pkcs12 -export -out certs/keycloak-client-truststore.pkcs12 -inkey /etc/letsencrypt/live/<my-keycloak-domain.com>/privkey.pem -in /etc/letsencrypt/live/<my-keycloak-domain.com>/fullchain.pem
+sudo openssl pkcs12 -export -out certs/keycloak-client-truststore.pkcs12 -inkey /etc/letsencrypt/live/<my-keycloak-domain.com>/privkey.pem -in /etc/letsencrypt/live/<my-keycloak-domain.com>/fullchain.pem
 ```
+You should see the respective pkcs12 file in the `~/certs` folder.
+
 Now, you need to add the pkcs12 passwords in the ansible vars.
 
 In the file `test/group_vars/all/vault.yml`. Look for `hashicorp_pkcs12_passphrase` and `keycloak_pkcs12_passphrase` variables. Set these variables with their respective password strings. For ex:
@@ -155,4 +156,7 @@ Adding multiple -v will increase the verbosity, the builtin plugins currently ev
 ```bash
 ansible all -i inventories/test/ -e '@inventories/test/group_vars/all/vars.yml' --ask-vault-pass -m debug -a 'var=secret_string'
 ```
-
+- Encrypt a string using `ansible-vault`
+```bash
+ansible-vault encrypt_string "MySecureString"
+```

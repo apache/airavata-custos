@@ -56,6 +56,7 @@ letsencrypt_email: "abhinav7sinha@gmail.com"
 keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"
 keycloak_repo: https://github.com/keycloak/keycloak.git
 keycloak_source_dir: "{{ user_home }}/keycloak-source"
+keycloak_deployment_dir: "{{ user_home }}/keycloak-9.0.2"
 
 # Database related variables
 db_name: core_services_server_db
