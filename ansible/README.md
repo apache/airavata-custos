@@ -73,7 +73,7 @@ Here's the command:
 ansible-vault decrypt inventories/test/group_vars/all/vault.yml
 ```
 
-In the file `test/group_vars/all/vault.yml`. Look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective password strings. For ex:
+In the file `test/group_vars/all/vault.yml`, look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective password strings. For ex:
 ```yml
 ⋮
 keycloak_ssh_password: XXX..XXX

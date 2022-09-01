@@ -49,9 +49,6 @@ zookeeper_connection_timeout: 18000
 custos_host: "{{ hostvars['custos'].ansible_host }}"
 custos_port: 31499
 
-# Letsencrypt
-letsencrypt_email: "abhinav7sinha@gmail.com"
-
 #Keycloak
 keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"
 keycloak_repo: https://github.com/keycloak/keycloak.git
