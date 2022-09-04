@@ -19,76 +19,105 @@
 #
 
 ---
-#Tasks file can include smaller files if wanted
-#All commons tasks goes here
-- name: Create a new user group "{{ group }}"
-  group: name={{ group }}
-  become: yes
-
-- name: Create a new user "{{ user }}"
-  user: name={{ user }} group={{ group }}
-  become: yes
-
-- name: Install Firewalld (RedHat)
-  yum: name=firewalld state=latest update_cache=yes
-  become: yes
-  when: ansible_os_family == "RedHat"
-
-- name: Install Firewalld (Debian)
-  apt: name=firewalld state=latest update_cache=yes
-  become: yes
-  when: ansible_os_family == "Debian"
-
-
-  # TODO: stop iptables service, can't have both iptables and firewalld on same host
-# firewalld is just a frontend for iptables - so we can't remove it
-  # if we try to stop non existing service ansible fails.
-# - name: Stop iptables, ip6tables services
-#   service: name="{{ item }}" state=stopped
-#   with_items:
-#     - iptables
-#     - ip6tables
-
-- name: Install Git (RedHat)
-  yum:
-    name:
-    - git
-    state: latest
+- name: apt-get update
+  apt:
     update_cache: yes
+    cache_valid_time: 86400
   become: yes
-  when: ansible_os_family == "RedHat"
 
-- name: Install Git (Debian)
+- name: install nginx
+  apt:
+    name: nginx
+    state: latest
+  become: yes
+
+- name: allow OpenSSH
+  ufw:
+    rule: allow
+    name: "OpenSSH"
+    state: enabled
+  become: yes
+
+# It is recommended to enable the most restrictive profile
+#  that will still allow the traffic you’ve configured.
+#  Right now, we will only need to allow traffic on port 80.
+- name: allow traffic on port 80
+  ufw:
+    rule: allow
+    name: "Nginx HTTP"
+    state: enabled # enable the ufw rule
+  become: yes
+
+- name: create www directory at "/var/www/{{ ansible_host }}"
+  file:
+    path: /var/www/{{ ansible_host }}
+    state: directory
+    mode: '0775'
+    owner: "{{ user }}"
+    group: "{{ group }}"
+  become: yes
+
+- name: copy sample index.html from {{ inventory_hostname }} to /var/www/{{ ansible_host }}/html
+  template: >
+    src={{ inventory_hostname }}/index.html.j2
+    dest="/var/www/{{ ansible_host }}/index.html"
+    owner="{{ user }}"
+    group="{{ group }}"
+    mode="u=rw,g=r,o=r"
+
+- name: delete default nginx config
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: yes
+
+- name: copy default nginx site.conf
+  template:
+    src: "{{ inventory_hostname }}/default_site.conf.j2"
+    dest: /etc/nginx/sites-available/{{ ansible_host }}
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+
+- name: link sample html to sites-enabled directory
+  file:
+    src: /etc/nginx/sites-available/{{ ansible_host }}
+    dest: /etc/nginx/sites-enabled/{{ ansible_host }}
+    state: link
+  become: yes
+
+- name: allow HTTPS traffic
+  ufw:
+    rule: allow
+    name: "Nginx Full"
+    state: enabled # enable the ufw rule
+  become: yes
+
+- name: delete redundant Nginx HTTP
+  ufw:
+    rule: allow
+    name: "Nginx HTTP"
+    delete: yes
+    state: enabled # enable the ufw rule
+  become: yes
+
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted
+  become: yes
+
+- name: install certbot
   apt:
     name:
-      - git
+      - certbot
+      - python3-certbot-nginx
     state: latest
-    update_cache: yes
   become: yes
-  when: ansible_os_family == "Debian"
 
-- name: Ansible flush zone=public
+- name: Create certs directory
   ansible.builtin.file:
-    path:
-      - /etc/firewalld/zones/public.xml
-      - /etc/firewalld/zones/public.xml.old
-    state: absent
-
-#- name: Ansible flush zone=public public.xml
-#  shell: rm -rf /etc/firewalld/zones/public.xml
-#  become: yes
-#
-#- name: Ansible flush zone=public public.xml.old
-#  shell: rm -rf /etc/firewalld/zones/public.xml.old
-#  become: yes
-
-- name: open firewall port 22 for SSH connections
-  firewalld: port="22/tcp"
-    zone=public permanent=true state=enabled immediate=yes
-  become: yes
-
-- name: Start firewalld service
-  service: name=firewalld state=started
-  become: yes
-
-...
+    path: "{{ user_home }}/certs"
+    state: directory
+    mode: '0755'

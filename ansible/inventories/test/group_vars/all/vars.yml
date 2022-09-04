@@ -21,8 +21,8 @@
 ---
 ansible_connection: ssh
 
-user: ubuntu
-group: ubuntu
+user: exouser
+group: exouser
 user_home: "/home/{{ user }}"
 
 # Domain names for VMs
@@ -48,9 +48,6 @@ zookeeper_connection_timeout: 18000
 
 custos_host: "{{ hostvars['custos'].ansible_host }}"
 custos_port: 31499
-
-# Letsencrypt
-letsencrypt_email: "abhinav7sinha@gmail.com"
 
 #Keycloak
 keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"

@@ -26,8 +26,6 @@
   become: yes
   when: ansible_os_family == "Debian"
 
-
-
 - name: Create Custos deployment directory {{ custos_deployment_dir }}
   become: yes
   file: path={{ custos_deployment_dir }}
@@ -111,14 +109,9 @@
   become: yes
   become_user: "{{ user }}"
 
-- name: Start Custos Core service
-  service:
-    name: corecustos
-    state: restarted
-  become: yes
+- include: start_custos.yml
 
-- name: Start Custos Integration service
-  service:
-    name: intcustos
-    state: restarted
+- name: Start envoy proxy
+  script: "start_envoy_proxy.sh"
   become: yes
+  become_user: "{{ user }}"

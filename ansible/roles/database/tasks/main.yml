@@ -32,6 +32,16 @@
     state: started
     enabled: yes
 
-- include: secure_install.yml
+- name: Set up MySQL
+  include_tasks: secure_install.yml
 
-- include: import_db.yml
+- name: Create a new database with name "{{ db_name }}"
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    encoding: "UTF8mb3"
+    collation: "utf8_general_ci"
+
+- name: Import old server's dump file
+  include_tasks: import_db.yml
+  tags: [never, migrate_db]
