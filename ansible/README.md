@@ -5,6 +5,7 @@ Ansible scripts to configure and install Apache Custos pre-requisites and deploy
 2. [Initial VM set up](#set-up-vms)
 3. [Generate SSL certificates](#generate-ssl-certificates)
 4. [Deploy application](#deploy-application)
+5. [Deploy application with data migration](#data-migration)
 
 ## Prerequisites<a name="prerequisites"/>
 Make sure you have installed all of the following prerequisites on your development machine:
@@ -136,7 +137,7 @@ keycloak_pkcs12_passphrase: YYY...YYY
 ## Deploy application<a name="deploy-application"/>
 You're just one step away from deploying Custos. The following command runs the ansible playbook `custos.yml` which has roles to install all dependencies and deploy Custos on the given VM.
 ```bash
-ansible-playbook -i inventories/test/ custos.yml --ask-vault-pass
+ansible-playbook -i inventories/test/ custos.yml
 ```
 Check if custos core and integration services are up and running using the following commands:
 ```bash
@@ -146,15 +147,42 @@ systemctl status intcustos
 systemctl status corecustos
 ```
 
+## Deploy application with data migration<a name="data-migration"/>
+When deploying Custos, you may want to import data from your old servers to the new ones. We can make use of ansible to automate this data migration.
+
+You need to configure ansible vars with the domain names of the old VMS.
+
+Open the file `test/hosts.yml`. Set ansible_host and ansible_user for `old_custos`, `old_keycloak` and `old_hashicorp` with their respective domain names and ssh users. For ex:
+```yml
+    ⋮
+    old_custos:
+      ansible_host: oldcustos.org
+      ansible_user: test_user
+    old_keycloak:
+      ansible_host: oldkeycloak.org
+      ansible_user: test_user
+    old_hashicorp:
+      ansible_host: oldvault.org
+      ansible_user: test_user
+    ⋮
+```
+Make sure that passwordless ssh authentication is set up from your master node to the old servers.
+
+Now Generate backups in your old servers. By default, ansible will load the backups from the locations specified in the file: `ansible/roles/migrate_db/tasks/main.yml`
+
+To deploy Custos with data migration, run the following command:
+```bash
+ansible-playbook -i inventories/test/ custos.yml --tags migrate_db,all
+```
 ## Useful commands
 - Deploy Custos with verbose option for debug messages:
 ```bash
-ansible-playbook -i inventories/{inventory}/ custos.yml --ask-vault-pass -vvv
+ansible-playbook -i inventories/{inventory}/ custos.yml -vvv
 ```
 Adding multiple -v will increase the verbosity, the builtin plugins currently evaluate up to -vvvvvv. A reasonable level to start is -vvv, connection debugging might require -vvvv.
 - Decrypt ansible-vault strings
 ```bash
-ansible all -i inventories/test/ -e '@inventories/test/group_vars/all/vars.yml' --ask-vault-pass -m debug -a 'var=secret_string'
+ansible all -i inventories/test/ -e '@inventories/test/group_vars/all/vars.yml' -m debug -a 'var=secret_string'
 ```
 - Encrypt a string using `ansible-vault`
 ```bash

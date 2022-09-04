@@ -111,15 +111,6 @@
 
 - include: start_custos.yml
 
-#- name: Copy start_envoy_proxy script
-#  template: "src=start_envoy_proxy.sh.j2
-#            dest={{ custos_source_dir }}/start_envoy_proxy.sh
-#            owner={{ user }}
-#            group={{ group }}
-#            mode=\"u=rw,g=r,o=r\""
-#  become: yes
-#  become_user: "{{ user }}"
-
 - name: Start envoy proxy
   script: "start_envoy_proxy.sh"
   become: yes

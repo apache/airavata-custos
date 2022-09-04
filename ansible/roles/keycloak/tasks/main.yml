@@ -98,86 +98,12 @@
     dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/postgresql-42.3.6.jar"
     mode: '0644'
 
-# setup postgresql for keycloak
-- name: Install postgresql and postgresql-contrib
-  apt:
-    name:
-      - postgresql
-      - postgresql-contrib
-  become: yes
+- name: Setup postgresql for keycloak
+  include_tasks: setup_postgres.yml
 
-- name: "Install Python packages"
-  apt:
-    name: "{{ item }}"
-    state: present
-  with_items:
-    - python3-psycopg2
-  become: yes
-
-- name: Start the postgresql service
-  service:
-    name: postgresql
-    state: started
-    enabled: yes
-  become: yes
-
-- name: "Create database"
-  postgresql_db:
-    state: present
-    name: "{{ keycloak_db_schema_name }}"
-    login_password: "{{ keycloak_db_password }}"
-  become: yes
-  become_user: postgres
-
-- name: "Create db user"
-  postgresql_user:
-    state: present
-    name: "{{ keycloak_db_username }}"
-    password: "{{ keycloak_db_password }}"
-    login_password: "{{ keycloak_db_password }}"
-  become: yes
-  become_user: postgres
-
-- name: "Grant db user access to app db"
-  postgresql_privs:
-    type: database
-    database: "{{ keycloak_db_schema_name }}"
-    roles: "{{ keycloak_db_username }}"
-    grant_option: no
-    privs: all
-    login_password: "{{ keycloak_db_password }}"
-  become: yes
-  become_user: postgres
-
-- name: copy postgres hba conf
-  template:
-    src: pg_hba.conf.j2
-    dest: /etc/postgresql/12/main/pg_hba.conf
-    owner: root
-    group: root
-    mode: '0644'
-  become: yes
-
-- name: Restart the postgresql service
-  service:
-    name: postgresql
-    state: restarted
-  become: yes
-
-- name: Copy dump file from master node to new server
-  copy:
-    src: tmp/postgresDB_arch.sql
-    dest: /home/exouser/backups/
-
-# TODO: It appends dump -> but we need to replace it
-- name: Restore dump
-  postgresql_db:
-    state: restore
-    name: "{{ keycloak_db_schema_name }}"
-    target: /home/exouser/backups/postgresDB_arch.sql
-    login_password: "{{ keycloak_db_password }}"
-  become: yes
-  become_user: postgres
+- name: Restore old server's dump file
+  include_tasks: restore_db.yml
+  tags: [never, migrate_db]
 
 # <---------------------------- Server Configuration -------------------------------->
 
