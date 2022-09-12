@@ -1,0 +1,178 @@
+ancestor: null
+releases:
+  1.3.0:
+    changes:
+      bugfixes:
+      - purefb_bucket - Add warning message if ``state`` is ``absent`` without ``eradicate:``
+      - purefb_fs - Add graceful exist when ``state`` is ``absent`` and filesystem
+        not eradicated
+      - purefb_fs - Add warning message if ``state`` is ``absent`` without ``eradicate``
+      major_changes:
+      - purefb_alert - manage alert email settings on a FlashBlade
+      - purefb_bladename - manage FlashBlade name
+      - purefb_bucket_replica - manage bucket replica links on a FlashBlade
+      - purefb_connect - manage connections between FlashBlades
+      - purefb_dns - manage DNS settings on a FlashBlade
+      - purefb_fs_replica - manage filesystem replica links on a FlashBlade
+      - purefb_inventory - get information about the hardware inventory of a FlashBlade
+      - purefb_ntp - manage the NTP settings for a FlashBlade
+      - purefb_phonehome - manage the phone home settings for a FlashBlade
+      - purefb_policy - manage the filesystem snapshot policies for a FlashBlade
+      - purefb_proxy - manage the phone home HTTP proxy settings for a FlashBlade
+      - purefb_remote_cred - manage the Object Store Remote Credentials on a FlashBlade
+      - purefb_snmp_agent - modify the FlashBlade SNMP Agent
+      - purefb_snmp_mgr - manage SNMP Managers on a FlashBlade
+      - purefb_target - manage remote S3-capable targets for a FlashBlade
+      - purefb_user - manage local ``pureuser`` account password on a FlashBlade
+      minor_changes:
+      - purefb_bucket - Versioning support added
+      - purefb_info - new options added for information collection
+      - purefb_network - Add replication service type
+      - purefb_s3user - Limit ``access_key`` recreation to 3 times
+      - purefb_s3user - return dict changed from ``ansible_facts`` to ``s3user_info``
+      release_summary: '| Release Date: 2020-08-08
+
+        | This changlelog describes all changes made to the modules and plugins included
+        in this collection since Ansible 2.9.0
+
+'
+    fragments:
+    - v1.3.0_summary.yaml
+    release_date: '2020-08-06'
+  1.4.0:
+    changes:
+      bugfixes:
+      - purefa_policy - Resolve multiple issues related to incorrect use of timezones
+      - purefb_connect - Ensure changing encryption status on array connection is
+        performed correctly
+      - purefb_connect - Fix breaking change created in purity_fb SDK 1.9.2 for deletion
+        of array connections
+      - purefb_connect - Hide target array API token
+      - purefb_ds - Ensure updating directory service configurations completes correctly
+      - purefb_info - Fix issue getting array info when encrypted connection exists
+      minor_changes:
+      - purefb_banner - Module to manage the GUI and SSH login message
+      - purefb_certgrp - Module to manage FlashBlade Certificate Groups
+      - purefb_certs - Module to create and delete SSL certificates
+      - purefb_connect - Support idempotency when exisitng connection is incoming
+      - purefb_fs - Add new options for filesystem control (https://github.com/Pure-Storage-Ansible/FlashBlade-Collection/pull/81)
+      - purefb_fs - Default filesystem size on creation changes from 32G to ``unlimited``
+      - purefb_fs - Fix error in deletion and eradication of filesystem
+      - purefb_fs_replica - Remove condition to attach/detach policies on unhealthy
+        replica-link
+      - purefb_info - Add support to list filesystem policies
+      - purefb_lifecycle - Module to manage FlashBlade Bucket Lifecycle Rules
+      - purefb_s3user - Add support for imported user access keys
+      - purefb_syslog - Module to manage syslog server configuration
+    fragments:
+    - 101_fix_policy_and_timezone_error.yaml
+    - 76_default_fs_size.yaml
+    - 77_filesystem_policies_info.yaml
+    - 78_update_filesystem_replica_link.yaml
+    - 79_hide_connect_api.yaml
+    - 80_support_reverse_replica_link.yaml
+    - 81_purefb_fs_new_options.yaml
+    - 83_add_certgrp.yml
+    - 84_add_cert.yaml
+    - 85_add_banner.yaml
+    - 86_add_syslog.yaml
+    - 88_add_lifecycle.yml
+    - 90_delete_conn_fix.yaml
+    - 90_imported_keys.yaml
+    - 92_fix_ds_update.yaml
+    - 96_fix_update_connection.yaml
+    - 97_fix_encrpyted_array_connection_info.yaml
+    modules:
+    - description: Configure Pure Storage FlashBlade GUI and SSH MOTD message
+      name: purefb_banner
+      namespace: ''
+    - description: Manage FlashBlade Certifcate Groups
+      name: purefb_certgrp
+      namespace: ''
+    - description: Manage FlashBlade SSL Certifcates
+      name: purefb_certs
+      namespace: ''
+    - description: Manage FlashBlade object lifecycles
+      name: purefb_lifecycle
+      namespace: ''
+    - description: Configure Pure Storage FlashBlade syslog settings
+      name: purefb_syslog
+      namespace: ''
+    release_date: '2020-10-14'
+  1.5.0:
+    changes:
+      bugfixes:
+      - purefb_* - Return a correct value for `changed` in all modules when in check
+        mode
+      - purefb_dns - Deprecate search paramerter
+      - purefb_dsrole - Resolve idempotency issue
+      - purefb_lifecycle - Fix error when creating new bucket lifecycle rule.
+      - purefb_policy - Ensure undeclared variables are set correctly
+      - purefb_s3user - Fix maximum access_key count logic
+      minor_changes:
+      - purefb_certs - Add update functionality for array cert
+      - purefb_fs - Add multiprotocol ACL support
+      - purefb_info - Add information regarding filesystem multiprotocol (where available)
+      - purefb_info - Add new parameter to provide details on admin users
+      - purefb_info - Add replication performace statistics
+      - purefb_s3user - Add ability to remove an S3 users existing access key
+    fragments:
+    - 105_max_access_key.yaml
+    - 107_add_remove_s3user_key.yaml
+    - 108_dns_search_fix.yaml
+    - 109_update_info.yaml
+    - 111_dsrole_update_idempotency.yaml
+    - 112_fix_check_mode.yaml
+    - 113_policy_cleanup.yaml
+    - 114_certificate_update.yaml
+    - 115_multiprotocol.yaml
+    - 121_replication_perf.yaml
+    - 123_lifecycle_rule_fix.yaml
+    release_date: '2021-03-30'
+  1.6.0:
+    changes:
+      minor_changes:
+      - purefa_virtualhost - New module to manage API Clients
+      - purefb_ad - New module to manage Active Directory Account
+      - purefb_eula - New module to sign EULA
+      - purefb_info - Add Active Directory, Kerberos and Object Store Account information
+      - purefb_info - Add extra info for Purity//FB 3.2+ systems
+      - purefb_keytabs - New module to manage Kerberos Keytabs
+      - purefb_s3user - Add access policy option to user creation
+      - purefb_timeout - Add module to set GUI idle timeout
+      - purefb_userpolicy - New module to manage object store user access policies
+      - purefb_virtualhost - New module to manage Object Store Virtual Hosts
+    fragments:
+    - 127_add_eula.yaml
+    - 128_add_32_to_info.yaml
+    - 129-virtualhost.yaml
+    - 131-apiclient.yaml
+    - 132_add_timeout.yaml
+    - 135_add_user_policies.yaml
+    - 136_add_s3user_policy.yaml
+    - 138_add_ad_module.yaml
+    - 139_add_keytabs.yaml
+    - 140_more_32_info.yaml
+    modules:
+    - description: Manage FlashBlade Active Directory Account
+      name: purefb_ad
+      namespace: ''
+    - description: Manage FlashBlade API Clients
+      name: purefb_apiclient
+      namespace: ''
+    - description: Sign Pure Storage FlashBlade EULA
+      name: purefb_eula
+      namespace: ''
+    - description: Manage FlashBlade Kerberos Keytabs
+      name: purefb_keytabs
+      namespace: ''
+    - description: Configure Pure Storage FlashBlade GUI idle timeout
+      name: purefb_timeout
+      namespace: ''
+    - description: Manage FlashBlade Object Store User Access Policies
+      name: purefb_userpolicy
+      namespace: ''
+    - description: Manage FlashBlade Object Store Virtual Hosts
+      name: purefb_virtualhost
+      namespace: ''
+    release_date: '2021-04-21'

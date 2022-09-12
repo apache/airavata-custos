@@ -1,0 +1,17 @@
+---
+- name: List all networks
+  uri:
+    url: 'https://api.cloudscale.ch/v1/networks'
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    status_code: 200
+  register: network_list
+
+- name: Remove all networks created by this test run
+  cloudscale_ch.cloud.network:
+    uuid: '{{ item.uuid }}'
+    state: absent
+  when: cloudscale_resource_prefix in item.name
+  with_items: '{{ network_list.json }}'
+  loop_control:
+    label: '{{ item.name }} ({{ item.uuid }})'

@@ -1,0 +1,16 @@
+---
+- debug:
+    msg: START vyos_firewall_rules parsed integration tests on connection={{ ansible_connection
+      }}
+
+- name: Parse externally provided Firewall rules config to agnostic model
+  register: result
+  vyos.vyos.vyos_firewall_rules:
+    running_config: "{{ lookup('file', '_parsed_config.cfg') }}"
+    state: parsed
+
+- name: Assert that config was correctly parsed
+  assert:
+    that:
+      - "{{ parsed['after'] | symmetric_difference(result['parsed']) |length ==\
+        \ 0 }}"

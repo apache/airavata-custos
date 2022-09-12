@@ -1,0 +1,36 @@
+{
+ "collection_info": {
+  "namespace": "inspur",
+  "name": "sm",
+  "version": "1.1.4",
+  "authors": [
+   "Baoshan Wang <wangbasohan@inspur.com>"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "inspur",
+   "sm",
+   "server",
+   "manager",
+   "ism"
+  ],
+  "description": "Inspur server supports ansible management device.",
+  "license": [
+   "GPL-2.0-or-later"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/ISIB-Group/inspur.sm",
+  "documentation": "https://isib-group.github.io/inspur.sm-docs/index.html",
+  "homepage": "https://github.com/ISIB-Group/inspur.sm",
+  "issues": "https://github.com/ISIB-Group/inspur.sm/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "937283e2076582a61db0b5f498e1d581443fc694732a82bb1e1adf5cd7b92ec2",
+  "format": 1
+ },
+ "format": 1
+}

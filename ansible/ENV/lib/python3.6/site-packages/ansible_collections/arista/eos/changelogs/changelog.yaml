@@ -1,0 +1,226 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: ACL interfaces resource module
+      name: eos_acl_interfaces
+      namespace: ''
+    - description: ACLs resource module
+      name: eos_acls
+      namespace: ''
+    - description: Manage multiline banners on Arista EOS devices
+      name: eos_banner
+      namespace: ''
+    - description: Configure global BGP protocol settings on Arista EOS.
+      name: eos_bgp
+      namespace: ''
+    - description: Run arbitrary commands on an Arista EOS device
+      name: eos_command
+      namespace: ''
+    - description: Manage Arista EOS configuration sections
+      name: eos_config
+      namespace: ''
+    - description: Manage and configure Arista EOS eAPI.
+      name: eos_eapi
+      namespace: ''
+    - description: Collect facts from remote devices running Arista EOS
+      name: eos_facts
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage Interface on Arista
+        EOS network devices
+      name: eos_interface
+      namespace: ''
+    - description: Interfaces resource module
+      name: eos_interfaces
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage L2 interfaces on
+        Arista EOS network devices.
+      name: eos_l2_interface
+      namespace: ''
+    - description: L2 interfaces resource module
+      name: eos_l2_interfaces
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage L3 interfaces on
+        Arista EOS network devices.
+      name: eos_l3_interface
+      namespace: ''
+    - description: L3 interfaces resource module
+      name: eos_l3_interfaces
+      namespace: ''
+    - description: LACP resource module
+      name: eos_lacp
+      namespace: ''
+    - description: LACP interfaces resource module
+      name: eos_lacp_interfaces
+      namespace: ''
+    - description: LAG interfaces resource module
+      name: eos_lag_interfaces
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage link aggregation
+        groups on Arista EOS network devices
+      name: eos_linkagg
+      namespace: ''
+    - description: Manage LLDP configuration on Arista EOS network devices
+      name: eos_lldp
+      namespace: ''
+    - description: LLDP resource module
+      name: eos_lldp_global
+      namespace: ''
+    - description: LLDP interfaces resource module
+      name: eos_lldp_interfaces
+      namespace: ''
+    - description: Manage logging on network devices
+      name: eos_logging
+      namespace: ''
+    - description: OSPFv2 resource module
+      name: eos_ospfv2
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage static IP routes
+        on Arista EOS network devices
+      name: eos_static_route
+      namespace: ''
+    - description: Static routes resource module
+      name: eos_static_routes
+      namespace: ''
+    - description: Manage the system attributes on Arista EOS devices
+      name: eos_system
+      namespace: ''
+    - description: Manage the collection of local users on EOS devices
+      name: eos_user
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage VLANs on Arista EOS
+        network devices
+      name: eos_vlan
+      namespace: ''
+    - description: VLANs resource module
+      name: eos_vlans
+      namespace: ''
+    - description: Manage VRFs on Arista EOS network devices
+      name: eos_vrf
+      namespace: ''
+    plugins:
+      cliconf:
+      - description: Use eos cliconf to run command on Arista EOS platform
+        name: eos
+        namespace: null
+      httpapi:
+      - description: Use eAPI to run command on eos platform
+        name: eos
+        namespace: null
+    release_date: '2020-06-23'
+  1.0.1:
+    changes:
+      bugfixes:
+      - Fixes mismatch in documentation and code for using eos_lag_interfaces where
+        the code required 'Port-Channel\d.*:' but the docs did not document this.
+        The module now supports both 'Port-Channel\d.*:' and '\d.*:'.
+      - Make `src`, `backup` and `backup_options` in eos_config work when module alias
+        is used (https://github.com/ansible-collections/arista.eos/pull/85).
+      minor_changes:
+      - Add round trip testcases to the 2.9 resource modules.
+      - Add unit testcases to the eos_l3_interfaces resource modules.
+      - Add unit testcases to the eos_lag_interfaces resource modules.
+      - Sorted the list of params of ip address before forming the tuple.
+      - Updated docs.
+    fragments:
+    - 68-fix-sort-l3-int.yaml
+    - 72-add-rtt.yaml
+    - 80-linkagg-name-parameter.yaml
+    - 89-add-ut-l3_interfaces.yaml
+    - 90-add-ut-lag-interfaces.yaml
+    - 93-update-docs.yaml
+    - fix_src_backup_with_module_alias.yaml
+    release_date: '2020-07-31'
+  1.0.2:
+    changes:
+      release_summary:
+      - rereleasing 1.0.1 with updated changelog.
+    fragments:
+    - 1.0.2.yaml
+    release_date: '2020-08-06'
+  1.0.3:
+    changes:
+      bugfixes:
+      - Added error pattern to the terminal plugin to handle change mode error seen
+        in lag interfaces config.
+    fragments:
+    - 96-changemode-terminalerror.yaml
+    release_date: '2020-08-26'
+  1.1.0:
+    changes:
+      bugfixes:
+      - Added 'mode' key to eos_interfaces to handle the layer2/3 switchport mode
+        of an interface.
+      - Added fix to maintain the idempotency while using overridden operation.
+      - Check for existing configuration when trunk_allowed_vlans is issued, is added.
+      - Fixed typo and index out of range errors while handling protocol_options.
+        (https://github.com/ansible-collections/arista.eos/pull/115)
+      minor_changes:
+      - Added 'mode' to examples in documentation of eos_l2_interfaces.
+      - Added eos ospfv3 resource module (https://github.com/ansible-collections/arista.eos/pull/109).
+      - Added unit test cases for eos_lldp_global module.
+    fragments:
+    - 105-switchport-mode-interfaces.yaml
+    - 106-lldp_global_unittest.yaml
+    - 109-eos-ospfv3-resource-module.yaml
+    - 113-add-mode-to-examples.yaml
+    - 115-protocol-options-acls.yaml
+    - 116-acls-overridden-idempotent.yaml
+    - 119-idempotent-l2-interfaces.yaml
+    modules:
+    - description: OSPFv3 resource module
+      name: eos_ospfv3
+      namespace: ''
+    release_date: '2020-09-30'
+  1.2.0:
+    changes:
+      bugfixes:
+      - updated config dict, with duplex key when speed changes from 'x' to 'forced
+        x' (https://github.com/ansible-collections/arista.eos/pull/120).
+      minor_changes:
+      - Added ospf_interfaces resource module. (https://github.com/ansible-collections/arista.eos/pull/125)
+      - Documented the necessity to use eos_interfaces and eos_l2_interfaces (for
+        l2 configs) in eos_l3_interfaces module.
+      - modify short description in ospfv3 resource module.
+      - stop integration testing of local connection as it is deprecated.
+    fragments:
+    - 101-l3_interfaces_documentation.yaml
+    - 120-forcedspeed-interfaces-config.yaml
+    - 123-ospfv3-description.yaml
+    - 125-ospf_interfaces_resource_module.yaml
+    - 127-drop-local-connection-testing.yaml
+    modules:
+    - description: ospf_interfaces resource module
+      name: eos_ospf_interfaces
+      namespace: ''
+    release_date: '2020-10-30'
+  1.3.0:
+    changes:
+      bugfixes:
+      - Add version key to galaxy.yaml to work around ansible-galaxy bug
+      - Fix yaml formatting errors in documentation.
+      - Uncap required ansible version in our collection.
+      - Update default values in module argspec and docs (https://github.com/ansible-collections/arista.eos/pull/154).
+      - Update docs to clarify the idemptonecy releated caveat and add it in the output
+        warnings (https://github.com/ansible-collections/ansible.netcommon/pull/189)
+      - fixes eos interfaces rm where interface in description resulted in failure
+        (https://github.com/ansible-collections/arista.eos/issues/86).
+      - replace list.copy() with list[:] to support python 2.7  and fix idempotent
+        issue with replaced and overridden (https://github.com/ansible-collections/arista.eos/pull/142).
+    fragments:
+    - acls_idempotent_issue.yaml
+    - add_bgp_af_rm.yaml
+    - bgp_global_resource_module.yaml
+    - eos_config_diff_doc_update.yaml
+    - fixes_eos_interfaces_rm_where_interface_in_description_resulted_in_failure.yaml
+    - galaxy-version.yaml
+    - requires-ansible.yaml
+    - update_docs_default_values.yaml
+    modules:
+    - description: bgp_global resource module
+      name: eos_bgp_global
+      namespace: ''
+    - description: bgp_address_family resource module
+      name: eos_bgp_address_family
+      namespace: ''
+    release_date: '2021-02-01'

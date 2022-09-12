@@ -1,0 +1,74 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - name: Port-Channel5
+        members:
+
+          - member: Ethernet2
+            mode: 'on'
+
+    change_config:
+      - name: Port-Channel5
+        members:
+
+          - member: Ethernet2
+            mode: 'passive'
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lag_interfaces
+
+- name: Merge provided configuration with device configuration.
+  become: true
+  register: result
+  arista.eos.eos_lag_interfaces:
+    config: '{{ config }}'
+    state: merged
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(result.before)|length
+        == 0
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lag_interfaces
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(result.after)|length
+        == 0
+
+- set_fact:
+    expected_config:
+
+      - name: Port-Channel5
+        members:
+
+          - member: Ethernet1
+            mode: 'on'
+
+          - member: Ethernet2
+            mode: 'on'
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(expected_config)|length
+        == 0
+
+- name: Merge provided configuration with device configuration, expect error.
+  become: true
+  ignore_errors: true
+  register: result
+  arista.eos.eos_lag_interfaces:
+    config: '{{ change_config }}'
+    state: merged
+
+- assert:
+    that:
+      - result.failed == true
+      - result.msg is defined
+      - '"Cannot change mode" in result.module_stderr'

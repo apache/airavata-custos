@@ -1,0 +1,198 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{#############################################
+Purpose:
+Configure logging commands for os9 Devices
+os9_logging:
+    logging:
+      - ip : 1.1.1.1
+        state: present
+      - ip: 2.2.2.2
+        secure_port: 1025
+        tcp_port: 1024
+        udp_port: 2000
+        state: present
+      - ip: 3.3.3.3
+        vrf:
+          name: test
+          secure_port: 1024
+          tcp_port: 1025
+          udp_port: 2000
+          state: present
+        secure_port: 1025
+        tcp_port: 2000
+        udp_port: 1025
+        state: present
+    buffer: 6
+    console: 7
+    trap: 5
+    version: 5
+    history: 4
+    history_size: 3
+    monitor: 5
+    on: true
+    extended: true
+    coredump: 
+      server:
+        server_ip: 2.2.2.2
+        username: u1
+        password: pwd
+        state: present
+      stackunit:
+         all: true
+         unit_num: 5
+         state: present
+    source_interface: "fortyGigE 1/3"
+###################################################}
+{% if os9_logging is defined and os9_logging %}
+{% for key,value in os9_logging.items() %}
+  {% if key == "buffer" %}
+    {% if value %}
+logging buffered {{ value }}
+    {% else %}
+no logging buffered
+    {% endif %}
+
+  {% elif key == "console" %}
+    {% if value %}
+logging console {{ value }}
+    {% else %}
+no logging console
+    {% endif %}
+
+  {% elif key == "monitor" %}
+    {% if value %}
+logging monitor {{ value }}
+    {% else %}
+no logging monitor
+    {% endif %}
+
+  {% elif key == "source_interface" %}
+      {% if value %}
+logging source-interface {{ value }}
+      {% else %}
+no logging source-interface
+      {% endif %}
+
+  {% elif key == "version" %}
+    {% if value %}
+logging version {{ value }}
+    {% else %}
+no logging version
+    {% endif %}
+
+  {% elif key == "history" %}
+    {% if value %}
+logging history {{ value }}
+    {% else %}
+no logging history
+    {% endif %}
+ 
+  {% elif key == "history_size" %}
+    {% if value %}
+logging history size {{ value }}
+    {% else %}
+no logging history size
+    {% endif %}
+
+  {% elif key == "trap" %}
+    {% if value %}
+logging trap {{ value }}
+    {% else %}
+no logging trap
+    {% endif %}
+
+  {% elif key == "extended" %}
+    {% if value %}
+logging extended
+    {% else %}
+no logging extended
+    {% endif %}
+
+  {% elif key == "on" %}
+    {% if value %}
+logging on
+    {% else %}
+no logging on
+    {% endif %}
+
+  {% elif key == "logging" %}
+    {% if value %}
+      {% for item in value %}
+        {% if item.ip is defined and item.ip %}
+          {% if item.vrf is defined and item.vrf %}
+            {% if item.vrf.name is defined and item.vrf.name %}
+              {% if item.vrf.state is defined and item.vrf.state == "absent" %}
+                {% if item.vrf.secure_port is defined and item.vrf.secure_port %}
+no logging {{ item.ip }} vrf {{ item.vrf.name }} secure {{ item.vrf.secure_port }}
+                {% elif item.vrf.tcp_port is defined and item.vrf.tcp_port %}
+no logging {{ item.ip }} vrf {{ item.vrf.name }} tcp {{ item.vrf.tcp_port }}
+                {% elif item.vrf.udp_port is defined and item.vrf.udp_port %}
+no logging {{ item.ip }} vrf {{ item.vrf.name }} udp {{ item.vrf.udp_port }}
+                {% endif %}
+              {% else %}
+                {% if item.vrf.secure_port is defined and item.vrf.secure_port %}
+logging {{ item.ip }} vrf {{ item.vrf.name }} secure {{ item.vrf.secure_port }}
+                {% elif item.vrf.tcp_port is defined and item.vrf.tcp_port %}
+logging {{ item.ip }} vrf {{ item.vrf.name }} tcp {{ item.vrf.tcp_port }}
+                {% elif item.vrf.udp_port is defined and item.vrf.udp_port %}
+logging {{ item.ip }} vrf {{ item.vrf.name }} udp {{ item.vrf.udp_port }}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+          {% if item.state is defined and item.state == "absent" %}
+            {% if item.secure_port is defined and item.secure_port %}
+no logging {{ item.ip }} secure {{ item.secure_port }}
+            {% elif item.tcp_port is defined and item.tcp_port %}
+no logging {{ item.ip }} tcp {{ item.tcp_port }}
+            {% elif item.udp_port is defined and item.udp_port %}
+no logging {{ item.ip }} udp {{ item.udp_port }}
+            {% else %}
+no logging {{ item.ip }}
+            {% endif %}
+          {% else %}
+            {% if item.secure_port is defined and item.secure_port %}
+logging {{ item.ip }} secure {{ item.secure_port }}
+            {% elif item.tcp_port is defined and item.tcp_port %}
+logging {{ item.ip }} tcp {{ item.tcp_port }}
+            {% elif item.udp_port is defined and item.udp_port %}
+logging {{ item.ip }} udp {{ item.udp_port }}
+            {% else %}
+logging {{ item.ip }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+  {% elif key == "coredump" %}
+    {% if value %}
+      {% if value.server is defined and value.server %}
+        {% if value.server.server_ip is defined and value.server.server_ip %}
+          {% if value.server.state is defined and value.server.state == "absent" %}
+no logging coredump server {{ value.server.server_ip }}]
+          {% else %}
+            {% if value.server.username is defined and value.server.username and value.server.password is defined and value.server.password %}
+logging coredump server {{ value.server.server_ip }} username {{ value.server.username }} password {{ value.server.password }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% if value.stackunit is defined and value.stackunit %}
+        {% if value.stackunit.all is defined and value.stackunit.all %}
+          {% set my_str = "all " %}
+        {% else %}
+          {% if value.stackunit.unit_num is defined and value.stackunit.unit_num %}
+            {% set my_str = value.stackunit.unit_num|string %}
+          {% endif %}
+        {% endif %}
+        {% if value.stackunit.state is defined and value.stackunit.state == "absent" %}
+no logging coredump stack-unit {{ my_str }}
+        {% else %}
+logging coredump stack-unit {{ my_str }}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endif %}

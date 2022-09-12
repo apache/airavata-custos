@@ -1,0 +1,21 @@
+---
+# vars file for dellemc.os6.os6_vlan, 
+# below gives a example configuration
+# Sample variables for OS6 device  
+ 
+os6_vlan:
+    vlan 100:
+      tagged_members_append: False
+      tagged_members_state: present
+      name: "Blue Network"
+      tagged_members:
+        - port: Te1/0/1
+          state: present
+        - port: Te1/0/2
+          state: present
+      untagged_members:
+        - port: Te1/0/3
+          state: present
+        - port: Te1/0/4
+          state: present
+      state: present

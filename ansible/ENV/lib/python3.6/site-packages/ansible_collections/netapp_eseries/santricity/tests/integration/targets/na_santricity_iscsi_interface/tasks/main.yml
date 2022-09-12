@@ -1,0 +1,115 @@
+# Test code for the na_santricity_iscsi_interface module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_iscsi_interface module's intergration test.
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+
+- name: Set controller iSCSI interfaces to DHCP
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: "{{ item }}"
+    port: 1
+    config_method: dhcp
+    mtu: 1500
+  loop: ["A", "B"]
+
+- name: Set controller A iSCSI interface to static (change, check_mode)
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: A
+    port: 1
+    config_method: static
+    address: 192.168.1.100
+    subnet_mask: 255.255.255.0
+    gateway: 192.168.1.1
+    mtu: 1500
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Set controller A iSCSI interface to static (change)
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: A
+    port: 1
+    config_method: static
+    address: 192.168.1.100
+    subnet_mask: 255.255.255.0
+    gateway: 192.168.1.1
+    mtu: 1500
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Set controller A iSCSI interface to static (no change)
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: A
+    port: 1
+    config_method: static
+    address: 192.168.1.100
+    subnet_mask: 255.255.255.0
+    gateway: 192.168.1.1
+    mtu: 1500
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Set controller B iSCSI interface to static (change)
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: B
+    port: 1
+    config_method: static
+    address: 192.168.1.200
+    subnet_mask: 255.255.255.0
+    gateway: 192.168.1.1
+    mtu: 1500
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Set controller A iSCSI interface MTU to 9000 (change)
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: A
+    port: 1
+    config_method: static
+    address: 192.168.1.100
+    subnet_mask: 255.255.255.0
+    gateway: 192.168.1.1
+    mtu: 9000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Set controller iSCSI interfaces to DHCP
+  na_santricity_iscsi_interface:
+    <<: *creds
+    controller: "{{ item }}"
+    port: 1
+    config_method: dhcp
+    mtu: 1500
+  loop: ["A", "B"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"

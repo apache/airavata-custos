@@ -1,0 +1,63 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - name: Ethernet1
+        mode: trunk
+        trunk:
+          native_vlan: 10
+
+      - name: Ethernet2
+        access:
+          vlan: 30
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: l2_interfaces
+
+- name: Merge provided configuration with device configuration
+  register: result
+  become: true
+  arista.eos.eos_l2_interfaces:
+    config: '{{ config }}'
+    state: merged
+
+- assert:
+    that:
+      - ansible_facts.network_resources.l2_interfaces|symmetric_difference(result.before)
+        == []
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: l2_interfaces
+
+- assert:
+    that:
+      - ansible_facts.network_resources.l2_interfaces|symmetric_difference(result.after)
+        == []
+
+- set_fact:
+    expected_config:
+
+      - name: Ethernet1
+        mode: trunk
+        access:
+          vlan: 20
+        trunk:
+          native_vlan: 10
+
+      - name: Ethernet2
+        mode: trunk
+        access:
+          vlan: 30
+        trunk:
+          native_vlan: 20
+
+      - name: Management1
+
+- assert:
+    that:
+      - ansible_facts.network_resources.l2_interfaces|symmetric_difference(expected_config)
+        == []

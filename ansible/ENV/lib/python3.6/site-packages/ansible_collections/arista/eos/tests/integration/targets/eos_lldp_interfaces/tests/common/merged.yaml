@@ -1,0 +1,51 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - name: Ethernet1
+        transmit: false
+
+      - name: Ethernet2
+        transmit: false
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_interfaces
+
+- name: Merge provided configuration with device configuration
+  register: result
+  become: true
+  arista.eos.eos_lldp_interfaces:
+    config: '{{ config }}'
+    state: merged
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_interfaces|symmetric_difference(result.before)
+        == []
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_interfaces
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_interfaces|symmetric_difference(result.after)
+        == []
+
+- set_fact:
+    expected_config:
+
+      - name: Ethernet1
+        transmit: false
+        receive: false
+
+      - name: Ethernet2
+        transmit: false
+
+- assert:
+    that:
+      - expected_config|symmetric_difference(ansible_facts.network_resources.lldp_interfaces)
+        == []

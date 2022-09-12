@@ -1,0 +1,41 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - name: Port-Channel10
+        members:
+
+          - member: Ethernet2
+            mode: 'on'
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lag_interfaces
+
+- name: Override device configuration of all LAGs on device with provided configuration.
+  become: true
+  register: result
+  arista.eos.eos_lag_interfaces:
+    config: '{{ config }}'
+    state: overridden
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(result.before)|length
+        == 0
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lag_interfaces
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(result.after)|length
+        == 0
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lag_interfaces|symmetric_difference(config)|length
+        == 0

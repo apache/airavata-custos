@@ -1,0 +1,74 @@
+---
+# tasks file for mongodb_config
+- name: Include OS-specific vars
+  include_vars:
+    file: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      paths:
+        - "vars"
+      files:
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_version }}.yml"
+        - "{{ ansible_facts.os_family }}-{{ ansible_facts.distribution_major_version }}.yml"
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.os_family }}.yml"
+        - default.yml
+
+- name: Check if we are in docker
+  stat:
+    path: is_docker.txt
+  register: is_docker
+
+- name: Ensure mongod package is installed
+  package:
+    name: "{{ mongod_package }}"
+  register: _pkg
+  until: _pkg is succeeded
+  retries: 5
+
+- name: Ensure db_path dir exists
+  file:
+    path: "{{ db_path }}"
+    state: directory
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+
+- name: Copy config file
+  template:
+    src: "{{ mongod_config_template }}"
+    dest: /etc/mongod.conf
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+  notify:
+    - Restart mongod service
+
+- name: Copy keyfile to host
+  copy:
+    content: |
+      {{ openssl_keyfile_content }}
+    dest: /etc/keyfile
+    owner: "{{ mongodb_user }}"
+    group: "{{ mongodb_group }}"
+    mode: 0400
+  notify:
+    - Restart mongod service
+
+- name: Check for github override
+  set_fact:
+    x_github_override: "{{ lookup('env', 'X_GITHUB_OVERRIDE') | default('0', True) }}"
+
+- name: Start mongod service
+  service:
+    name: "{{ mongod_service }}"
+    state: started
+    enabled: yes
+  when: not (ansible_facts.os_family == 'RedHat'
+    and ansible_facts.distribution_major_version|int == 8
+    and is_docker.stat.exists)
+
+- name: Include tasks for RedHat 8 docker issue
+  import_tasks: redhat_docker.yml
+  when:
+    - ansible_facts.os_family == 'RedHat'
+    - ansible_facts.distribution_major_version|int == 8
+    - is_docker.stat.exists

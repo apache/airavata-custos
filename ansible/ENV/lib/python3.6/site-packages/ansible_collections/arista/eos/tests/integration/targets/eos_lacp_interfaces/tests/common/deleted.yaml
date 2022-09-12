@@ -1,0 +1,44 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - name: Ethernet1
+    other_config:
+
+      - name: Ethernet2
+        rate: fast
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp_interfaces
+
+- name: Returns vlans to default parameters
+  register: result
+  become: true
+  arista.eos.eos_lacp_interfaces:
+    config: '{{ config }}'
+    state: deleted
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp_interfaces|symmetric_difference(result.before)
+        == []
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp_interfaces
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp_interfaces|symmetric_difference(result.after)
+        == []
+
+- set_fact:
+    expected_config: '{{ other_config }}'
+
+- assert:
+    that:
+      - expected_config|symmetric_difference(ansible_facts.network_resources.lacp_interfaces)
+        == []

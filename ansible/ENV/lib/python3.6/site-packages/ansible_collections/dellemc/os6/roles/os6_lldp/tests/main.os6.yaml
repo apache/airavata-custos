@@ -1,0 +1,26 @@
+---
+# vars file for dellemc.os6.os6_lldp, 
+# below gives a sample configuration
+ # Sample variables for OS6 device
+ 
+os6_lldp:
+  timers:
+    reinit: 2
+    interval: 5
+    hold: 5
+  notification_interval: 5
+  advertise:
+    med:
+      global_med: true
+      fast_start_repeat_count: 4
+      config_notification: true
+  local_interface:
+    Gi1/0/1:
+      mode:
+        tx: true
+        rx: false
+      notification: true
+      advertise:
+        med:
+          config_notification: true
+          enable: true

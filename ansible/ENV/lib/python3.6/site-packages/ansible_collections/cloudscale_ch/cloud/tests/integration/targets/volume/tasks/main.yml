@@ -1,0 +1,13 @@
+---
+- block:
+    - import_tasks: setup.yml
+    - import_tasks: failures.yml
+    - import_tasks: tests.yml
+    - import_tasks: deprecation_warning.yml
+  always:
+    - import_role:
+        name: common
+        tasks_from: cleanup_servers
+    - import_role:
+        name: common
+        tasks_from: cleanup_volumes

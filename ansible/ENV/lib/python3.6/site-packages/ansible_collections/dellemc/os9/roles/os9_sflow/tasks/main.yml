@@ -1,0 +1,16 @@
+---
+# tasks file for os9
+ - name: "Generating sflow configuration for os9"
+   template:
+      src: os9_sflow.j2
+      dest: "{{ build_dir }}/sflow9_{{ hostname }}.conf.part"
+   when: (ansible_network_os is defined and ansible_network_os == "dellemc.os9.os9") and ((os9_cfg_generate | default('False')) | bool)
+#   notify: save config os9
+   register: generate_output
+
+ - name: "Provisioning sflow configuration for os9"
+   dellemc.os9.os9_config:
+      src: os9_sflow.j2
+   when: (ansible_network_os is defined and ansible_network_os == "dellemc.os9.os9")
+#   notify: save config os9
+   register: output

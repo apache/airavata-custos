@@ -1,0 +1,151 @@
+---
+- name: Create objects user in check mode
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: obj
+  check_mode: yes
+- name: 'VERIFY: Create objects user in check mode'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj'
+      - not obj.id
+
+- name: Create objects user
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: obj
+- name: 'VERIFY: Create objects user'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj'
+      - obj.id
+      - obj.tags.project == 'ansible-test'
+      - obj.tags.stage == 'production'
+      - obj.tags.sla == '24-7'
+
+- name: Remember uuid
+  set_fact:
+    objects_user_id: '{{ obj.id }}'
+
+- name: Create objects user idempotence
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: obj
+- name: 'VERIFY: Create objects user idempotence'
+  assert:
+    that:
+      - obj is not changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj'
+      - obj.id == objects_user_id
+      - obj.tags.project == 'ansible-test'
+      - obj.tags.stage == 'production'
+      - obj.tags.sla == '24-7'
+
+- name: Update objects user in check mode
+  cloudscale_ch.cloud.objects_user:
+    id: '{{ objects_user_id }}'
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: obj
+  check_mode: yes
+- name: 'VERIFY: Update objects user in check mode'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj'
+      - obj.id == objects_user_id
+      - obj.tags.project == 'ansible-test'
+      - obj.tags.stage == 'production'
+      - obj.tags.sla == '24-7'
+
+- name: Update objects user
+  cloudscale_ch.cloud.objects_user:
+    id: '{{ objects_user_id }}'
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: obj
+- name: 'VERIFY: Update objects user'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj2'
+      - obj.id == objects_user_id
+      - obj.tags.project == 'ansible-test'
+      - obj.tags.stage == 'staging'
+      - obj.tags.sla == '8-5'
+
+- name: Update objects user idempotence
+  cloudscale_ch.cloud.objects_user:
+    id: '{{ objects_user_id }}'
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: obj
+- name: 'VERIFY: Update objects user idempotence'
+  assert:
+    that:
+      - obj is not changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj2'
+      - obj.id == objects_user_id
+      - obj.tags.project == 'ansible-test'
+      - obj.tags.stage == 'staging'
+      - obj.tags.sla == '8-5'
+
+- name: Delete objects user in check mode
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    state: absent
+  register: obj
+  check_mode: yes
+- name: 'VERIFY: Delete objects user in check mode'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj2'
+      - obj.id == objects_user_id
+
+- name: Delete objects user
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    state: absent
+  register: obj
+- name: 'VERIFY: Delete objects user'
+  assert:
+    that:
+      - obj is changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj2'
+      - obj.id == objects_user_id
+
+- name: Delete objects user idempotence
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-obj2'
+    state: absent
+  register: obj
+- name: 'VERIFY: Delete objects user idempotence'
+  assert:
+    that:
+      - obj is not changed
+      - obj.display_name == '{{ cloudscale_resource_prefix }}-obj2'
+      - not obj.id

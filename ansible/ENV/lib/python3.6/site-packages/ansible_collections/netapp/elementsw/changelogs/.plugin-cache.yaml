@@ -1,0 +1,135 @@
+plugins:
+  become: {}
+  cache: {}
+  callback: {}
+  cliconf: {}
+  connection: {}
+  httpapi: {}
+  inventory: {}
+  lookup: {}
+  module:
+    na_elementsw_access_group:
+      description: NetApp Element Software Manage Access Groups
+      name: na_elementsw_access_group
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_access_group_volumes:
+      description: NetApp Element Software Add/Remove Volumes to/from Access Group
+      name: na_elementsw_access_group_volumes
+      namespace: ''
+      version_added: 20.1.0
+    na_elementsw_account:
+      description: NetApp Element Software Manage Accounts
+      name: na_elementsw_account
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_admin_users:
+      description: NetApp Element Software Manage Admin Users
+      name: na_elementsw_admin_users
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_backup:
+      description: NetApp Element Software Create Backups
+      name: na_elementsw_backup
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_check_connections:
+      description: NetApp Element Software Check connectivity to MVIP and SVIP.
+      name: na_elementsw_check_connections
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_cluster:
+      description: NetApp Element Software Create Cluster
+      name: na_elementsw_cluster
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_cluster_config:
+      description: Configure Element SW Cluster
+      name: na_elementsw_cluster_config
+      namespace: ''
+      version_added: 2.8.0
+    na_elementsw_cluster_pair:
+      description: NetApp Element Software Manage Cluster Pair
+      name: na_elementsw_cluster_pair
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_cluster_snmp:
+      description: Configure Element SW Cluster SNMP
+      name: na_elementsw_cluster_snmp
+      namespace: ''
+      version_added: 2.8.0
+    na_elementsw_drive:
+      description: NetApp Element Software Manage Node Drives
+      name: na_elementsw_drive
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_info:
+      description: NetApp Element Software Info
+      name: na_elementsw_info
+      namespace: ''
+      version_added: 20.10.0
+    na_elementsw_initiators:
+      description: Manage Element SW initiators
+      name: na_elementsw_initiators
+      namespace: ''
+      version_added: 2.8.0
+    na_elementsw_ldap:
+      description: NetApp Element Software Manage ldap admin users
+      name: na_elementsw_ldap
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_network_interfaces:
+      description: NetApp Element Software Configure Node Network Interfaces
+      name: na_elementsw_network_interfaces
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_node:
+      description: NetApp Element Software Node Operation
+      name: na_elementsw_node
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_qos_policy:
+      description: NetApp Element Software create/modify/rename/delete QOS Policy
+      name: na_elementsw_qos_policy
+      namespace: ''
+      version_added: 20.9.0
+    na_elementsw_snapshot:
+      description: NetApp Element Software Manage Snapshots
+      name: na_elementsw_snapshot
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_snapshot_restore:
+      description: NetApp Element Software Restore Snapshot
+      name: na_elementsw_snapshot_restore
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_snapshot_schedule:
+      description: NetApp Element Software Snapshot Schedules
+      name: na_elementsw_snapshot_schedule
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_vlan:
+      description: NetApp Element Software Manage VLAN
+      name: na_elementsw_vlan
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_volume:
+      description: NetApp Element Software Manage Volumes
+      name: na_elementsw_volume
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_volume_clone:
+      description: NetApp Element Software Create Volume Clone
+      name: na_elementsw_volume_clone
+      namespace: ''
+      version_added: 2.7.0
+    na_elementsw_volume_pair:
+      description: NetApp Element Software Volume Pair
+      name: na_elementsw_volume_pair
+      namespace: ''
+      version_added: 2.7.0
+  netconf: {}
+  shell: {}
+  strategy: {}
+  vars: {}
+version: 20.10.0

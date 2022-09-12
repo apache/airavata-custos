@@ -1,0 +1,117 @@
+# Test code for the na_santricity_alerts module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+- name: NetApp Test ASUP module
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+
+- name: Disable alerts
+  na_santricity_alerts:
+    <<: *creds
+    state: disabled
+- name: Get the current device alerts
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/device-alerts"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+  register: current_state
+- name: Determine whether the current state is expected
+  assert:
+    that: "{{ not current_state['json']['alertingEnabled'] }}"
+    msg: "Failed to disable alerts!"
+
+- name: Set the initial alerting settings (changed, check_mode)
+  na_santricity_alerts:
+    <<: *creds
+    state: enabled
+    server: mail.example.com
+    sender: noreply@example.com
+    recipients:
+      - noreply@example.com
+  register: result
+  check_mode: true
+- name: Get the current device alerts
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/device-alerts"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+  register: current_state
+- name: Determine whether the current state is expected
+  assert:
+    that: "{{ result['changed'] and not current_state['json']['alertingEnabled'] }}"
+    msg: "Failed to disable alerts!"
+
+- name: Set the initial alerting settings (changed)
+  na_santricity_alerts:
+    <<: *creds
+    state: enabled
+    server: mail.example.com
+    sender: noreply@example.com
+    recipients:
+      - noreply@example.com
+  register: result
+- name: Get the current device alerts
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/device-alerts"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+  register: current_state
+- name: Determine whether the current state is expected
+  assert:
+    that: "{{ result['changed'] and current_state['json']['alertingEnabled'] and
+              current_state['json']['emailServerAddress'] == 'mail.example.com' and
+              current_state['json']['emailSenderAddress'] == 'noreply@example.com' and
+              current_state['json']['recipientEmailAddresses'] == ['noreply@example.com'] }}"
+    msg: "Failed to enable alerts!"
+
+- name: Set to different alerting settings (changed)
+  na_santricity_alerts:
+    <<: *creds
+    state: enabled
+    server: mail2.example.com
+    sender: noreply2@example.com
+    recipients:
+      - noreply@example.com
+      - noreply2@example.com
+  register: result
+- name: Get the current device alerts
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/device-alerts"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+  register: current_state
+- name: Determine whether the current state is expected
+  assert:
+    that: "{{ result['changed'] and current_state['json']['alertingEnabled'] and
+              current_state['json']['emailServerAddress'] == 'mail2.example.com' and
+              current_state['json']['emailSenderAddress'] == 'noreply2@example.com' and
+              (current_state['json']['recipientEmailAddresses'] == ['noreply@example.com', 'noreply2@example.com'] or
+               current_state['json']['recipientEmailAddresses'] == ['noreply2@example.com', 'noreply@example.com']) }}"
+    msg: "Failed to enable alerts!"
+
+- name: Disable alerts again (changed)
+  na_santricity_alerts:
+    <<: *creds
+    state: disabled
+  register: result
+- name: Get the current device alerts
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/device-alerts"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+  register: current_state
+- name: Determine whether the current state is expected
+  assert:
+    that: "{{ result['changed'] and not current_state['json']['alertingEnabled'] }}"
+    msg: "Failed to disable alerts!"

@@ -1,0 +1,11 @@
+[windows]
+win10 ansible_host=c20210405214451.eastus.cloudapp.azure.com
+
+[windows:vars]
+ansible_user=ansible-test
+ansible_password=Chocolatey4Ansible
+ansible_connection=winrm
+ansible_port=5986
+ansible_winrm_transport=ntlm
+ansible_winrm_server_cert_validation=ignore
+ansible_become_method=runas

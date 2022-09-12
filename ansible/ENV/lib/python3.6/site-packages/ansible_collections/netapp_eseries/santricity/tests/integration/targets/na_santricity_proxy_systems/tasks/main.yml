@@ -1,0 +1,160 @@
+# Test code for the na_santricity_proxy_systems module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+# NOTE: Running this test back-to-back can result in a 10 minute lock-out
+
+- name: Test na_santricity_proxy_firmware_upload module
+  set_fact:
+    credentials: &creds
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+    subnet: 192.168.1.10/24
+    small_subnet: 192.168.1.10/31   # Be sure to know the systems included in this subnet since they will be discovered and not specified.
+    systems:
+      - ssid: "10"
+        serial: "021633035190"
+        password: "password"
+      - ssid: "20"
+        serial: "711214000794"
+        password: "password"
+
+- name: Ensure no systems have been added.
+  na_santricity_proxy_systems:
+    <<: *creds
+
+- name: Add multiple systems using serial numbers and a common password (change, check_mode)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    password: "{{ systems[0]['password'] }}"
+    systems: |-
+      {%- set output=[] %}
+      {%- for system in systems %}
+        {%- if output.append({"serial": system["serial"]}) %}{%- endif %}
+      {%- endfor %}
+      {{ output }}
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Add multiple systems using serial numbers and a common password (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    password: "{{ systems[0]['password'] }}"
+    systems: |-
+      {%- set output=[] %}
+      {%- for system in systems %}
+        {%- if output.append({"serial": system["serial"]}) %}{%- endif %}
+      {%- endfor %}
+      {{ output }}
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Add multiple systems using serial numbers and a common password (no change)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    password: "{{ systems[0]['password'] }}"
+    systems: |-
+      {%- set output=[] %}
+      {%- for system in systems %}
+        {%- if output.append({"serial": system["serial"]}) %}{%- endif %}
+      {%- endfor %}
+      {{ output }}
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Remove all systems. (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add multiple systems using serial numbers (change, check_mode)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    systems: "{{ systems }}"
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add multiple systems using serial numbers (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    systems: "{{ systems }}"
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add multiple systems using serial numbers (no change)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ subnet }}"
+    systems: "{{ systems }}"
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Remove all systems. (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add any other available system on the subnet (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+    subnet_mask: "{{ small_subnet }}"
+    add_discovered_systems: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Remove all systems. (change, check_mode)
+  na_santricity_proxy_systems:
+    <<: *creds
+  register: results
+  check_mode: true
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Remove all systems. (change)
+  na_santricity_proxy_systems:
+    <<: *creds
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"

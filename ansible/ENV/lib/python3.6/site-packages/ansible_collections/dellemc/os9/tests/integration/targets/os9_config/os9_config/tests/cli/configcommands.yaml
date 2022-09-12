@@ -1,0 +1,134 @@
+---
+- debug: msg="START cli/config command execution"
+
+- name: COnfigure managemnet protocol telnet
+  os9_config:
+    lines: ['hostname {{ inventory_hostname }}', 'ip telnet server enable']
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == true"
+
+- name: Create new username and set password
+  os9_config:
+    lines: ['username test password test123']
+    provider: "{{  cli }}"
+  register: result
+  
+- name: Update the new user test privilige using replace line Option
+  os9_config:
+    lines:
+      - username test password test123 privilege 15
+    provider: "{{ cli }}"
+    replace: line
+    save: no
+  register: result 
+  
+- name: Validate the newly created username using show run command use the keyword wait_for
+  os9_command:
+    commands:
+      - show running-config | grep username
+      - show running-config | grep username | grep test
+    wait_for:
+      - "result[0] contains test"
+    provider: "{{ cli }}"
+  
+- name: Configure SNMP v2 credentials on device and enable traps
+  os9_config:
+    lines: 
+      - snmp-server community ansibleread  ro 
+      - snmp-server community ansiblewrite rw 
+      - snmp-server enable traps 
+      - snmp-server host 10.16.148.142 traps version 2c public udp-port 162
+    provider: "{{ cli  }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == true"
+
+- name: Validate is newly created snmp v2 is available in running config
+  os9_command:
+    commands:
+      - show running-config  | grep snmp-server
+    wait_for:
+      - "result[0] contains ansibleread"
+      - "result[0] contains ansiblewrite"
+    provider: "{{ cli  }}"
+  register: result
+
+- name: Configure Clock timezone
+  os9_config:
+    lines: "clock timezone UTC 0 0"
+    provider: "{{ cli }}"
+  register: result
+
+- name: Configure Logging to NMS Server
+  os9_config:
+    lines:
+      - logging 10.16.148.142
+      #before: 
+       # - no logging 10.16.148.142
+      #ignore: yes
+    provider: "{{ cli }}"
+  register: result
+ 
+- name: Configure Default Gateway
+  os9_config:
+    lines:
+      - management route 0.0.0.0/0 10.16.148.254
+    provider: "{{ cli }}"
+  register: result
+ 
+  #- assert:
+     # that:
+       # - "result.changed == true"
+        #- "'management route 0.0.0.0/0 10.16.148.254' in result.updates"
+  
+- name: Enable spanning tree protocol using parent , before and after keywords in config module 
+  os9_config:
+    lines:
+      - no disable
+      - hello-time 1
+      - max-age 6
+      - forward-delay 4
+      - bridge-priority 0
+    parents: ['protocol spanning-tree rstp']
+    before: ['no protocol spanning-tree rstp']  
+    after: ['exit']
+    provider: "{{ cli }}"    
+  register: result
+  
+- name: save the running config into startup config using save keyword in os9 config module
+  os9_config:
+    save: yes
+    provider: "{{ cli }}" 
+  register: result
+  
+- name: Validate the newly added commands are available in startup-config
+  os9_command:
+    commands:
+      - show startup-config
+    provider: "{{ cli }}"
+  register:  result
+
+- name: COnfigure new vlan using src file given as input and backup the configuration
+  os9_config:
+    src: vlan_config.txt
+    provider: "{{ cli }}"
+    update: merge
+    backup: yes
+  register: result
+
+ 
+- name: Validate the  check Option for update in Dell os9 config  using the config file provided with config option
+  os9_config:
+    src: vlan_config.txt
+    provider: "{{ cli }}"
+    update: check
+    config: Aggregation1_config.2016-09-06@15:26:02 
+  register: result    
+
+- debug: msg="END cli/configcommands" 

@@ -1,0 +1,107 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: Run commands on devices running Dell EMC os9.
+      name: os9_command
+      namespace: ''
+    - description:  Manage configuration on devices running os9.
+      name: os9_config
+      namespace: ''
+    - description: Collect facts from devices running os9.
+      name: os9_facts
+      namespace: ''
+    roles:
+    - description: Facilitates the configuration of Authentication Authorization and Accounting (AAA), TACACS and RADIUS server.
+      name: os9_aaa
+      namespace: ''
+    - description: Facilitates the configuration of Access Control lists.
+      name: os9_acl
+      namespace: ''
+    - description: Facilitates the configuration of border gateway protocol (BGP) attributes.
+      name: os9_bgp
+      namespace: ''
+    - description: This role pushes the backup running configuration into a OS9 device.
+      name: os9_copy_config
+      namespace: ''
+    - description: Facilitates the configuration of data center bridging (DCB).
+      name: os9_dcb
+      namespace: ''
+    - description: Facilitates the configuration of domain name service (DNS).
+      name: os9_dns
+      namespace: ''
+    - description: Facilitates the configuration of equal cost multi-path (ECMP) for IPv4.
+      name: os9_ecmp
+      namespace: ''
+    - description: Facilitates the configuration of interface attributes.
+      name: os9_interface
+      namespace: ''
+    - description: Facilitates the configuration of link aggregation group (LAG) attributes. 
+      name: os9_lag
+      namespace: ''
+    - description: Facilitates the configuration of link layer discovery protocol (LLDP) attributes at global and interface level.
+      name: os9_lldp
+      namespace: ''
+    - description: Facilitates the configuration of global logging attributes and logging servers.
+      name: os9_logging
+      namespace: ''
+    - description: Facilitates the configuration of network time protocol (NTP) attributes.
+      name: os9_ntp
+      namespace: ''
+    - description: Facilitates the configuration of IP prefix-list.
+      name: os9_prefix_list
+      namespace: ''
+    - description: Facilitates the configuration of global and interface level sFlow attributes.
+      name: os9_sflow
+      namespace: ''
+    - description: Facilitates the configuration of  global SNMP attributes.
+      name: os9_snmp
+      namespace: ''
+    - description: Facilitates the configuration of hostname and hashing algorithm.
+      name: os9_system
+      namespace: ''
+    - description: Facilitates the configuration of global system user attributes.
+      name: os9_users
+      namespace: ''
+    - description: Facilitates the configuration of virtual LAN (VLAN) attributes.
+      name: os9_vlan
+      namespace: ''
+    - description: Facilitates the configuration of virtual link trunking (VLT).
+      name: os9_vlt
+      namespace: ''
+    - description: Facilitates the configuration of virtual routing and forwarding (VRF).
+      name: os9_vrf
+      namespace: ''
+    - description: Facilitates the configuration of virtual router redundancy protocol (VRRP) attributes.
+      name: os9_vrrp
+      namespace: ''
+    - description: Facilitates the configuration of xSTP attributes.
+      name: os9_xstp
+      namespace: ''
+    release_date: '2020-07-31'
+  1.0.1:
+    changes:
+      release_summary: Updated documentation review comments
+    fragments:
+    - 1.0.1.yaml
+    release_date: '2020-08-04'
+  1.0.2:
+    changes:
+      release_summary: Added changelogs.
+    fragments:
+    - 1.0.2.yaml
+    release_date: '2020-08-18'
+  1.0.3:
+    changes:
+      release_summary: Added bug fixes for bugs found during System Test.
+    fragments:
+    - 1.0.3.yaml
+    release_date: '2020-10-09'
+  1.0.4:
+    changes:
+      bugfixes:
+        - Fixed sanity error found during the sanity tst of automation hub upload
+        - Fix issue in using list of strings for commands argument for os10_command module (https://github.com/ansible-collections/dellemc.os9/issues/15)
+    fragments:
+    - 1.0.4.yaml
+    release_date: '2021-02-15'

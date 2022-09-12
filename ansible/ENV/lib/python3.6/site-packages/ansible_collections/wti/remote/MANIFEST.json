@@ -1,0 +1,37 @@
+{
+ "collection_info": {
+  "namespace": "wti",
+  "name": "remote",
+  "version": "1.0.1",
+  "authors": [
+   "Ken Partridge <kenp@wti.com> (@wtinetworkgear)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "wti",
+   "remote",
+   "oob",
+   "pdu",
+   "management",
+   "control"
+  ],
+  "description": "Modules for interacting with  WTI remote OOB and PDU devices",
+  "license": [
+   "GPL-2.0-or-later"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/wtinetworkgear/wti-collection",
+  "documentation": "https://github.com/wtinetworkgear/wti-collection/tree/master/wti/remote/docs",
+  "homepage": "https://www.wti.com",
+  "issues": "https://github.com/wtinetworkgear/wti-collection/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "3307fdd44af809c0dce750ce31d410f6c3f0f385ebe7d3f855abc4a031380ed8",
+  "format": 1
+ },
+ "format": 1
+}

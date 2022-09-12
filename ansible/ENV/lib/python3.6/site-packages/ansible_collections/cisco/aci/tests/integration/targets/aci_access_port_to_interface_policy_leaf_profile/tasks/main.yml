@@ -1,0 +1,205 @@
+# Test code for the ACI modules
+# Copyright: (c) 2020, Shreyas Srish <ssrish@cisco.com>
+# Copyright: (c) 2017, Bruno Calogero <brunocalogero@hotmail.com>
+
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+- name: Test that we have an ACI APIC host, ACI username and ACI password
+  fail:
+    msg: 'Please define the following variables: aci_hostname, aci_username and aci_password.'
+  when: aci_hostname is not defined or aci_username is not defined or aci_password is not defined
+
+- name: Remove Interface policy leaf profile - Cleanup
+  cisco.aci.aci_interface_policy_leaf_profile: &aci_interface_policy_leaf_profile_absent
+    host: "{{ aci_hostname }}"
+    username: "{{ aci_username }}"
+    password: "{{ aci_password }}"
+    validate_certs: '{{ aci_validate_certs | default(false) }}'
+    use_ssl: '{{ aci_use_ssl | default(true) }}'
+    use_proxy: '{{ aci_use_proxy | default(true) }}'
+    leaf_interface_profile: leafintprftest
+    state: absent
+
+- name: Remove Interface policy fex profile - Cleanup
+  cisco.aci.aci_interface_policy_leaf_profile:
+    <<: *aci_interface_policy_leaf_profile_absent
+    type: fex
+    leaf_interface_profile: fexintprftest
+    state: absent
+
+- name: Ensuring bindings do not already exist
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile: &aci_access_port_to_interface_policy_leaf_profile_absent
+    host: "{{ aci_hostname }}"
+    username: "{{ aci_username }}"
+    password: "{{ aci_password }}"
+    validate_certs: '{{ aci_validate_certs | default(false) }}'
+    use_ssl: '{{ aci_use_ssl | default(true) }}'
+    use_proxy: '{{ aci_use_proxy | default(true) }}'
+    leaf_interface_profile: leafintprftest
+    access_port_selector: anstest_accessportselector
+    state: absent
+
+- name: Ensuring bindings do not already exist
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_absent
+    leaf_interface_profile: leafintprftest_fex
+    access_port_selector: anstest_accessportselector_fex
+    state: absent
+
+- name: Ensuring Interface Policy Leaf profile exists for kick off
+  cisco.aci.aci_interface_policy_leaf_profile: &aci_interface_policy_leaf_profile_present
+    host: "{{ aci_hostname }}"
+    username: "{{ aci_username }}"
+    password: "{{ aci_password }}"
+    validate_certs: '{{ aci_validate_certs | default(false) }}'
+    use_ssl: '{{ aci_use_ssl | default(true) }}'
+    use_proxy: '{{ aci_use_proxy | default(true) }}'
+    output_level: debug
+    state: present
+    leaf_interface_profile: leafintprftest
+  register: leaf_profile_present
+
+- name: Ensuring Interface Policy Fex profile exists for kick off
+  cisco.aci.aci_interface_policy_leaf_profile: 
+    <<: *aci_interface_policy_leaf_profile_present
+    type: fex
+    leaf_interface_profile: fexintprftest
+
+# TODO: Ensure that leaf Policy Group Exists (module missing) (infra:AccPortGrp)
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group - check mode works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile: &aci_access_port_to_interface_policy_leaf_profile_present
+    <<: *aci_interface_policy_leaf_profile_present
+    access_port_selector: anstest_accessportselector
+  check_mode: yes
+  register: accessport_to_intf_check_mode_present
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group - creation works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+  register: accessport_to_intf_present
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group - idempotency works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+  register: accessport_to_intf_idempotent
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Profile with a Policy Group - update works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+    policy_group: anstest_policygroupname
+  register: accessport_to_intf_update
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Fex Profile with a Policy Group - creation works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+    type: fex
+    access_port_selector: anstest_fex_accessportselector
+    leaf_interface_profile: fexintprftest
+  register: accessport_to_intf_present_fex
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Fex Profile with a Policy Group - idempotency works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+    type: fex
+    access_port_selector: anstest_fex_accessportselector
+    leaf_interface_profile: fexintprftest
+  register: accessport_to_intf_idempotent_fex
+
+- name: Bind an Interface Access Port Selector to an Interface Policy Fex Profile with a Policy Group - update works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_present
+    policy_group: anstest_fex_policygroupname
+    access_port_selector: anstest_fex_accessportselector
+    type: fex
+    leaf_interface_profile: fexintprftest
+  register: accessport_to_intf_update_fex
+
+# TODO: also test for errors
+- name: present assertions
+  assert:
+    that:
+    - accessport_to_intf_check_mode_present is changed
+    - accessport_to_intf_present is changed
+    - accessport_to_intf_present.previous == []
+    - accessport_to_intf_present.sent.infraHPortS.attributes.name == 'anstest_accessportselector'
+    - accessport_to_intf_idempotent is not changed
+    - accessport_to_intf_idempotent.sent == {}
+    - accessport_to_intf_update is changed
+    - accessport_to_intf_update.sent.infraHPortS.attributes == {}
+    - accessport_to_intf_update.sent.infraHPortS.children[0].infraRsAccBaseGrp.attributes.tDn == 'uni/infra/funcprof/accportgrp-anstest_policygroupname'
+    - accessport_to_intf_present_fex is changed
+    - accessport_to_intf_present_fex.previous == []
+    - accessport_to_intf_present_fex.sent.infraHPortS.attributes.name == 'anstest_fex_accessportselector'
+    - accessport_to_intf_idempotent_fex is not changed
+    - accessport_to_intf_idempotent_fex.sent == {}
+    - accessport_to_intf_update_fex is changed
+    - accessport_to_intf_update_fex.sent.infraHPortS.children[0].infraRsAccBaseGrp.attributes.tDn == 'uni/infra/funcprof/accportgrp-anstest_fex_policygroupname'
+
+- name: Query Specific access_port_selector and leaf_interface_profile binding
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_interface_policy_leaf_profile_present
+    access_port_selector: anstest_accessportselector # "{{ fake_var | default(omit) }}" ?
+    state: query
+  register: binding_query
+
+- name: Query Specific access_port_selector and fex_interface_profile binding
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_interface_policy_leaf_profile_present
+    type: fex
+    access_port_selector: anstest_fex_accessportselector
+    leaf_interface_profile: fexintprftest
+    state: query
+  register: binding_query_fex
+
+- name: present assertions
+  assert:
+    that:
+      - binding_query is not changed
+      - binding_query_fex is not changed
+      - binding_query.current | length >= 1
+      - '"api/mo/uni/infra/accportprof-leafintprftest/hports-anstest_accessportselector-typ-range.json" in binding_query.url'
+
+- name: Remove binding of interface access port selector and Interface Policy Leaf Profile - check mode
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_absent
+  check_mode: yes
+  register: accessport_to_intf_check_mode_absent
+
+- name: Remove binding of interface access port selector and Interface Policy Leaf Profile - delete works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_absent
+  register: accessport_to_intf_absent
+
+- name: Remove binding of interface access port selector and Interface Policy Leaf Profile - idempotency works
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_absent
+  register: accessport_to_intf_absent_idempotent
+
+- name: Remove binding of interface access port selector and Interface Policy Fex Profile
+  cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+    <<: *aci_access_port_to_interface_policy_leaf_profile_absent
+    type: fex
+    access_port_selector: anstest_fex_accessportselector
+    leaf_interface_profile: fexintprftest
+    state: absent
+  register: accessport_to_intf_absent_fex
+
+- name: absent assertions
+  assert:
+    that:
+      - accessport_to_intf_check_mode_absent is changed
+      - accessport_to_intf_absent_fex is changed
+      - accessport_to_intf_absent is changed
+      - accessport_to_intf_absent_idempotent is not changed
+
+- name: Remove Interface policy fex profile - Cleanup
+  cisco.aci.aci_interface_policy_leaf_profile:
+    <<: *aci_interface_policy_leaf_profile_absent
+
+- name: Remove Interface policy fex profile - Cleanup
+  cisco.aci.aci_interface_policy_leaf_profile:
+    <<: *aci_interface_policy_leaf_profile_absent
+    type: fex
+    leaf_interface_profile: fexintprftest
+    state: absent

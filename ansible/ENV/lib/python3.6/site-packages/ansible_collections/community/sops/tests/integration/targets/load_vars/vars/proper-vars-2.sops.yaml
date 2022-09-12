@@ -1,0 +1,32 @@
+test1_2: ENC[AES256_GCM,data:iNGUgLK6RdJZQWA=,iv:FEx7YO17wTadHLcppnpElb5G5UIukfcHDatUkPzZ0rU=,tag:bKx9qwKiirzi7/lR0EQTEA==,type:str]
+test2_2: ENC[AES256_GCM,data:4rFASWUQQLqJgLnL3KAYIWpBoMGz38pTt4+w,iv:42avbhH4HzHhsCNdiPvZbowKbaWx76c+OYD8iZMELyk=,tag:9GSsbCYDQHX698S68cZe+g==,type:str]
+test3_2:
+- ENC[AES256_GCM,data:nna0AD3fT6ySb7o=,iv:oX4yr3haXMCKvPNvbuzbnY1VeJQtT6svyij5IxkM8U4=,tag:T5C0b67m4Gu5OMFQLua7cw==,type:str]
+- ENC[AES256_GCM,data:iFsZo/M=,iv:Rt0S7vSQqT9eBt74/xLkUeRu91jLaroPs1oU707dqZ0=,tag:PHE2U6vUjOwc+vuERU5M8A==,type:int]
+test4_2:
+    test_4_2_1: ENC[AES256_GCM,data:PdqR2Sj2YI9YgWxrHd+iLszygZnzLA==,iv:rzY3GH7WH1E56vDirZ820R3oP7GTqjh1h/p0blTOBts=,tag:IDYNvBfTm2iklZVAI5Y4dw==,type:str]
+sops:
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    lastmodified: '2020-10-07T19:09:46Z'
+    mac: ENC[AES256_GCM,data:ukYXQmbbOnausOseL6dcmBxZrPE5oHRirIebO8IUorFlas3NTUVFJCPJgJBA6cUa8KhFJDzfv2O+49y5h8j4Xu4w+3EuR42YukATVNbqLR1zQCO3N9fythqWWbxeiTlCXIK+Q+7FhC+UrY0FhFIKDc2iQOWdFYDSeBYg9vx1Spg=,iv:ksQOlDfvr4x25s+bbZywsRqVhvfbe2l81tBKzYVUBwI=,tag:mUD6aR6VbtCSF42dZwwnqg==,type:str]
+    pgp:
+      - created_at: '2020-09-20T20:29:09Z'
+        enc: |-
+            -----BEGIN PGP MESSAGE-----
+
+            wcBMAyUpShfNkFB/AQgAXN27E1QUMoQcdyFW1D/vNJ1B022/1q8Sg+G9FbsXLTBL
+            XXLRpm+H2R8OEBT9zfW0gTp+RUcffcbEQ4zFPYghXTcfEWB18Dyz4YsemrbjW4NB
+            oHsto+5sqGAALo7grBnUeNFxp3W263YodUSbRnG8lgQeBHulK4IhOoMBr2JnRDJg
+            w/qrZBDBKQQjhl1nr6QtnKA/jlckbyw7wbtDxi8b/0w76un1gpgou+dSaF6rWo1R
+            R7gaCbOzEUm3jdIRARFPeEn7YYgm8Pacxy8krPldjHk1EDuOTL9Ubs2NGHFo2WKo
+            iZqxTPw8MhrNmWC+y90KKFx1JHmS0KLMvi5x4/cqpNLgAeQEW4NCFfCu7wZ8UvfE
+            Xcd44dol4ETgmeH8EOAy4kS1MjrgvuWQPrw+f5VRfUpd0F7RcdLmKSSn9yZ4JGoz
+            eXgIH/SWy+Bu5MgUwqKeFy/Y6BICNKdziLriOvVIYOH4dAA=
+            =VJGY
+            -----END PGP MESSAGE-----
+        fp: FBC7B9E2A4F9289AC0C1D4843D16CEE4A27381B4
+    unencrypted_suffix: _unencrypted
+    version: 3.6.1

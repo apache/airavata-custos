@@ -1,0 +1,40 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "mongodb",
+  "version": "1.2.1",
+  "authors": [
+   "Ansible (https://github.com/ansible)",
+   "Rhys Campbell (https://github.com/rhysmeister)",
+   "Andrew Klychkov (https://github.com/Andersson007)",
+   "Marcos Diez (https://github.com/marcosdiez)",
+   "Elliott Foster (http://fourkitchens.com)",
+   "Loic Blot (http://www.infopro-digital.com/)",
+   "Matt Martz (https://github.com/sivel)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "mongodb",
+   "database",
+   "nosql"
+  ],
+  "description": null,
+  "license": [],
+  "license_file": "COPYING",
+  "dependencies": {
+   "community.general": ">=1.0.0"
+  },
+  "repository": "https://github.com/ansible-collections/community.mongodb",
+  "documentation": "https://github.com/ansible-collections/community.mongodb/tree/master/docs",
+  "homepage": "https://github.com/ansible-collections/community.mongodb",
+  "issues": "https://github.com/ansible-collections/community.mongodb"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "351adf15d5899c5bf98768c0def47449249e16f13687604ff36b8ca6ad20fe30",
+  "format": 1
+ },
+ "format": 1
+}

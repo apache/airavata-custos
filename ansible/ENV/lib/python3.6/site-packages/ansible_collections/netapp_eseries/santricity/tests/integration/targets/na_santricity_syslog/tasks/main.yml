@@ -1,0 +1,127 @@
+# Test code for the na_santricity_syslog module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_iscsi_target module's intergration test.
+  set_fact:
+    vars:
+      credentials: &creds
+        ssid: "{{ ssid }}"
+        api_url: "{{ base_url }}"
+        api_username: "{{ username }}"
+        api_password: "{{ password }}"
+        validate_certs: "{{ validate_cert }}"
+
+- name: Add initial syslog server settings (changed)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.100
+    port: 514
+    protocol: udp
+    components: ["auditLog"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Configure initial syslog server settings (no change)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.100
+    port: 514
+    protocol: udp
+    components: ["auditLog"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add another syslog server settings with different protocol (changed)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.100
+    port: 514
+    protocol: tcp
+    components: ["auditLog"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add another syslog server settings with different port (changed)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.100
+    port: 123
+    protocol: tcp
+    components: ["auditLog"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add another syslog server address (change, check_mode)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.200
+    port: 514
+    protocol: tcp
+    components: ["auditLog"]
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Add another syslog server address (change)
+  na_santricity_syslog:
+    <<: *creds
+    address: 192.168.1.200
+    port: 514
+    protocol: tcp
+    components: ["auditLog"]
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Diasable syslog server (change)
+  na_santricity_syslog:
+    <<: *creds
+    state: absent
+    address: 192.168.1.100
+    port: 514
+    protocol: udp
+    components: ["auditLog"]
+
+- name: Diasable syslog server (change)
+  na_santricity_syslog:
+    <<: *creds
+    state: absent
+    address: 192.168.1.100
+    port: 514
+    protocol: tcp
+    components: ["auditLog"]
+
+- name: Diasable syslog server (change)
+  na_santricity_syslog:
+    <<: *creds
+    state: absent
+    address: 192.168.1.100
+    port: 123
+    protocol: tcp
+    components: ["auditLog"]
+
+- name: Diasable syslog server (change)
+  na_santricity_syslog:
+    <<: *creds
+    state: absent
+    address: 192.168.1.200
+    port: 1514
+    protocol: tcp
+    components: ["auditLog"]

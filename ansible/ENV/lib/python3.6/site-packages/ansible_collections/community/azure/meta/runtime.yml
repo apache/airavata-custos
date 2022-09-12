@@ -1,0 +1,302 @@
+plugin_routing:
+  modules:
+    azure_rm_aks_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_dnsrecordset_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_dnszone_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_networkinterface_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_publicipaddress_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_securitygroup_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_storageaccount_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachine_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualnetwork_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_roledefinition_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_autoscale_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mysqldatabase_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabschedule_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachinescaleset_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabcustomimage_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_cosmosdbaccount_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_subnet_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_aksversion_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_hdinsightcluster_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachinescalesetextension_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_loadbalancer_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_roleassignment_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_manageddisk_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mysqlserver_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_servicebus_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_rediscache_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_resource_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_routetable_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachine_extension:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_loganalyticsworkspace_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_sqldatabase_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabartifactsource_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_deployment_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachineextension_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_applicationsecuritygroup_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_availabilityset_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mariadbdatabase_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabenvironment_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_appserviceplan_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_containerinstance_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabarmtemplate_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabartifact_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachinescalesetinstance_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_cdnendpoint_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_trafficmanagerprofile_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_functionapp_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachineimage_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mariadbconfiguration_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualnetworkpeering_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_sqlserver_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mariadbfirewallrule_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mysqlconfiguration_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mysqlfirewallrule_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_postgresqlfirewallrule_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_mariadbserver_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_postgresqldatabase_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabvirtualnetwork_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabpolicy_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_trafficmanagerendpoint_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_sqlfirewallrule_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_containerregistry_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_postgresqlconfiguration_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_postgresqlserver_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlab_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_cdnprofile_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachine_scaleset:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_webapp_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_devtestlabvirtualmachine_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_image_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_managed_disk:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_automationaccount_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_lock_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_managed_disk_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_resourcegroup_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details
+    azure_rm_virtualmachine_scaleset_facts:
+      deprecation:
+        removal_date: TBD
+        warning_text: see plugin documentation for details

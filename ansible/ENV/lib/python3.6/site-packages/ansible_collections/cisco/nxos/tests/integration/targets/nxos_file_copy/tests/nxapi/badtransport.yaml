@@ -1,0 +1,16 @@
+---
+- debug: msg="START nxapi/badtransport.yaml"
+
+- name: Sending transport other than cli should fail
+  register: result
+  ignore_errors: true
+  cisco.nxos.nxos_file_copy:
+    local_file: ./network-integration.cfg
+    file_system: 'bootflash:'
+    connect_ssh_port: '{{ ansible_ssh_port }}'
+
+- assert:
+    that:
+      - result.failed and result.msg is search('Connection type must be fully qualified name for network_cli connection type, got {{ ansible_connection }}')
+
+- debug: msg="END nxapi/badtransport.yaml"

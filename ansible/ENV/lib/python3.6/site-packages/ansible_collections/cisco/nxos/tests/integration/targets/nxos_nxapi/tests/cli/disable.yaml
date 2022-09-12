@@ -1,0 +1,28 @@
+---
+- debug: msg="START cli/disable.yaml"
+
+- name: Disable NXAPI
+  register: result
+  cisco.nxos.nxos_nxapi:
+    state: absent
+
+- name: Check NXAPI state
+  register: result
+  cisco.nxos.nxos_command:
+    commands:
+      - show feature | grep nxapi
+
+- name: Assert NXAPI is disabled
+  assert:
+    that: result.stdout[0]  is search('disabled')
+
+- name: Disable NXAPI again
+  register: result
+  cisco.nxos.nxos_nxapi:
+    state: absent
+
+- name: Assert idempotence
+  assert:
+    that: result.changed == false
+
+- debug: msg="END cli/disable.yaml"

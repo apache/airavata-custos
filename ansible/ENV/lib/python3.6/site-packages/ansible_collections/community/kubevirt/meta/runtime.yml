@@ -1,0 +1,10 @@
+---
+requires_ansible: '>=2.9.10'
+action_groups:
+  k8s:
+  - kubevirt_cdi_upload
+  - kubevirt_preset
+  - kubevirt_pvc
+  - kubevirt_rs
+  - kubevirt_template
+  - kubevirt_vm

@@ -1,0 +1,59 @@
+ancestor: null
+releases:
+  0.1.0:
+    changes:
+      minor_changes:
+      - facts - now also collecting data about BGP and OSPF (https://github.com/ansible-collections/community.network/pull/101).
+      - facts - set configuration export on to verbose, for full configuration export
+        (https://github.com/ansible-collections/community.network/pull/104).
+      release_summary: 'The ``community.routeros`` continues the work on the Ansible
+        RouterOS modules from their state in ``community.network`` 1.2.0. The changes
+        listed here are thus relative to the modules ``community.network.routeros_*``.
+
+        '
+    fragments:
+    - 0.1.0.yml
+    - 101_update_facts.yml
+    - 104_facts_export_verbose.yml
+    release_date: '2020-10-26'
+  0.1.1:
+    changes:
+      bugfixes:
+      - api - fix crash when the ``ssl`` parameter is used (https://github.com/ansible-collections/community.routeros/pull/3).
+      release_summary: Small improvements and bugfixes over the initial release.
+    fragments:
+    - 0.1.1.yml
+    - 3-api-ssl.yml
+    release_date: '2020-10-31'
+  1.0.0:
+    changes:
+      bugfixes:
+      - routeros terminal plugin - allow slashes in hostnames for terminal detection.
+        Without this, slashes in hostnames will result in connection timeouts (https://github.com/ansible-collections/community.network/pull/138).
+      release_summary: 'This is the first production (non-prerelease) release of ``community.routeros``.
+
+        '
+    fragments:
+    - 1.0.0.yml
+    - community.network-138-routeros-allow-slash.yml
+    release_date: '2020-11-17'
+  1.0.1:
+    changes:
+      bugfixes:
+      - api - remove ``id to .id`` as default requirement which conflicts with RouterOS
+        ``id`` configuration parameter (https://github.com/ansible-collections/community.routeros/pull/15).
+      release_summary: Maintenance release with a bugfix for ``api``.
+    fragments:
+    - 1.0.1.yml
+    - 13-remove-id-restriction-for-api.yaml
+    release_date: '2020-12-11'
+  1.1.0:
+    changes:
+      minor_changes:
+      - command - added support for a dash (``-``) in username (https://github.com/ansible-collections/community.routeros/pull/18).
+      - facts - added support for a dash (``-``) in username (https://github.com/ansible-collections/community.routeros/pull/18).
+      release_summary: This release allow dashes in usernames for SSH-based modules.
+    fragments:
+    - 1.1.0.yml
+    - 18-support-dashes-in-username.yml
+    release_date: '2021-01-04'

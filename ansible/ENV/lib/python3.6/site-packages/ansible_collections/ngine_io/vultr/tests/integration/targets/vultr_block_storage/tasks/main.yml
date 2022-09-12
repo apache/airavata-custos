@@ -1,0 +1,315 @@
+# Copyright (c) 2018, Yanis Guenane <yanis+ansible@guenane.org>
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+---
+- name: setup
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    state: absent
+  register: result
+- name: verify setup
+  assert:
+    that:
+    - result is success
+
+- name: setup create ssh keys
+  vultr_ssh_key:
+    name: "{{ item.name }}"
+    ssh_key: "{{ item.key }}"
+  loop: "{{ vultr_server_ssh_keys }}"
+
+- name: Setup create server for attachment
+  # We'll use this server to test block storage attachment, later
+  # in this test suite.
+  vultr_server:
+    name: "{{ vultr_server_name }}"
+    os: CentOS 8 x64
+    plan: "{{ vultr_server_plan_1 }}"
+    ssh_keys:
+      - key1
+    region: "{{ vultr_block_storage_region }}"
+    state: started
+  register: result_server_setup
+- name: verify setup create server
+  assert:
+    that:
+    - result_server_setup is changed
+
+- name: test fail if missing name
+  vultr_block_storage:
+  register: result
+  ignore_errors: yes
+- name: verify test fail if missing name
+  assert:
+    that:
+    - result is failed
+    - 'result.msg == "missing required arguments: name"'
+
+- name: test fail if missing params for state=present
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+  register: result
+  ignore_errors: yes
+- name: verify fail if missing params for state=present
+  assert:
+    that:
+    - result is failed
+    - 'result.msg == "state is present but all of the following are missing: size, region"'
+
+- name: test create block storage volume in check mode
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+  register: result
+  check_mode: yes
+- name: verify test create server in check mode
+  assert:
+    that:
+    - result is changed
+
+- name: test create block storage volume
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+  register: result
+- name: verify test create block storage volume
+  assert:
+    that:
+    - result is changed
+    - result.vultr_block_storage.name == "{{ vultr_block_storage_name }}"
+    - result.vultr_block_storage.region == "{{ vultr_block_storage_region }}"
+    - result.vultr_block_storage.size == 10
+
+- name: test create block storage volume idempotence
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+  register: result
+- name: verify test block storage volume idempotence
+  assert:
+    that:
+    - result is not changed
+    - result.vultr_block_storage.name == "{{ vultr_block_storage_name }}"
+    - result.vultr_block_storage.region == "{{ vultr_block_storage_region }}"
+    - result.vultr_block_storage.size == 10
+
+# volumes size can only be modified every 60s
+- name: wait about 60s before resizing volume
+  wait_for:
+    timeout: 65
+  
+- name: test resize block storage volume
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size_2 }}"
+    region: "{{ vultr_block_storage_region }}"
+  register: result
+- name: verify resize block storage volume
+  assert:
+    that:
+    - result is changed
+    - 'result.vultr_block_storage.size == {{ vultr_block_storage_size_2 | int }}'
+
+# volume size can only be modified every 60s
+- name: wait about 60s before resizing volume
+  wait_for:
+    timeout: 65
+
+- name: test resize block storage volume idempotency
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size_2 }}"
+    region: "{{ vultr_block_storage_region }}"
+  register: result
+- name: verify resize block storage volume idempotency
+  assert:
+    that:
+    - not result.changed
+    - 'result.vultr_block_storage.size == {{ vultr_block_storage_size_2 | int }}'
+
+- name: test attaching fails if server id not provided
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+  register: result
+  ignore_errors: yes
+- name: verify attaching fails if server id not provided
+  assert:
+    that:
+      - result is failed
+      - 'result.msg == "state is attached but all of the following are missing: attached_to_SUBID"'
+
+- name: test attach block volume in check mode
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+    attached_to_id: 1337  # dummy server id
+  register: result
+  check_mode: yes
+- name: verify attach block volume in check mode
+  assert:
+    that:
+      - result is changed
+      - result.vultr_block_storage.attached_to_id == 1337
+
+- name: test attach block volume
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+    attached_to_SUBID: "{{ result_server_setup.vultr_server.id | int}}"
+  register: result
+- name: verify attach block volume
+  assert:
+    that:
+      - result.changed
+      - 'result.vultr_block_storage.attached_to_id == {{ result_server_setup.vultr_server.id | int }}'
+
+- name: test attach block volume idempotency
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+    attached_to_SUBID: "{{ result_server_setup.vultr_server.id | int }}"
+  register: result
+- name: verify attach block volume idempotency
+  assert:
+    that:
+      - not result.changed
+      - 'result.vultr_block_storage.attached_to_id == {{ result_server_setup.vultr_server.id | int }}'
+
+# volume size can only be modified every 60s
+- name: wait about 60s before resizing volume
+  wait_for:
+    timeout: 65
+
+- name: test resize block storage volume while attaching
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size_3 }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+    attached_to_SUBID: "{{ result_server_setup.vultr_server.id | int }}"
+  register: result
+- name: verify resize block storage volume
+  assert:
+    that:
+    - result is changed
+    - 'result.vultr_block_storage.size == {{ vultr_block_storage_size_3 | int }}'
+
+- name: test attach block volume fails if attached somewhere else
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: attached
+    attached_to_SUBID: 1337  # some other server
+  register: result
+  ignore_errors: true
+- name: verify attach block volume fails if attached somewhere else
+  assert:
+    that:
+      - result is failed
+      - 'result.msg == "Volume already attached to server {{ result_server_setup.vultr_server.id | int }}"'
+
+- name: test detach block volume in check mode
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: detached
+  register: result
+  check_mode: yes
+- name: verify detach block volume
+  assert:
+    that:
+      - result is changed
+      - not result.vultr_block_storage.attached_to_id
+
+- name: test detach block volume
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: detached
+  register: result
+- name: verify detach block volume
+  assert:
+    that:
+      - result is changed
+      - not result.vultr_block_storage.attached_to_id
+
+- name: test detach block volume idempotency
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    size: "{{ vultr_block_storage_size }}"
+    region: "{{ vultr_block_storage_region }}"
+    state: detached
+  register: result
+- name: verify detach block volume idempotency
+  assert:
+    that:
+      - result is not changed
+      - not result.vultr_block_storage.attached_to_id
+
+- name: test destroy block storage volume in check mode
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    state: absent
+  register: result
+  check_mode: yes
+- name: verify test destroy block storage volume in check mode
+  assert:
+    that:
+    - result is changed
+    - result.vultr_block_storage.name == "{{ vultr_block_storage_name }}"
+
+- name: test destroy block storage volume
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    state: absent
+  register: result
+- name: verify test destroy an existing block storage volume
+  assert:
+    that:
+    - result is changed
+    - result.vultr_block_storage.name == "{{ vultr_block_storage_name }}"
+
+- name: test destroy an existing block storage volume idempotence
+  vultr_block_storage:
+    name: "{{ vultr_block_storage_name }}"
+    state: absent
+  register: result
+- name: verify test destroy an existing block storage volume idempotence
+  assert:
+    that:
+    - result is not changed
+
+# Servers can only be destroyed 5 min after creation
+- name: wait for 5 min before destroying server
+  wait_for:
+
+- name: cleanup server
+  vultr_server:
+    name: "{{ vultr_server_name }}"
+    state: absent
+  register: result
+- name: verify test absent server
+  assert:
+    that:
+    - result is changed
+
+- name: cleanup ssh keys
+  vultr_ssh_key:
+    name: "{{ item.name }}"
+    ssh_key: "{{ item.key }}"
+    state: absent
+  loop: "{{ vultr_server_ssh_keys }}"

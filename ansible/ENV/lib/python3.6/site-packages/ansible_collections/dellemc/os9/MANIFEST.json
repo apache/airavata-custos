@@ -1,0 +1,37 @@
+{
+ "collection_info": {
+  "description": "Ansible Network Collections for Dell EMC OS9", 
+  "repository": "https://github.com/ansible-collections/dellemc.os9", 
+  "tags": [
+   "dell", 
+   "dellemc", 
+   "os9", 
+   "emc", 
+   "networking"
+  ], 
+  "dependencies": {
+   "ansible.netcommon": ">=1.0.0"
+  }, 
+  "authors": [
+   "Senthil Ganesan Ganesan <Senthil_Kumar_Ganesa@Dell.com>", 
+   "Komal Patil <Komal_uttamrao_Patil@dell.com>"
+  ], 
+  "issues": "https://github.com/ansible-collections/dellemc.os9/issues", 
+  "name": "os9", 
+  "license": [], 
+  "documentation": "https://github.com/ansible-collections/dellemc.os9/tree/master/docs", 
+  "namespace": "dellemc", 
+  "version": "1.0.4", 
+  "readme": "README.md", 
+  "license_file": "LICENSE", 
+  "homepage": "https://github.com/ansible-collections/dellemc.os9"
+ }, 
+ "file_manifest_file": {
+  "format": 1, 
+  "ftype": "file", 
+  "chksum_sha256": "7666ea3d71e26d56fcb8d90a06ea28c4e634ea9a3618f96e7ab99cd276ea67fb", 
+  "name": "FILES.json", 
+  "chksum_type": "sha256"
+ }, 
+ "format": 1
+}

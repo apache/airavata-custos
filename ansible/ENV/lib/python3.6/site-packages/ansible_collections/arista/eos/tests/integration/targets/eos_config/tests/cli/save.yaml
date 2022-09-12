@@ -1,0 +1,31 @@
+---
+- debug: msg="START cli/save.yaml on connection={{ ansible_connection }}"
+
+- name: setup
+  become: true
+  arista.eos.eos_config:
+    commands:
+      - no description
+      - no shutdown
+    parents:
+      - interface Ethernet2
+    match: none
+
+- name: save config always
+  become: true
+  register: result
+  arista.eos.eos_config: &id001
+    save_when: always
+
+- assert: &id002
+    that:
+      - result.changed == true
+
+- name: save should always run
+  become: true
+  register: result
+  arista.eos.eos_config: *id001
+
+- assert: *id002
+
+- debug: msg="END cli/save.yaml on connection={{ ansible_connection }}"

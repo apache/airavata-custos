@@ -1,0 +1,35 @@
+---
+- debug: msg="START ios cli/net_system.yaml on connection={{ ansible_connection
+    }}"
+
+- name: setup
+  cisco.ios.ios_config:
+    lines:
+      - no ip domain-list ansible.com
+      - no ip domain-list redhat.com
+    match: none
+    provider: '{{ cli }}'
+
+- name: configure domain_search using platform agnostic module
+  register: result
+  ansible.netcommon.net_system:
+    domain_search:
+      - ansible.com
+      - redhat.com
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'ip domain list ansible.com' in result.commands"
+      - "'ip domain list redhat.com' in result.commands"
+
+- name: teardown
+  cisco.ios.ios_config:
+    lines:
+      - no ip domain-list ansible.com
+      - no ip domain-list redhat.com
+    match: none
+    provider: '{{ cli }}'
+
+- debug: msg="END ios cli/net_system.yaml on connection={{ ansible_connection }}"

@@ -1,0 +1,45 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+
+      - vlan_id: 20
+        state: suspend
+
+      - vlan_id: 50
+        name: fifty
+        state: active
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: vlans
+
+- name: Overrides device configuration of all vlans with provided configuration
+  register: result
+  become: true
+  arista.eos.eos_vlans:
+    config: '{{ config }}'
+    state: overridden
+
+- assert:
+    that:
+      - ansible_facts.network_resources.vlans|symmetric_difference(result.before)
+        == []
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: vlans
+
+- assert:
+    that:
+      - ansible_facts.network_resources.vlans|symmetric_difference(result.after)
+        == []
+
+- set_fact:
+    expected_config: '{{ config }}'
+
+- assert:
+    that:
+      - expected_config|symmetric_difference(ansible_facts.network_resources.vlans)
+        == []

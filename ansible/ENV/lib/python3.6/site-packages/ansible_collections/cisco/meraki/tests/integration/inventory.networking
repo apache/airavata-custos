@@ -1,0 +1,42 @@
+# This is the configuration template for ansible-test network-integration tests.
+#
+# You do not need this template if you are:
+#
+# 1) Running integration tests without using ansible-test.
+# 2) Using the `--platform` option to provision temporary network instances on EC2.
+#
+# If you do not want to use the automatically provisioned temporary network instances,
+# fill in the @VAR placeholders below and save this file without the .template extension.
+#
+# NOTE: Automatic provisioning of network instances on EC2 requires an ansible-core-ci API key.
+
+[meraki]
+localhost ansible_connection="local"
+
+[meraki:vars]
+auth_key=b4aa1133085792857ae08a22ed01bc99b7e9c97d
+test_org_id=133277
+test_org_name=kbreit@insight.com
+test_net_name=Home - Appliance
+test_net_id=N_624874448297678702
+test_switch_net_name=Home - Switch
+test_wireless_net_name=Home - Wireless
+test_appliance_net_name=Home - Appliance
+test_template_name=AnsibleTemplate
+test_template_id=L_624874448297661409
+email_prefix=meraki
+email_domain=kevinbreit.net
+serial=Q2BN-MCH8-VEL5
+serial_switch=Q2HP-2C6E-GTLD
+serial_wireless=Q2KD-83UG-JL8X
+serial_switch_l3=QBSB-VLNE-E299
+serial_appliance=Q2BN-MCH8-VEL5
+# serial=QBSC-HJSL-A64F
+# serial=Q2HD-DPPR-QTAE
+# serial=Q2HP-2C6E-GTLD
+
+###
+# Example
+#
+# [vyos]
+# vyos01.example.net ansible_connection=local ansible_network_os="vyos" ansible_user=admin ansible_ssh_pass=mypassword

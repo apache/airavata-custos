@@ -1,0 +1,73 @@
+---
+# Sample variables for OS6 device
+
+os6_qos:
+  class_map:
+    - name: CONTROL
+      type: match-all
+      match_condition:
+        - ip dscp 40
+      state: present
+    - name: VIDEO
+      type: match-all
+      match_condition:
+        - ip dscp 34
+      state: present
+    - name: VOICE-TRAFFIC
+      type: match-all
+      match_condition:
+        - ip dscp ef
+      state: present
+    - name: DATA-TRAFFIC
+      type: match-any
+      match_condition:
+        - vlan 100
+        - protocol tcp
+        - cos 5
+        - ip tos 11 11
+      state: present
+  policy_map:
+    - name: Ingress_QoS
+      type: in
+      class_instances:
+        - name: VIDEO
+          policy:
+            - assign-queue 1
+        - name: CONTROL
+          policy:
+            - assign-queue 2
+        - name: VOICE-TRAFFIC
+          policy:
+            - assign-queue 3
+      state: present
+    - name: Egress_QoS
+      type: out
+      class_instances:
+        - name: VIDEO
+          policy:
+            - assign-queue 5
+        - name: CONTROL
+          policy:
+            - assign-queue 5
+        - name: VOICE-TRAFFIC
+          policy:
+            - assign-queue 5
+      state: present
+    - name: QoS_In
+      type: in
+      class_instances:
+        - name: DATA-TRAFFIC
+          policy:
+            - assign-queue 1
+            - redirect Gi1/0/3
+            - police-simple 512000  64 conform-action set-cos-transmit 5 violate-action drop
+      state: present
+    - name: QoS_Out
+      type: out
+      class_instances:
+        - name: DATA-TRAFFIC
+          policy:
+            - assign-queue 6
+            - redirect Gi1/0/3
+            - police-simple 512000  64 conform-action set-cos-transmit 5 violate-action drop
+      state: present

@@ -1,0 +1,88 @@
+# Test code for the na_santricity_ib_iser_interface module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_ib_iser_interface module test
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    interface_a1_ip: &a1_ip 192.168.1.101
+    interface_a2_ip: &a2_ip 192.168.2.101
+
+- name: Set the initial ib_iser interfaces
+  na_santricity_ib_iser_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  loop:
+    - ["A", "1", *a1_ip]
+    - ["B", "1", *a2_ip]
+
+- name: Repeat the initial ib_iser interfaces (no change)
+  na_santricity_ib_iser_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", *a1_ip]
+    - ["B", "1", *a2_ip]
+- name: Verify no changes were made
+  assert:
+    that: "{{ not item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Change the initial ib_iser interfaces (changed, check_mode)
+  na_santricity_ib_iser_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "192.168.3.230"]
+    - ["B", "1", "192.168.3.231"]
+  check_mode: true
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Change the initial ib_iser interfaces (changed)
+  na_santricity_ib_iser_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "192.168.3.230"]
+    - ["B", "1", "192.168.3.231"]
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Revert to the initial ib_iser interfaces (changed)
+  na_santricity_ib_iser_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", *a1_ip]
+    - ["B", "1", *a2_ip]
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"

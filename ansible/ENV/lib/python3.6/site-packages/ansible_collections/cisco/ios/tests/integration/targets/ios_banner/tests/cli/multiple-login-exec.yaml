@@ -1,0 +1,42 @@
+---
+- name: Setup - set login and exec
+  loop:
+    - login
+    - exec
+  cisco.ios.ios_banner:
+    banner: '{{ item }}'
+    text: "this is my login banner\nthat as a multiline\nstring\n"
+    state: present
+    provider: '{{ cli }}'
+
+- name: Set login
+  register: result
+  cisco.ios.ios_banner:
+    banner: login
+    text: "this is my login banner\nthat as a multiline\nstring\n"
+    state: present
+    provider: '{{ cli }}'
+
+- debug:
+    msg: '{{ result }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+
+- name: Set exec
+  register: result
+  cisco.ios.ios_banner:
+    banner: exec
+    text: "this is my login banner\nthat as a multiline\nstring\n"
+    state: present
+    provider: '{{ cli }}'
+
+- debug:
+    msg: '{{ result }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0

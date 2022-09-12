@@ -1,0 +1,144 @@
+---
+- name: Converge
+  collections:
+    - sensu.sensu_go
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Create mutator with minimal parameters
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: minimal_mutator
+        command: /bin/true
+      register: result
+
+    - assert:
+        that:
+          - result is changed
+          - result.object.command == '/bin/true'
+          - result.object.metadata.name == 'minimal_mutator'
+
+    - name: Create mutator with minimal parameters idempotence
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: minimal_mutator
+        command: /bin/true
+      register: result
+
+    - assert:
+        that:
+          - result is not changed
+
+    - name: Create a mutator
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: mutator
+        command: sensu-influxdb-mutator
+        timeout: 30
+        env_vars:
+          INFLUXDB_ADDR: http://influxdb.default.svc.cluster.local:8086
+          INFLUXDB_USER: sensu
+        runtime_assets:
+          - sensu-influxdb-mutator
+      register: result
+
+    - assert:
+        that:
+          - result is changed
+          - result.object.command == 'sensu-influxdb-mutator'
+          - result.object.timeout == 30
+          - result.object.runtime_assets == ['sensu-influxdb-mutator']
+          - result.object.metadata.name == 'mutator'
+
+    - name: Test mutator creation idempotence
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: mutator
+        command: sensu-influxdb-mutator
+        timeout: 30
+        env_vars:
+          INFLUXDB_ADDR: http://influxdb.default.svc.cluster.local:8086
+          INFLUXDB_USER: sensu
+        runtime_assets:
+          - sensu-influxdb-mutator
+      register: result
+
+    - assert:
+        that: result is not changed
+
+    - name: Modify a mutator
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: mutator
+        command: sensu-influxdb-mutator
+        timeout: 60
+        secrets:
+          - name: test
+            secret: value
+      register: result
+
+    - assert:
+        that:
+          - result is changed
+          - not result.object.env_vars
+          - not result.object.runtime_assets
+          - "result.object.secrets == [{'name': 'test', 'secret': 'value'}]"
+
+    - name: Create a second mutator
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: mutator2
+        command: sensu-influxdb-mutator
+        timeout: 30
+
+    - name: Fetch all mutators
+      mutator_info:
+        auth:
+          url: http://localhost:8080
+
+    - name: Fetch a specific mutator
+      mutator_info:
+        auth:
+          url: http://localhost:8080
+        name: mutator
+      register: result
+
+    - assert:
+        that:
+          - result.objects | length == 1
+          - result.objects.0.metadata.name == 'mutator'
+
+    - name: Delete a mutator
+      mutator:
+        auth:
+          url: http://localhost:8080
+        name: mutator
+        state: absent
+
+    - name: Fetch all mutators
+      mutator_info:
+        auth:
+          url: http://localhost:8080
+      register: result
+
+    - assert:
+        that:
+          - result.objects | length == 2
+          - result.objects.0.metadata.name == 'minimal_mutator'
+
+    - name: Try to fetch non-existing mutator
+      mutator_info:
+        auth:
+          url: http://localhost:8080
+        name: bad-bad-mutator
+      register: result
+
+    - assert:
+        that:
+          - result.objects == []

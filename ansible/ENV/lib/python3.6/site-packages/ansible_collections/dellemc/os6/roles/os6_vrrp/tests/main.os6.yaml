@@ -1,0 +1,14 @@
+---
+# vars file for dellemc.os6.os6_vrrp,
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_vrrp:
+    vlan 4:
+      - vrrp_group_id: 4
+        state: present
+        description: "Interface-vrrp4"
+        virtual_address: 10.2.0.1
+        enable: true
+        priority: 120
+        preempt: false

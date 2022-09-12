@@ -1,0 +1,24 @@
+---
+# vars file for dellemc.os6.os6_xstp, 
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_xstp:
+    type: stp
+    enable: true
+    stp:
+      bridge_priority: 4096
+    pvst:
+      vlan:
+        - range_or_id: 10
+          bridge_priority: 4096
+          state: present
+    mstp:
+      mstp_instances:
+        - number: 1
+          vlans: 10,12
+          bridge_priority: 4096
+          vlans_state: present
+    intf:
+      Te1/0/5:
+        edge_port: true

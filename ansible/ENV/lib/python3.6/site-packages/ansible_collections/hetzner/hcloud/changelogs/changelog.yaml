@@ -1,0 +1,133 @@
+ancestor: null
+releases:
+  0.1.0:
+    modules:
+    - description: Create and manage cloud Floating IPs on the Hetzner Cloud.
+      name: hcloud_floating_ip
+      namespace: ''
+    - description: Create and manage cloud Load Balancers on the Hetzner Cloud.
+      name: hcloud_load_balancer
+      namespace: ''
+    - description: Manage the relationship between Hetzner Cloud Networks and Load
+        Balancers
+      name: hcloud_load_balancer_network
+      namespace: ''
+    - description: Create and manage the services of cloud Load Balancers on the Hetzner
+        Cloud.
+      name: hcloud_load_balancer_service
+      namespace: ''
+    - description: Manage Hetzner Cloud Load Balancer targets
+      name: hcloud_load_balancer_target
+      namespace: ''
+    - description: Gather infos about the Hetzner Cloud Load Balancer types.
+      name: hcloud_load_balancer_type_info
+      namespace: ''
+    release_date: '2020-06-29'
+  0.2.0:
+    changes:
+      bugfixes:
+      - hcloud inventory plugin - Allow usage of hcloud.yml and hcloud.yaml - this
+        was removed by error within the migration from build-in ansible to our collection
+    fragments:
+    - inventory-allow-usage-of-pre-migration-configuration-fuiles.yml
+    release_date: '2020-06-30'
+  1.0.0:
+    changes:
+      minor_changes:
+      - hcloud_load_balancer Allow changing the type of a Load Balancer
+      - hcloud_server Allow the creation of servers with enabled backups
+    fragments:
+    - gh7-allow-enabling-of-backups-on-server-creation.yml
+    - lb-allow-change-type.yml
+    release_date: '2020-08-11'
+  1.1.0:
+    changes:
+      bugfixes:
+      - hcloud_floating_ip Fix idempotency when floating ip is assigned to server
+      minor_changes:
+      - hcloud_floating_ip Allow creating Floating IP with protection
+      - hcloud_load_balancer Allow creating Load Balancer with protection
+      - hcloud_network Allow creating Network with protection
+      - hcloud_server Allow creating server with protection
+      - hcloud_volume Allow creating Volumes with protection
+    fragments:
+    - fix-idempotency-floating-ip.yml
+    - gh-28-allow-setting-of-protection-on-creation.yml
+    release_date: '2020-10-05'
+  1.2.0:
+    changes:
+      minor_changes:
+      - Dynamic Inventory Add option to specifiy the token_env variable which is used
+        for identification if now token is set
+      - Improve imports of API Exception
+      - hcloud_server_network Allow updating alias ips
+      - hcloud_subnetwork Allow creating vswitch subnetworks
+    modules:
+    - description: Gather infos about your Hetzner Cloud load_balancers.
+      name: hcloud_load_balancer_info
+      namespace: ''
+    release_date: '2020-12-01'
+  1.2.1:
+    changes:
+      bugfixes:
+      - Inventory Restore Python 2.7 compatibility
+    release_date: '2020-12-16'
+  1.3.0:
+    changes:
+      minor_changes:
+      - Add firewalls to hcloud_server module
+    modules:
+    - description: Manage Hetzner Cloud Firewalls
+      name: hcloud_firewall
+      namespace: ''
+    release_date: '2021-03-11'
+  1.3.1:
+    changes:
+      bugfixes:
+      - hcloud_server - fix a crash related to check mode if ``state=started`` or
+        ``state=stopped`` (https://github.com/ansible-collections/hetzner.hcloud/issues/54).
+    fragments:
+    - 64-hcloud_server_fix_checkmode_state_started.yml
+    release_date: '2021-03-18'
+  1.4.0:
+    changes:
+      bugfixes:
+      - hcloud_firewall - fix idempotence related to rules comparison (https://github.com/ansible-collections/hetzner.hcloud/pull/71).
+      - hcloud_load_balancer_service - fix imported wrong HealthCheck from hcloud-python
+        (https://github.com/ansible-collections/hetzner.hcloud/pull/73).
+      - hcloud_server - fix idempotence related to firewall handling (https://github.com/ansible-collections/hetzner.hcloud/pull/71).
+      security_fixes:
+      - hcloud_certificate - mark the ``private_key`` parameter as ``no_log`` to prevent
+        potential leaking of secret values (https://github.com/ansible-collections/hetzner.hcloud/pull/70).
+    fragments:
+    - 70-no_log_security_fixes.yml
+    - 71-hcloud_firewall_fix_idempotence.yml
+    - 73-hcloud_load_balancer_service_fix_wrong_import.yml
+    release_date: '2021-04-06'
+  1.4.1:
+    changes:
+      minor_changes:
+      - hcloud_server - improve the handling of deprecated images
+      - hcloud_server - improve the validation and error response for not existing
+        images
+      - inventory - support jinjia templating within `token`
+    fragments:
+    - 74-hcloud_server-improve-error-message-images.yml
+    release_date: '2021-04-07'
+  1.4.2:
+    changes:
+      bugfixes:
+      - inventory fix image name was set as server type instead of the correct server
+        type
+    fragments:
+    - inventory-fix-server-type-wrong-value.yml
+    release_date: '2021-04-14'
+  1.4.3:
+    changes:
+      bugfixes:
+      - hcloud_server Fix incompatbility with python < 3.6
+      - hcloud_server Improve error handling when using not existing server types
+    fragments:
+    - hcloud-server-py36.yaml
+    - hcloud-server-server-type.yaml
+    release_date: '2021-04-22'

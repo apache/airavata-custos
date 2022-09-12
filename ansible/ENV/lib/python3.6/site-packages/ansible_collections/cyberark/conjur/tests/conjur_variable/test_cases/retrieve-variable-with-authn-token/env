@@ -1,0 +1,4 @@
+export CONJUR_CERT_FILE=./conjur.pem
+unset CONJUR_AUTHN_API_KEY
+unset CONJUR_AUTHN_LOGIN
+export CONJUR_AUTHN_TOKEN_FILE=./access_token

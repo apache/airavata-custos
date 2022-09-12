@@ -1,0 +1,5 @@
+---
+# defaults file for dellemc.os6.os6_qos
+match_type:
+  match_all: match-all
+  match_any: match-any

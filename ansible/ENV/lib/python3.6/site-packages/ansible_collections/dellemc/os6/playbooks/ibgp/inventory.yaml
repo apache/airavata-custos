@@ -1,0 +1,6 @@
+switch1 ansible_host=100.94.51.40
+switch2 ansible_host=100.94.52.38
+
+[os6switches]
+switch1
+switch2

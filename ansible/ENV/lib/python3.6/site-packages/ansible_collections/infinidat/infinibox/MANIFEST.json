@@ -1,0 +1,43 @@
+{
+ "collection_info": {
+  "description": "A set of Ansible modules that allow simple, but powerful, idempotent interactions with Infinidat InfiniBoxes.", 
+  "repository": "https://www.github.com/infinidat/ansible-infinidat-collection", 
+  "tags": [
+   "cloud", 
+   "ibox", 
+   "infinibox", 
+   "infinidat", 
+   "infinisdk", 
+   "nas", 
+   "san", 
+   "storage", 
+   "storage_array", 
+   "storagearray"
+  ], 
+  "dependencies": {}, 
+  "authors": [
+   "Infinidat <partners.infi@infinidat.com>", 
+   "David Ohlemacher", 
+   "Gregory Shulov"
+  ], 
+  "issues": "https://www.github.com/infinidat/ansible-infinidat-collection/issues", 
+  "name": "infinibox", 
+  "license": [
+   "GPL-3.0-or-later"
+  ], 
+  "documentation": null, 
+  "namespace": "infinidat", 
+  "version": "1.2.4", 
+  "readme": "README.md", 
+  "license_file": null, 
+  "homepage": null
+ }, 
+ "file_manifest_file": {
+  "format": 1, 
+  "ftype": "file", 
+  "chksum_sha256": "0a3f1a5fcb2a4ebaff166fd6a2ab12708bb5cbaafbe87376f739202a31489e66", 
+  "name": "FILES.json", 
+  "chksum_type": "sha256"
+ }, 
+ "format": 1
+}

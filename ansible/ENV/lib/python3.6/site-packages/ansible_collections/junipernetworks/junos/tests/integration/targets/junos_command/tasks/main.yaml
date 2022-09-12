@@ -1,0 +1,10 @@
+---
+- include: netconf_xml.yaml
+
+- include: netconf_text.yaml
+
+- include: netconf_json.yaml
+
+- include: cli.yaml
+  tags:
+    - network_cli

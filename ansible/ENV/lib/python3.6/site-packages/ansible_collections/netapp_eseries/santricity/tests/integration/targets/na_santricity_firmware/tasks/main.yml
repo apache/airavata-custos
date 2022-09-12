@@ -1,0 +1,2 @@
+- include_tasks: firmware_tests.yml
+- include_tasks: firmware_legacy_tests.yml

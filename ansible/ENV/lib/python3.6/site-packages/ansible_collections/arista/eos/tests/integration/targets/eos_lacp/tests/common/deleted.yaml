@@ -1,0 +1,28 @@
+---
+- include_tasks: _reset_config.yaml
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp
+
+- name: Returns lacp to default parameters
+  register: result
+  become: true
+  arista.eos.eos_lacp:
+    state: deleted
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp == result.before
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp == result.after
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp == {}

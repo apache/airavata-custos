@@ -1,0 +1,37 @@
+---
+- debug: msg="START cli/set_domain_name.yaml on connection={{ ansible_connection
+    }}"
+
+- name: setup
+  become: true
+  arista.eos.eos_config:
+    lines: no ip domain-name
+    match: none
+
+- name: configure domain_name
+  become: true
+  register: result
+  arista.eos.eos_system:
+    domain_name: eng.ansible.com
+
+- assert:
+    that:
+      - result.changed == true
+
+- name: verify domain_name
+  become: true
+  register: result
+  arista.eos.eos_system:
+    domain_name: eng.ansible.com
+
+- assert:
+    that:
+      - result.changed == false
+
+- name: teardown
+  become: true
+  arista.eos.eos_config:
+    lines: no ip domain-name
+    match: none
+
+- debug: msg="END cli/set_domain_name.yaml on connection={{ ansible_connection }}"

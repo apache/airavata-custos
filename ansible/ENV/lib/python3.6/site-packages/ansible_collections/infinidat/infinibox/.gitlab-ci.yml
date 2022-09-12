@@ -1,0 +1,43 @@
+---
+# Ref: https://docs.gitlab.com/ce/ci/yaml/README.html
+
+# CICD environment variables:
+# - VAULT_PASSWORD_FILE
+#     - Type: File
+#     - Key: VAULT_PASSWORD_FILE
+#     - Value: <ansible vault password for the vars file for the ibox specified in --extra-vars> 
+#         - i.e. The password that allows one to view the file using "ansible-vault view <file>"
+
+image: psusdev/gitlab-cicd:v0.8
+
+playbook_testing:
+  stage: test
+  script:
+    - python3 -m venv venv
+    - . ./venv/bin/activate
+    - export PIP_REQUIRE_VIRTUALENV=true
+    - pip install -r requirements.txt
+    - echo "Tested ansible version -> $(ansible --version)"
+
+    # Build and install ansible collection. Find collection version from yml, strip quotes.
+    - coll_version=$(spruce json galaxy.yml   | jq '.version'   | sed 's?"??g')
+    - coll_namespace=$(spruce json galaxy.yml | jq '.namespace' | sed 's?"??g')
+    - coll_name=$(spruce json galaxy.yml      | jq '.name'      | sed 's?"??g')
+    - echo "Collection version -> ${coll_version}"  # gitlab's cilint does not like a colon here
+    - ansible-galaxy collection build
+    - ansible-galaxy collection install "${coll_namespace}-${coll_name}-${coll_version}.tar.gz" -p ./test_collection -vvv
+
+    # Run testing playbooks
+    - git_project="ansible-infinidat-collection"
+    - echo "$git_project commit -> $(git log --max-count=1 --oneline)"
+    - pushd ./playbooks > /dev/null
+    -     export ANSIBLE_CONFIG="/builds/PSUS/$git_project/playbooks/ansible.cfg"
+    -     export ANSIBLE_FORCE_COLOR=true
+    -     ibox_extra_vars="@../ibox_vars/iboxCICD.yaml"
+    -     verbosity="-vvv"
+    -     ansible-playbook --extra-vars "$ibox_extra_vars" --vault-password-file "$VAULT_PASSWORD_FILE" test_create_resources.yml "${verbosity}"
+    -     ansible-playbook --extra-vars "$ibox_extra_vars" --vault-password-file "$VAULT_PASSWORD_FILE" test_remove_resources.yml "${verbosity}"
+    - popd > /dev/null
+
+    # Show summery of execution tasks
+    - ./bin/test_summarize.sh

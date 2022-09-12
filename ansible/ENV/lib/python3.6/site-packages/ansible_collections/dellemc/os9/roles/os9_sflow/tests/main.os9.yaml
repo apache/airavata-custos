@@ -1,0 +1,35 @@
+---
+# vars file for dellemc.os9.os9_sflow, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_sflow:
+    sflow: true
+    collector:
+      - collector_ip: 1.1.1.1
+        agent_addr: 2.2.2.2
+        udp_port:
+        max_datagram_size: 1000
+        vrf: true
+        state: present
+      - collector_ip: 2.2.2.2
+        agent_addr: 2.2.2.2
+        udp_port: 3
+        max_datagram_size: 1002
+        vrf: test
+        state: absent
+    polling_interval: 24
+    sample_rate: 256
+    extended_switch: true
+    max_header_size: true
+    fortyGigE 1/1:
+      sflow: true
+      ingress_enable: true
+      polling_interval: 30
+      sample_rate: 1024
+      max_header_size: true
+    fortyGigE 1/2:
+      sflow: true
+      ingress_enable: true
+      polling_interval: 20
+      sample_rate: 256
+      max_header_size: true

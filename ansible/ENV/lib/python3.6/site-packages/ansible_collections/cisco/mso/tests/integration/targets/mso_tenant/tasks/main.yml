@@ -1,0 +1,541 @@
+# Test code for the MSO modules
+# Copyright: (c) 2018, Dag Wieers (@dagwieers) <dag@wieers.com>
+# Copyright: (c) 2020, Cindy Zhao (@cizhao) <cizhao@cisco.com>
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+- name: Test that we have an ACI MultiSite host, username and password
+  fail:
+    msg: 'Please define the following variables: mso_hostname, mso_username and mso_password.'
+  when: mso_hostname is not defined or mso_username is not defined or mso_password is not defined
+
+
+# CLEAN ENVIRONMENT
+- name: Set vars
+  set_fact:
+    mso_info: &mso_info
+      host: '{{ mso_hostname }}'
+      username: '{{ mso_username }}'
+      password: '{{ mso_password }}'
+      validate_certs: '{{ mso_validate_certs | default(false) }}'
+      use_ssl: '{{ mso_use_ssl | default(true) }}'
+      use_proxy: '{{ mso_use_proxy | default(true) }}'
+      output_level: '{{ mso_output_level | default("info") }}'
+    apic_hostname_2: 173.36.219.123
+    apic_username_2: admin
+    apic_password_2: ins3965!
+    apic_site_id_2: 102
+
+- name: Ensure sites exists
+  mso_site:
+    <<: *mso_info
+    site: '{{ item.site }}'
+    apic_username: '{{ item.username }}'
+    apic_password: '{{ item.password }}'
+    apic_site_id: '{{ item.id }}'
+    urls:
+    - https://{{ item.urls }}
+    state: present
+  loop:
+  - { site: '{{ mso_site | default("ansible_test") }}', username: '{{ apic_username }}', password: '{{ apic_password }}', id: '{{ apic_site_id | default(101) }}', urls: '{{ apic_hostname }}' }
+  - { site: '{{ mso_site | default("ansible_test") }}_2', username: '{{ apic_username_2 }}', password: '{{ apic_password_2 }}', id: '{{ apic_site_id_2 | default(101) }}', urls: '{{ apic_hostname_2 }}' }
+
+- name: Undeploy a schema 1 template 1
+  mso_schema_template_deploy: &schema_undeploy
+    <<: *mso_info
+    schema: ansible_test
+    template: Template 1
+    site: '{{ item }}'
+    state: undeploy
+  ignore_errors: yes
+  loop:
+  - '{{ mso_site | default("ansible_test") }}'
+  - '{{ mso_site | default("ansible_test") }}_2'
+
+- name: Undeploy a schema 1 template 2
+  mso_schema_template_deploy:
+    <<: *schema_undeploy
+    template: Template 2
+    site: '{{ item }}'
+    state: undeploy
+  ignore_errors: yes
+  loop:
+  - '{{ mso_site | default("ansible_test") }}'
+  - '{{ mso_site | default("ansible_test") }}_2'
+
+- name: Undeploy a schema 2 template 3
+  mso_schema_template_deploy:
+    <<: *schema_undeploy
+    schema: ansible_test_2
+    template: Template 3
+    site: '{{ item }}'
+    state: undeploy
+  ignore_errors: yes
+  loop:
+  - '{{ mso_site | default("ansible_test") }}'
+  - '{{ mso_site | default("ansible_test") }}_2'
+
+- name: Remove schemas
+  mso_schema:
+    host: '{{ mso_hostname }}'
+    username: '{{ mso_username }}'
+    password: '{{ mso_password }}'
+    validate_certs: '{{ mso_validate_certs | default(false) }}'
+    use_ssl: '{{ mso_use_ssl | default(true) }}'
+    use_proxy: '{{ mso_use_proxy | default(true) }}'
+    output_level: '{{ mso_output_level | default("info") }}'
+    schema: '{{ item }}'
+    state: absent
+  loop:
+  - '{{ mso_schema | default("ansible_test") }}_2'
+  - '{{ mso_schema | default("ansible_test") }}'
+
+- name: Remove tenant ansible_test
+  mso_tenant: &tenant_absent
+    host: '{{ mso_hostname }}'
+    username: '{{ mso_username }}'
+    password: '{{ mso_password }}'
+    validate_certs: '{{ mso_validate_certs | default(false) }}'
+    use_ssl: '{{ mso_use_ssl | default(true) }}'
+    use_proxy: '{{ mso_use_proxy | default(true) }}'
+    output_level: '{{ mso_output_level | default("info") }}'
+    tenant: ansible_test
+    state: absent
+
+- name: Remove tenant ansible_test2
+  mso_tenant:
+    <<: *tenant_absent
+    tenant: ansible_test2
+  register: cm_remove_tenant2
+
+- name: Remove tenant ansible_test3
+  mso_tenant:
+    <<: *tenant_absent
+    tenant: ansible_test3
+  register: cm_remove_tenant3
+
+# ADD TENANT
+- name: Add tenant (check_mode)
+  mso_tenant: &tenant_present
+    host: '{{ mso_hostname }}'
+    username: '{{ mso_username }}'
+    password: '{{ mso_password }}'
+    validate_certs: '{{ mso_validate_certs | default(false) }}'
+    use_ssl: '{{ mso_use_ssl | default(true) }}'
+    use_proxy: '{{ mso_use_proxy | default(true) }}'
+    output_level: '{{ mso_output_level | default("info") }}'
+    tenant: ansible_test
+    display_name: Ansible test title
+    description: Ansible test tenant
+    state: present
+  check_mode: yes
+  register: cm_add_tenant
+
+- name: Verify cm_add_tenant
+  assert:
+    that:
+    - cm_add_tenant is changed
+    - cm_add_tenant.previous == {}
+    - cm_add_tenant.current.id is not defined
+    - cm_add_tenant.current.name == 'ansible_test'
+    - cm_add_tenant.current.description == 'Ansible test tenant'
+    - cm_add_tenant.current.userAssociations | length == 1
+
+- name: Add tenant (normal mode)
+  mso_tenant: *tenant_present
+  register: nm_add_tenant
+
+- name: Verify nm_add_tenant
+  assert:
+    that:
+    - nm_add_tenant is changed
+    - nm_add_tenant.previous == {}
+    - nm_add_tenant.current.id is defined
+    - nm_add_tenant.current.name == 'ansible_test'
+    - nm_add_tenant.current.description == 'Ansible test tenant'
+    - nm_add_tenant.current.userAssociations | length == 1
+
+- name: Add tenant again (check_mode)
+  mso_tenant: *tenant_present
+  check_mode: yes
+  register: cm_add_tenant_again
+
+- name: Verify cm_add_tenant_again
+  assert:
+    that:
+    - cm_add_tenant_again is not changed
+    - cm_add_tenant_again.previous.name == 'ansible_test'
+    - cm_add_tenant_again.previous.description == 'Ansible test tenant'
+    - cm_add_tenant_again.current.id == nm_add_tenant.current.id
+    - cm_add_tenant_again.current.name == 'ansible_test'
+    - cm_add_tenant_again.current.description == 'Ansible test tenant'
+    - cm_add_tenant_again.current.userAssociations == cm_add_tenant_again.previous.userAssociations
+
+- name: Add tenant again (normal mode)
+  mso_tenant: *tenant_present
+  register: nm_add_tenant_again
+
+- name: Verify nm_add_tenant_again
+  assert:
+    that:
+    - nm_add_tenant_again is not changed
+    - nm_add_tenant_again.previous.name == 'ansible_test'
+    - nm_add_tenant_again.previous.description == 'Ansible test tenant'
+    - nm_add_tenant_again.current.id == nm_add_tenant.current.id
+    - nm_add_tenant_again.current.name == 'ansible_test'
+    - nm_add_tenant_again.current.description == 'Ansible test tenant'
+    - nm_add_tenant_again.current.userAssociations == nm_add_tenant_again.previous.userAssociations
+
+# ADD TENANT WITH USERS
+- name: Add tenant 2 (normal mode)
+  mso_tenant:
+    <<: *tenant_present
+    tenant: ansible_test2
+    users:
+    - '{{ mso_username }}'
+    display_name: null
+    state: present
+  register: nm_add_tenant2
+
+- name: Verify nm_add_tenant2
+  assert:
+    that:
+    - nm_add_tenant2 is changed
+
+- name: Verify nm_add_tenant2 (when mso_username != admin)
+  assert:
+    that:
+    - nm_add_tenant2.current.userAssociations | length == 2
+  when: mso_username != 'admin'
+
+- name: Verify nm_add_tenant2 (when mso_username == admin)
+  assert:
+    that:
+    - nm_add_tenant2.current.userAssociations | length == 1
+  when: mso_username == 'admin'
+
+- name: Add tenant 2 again (normal mode)
+  mso_tenant: 
+    <<: *tenant_present
+    tenant: ansible_test2
+    users:
+    - '{{ mso_username }}'
+    display_name: null
+    state: present
+  register: nm_add_tenant2_again
+
+- name: Verify nm_add_tenant2_again
+  assert:
+    that:
+    - nm_add_tenant2_again is not changed
+
+- name: Verify nm_add_tenant2_again (when mso_username != admin)
+  assert:
+    that:
+    - nm_add_tenant2_again.current.userAssociations | length == 2
+  when: mso_username != 'admin'
+
+- name: Verify nm_add_tenant2_again (when mso_username == admin)
+  assert:
+    that:
+    - nm_add_tenant2_again.current.userAssociations | length == 1
+  when: mso_username == 'admin'
+
+- name: Add tenant 3 with duplicate admin user (normal mode)
+  mso_tenant: 
+    <<: *tenant_present
+    tenant: ansible_test3
+    users:
+    - admin
+    - admin
+    display_name: null
+    state: present
+  ignore_errors: yes
+  register: nm_add_tenant3_with_duplicate_admin
+
+- name: Verify nm_add_tenant3_with_duplicate_admin
+  assert:
+    that:
+    - nm_add_tenant3_with_duplicate_admin is not changed
+    - nm_add_tenant3_with_duplicate_admin.msg == "User 'admin' is duplicate."
+
+- name: Add tenant 3 with invalid user (normal mode)
+  mso_tenant: 
+    <<: *tenant_present
+    tenant: ansible_test3
+    users:
+    - invalid user
+    display_name: null
+    state: present
+  ignore_errors: yes
+  register: nm_add_tenant3_with_invalid_user
+
+- name: nm_add_tenant3_with_invalid_user
+  assert:
+    that:
+    - nm_add_tenant3_with_invalid_user is not changed
+    - nm_add_tenant3_with_invalid_user.msg == "User 'invalid user' is not a valid user name."
+
+- name: Add tenant 3 (normal mode)
+  mso_tenant: 
+    <<: *tenant_present
+    tenant: ansible_test3
+    users:
+    - '{{ mso_username }}'
+    display_name: null
+    state: present
+  register: nm_add_tenant3
+
+- name: Verify nm_add_tenant3
+  assert:
+    that:
+    - nm_add_tenant3 is changed
+
+- name: Verify nm_add_tenant3 (when mso_username != admin)
+  assert:
+    that:
+    - nm_add_tenant3.current.userAssociations | length == 2
+  when: mso_username != 'admin'
+
+- name: Verify nm_add_tenant3 (when mso_username == admin)
+  assert:
+    that:
+    - nm_add_tenant3.current.userAssociations | length == 1
+  when: mso_username == 'admin'
+
+# CHANGE TENANT
+- name: Change tenant (check_mode)
+  mso_tenant:
+    <<: *tenant_present
+    tenant: ansible_test
+    description: Ansible test tenant 2
+  check_mode: yes
+  register: cm_change_tenant
+
+- name: Verify cm_change_tenant
+  assert:
+    that:
+    - cm_change_tenant is changed
+    - cm_change_tenant.current.id == nm_add_tenant.current.id
+    - cm_change_tenant.current.name == 'ansible_test'
+    - cm_change_tenant.current.description == 'Ansible test tenant 2'
+
+- name: Change tenant (normal mode)
+  mso_tenant:
+    <<: *tenant_present
+    tenant: ansible_test
+    description: Ansible test tenant 2
+    output_level: debug
+  register: nm_change_tenant
+
+- name: Verify nm_change_tenant
+  assert:
+    that:
+    - nm_change_tenant is changed
+    - nm_change_tenant.current.id == nm_add_tenant.current.id
+    - nm_change_tenant.current.name == 'ansible_test'
+    - nm_change_tenant.current.description == 'Ansible test tenant 2'
+
+- name: Change tenant again (check_mode)
+  mso_tenant:
+    <<: *tenant_present
+    tenant: ansible_test
+    description: Ansible test tenant 2
+  check_mode: yes
+  register: cm_change_tenant_again
+
+- name: Verify cm_change_tenant_again
+  assert:
+    that:
+    - cm_change_tenant_again is not changed
+    - cm_change_tenant_again.current.id == nm_add_tenant.current.id
+    - cm_change_tenant_again.current.name == 'ansible_test'
+    - cm_change_tenant_again.current.description == 'Ansible test tenant 2'
+
+- name: Change tenant again (normal mode)
+  mso_tenant:
+    <<: *tenant_present
+    tenant: ansible_test
+    description: Ansible test tenant 2
+  register: nm_change_tenant_again
+
+- name: Verify nm_change_tenant_again
+  assert:
+    that:
+    - nm_change_tenant_again is not changed
+    - nm_change_tenant_again.current.id == nm_add_tenant.current.id
+    - nm_change_tenant_again.current.name == 'ansible_test'
+    - nm_change_tenant_again.current.description == 'Ansible test tenant 2'
+
+
+# QUERY ALL TENANTS
+- name: Query all tenants (check_mode)
+  mso_tenant: &tenant_query
+    host: '{{ mso_hostname }}'
+    username: '{{ mso_username }}'
+    password: '{{ mso_password }}'
+    validate_certs: '{{ mso_validate_certs | default(false) }}'
+    use_ssl: '{{ mso_use_ssl | default(true) }}'
+    use_proxy: '{{ mso_use_proxy | default(true) }}'
+    output_level: '{{ mso_output_level | default("info") }}'
+    state: query
+  check_mode: yes
+  register: cm_query_all_tenants
+
+- name: Query all tenants (normal mode)
+  mso_tenant: *tenant_query
+  register: nm_query_all_tenants
+
+- name: Verify query_all_tenants
+  assert:
+    that:
+    - cm_query_all_tenants is not changed
+    - nm_query_all_tenants is not changed
+    # NOTE: Order of tenants is not stable between calls
+    #- cm_query_all_tenants == nm_query_all_tenants
+
+
+# QUERY A TENANT
+- name: Query our tenant
+  mso_tenant:
+    <<: *tenant_query
+    tenant: ansible_test
+  check_mode: yes
+  register: cm_query_tenant
+
+- name: Query our tenant
+  mso_tenant:
+    <<: *tenant_query
+    tenant: ansible_test
+  register: nm_query_tenant
+
+- name: Verify query_tenant
+  assert:
+    that:
+    - cm_query_tenant is not changed
+    - cm_query_tenant.current.id == nm_add_tenant.current.id
+    - cm_query_tenant.current.name == 'ansible_test'
+    - cm_query_tenant.current.description == 'Ansible test tenant 2'
+    - nm_query_tenant is not changed
+    - nm_query_tenant.current.id == nm_add_tenant.current.id
+    - nm_query_tenant.current.name == 'ansible_test'
+    - nm_query_tenant.current.description == 'Ansible test tenant 2'
+    - cm_query_tenant == nm_query_tenant
+
+
+# REMOVE TENANT
+- name: Remove tenant (check_mode)
+  mso_tenant: *tenant_absent
+  check_mode: yes
+  register: cm_remove_tenant
+
+- name: Verify cm_remove_tenant
+  assert:
+    that:
+    - cm_remove_tenant is changed
+    - cm_remove_tenant.current == {}
+
+- name: Remove tenant (normal mode)
+  mso_tenant: *tenant_absent
+  register: nm_remove_tenant
+
+- name: Verify nm_remove_tenant
+  assert:
+    that:
+    - nm_remove_tenant is changed
+    - nm_remove_tenant.current == {}
+
+- name: Remove tenant again (check_mode)
+  mso_tenant: *tenant_absent
+  check_mode: yes
+  register: cm_remove_tenant_again
+
+- name: Verify cm_remove_tenant_again
+  assert:
+    that:
+    - cm_remove_tenant_again is not changed
+    - cm_remove_tenant_again.current == {}
+
+- name: Remove tenant again (normal mode)
+  mso_tenant: *tenant_absent
+  register: nm_remove_tenant_again
+
+- name: Verify nm_remove_tenant_again
+  assert:
+    that:
+    - nm_remove_tenant_again is not changed
+    - nm_remove_tenant_again.current == {}
+
+
+# QUERY NON-EXISTING TENANT
+- name: Query non-existing tenant (check_mode)
+  mso_tenant:
+    <<: *tenant_query
+    tenant: ansible_test
+  check_mode: yes
+  register: cm_query_non_tenant
+
+- name: Query non-existing tenant (normal mode)
+  mso_tenant:
+    <<: *tenant_query
+    tenant: ansible_test
+  register: nm_query_non_tenant
+
+# TODO: Implement more tests
+- name: Verify query_non_tenant
+  assert:
+    that:
+    - cm_query_non_tenant is not changed
+    - nm_query_non_tenant is not changed
+    - cm_query_non_tenant == nm_query_non_tenant
+
+- name: Add common tenant
+  mso_tenant:
+    <<: *tenant_present
+    tenant: common
+    display_name: common
+    sites: [ansible_test, ansible_test_2]
+  register: nm_add_common_tenant
+
+- name: Verify nm_add_common_tenant
+  assert:
+    that:
+    - nm_add_common_tenant is changed
+    - nm_add_common_tenant.current.name == "common"
+
+- name: Add tenant with site
+  mso_tenant:
+    <<: *tenant_present
+    tenant: tenant_with_site
+    display_name: tenant_with_site
+    sites: ansible_test
+  register: nm_add_tenant_with_site
+
+- name: Verify nm_add_tenant_with_site
+  assert:
+    that:
+    - nm_add_tenant_with_site is changed
+    - nm_add_tenant_with_site.current.name == "tenant_with_site"
+
+- name: Remove common tenant
+  mso_tenant:
+    <<: *tenant_absent
+    tenant: common
+  ignore_errors: yes
+  register: rm_common
+
+- name: Verify rm_common
+  assert:
+    that:
+    - rm_common.msg == "MSO Error 400{{':'}} Bad Request{{':'}} Common Tenant cannot be deleted."
+
+- name: Remove tenant_with_site
+  mso_tenant:
+    <<: *tenant_absent
+    tenant: tenant_with_site
+  register: rm_tenant_with_site
+
+- name: Verify rm_tenant_with_site
+  assert:
+    that:
+    - rm_tenant_with_site is changed
+    - rm_tenant_with_site.current == {}

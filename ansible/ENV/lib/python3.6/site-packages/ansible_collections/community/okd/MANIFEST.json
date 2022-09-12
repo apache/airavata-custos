@@ -1,0 +1,41 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "okd",
+  "version": "1.1.2",
+  "authors": [
+   "geerlingguy (https://www.jeffgeerling.com/)",
+   "fabianvf (https://github.com/fabianvf)",
+   "willthames (https://github.com/willthames)",
+   "Akasurde (https://github.com/akasurde)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "kubernetes",
+   "k8s",
+   "cloud",
+   "infrastructure",
+   "openshift",
+   "okd",
+   "cluster"
+  ],
+  "description": "OKD Collection for Ansible.",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {
+   "kubernetes.core": ">=1.2.0,<1.3.0"
+  },
+  "repository": "https://github.com/ansible-collections/community.okd",
+  "documentation": "",
+  "homepage": "",
+  "issues": "https://github.com/ansible-collections/community.okd/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "bbcb201de7adbf9a6827d2929279aeee602c12e6e1df1b2dd274aa109b1a8383",
+  "format": 1
+ },
+ "format": 1
+}

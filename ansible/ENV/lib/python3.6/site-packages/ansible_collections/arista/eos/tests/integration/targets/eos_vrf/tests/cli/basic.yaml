@@ -1,0 +1,315 @@
+---
+- name: setup - remove vrf
+  become: true
+  with_items:
+    - test
+    - test1
+    - test2
+    - test3
+    - test4
+    - test5
+  arista.eos.eos_vrf:
+    name: '{{ item }}'
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Create vrf
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:200
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'vrf definition test' in result.commands"
+      - "'rd 1:200' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Create vrf again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:200
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - result.session_name is not defined
+
+- name: Modify rd
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:201
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'vrf definition test' in result.commands"
+      - "'rd 1:201' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Modify rd again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:201
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - result.session_name is not defined
+
+- name: Add Ethernet2 to vrf and check interface assigned state
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:201
+    state: present
+    interfaces:
+      - Ethernet2
+    associated_interfaces:
+      - Ethernet2
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'interface ethernet2' in result.commands"
+      - "'vrf forwarding test' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Add Ethernet2 to vrf again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test
+    rd: 1:201
+    state: present
+    interfaces:
+      - ethernet 2
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - "'session_name' not in result.commands"
+
+- name: vrf interface intent fail
+  become: true
+  register: result
+  ignore_errors: true
+  arista.eos.eos_vrf:
+    name: test
+    state: present
+    associated_interfaces:
+      - test
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.failed == True
+
+- name: Add multiple interfaces to vrf
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test1
+    rd: 1:202
+    state: present
+    interfaces:
+      - loopback10
+      - loopback11
+      - loopback12
+      - loopback13
+      - loopback14
+      - loopback15
+      - loopback1000
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'interface loopback10' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback11' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback12' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback13' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback14' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback15' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'interface loopback1000' in result.commands"
+      - "'vrf forwarding test1' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Add multiple interfaces to vrf (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    name: test1
+    rd: 1:202
+    state: present
+    interfaces:
+      - loopback10
+      - loopback11
+      - loopback12
+      - loopback13
+      - loopback14
+      - loopback15
+      - loopback1000
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+
+- name: setup - remove vrf
+  become: true
+  with_items:
+    - test1
+    - test2
+    - test3
+  arista.eos.eos_vrf:
+    name: '{{ item }}'
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Create aggregate of VRFs
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    aggregate:
+
+      - name: test2
+        rd: 1:202
+
+      - name: test3
+        rd: 1:203
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'vrf definition test2' in result.commands"
+      - "'rd 1:202' in result.commands"
+      - "'vrf definition test3' in result.commands"
+      - "'rd 1:203' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Create aggregate of VRFs again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    aggregate:
+
+      - name: test2
+        rd: 1:202
+
+      - name: test3
+        rd: 1:203
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - result.session_name is not defined
+
+- name: Create aggregate of VRFs with purge
+  become: true
+  register: result
+  arista.eos.eos_vrf:
+    aggregate:
+
+      - name: test4
+        rd: 1:204
+
+      - name: test5
+        rd: 1:205
+    state: present
+    purge: true
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'vrf definition test4' in result.commands"
+      - "'rd 1:204' in result.commands"
+      - "'vrf definition test5' in result.commands"
+      - "'rd 1:205' in result.commands"
+      - "'no vrf definition test' in result.commands"
+      - "'no vrf definition test2' in result.commands"
+      - "'no vrf definition test3' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Delete VRFs
+  become: true
+  arista.eos.eos_vrf:
+    name: test
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Delete VRFs again (idempotent)
+  become: true
+  arista.eos.eos_vrf:
+    name: test
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Delete aggregate of VRFs
+  become: true
+  arista.eos.eos_vrf:
+    aggregate:
+
+      - name: test1
+
+      - name: test2
+
+      - name: test3
+
+      - name: test4
+
+      - name: test5
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Delete VRFs again (idempotent)
+  become: true
+  arista.eos.eos_vrf:
+    aggregate:
+
+      - name: test1
+
+      - name: test2
+
+      - name: test3
+
+      - name: test4
+
+      - name: test5
+    state: absent
+    provider: '{{ cli }}'

@@ -1,0 +1,40 @@
+---
+- name: Test splunk.es.adaptive_response_notable_event
+  adaptive_response_notable_event:
+    name: "Fake notable event from playbook"
+    correlation_search_name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake notable event from playbook, description edition."
+    state: "present"
+    next_steps:
+      - ping
+      - nslookup
+    recommended_actions:
+      - script
+      - ansiblesecurityautomation
+  register: adaptive_response_notable_event_out
+
+- name: Assert Create splunk.es.adaptive_response_notable_event CHANGED
+  assert:
+    that:
+      - adaptive_response_notable_event_out is changed
+      - adaptive_response_notable_event_out is not failed
+
+- name: Validate splunk.es.adaptive_response_notable_event idempotent
+  adaptive_response_notable_event:
+    name: "Fake notable event from playbook"
+    correlation_search_name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake notable event from playbook, description edition."
+    state: "present"
+    next_steps:
+      - ping
+      - nslookup
+    recommended_actions:
+      - script
+      - ansiblesecurityautomation
+  register: adaptive_response_notable_event_out2
+
+- name: Assert Create splunk.es.adaptive_response_notable_event IDEMPOTENT
+  assert:
+    that:
+      - adaptive_response_notable_event_out2 is not changed
+      - adaptive_response_notable_event2 is not failed

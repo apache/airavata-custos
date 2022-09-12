@@ -1,0 +1,51 @@
+---
+merged:
+  before: {}
+  commands:
+    - lldp holdtime 10
+    - lldp run
+    - lldp timer 20
+    - lldp reinit 3
+  after:
+    timer: 20
+    holdtime: 10
+    reinit: 3
+    enabled: true
+replaced:
+  before:
+    timer: 100
+    holdtime: 10
+    reinit: 3
+    enabled: true
+  commands:
+    - no lldp run
+    - no lldp timer
+    - lldp holdtime 20
+    - lldp reinit 5
+  after:
+    holdtime: 10
+    reinit: 3
+deleted:
+  before:
+    timer: 100
+    holdtime: 10
+    reinit: 3
+    enabled: true
+  commands:
+    - no lldp holdtime
+    - no lldp run
+    - no lldp timer
+    - no lldp reinit
+  after: {}
+gathered:
+  config:
+    enabled: true
+    holdtime: 10
+    reinit: 3
+    timer: 100
+parsed:
+  config:
+    enabled: true
+    holdtime: 10
+    reinit: 3
+    timer: 10

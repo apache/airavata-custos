@@ -1,0 +1,39 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "kubevirt",
+  "version": "1.0.0",
+  "authors": [
+   "kubevirt (github.com/kubevirt)",
+   "tima (github.com/tima)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "api",
+   "k8s",
+   "kubernetes",
+   "kubevirt",
+   "virtualization",
+   "cloud",
+   "infrastructure"
+  ],
+  "description": null,
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {
+   "community.kubernetes": ">=1.0.0"
+  },
+  "repository": "https://github.com/ansible-collections/community.kubevirt",
+  "documentation": null,
+  "homepage": "https://github.com/ansible-collections/community.kubevirt",
+  "issues": "https://github.com/ansible-collections/community.kubevirt/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "f6492c3dc19b84095067d04bf11ae9fac70a7971162cc15ef8c4cbbced357edb",
+  "format": 1
+ },
+ "format": 1
+}

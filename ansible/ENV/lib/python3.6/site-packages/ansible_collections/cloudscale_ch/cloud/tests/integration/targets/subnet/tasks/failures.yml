@@ -1,0 +1,82 @@
+---
+- name: Fail missing params
+  cloudscale_ch.cloud.subnet:
+  register: snet
+  ignore_errors: True
+- name: 'VERIFY: Fail missing params'
+  assert:
+    that:
+      - snet is failed
+      - snet.msg.startswith("one of the following is required")
+
+- name: Fail creation with UUID
+  cloudscale_ch.cloud.subnet:
+    uuid: ea3b39a3-77a8-4d0b-881d-0bb00a1e7f48
+  register: snet
+  ignore_errors: True
+- name: 'VERIFY: Fail creation with UUID'
+  assert:
+    that:
+    - snet is failed
+    - snet.msg.startswith("state is present but all of the following are missing")
+
+- name: Fail creation unknown network name
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-does-not-exist'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: snet
+  ignore_errors: True
+- name: 'VERIFY: Fail creation unknown network name'
+  assert:
+    that:
+    - snet is failed
+    - snet.msg.startswith("Network with 'name' not found")
+
+- name: Fail creation unknown network uuid
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      uuid: 'f0bb5270-f66c-41d6-ac3b-a223cd280ced'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: snet
+  ignore_errors: True
+- name: 'VERIFY: Fail creation unknown network uuid'
+  assert:
+    that:
+    - snet is failed
+    - snet.msg.startswith("Network with 'uuid' not found")
+
+- name: Create two networks with the same name
+  uri:
+    url: 'https://api.cloudscale.ch/v1/networks'
+    method: POST
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    body:
+      name: '{{ cloudscale_resource_prefix }}-duplicate'
+      auto_create_ipv4_subnet: False
+    body_format: json
+    status_code: 201
+  register: duplicate
+  with_sequence: count=2
+
+- name: Try access to duplicate network name
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-duplicate'
+  register: snet
+  ignore_errors: True
+- name: 'VERIFY: Try access to duplicate network name'
+  assert:
+    that:
+    - snet is failed
+    - snet.msg.startswith("Multiple networks with 'name' not found")

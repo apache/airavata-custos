@@ -1,0 +1,1335 @@
+{
+ "files": [
+  {
+   "name": ".",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "086aa0838e94e34ba45b8703a84312621445a48c9d69cd9eac36e645a657221e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_size_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c94255fc4ecd3d190bb2af934588a565cd307f0b932305342a267e17ef2a2391",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_image_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3d908407f540095fdc373b16c250678e7de8055c8b4e7171d64d40aff5aa69df",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5ab3d3aad28e56095be38fc691ee4cddd4124bed7ca54e1d204f0e3b160cc752",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_firewall/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d4aa47098d194c8ec9a33ebc422fac18e95f6b344a60eefc7c0e7a412130fc67",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "80592edc42bd79dbb61c566c4a62d973f978c265b2bb6222526b36408217f207",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_load_balancer_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a89f7ffb4ca9ba55c78df11ffbbc8a864a9ef09aed9a6c70d042ccd96209676",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_block_storage/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "03d541a19ec67ea73337398909a33ea3220edfca37a67fe9487ff88c58a2655d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2435c4a7908f594cfa0df556d515b73153488afe18ae9776b095176e3ce37fef",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_certificate/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "764affaa42ccb4279b28791b95e4ff79392ac25ea27fd0d57a44e9e8f25507a6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0774fe0b400627e091d669ce8f7a3b4527a612edcb8133e80ddca92a3bc322e5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_floating_ip/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cf5a05fb83861c99fb28a46b3cbc5b50079a00262c6ea8a4b1b2e3bd405d4828",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8ac91de290bbba6d48b5da7123bf5986c9e4b4e64a33e89163747b4a02cf00a5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_droplet/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c1241ed1c4c938b47adffc4ae65ad79736d4911549a6722fdd972996756da6b5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_account_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_account_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_account_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_account_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2fbc3c7fa048c45c1959fa9e21442762b395dd787674e3dcf0239b3ec3eee957",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "04dc648f008243f1f525352208fe76079f88c2687d4e832625339e95be42f03c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_sshkey/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ae8a0fffccfac884a13a92d7873dba516f78889b3cb3c6824b63b3bea7770f0e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8a886b6634b7c7c08e9cd83bf6a113800ea8b27c9edc4df47c9d9ce5630430da",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_balance_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7ae21aa9bb287bacf4e5e04edf8821b7d3d9398a038224be8127e434da068598",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_volume_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a026a87bf7fff1ee5a57eda0facda28547a1c71d9df69b7ba26e2ea6c336242",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_database/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4043a443e36ca1ea56a41934c4374edbbb21af47e5917fdc23fc3f6193528b62",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "108228ac3bb97fed0e92be5aa0e963c13533ade9b1b1f8faac906f7a4d84f287",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_tag/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b51bf22b8e164227935585dd7abf7d3d69615b730d9dd2cf03246fa6548501af",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5eac9b5b81c520d11af25a3a14d2346e1af49cb26257fbe587cccd285fd58553",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_snapshot_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "08606337f8cd8591eebdb9ea243ee267a302f2547c68fa6b4cdd05a86d3dd359",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "17d1d2b67366f279f4065648ce1c3ce5c87485f367c6acc106c8b47ac424073e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_kubernetes/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e069e095b71daf04f59ebbe1ee75608624608681f731ae58f1271c349cf465c4",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a6d660d72bea0b1a4831c820769f9dd8285a1b329c900d7f9cbc1774f6d70480",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_region_info/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain/aliases",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8bc38995d021352323617389f724023368de090ff1658a0e17804a38597d462a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/digital_ocean_domain/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2bf461031dfd7d1fc433ef95a37f6244f1a806d741e607a6c2dc391de29d8a7b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/integration_config.yml.template",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4a3f70e255cfdb1b5464be22b170c96c8b974c9bf6f5ab676afcb4577f25d245",
+   "format": 1
+  },
+  {
+   "name": "tests/sanity",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/sanity/ignore-2.9.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fe7fbdd52cff947167dae7efb55fe0eb7edf006316ba7095ac76f1bdf4e008d6",
+   "format": 1
+  },
+  {
+   "name": "tests/unit",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/inventory/test_digitalocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce90bbebb442f5af4d6ce9adb24018537acddc0778e5b4e55a23e5edfae5d4c4",
+   "format": 1
+  },
+  {
+   "name": "tests/utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/utils/render.sh",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "28ff6a30a12bbe965b5258aaa33c8d96d5210b3e9f062d38433167ecc6252dca",
+   "format": 1
+  },
+  {
+   "name": "COPYING",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+   "format": 1
+  },
+  {
+   "name": ".gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f59a2bf97befc68fb5a72a0aae195a9a95e1633d28fb595fec3a559ec04761ca",
+   "format": 1
+  },
+  {
+   "name": "codecov.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "08263e731c1a39f4d143b80830250fa028ec6eeca4bdb9763bb3d3aed70cf076",
+   "format": 1
+  },
+  {
+   "name": "meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c5f058e0f2c076af1779da80f87ee78dc02cdeb776d4361604803f6203e60c4",
+   "format": 1
+  },
+  {
+   "name": "scripts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "scripts/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "scripts/inventory/digital_ocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "98adc67c72a55d3140362e5dc79138aaf8896fca9d83a40ee2cada6fed368e78",
+   "format": 1
+  },
+  {
+   "name": "scripts/inventory/digital_ocean.ini",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5e4ba7e652f9e7d46868d32bf08047bd209745e72d6fd3599665c15c013c77a9",
+   "format": 1
+  },
+  {
+   "name": ".github",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".github/workflows",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".github/workflows/ansible-test-unit.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f3f2b0535ddb5f7b48200c15312bb3ee37b0d99be398e9db79572cdd4f436f15",
+   "format": 1
+  },
+  {
+   "name": ".github/workflows/ansible-test-sanity.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2bd819cde89b7abc2a8f825a9dbcf842f666bcf662b6b8a9ab64ff24f51848a7",
+   "format": 1
+  },
+  {
+   "name": ".github/workflows/ansible-test-integration.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1aa42f6fd7e87e246af916499618d63803e9c305000aab40fb9a4c8ea60dad2",
+   "format": 1
+  },
+  {
+   "name": "CHANGELOG.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8c829b6715b08c709a3f5ff30f324c4ed2c07419c72b961eb2b5abcdac2a492f",
+   "format": 1
+  },
+  {
+   "name": "changelogs",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "changelogs/.gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "919ef00776e7d2ff349950ac4b806132aa9faf006e214d5285de54533e443b33",
+   "format": 1
+  },
+  {
+   "name": "changelogs/changelog.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "930ee179ff47e9cfbd018fcccb45733ff8867373da9d084a4a9240ea28f7c26f",
+   "format": 1
+  },
+  {
+   "name": "changelogs/config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b07ba10f6c28a1fb05c5b0e7193bf5dfcb778dc2c003a98595d73e64fc7f916",
+   "format": 1
+  },
+  {
+   "name": "changelogs/fragments",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "changelogs/fragments/.keep",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_database_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f3e509b4b081be29deabca53f82f56d21bcc74a1fa4cefb47cee85c2aea8814",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_tag_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f846ae2ff943bbd9b0c0888f8b4e1a9416b0943efad3eb7e164a6210e15a483e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_account_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a28feecfd9c51ae219d5ce7d9834cc83f66effcb2203609fcab2eab20dd348a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_droplet.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e81df39cb869246859bce564178d684557411377f5349ecffbed3fa4fd629bbc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_domain.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a7af88d25ba9603d5b7cc8305dd809fa603068d2aa96775af34481624836246",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_sshkey_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "339c23b907c68ed1c75f2fca1eee930f76e7954dc08c5d66f2dbdde409f4f0f9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_region_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f1bf200afa6042f2ec72ba3e6189e45058814de91e982c9a2700051878ea198",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_size_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "157c196ea523abd6374e22bf8825e30ede51b9d55c4175d0be02475fe6aa91cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_database.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2db8b06f0fddd4c8e9f4821fef3f515d91032dc4fb68e258e9dd8fe9ad0bfc55",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_volume_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f2572886efbcc448afad524b07e3e781dbd925d69f7e4bf21498b85c9f321c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "677cc32ef4373121f643b4da20ea71dac0d133555fae657efafbf6d019c7d79f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_sshkey_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a98bc465cca96adba7096f35684e07eb0c97df4de43bbfb2e59fad82e072e3f4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_image_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "46a97a794030823a528e2ca0e6a8a196a08b8cb6b1eddee1d8efbd7f5c5b70f9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_sshkey.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "75eaa5db16a72571a9781abe7ee439b3563776e99d71a31b8a366043f8b5f30c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_certificate_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b3c964f211f3d033d42b4ef101d2a6f9dd8935e3b039d58cbc87a18bf34d9db1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_certificate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9a5c491f07aacc64f2ff4111f3549dbe43619ee6edf9c51a0414f9f34046e719",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_snapshot_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0af00191442907a2318ed34ffc8ae770107ee497f9adb65f6bca4be85b4ade36",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_kubernetes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b79e50d898a567a775da69180821f389ac2847cb2f8902c2c4b80787d84983cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_region_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f1bf200afa6042f2ec72ba3e6189e45058814de91e982c9a2700051878ea198",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_volume_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f2572886efbcc448afad524b07e3e781dbd925d69f7e4bf21498b85c9f321c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_tag.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "827431138bbb9d08cbef97a746a46726d92da8581bcbac187284416e09508ac8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_domain_record.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ead80d69d2e08b283740519dab84aa32a7d8fb48ec549fe4eeef1d05fe32ce84",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_floating_ip_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "17fc8149b4af64cd980a28a14d2b9b40a4e2bfd824d95d447fc1230b6acf15fd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_domain_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "818a3ba73d3227ce3de8372a85b0e24bbb4e39c270b788fcd9da0d8000990fac",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_load_balancer_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bcac3353f3dce80e72e9b84a9fe938dfef1aae66f89114d250961cb93551a500",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_domain_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "818a3ba73d3227ce3de8372a85b0e24bbb4e39c270b788fcd9da0d8000990fac",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_certificate_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b3c964f211f3d033d42b4ef101d2a6f9dd8935e3b039d58cbc87a18bf34d9db1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_tag_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f846ae2ff943bbd9b0c0888f8b4e1a9416b0943efad3eb7e164a6210e15a483e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_snapshot_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0af00191442907a2318ed34ffc8ae770107ee497f9adb65f6bca4be85b4ade36",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_floating_ip_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "17fc8149b4af64cd980a28a14d2b9b40a4e2bfd824d95d447fc1230b6acf15fd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_kubernetes_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e9d559e9b5485f6b3cefb53b31d14c808f13e2530a3503c9c703ee50d5a5a3b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_load_balancer_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bcac3353f3dce80e72e9b84a9fe938dfef1aae66f89114d250961cb93551a500",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_floating_ip.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f617b94f81c894f922ceadf2176062dd312ca73299561ab6cd972e5ba347016d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_account_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a28feecfd9c51ae219d5ce7d9834cc83f66effcb2203609fcab2eab20dd348a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_image_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "46a97a794030823a528e2ca0e6a8a196a08b8cb6b1eddee1d8efbd7f5c5b70f9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_firewall_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "248ea9b147a31c3cb1f17a51aa2fec3b0cbdcd1391bcb2fa1c86445d8d04345e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_balance_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cd8f32c0601999af0495592645d2551692740dc7f0693dd08777df7a599eab04",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_firewall.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b5d34cbec96720c6ac1a94a11de3abb659461fed590921970f6e8d14791be8ee",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_firewall_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "248ea9b147a31c3cb1f17a51aa2fec3b0cbdcd1391bcb2fa1c86445d8d04345e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_block_storage.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f05235f42c134b5ebea2c02e95dc5f673f05fb767bd912e4ef83825ac771011",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/digital_ocean_size_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "157c196ea523abd6374e22bf8825e30ede51b9d55c4175d0be02475fe6aa91cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/inventory/digitalocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "354509fdd467cb53b30ddfb2f7b3c166be9bcf0ea37afb54635f3d15e7b0aa85",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/digital_ocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "229cd6566d858fddff80a9b9383b371a2e5d04e8ea2047a355e74625f1169015",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/digital_ocean.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ce6b55875cc23194814dd177753d63599c29e1fa8717163c12716de0a576e99",
+   "format": 1
+  },
+  {
+   "name": "README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6f19ad4265ce0b84eda72872eec27050ced37670363d86eade3d3f941a078fe5",
+   "format": 1
+  }
+ ],
+ "format": 1
+}

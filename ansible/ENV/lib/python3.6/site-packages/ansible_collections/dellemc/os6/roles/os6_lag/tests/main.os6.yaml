@@ -1,0 +1,15 @@
+---
+# vars file for dellemc.os6.os6_lag
+# Sample variables for OS6 device
+
+os6_lag: 
+    Po 128:
+      type: static
+      hash: 7
+      min_links: 3
+      channel_members:
+        - port: Te1/0/1
+          state: absent
+        - port: Te1/0/2
+          state: present
+      state: present

@@ -1,0 +1,73 @@
+ancestor: null
+releases:
+  0.3.0:
+    changes:
+      minor_changes:
+      - Added support for SSL CA cert verification (https://github.com/ngine-io/ansible-collection-cloudstack/pull/3)
+    fragments:
+    - 3-ca-cert-verification.yml
+    release_date: '2020-07-04'
+  1.0.0:
+    changes:
+      minor_changes:
+      - cs_vlan_ip_range - Added support to set IP range for system VMs (https://github.com/ngine-io/ansible-collection-cloudstack/pull/18)
+      - cs_vlan_ip_range - Added support to specify pod name (https://github.com/ngine-io/ansible-collection-cloudstack/pull/20)
+    fragments:
+    - 18-for_system_vms_cs_vlan_ip_range.yml
+    - 20-cs_vlan_ip_range_pod.yml
+    release_date: '2020-08-15'
+  1.0.1:
+    changes:
+      minor_changes:
+      - cs_configuration - Workaround for empty global settings idempotency (https://github.com/ngine-io/ansible-collection-cloudstack/pull/25).
+    fragments:
+    - 25-empty_config_idempotency.yml
+    release_date: '2020-08-30'
+  1.1.0:
+    changes:
+      minor_changes:
+      - Deprecated the funtionality of first returned zone to be the default zone
+        because of an unreliable API. Zone will be required beginning with next major
+        version 2.0.0.
+      - cs_ip_address - allow to pick a particular IP address for a network, available
+        since CloudStack v4.13 (https://github.com/ngine-io/ansible-collection-cloudstack/issues/30).
+    fragments:
+    - cs_ip_address_reservation.yaml
+    - default_zone_deprecation.yaml
+    release_date: '2020-11-26'
+  1.2.0:
+    changes:
+      minor_changes:
+      - cs_instance - Fixed an edge case caused by `displaytext` not available (https://github.com/ngine-io/ansible-collection-cloudstack/pull/49).
+      - cs_network - Fixed constraints when creating networks. The param `gateway`
+        is no longer required if the param `netmask` is given (https://github.com/ngine-io/ansible-collection-cloudstack/pull/54).
+    fragments:
+    - 49-cs_instance-fix-keyerror.yml
+    - 54-cs_network-fix-constraints.yml
+    release_date: '2021-02-02'
+  2.0.0:
+    changes:
+      breaking_changes:
+      - Authentication option using INI files e.g. ``cloudstack.ini`` has been removed.
+        The only supported option to authenticate is by using the module params with
+        fallback to the ENV variables.
+      - default zone deprecation - The `zone` param default value, across multiple
+        modules, has been deprecated due to unreliable API (https://github.com/ngine-io/ansible-collection-cloudstack/pull/62).
+    fragments:
+    - 62-deprecate-default-zone.yml
+    - remove-ini-config.yml
+    release_date: '2021-02-02'
+  2.1.0:
+    changes:
+      minor_changes:
+      - cs_physical_network - Added VXLAN as an option of isolation methods (https://github.com/ngine-io/ansible-collection-cloudstack/pull/73).
+      - instance - New style inventory plugin implemented for instances (https://github.com/ngine-io/ansible-collection-cloudstack/pull/66)
+    fragments:
+    - 66-instance-inventory-plugin.yml
+    - cs_physical_network_isolation_methods.yml
+    plugins:
+      inventory:
+      - description: Apache CloudStack instance inventory source
+        name: instance
+        namespace: null
+    release_date: '2021-04-12'

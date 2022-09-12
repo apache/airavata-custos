@@ -1,0 +1,36 @@
+name: Sanity
+on:
+  schedule:
+  - cron: "5 12 * * *"
+  pull_request:
+
+jobs:
+  sanity:
+    name: Sanity (${{ matrix.ansible }})
+    defaults:
+      run:
+        working-directory: ansible_collections/ngine_io/cloudstack
+    strategy:
+      matrix:
+        ansible:
+        - stable-2.11
+        - stable-2.10
+        - stable-2.9
+        - devel
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        path: ansible_collections/ngine_io/cloudstack
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install ansible-base (${{ matrix.ansible }})
+      run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+    - name: Run sanity tests
+      run: ansible-test sanity --docker -v --color

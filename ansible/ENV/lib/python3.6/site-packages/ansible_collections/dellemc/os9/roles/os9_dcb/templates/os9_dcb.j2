@@ -1,0 +1,216 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{################################
+Purpose:
+Configure DCB commands for os9 Devices
+os9_dcb:
+    dcb_enable: true
+    dcb_map:  
+      - name: test
+        priority_pgid: 0 0 0 3 3 3 0 3
+        priority_group:
+          - pgid: 0
+            bandwidth: 20
+            pfc: true
+            state: present
+          - pgid: 3
+            bandwidth: 20
+            pfc: true
+            state: present
+        intf:
+          - name: fortyGigE 1/8
+            state: present
+          - name: fortyGigE 1/9
+            state: present
+        state: present
+    dcb_buffer:
+      - name: buffer
+        description:
+        priority_params:
+          - pgid: 0
+            buffer_size: 5550
+            pause: 40
+            resume: 40
+            state: present
+        intf:
+          - name: fortyGigE 1/6
+            state: present
+        state: present
+################################}
+{% if os9_dcb is defined and os9_dcb %}
+{% set dcb_vars = os9_dcb %}
+{% if dcb_vars.dcb_enable is defined %}
+  {% if dcb_vars.dcb_enable %}
+dcb enable 
+  {% else %}
+no dcb enable
+  {% endif %}
+{% endif %}
+{% if dcb_vars.dcb_map is defined and dcb_vars.dcb_map %}
+  {% for map in dcb_vars.dcb_map %}
+    {% if map.name is defined and map.name %}
+      {% if map.state is defined and map.state == "absent" %}
+        {% if map.intf is defined and map.intf %}
+          {% for intf in map.intf %}
+            {% if intf.state is defined and intf.state == "absent" %}
+              {% if intf.name is defined and intf.name %}
+interface {{ intf.name }}
+ no dcb-map {{ map.name }}
+ exit
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+no dcb-map {{ map.name }}
+      {% else %}
+dcb-map {{ map.name }}
+        {% set pgid_set = {'value': False} %}
+        {% if map.priority_group is defined and map.priority_group %}
+          {% for group in map.priority_group %}
+            {% if group.pgid is defined and group.pgid >= 0 %}
+              {% if group.state is defined and group.state == "absent" %}
+                {% if not pgid_set['value'] %}
+                {% if map.priority_pgid is defined %}
+                  {% if pgid_set.update({'value': True}) %} {% endif %}
+                  {% if map.priority_pgid %}
+ priority-pgid {{ map.priority_pgid }}
+                  {% else %}
+ no priority-pgid
+                  {% endif %}
+              {% endif %}
+              {% endif %}
+ no priority-group {{ group.pgid }}
+              {% else %}
+                {% if group.bandwidth is defined and group.bandwidth %}
+                  {% if group.pfc is defined %}
+                    {% if group.pfc %}
+ priority-group {{ group.pgid }} bandwidth {{ group.bandwidth }} pfc on
+                    {% else %}
+ priority-group {{ group.pgid }} bandwidth {{ group.bandwidth }} pfc off
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if not pgid_set['value'] %}
+        {% if map.priority_pgid is defined %}
+          {% if map.priority_pgid %}
+ priority-pgid {{ map.priority_pgid }}
+          {% else %}
+ no priority-pgid
+          {% endif %}
+        {% endif %}
+        {% endif %}
+        {% if map.intf is defined and map.intf %}
+          {% for intf in map.intf %}
+            {% if intf.name is defined and intf.name %}
+interface {{ intf.name }}
+              {% if intf.state is defined and intf.state == "absent" %}
+ no dcb-map {{ map.name }}
+              {% else %}
+ dcb-map {{ map.name }}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% if dcb_vars.dcb_buffer is defined and dcb_vars.dcb_buffer %}
+  {% for buf in dcb_vars.dcb_buffer %}
+    {% if buf.name is defined and buf.name %}
+      {% if buf.state is defined and buf.state == "absent" %}
+no dcb-buffer-threshold {{ buf.name }}
+      {% else %}
+dcb-buffer-threshold {{ buf.name }}
+        {% if buf.description is defined and buf.description %}
+ description {{ buf.description }}
+        {% elif buf.description is defined and not buf.description %}
+ no description
+        {% endif %}
+
+        {% if buf.priority_params is defined and buf.priority_params %}
+          {% for params in buf.priority_params %}
+            {% if params.pgid is defined and params.pgid >= 0 %}
+              {% if params.state is defined and params.state == "absent" %}
+                {% if params.buffer_size is defined and params.buffer_size %}
+                  {% if params.pause is defined and params.pause %}
+                    {% if params.resume is defined and params.resume %}
+ no priority {{ params.pgid }} buffer-size {{ params.buffer_size }} pause-threshold {{ params.pause }} resume-offset {{ params.resume }}
+                    {% else %}
+ no priority {{ params.pgid }} buffer-size {{ params.buffer_size }} pause-threshold {{ params.pause }}
+                    {% endif %}
+                  {% else %}
+                    {% if params.resume is defined and params.resume %}
+ no priority {{ params.pgid }} buffer-size {{ params.buffer_size }} resume-offset {{ params.resume }}
+                    {% else %}
+ no priority {{ params.pgid }} buffer-size {{ params.buffer_size }}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if params.pause is defined and params.pause %}
+                    {% if params.resume is defined and params.resume %}
+ no priority {{ params.pgid }} pause-threshold {{ params.pause }} resume-offset {{ params.resume }}
+                    {% else %}
+ no priority {{ params.pgid }} pause-threshold {{ params.pause }}
+                    {% endif %}
+                  {% else %}
+                    {% if params.resume is defined and params.resume %}
+ no priority {{ params.pgid }} resume-offset {{ params.resume }}
+                    {% else %}
+ no priority {{ params.pgid }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}                  
+              {% else %}
+                {% if params.buffer_size is defined and params.buffer_size %}
+                  {% if params.pause is defined and params.pause %}
+                    {% if params.resume is defined and params.resume %}
+ priority {{ params.pgid }} buffer-size {{ params.buffer_size }} pause-threshold {{ params.pause }} resume-offset {{ params.resume }}
+                    {% else %}
+ priority {{ params.pgid }} buffer-size {{ params.buffer_size }} pause-threshold {{ params.pause }}
+                    {% endif %}
+                  {% else %}
+                    {% if params.resume is defined and params.resume %}
+ priority {{ params.pgid }} buffer-size {{ params.buffer_size }} resume-offset {{ params.resume }}
+                    {% else %}
+ priority {{ params.pgid }} buffer-size {{ params.buffer_size }}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if params.pause is defined and params.pause %}
+                    {% if params.resume is defined and params.resume %}
+ priority {{ params.pgid }} pause-threshold {{ params.pause }} resume-offset {{ params.resume }}
+                    {% else %}
+ priority {{ params.pgid }} pause-threshold {{ params.pause }}
+                    {% endif %}
+                  {% else %}
+                    {% if params.resume is defined and params.resume %}
+ priority {{ params.pgid }} resume-offset {{ params.resume }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if buf.intf is defined and buf.intf %}
+          {% for intf in buf.intf %}
+            {% if intf.name is defined and intf.name %}
+interface {{ intf.name }}
+              {% if intf.state is defined and intf.state == "absent" %}
+ no dcb-policy buffer-threshold {{ buf.name }}
+              {% else %}
+ dcb-policy buffer-threshold {{ buf.name }}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% endif %} 

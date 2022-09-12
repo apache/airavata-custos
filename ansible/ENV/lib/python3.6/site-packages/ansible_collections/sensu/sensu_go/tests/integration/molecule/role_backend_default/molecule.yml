@@ -1,0 +1,20 @@
+---
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - converge
+    - idempotence
+    - verify
+    - check
+    - destroy
+
+platforms:
+  - name: centos
+    image: quay.io/xlab-steampunk/sensu-go-tests-centos:7
+    pre_build_image: true
+    pull: true
+    override_command: false
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro

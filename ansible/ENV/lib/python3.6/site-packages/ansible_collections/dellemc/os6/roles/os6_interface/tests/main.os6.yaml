@@ -1,0 +1,28 @@
+# vars file for dellemc.os6.os6_interface 
+# Sample variables for OS6 device
+
+os6_interface:
+    Te1/0/2:
+            desc: "Connected to Spine1"
+            portmode: trunk
+            admin: up
+    Te1/0/1:
+            desc: "Connected to Access"
+            portmode: access
+            admin: up
+    vlan 100:
+            ip_type_dynamic: True
+            suppress_ra: present
+            ip_and_mask: 3.3.3.3 255.255.255.0
+            ip_helper:
+              - ip: 10.0.0.36
+                state: present
+            ipv6_reachabletime: 600000
+    vlan 101:
+            ipv6_and_mask: 2001:db8:3c4d:15::/64
+            suppress_ra: absent
+    vlan 102:
+            ip_type_dynamic: True
+            suppress_ra:
+    vlan 105:
+            ip_and_mask: 1.1.1.1 255.255.255.0

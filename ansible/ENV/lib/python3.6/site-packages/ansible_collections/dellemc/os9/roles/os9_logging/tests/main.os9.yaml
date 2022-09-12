@@ -1,0 +1,44 @@
+---
+# vars file for dellemc.os9.os9_logging, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_logging:
+    logging:
+     - ip: 1.1.1.1
+       state: present
+     - ip: 2.2.2.2
+       secure_port: 1025
+       tcp_port: 1024
+       udp_port: 2000
+       state: present
+     - ip: 3.3.3.3
+       vrf:
+         name: test
+         secure_port: 1024
+         tcp_port: 1025
+         udp_port: 2000
+         state: present
+       secure_port: 1025
+       tcp_port: 2000
+       udp_port: 1025
+       state: present
+    buffer: 6
+    console: 7
+    trap: 5
+    version: 5
+    history: 4
+    history_size: 3
+    monitor: 5
+    on: true
+    extended: true
+    coredump:
+      server:
+        server_ip: 2.2.2.2
+        username: u1
+        password: pwd
+        state: present
+      stackunit:
+         all: true
+         unit_num: 5
+         state: present
+    source_interface: "fortyGigE 1/9"

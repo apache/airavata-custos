@@ -1,0 +1,111 @@
+---
+# vars file for dellemc.os6.os6_aaa,
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_aaa:
+  tacacs_server:
+        key: 0
+        key_string: aacdsvdfsvfsfvfsv
+        host:
+          - ip: 30.0.0.10
+            key:
+            key_string: ahvksjvskjvbkjsd
+            auth_port: 6
+            timeout: 6
+            state: absent
+  radius_server:
+        key: 0
+        key_string: ahvksjvskjvb
+        retransmit: 4
+        timeout: 5
+        host:
+          - ip: 40.0.0.10
+            key: 0
+            key_string: ahvksjvskjvbkjsd
+            retransmit: 4
+            auth_port: 6
+            timeout: 6
+            state: absent
+        acct:
+          - ip: 10.0.0.1
+            key: 0
+            key_string: asvkbjfssvfsf 
+            auth_port: 2
+            state: present
+        auth:
+          - ip: 10.0.0.2
+            key: 0
+            key_string: asdnksfnfnksnddjknsdn
+            name: radius
+            usage: all
+            priority: 2
+            timeout: 2
+            retransmit: 5
+            auth_port: 3
+            deadtime: 6
+            attribute:
+              - id: 6
+                type: "{{attribute_type.mandatory}}"
+                state: present
+              - id: 31
+                type: "{{attribute_type.mac_ietf_lower_case}}"
+                state: present
+              - id: 31
+                type: "{{attribute_type.mac}}"
+                state: absent
+            state: present
+        attribute:
+          - id: 6
+            type: "{{attribute_type.mandatory}}"
+            state: present
+          - id: 31
+            type: "{{attribute_type.mac_ietf_lower_case}}"
+            state: present
+
+
+  aaa_authentication:
+      auth_list:
+        - name: default
+          login_or_enable: login
+          server: tacacs
+          use_password: local
+          state: absent
+        - name: console
+          server: radius
+          login_or_enable: login
+          use_password: local
+          state: absent
+        - name: tacp
+          server: tacacs
+          login_or_enable: enable
+          use_password: enable
+          state: absent
+      dot1x: none
+  aaa_authorization:
+      exec:
+        - authorization_list_name: aaa
+          authorization_method: none
+          use_data: local
+          state: absent
+      network: radius
+  aaa_accounting:
+      dot1x: none
+  aaa_server:
+      radius: 
+        dynamic_author:
+          auth_type: 
+          client: 
+            - ip: 10.0.0.1
+              key: 0
+              key_string: aaskjsksdkjsdda
+              state: present
+            - ip: 10.0.0.2
+              key: 
+              key_string: aaskjsksdkjsdda
+              state: present
+            - ip: 10.0.0.3
+              key: 
+              key_string: 
+              state: present
+          state: present

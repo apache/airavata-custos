@@ -1,0 +1,217 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{################################
+Purpose:
+Configure VLT commands for os9 Devices.
+os9_vlt:
+   domain: 1
+   backup_destination: 192.168.1.1
+   destination_type: ipv4
+   priority: 1
+   VLTi: 101
+   backup_destination_vrf: VLTi-KEEPALIVE
+   unit_id: 0
+   peer_routing: True
+   peer_routing_timeout: 200
+   multicast_peer_routing_timeout: 300
+   vlt_peers:
+     Po 12:
+      peer_lag: 13
+   system_mac: aa:aa:aa:aa:aa:aa
+   delay_restore: 100
+   delay_restore_abort_threshold: 110
+   proxy_gateway:
+     static:
+       remote_mac: 
+         - address: aa:aa:aa:aa:aa:aa
+           exclude_vlan_range: 2
+           state: present
+       proxy_static_state: present
+     lldp:
+       vlt_peer_mac: true
+       peer_timeout: 20
+       peer_domain_link:
+          - port_channel_id: 10
+            exclude_vlan_range: 3
+            state: present
+       proxy_lldp_state: present
+
+   state: present
+################################}
+{% if os9_vlt is defined and os9_vlt %}
+  {% if os9_vlt.vlt_peers is defined and  os9_vlt.vlt_peers %}
+    {% for key in os9_vlt.vlt_peers.keys() %}
+      {% set channel_id = key.split(" ") %}
+      {% set peer_vars = os9_vlt.vlt_peers[key] %}
+interface Port-channel {{ channel_id[1] }}
+      {% if peer_vars.peer_lag is defined %}
+        {% if peer_vars.peer_lag %}
+ vlt-peer-lag port-channel {{ peer_vars.peer_lag}}
+        {% else %}
+ no vlt-peer-lag
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  {% if os9_vlt.domain is defined and os9_vlt.domain %}
+    {% if os9_vlt.state is defined and os9_vlt.state == 'absent'  %}
+no vlt domain {{ os9_vlt.domain }}
+    {% else %}
+vlt domain {{ os9_vlt.domain }}
+    {% if os9_vlt.backup_destination is defined %}
+      {% if os9_vlt.backup_destination %}
+        {% if os9_vlt.destination_type is defined %}
+          {% if os9_vlt.destination_type == 'ipv6' %}
+ back-up destination ipv6 {{ os9_vlt.backup_destination }}
+          {% elif os9_vlt.destination_type ==  'ipv4' %}
+            {% if os9_vlt.backup_destination_vrf is defined and os9_vlt.backup_destination_vrf %}
+ back-up destination {{ os9_vlt.backup_destination }} vrf {{ os9_vlt.backup_destination_vrf }}
+            {% else %}
+ back-up destination {{ os9_vlt.backup_destination }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% else %}
+ no back-up destination
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.VLTi is defined %}
+      {% if os9_vlt.VLTi %}
+ peer-link port-channel {{ os9_vlt.VLTi  }}
+      {% else %}
+ no peer-link
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.priority is defined %}
+      {% if os9_vlt.priority %}
+ primary-priority {{ os9_vlt.priority }}
+      {% else %}
+ no primary-priority
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.unit_id is defined %}
+      {% if os9_vlt.unit_id >= 0 %}
+ unit-id {{ os9_vlt.unit_id }}
+      {% else %}
+ no unit-id
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.peer_routing is defined %}
+      {% if os9_vlt.peer_routing == True %}
+ peer-routing
+      {% else %}
+ no peer-routing
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.peer_routing_timeout is defined %}
+      {% if os9_vlt.peer_routing_timeout %}
+ peer-routing-timeout {{ os9_vlt.peer_routing_timeout }}
+      {% else %}
+ no peer-routing-timeout
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.multicast_peer_routing_timeout is defined %}
+      {% if os9_vlt.multicast_peer_routing_timeout %}
+ multicast peer-routing timeout {{ os9_vlt.multicast_peer_routing_timeout }}
+      {% else %}
+ no multicast peer-routing timeout
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.system_mac is defined and os9_vlt.system_mac %}
+ system-mac mac-address {{ os9_vlt.system_mac }}
+    {% else %}
+ no system-mac
+    {% endif %}
+    {% if os9_vlt.delay_restore is defined %}
+      {% if os9_vlt.delay_restore %}
+ delay-restore {{ os9_vlt.delay_restore }}
+      {% else %}
+ no delay-restore
+      {% endif %}
+    {% endif %}
+    {% if os9_vlt.delay_restore_abort_threshold is defined %}
+      {% if os9_vlt.delay_restore_abort_threshold %}
+ delay-restore abort-threshold {{ os9_vlt.delay_restore_abort_threshold }}
+      {% else %}
+ no delay-restore abort-threshold
+      {% endif %}
+    {% endif %}
+
+    {% if os9_vlt.proxy_gateway is defined and os9_vlt.proxy_gateway %}
+      {% for key in os9_vlt.proxy_gateway.keys() %}
+        {% if key == "static" %}
+        {% set static_vars = os9_vlt.proxy_gateway[key] %}
+          {% if static_vars.proxy_static_state is defined and static_vars.proxy_static_state =="absent" %}
+ no proxy-gateway static
+          {% else %}
+ proxy-gateway static
+            {% if static_vars.remote_mac is defined and static_vars.remote_mac  %}
+              {% for mac in static_vars.remote_mac %}
+                {% if mac.state is defined and mac.state =="absent" %}
+                  {% if mac.address is defined and mac.address %}
+                    {% if mac.exclude_vlan_range is defined and mac.exclude_vlan_range %}
+  no remote-mac-address {{ mac.address }} exclude-vlan {{ mac.exclude_vlan_range }}
+                    {% else %}
+  no remote-mac-address {{ mac.address }}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if mac.address is defined and mac.address %}
+                    {% if mac.exclude_vlan_range is defined and mac.exclude_vlan_range %}
+  remote-mac-address {{ mac.address }} exclude-vlan {{ mac.exclude_vlan_range }}
+                    {% else %}
+  remote-mac-address {{ mac.address }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endif %}
+        {% elif key == "lldp" %}
+        {% set lldp_vars = os9_vlt.proxy_gateway[key] %}
+          {% if lldp_vars.proxy_lldp_state is defined and lldp_vars.proxy_lldp_state =="absent" %}
+ no proxy-gateway lldp
+          {% else %}
+ proxy-gateway lldp
+            {% if lldp_vars.peer_domain_link is defined and lldp_vars.peer_domain_link %}
+              {% for mac in lldp_vars.peer_domain_link %}
+                {% if mac.state is defined and mac.state =="absent" %}
+                  {% if mac.port_channel_id is defined and mac.port_channel_id %}
+                    {% if mac.exclude_vlan_range is defined and mac.exclude_vlan_range %}
+  no peer-domain-link port-channel {{ mac.port_channel_id }} exclude-vlan {{ mac.exclude_vlan_range }}
+                    {% else %}
+  no peer-domain-link port-channel {{ mac.port_channel_id }}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if mac.port_channel_id is defined and mac.port_channel_id %}
+                    {% if mac.exclude_vlan_range is defined and mac.exclude_vlan_range %}
+  peer-domain-link port-channel {{ mac.port_channel_id }} exclude-vlan {{ mac.exclude_vlan_range }}
+                    {% else %}
+  peer-domain-link port-channel {{ mac.port_channel_id }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if lldp_vars.vlt_peer_mac is defined %}
+              {% if lldp_vars.vlt_peer_mac %}
+  vlt-peer-mac transmit
+              {% else %}
+  no vlt-peer-mac transmit
+              {% endif %}
+            {% endif %}
+            {% if lldp_vars.peer_timeout is defined %}
+              {% if lldp_vars.peer_timeout %}
+  peer-timeout {{ lldp_vars.peer_timeout }}
+              {% else %}
+  no peer-timeout 2
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% endif %}
+  {% endif %}
+{% endif %}

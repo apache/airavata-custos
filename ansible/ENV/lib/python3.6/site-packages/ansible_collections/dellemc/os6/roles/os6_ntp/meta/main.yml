@@ -1,0 +1,18 @@
+# Copyright (c) 2020 Dell Inc.
+---
+galaxy_info:
+  author: Dell EMC Networking Engineering
+  description: The os6_ntp role facilitates the configuration of NTP attributes in devices running Dell EMC Networking Operating Systems.
+  company: Dell Inc
+  license:  GPLv3
+  min_ansible_version: 2.9.6
+
+  platforms:
+  - name: os6
+
+  galaxy_tags:
+    - networking
+    - dell
+    - emc
+    - dellemc
+    - os6

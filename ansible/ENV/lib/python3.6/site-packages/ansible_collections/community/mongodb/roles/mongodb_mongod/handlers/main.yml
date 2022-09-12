@@ -1,0 +1,5 @@
+---
+
+- name: Restart mongod service
+  import_tasks: handlers.yml
+  when: not skip_restart

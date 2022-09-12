@@ -1,0 +1,88 @@
+---
+# vars file for dellemc.os9.os9_acl, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_acl:
+      - name: ssh-only-mac
+        type: mac
+        description: macacl
+        extended: true
+        remark:
+          - number: 1
+            description: mac
+            state: present
+        entries:
+          - number: 5
+            permit: true
+            protocol: tcp
+            source: any
+            destination: any
+            dest_condition: eq 2
+            other_options: count
+            state: present
+          - number: 6
+            permit: false
+            protocol: tcp
+            source: bb:bb:bb:bb:bb:bb ff:ff:ff:ff:ff:ff
+            destination: any
+            dest_condition: log
+            state: present
+        stage_ingress:
+          - name: fortyGigE 1/28
+            state: present
+          - name: fortyGigE 1/27
+            state: present
+        stage_egress:
+          - name: fortyGigE 1/28
+            state: present
+        lineterminal:
+          - line: vty 1
+            state: present
+          - line: vty 2
+            state: absent
+          - line: vty 3
+        state: present
+      - name: ipv6-ssh-only
+        type: ipv6
+        description: ipv6acl
+        remark:
+          - number: 1
+            description: ipv6
+        entries:
+          - number: 10
+            permit: true
+            protocol: ipv6
+            source: 2001:4898::/32
+            destination: any
+          - number: 20
+            permit: true
+            protocol: tcp
+            source: any
+            src_condition: eq 2
+            destination: 2404:f801::/32
+          - number: 30
+            permit: true
+            protocol: tcp
+            source: any
+            destination: 2a01:110::/31
+            dest_condition: ack
+          - number: 40
+            permit: true
+            protocol: tcp
+            source: any
+            destination: any
+        stage_ingress:
+          - name: fortyGigE 1/26
+            state: present
+          - name: fortyGigE 1/27
+            state: present
+        stage_egress:
+          - name: fortyGigE 1/26
+            state: present
+        lineterminal:
+          - line: vty 0
+            state: absent
+          - line: vty 1
+          - line: vty 2
+          - line: vty 3
+        state: present

@@ -1,0 +1,68 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{################################
+Purpose:
+Configure VRF on os9 Devices.
+os9_vrf:
+  vrfdetails:
+   - vrf_id: 1
+     vrf_name: VLTi-KEEPALIVE
+     description: VRF-to-support-Peer-Keepalive-Link
+     state: present
+     tagged_portname: 
+      - port: fortyGige 1/2
+        state: present
+      - port: fortyGige 1/3
+        state: absent
+################################}
+{% if (os9_vrf is defined and os9_vrf) %}
+{% if os9_vrf.vrfdetails is defined %}
+  {% for vrf in os9_vrf.vrfdetails %}
+    {% if vrf.vrf_name is defined %}
+      {% if vrf.vrf_name %}
+        {% if vrf.state is defined and vrf.state == 'absent' %}
+          {% if vrf.tagged_portname is defined and vrf.tagged_portname %}
+            {% for tag in vrf.tagged_portname %}
+              {% if tag.state is defined and tag.state == 'absent' %}
+                {% if tag.port is defined and tag.port %}
+interface {{ tag.port }}
+ no ip vrf forwarding
+ exit
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+no ip vrf {{ vrf.vrf_name }}
+        {% else %}
+          {% if vrf.vrf_id is defined %}
+            {% if vrf.vrf_id %}
+feature vrf
+ip vrf {{ vrf.vrf_name }} {{ vrf.vrf_id }}
+              {% if vrf.description is defined %}
+                {% if vrf.description %}
+ description {{ vrf.description }}
+                {% else %}
+ no description sample
+                {% endif %}
+              {% endif %}
+              {% if vrf.tagged_portname is defined %}
+                {% if vrf.tagged_portname %}
+                  {% for tag in vrf.tagged_portname %}
+                    {% if tag.port is defined and tag.port %}
+interface {{ tag.port }}
+                    {% if tag.state is defined and tag.state == 'absent' %}
+ no ip vrf forwarding 
+                    {% else %}
+ ip vrf forwarding {{ vrf.vrf_name }} 
+                    {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% endif %}

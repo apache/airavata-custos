@@ -1,0 +1,15 @@
+---
+# vars file for dellemc.os9.os9_vrf, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_vrf:
+  vrfdetails:
+    - vrf_id: 23
+      vrf_name: VRFi-KEEPALIVE 
+      description: test  
+      state: absent
+      tagged_portname: 
+        - port: fortyGigE 1/7
+          state: absent
+        - port: fortyGigE 1/8
+          state: absent

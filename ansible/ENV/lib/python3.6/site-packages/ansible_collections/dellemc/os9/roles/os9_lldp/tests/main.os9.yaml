@@ -1,0 +1,94 @@
+---
+# vars file for dellemc.os9.os9_lldp, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_lldp:
+   global_lldp_state: present
+   enable: false
+   mode: rx
+   multiplier: 3
+   fcoe_priority_bits: 3
+   iscsi_priority_bits: 3
+   hello: 6
+   dcbx:
+     version: auto
+   management_interface:
+     hello: 7
+     multiplier: 3
+     mode: tx
+     enable: true
+     advertise:
+       port_descriptor: false
+       management_tlv: management-address system-capabilities
+       management_tlv_state: absent
+   advertise:
+     dcbx_tlv: pfc
+     dcbx_tlv_state: absent
+     dcbx_appln_tlv: fcoe
+     dcbx_appln_tlv_state:
+     dot1_tlv:
+       port_tlv:
+          protocol_vlan_id: true
+          port_vlan_id: true
+       vlan_tlv:
+          vlan_range: 2-4
+     dot3_tlv:
+       max_frame_size: false
+     port_descriptor: false
+     management_tlv: management-address system-capabilities system-name
+     management_tlv_state: present
+     med:
+       global_med: true
+       application:
+         - name: "guest-voice"
+           vlan_id: 2
+           l2_priority: 3
+           code_point_value: 4
+         - name: voice
+           priority_tagged: true
+           l2_priority: 3
+           code_point_value: 4
+       location_identification:
+         - loc_info: ecs-elin
+           value: 12345678911
+           state: present
+   local_interface:
+     fortyGigE 1/3:
+       lldp_state: present
+       enable: false
+       mode: rx
+       multiplier: 3
+       hello: 8
+       dcbx:
+         version: auto
+         port_role: auto-upstream
+       advertise:
+         dcbx_tlv: pfc
+         dcbx_tlv_state: present
+         dcbx_appln_tlv: fcoe
+         dcbx_appln_tlv_state:
+         dot1_tlv:
+           port_tlv:
+             protocol_vlan_id: true
+             port_vlan_id: true
+           vlan_tlv:
+             vlan_range: 2-4
+             state: present
+         dot3_tlv:
+           max_frame_size: true
+         port_descriptor: true
+         management_tlv: management-address system-capabilities
+         management_tlv_state: present
+         med:
+           application:
+             - name: guest-voice
+               vlan_id: 2
+               l2_priority: 3
+               code_point_value: 4
+             - name: voice
+               priority_tagged: true
+               l2_priority: 3
+               code_point_value: 4
+           location_identification:
+             - loc_info: ecs-elin
+               value: 12345678911

@@ -1,0 +1,220 @@
+# Test code for the na_santricity_auditlog module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+# Note: If audit-log is full then clear it before testing, since it can result in expect 422, symbol errors.
+- name: Set credential facts
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    proxy_credentials: &proxy_creds
+      ssid: "PROXY"
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+    proxy_embedded_credentials: &proxy_embedded_creds
+      ssid: "{{ proxy_ssid }}"
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+
+- name: Set audit log settings to the defaults
+  na_santricity_auditlog:
+    <<: *creds
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (change, check_mode)
+  na_santricity_auditlog:
+    <<: *creds
+    max_records: 50000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+  check_mode: true
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (change)
+  na_santricity_auditlog:
+    <<: *creds
+    max_records: 10000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 10000 and
+              config['json']['auditLogLevel'] == 'all' and
+              config['json']['auditLogFullPolicy'] == 'preventSystemAccess' and
+              config['json']['auditLogWarningThresholdPct'] == 60 }}"
+    msg: "Config settings are not correct!"
+
+- name: Set audit log settings to the defaults (proxy)
+  na_santricity_auditlog:
+    <<: *proxy_creds
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ proxy_base_url }}audit-log/config"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (proxy) (change, check_mode)
+  na_santricity_auditlog:
+    <<: *proxy_creds
+    max_records: 50000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+  check_mode: true
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ proxy_base_url }}audit-log/config"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (proxy) (change)
+  na_santricity_auditlog:
+    <<: *proxy_creds
+    max_records: 10000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ proxy_base_url }}audit-log/config"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 10000 and
+              config['json']['auditLogLevel'] == 'all' and
+              config['json']['auditLogFullPolicy'] == 'preventSystemAccess' and
+              config['json']['auditLogWarningThresholdPct'] == 60 }}"
+    msg: "Config settings are not correct!"
+
+- name: Set audit log settings to the defaults (proxy)
+  na_santricity_auditlog:
+    <<: *proxy_embedded_creds
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (proxy) (change, check_mode)
+  na_santricity_auditlog:
+    <<: *proxy_embedded_creds
+    max_records: 50000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+  check_mode: true
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 50000 and
+              config['json']['auditLogLevel'] == 'writeOnly' and
+              config['json']['auditLogFullPolicy'] == 'overWrite' and
+              config['json']['auditLogWarningThresholdPct'] == 90 }}"
+    msg: "Config settings are not correct!"
+
+- name: Change audit log settings. (proxy) (change)
+  na_santricity_auditlog:
+    <<: *proxy_embedded_creds
+    max_records: 10000
+    log_level: all
+    full_policy: preventSystemAccess
+    threshold: 60
+  register: result
+- name: Retrieve current auditlog config settings
+  uri:
+    url: "{{ base_url }}storage-systems/{{ ssid }}/audit-log/config"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+  register: config
+- name: Validate change status
+  assert:
+    that: "{{ result['changed'] and config['json']['auditLogMaxRecords'] == 10000 and
+              config['json']['auditLogLevel'] == 'all' and
+              config['json']['auditLogFullPolicy'] == 'preventSystemAccess' and
+              config['json']['auditLogWarningThresholdPct'] == 60 }}"
+    msg: "Config settings are not correct!"

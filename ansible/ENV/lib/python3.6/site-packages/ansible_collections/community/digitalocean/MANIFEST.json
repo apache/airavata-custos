@@ -1,0 +1,49 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "digitalocean",
+  "version": "1.3.0",
+  "authors": [
+   "Ansible (https://github.com/ansible)",
+   "BondAnthony (https://github.com/BondAnthony)",
+   "Akasurde (https://github.com/Akasurde)",
+   "pmarques (https://github.com/pmarques)",
+   "geerlingguy (https://www.jeffgeerling.com/)",
+   "Andres Hermosilla (https://github.com/rezen)",
+   "Luis (https://github.com/lalvarezguillen)",
+   "grzs (https://github.com/grzs)",
+   "Lucas Basquerotto (https://github.com/lucasbasquerotto)",
+   "Tadej Borov\u0161ak (https://github.com/tadeboro)",
+   "Mark Mercado (https://github.com/mamercad)",
+   "Mike Pontillo (https://github.com/mpontillo)",
+   "Felix Fontein (https://github.com/felixfontein)",
+   "Andrew Starr-Bochicchio (https://github.com/andrewsomething)",
+   "Sam Pinkus (https://github.com/sgpinkus)",
+   "Luis (https://github.com/lalvarezguillen)",
+   "John R Barker (https://github.com/gundalow)",
+   "Andrew Klychkov (https://github.com/Andersson007)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "digitalocean",
+   "cloud",
+   "droplet"
+  ],
+  "description": "DigitalOcean Ansible Collection.",
+  "license": [],
+  "license_file": "COPYING",
+  "dependencies": {},
+  "repository": "https://github.com/ansible-collections/community.digitalocean",
+  "documentation": "https://docs.ansible.com/ansible/latest/collections/community/digitalocean/",
+  "homepage": "https://github.com/ansible-collections/community.digitalocean",
+  "issues": "https://github.com/ansible-collections/community.digitalocean/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "6530ccda43f3bd4c793c7e12544eef5c4612fe1fd01c552b2bb8072d68ebc7ec",
+  "format": 1
+ },
+ "format": 1
+}

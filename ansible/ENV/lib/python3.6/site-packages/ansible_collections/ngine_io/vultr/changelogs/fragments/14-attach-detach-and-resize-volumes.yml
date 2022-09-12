@@ -1,0 +1,2 @@
+minor_changes:
+  - vultr_block_storage - Included ability to resize, attach and detach Block Storage Volumes.

@@ -1,0 +1,6060 @@
+{
+ "files": [
+  {
+   "name": ".",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "445eae124a1f5bb47770dec970cb756d2b736e0e009182ea2175dd3f0d7b7317",
+   "format": 1
+  },
+  {
+   "name": "test-requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f3c3034db738d9dd385446a8bb5275e8cdfa3661206dd97ac783c2f730534b24",
+   "format": 1
+  },
+  {
+   "name": "changelogs",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "changelogs/changelog.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c0fcafb6761cdb68fde8cffd1077e7735797b3ffae193901b388ec26a97fa35",
+   "format": 1
+  },
+  {
+   "name": "changelogs/CHANGELOG.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d5815eb64788888adbc903167ceb07a15a9eab2df908d49d6a871c85ec793182",
+   "format": 1
+  },
+  {
+   "name": "changelogs/config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "abdc4b233c55892747806c9d6132ac05820da64e8e57aa84d1b8428181b6046a",
+   "format": 1
+  },
+  {
+   "name": "LICENSE",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+   "format": 1
+  },
+  {
+   "name": "plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/filter",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/filter/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/terminal",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/terminal/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/terminal/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "467e04ae9e63de658e49375a7b24f643d41d9794581beb86d5576192c6e326b1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_static_routes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4667dc1c462fd95ffdbffb893f8f68c0326c323ed84672e82cf15b8aa058be96",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_acl_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "997f251e74143e434a9192bdcdb6a8532f26b2eb81fd12039e07ae8ce395580e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_banner.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "33abeb945197b4921b21e2b7de3c5537be3e4fab3b8cb566c8b65c122541775b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f5751ea7f9d2c396d0402539789f60be67cae7b3fc0e7f08b3c7b161fa48fe8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_netconf.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e78655a59b45d2856033a04e0b8337b1bfeaab7e7b01b0f0d4630708e24a858a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_l2_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "282f7120689bcaa659b463b67f23360621801676248837d0263760267c0b9993",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_lldp_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2a3a27e710f607784c7cb571b35bb0fba36988a75b28ade647bf672f7fb32849",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_lacp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7bfde7a158f682fe99b072050957fd0ee3cad57e7b03430729f209e4daf13132",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_lldp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9ec15f89ee0d33a633cde851a0ed534700df934f3415c5226d07f5cd5ff6f7e2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "993677624fd3d72670537c2fc75ea82766d297efe8ab02184b6829cd3f9d53f7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_acls.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ef4262ad0f1389dccf0e800ea0e805a6d2c5bd0bd9d97b7696fce72f66d8f427",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_lag_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f79d252d7460b0c2afd73850d39d964a8bb15e53a5f5d27039b0cc898711e9e6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f05e6c2d7d364cabf7314bdde96f210bda457ac434f2cf17af7f536bba65347e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_config.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8482a5c263f39e9cfa7a3db19e3dd3df1bcc2a2459ead4ab646e54425224360e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_command.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c8caf35b203867134eaf31419472a8d3c973f6c8e46d413e1fede7d3200c8cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5adba9b0ff2cbe2a468d96ea253a190483d2b4c87b8f234342f8997eaca7869b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "46f3e6becdf80acd88f881d960d6be164a4f025eedb266f1d9061d1ce49868f5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0285187fcc13312681406940765cde4828d0bb5c0257bc2194d57657f0399728",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_lacp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c179dfdfa9c25c1cb204e6858114d475ac38474e8c40e1452ddbc9ff8a68cbe4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_system.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ee20eadc48b9f164603845ff71a19c72ec5eb60e42a6a4e8e5dd345a302bc458",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_l3_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4fa035848c073c56e2385b8171dc5e7544084146ffa7b729ec411d59c6ede95f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_logging.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3b3317fbd94f3ceec1c32a9237f5bdc48ee98e132e10e34b9680dc8067a2bf80",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_bgp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e335832dde0f7b4555b21fbe5abf07adc72e32af32a89d8c9015140fa561155d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/iosxr_ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb5b43beb548aa7ccd0f296d49ba1d61de1c6c119ac96aca34338089a8962aab",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d4036427d7ad91be3f9f39bd6f84418e19b504e2910af31ea922e17152d8ab34",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acl_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acl_interfaces/acl_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a3f3eef1a8283e8ea5b787102dbc51fd99d9827db6818cafe5c95ee5fff12ac0",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acl_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "802b358a2230ae0f01b7f4fd491f6d58a3aeb9caa6aac42ed9f27e98895dfcfa",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_global",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_global/lldp_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb38bfebbbfd4eb54f0c5eefff90eb4d4e08eb53a8c283aca3ffbfdc3c3ce296",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_global/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_interfaces/lldp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6285fc62d4b69dc85689af932c7a2727ec96f888d4a092d25344cfc624ec1d45",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lldp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospf_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospf_interfaces/ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "014e7b9fc324e9ca0b6e1c81e146349a7890969be72c1c839024d3681c6e6a04",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospf_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv3",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv3/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv3/ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e82c00186645a179edaffa9a8bf821c1b1f2b5ed8c758709d9c0beb0e5165f6b",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv2",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv2/ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e595db1fb5560f6200e76b4ac21b4806527cd2d7c14e9f40e0e0192f736a05f9",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/ospfv2/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/legacy",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/legacy/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/legacy/base.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a3ae541948810a0f8c0bfbeb3e521b3eb434cc4d923c3a8b7c9dee71d57d6942",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l2_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l2_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l2_interfaces/l2_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5b15df321c0d14af58f5e979eaa5bcc02a5e67f744aa9b687b3c1e7136388da4",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/interfaces/interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "07837ce8a8c7fe7b667d9c57c485410d45deae38873d9e46989a6277685e0b98",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp/lacp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad37d89c606c0cee6f71737a4c79a7ab508c4a3c7f4c1a9b5bc1e4bee731aa49",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acls",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acls/acls.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f9f7a90d0bc72ee5df009f77c9bd86b76f220906577179556967b3346852987",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/acls/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp_interfaces/lacp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb25f1d7c7a22849a2100b615832df34925c971b9e33ce33d05fe81b34365991",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lacp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l3_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l3_interfaces/l3_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ef8d3b20e6146008634cba321d0b7e524ce94333154073a686a86161d30b6cd2",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/l3_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lag_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lag_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/lag_interfaces/lag_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4b338732e667c8b10e0aef06af6e17dbff0ec3c73e1974e5be381d7663317c75",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/static_routes",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/static_routes/static_routes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "922c0016c8a51057b9367a0fcb1bdfce778beac14810cf107c69baf8185620fe",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/facts/static_routes/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates/ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3e0f9980f9cb5bb2c7613c39fa4b637b10bb5270a937e1ce6be8050667be5573",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates/acl_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "369d020fcad32c8eb940b0f7dce87ada19ea059120e1da4048cfa03519c78174",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates/ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "da06d1aa13d79cdc2c44ef637caef3af806489d500f2d277bdfe5f4d242f2a05",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/rm_templates/ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0912a19da0e67ea59c89734df9579ba064928802d572639a4fb9e035d8f1ff81",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/utils/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/utils/utils.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "06ecd83eee8676e27212eff14efedb25b0c87c958e3cf468bf3c4dd991d22ad3",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/bgp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/bgp/neighbors.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1f0fe02a5b90312811821234526a3d9347ec172979c08887f9328d754a3af3c7",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/bgp/process.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1f7688872e43e58a70fcfe2794e20713abf894620e0ef58ab5bedfd52bfa604",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/bgp/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/bgp/address_family.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bbd9d47ef4e765f7234392bbdae8ad3097550cfd4cd548e8291f70e834c6d43c",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/cli/config/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/providers.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1e40324ccc5b05d7a51c2a6d604362a4e80d92919581f319dc1b4efaff17008e",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/providers/module.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8447fe8d9b72ba930a6f122dbbfba2e3e69d95e715f258cf0db00d2238efe080",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c28b104c4a8b1700fcd2b27192584a2cb8784e18835ab3da03f075115cff533c",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acl_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acl_interfaces/acl_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "94329a82cc6e01af58e9d83b6c62deeb0ec12d8b5997aa5ce092305346481d57",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acl_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_global",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_global/lldp_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1db99aa643eb0ceb0c854294ad1a76ba3ff9df2eac39d0942c7ebcea4541f5e7",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_global/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_interfaces/lldp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d6565fbfebdb82082df6515d03da939fe2973567e956d268e2c036eea7501477",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lldp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospf_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospf_interfaces/ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5c4595541af2551d3c8288b6eb5ae8cddc106bfd4cd81eb7363eda9cb4069e56",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospf_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv3",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv3/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv3/ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f00583e6194c4501cc7151b52c06af8ee02734586f1d1ef020c4d0a045ed5500",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv2",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv2/ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "85aa7eff9f7a15838859354f22001bae07131763898e3c2e89b17163c07637ed",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/ospfv2/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l2_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l2_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l2_interfaces/l2_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d9015280aebe553c0ab314bfd738ddbc2d4c82e059292033c7348f02b02a412",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/interfaces/interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "633a87dd870bb8ad9705b4c85aad149015d89f15b25fa8d6a33b51c842aa267d",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp/lacp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c0e9217f94de5490fde99ec8cfbb4355d792c320dfabb3621541ef278d4a58a",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acls",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acls/acls.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8d80f17d8b1d3e4b905b74efd01e57322f41155824ae76a2c91f2464e6970f66",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/acls/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp_interfaces/lacp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c453e997bc6b9551d988a334e8fd057621eae22a6963836a4d3221f90c3bee45",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lacp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l3_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l3_interfaces/l3_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad96804e7df1d14ffd2eae35527bc3bee07e4c03caf8f91b2954984c3c15bed2",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/l3_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lag_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lag_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/lag_interfaces/lag_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2dbcdfee62503e98d182e0607275e24858bbed8db31625a89efac8929e798c60",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/static_routes",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/static_routes/static_routes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0caac77796cd33abeca3624b6d4ba29ca8ef40e7090d04f04db118068791e96f",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/config/static_routes/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acl_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acl_interfaces/acl_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cce504b4e4ec93a8feaad5280cb0cf51935f1caad15efed7d0d3a0d2455c632d",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acl_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_global",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_global/lldp_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7dde1b9caccdbeae41bcaea288ab37a40eb1f66e1fa58326af8f13f7a36fa1e0",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_global/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/facts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/facts/facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1e016a9c622b391dfc45d799e53567ffa111892a102b872a320cd09c2dfe866d",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/facts/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_interfaces/lldp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "afb71a2a28a1b07ec1a81d4d3876986cfcb136f0736dd816248ceed4fb89af17",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lldp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospf_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospf_interfaces/ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "510dfc623241f91c7bc9395178d84baecab54d377985c0a6f5ed790f2fd1891e",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospf_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv3",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv3/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv3/ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a70cd977f22b1812e9cd23e041e52390cae1f221f9409c4bc962032dbc37b951",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv2",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv2/ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab84f0e6dd560a0d98982f056d58dc81fc2084a1a98faadd104c0b5eebe4762c",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/ospfv2/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l2_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l2_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l2_interfaces/l2_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d54c83221db6effdf8329ecb56f8d6a7d648775ef66073630b4c52c20e74fca5",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/interfaces/interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d161df41b6c6ec712e6dfcbaf02193e17f053b2e33a7988920e076b46d4a8a8b",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp/lacp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "15addbe1a782a4af2d36f2dcbf3bb784abb5b20c2d5a3a3e2408db7c9f68dd74",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acls",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acls/acls.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5bf535800a3964edf745b15e28d6f7c5b4558796d0a1027fc7ec181f7287ccc2",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/acls/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp_interfaces/lacp_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cdee15d3154a7b8142735bae3e8c33fe0d3e7c6ba2c58c9a0d4f1bfd6c613f6f",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lacp_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l3_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l3_interfaces/l3_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10653524d7f4d186beaca1a1fcc2a4d82ff29eabf0b7ebe658ae9725fc65cb10",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/l3_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lag_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lag_interfaces/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/lag_interfaces/lag_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "db5f3a940eef2dc2c232e6aa0316dcbeaf097b4539fe0b5d636506cf15fed9ac",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/static_routes",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/static_routes/static_routes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77e910a1f0f28d68757bd8203a4c91466a51e04b3e55348207cd229232f7059e",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/iosxr/argspec/static_routes/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/network/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/netconf/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/netconf/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "332075c1a79c8cf74988a708123d3ac685c54a20b2ecbdfa6ee1cfb33ca4a873",
+   "format": 1
+  },
+  {
+   "name": "plugins/cliconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/cliconf/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/cliconf/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bcf4036628bd6a2e974bfba1ef470af75300b7b2998f303da3886abbc10819c9",
+   "format": 1
+  },
+  {
+   "name": "plugins/action",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/action/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/action/iosxr.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "757b8897cf2d3e41b840326c12ba7bac26964f7d9b7db2fb3df54d85ec1d1aa4",
+   "format": 1
+  },
+  {
+   "name": "tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/sanity",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/sanity/ignore-2.9.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d66d9c2176146a0cf541569e6d8ae8b1314b5fded8708e116ac43447527873b1",
+   "format": 1
+  },
+  {
+   "name": "tests/sanity/ignore-2.10.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d00606e57fbb8dc1fd70d3b23ff2398c5c31ce53cbfd68688fdd810d6df019f7",
+   "format": 1
+  },
+  {
+   "name": "tests/sanity/requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8a4ac4bfdef88e75d6e748e35a42fb4915947dfa2b7dd788626fd829600e014",
+   "format": 1
+  },
+  {
+   "name": "tests/.gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b5726d3ec9335a09c124469eca039523847a6b0f08a083efaefd002b83326600",
+   "format": 1
+  },
+  {
+   "name": "tests/unit",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_ospfv3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3793dc659fc0934c8d83e9b0b2fc20bad1ac32e41aa45199e801f9e5ff1d6ba0",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_system.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5e30a55a0b49ed300b160e441b6e2d3007cee03c7b07163f5060e23fdeea473f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/iosxr_module.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "def63fd47add5418789d93e11d3949ade38de3f09a66ecd8b20fd01f4d511e8a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a561eac2d4ccd67f9f5a5438031cd335d3b47693944edb678f62babf3555f851",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_netconf.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c3726605a47672fbe738d5bb95d492193c8b071c297b0a92576fdad91ce87cb",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2375fe79d8f39c4e5dbef6d2eb6f726a2f584928728f0d4ac25841840d4af91d",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_static_routes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c36b2e27259a09467d9902d1a2c734441be908603e304f4de056712ca6963c2e",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_config_config.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6fe81e446733fef4e3643a80042ab4111b9b0c927599c4b5972ecea4c18b4ffd",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_interfaces",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f7710c99d663a4da8192b24b35157411e23a037a2a4a989af21eaa44dc4c850d",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_version",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "089ab6658c475d1146f913b1cdee2671b46051958e2b7f562da626d327456726",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_static_routes_config.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "32ee56a46ecc87911222ff89e44693c8ae2cc8464170f8b24f225d082ee417fe",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/dir_7all",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c5e2c218c5731bee3f874af0bc5d5694a426ceba650efc03795a5739235f0120",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_user_config.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e387d5d8b668b1f290872aab2a3e8f8de3d4bdcb99906b8bbf618b950f0c60e9",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_memory_summary",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0fedc43463c95b152254b43d741b62c704ffc82b2707b758d1294283384c4e0",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_ospf_interfaces.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "17444c54f6bc1f9e356cbec7c9c2ffdb4a4b42879aeceff12a7a809e8a6735ca",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_lldp",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4135607fe98acfedbef4f2d3305b4ade7e5e833130f049f310b68f32ce451c66",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_ospfv3.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8a6d31304503f7cd58289c7ab493bab726a003a69dbcfff3177f82e051180ff4",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_config_src.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57d42d2e8e8b7a4b6cae566115ee42fecea077b525cace10cefc3b7dbd85f033",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_version_brief",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e4eb1b26a35a3c5bcf1e45eab472c8d59ff0559cfbfe701cd60c17ee6d9d6957",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_acls_config.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "59430ac3ee2b54911b34f033b88f76f5099ddcd4fa2c84c363ec0748f202ccb6",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_lldp_neighbors_detail",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4135607fe98acfedbef4f2d3305b4ade7e5e833130f049f310b68f32ce451c66",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_ospfv2.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "27b9a4a53478778c5781170c052ba66bcc09dcb40aab0709d28018f6cd332126",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_ipv6_interface",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "151235002e58119649b79a98cbacb5ce155225e31aa0188dd8085ee0961feacf",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/iosxr_system_config.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "18ae20e11b3f557435b212a739a50c59c95e4162dc13989695e6c14ae35e58f7",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_running-config",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9442b8aa3e29caa5725d8968da29fa173e998d7c664c92b3ddd66a7aea76a71e",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/fixtures/show_version___utility_head_-n_20",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e4eb1b26a35a3c5bcf1e45eab472c8d59ff0559cfbfe701cd60c17ee6d9d6957",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_config.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "99b72b70e776abc53d5943c430f1ad8179195a37c4294552ed0560d6f47d090f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_ospfv2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2881e6402d44975a5fd818023b2810f6186c8050748d31bca9d6a4228ca5e620",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_ospf_interfaces.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "df39e72c8603aaa7199a29b189b9594a178986897d4792c428a3db7280f72a85",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_command.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3becd7ceba917cdb6152fb0deb070ee19cc7bd11154e30b0102187f5db9b5031",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/iosxr/test_iosxr_acls.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4dfc0f525f331013e0b716da3b1eb402d108251079bb7cb350b7f6d1b706e7f5",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/network/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/conftest.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2af4846e50d461a131ad3edfb609fbb39a9eb1796048c62e4ead8234bcf5c6a1",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/modules/utils.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a1413ca906b0ea8de94f1c3cfa100b421a5b01f1dc40a2ef63f049e8411ef83f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/compat",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/compat/unittest.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3ed698b1faec43d87a2c1ebcb15a2aae48b09ff355bb9a598e5f5a1c928dbb30",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/compat/mock.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "92c05c107e3254b8c0e3ec6fcef2be9d36255008b1d22488e48e554ca5ebb70d",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/compat/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/compat/builtins.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ba13a350ade8ef804336f888d5883b8e54f8bddfb9d0fadc10277a8ca6540f4e",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "49ba996dc4735c3463e9af561344346dfae14bcc1a68096ce78364b377f0df1f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/yaml_helper.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "94e2f3c867d2582c9f7a0e99e544718e355025c4a51c9925e70158fa89b3609e",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/loader.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0cfbf4c710a5d5725f84d5f34ab76ec1a0e853397cd945c90fd97769f89dddc5",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/vault_helper.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "feae23166b6eb502f7d9b77c314970516c9a99aaad7de01295b4dfdad53c5c09",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/path.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "53bb779a7669696754c1bea32052fb5b6f93e0fdf843e1d3cca36862aeb0e539",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/mock/procenv.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dbc77e7aa7a3e236a676c228affc887adca4c82ce764f1dc4938463992808787",
+   "format": 1
+  },
+  {
+   "name": "tests/integration",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/network-integration.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d67b11263a8f50b30bf43c7c2b4bdd8dc4f173f0b5dd22761311360dfbd56a1d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/target-prefixes.network",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "60c1f89345b308be75e572c064735f2fc749d9bb89ef936f14f33d212582fefa",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "43e211ff2be29a1695024c0c5477e4107c0aa6866eafc18c1d89fcf4bcb9732e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b535abaa4359adb10027bbd428cb9ea859ba2c8e440ddca1bc487a5d0f8bee48",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "48c54e7dd68a06ad182239166357d72c31e708f468c479c89552b926cceae9c6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b8218f3c1610ae394c49f23d30bbc4805ed119afd4bfc76e3b9fc50ef839bcd9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "07241fb0e9cbf3884bc1c29a8410446c84223339b54df1277fd0bd651164956e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b5e724b1e3d4af1180b806854fe9f97eb3bc6576382c70d38c63c8f6228f007",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "12fe077aa8d1066b49e853c3cc287b5584aebefffb9fa81964d6a5e8a029f641",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "add273b22d632699d86230ae4268c1445f1c10759eaa2a13dd7c15413ab737b7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4096307ac120e94447b5d22b035955375aba4f10fa2ab83d18f8af2d50ac8e5b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "be9488078cfc215d6b02fc46e063cbd9c5dffff4ea8eefa8eea0eef53de7b1db",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0141ad7c14a94c53d284b7bc917d8ed146f87bbacfd37b70fdc216ae3ee61885",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5f69f92e46aa5661bd8bdd0ac6ecaf7497db0732b5fe1a8e2da13eb1a1318ad0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a15baf460706b8582ac802d4392e3037101cc9a9bc6a73cc8a9edbae8226e1ab",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec4fa30fc4a7b9e002d1c7b3932286ace72ba36e4f532e2cc79f49d07e0794c3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l3_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8bb0f6a9c16f4f45bf0a6d8138526e3b2292689ed10c6805c3125b79f60bfaf8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "27cfe3d5911b55b4595d7b075c3988d0bd442b0e5e2884453b9179f7b4647751",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8be7ac792f388d8c3a87b62f6200b51b5bb1f256e4df34aa9adf259b6c99b5ef",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5c2cebf9171a9e0be32861c815bc196e701de1f8563f630f2da6aba28f765853",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0923adff921d0e4de4105214951d027ce19bc185740a58076b79e892ba3c085e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "22efaad73407e942e8dbc0c169249fe95c0708d94128a14bb179512cf1017394",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "84e37db31c9e53db90e934237cfe3c0ecdff5a550b413d01277dff0666438e3f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "76ebdef5a5ee76343c0b67c1e43d6e060f7b7b49ad5d635a3084d84e6eabd3af",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "93cd8ccbe893e42887580c016bc62f606dd7f9c5476f9e1968f82e6240ee05d9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cb65d3bdc0b39c5c5b00eba55af8ea91ff85b7ab162cc46a8e58c425bc838b6c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8f326a4f98d10e69c3a58b40e713141fb58aae383c114a8dd61561c54954373a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e148c74b09c0b22e87e8e55b815a0250281aa8daabde38b951b425cfbec2442",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2335eeeaa4ace8094a5daa3fa60d634693f9b07c483babba9e3c6c265d77508",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_static_routes/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a54c117eb0f0891dd3967377157c9751f07734b67a9ca1fa359535a644e5fe13",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e5e8635685d1cf9f914f590c4d836ac5ec30a69e596ca80ab0588f7c72dffdf5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "616b36bd1930bf54e1492f749f8319afb947e7d845791eccd078f091a422b3fd",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/_populate.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "264a8c0b8cada72e14090c9791e6798f0c28202baea158f42424b8d87e397ba9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "48ce40d16eee57cce3beea805938696e99d93fc4e30318f6e1ddf5fee8de4a0a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "09906ee86cc2c5b1a515dafa190e3576def507f53ed9563c471db011ab76eb54",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a83663cb7e49f95429a2053b940681641db3af45be2515c4524d97294a6d9be6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b2510cb59cc827cd9597ea07d906ba48a38252016418bc6f4fa4442eeca91c57",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "13333546167098eafc10253dce20230f3f3b7687a07a918aeb1c4752c8610f66",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1a020d8a69aeda43a49f410ce2fc0c8b388e74dbdb3bc3ad77c021462a6b2c8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b66427a9463b4fba069c1f986a69e96f41b353153b8c722dec871eb435a2a31",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b465248b3ed4cc3dba91bd97095052880845c905452c54760651e1b622de343e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0dca88a635c4df7935a64b62dcc4e29afc8ea29e79c5a69790d9fa39248aa593",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f6303a1c157aa43d3ed0dfada52fa54d6e23ac300e8bd0192b46760e24bc7f81",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3745bcbda25a847e68a067ae213b4c5f28e09749d7930b535aa6d5582608412f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5b599806dc1e9a93b2066e99a74e3a38f525e6cfd6b2d29f0439bbf160624f96",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e785c692c44e1fdcd006aac67e0dd469483dcffb212f129a7c54f5c41e3784c5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f4b4e2adf8ee4debe61d78d7f4b32953f7a756935246950b5648de39b433fe",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "02b46d715d998a51eecc65973e02e8b67cc96486953d6df2a567c47d4969945c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8a027624c6fa1c9f737b05c3d38065c7fda1d6f94cd34f52c7c5c37992410f7a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f7b9ce25078f6ab45f83789648b30900aa86f2afc1400491090816f8bbec9df1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ae753ba768b9b68abbf018652a8230d66e04d343053e221ab97d9073f7f80899",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "af60093fa5b2b70c9a49d9309cbc5472c0d52db3954552e63890ed3e66a0ad36",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "20e48336887c67da6536c6c7ab606f61de00dc9a02e0251a30ee1e566330fe32",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d11bd78a2d74e8dc46a2880b54b3500e2f88cc4e3e6fd42a249138556e94964a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "934f6f7a277e34f616d5459e1989f9e0faeaf4e0a61444289abfaf37ee120659",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospf_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "afdc5ba7f0888dd67f958a04419f06713f71671f16b66f754cb9322c3b0d47e6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "027d22fde5f7c211b58e9ec9558b559bae58e826ebdba35a6ef447b38a2ba6f4",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/_populate.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77726b8cda1f319642e5120c9046ba1bc83d6d740b65651926698d0e81ffee80",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0a53a4cfeb9780a5a3f92b2e9de9f212331e9b7b089f654ffc881f6207c1f88d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b053b09f9388c7f6208c51e8b9e53867bd6352bf37c9688f28b02ab348ed3767",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fbe39661405e904c9b5c5d44d8930d77a970ac6dd0678928cd694c217068f386",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "be9449d3c5b834037691283129216a5412ea04f0ca29e0cf0f61fba2e48b717e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b81de3612853980a891e9dd857b58eecd173cc9a66332980193964fae74be491",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c556f462a4bbb6ae614bbfff91b44c08e1afcd0806508dad6b0443c3e15d0f7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cc6eb54188aada720c9f28d8330869007b39e153b43979aee7ca468cfc24ad5f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "600a13d3c273d281ef9459b57e0f410b3ebc257fecc08f768feb7d17bf763a68",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "28efea0049957f8eb23160dce61b09a38b89b1fa61bc53f4f53b7f809b4eebd1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/cli/basic-motd.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7a44af81bfa24e44efc39d5e21900a9a7deae759f75940d737dc63a7f94b7dd2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/cli/basic-no-login.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0d7660a39a5eec8bd189f135d4ec50e5c1b24c1382c8509e2c16f0c881d78b67",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/cli/basic-login.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e641b60f523c27a9cbd306bf7aab90518be633c22067e2b5240eebf7628abca",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/netconf/basic-motd.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "397891b7d69315e72a073956f9762f0588b2d4eca4bf69449ad608094b17ff6d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/netconf/basic-no-login.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fa495a963720cfb63f16e37eaa139d646a8cde6e754b1bea6911b04fb6511ba1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tests/netconf/basic-login.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2fc8cd01d0b141794a008521670e5d7454df687a247bfbd953874fb330a92cbe",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "190abeacd88f15b161e12beb10157c146d8d51df6d7eb0e7c11abfbe70dac0e7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_banner/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "31cfb1ca71bf9a422c1b29c516d44cb879dbd4e6f5735e8be27fd4e8099d0490",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb66720686dcdeeb2c23a88b66b11666b7f66fccd425f36aa15e10f11d4b2055",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f86a36a7d796eb8e87a197360380c81bae9e72403da205852288508e03bff892",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7837c657f7e9a274b42d4a24cbfb1d5642e615225abedda7a69f2105b12f428d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bb12466312e5733309eaabab1e0c777c50175e77d4412ff66f770dca3a8cbdd1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a69fc90e1abe390279edff54a7df34d0fe64cbf54c9f58ba588b62df6bfc8a2a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2329fbd002ae7078d3804fb64f9f4a5b16329824aa532c05d77c490e66a2228",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab00c0cd1495cf4b208b57b938e217433aeff919e76da9a9519d5671f764b2ae",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2dc35edb15902e5bdf892b4ecba5bc6dd3ae073340d6ce2e4aacfed713248a7d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7a76f4b2951d08a3177b800e9d91d9c732a672281fbb2ecf2a1544e5332e4f9e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e0d97189c0b7eb7675266020b4758a2859d44ad8c3118c6c533ad63e575f7b7a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a212d2a103dc8062630508d8f9c5ccceea4ee5efd68b9750b8abb505f2ae47da",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3b34c0c85643741818360d5c423c01170201efa2f106024ee29d77c43baf3461",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d709bbb76c9b147fa2300279037cddd5865131a790152a66a788ff999d4cb6e1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acls/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tests/cli/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e42b6d0a58fa927942ed7af4b0d99a57dfb96fc33c946ed9c714a9de75986ffc",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_bgp/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "03c73c1ce648bd2159b91cef3220d52324a7a5e3877f403199543c637c13d6f3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8bfa536743433e0079566eac32dfa10849255f4da2e765c64ed0e2a951ba308e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "14812527603f825ca610f79736c3b2458b2bcd275e3326fa26a7daf5d6a391db",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f72c0f3cbaacba74908e31af49ea52c74269e97ec3dc651c0d2c0475672e2edb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "47a8c375bd4d77f371f4b7db372756bfd619aaca44e5ad99e8b045fa9c3c5d06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1d7b3fa83a6dcf767633f7258ec977dd805bca495bfb100a9e3ed837324a81d8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "89576040392a674c9fe8a8fd5a2415af6b28acf093d46047712515b4913474c5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10085a2c4317c52c8d4da5d3e14cf4242c6ad591ba5c96a32819cc7e45206079",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d09a6dee989d0adbbcd2c9c1ea8b87d68dcddffead2202a3111058f0a6c3b1ad",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "363b709312362746ba12cee67204daff50e8c0062784a6d371db38d53661c912",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b5a28be618d4ca93d0a40679321ed7458e73d92aeb6be03867eebee8bde8c3db",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "79537223380b09c48326da6e22e02f21dcdd19a3c0d777a57031b743f9fef4b0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3547bdfd2ad689e926e5ce4f36e680b06552c752ac73fd3ad092c9dfe402fc9c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c4de7c47f2b8925c29801c2f697f1cd3a888331f1c57fdd66883eafe4e7b5584",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lag_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/configuration.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1fd4692dc95cf561f544f8f680c9046add01c85c6fb83c17db2690cb854d3bb8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/change_prefix_set.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9ef2a7080051a1b23e1fbc6cf3bb437bc99d89a735d1a3c23f85672a5e31014",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/route_policy.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "83c3226c2070afbe01cde658ec7852261ac925abed96766989888c70a2f8bc92",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/init_prefix_set.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "92dec92ecf095d1c33c493f4769541caa745787d80e498d6ae81decc93351e0a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/config.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8a1d61def7b5db197597c56f0c6c31f6aaf16ab38c990e99e386305f46ffa6a8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/route_policy_change.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e876ec5c5b2ae5f93154312c627b80b164860f49bc6283d5184ef592c7cdb1a2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/basic/route_policy_clean.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "213238a72856965973d969bbc5afe4fb6f21655ea1f9a2e8ffd58fc80b6a0489",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/templates/defaults/config.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "63cabaa434b59d994f3d56383ce682f57335258c9275f2f3db142dca3ece356e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/comment.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5ae96a07d00ae791d8814019a9bd6912d1d1861d8d97ec7367a951732538ee5b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/route_policy.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "223c0a0e5cc8ef2175c8f59814291bcf8ead8d8d34fb82f660655d6fad2a9b53",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/sublevel_strict.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c33f4502f82499a59e2acdba8c4bdafefd7b8ba878c3600f24c2cdb75c77f751",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/toplevel_before.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9221bd5feab29374f57f6a49a2bfd1850561c9ff5de825e4b5893a02b8aa7c3e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/misplaced_sublevel.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a4565f5d3caf86349a6b20861984681534ca099fc2eef871f69ea996879e080e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/src_match_none.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "568329f352ff9a731a8169bd936cb7bd88b948eb42be09e57f441f817a596bf1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/commit_label.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "506f066de485bb4366c348b7e8f1a965b8dc261cf486c0c820d4651382cb1366",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/replace_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e365cdbe0305fb8ebd82ad1a08e4421629532f7c851fd9f23716904be6ac8043",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/sublevel_exact.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "056077aada0da146880cce571cb4c3fe13ee75a314ad74c0265e2134c7cd0a84",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/src_invalid.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bbe8bfd0a1efa1acd89ded22d3ef6eb3c9523678d7820a8bb5bbe88a094e0f72",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/toplevel.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "480c9a149f7d17ff2f86aa51ace917b16ff5f23d03ab9f103fe9f535c8e84390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/toplevel_after.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ccd2e49a74a7fa5ef2aaee1d7ef39e1ded0fd6aa27966001032bf3c2d99931f2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/sublevel.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c3dec8392ed195964672f1a0ae74fe7e214f4ee3542d83d0adde38b84b75766b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/toplevel_nonidempotent.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "21c43fd562d62435db0af5b03c6104c03666c6be646a212561878f343b767819",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/src_basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c52f6a8c62a96dcfff611118f83d5e4c562e03cd72737f66f4cd2e95bd739de",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/sublevel_strict_mul_parents.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b6c391f806beaf3474d65555eab2923c747a218c0a966c08e6975b01b5b820f8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/sublevel_block.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "14b7b67fbe3d5e141f8a14eed092ecefc8e7476a774aa2fc21c85915583796bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/backup.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f2339914583108ac68fd6a448a0ce75d00aa0da235ff2ac49d66be0a162fa19",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/prefix_set_remark.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "418f2968defac06af79b0920a6c7af07a2a6f66d0dbc97c9c7b14aafbe412918",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli/comment-too-long.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b631b5e63ff83ba8892d97a7c556203bbc2b3616e71912c136342ca5dc814a39",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli_config",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli_config/cli_backup.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8e3dc4e968e2149e65f78bf511fd56927fb8a0deb33233b24f6205f38bd5d3d8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/cli_config/cli_basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "db93483ff0390cd576694545907a377fe21b3357bc8b83ec8dc3f9a265b551d1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/redirection",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tests/redirection/shortname.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "586a928e6c3f6c7e1103a55e7515a5d977a60904dd77d354e16d9367d46c3393",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/fixtures/config_del_interface.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd232ca03ce45663aa31c2d1d3035d34a9404325a787d130315cb25c6768da7f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/fixtures/config_add_interface.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10c5704da15d8c2c23f8a3e4005ee50843e5244d7dfdd5b397537bbaea299c5b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/meta/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cb0eb9495a97d94113e86ce70c78b774f2788ea642aa2ccd18efc740f056f626",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "31cfb1ca71bf9a422c1b29c516d44cb879dbd4e6f5735e8be27fd4e8099d0490",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tasks/redirection.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "24c235a52dd3f178bf104b6909e8852323ae8c7e31019efd6a86452c621c22a5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_config/tasks/cli_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3b49a8fe96428a8ff73c067c2efb3fffc30d0986cd48994b88bfc3ba148b51fa",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9487a70ea6b6c46733030646171880120914099dbbb5ee23d02d74dee8629779",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea248765e98099b7b2019a8dee05687abf9538d3897ed53aabc850eb64ea69f7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "37e97d40f5ece6e31da74f566d7661b561d2cb9de149c08470312dddd4632d3f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/_populate.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e8ecd186c842220523445b7623d23e7a3cec31dca381e25716cdb8cd894067ba",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c85ce351a9c10632bad83c51259e023f68b8beda416fd253e5035b1c01762464",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2d60ebae8ece4e0b0b755137203b5ea618f87c277f2f8b605891d29db7dff83",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3c7d168e78d262be3e22279d77eac23faadba9b75543aed00fc3b8ea88037dba",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eed1547180bdc0630f77250a118244716299170831e5b4761b9e62757b6702ca",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a2417b9f418c00b16921d12449a6340bb92cebc21a55fad7582a19e1aeb34357",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "405bd74b0af982f23a0478cd6fa23465cb96fb6ef550a69b3969ed5bc61bb358",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "598e0b62bf647e769d16ba01625b74ea23087439779c23d7445410182fd0baed",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c7a3e5edeac0c518c37446c999c361e1eca7a8a4d40a4b7dab96e99fdc89e2e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "29a8acf3766df1e54abe6a3dadfc393571647722393b132444952162b30a60ae",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lacp_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests/cli/not_hardware.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6bb48d2fc105bf70d6a6588d6159f5a7154f8cd5e53ad3b828c3657fdd8a42f0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests/cli/invalid_subset.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c6c4691c1b051e05d76778de367c44f6f737f857fbf7b555c6703ee345a8a6e6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests/cli/all_facts.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "def6cdb1bb85ad5f2dd94243094e7a27a9d8b85d59b0afd535a209a66878cc5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tests/cli/default_facts.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77059041cb45f20b8ca2dd9a915eb3cb864ce18325c162dbe8312638c2931af8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/meta/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_facts/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "03c73c1ce648bd2159b91cef3220d52324a7a5e3877f403199543c637c13d6f3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/set_domain_list.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6fe20d020c2d55d0449771fb39a92387ff06e474ac8f5b75569f6ca6238e630b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/set_hostname.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "65cb14ba37d93c75860508494678f4f332b99b1e3ef80cfae596efe8ace975d6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/set_lookup_source.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "53cda39cfd8bbb13bce2958062fad4776c582b5a3b7409057baaf109c48fcde0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/set_domain_name.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "429379d40cdcf6f5a5ec5083a6668c35232ae58cbfc2d35f806fdc534f9d57f6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/net_system.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d066b65327fddc5ebb988daa19afa503b6af3ccde750f5934370ff42c4060f91",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/cli/set_name_servers.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "447f9cb29635a711722d47d98f2fc24d607c0675b0551fc2db2d6d608779421c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf/set_domain_list.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0d7c18d4b50fc97835c921d36699769f81d56b48e08618cc7b501ad25ddd6a55",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf/set_hostname.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "06731e212efa0967b942123e39dc3b5545f52d3f80300fe53209ad29c4b89db7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf/set_lookup_source.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "feb2d072b3575c422948c68fa0e52ab35a79eed4b0c4aed8929570bcf6156233",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf/set_domain_name.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ee04d41b5c01613d6395b66c430274ff3c95a5d0b1c292f774d565cfdbb70571",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tests/netconf/set_name_servers.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a90b23a80fdd0634ee3c80d4175b10c79afc85364ad493c23f7a7576c493db76",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/meta/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8e82c716422654d049fd043bbf84d624ed532f96741e032f52f14c19e970d3e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0434014351f94d6611d1f4e7b2cdfdf23ec1ccb86b1b33986f410820537e38f1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_system/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8b9faf104c52c534386b8e738f64269d6a8f2ce95a9b82d43e89f5d2c931b0c9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/prepare_iosxr_tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/prepare_iosxr_tests/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/prepare_iosxr_tests/templates/config.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7ca941952f4366404a261ceda3a81c9c28257e7c189280fe107be2b643565546",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/prepare_iosxr_tests/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/prepare_iosxr_tests/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "be72e331af68859c94e6106693906f8eedc7e0f1e0f1871cec6063d6573469fc",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tests/cli/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77f22d17431b4aaf868d0ecb66af6baf4087e83cffcd2b94b27198e52782e34f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_netconf/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "03c73c1ce648bd2159b91cef3220d52324a7a5e3877f403199543c637c13d6f3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests/cli/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5bf1ebb8c51ab33116071b2db75ec0f4653f040f797c8d6cff4e953568960559",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests/cli/net_logging.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "443aa0b0afe4c3d230a88f771c9a32a5340ffa1afec23875184e182a857a1872",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tests/netconf/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eed5fd4e7e1bcae6ed1b1f0c3758ba9398bd3c1918b834ea0e2de52ebb638e73",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "383275b8234d718abeb21a0c40146f428189419f122d03b074331e71d462ee8e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_logging/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3de2f427f12d15af36a09be6fe89647b1f82ed8a0d99985194c460ae3b9378ce",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/cli/common_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "524d04ed70b825db5543df8469f0d184d65ea7e10f28952b437cb7487f5e06d8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/cli/common_utils.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bc1d83f2bba36eca3b1536ccdc8f4e682beb41953839fc27dedfa79a917aa623",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/netconf/misc_tests.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "795c408df67a745b03b0b60c86f989d51262551fd365d0b844f334178dca7d47",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tests/netconf/common_netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "15427acf2a757cf29574dd39f45c7cc5c6f4ac3ff9c440d82ecdf97b9df6c3d5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "665288590cd4226da42511817f09ccdfc92df36c9621583cd2c82919af295c5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1545c3e0b0193ea1d9ae89278742f5aa770debfc75959bce20df891575592501",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_smoke/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a7ec5b439ea0123aceb116bc54c862a613b37bbdc5e0bcbe10837361c4bfbd4b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b777429051ce464eeaf8011eccdf779310b9cfbb2cf119059f94119c357e4dd6",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a974ea180eebe0b0691a70be2357a9cd31e6a282ee3b222065eaa7aceba255d1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f2d495e0656c2c47fee2ae0063ede06afaeb6ed388338557d97ead0dc2682568",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dffad5b9e4bc949658aa3f82a369cf969374307b65925e026307c6a546434b4c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3bb6727e8ca619c3b6539b19e7fd1ef13d7adc173c4adf12c2e277d3d350ffc",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7c0761a956b29ef1863f96e4ac35d295e2e97ec31ebac5270bbe97509cd9e8ae",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "19faaea60c2be7a1165f50bd710f280b9af1316af7cea473d7dd0de817418f60",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "202fa7f5c412da1e52ba675f2864e7ca8666b9dfc7bc7bfd33c25d0bda45fafd",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "67e44a89e03d3874599648c693123c1a1d755121c89f1837d939e269b99e02c5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5ff94e58a4a24c7f79840ac6b4379f77902b839d3281229f4f3e32bacaec2c42",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8b118298711bf10c69fecd8422d16e9c10d1109fc725c44d9ada29f6178fa14",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a9778fba31c09aa6795fe422c8056f851535642282dee55864dc3185cce4149e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec4fa30fc4a7b9e002d1c7b3932286ace72ba36e4f532e2cc79f49d07e0794c3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd2c4200a2c8d15171d205041e6622cf990ef703a459684cb15301cade089220",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "befd90d5e15da96e7d05ae3922240830496d4c64bef7e508a2ece8707f8e49d1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eab98e509d6f665a08283924c8b24d00140a5041fcca90b849d9f26d223010cf",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2abb52f64ab00ea05c63fdf8d79d673b1e6ccca4a16268eba95271661a94431e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2eedf6932473c98d452747eba0f44114b5e7f4864671f35c79e1d4cf68e6fdc7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f4385b7f23bc9f1ffe3dd330faa4e7ff572cc9940f6fe7e43bc12e21e296ea9d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "982cf6a4099b5d9847d56c437f767459e0ee8c15c6d56bd609584a3df2355f0c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cee4a074041a65c2ae60a003e4b070385064a0139a532a36df00adf555d0d8b0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d201f3b376a0d58b3b268b00547a5c61796d068dc9257afd3c051947864e290",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e8a50e755506284f320d3d2ba1c29e994c77025021c3e414a58c2f1e9444434c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ae3e2714ba35525b9c2083876c00108675c9c187df415425a6f29ada3909b2e1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "717d5351bebea57a2f0ccd874a2517595c2dda6c4ca8cb3c6de7c0902aa14b75",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb19a75341b8cd045204b896abc234440510f9b2a9ee079bc5afe45123ebe9e7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv3/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "72128fcfcb919567ff7cc8ef25ad986251080a425f3491e84fc739631d38307f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57d8f1277b1b645ecae495982bf267757151bdd955d453962e6265c9d0b096e5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "242644c5a8a72b726ee65e042f0f359ac2aca81e95cb29dae26a4ae5af2990ea",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0b01e26f2525609e71032cc93c832f4e0ce2e61793269051eab98f84845671c0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6d7f4ec7fdec43a457981bd0e09f904dc6bce7bda05c9444dd16eb92fc4a698e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5278abfbc0cf97dd55bd0c4158cd280f306354a14556097d27c241bc348a3f57",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "40c946b531d7d2cfef88939f5c6cf55d8017b5ed31616a9e7a071cbfca316ac4",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ca26b4158eb614153ed0062f85ff25cf17d34c1395c4bf997f377cd324ba54d3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce659aa5549eb95e1258dba081a7030de685cd6455e0717360cbd151b8ce2c5f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6bf6e25cf3147b919e1c87115f391989a0fd37388321efbaca953ff626dfeab5",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d4ccabca2b0f3e9fe176f72d103b0f96b4b7098f7c15e2daa7647bd551ec7cf3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7200105e66871ab7b8ae409eacde75f173708b19fbc46b5dfd512816beb5c0fd",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "99346169bd730ad926053bdb6a9c076745625b9ed479019a62507e0dc7447d86",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_ospfv2/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/cli_command.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0de4ac687dc2ba6552f75440fce5eecc4dc039e45e78317761e6ae44e74a1267",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/output.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "458348f49d9fffa9ac331feba477ddbafb5cedd9b23355c8098251be691be8e8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/invalid.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bc2dd00bb154f69de8b5bf29081254c9ab5e763380c95914fd98f2f8c42422cc",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/prompt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "820f0f375cb6fb3a1aa82e85e8d353b08c30677edf09bedb6da958cd5e9f066d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/timeout.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0a1a4211377dbfb265842a08d887a5d79bdbd514e0ae023a55e28a500af2173",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/bad_operator.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fc1cacddb46378cdc038a18598919d1514c0df49e4fab3055df211fba2eea250",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tests/cli/contains.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5b3941e022e40944b25661111af17864508b347e2a955d02b91e823117df06b1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/meta/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_command/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "03c73c1ce648bd2159b91cef3220d52324a7a5e3877f403199543c637c13d6f3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "66b2ac21bcd8f4a2da15c6b7ea7fce725841457ce0b791f2e68048180865977c",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2226b94d04e1fb716bf69c941b9b72c7e67c8d4e493851244245969845b72dc9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a547b59a58a7709cbdef0d993d9d5c64ae5996b7d1a535a22ff1dfb4ff6873d2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/_populate.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f7f2f0d23a4b5701aeea3af1219f259761cb1e264d71be7adbf73dca2c1dcf7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7bb63a77791f1e56fa596f54fc7bf895290f8360eb271e98f6ea42981808b5b2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a4b7d79bb62c8044f72ce338537100c0d4fd1526b73d1ecda61cabfb8d3a98fa",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d7e721da202c7d0bad2ef019bb339e540ad67be10be6899e510d2c5425602b7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "af465c559750ca939573c88c271a286d7c533513f473d8a19d91a71600b17221",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec711b83177c995449aa4735455ec1e5714d5935a3a952a2c22c0a57649c2e55",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/deleted_all.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "75bab8b5d272963514a704c10ad108c948672baab33b9aaa2c5d730891191b93",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c73c549a4b78f54b9fc1361e0f49687fbb4f69646a8f7ee19810ec105da3e17e",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "485af2cedc892533b257cd66f392f354f6f125fe2b1007f4608fc90188c56808",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "199bf47e96500d8905225fa79e76ecf9b1df5f17807aea2d48c826ff902e8ebe",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e159ecb19984c90d7b670f4d9a1be5e893c822d25ce204cc2176e2602cd8eecd",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_acl_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "67ffd6e9552f55c250f9d7bb1e0ab7838c266d37deee383105b11963ca95611f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "42188300de28845817de67208bcdbeed34cc73ffbe4b574266acaf246951d521",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/_populate.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f345534b60858c2a0cc00b83d32101b267b4d6dc370b69aac7cda311d4146f3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4abc08aceef2579b4a247e81beba6e306c4fafad7421e2bbc2af2ce174096dc7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "576970062a5818579acbb6be83fb2973b2080d833d88f04b369baf6508b9ee67",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d51ace0aaffc2b14581e942c73649990785065e7b89a8e12d6f37a7150cd1845",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "911b64cb53c7eae6673f82eb9cb42e0913b7dfbf7dd73c58e3a334ac5794caeb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/rtt.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "439480acae03caa0a5f19f25e7cb8db271fcf6e5bf52e2e9ca36b14f1f807631",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f804628cb14a6fe8e3d0426db91ec646310f76d5aa94b4b1d4ea1b1edde449",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b5d80f62ce5fef5d650cb373ff21ab0391ad05f30d036487caf22b6e314221d7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7b26f69931de2b34eb9bdc7544520b6e52494b5c408caa2d3914d0022723ca2a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a4ed71b399bcf1bbc0fd2978888ebf6d151bee360e2ab4d1c87fbe35198c936",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_lldp_global/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/overridden.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5e3a4ec41803fd082099a1f89ec45f530fc450062083b1cc1133e38a46bce57d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/merged.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd4a70bc35f26fc2d998a06770cd29741c0ed39eecec19c4986420936fb5b623",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/empty_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3454f33f1e288fe83f937b6a4e68c9687a5e1d8b27f97f7e4d63713d3f9a912b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/gathered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7eea9853e9b7841c5a8856151339bb59d52fe48e06f3528a571bbf504ab96035",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/fixtures",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/fixtures/parsed.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc96339b5bc4eee747eca626faf3bce62cc514ccf017556e0ead6fe29b2bb8a9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/_populate_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ecba8436f1295b7644b1be0d59204e38083c6bec8d2387c7c3f195c98f2865d3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/rendered.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bebeda97e6b06c820e9c3e647a789512a903ab709eecfd7845ff47c313979ed7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/replaced.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "410e96224f36a63e4e111b87441c75b8ba3b3cf25fea000faa6bd4abf791bb9d",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/parsed.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a0b7ffadbd391f7df091ed5deab94128859a9b00296d3025a8d21ed4f2faa6eb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/_remove_config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "862dd8b949b52de5dcc7c126861f66471a772a0b8cc9bcd3703adb89cc89f7e8",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tests/cli/deleted.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b6d9291bd9021d78f34ff051dd8534d26ece40dceec06d33f95146e6368c190b",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/vars/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a69feefeab189f95f21fc8cea8ffbac698a9ac1a0221c44f0c744a05decd21f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec4fa30fc4a7b9e002d1c7b3932286ace72ba36e4f532e2cc79f49d07e0794c3",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c7a04f67f78ee48d4cd68a3fc7ec07e8736cf82ecdca0f9600eb2fbb621d390",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1a2ed6e2e9ba3726d6661ba7938c2a5bb607cce4e616fc0edb05e1e43d365e5a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_l2_interfaces/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "90528688ff4d0b98df05918adb9b9740dfcc14e9c9a544c2f7507613d21e98a0",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/files",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/files/private",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "defce0b7196d17e47b5dd1ba865e6287590deb3638a980bcbc3cc2d2b9975060",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/files/public2.pub",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "84fba91f96acc846b7c33b308b9005d335053679b828127d67f26d500a5a4036",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/files/public.pub",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cd8730417146b7691724621b213a5c6aa5e5120829714a2f62334ee23f8c4c6f",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/cli/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "85a10631a55c69ea44597b2516d9698198b36eeb7afcca51ce32a951ce5a0de4",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/common",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/common/auth.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "df95fcb8003807c2262391d722c858b96d84bb17bb2d7995504c7433199b435a",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tests/netconf/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "23a4dc778c05fa2c50f9c43dd896bb5f557c3f354e2cb5a3eac774ad50be65a2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c825cc804755db74748aaad4505ffdcc9594e85c65b37235905c8128fff66de1",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_user/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6502b43e3efc55fef84c81e70115c95f24580b588fd6f92be1772894e7be27e7",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/cli",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/cli/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b2efa8378b880bf3b2f29ff8726838f9961c351b41aff7ff5b2396afea52fa51",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/cli/net_interface.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5cda7a61a2172c720dfb3ad2ba6e57fab99d310642dfbf0c0160f065107641f4",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/cli/intent.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fe19e36f2173fe00bf842634e812024b74d9f67bfcfcd8b3187f92f6e7730b76",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/netconf",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/netconf/basic.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e2222f146c454e4eff2ece7fe8bdba4cffe7b4d0b550769985c21c9a0996b499",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/netconf/net_interface.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "63ee675e67664632f570f147843ca0bf82582663aa2e4e68e77da8c09c635ae9",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tests/netconf/intent.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb06be783fcbfe143eefd6a0b2e76d8627cf87f5337988eca5ac48220391e7fa",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/meta/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55144d29457d670189e343c566fbc6b465b90dbd9f2028efbb12d7fcc9f07b06",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/defaults/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "126c357f960d8408c7d5e4c3bdc05e2e5e898330e173a4f56f72240f10aae4bb",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tasks/main.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "549cfb05d51408c3c60065091160390246d2d63458bf3a0c697731efe3ff3b59",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tasks/netconf.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "936b653bc700e0fc678c95bf7d0f499f0888446cc5577d0f2f1c86baf7ab88d2",
+   "format": 1
+  },
+  {
+   "name": "tests/integration/targets/iosxr_interface/tasks/cli.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "31cfb1ca71bf9a422c1b29c516d44cb879dbd4e6f5735e8be27fd4e8099d0490",
+   "format": 1
+  },
+  {
+   "name": "tox.ini",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c6e94fc72827b917d55ef15386cbe48fc9eca81755aed8f532d8da97a0be3483",
+   "format": 1
+  },
+  {
+   "name": "bindep.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "80645079eb025b3a905b4775ac545d080a3d7d35d537c31e04f7197c94315ab5",
+   "format": 1
+  },
+  {
+   "name": ".yamllint",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "827ef9e031ecdcaf137be239d33ef93fcbbc3611cbb6b30b0e507d0e03373d0e",
+   "format": 1
+  },
+  {
+   "name": "meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e46736dd2d3de276da22e919ffefa469879c17d18a265d568d9dae41f2d48794",
+   "format": 1
+  },
+  {
+   "name": "README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "39fecdddbdc4cf001784d967e83be781e74060a31dbab7dce1c3e5dd8159355a",
+   "format": 1
+  },
+  {
+   "name": "requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3b7aa3bebb06a3546133073f5d120b176829f651e0124f8bf2d8288d5b0fa368",
+   "format": 1
+  },
+  {
+   "name": ".zuul.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "98905acf2eec9aa791cbf5a9effe6e7402bfaa3d2d204c30013120e00668da6e",
+   "format": 1
+  },
+  {
+   "name": "docs",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_command_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2f25570ea9b9ed670793f13aafe994d60eee881528a1ec3c6e5edeabe7f4b349",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_logging_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "045da4183021715026faae3ac4af07b26e8bbb403a387da64ffcdecfb406555c",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_interface_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fc7c248be198a09d144a65cdede8b5ff5f88a9b1c227c51f8807e27e5a8eddcf",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_acls_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "38340cb085b7cbb935eef7c613c7d4e90e37104928941e07601dad3d91f41c76",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_system_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d4bd4d382be85042d0aab91e60f2cd481786bb343cb676518df0fc8ed42fe5e0",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_netconf.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0b0305fa0ec4e467f8e3b14597ff86cd1c70c4aaf007c46386a980d5138016bd",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_ospfv3_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bdf4e54a429edbe73da54f8d833ddc12f2ee29e7cd4b4353deadfbc8fce6c256",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_static_routes_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "96060c509808d2948c880644829c8e7d3aa38d9563aa11e0e654cad6e13b7a8c",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_ospfv2_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "68c4f74076032ef1d697e74dc8f12654173ad24a60cec3ad9b769c55640d1363",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_acl_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1fea6b133aa9f957d6f32371e4956c5ed20b78483e2f0df7c4a07494a196a62",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_lag_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5afc74470d233d99fb8ebfcef625f0f01ed9d906ce71f8f3d894005d99c7ef67",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_cliconf.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d943266ec3c20d3afadd5275c5d330a0c63b3cef3a18522d9f2bd92fc0d7e425",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_ospf_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec1faf0712bc7f9671ff9273d0ca0e2bd6f0d0e6ed53cf8cfafdf867451e7c38",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_l2_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c86c80fe84adeb1faa34c750feca8a9aaa0cb39c59e8fa3573f55c19cf4637cc",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_facts_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b774e4df9507613adcbceecd530488a78c92b41e1fc30f51ac6e453a4223db31",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_netconf_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e0ab5040ed80f4e528ade4dcc493b10227b7a2fa360b9763cebb34ca167d2f46",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_lacp_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ed7657079e260c2c00a1581aac025b49079b10eff2233d218c17340cc82b1c91",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_lacp_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c3c2f4cd8cb5a595ce36425b970c2555e4eb70986a94615b346cf08b0ef3c2d3",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_config_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a6c917df4f62708c9c62ec0d89998bc7e1bbb0389fcd07b7871bca65d4be060e",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_lldp_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57f3ca36b100170d1696a95f910246b70c17677661ccca9d92ddb67f9a744101",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc17f5e09fd605fa747b39a0df671d685bc888cfd28163f726de0b21ec655e87",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_user_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "61180d85901d74d9b6ec2bc5ff382f7303b0d805f49dbb2389991e452610ed6b",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_l3_interfaces_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2658b11270dd401e435f72a822fa0d0e3d3cc3069c0d0d49e34ce1bd7e09bdd8",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_lldp_global_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "68356dd1ae98e0bec8fefd2b1af27341f085104d59a63b675435f05512ef3e96",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_banner_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c99e9d23652b892532c1e2721f453a65503c413f6ab1d303e0f538b28d8546ab",
+   "format": 1
+  },
+  {
+   "name": "docs/cisco.iosxr.iosxr_bgp_module.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3de347a4f436bb7fa5c15fbd76abc3667337f994dddc8e96ef44be5f228a1a63",
+   "format": 1
+  }
+ ],
+ "format": 1
+}

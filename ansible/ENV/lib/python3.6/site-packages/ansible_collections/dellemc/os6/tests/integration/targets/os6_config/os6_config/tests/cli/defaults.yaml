@@ -1,0 +1,43 @@
+---
+- debug: msg="START cli/defaults.yaml"
+
+- name: setup
+  os6_config:
+    commands:
+      - no interface loopback 63
+    provider: "{{ cli }}"
+  ignore_errors: yes
+
+- name: configure device with defaults included
+  os6_config:
+    src: defaults/config.j2
+    provider: "{{ cli }}"
+  register: result
+
+- debug: var=result
+
+- assert:
+    that:
+      - "result.changed == true"
+      - "result.updates is defined"
+
+- name: check device with defaults included
+  os6_config:
+    src: defaults/config.j2
+    provider: "{{ cli }}"
+  register: result
+
+- debug: var=result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.updates is defined"
+
+- name: teardown
+  os6_config:
+    commands:
+      - no interface loopback 63
+    provider: "{{ cli }}"
+
+- debug: msg="END cli/defaults.yaml"

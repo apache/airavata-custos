@@ -1,0 +1,32 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "proxysql",
+  "version": "1.0.0",
+  "authors": [
+   "Ben Mildren (@bmildren)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "database",
+   "mysql",
+   "proxysql"
+  ],
+  "description": "ProxySQL collection for Ansible",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {},
+  "repository": "https://github.com/ansible-collections/community.proxysql",
+  "documentation": "https://github.com/ansible-collections/community.proxysql",
+  "homepage": "https://github.com/ansible-collections/community.proxysql",
+  "issues": "https://github.com/ansible-collections/community.proxysql/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "14dd89e967b39ff42d7df3de39f9cd1c9e526e8ad05e9d1cfac171a35a6d4901",
+  "format": 1
+ },
+ "format": 1
+}

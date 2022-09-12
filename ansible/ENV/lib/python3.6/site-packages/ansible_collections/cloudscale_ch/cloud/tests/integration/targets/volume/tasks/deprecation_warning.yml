@@ -1,0 +1,31 @@
+---
+# TODO To be removed in version 3.0.0
+- name: Test server_uuid deprecation warning
+  cloudscale_ch.cloud.volume:
+    name: '{{ cloudscale_resource_prefix }}-vol'
+    zone: '{{ cloudscale_test_zone }}'
+    size_gb: 50
+    server_uuid:
+      - 'd231db77-fdb3-4301-ae7c-f68ca2574496'
+  check_mode: True
+  register: vol
+- name: Verify server_uuid deprecation waring
+  assert:
+    that:
+      - vol is changed
+      - '"deprecations" in vol'
+
+- name: Test server_uuids deprecation warning
+  cloudscale_ch.cloud.volume:
+    name: '{{ cloudscale_resource_prefix }}-vol'
+    zone: '{{ cloudscale_test_zone }}'
+    size_gb: 50
+    server_uuids:
+      - 'd231db77-fdb3-4301-ae7c-f68ca2574496'
+  check_mode: True
+  register: vol
+- name: Verify server_uuids deprecation waring
+  assert:
+    that:
+      - vol is changed
+      - '"deprecations" in vol'

@@ -82,6 +82,13 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
                     query = query + "E.name NOT LIKE :" + EntitySearchField.NAME.name() + " AND ";
                 }
                 valueMap.put(EntitySearchField.NAME.name(), searchCriteria.getValue());
+            } else if (searchCriteria.getSearchField().equals(EntitySearchField.SHARED_BY)) {
+                if (searchCriteria.getCondition().equals(SearchCondition.EQUAL)) {
+                    query = query + "E.shared_by LIKE :" + EntitySearchField.SHARED_BY.name() + " AND ";
+                } else {
+                    query = query + "E.shared_by NOT LIKE :" + EntitySearchField.SHARED_BY.name() + " AND ";
+                }
+                valueMap.put(EntitySearchField.NAME.name(), searchCriteria.getValue());
             } else if (searchCriteria.getSearchField().equals(EntitySearchField.DESCRIPTION)) {
                 if (searchCriteria.getCondition().equals(SearchCondition.EQUAL)) {
                     query = query + "E.description LIKE :" + EntitySearchField.DESCRIPTION.name() + " AND ";

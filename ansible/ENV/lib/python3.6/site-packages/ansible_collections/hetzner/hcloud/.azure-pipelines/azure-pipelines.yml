@@ -1,0 +1,147 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - main
+
+schedules:
+  - cron: 0 9 * * *
+    displayName: Nightly
+    always: true
+    branches:
+      include:
+        - main
+
+variables:
+  - name: checkoutPath
+    value: ansible_collections/hetzner/hcloud
+  - name: coverageBranches
+    value: main
+  - name: pipelinesCoverage
+    value: coverage
+  - name: entryPoint
+    value: tests/utils/shippable/shippable.sh
+  - name: fetchDepth
+    value: 0
+
+resources:
+  containers:
+    - container: default
+      image: quay.io/ansible/azure-pipelines-test-container:1.9.0
+
+pool: Standard
+
+stages:
+### Sanity
+  - stage: Ansible_devel
+    displayName: Sanity devel
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          targets:
+            - name: Sanity
+              test: 'devel/sanity/1'
+  - stage: Ansible_2_11
+    displayName: Sanity 2.11
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          targets:
+            - name: Sanity
+              test: '2.11/sanity/1'
+  - stage: Ansible_2_10
+    displayName: Sanity & Units 2.10
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          targets:
+            - name: Sanity
+              test: '2.10/sanity/1'
+  - stage: Ansible_2_9
+    displayName: Sanity 2.9
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          targets:
+            - name: Sanity
+              test: '2.9/sanity/1'
+
+## Integration tests (remote)
+  - stage: Hetzner_devel
+    displayName: Hetzner devel
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          groups:
+            - 1
+            - 2
+          targets:
+            - name: hcloud
+              test: 'devel/hcloud/3.8'
+
+  - stage: Hetzner_2_11
+    displayName: Hetzner 2.11
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          groups:
+            - 1
+            - 2
+          targets:
+            - name: hcloud
+              test: '2.11/hcloud/3.8'
+
+  - stage: Hetzner_2_10
+    displayName: Hetzner 2.10
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          groups:
+            - 1
+            - 2
+            - 3
+          targets:
+            - name: hcloud
+              test: '2.10/hcloud/3.8'
+
+  - stage: Hetzner_2_9
+    displayName: Hetzner 2.9
+    dependsOn: []
+    jobs:
+      - template: templates/matrix.yml
+        parameters:
+          groups:
+            - 1
+            - 2
+            - 3
+          targets:
+            - name: hcloud
+              test: '2.9/hcloud/3.8'
+
+### Finally
+  - stage: Summary
+    condition: succeededOrFailed()
+    dependsOn:
+      - Ansible_devel
+      - Ansible_2_11
+      - Ansible_2_10
+      - Ansible_2_9
+      - Hetzner_devel
+      - Hetzner_2_11
+      - Hetzner_2_10
+      - Hetzner_2_9
+    jobs:
+      - template: templates/coverage.yml

@@ -1,0 +1,11 @@
+---
+# vars file for 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_ntp:
+    server:
+      - ip: 2.2.2.2
+        vrf:
+          - test
+          - tes
+        state: present

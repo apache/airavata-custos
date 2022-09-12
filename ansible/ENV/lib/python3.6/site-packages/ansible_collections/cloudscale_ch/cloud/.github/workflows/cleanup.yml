@@ -1,0 +1,35 @@
+name: Scheduled Cleanup
+
+on:
+  schedule:
+  - cron: '0 2 * * *'  # UTC
+
+jobs:
+  cleanup:
+    name: Cleanup possible leftovers
+    runs-on: ubuntu-latest
+    steps:
+    - name: Ensure no other integration test is currently running
+      uses: softprops/turnstyle@v0.1.3
+      timeout-minutes: 60
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        same-branch-only: false
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Run cleanup
+      run: |
+        pip install cloudscale-cli
+        for resource in objects-user server floating-ip server-group network;
+        do
+        echo "cleaning up $resource...";
+        cloudscale $resource list --delete --force;
+        echo "...done";
+        done
+      env:
+        CLOUDSCALE_API_TOKEN: ${{ secrets.CLOUDSCALE_API_TOKEN }}

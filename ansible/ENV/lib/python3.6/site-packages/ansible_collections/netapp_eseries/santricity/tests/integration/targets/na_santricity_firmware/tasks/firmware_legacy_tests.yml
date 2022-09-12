@@ -1,0 +1,128 @@
+# Test code for the na_santricity_firmware module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+# TODO: MUST BE DOWNGRADE BEFORE EXECUTING INTEGRATION TO RCB_11.40.3R2_280x_5c7d81b3.dlp and N280X-842834-D02.dlp
+#   loadControllerFirmware_MT swartzn@10.113.1.250 /home/swartzn/Downloads/RCB_11.40.3R2_280x_5c7d81b3.dlp /home/swartzn/Downloads/N280X-842834-D02.dlp
+
+# This integration test will validate upgrade functionality for firmware-only, firmware-and-nvsram, and check mode.
+- name: Set credentials and other facts
+  set_fact:
+    proxy_credentials: &proxy_creds
+      ssid: "{{ proxy_legacy_ssid }}"
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+    path: "/home/swartzn/Downloads/"
+    upgrades:
+      - firmware: "RC_08405000_m3_e10_840_5600.dlp"
+        nvsram: "N5600-840834-D03.dlp"
+        expected_firmware_version: "08.40.50.00"
+        expected_nvsram_version: "N5600-840834-D03"
+      - firmware: "RC_08403000_m3_e10_840_5600.dlp"
+        nvsram: "N5600-840834-D03.dlp"
+        expected_firmware_version: "08.40.30.00"
+        expected_nvsram_version: "N5600-840834-D03"
+
+- name: Perform firmware upgrade using the Web Services Proxy (changed, firmware)
+  na_santricity_firmware:
+    <<: *proxy_creds
+    nvsram: "{{ path }}{{ upgrades[1]['nvsram'] }}"
+    firmware: "{{ path }}{{ upgrades[1]['firmware'] }}"
+    wait_for_completion: true
+    clear_mel_events: true
+  register: results
+- name: Retrieve current firmware version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/fwVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_firmware
+- name: Retrieve current nvsram version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/nvsramVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_nvsram
+- name: Verify current firmware version
+  assert:
+    that: "{{ current_firmware['json'][0] == upgrades[1]['expected_firmware_version'] }}"
+    msg: "Failed to change the firmware version."
+- name: Verify current nvsram version
+  assert:
+    that: "{{ current_nvsram['json'][0] == upgrades[1]['expected_nvsram_version'] }}"
+    msg: "Failed to change the nvsram version."
+
+- name: Perform firmware upgrade using the Web Services Proxy (check_mode, changed, firmware)
+  na_santricity_firmware:
+    <<: *proxy_creds
+    nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
+    firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
+    wait_for_completion: true
+    clear_mel_events: true
+  register: results
+  check_mode: true
+- name: Retrieve current firmware version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/fwVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_firmware
+- name: Retrieve current nvsram version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/nvsramVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_nvsram
+- name: Verify change status
+  assert:
+    that: "{{ results.changed == True }}"
+    msg: "Failed to return changed."
+- name: Verify current firmware version
+  assert:
+    that: "{{ current_firmware['json'][0] == upgrades[1]['expected_firmware_version'] }}"
+    msg: "Failed to change the firmware version."
+- name: Verify current nvsram version
+  assert:
+    that: "{{ current_nvsram['json'][0] == upgrades[1]['expected_nvsram_version'] }}"
+    msg: "Failed to change the nvsram version."
+
+- name: Perform firmware upgrade using the Web Services Proxy (changed, firmware)
+  na_santricity_firmware:
+    <<: *proxy_creds
+    nvsram: "{{ path }}{{ upgrades[0]['nvsram'] }}"
+    firmware: "{{ path }}{{ upgrades[0]['firmware'] }}"
+    wait_for_completion: true
+    clear_mel_events: true
+  register: results
+- name: Retrieve current firmware version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/fwVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_firmware
+- name: Retrieve current nvsram version
+  uri:
+    url: "{{ proxy_base_url }}storage-systems/{{ proxy_legacy_ssid }}/graph/xpath-filter?query=/sa/saData/nvsramVersion"
+    user: "{{ proxy_username }}"
+    password: "{{ proxy_password }}"
+    validate_certs: no
+  register: current_nvsram
+- name: Verify change status
+  assert:
+    that: "{{ results.changed == True }}"
+    msg: "Failed to return changed."
+- name: Verify current firmware version
+  assert:
+    that: "{{ current_firmware['json'][0] == upgrades[0]['expected_firmware_version'] }}"
+    msg: "Failed to change the firmware version."
+- name: Verify current nvsram version
+  assert:
+    that: "{{ current_nvsram['json'][0] == upgrades[0]['expected_nvsram_version'] }}"
+    msg: "Failed to change the nvsram version."

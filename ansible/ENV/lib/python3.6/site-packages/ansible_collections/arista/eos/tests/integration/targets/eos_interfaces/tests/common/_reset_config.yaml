@@ -1,0 +1,5 @@
+---
+- name: Reset initial config
+  become: true
+  arista.eos.eos_config:
+    src: reset.cfg

@@ -1,0 +1,3 @@
+---
+minor_changes:
+  - Rename repository to ``kubernetes.core`` (https://github.com/ansible-collections/kubernetes.core/pull/81).

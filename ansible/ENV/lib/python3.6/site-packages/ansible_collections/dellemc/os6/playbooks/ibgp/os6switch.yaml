@@ -1,0 +1,13 @@
+---
+- hosts: os6switches
+  gather_facts: no
+  become: yes
+  become_method: enable
+  connection: network_cli
+  collections:
+    - dellemc.os6
+  roles:
+    - os6_system
+    - os6_vlan
+    - os6_interface
+    - os6_bgp

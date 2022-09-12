@@ -1,0 +1,19 @@
+---
+- debug: msg="START connection={{ ansible_connection }}/not_hardware_facts.yaml"
+
+- name: test not hardware
+  register: result
+  cisco.nxos.nxos_facts:
+    gather_subset:
+      - '!hardware'
+
+- assert:
+    that:
+      - result.changed == false
+      - "'config' in result.ansible_facts.ansible_net_gather_subset"
+      - "'default' in result.ansible_facts.ansible_net_gather_subset"
+      - "'interfaces' in result.ansible_facts.ansible_net_gather_subset"
+      - "'hardware' not in result.ansible_facts.ansible_net_gather_subset"
+      - result.ansible_facts.ansible_net_filesystems is not defined
+
+- debug: msg="END connection={{ ansible_connection }}/not_hardware_facts.yaml"

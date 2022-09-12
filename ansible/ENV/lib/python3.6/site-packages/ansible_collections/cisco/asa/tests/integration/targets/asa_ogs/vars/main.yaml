@@ -1,0 +1,149 @@
+---
+deleted:
+  commands:
+    - no object-group network test_og_network
+    - no object-group security test_og_security
+delete_all:
+  commands:
+    - no object-group network test_og_network
+    - no object-group network test_network_og
+    - no object-group security test_og_security
+    - no object-group user test_og_user
+merged:
+  commands:
+    - object-group security test_og_security
+    - description test_security
+    - security-group name test_1
+    - security-group name test_2
+    - security-group tag 10
+    - security-group tag 20
+    - object-group network test_og_network
+    - description test_og_network
+    - network-object 192.0.2.0 255.255.255.0
+    - network-object 198.51.100.0 255.255.255.0
+    - network-object host 192.0.2.1
+    - network-object host 192.0.2.2
+    - object-group network test_network_og
+    - description test_network_og
+    - network-object host 192.0.3.1
+    - network-object host 192.0.3.2
+    - network-object 2001:db8:3::/64
+    - object-group user test_og_user
+    - description test_user
+    - user LOCAL\new_user_1
+    - user LOCAL\new_user_2
+replaced:
+  commands:
+    - object-group protocol test_og_protocol
+    - description test_og_protocol
+    - protocol tcp
+    - protocol udp
+    - object-group network test_og_network
+    - description test_og_network_replace
+    - no network-object 192.0.2.0 255.255.255.0
+    - no network-object 198.51.100.0 255.255.255.0
+    - network-object 192.0.3.0 255.255.255.0
+    - no network-object host 192.0.2.1
+    - no network-object host 192.0.2.2
+    - network-object host 192.0.3.1
+overridden:
+  commands:
+    - no object-group security test_og_security
+    - no object-group user test_og_user
+    - object-group protocol test_og_protocol
+    - description test_og_protocol
+    - protocol tcp
+    - protocol udp
+    - object-group network test_og_network
+    - description test_og_network_override
+    - no network-object 192.0.2.0 255.255.255.0
+    - no network-object 198.51.100.0 255.255.255.0
+    - network-object 192.0.3.0 255.255.255.0
+    - no network-object host 192.0.2.1
+    - no network-object host 192.0.2.2
+    - network-object host 192.0.3.1
+    - no object-group network test_network_og
+gathered:
+  config:
+    - object_groups:
+        - description: test_network_og
+          name: test_network_og
+          network_object:
+            host:
+              - 192.0.3.1
+            ipv6_address:
+              - 2001:db8:3::/64
+        - description: test_og_network
+          name: test_og_network
+          network_object:
+            address:
+              - 192.0.2.0 255.255.255.0
+            host:
+              - 192.0.2.1
+      object_type: network
+    - object_groups:
+        - description: test_security
+          name: test_og_security
+          security_group:
+            sec_name:
+              - test_1
+            tag:
+              - "10"
+      object_type: security
+    - object_groups:
+        - description: test_user
+          name: test_og_user
+          user_object:
+            user:
+              - domain: LOCAL
+                name: new_user_1
+              - domain: LOCAL
+                name: new_user_2
+      object_type: user
+parsed:
+  config:
+    - object_groups:
+        - name: test_network_og
+          network_object:
+            ipv6_address:
+              - 2001:db8:3::/64
+        - description: test_og_network
+          name: test_og_network
+          network_object:
+            address:
+              - 192.0.2.0 255.255.255.0
+            host:
+              - 192.0.2.1
+      object_type: network
+    - object_groups:
+        - name: test_og_service
+          service_object:
+            protocol:
+              - tcp-udp
+      object_type: service
+rtt:
+  commands:
+    - no object-group protocol test_og_protocol
+    - object-group security test_og_security
+    - description test_security
+    - security-group name test_2
+    - security-group name test_1
+    - security-group tag 10
+    - security-group tag 20
+    - object-group network test_og_network
+    - description test_og_network
+    - no network-object 192.0.3.0 255.255.255.0
+    - network-object 192.0.2.0 255.255.255.0
+    - network-object 198.51.100.0 255.255.255.0
+    - no network-object host 192.0.3.1
+    - network-object host 192.0.2.1
+    - network-object host 192.0.2.2
+    - object-group network test_network_og
+    - description test_network_og
+    - network-object host 192.0.3.1
+    - network-object host 192.0.3.2
+    - network-object 2001:db8:3::/64
+    - object-group user test_og_user
+    - description test_user
+    - user LOCAL\new_user_1
+    - user LOCAL\new_user_2

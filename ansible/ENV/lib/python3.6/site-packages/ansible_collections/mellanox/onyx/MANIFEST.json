@@ -1,0 +1,35 @@
+{
+ "collection_info": {
+  "namespace": "mellanox",
+  "name": "onyx",
+  "version": "1.0.0",
+  "authors": [
+   "Samer Deeb (@samerd)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "mellanox",
+   "onyx",
+   "cliconf",
+   "network"
+  ],
+  "description": "Collection for managing Mellanox onyx devices",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {
+   "ansible.netcommon": "*"
+  },
+  "repository": "https://github.com/ansible-collections/mellanox.onyx",
+  "documentation": "https://github.com/ansible-collections/mellanox.onyx",
+  "homepage": "https://github.com/ansible-collections/mellanox.onyx",
+  "issues": "https://github.com/ansible-collections/mellanox.onyx/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "fac96af46248f3a578d39cf52221470de642fe112dae19ea88bad1111c0d8fe0",
+  "format": 1
+ },
+ "format": 1
+}

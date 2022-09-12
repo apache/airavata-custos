@@ -1,0 +1,858 @@
+# This code is part of Ansible, but is an independent component.
+# This particular file snippet, and this file snippet only, is BSD licensed.
+# Modules you write using this snippet, which is embedded dynamically by Ansible
+# still belong to the author of the module, and may assign their own license
+# to the complete work.
+#
+# Copyright (c) 2017, Sumit Kumar <sumit4@netapp.com>
+# Copyright (c) 2017, Michael Price <michael.price@netapp.com>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright notice,
+#      this list of conditions and the following disclaimer in the documentation
+#      and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+# USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+'''
+netapp.py
+'''
+
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
+
+import base64
+import logging
+import os
+import ssl
+import time
+from ansible.module_utils.basic import missing_required_lib
+from ansible.module_utils._text import to_native
+
+try:
+    from ansible.module_utils.ansible_release import __version__ as ansible_version
+except ImportError:
+    ansible_version = 'unknown'
+
+COLLECTION_VERSION = "21.6.0"
+CLIENT_APP_VERSION = "%s/" + COLLECTION_VERSION
+IMPORT_EXCEPTION = None
+
+try:
+    from netapp_lib.api.zapi import zapi
+    HAS_NETAPP_LIB = True
+except ImportError as exc:
+    HAS_NETAPP_LIB = False
+    IMPORT_EXCEPTION = exc
+
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+
+HAS_SF_SDK = False
+SF_BYTE_MAP = dict(
+    # Management GUI displays 1024 ** 3 as 1.1 GB, thus use 1000.
+    bytes=1,
+    b=1,
+    kb=1000,
+    mb=1000 ** 2,
+    gb=1000 ** 3,
+    tb=1000 ** 4,
+    pb=1000 ** 5,
+    eb=1000 ** 6,
+    zb=1000 ** 7,
+    yb=1000 ** 8
+)
+
+POW2_BYTE_MAP = dict(
+    # Here, 1 kb = 1024
+    bytes=1,
+    b=1,
+    kb=1024,
+    mb=1024 ** 2,
+    gb=1024 ** 3,
+    tb=1024 ** 4,
+    pb=1024 ** 5,
+    eb=1024 ** 6,
+    zb=1024 ** 7,
+    yb=1024 ** 8
+)
+
+ERROR_MSG = dict(
+    no_cserver='This module is expected to run as cluster admin'
+)
+
+LOG = logging.getLogger(__name__)
+
+try:
+    from solidfire.factory import ElementFactory
+    HAS_SF_SDK = True
+except ImportError:
+    HAS_SF_SDK = False
+
+
+def has_netapp_lib():
+    return HAS_NETAPP_LIB
+
+
+def netapp_lib_is_required():
+    return "Error: the python NetApp-Lib module is required.  Import error: %s" % str(IMPORT_EXCEPTION)
+
+
+def has_sf_sdk():
+    return HAS_SF_SDK
+
+
+def na_ontap_host_argument_spec():
+
+    return dict(
+        hostname=dict(required=True, type='str'),
+        username=dict(required=False, type='str', aliases=['user']),
+        password=dict(required=False, type='str', aliases=['pass'], no_log=True),
+        https=dict(required=False, type='bool', default=False),
+        validate_certs=dict(required=False, type='bool', default=True),
+        http_port=dict(required=False, type='int'),
+        ontapi=dict(required=False, type='int'),
+        use_rest=dict(required=False, type='str', default='auto'),
+        feature_flags=dict(required=False, type='dict', default=dict()),
+        cert_filepath=dict(required=False, type='str'),
+        key_filepath=dict(required=False, type='str', no_log=False),
+    )
+
+
+def has_feature(module, feature_name):
+    feature = get_feature(module, feature_name)
+    if isinstance(feature, bool):
+        return feature
+    module.fail_json(msg="Error: expected bool type for feature flag: %s" % feature_name)
+
+
+def get_feature(module, feature_name):
+    ''' if the user has configured the feature, use it
+        otherwise, use our default
+    '''
+    default_flags = dict(
+        check_required_params_for_none=True,
+        classic_basic_authorization=False,      # use ZAPI wrapper to send Authorization header
+        deprecation_warning=True,
+        sanitize_xml=True,
+        sanitize_code_points=[8],               # unicode values, 8 is backspace
+        show_modified=True,
+        always_wrap_zapi=True,                  # for better error reporting
+        trace_apis=False,                       # if true, append ZAPI and REST requests/responses to /tmp/ontap_zapi.txt
+        flexcache_delete_return_timeout=5       # ONTAP bug if too big?
+    )
+
+    if module.params['feature_flags'] is not None and feature_name in module.params['feature_flags']:
+        return module.params['feature_flags'][feature_name]
+    if feature_name in default_flags:
+        return default_flags[feature_name]
+    module.fail_json(msg="Internal error: unexpected feature flag: %s" % feature_name)
+
+
+def create_sf_connection(module, port=None):
+    hostname = module.params['hostname']
+    username = module.params['username']
+    password = module.params['password']
+
+    if HAS_SF_SDK and hostname and username and password:
+        try:
+            return_val = ElementFactory.create(hostname, username, password, port=port)
+            return return_val
+        except Exception:
+            raise Exception("Unable to create SF connection")
+    module.fail_json(msg="the python SolidFire SDK module is required")
+
+
+def set_auth_method(module, username, password, cert_filepath, key_filepath):
+    error = None
+    if password is None and username is None:
+        if cert_filepath is None and key_filepath is not None:
+            error = 'Error: cannot have a key file without a cert file'
+        elif cert_filepath is None:
+            error = 'Error: ONTAP module requires username/password or SSL certificate file(s)'
+        elif key_filepath is None:
+            auth_method = 'single_cert'
+        else:
+            auth_method = 'cert_key'
+    elif password is not None and username is not None:
+        if cert_filepath is not None or key_filepath is not None:
+            error = 'Error: cannot have both basic authentication (username/password) ' +\
+                    'and certificate authentication (cert/key files)'
+        elif has_feature(module, 'classic_basic_authorization'):
+            auth_method = 'basic_auth'
+        else:
+            auth_method = 'speedy_basic_auth'
+    else:
+        error = 'Error: username and password have to be provided together'
+        if cert_filepath is not None or key_filepath is not None:
+            error += ' and cannot be used with cert or key files'
+    if error:
+        module.fail_json(msg=error)
+    return auth_method
+
+
+def setup_na_ontap_zapi(module, vserver=None, wrap_zapi=False):
+    hostname = module.params['hostname']
+    username = module.params['username']
+    password = module.params['password']
+    https = module.params['https']
+    validate_certs = module.params['validate_certs']
+    port = module.params['http_port']
+    version = module.params['ontapi']
+    cert_filepath = module.params['cert_filepath']
+    key_filepath = module.params['key_filepath']
+    auth_method = set_auth_method(module, username, password, cert_filepath, key_filepath)
+    if has_feature(module, 'trace_apis'):
+        logging.basicConfig(filename='/tmp/ontap_apis.log', level=logging.DEBUG)
+        trace = True
+    else:
+        trace = False
+    if has_feature(module, 'always_wrap_zapi'):
+        wrap_zapi = True
+
+    if HAS_NETAPP_LIB:
+        # set up zapi
+        if auth_method in ('single_cert', 'cert_key'):
+            # override NaServer in netapp-lib to enable certificate authentication
+            server = OntapZAPICx(hostname, module=module, username=username, password=password,
+                                 validate_certs=validate_certs, cert_filepath=cert_filepath,
+                                 key_filepath=key_filepath, style=zapi.NaServer.STYLE_CERTIFICATE,
+                                 auth_method=auth_method, trace=trace)
+            # SSL certificate authentication requires SSL
+            https = True
+        elif auth_method == 'speedy_basic_auth' or wrap_zapi:
+            # override NaServer in netapp-lib to add Authorization header preemptively
+            # use wrapper to handle parse error (mostly for na_ontap_command)
+            server = OntapZAPICx(hostname, module=module, username=username, password=password,
+                                 validate_certs=validate_certs, auth_method=auth_method, trace=trace)
+        else:
+            # legacy netapp-lib
+            server = zapi.NaServer(hostname, username=username, password=password, trace=trace)
+        if vserver:
+            server.set_vserver(vserver)
+        if version:
+            minor = version
+        else:
+            minor = 110
+        server.set_api_version(major=1, minor=minor)
+        # default is HTTP
+        if https:
+            if port is None:
+                port = 443
+            transport_type = 'HTTPS'
+            # HACK to bypass certificate verification
+            if validate_certs is False:
+                if not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None):
+                    ssl._create_default_https_context = ssl._create_unverified_context
+        else:
+            if port is None:
+                port = 80
+            transport_type = 'HTTP'
+        server.set_transport_type(transport_type)
+        server.set_port(port)
+        server.set_server_type('FILER')
+        return server
+    else:
+        module.fail_json(msg=netapp_lib_is_required())
+
+
+def is_zapi_connection_error(message):
+    ''' return True if it is a connection issue '''
+    # netapp-lib message may contain a tuple or a str!
+    if isinstance(message, tuple) and isinstance(message[0], ConnectionError):
+        return True
+    if isinstance(message, str) and message.startswith(('URLError', 'Unauthorized')):
+        return True
+    return False
+
+
+def is_zapi_write_access_error(message):
+    ''' return True if it is a connection issue '''
+    # netapp-lib message may contain a tuple or a str!
+    if isinstance(message, str) and message.startswith('Insufficient privileges:'):
+        return 'does not have write access' in message
+    return False
+
+
+def ems_log_event(source, server, name="Ansible", ident="12345", version=COLLECTION_VERSION,
+                  category="Information", event="setup", autosupport="false"):
+    ems_log = zapi.NaElement('ems-autosupport-log')
+    # Host name invoking the API.
+    ems_log.add_new_child("computer-name", name)
+    # ID of event. A user defined event-id, range [0..2^32-2].
+    ems_log.add_new_child("event-id", ident)
+    # Name of the application invoking the API.
+    ems_log.add_new_child("event-source", source)
+    # Version of application invoking the API.
+    ems_log.add_new_child("app-version", version)
+    # Application defined category of the event.
+    ems_log.add_new_child("category", category)
+    # Description of event to log. An application defined message to log.
+    ems_log.add_new_child("event-description", event)
+    ems_log.add_new_child("log-level", "6")
+    ems_log.add_new_child("auto-support", autosupport)
+    try:
+        server.invoke_successfully(ems_log, True)
+    except zapi.NaApiError as exc:
+        # Do not fail if we can't connect to the server.
+        # The module will report a better error when trying to get some data from ONTAP.
+        # Do not fail if we don't have write privileges.
+        if not is_zapi_connection_error(exc.message) and not is_zapi_write_access_error(exc.message):
+            # raise on other errors, as it may be a bug in calling the ZAPI
+            raise exc
+
+
+def get_cserver_zapi(server):
+    ''' returns None if not run on the management or cluster IP '''
+    vserver_info = zapi.NaElement('vserver-get-iter')
+    query_details = zapi.NaElement.create_node_with_children('vserver-info', **{'vserver-type': 'admin'})
+    query = zapi.NaElement('query')
+    query.add_child_elem(query_details)
+    vserver_info.add_child_elem(query)
+    try:
+        result = server.invoke_successfully(vserver_info,
+                                            enable_tunneling=False)
+    except zapi.NaApiError as exc:
+        # Do not fail if we can't connect to the server.
+        # The module will report a better error when trying to get some data from ONTAP.
+        if is_zapi_connection_error(exc.message):
+            return None
+        # raise on other errors, as it may be a bug in calling the ZAPI
+        raise exc
+    attribute_list = result.get_child_by_name('attributes-list')
+    if attribute_list is not None:
+        vserver_list = attribute_list.get_child_by_name('vserver-info')
+        if vserver_list is not None:
+            return vserver_list.get_child_content('vserver-name')
+    return None
+
+
+def classify_zapi_exception(error):
+    ''' return type of error '''
+    try:
+        # very unlikely to fail, but don't take any chance
+        err_code = int(error.code)
+    except (AttributeError, ValueError):
+        err_code = 0
+    try:
+        # very unlikely to fail, but don't take any chance
+        err_msg = error.message
+    except AttributeError:
+        err_msg = ""
+    if err_code == 13005 and err_msg.startswith('Unable to find API:') and 'data vserver' in err_msg:
+        return 'missing_vserver_api_error', 'Most likely running a cluster level API as vserver: %s' % to_native(error)
+    if err_code == 13001 and err_msg.startswith("RPC: Couldn't make connection"):
+        return 'rpc_error', to_native(error)
+    return "other_error", to_native(error)
+
+
+def get_cserver(connection, is_rest=False):
+    if not is_rest:
+        return get_cserver_zapi(connection)
+
+    params = {'fields': 'type'}
+    api = "private/cli/vserver"
+    json, error = connection.get(api, params)
+    if json is None or error is not None:
+        # exit if there is an error or no data
+        return None
+    vservers = json.get('records')
+    if vservers is not None:
+        for vserver in vservers:
+            if vserver['type'] == 'admin':     # cluster admin
+                return vserver['vserver']
+        if len(vservers) == 1:                  # assume vserver admin
+            return vservers[0]['vserver']
+
+    return None
+
+
+if HAS_NETAPP_LIB:
+    class OntapZAPICx(zapi.NaServer):
+        ''' override zapi NaServer class to:
+        - enable SSL certificate authentication
+        - ignore invalid XML characters in ONTAP output (when using CLI module)
+        - add Authorization header when using basic authentication
+        '''
+        def __init__(self, hostname=None, server_type=zapi.NaServer.SERVER_TYPE_FILER,
+                     transport_type=zapi.NaServer.TRANSPORT_TYPE_HTTP,
+                     style=zapi.NaServer.STYLE_LOGIN_PASSWORD, username=None,
+                     password=None, port=None, trace=False, module=None,
+                     cert_filepath=None, key_filepath=None, validate_certs=None,
+                     auth_method=None):
+            # python 2.x syntax, but works for python 3 as well
+            super(OntapZAPICx, self).__init__(hostname, server_type=server_type,
+                                              transport_type=transport_type,
+                                              style=style, username=username,
+                                              password=password, port=port, trace=trace)
+            self.cert_filepath = cert_filepath
+            self.key_filepath = key_filepath
+            self.validate_certs = validate_certs
+            self.module = module
+            self.base64_creds = None
+            if auth_method == 'speedy_basic_auth':
+                auth = '%s:%s' % (username, password)
+                self.base64_creds = base64.b64encode(auth.encode()).decode()
+
+        def _create_certificate_auth_handler(self):
+            try:
+                context = ssl.create_default_context()
+            except AttributeError as exc:
+                msg = 'SSL certificate authentication requires python 2.7 or later.'
+                msg += '  More info: %s' % repr(exc)
+                self.module.fail_json(msg=msg)
+            if not self.validate_certs:
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+            try:
+                context.load_cert_chain(self.cert_filepath, keyfile=self.key_filepath)
+            except IOError as exc:      # python 2.7 does not have FileNotFoundError
+                msg = 'Cannot load SSL certificate, check files exist.'
+                msg += '  More info: %s' % repr(exc)
+                self.module.fail_json(msg=msg)
+            return zapi.urllib.request.HTTPSHandler(context=context)
+
+        def _parse_response(self, response):
+            ''' handling XML parsing exception '''
+            try:
+                return super(OntapZAPICx, self)._parse_response(response)
+            except zapi.etree.XMLSyntaxError as exc:
+                if has_feature(self.module, 'sanitize_xml'):
+                    # some ONTAP CLI commands return BEL on error
+                    new_response = response.replace(b'\x07\n', b'')
+                    # And 9.1 uses \r\n rather than \n !
+                    new_response = new_response.replace(b'\x07\r\n', b'')
+                    # And 9.7 may send backspaces
+                    for code_point in get_feature(self.module, 'sanitize_code_points'):
+                        if bytes([8]) == b'\x08':   # python 3
+                            byte = bytes([code_point])
+                        elif chr(8) == b'\x08':     # python 2
+                            byte = chr(code_point)
+                        else:                       # very unlikely, noop
+                            byte = b'.'
+                        new_response = new_response.replace(byte, b'.')
+                    try:
+                        return super(OntapZAPICx, self)._parse_response(new_response)
+                    except Exception:
+                        # ignore a second exception, we'll report the first one
+                        pass
+                try:
+                    # report first exception, but include full response
+                    exc.msg += ".  Received: %s" % response
+                except Exception:
+                    # in case the response is very badly formatted, ignore it
+                    pass
+                raise exc
+
+        def _create_request(self, na_element, enable_tunneling=False):
+            ''' intercept newly created request to add Authorization header '''
+            request, netapp_element = super(OntapZAPICx, self)._create_request(na_element, enable_tunneling=enable_tunneling)
+            request.add_header('X-Dot-Client-App', CLIENT_APP_VERSION % self.module._name)
+            if self.base64_creds is not None:
+                request.add_header('Authorization', 'Basic %s' % self.base64_creds)
+            return request, netapp_element
+
+        # as is from latest version of netapp-lib
+        def invoke_elem(self, na_element, enable_tunneling=False):
+            """Invoke the API on the server."""
+            if not na_element or not isinstance(na_element, zapi.NaElement):
+                raise ValueError('NaElement must be supplied to invoke API')
+
+            request, request_element = self._create_request(na_element,
+                                                            enable_tunneling)
+
+            if self._trace:
+                zapi.LOG.debug("Request: %s", request_element.to_string(pretty=True))
+
+            if not hasattr(self, '_opener') or not self._opener \
+                    or self._refresh_conn:
+                self._build_opener()
+            try:
+                if hasattr(self, '_timeout'):
+                    response = self._opener.open(request, timeout=self._timeout)
+                else:
+                    response = self._opener.open(request)
+            except zapi.urllib.error.HTTPError as exc:
+                raise zapi.NaApiError(exc.code, exc.reason)
+            except zapi.urllib.error.URLError as exc:
+                msg = 'URL error'
+                error = repr(exc)
+                try:
+                    # ConnectionRefusedError is not defined in python 2.7
+                    if isinstance(exc.reason, ConnectionRefusedError):
+                        msg = 'Unable to connect'
+                        error = exc.args
+                except Exception:
+                    pass
+                raise zapi.NaApiError(msg, error)
+            except Exception as exc:
+                raise zapi.NaApiError('Unexpected error', repr(exc))
+
+            response_xml = response.read()
+            response_element = self._get_result(response_xml)
+
+            if self._trace:
+                zapi.LOG.debug("Response: %s", response_element.to_string(pretty=True))
+
+            return response_element
+
+
+class OntapRestAPI(object):
+    ''' wrapper to send requests to ONTAP REST APIs '''
+    def __init__(self, module, timeout=60):
+        self.module = module
+        self.username = self.module.params['username']
+        self.password = self.module.params['password']
+        self.hostname = self.module.params['hostname']
+        self.use_rest = self.module.params['use_rest'].lower()
+        self.cert_filepath = self.module.params['cert_filepath']
+        self.key_filepath = self.module.params['key_filepath']
+        self.verify = self.module.params['validate_certs']
+        self.timeout = timeout
+        port = self.module.params['http_port']
+        if port is None:
+            self.url = 'https://' + self.hostname + '/api/'
+        else:
+            self.url = 'https://%s:%d/api/' % (self.hostname, port)
+        self.is_rest_error = None
+        self.ontap_version = dict(
+            full='unknown',
+            generation=-1,
+            major=-1,
+            minor=-1,
+            valid=False
+        )
+        self.errors = list()
+        self.debug_logs = list()
+        self.auth_method = set_auth_method(self.module, self.username, self.password, self.cert_filepath, self.key_filepath)
+        self.check_required_library()
+        if has_feature(module, 'trace_apis'):
+            logging.basicConfig(filename='/tmp/ontap_apis.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+
+    def requires_ontap_9_6(self, module_name):
+        self.requires_ontap_version(module_name)
+
+    def requires_ontap_version(self, module_name, version='9.6'):
+        suffix = " - %s" % self.is_rest_error if self.is_rest_error is not None else ""
+        return "%s only supports REST, and requires ONTAP %s or later.%s" % (module_name, version, suffix)
+
+    def options_require_ontap_version(self, options, version='9.6', use_rest=None):
+        current_version = self.get_ontap_version()
+        suffix = " - %s" % self.is_rest_error if self.is_rest_error is not None else ""
+        if current_version != (-1, -1):
+            suffix += " - ONTAP version: %s.%s" % current_version
+        if use_rest is not None:
+            suffix += " - using %s" % ('REST' if use_rest else 'ZAPI')
+        if isinstance(options, list):
+            if len(options) > 1:
+                tag = "any of %s" % options
+            elif len(options) == 1:
+                tag = str(options[0])
+            else:
+                tag = str(options)
+        else:
+            tag = str(options)
+        return 'using %s requires ONTAP %s or later and REST must be enabled%s.' % (tag, version, suffix)
+
+    def meets_rest_minimum_version(self, use_rest, minimum_generation, minimum_major):
+        return use_rest and self.get_ontap_version() >= (minimum_generation, minimum_major)
+
+    def check_required_library(self):
+        if not HAS_REQUESTS:
+            self.module.fail_json(msg=missing_required_lib('requests'))
+
+    def build_headers(self, accept=None, vserver_name=None, vserver_uuid=None):
+        headers = dict()
+        headers['X-Dot-Client-App'] = CLIENT_APP_VERSION % self.module._name
+        # accept is used to turn on/off HAL linking
+        if accept is not None:
+            headers['accept'] = accept
+        # vserver tunneling using vserver name and/or UUID
+        if vserver_name is not None:
+            headers['X-Dot-SVM-Name'] = vserver_name
+        if vserver_uuid is not None:
+            headers['X-Dot-SVM-UUID'] = vserver_uuid
+        return headers
+
+    def send_request(self, method, api, params, json=None, accept=None,
+                     vserver_name=None, vserver_uuid=None):
+        ''' send http request and process reponse, including error conditions '''
+        url = self.url + api
+        status_code = None
+        content = None
+        json_dict = None
+        json_error = None
+        error_details = None
+        headers = self.build_headers(accept, vserver_name, vserver_uuid)
+
+        def get_json(response):
+            ''' extract json, and error message if present '''
+            try:
+                json = response.json()
+            except ValueError:
+                return None, None
+            error = json.get('error')
+            return json, error
+
+        if self.auth_method == 'single_cert':
+            kwargs = dict(cert=self.cert_filepath)
+        elif self.auth_method == 'cert_key':
+            kwargs = dict(cert=(self.cert_filepath, self.key_filepath))
+        elif self.auth_method in ('basic_auth', 'speedy_basic_auth'):
+            # with requests, there is no challenge, eg no 401.
+            kwargs = dict(auth=(self.username, self.password))
+        else:
+            raise KeyError(self.auth_method)
+
+        self.log_debug('sending', repr(dict(method=method, url=url, verify=self.verify, params=params,
+                                            timeout=self.timeout, json=json, headers=headers, **kwargs)))
+        try:
+            response = requests.request(method, url, verify=self.verify, params=params,
+                                        timeout=self.timeout, json=json, headers=headers, **kwargs)
+            content = response.content  # for debug purposes
+            status_code = response.status_code
+            # If the response was successful, no Exception will be raised
+            response.raise_for_status()
+            json_dict, json_error = get_json(response)
+        except requests.exceptions.HTTPError as err:
+            __, json_error = get_json(response)
+            if json_error is None:
+                self.log_error(status_code, 'HTTP error: %s' % err)
+                error_details = str(err)
+            # If an error was reported in the json payload, it is handled below
+        except requests.exceptions.ConnectionError as err:
+            self.log_error(status_code, 'Connection error: %s' % err)
+            error_details = str(err)
+        except Exception as err:
+            self.log_error(status_code, 'Other error: %s' % err)
+            error_details = str(err)
+        if json_error is not None:
+            self.log_error(status_code, 'Endpoint error: %d: %s' % (status_code, json_error))
+            error_details = json_error
+        self.log_debug(status_code, content)
+        if not json_dict and method == 'OPTIONS':
+            # OPTIONS provides the list of supported verbs
+            json_dict['Allow'] = response.headers['Allow']
+        return status_code, json_dict, error_details
+
+    def wait_on_job(self, job, timeout=600, increment=60):
+        try:
+            url = job['_links']['self']['href'].split('api/')[1]
+        except Exception as err:
+            self.log_error(0, 'URL Incorrect format: %s\n Job: %s' % (err, job))
+        # Expecting job to be in the following format
+        # {'job':
+        #     {'uuid': 'fde79888-692a-11ea-80c2-005056b39fe7',
+        #     '_links':
+        #         {'self':
+        #             {'href': '/api/cluster/jobs/fde79888-692a-11ea-80c2-005056b39fe7'}
+        #         }
+        #     }
+        # }
+        keep_running = True
+        error = None
+        message = None
+        runtime = 0
+        retries = 0
+        max_retries = 3
+        while keep_running:
+            # Will run every every <increment> seconds for <timeout> seconds
+            job_json, job_error = self.get(url, None)
+            if job_error:
+                error = job_error
+                retries += 1
+                if retries > max_retries:
+                    self.log_error(0, 'Job error: Reach max retries.')
+                    break
+            else:
+                retries = 0
+                # a job looks like this
+                # {
+                #   "uuid": "cca3d070-58c6-11ea-8c0c-005056826c14",
+                #   "description": "POST /api/cluster/metrocluster",
+                #   "state": "failure",
+                #   "message": "There are not enough disks in Pool1.",   **OPTIONAL**
+                #   "code": 2432836,
+                #   "start_time": "2020-02-26T10:35:44-08:00",
+                #   "end_time": "2020-02-26T10:47:38-08:00",
+                #   "_links": {
+                #     "self": {
+                #       "href": "/api/cluster/jobs/cca3d070-58c6-11ea-8c0c-005056826c14"
+                #     }
+                #   }
+                # }
+
+                message = job_json.get('message', '')
+                if job_json['state'] == 'failure':
+                    # if the job has failed, return message as error
+                    return None, message
+                if job_json['state'] not in ('queued', 'running'):
+                    keep_running = False
+                else:
+                    # Would like to post a message to user (not sure how)
+                    if runtime >= timeout:
+                        keep_running = False
+                        if job_json['state'] != 'success':
+                            self.log_error(0, 'Timeout error: Process still running')
+            if keep_running:
+                time.sleep(increment)
+                runtime += increment
+        return message, error
+
+    def get(self, api, params=None):
+        method = 'GET'
+        dummy, message, error = self.send_request(method, api, params)
+        return message, error
+
+    def post(self, api, body, params=None):
+        method = 'POST'
+        dummy, message, error = self.send_request(method, api, params, json=body)
+        return message, error
+
+    def patch(self, api, body, params=None):
+        method = 'PATCH'
+        dummy, message, error = self.send_request(method, api, params, json=body)
+        return message, error
+
+    def delete(self, api, body=None, params=None):
+        method = 'DELETE'
+        dummy, message, error = self.send_request(method, api, params, json=body)
+        return message, error
+
+    def options(self, api, params=None):
+        method = 'OPTIONS'
+        dummy, message, error = self.send_request(method, api, params)
+        return message, error
+
+    def set_version(self, message):
+        try:
+            version = message.get('version', 'not found')
+        except AttributeError:
+            self.ontap_version['valid'] = False
+            self.ontap_version['full'] = 'unreadable message'
+            return
+        for key in self.ontap_version:
+            try:
+                self.ontap_version[key] = version.get(key, -1)
+            except AttributeError:
+                self.ontap_version[key] = -1
+        self.ontap_version['valid'] = True
+        for key in self.ontap_version:
+            if self.ontap_version[key] == -1:
+                self.ontap_version['valid'] = False
+                break
+
+    def get_ontap_version(self):
+        if self.ontap_version['valid']:
+            return self.ontap_version['generation'], self.ontap_version['major']
+        return -1, -1
+
+    def get_ontap_version_using_rest(self):
+        # using GET rather than HEAD because the error messages are different,
+        # and we need the version as some REST options are not available in earlier versions
+        method = 'GET'
+        api = 'cluster'
+        params = {'fields': ['version']}
+        status_code, message, error = self.send_request(method, api, params=params)
+        self.set_version(message)
+        self.is_rest_error = str(error) if error else None
+        if error:
+            self.log_error(status_code, str(error))
+        return status_code
+
+    def _is_rest(self, used_unsupported_rest_properties=None):
+        if self.use_rest not in ['always', 'auto', 'never']:
+            error = "use_rest must be one of: never, always, auto. Got: '%s'" % self.use_rest
+            return False, error
+        if self.use_rest == "always" and used_unsupported_rest_properties:
+            error = "REST API currently does not support '%s'" % \
+                    ', '.join(used_unsupported_rest_properties)
+            return True, error
+        if self.use_rest == 'never':
+            # force ZAPI if requested
+            return False, None
+        status_code = self.get_ontap_version_using_rest()
+        if self.use_rest == 'always':
+            # ignore error, it will show up later when calling another REST API
+            return True, None
+        # we're now using 'auto'
+        if used_unsupported_rest_properties:
+            # force ZAPI if some parameter requires it
+            if self.get_ontap_version() > (9, 5):
+                self.module.warn('Falling back to ZAPI because of unsupported option(s) or option value(s) in REST: %s' % used_unsupported_rest_properties)
+            return False, None
+        if self.get_ontap_version() in ((9, 4), (9, 5)):
+            # we can't trust REST support on 9.5, and not at all on 9.4
+            return False, None
+        if status_code == 200:
+            return True, None
+        return False, None
+
+    def is_rest(self, used_unsupported_rest_properties=None):
+        ''' only return error if there is a reason to '''
+        use_rest, error = self._is_rest(used_unsupported_rest_properties)
+        if used_unsupported_rest_properties is None:
+            return use_rest
+        return use_rest, error
+
+    def log_error(self, status_code, message):
+        LOG.error("%s: %s", status_code, message)
+        self.errors.append(message)
+        self.debug_logs.append((status_code, message))
+
+    def log_debug(self, status_code, content):
+        LOG.debug("%s: %s", status_code, content)
+        self.debug_logs.append((status_code, content))
+
+    def write_to_file(self, tag, data=None, filepath=None, append=True):
+        '''
+        This function is only for debug purposes, all calls to write_to_file should be removed
+        before submitting.
+        If data is None, tag is considered as data
+        else tag is a label, and data is data.
+        '''
+        if filepath is None:
+            filepath = '/tmp/ontap_log'
+        if append:
+            mode = 'a'
+        else:
+            mode = 'w'
+        with open(filepath, mode) as afile:
+            if data is not None:
+                afile.write("%s: %s\n" % (str(tag), str(data)))
+            else:
+                afile.write(str(tag))
+                afile.write('\n')
+
+    def write_errors_to_file(self, tag=None, filepath=None, append=True):
+        if tag is None:
+            tag = 'Error'
+        for error in self.errors:
+            self.write_to_file(tag, error, filepath, append)
+            if not append:
+                append = True
+
+    def write_debug_log_to_file(self, tag=None, filepath=None, append=True):
+        if tag is None:
+            tag = 'Debug'
+        for status_code, message in self.debug_logs:
+            self.write_to_file(tag, status_code, filepath, append)
+            if not append:
+                append = True
+            self.write_to_file(tag, message, filepath, append)

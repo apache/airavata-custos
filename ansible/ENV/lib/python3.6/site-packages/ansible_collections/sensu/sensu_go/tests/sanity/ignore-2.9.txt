@@ -1,0 +1,1 @@
+tools/windows-versions.py replace-urlopen # Maintainer tools should not be bound by the general collection constraints

@@ -1,0 +1,30 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: Manage Splunk Enterprise Security Notable Event Adaptive Responses
+      name: splunk.es.adaptive_response_notable_event
+      namespace: ''
+    - description: Manage Splunk Enterprise Security Correlation Searches
+      name: splunk.es.correlation_search
+      namespace: ''
+    - description: Manage Splunk Enterprise Security Correlation Searches
+      name: splunk.es.correlation_search_info
+      namespace: ''
+    - description: Manage Splunk Data Inputs of type Monitor
+      name: splunk.es.data_input_monitor
+      namespace: ''
+    - description: Manage Splunk Data Inputs of type TCP or UDP
+      name: splunk.es.data_input_network
+      namespace: ''
+    release_date: '2020-06-22'
+  1.0.1:
+    changes:
+      release_summary:
+      - Releasing 1.0.1 with updated changelog.
+    release_date: '2020-08-28'
+  1.0.2:
+    changes:
+      release_summary:
+      - Re-releasing 1.0.1 with updated galaxy file.
+    release_date: '2020-09-1'

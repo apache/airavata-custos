@@ -1,0 +1,126 @@
+---
+- when: sops_installed
+  block:
+    - name: Test load_vars with missing option
+      community.sops.load_vars:
+      ignore_errors: yes
+      register: load_vars_missing_option
+
+    - assert:
+        that:
+          - load_vars_missing_option is failed
+          - '"missing required arguments: file" in load_vars_missing_option.msg'
+
+    - name: Test load_vars with wrong choice value
+      community.sops.load_vars:
+        file: a
+        expressions: invalid value
+      ignore_errors: yes
+      register: load_vars_invalid_value
+
+    - assert:
+        that:
+          - load_vars_invalid_value is failed
+          - '"value of expressions must be one of: ignore, evaluate-on-load, got: invalid value" in load_vars_invalid_value.msg'
+
+    - name: Test load_vars with missing file
+      community.sops.load_vars:
+        file: non-existent.sops.yaml
+      ignore_errors: yes
+      register: load_vars_missing_file
+
+    - assert:
+        that:
+          - load_vars_missing_file is failed
+          - |
+            "Could not find or access 'non-existent.sops.yaml'\n" in load_vars_missing_file.msg
+
+    - name: Test load_vars with non-sops file
+      community.sops.load_vars:
+        file: wrong.yaml
+      ignore_errors: yes
+      register: load_vars_wrong_file
+
+    - assert:
+        that:
+          - load_vars_wrong_file is failed
+          - "'sops metadata not found' in load_vars_wrong_file.msg"
+
+    - name: Test load_vars with simple file into variable
+      community.sops.load_vars:
+        file: simple.sops.yaml
+        name: dest_variable
+      register: load_vars_simple
+
+    - assert:
+        that:
+          - load_vars_simple is success
+          - "load_vars_simple.ansible_facts == {'dest_variable': {'foo': 'bar'}}"
+          - dest_variable.foo == 'bar'
+          - foo is undefined
+
+    - name: Test load_vars with empty file
+      community.sops.load_vars:
+        file: empty.sops.json
+      register: load_vars_empty
+
+    - assert:
+        that:
+          - load_vars_empty is success
+          - load_vars_empty.ansible_facts | length == 0
+
+    - name: Test load_vars with simple file into global namespace
+      community.sops.load_vars:
+        file: simple.sops.yaml
+      register: load_vars_simple_global
+
+    - assert:
+        that:
+          - load_vars_simple_global is success
+          - "load_vars_simple_global.ansible_facts == {'foo': 'bar'}"
+          - foo == 'bar'
+
+    - name: Test load_vars with expressions ignored
+      community.sops.load_vars:
+        file: proper-vars.sops.yaml
+        expressions: ignore
+      register: load_vars_expr_ignore
+
+    - assert:
+        that:
+          - load_vars_expr_ignore is success
+          - test1 == '{' ~ '{ bar }' ~ '}'
+          - test2 == '{' ~ '{ this_will_not_get_evaluated }' ~ '}'
+          - bar == 'baz'
+
+    - set_fact:
+        to_be_defined_earlier: something_defined_before
+        bar_2: baz
+
+    - name: Test load_vars with expressions evaluated now
+      community.sops.load_vars:
+        file: proper-vars-2.sops.yaml
+        expressions: evaluate-on-load
+      register: load_vars_expr_evaluated_now
+
+    - set_fact:
+        to_be_defined_earlier: something_else
+
+    - assert:
+        that:
+          - load_vars_expr_evaluated_now is success
+          - test1_2 == 'baz'
+          - test2_2 == 'something_defined_before'
+          - test3_2[0] == 'baz'
+          - test4_2.test_4_2_1 == 'bazbaz'
+
+    - name: Test load_vars with expressions evaluated now (again)
+      community.sops.load_vars:
+        file: proper-vars-2.sops.yaml
+        expressions: evaluate-on-load
+      register: load_vars_expr_evaluated_now_2
+
+    - assert:
+        that:
+          - load_vars_expr_evaluated_now_2 is success
+          - test2_2 == 'something_else'

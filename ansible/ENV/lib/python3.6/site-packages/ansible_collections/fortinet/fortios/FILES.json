@@ -1,0 +1,3400 @@
+{
+ "files": [
+  {
+   "name": ".",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "examples",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_ha_monitor.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0887e5247f23ecdf64dd7a89ddd7d1d686a5e1bba3043e3c8c31c8e1d5e3baa4",
+   "format": 1
+  },
+  {
+   "name": "examples/set_firewall_address_group.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2fa4664b850f35e19776314ffc47accd088d0d20a964eca7aa5b8b197aa39280",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_dns.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0fd8236e5ee9925636d04c67bc583388bccf25eb454b3b09a2f84cfb1ae2624a",
+   "format": 1
+  },
+  {
+   "name": "examples/set_firewall_address.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "825c89e6f960924b965350c3b4a29e1730b59a7906c857749340d373a2f400db",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_global.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b771c6cca7f68b5406a65f0201644a32e76e99120b90111934ed6b20cf735f6b",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_alias.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8f28fd1c84f857e6f7c7be19194dd52ffe6d85dbb51baa346350f953b579d8a7",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_zone.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9ee9563bf21770f6b28cd9f29da54ace7150c4f586b89b2e0604b80e0bc39a1",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_ntp.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "108de43f3838294e9a15b902b4a51fb99b02ea784f01ce3ab7067fa496411122",
+   "format": 1
+  },
+  {
+   "name": "examples/httpapi",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "examples/httpapi/readme",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7a779d262526683f6a0ae4309c97b7758d3af5bddcae2fc61a6e1f7605fe6bf8",
+   "format": 1
+  },
+  {
+   "name": "examples/httpapi/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "examples/httpapi/inventory/hosts",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cbf074bb71d33b014d483ede2c049797d61a5909794292e11837a6299cb39514",
+   "format": 1
+  },
+  {
+   "name": "examples/httpapi/set_system_global.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e4f52a0c705ae55371663447468ed082c356fd37aabf7c02f9e1d25a9212c52b",
+   "format": 1
+  },
+  {
+   "name": "examples/set_system_ha.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3961bdfce654bbc8999796e73f00725965402d1f61ddf1fd8a0946e3fe5fe011",
+   "format": 1
+  },
+  {
+   "name": "examples/set_firewall_vip.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "81da4978204614eb9c5ea7b371aff2b20fcf4c1d0a23e8c9f9ed850216053507",
+   "format": 1
+  },
+  {
+   "name": "README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "964cd643e37cca6aba405b179cc88678c520c60b2d08ba7144fdc4cb33fe93ed",
+   "format": 1
+  },
+  {
+   "name": "plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortimanager",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortimanager/common.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2429a4c142dc92d6dfee8f12fe45269ba172ca2b20323daa6d0c49ee7f1a1128",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortimanager/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortimanager/fortimanager.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab117cefbb7edee1bba309fd122de23de89d6ac955bfdcb1307f620080481540",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/system",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/system/system.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ca0d8be0e820b6326cf8f474824d9029916648f10571ef20e992376c49b1a384",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/system/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/facts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/facts/facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9b0e1461d68f19238b7d1e28abf42fa5bba503d7dfc2cbd06e0765aee3bdb312",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/argspec/facts/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/fortios.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "22208f4418ab5ecf340f633b674b98e9ed11f3da9b43f2b647324c01f9a49bb4",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts/system",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts/system/system.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f8364017078d88e58a9d98b8be491900d7a43704bc623617ab9ccdf49ec6873",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts/system/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts/facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "91596102a027c820f6756eb002aa80da510de5da749bde5390e250bd6090a43f",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/fortios/facts/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_accprofile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4ba2154ab77c3c749026902ed262d75fdaa61626393364bd6ab1711a320545d1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_dos_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3562ff26ca5a78903ff08d9dbe02d415dcf83d28f0d933009007e84f7320d261",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_web_user_group_bookmark.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "29a53cd49e6393280af2579cd5f8cf3e3ec00449a4d1a0b03c16bf4c075ac160",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_web_portal.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "757fa47c55bf1a67dc05682c484b8caaf201fbe230299816f2676b2d53b587a8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_access_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "814918241e3b488fbaa1d490d1faa507d3f4280789db49dc127f5b43a2d1a53d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_virtual_wan_link.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a753ecb9cfb1bb1e30b562bf170aea965b94e5b1beddef0fc38334eb9e1e3d9b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_sdn_connector.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "65afd0d6023c159d8e185db0e6a7c8370fe7a98db910f906fed563be00ef199a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "93969272a12de62953b70f40f73fb4852da0c3e35d58de8ef9357b58d4e83d09",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_internet_service.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "89ce6b9fb4d8aa238599a5b20dc7955bf072bf28ca0c4d24f5f97e1bcdc093ff",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_policy46.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "87098d9d91c72db62591ea8495c62cbf8cfa25e57ebac4346c712b663237787b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_internet_service_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "481fcaab046939c044ed56f1503d306251c4db503a4032f642afdb761136ea17",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer2_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "752535917a3c6d2bdf00801f8263eb8099603671671077df893543d0f2543f6e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3c91d329b4555483076abec56c939221833245baf15b71e75d2c6260f4161ad0",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer2_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9357122acdf590c4fd0f1c8bc0a4ee2151c224c01b95237d70b23ae1d3816678",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_exception.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5e3cc786122359af610f054ea72c39a511d91209fea653df299e2d0e5562c96c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_image.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "064fb31a4efd5dc779338a8e3b983eeadb7759aa0b257128737ebb632d9a8103",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_auto_script.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cad95042c925b3786c371cd4844540b010b79710282f53bc559fcb7a1526ad70",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_nac_quar.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9adab0da7ec763e5d5f2b35f3928a3a680e8906486599e1b0b410af5f5bf76b3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_ble_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "51d1f762eee3d6d794d1276d0e03019d5b867907f803d2e3f2026c1320913b28",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_automation_trigger.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "49cd1e435a37fe9c0296236159061197bb0213f2f7f3579adeae6ae2eac12d1c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_identity_based_route.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "47c54bbffb7790693f0bb048069a8222ee33e9ab801a5e015188b1ef7666194d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_ldap.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a9865e16547815e2b17db81a44a447e78b595a3facbff99de64717bf2f30d2db",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_h2qp_conn_capability.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6ece21bdf6e6c0923e129c368494b08607486ef8a1c5841d842160bdaab66929",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_layout.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9498936b717b4dc37754fddd5403c68c707090f876993d42d088def1a9e2cabf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_pptp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "21ee14162aa1b3b43f6a7be8c9bf97271536a761d1977be5ab0ea663e983370c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_nat64.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "00e2165a2c881c71d6903e943d23936065fa6404b6f5f8105e0490793a62e189",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssh_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "975339a938c5be1cd1676667f8af739c46455519fd7dcf19c188d8bdeb42eafa",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_affinity_packet_redistribution.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "936fcf0cf5b5814cd7efed3661d1fdeb7941c56eea696cac9ea075b850f424d7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_switch_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8aeb7e2114eb059c57265df848fd4d9b5f1a863fcc01abc48998f261b6659f99",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_client.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2349a7e85056efe20d65fcb54dd59e670d6b3706a7808f5ea0ffcc0510368e8a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ddns.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b4ddde767e8520b61ad19c521161ace86b74c3e67d14203886e304ca83088b9f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_ftp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fac6ffbba6605e4345f7e76d4ba10d5be1d62d7650dd6a742f9b0bf5076ff43e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_object_tagging.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "89f936751e6b4f68acad542248fab00c028174e888efcbdd0d655645f06e2d82",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_profile_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "917f873f5f21afa1e627854db782e41b93dfb509c77a7272fede9d50a1482022",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1eac031b151ade08da77b1865b44b5c5b64ff9d8c48961ab9fd2540efd953dbe",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_address.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cbd5c85c86086e9cbd9b7f63e86a1d613cfda53860c1729bfe24c06d6dfad94a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_alarm.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7de7b279188679f0500fb340dddcc19b3bbea27495e6be38acaec55af6d69b2b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_configuration_fact.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "26f152c5068426a57f59d3a4f54731c21934cdd055750211d8ce4fb0916bf1dd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_arp_table.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b05f0b82129ea6d8c61b33bf016e0bdf9f2298790f453ab076def98458719060",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ip_translation.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0181e61aa0da83fc1cb2d23a0c5f969c9ad799272c82be27a69aec37c3d0333e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_3gpp_cellular.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f4333e2b77ab97558d28a6990328446b43402db2092929d2cf28aa175d0f5e13",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_manualkey.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "37b230fc96411c2ad5982777fb7b5485b9c6e8052e8f672a9e3ab6a43cd9abd7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_ec.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5bf2787386436bfd7cddd07788df90a9451989c746ba99356cf7f11f09dbd1b7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_shaper_traffic_shaper.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "611589d6bc2efbdc9b2df383e4e838a91b01c13d4f9cd6c4d86d2b0b1a667b66",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_storm_control.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "afcfa90804739439e2dd2b40484e6772a572077ed8669d976580d72056bcd271",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_phase2.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "404cc6c092fd9ec4fff65da2440c2e8cdb30a3e9e783bb8873e1fb5f23f3cc41",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_ripng.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1b6f73b8e62f6c780a5e5f93396eebef8a88c79dad1e45b4e3ac3be9d9230ee3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ftm_push.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a23fa80624afa2e832aebd47095b75a620854d7f5630062bd86be391ef3a89e9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssl_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "277eac3ca3f3083e9de44b488036ac5a0790c22bd8b552eaca0d2e95ef421f6c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dedicated_mgmt.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "86c9ff118643b21ebbb8d576231d446bd98f247cfbe44785bd54873d40b1ef79",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_ap_status.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c50084c68a9ed1ad173565cf46e961f0ac6194b7071e4c54f1177c220ff4b7b2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vip.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d7e1d0fc75de2fccd35c0b387cdfbc979f305394ccf41eabd37ff1a571d6b02d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b4ca7d446370c49c197f21938f3e16cef0857d85ec5ef9babf238cf7061b4e09",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_affinity_interrupt.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6c3f7a6a2264870678734661e13dbe872a9fb4295598c141d789b6378cc8b8a3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_console.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dcbf89ad846c296de70d2332b6109529b457de3aecddd744d91b88565d3b65bf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ips_urlfilter_dns6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3f1f03f008587a3fce5fa0992b1f204972469859d1b20e6cd5c4cc5e1b747bfc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_remote.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ee1c75ff53f2d492be309e8a30b23b0b04a36ee48bc3cbb380353997b1c6bdaf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dscp_based_priority.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e2b7fa46d99947c945aa60902f7e5dcf99e6f5e83005259b61880ab15af08af",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_quarantine.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5aecbdad35729b22c23fca41c5fb171e545831c7c0e83c5dd432a95aa8c3f8e3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fsso_polling.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "04907ac71bcee903546682e32b2b920b505e556d06100b7cfc34db38948eef2c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eba2ee65ec99de228f50e25277dfe72e7d0e28b44f3c332bafd73b4ed322bcee",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cc3db9bd8b6a76c2e0735cf110999d85627a0e195799b74e6720619535961b04",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_ospf6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "19da53bfe1862038c83cdfa3c7b506bdae689ddffe01e86816456b4d4f2b20f6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_utm_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ba70882b11f29ec283d66ade30598a9f3530d14a7009b871755ec1fcf3f31900",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_rip.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e5448ac879725e44abfb05d7d39fb5e9747f8228ddad05796a6a148492d81cd4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_wtp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e275a099762edee111c01852c58e7e131329ba42eb7de3b6bcee8acababf6835",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_urlfilter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cc52933f92b4a81cbfa7c12972bb9a9c45d167d2c08087a5d636e803df757ca7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ba6a6a2a01a7a55ad3cf7cb213045debbd787cb776195ff84df9cf5128ab868d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dns_database.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c004d45ef89fb6cac39b17428d1667eb5479c96199646992e8cf75583536e7a8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_sniffer.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f6af072aa9d0848d6e58576565b11442705f0d4eaea14e15258d78d899b46b4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_antivirus_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bf6d33b2bc3d8dc71d5403a0c8e0d61883378a772dd2d319232b9eb3fa0fa414",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_dnsbl.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1f711be972e7f8510f6f1e78d97386fc3e2cf7a6ff600a594a782c62844bfb50",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_session_ttl.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "571c17d42388b9df528403a0bb6b4a5c7edfaffe8e59c2c820c3a85e9af8fa88",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_web_realm.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "961bd280301d10e14e0ec9582801836b22b3ca5b32f73d16d8c58dfcc11f6a6c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_wccp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3ab22a19c290f8a9bca30aa8df2311ff2c2bf08dea5ed70ae01009eb96570248",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortiguard_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1db084961f545f930c5262d19da2d412a19df4e38ef90fea9cb93f1b0692f828",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_nai_realm.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "499650baf7e9d346c33ec003409823743939aa7728ea5c790258b123a1283d1e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_802_1x_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9245b795def781a97d81248f33da352b35284c3aef9900e71b619ac390bbf4c2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_disk_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c28ef7e7ce478988b440775cdc0bce276681c4c18c6a3b7de9f80287fbdd1b9c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_application_name.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "494ff92c0038f4eba4267ced75b9481fe48a6ffc8e81e39f2af31dc1b35c6ddf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_peer.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3fbef09769bf793b0489fbdf2212a84bae7d8fa61430920e1525fa8d36635179",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_aspath_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd5d7756af8bc6b9bab8982b04d718ee813801c2d76bf6fbee910d2f9629f876",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_gre_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e2f955ad61cb9c887da77fac85e8ea9208dc492bb2c2ff9b52e703f23af1362b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_voip_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d6e39eb97745bc143f71a0007129ef407c734ffb72088f0005f5c893993f0ea3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_autoupdate_schedule.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "21321a9c4de8bb0a3d58e7187805bf27fa26860a62f3e839bd6a214f9c1bb836",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_central_snat_map.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "83ecf034775efd227e43efe230a244da28531235eaad6275bb03224cdcf5e3c8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_auth_portal.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "71d98240ce0a7602d6db3bb327214a0e5bfd8373cc5a3c7d74048c0d2b281c4a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e8bcd5db9cafd6b9aa1d9964717485f4153a8ebe91d8b313b8e02027a64b83f3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_device.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3cbd1a93f2110eafcb9927e653fe62eedccdb720ec4c90f2d3ec778bf47dd9f6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_forward_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "92b85760e40d53e543dbdc0e7fd45f773ccfa3d07cb275ad2f2192e10577f625",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssh_local_key.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad270d0204ccc45462fc1eb24cf0ea29d51776d2149d416cb020eb64572c3765",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_admin.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d5f4e53d69f58b75c4baf7c41417f2354d2f4b18205f2d6ff77fa836e414526b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "936608ded1bc47b4963a0efdcf78a2d6d45b43f1150028afd875875a0965332e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_sflow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a1a63d7eea736a7e4d62a7340709c7b1aa60673a804d844fc0920ba5c664895",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_timers.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ccdf1e84c37986c334047b26916a8c5366345a1fc9f9c4c979777a1b43aa1e7b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vxlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad559ed7d7bc99e47828d5708ab4bc79298a504c28e1202932733dca4efd9d13",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_geoip_override.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a83e1d301f25e33f7d9be17487c558e47fe5764665ff7d29e5679f820bea170a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_storage.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "db11afc8935188ebe164cbb85443a1faaaa1a048fd4184e98f034b1113b87c13",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_session_helper.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "aba07bfe8ad8fdefdd8780984e29241ed160dcc596fb1c73978be81e311b6514",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_schedule_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "34563e23e44a4a2995226866b5b067748e7ee071d8d2ce8b3b44863b6fbd9e43",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd3_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d1e1a74dff9c5dd552f48daef1e3736bafb50498c5372882ef909225153f574b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_mac_address_table.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "67f9c1cc4a109cddc8cf146bdac77a2b5776ce279dbe54eadcc10b6fc072feee",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssl_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a9df6abb59fa8de404c0edbcf6a6c08c15a308627901d4cd6024c5868fc23969",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_bwl.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc5f5c0a1745b61b320288e33e2195863b8cad084069aabda093070236f0637f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c066dd112b24e5a00b565df5c3d92d7ca9d1d0829dcbf513e91d559619c3356f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_vap.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "35e667677aa65df1a328ca0a297b64d0c1a9fe02171f00223810c9563c5b23c3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_route_map.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c79875355fdd385e2b79c025ed3c04c0115831436ecad816ce86c02d21384634",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_profile_protocol_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d90f884b56690175757a76cfc2d7fd22783b1388bfae1852e1f439852301a97c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_shaping_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7a66b9faefd8113785a5a718af5a6d72fc9f309a99e13d151ee9893067ac05ff",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_fortishield.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1ac67359b9c9ef5a4911c6bc44264fe8a6438a35ccbc6f23373a8fa0ab4fa61a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_inter_controller.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "48696695e1b29034ca65b11af092cd2dceababb255e50f58a75f0e7b0d6fe4a9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fortiguard.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "24ecc3e9dc2ad0b8db88725aaf91e48f1eb06c64520e502970b88bec897a842d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_snmp_sysinfo.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7734e954560455dd92845dae72b5b613983cc79def4b27a9d8a8a6bbb708c101",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_auth_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "27989eb6767391df088554101e9eddc58ac2b953c932ba456b743bf068080f3f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_iptrust.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a4e8f174de31f70c10261418ac8c22ce18bbba8f0be505a22d974f61e2abe39",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_multicast_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "39ac6ad3fd92dda864c9d3c91c29d962b20dabe9afed4fd6128b9047126ffd3f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_network_auth_type.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cf00e3a214b83f61138cfe95c696f0aefe473330f1dcdfcd118b76d5368264ce",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vip46.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "79022916c200956e1427bb9358d2300af2f4fe478e6fda02cf226a2a1e09e58a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_netflow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5d7ac8785b82ebd43d4728bb773c6ca6a518e761a9948ee584fde2635cd693ac",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_bfd6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9de52a5d63e75b5887158973e9eb747c1ac4bced942d43b94c7e097b8f0f52b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_netflow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "337029ed810f0236c7d1f7aea6450733ea7fdb933debd5cd108bdd2d190ef152",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_krb_keytab.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0400bfa8d2173e2dcf8d8da67806fed520d8a3ed2199704b4decdde16b1a6a74",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_l2tp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "463b6f5ed01db8f5cb91fe153d9d76aeaaca6173aff2e0240e51b6441095505b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_policy64.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "494aeccd37915d7d034f665ddefa7109948c4691b5989d81efb118c2f3ff7069",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_certificate_local.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c8636ffd4a8bdd0a9d7461b1ae2e544dd39f257b592af05ae4e4990f894ba55",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_stp_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "877c2596a76a48cf0d56752d8c1cb8ba3a9877303aa5027e83dce6a0fc26e592",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_igmp_snooping.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "38a0e534d9aca21f62f13b77943caaaa0503b6a8abfaf30425c323961e4fb991",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_content_header.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "97c19ecf35b325a497b4eb9945ff8d23867c76dad227ff31766c21769e6fb000",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_antivirus_quarantine.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ae89ea1869ee0d21a636065c0e2ebc46c532dd9c4f8705245d0d921c845a0124",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vipgrp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1941d8641f4650fc5fb531471aa832fbdbe43c16812ab84409f542af77d9af5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_automation_action.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1b2ed9b05996833050ec274692e51a7f26d75053590b38e8ece5854945a6e1c4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_addrgrp6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce1b1b6836e2b77d0132471d208c393b1968c767cd7d1cf97bff9e5530acb2c5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_phase1.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "33b67fcfec4147ddbb743e848b162b26202c8b392867a5887dbeba7c2df57b37",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_waf_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d7b2de1bf9c853f003da64b8ac6b5e04c19f693685de55d7b1d562ce290a2c9f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_qos_qos_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0d3fb7486d742b3d9366e9c021c1d0827b62aacc52dcfc978dc09154a27c9b8f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_schedule_onetime.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7e73721f626b7ab9451fb19dc268f8af6b7f9629d1b43f388b5fa8367e9cfd04",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_h2qp_operator_name.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a1bd1779a18e631dd0c8397c36ad2a2bc1040fa14d420c90b49686b0281b88cd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_local.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3694d68ac80d70ff6dd7d1392132e26d4bc9aef8fa270430501f936f3e2d5d7e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ftp_proxy_explicit.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bbc5937bcc41a12e53af5e271d587f0f8a53bfaab3035efba8d2bb9ffd5d9d04",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ipv6_eh_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c6c35a6aa13942aa17da2cb4d2395ff9ca9d2c788781e3c04db4de18ce238539",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_automation_stitch.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f803c26737d990f89ba49c4d40ab509abbe74ed9942ea5ae85f5c9de48711e9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dlp_sensor.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "017eed3282df23a963d270a938e1e0b39b3af3b0f90a71811615123167f4d0fa",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_multicast_address.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a002a0017378b25ab34e3fa4c2035c17655bd4fcfb5c97b021129b0114fb76dd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_spam.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6ac0f705a3f41eefe2e0f4d4ce49d0a4718527bfa5d90a53452bb028f31f1c0b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b33820fb4328fbb5286d8634055a041381f79cfd9b37e59ed1d117a989931bad",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd_override_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8982e8e6aab101b67ccb1fefa3bf4309df3110ce77de78c76181929536c8bacb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_interface_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "faeec2d561eed6e45dc9a47a0c81bd39f40e103797bdc15f26b9b71c07ee4ce9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_nntp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2640ab2dbaa22c0a3fef2603fda72b697622fdb6a949e0fadb1848bd7fddbda8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_network_monitor_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b6a833cf50bfa6639cfdef56742ae5082312a2b966dc7840a11cfe8c0f061920",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3ef2520a9a5259df2eed3a244d7f775fe7d26447da9314f8161b56084fcf5363",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2aae3aea434ed84a88ea2f23b0046f8b79d2367232e5a5ded35e13f2e67ee614",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_auto_install.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7515d3ad4c5428d84be4b2660d86f42901bdc495ddd2577fecb0003cbb11f0a5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_icap.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e93037d792ff706b10fa3bca3a0a0f3352b1713d68ac55da4b0b0e8e7ea1341e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_pop3.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "412ef54982d1950136f348ba707df41219f513f572d0bba1924d5fca6bbaaef0",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_alias.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4b4571b271fb315a88445531252023844366bd0b29c55e2e039ef3dbe28757af",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_isis.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9299b53e38d90b47cac5ccfd38c3891eb8f2220b81bee1c37fd8231a70859891",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_lldp_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d083de043257f1b60e1a3cfcf59a9011bacd7c7d5aec352d928e0fc7cc5a00dc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_multicast_address6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6b174798449f31946bfc731fee3800eddf46ed99d8a08891a1dd2ec91951622a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_authentication_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce3f58f89ccb4eed7ff99b48abe1a94ad4295deec9fd8f1c3459b260fbe04785",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b6beb33f8b02d904d64db939a1d419b1d459767ad721c34e54e8fb8f999ef9d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_prefix_list6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "709599a835adb6e830747105606ace1f9ae4328356e18bc3519ecb9cd202eaf9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_decoder.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c00d37da0af62a278f78ff3e86538325074a2576bcf84411319daf15fface822",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad1c63f13a008da839a823d9e6c3c7a5d5114f317d93f7d10069593f4013da31",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_address6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e0bc1f92a666bed34561a93ae614823d866d6c2958e117dc444ea4ff148e3192",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_alertmail.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "698f15ac4d6463bb6d64da91b30be704663dcd6eb16efe1373c391199b9f773b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_remote_storage.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e0f2fe08749b4957e285ba1c2a104ce2931d538e604af40b848d14b0441458be",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_h2qp_wan_metric.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f165cc551414b00bfad1b37c86326a9a395325b4527fd7385f9272fff3e0fcb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_config_backup_restore.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b7a4451a457990dad348ae673dc8ca8db867dfba53e231a3a51f068a924112d4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_forticlient_ems.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d37c11089115ff80b994644412cc295b9191dc1b18bf6b6993f1e9784f2859cc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_community_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6d3c22b34070dff959eae23fc345d67dade9ce99933f331f2acf9fb45eaf1686",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_device_access_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f130129fbda2836a52ae8139365aaaeb0a0417aaa22689a5246f690f8e579585",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_registration_vdom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5c99e40ff1c9bd0b97ba539149f46834f5d541823538994a487ccaa890e9b569",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_http.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "50f7003394082f0b1dc05c07707f98e6879882203ab9e48bd2bb979a8a58a851",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_sit_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "97633da6c761fbee9397dd12ebbcef2f261b1cb890c4737d2e682ce09a926286",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_application_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a7f1b38cc513d9c1589b02763c856ad49c7d259dbc1cd2af52ef13e00d80cca8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_proxy_arp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0498d55495e85628d0aa08d89ac3524e946f03d50c367bc3888f162c4516c9c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_fortiguard_wf.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b09a9c719499138d4b0c6d41e7430019bbe143470c483a04e1ef404e1648df7d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_certificate_ca.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f13fa514492d052f5b6963cc409f34546d5563c0edd2cfee95a04c31e2c54767",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vmlicense.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c00cae82b44ea1c3c7b5e49feb577afd8399cdf1dc8b8c65d16347791c227ab",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_disk_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3d29f640ceae9eff1286021c7f72319a0382a5114f0b15c9ea1c25122b6291df",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_custom_command.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cd36b9fe88be4113e4ee0e24ce850eaad0c30809e245097b0f8f5bd060d6604c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd2_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fcd24b0bdb8d5e02d022fb2d4354293dbba6562850e87a346bcfd51c1e00956d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_snmp_community.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "316756f896baf19b2f6f760e17851fdc9cbd7a6d641ec896b3b983723ba59161",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10dacc7f19db4fb0f62d3b4d8f1d4d2cef2d533f8dcfc8d91bd0ede7f22a9604",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_interface_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a6186723fba031e4b369caba9edd120cfa78af7cb819025db5856a95b363bb4c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_proxy_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8fa98f425f8d7cbc2dcf353c391036fddde5c662c1cb43e8a6c90974907dbf3e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_waf_main_class.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c97141dbf4d7786b0adba8a7696283c093768744945927bc03331545b5a336f2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_external_resource.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8d54a64322f85ea7951fe62f93979b738cd87f86cd006ee9729a0f40e12820c8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_memory_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4e7379b83f9857255881008f15651940b96d4e32523182f3658238dd15ceafb6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dlp_fp_doc_source.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce4fbac75fd1c312864e968f9aaf844a121138acab046bdb5e6a6468e765021b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_peer.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c3ea9f0857d5ced444600684e5882efb39cf8cfadfd2d00089852f1ab91bc421",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_override.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "89ba545adbf482a6124720880a8d67a737565b3b43489c931f558556a7b51d7a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_switch_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "277239b2136372a096b3a48329bcbab81e1e554917565e840f2357e39c892387",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_autoupdate_tunneling.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2160a3426c0d76e7a42071b883c78d7cd2621f4c6eb023fa7ee6d66ca0bb1ef",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dns_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb33695391d1c65e51c8040a8f88f6348f93255fd73d06f6877023133bff8355",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_ip_address_type.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "abe4600b437d1df1d941fb99b0ec3bb7b25abe8a58fbd7ac7b4136fff68170dd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_extender_controller_extender.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6f35222516c51166f3a6a0aee85adfa9f8355fbd81e62fc26e47132457f3e72d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_wildcard_fqdn_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bfbeea92ecda28e6ced258328ff20b9273c5086453afeaa9f0dd2a56c26cd375",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_proxy_address.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "901e8952cf900ef60e3a2ca96ff60a737de80e9a503854cea3122d9c71e624d3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_autoupdate_push_update.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "04a71a9d41c6b91c23820012d60ef0d2fc107ecfb1770326ce23d1ea5210150c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_wids_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e627d8cf7b0ae5298f27a2b3c1a76a0f94aef3842da1297ae9f6703388e8a6a4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_ospf.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "38d46c5b8781d5ed8b255037a819e050b1c4fd85bacbd6ead53a73d7dbc1dc27",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_fortiguard.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0b4d4d58383576b122cddbfedf20991a3698d5eb925989cf573624ccc7514fdc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c46f14b8a9481a8d9fd25a1b9dc15fedf50864efd3af0bcc936f01e51ae3768",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ipmacbinding_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f6d1dfd0e5c4b9c49dab77dc9cbef8ff96a8fbc13230219739feb61f13ceba6b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ha_monitor.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "da4ebb57501ad03e2b2c0b32f628274f2fcc114fa5a13064ddf35c2bec2f62ec",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fm.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b5d28eae32f4bfbfc520596c9a0d103aa30a70fd8074975a35c5ce977cf94a3b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_authentication_rule.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e2338a9d2a51f9e5206574380ac1d287ed20458fbca1684049a5c774890884f7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_waf_signature.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5da72134c06aea064e6335532cc5ec9ba9732e804e51fd0bd49117f5c9c08937",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_qos_dot1p_map.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ba915f0f231d1002b82f1a6bdb60ba8dacb035bb179467616fd2a7b63750d723",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ipip_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec4ce213b4123c0777a34f999f1eb741ccc9c60522e9b56ba952242b9c39dacd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_tos_based_priority.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5b5ce11a350e384befdfb9f4e5027606f37a1daf29d1e83c51373943543800be",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_sms_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3838d94621af2bd6eca6acc38d6bd2e3dcdce1a323d0543ac0fcb1e5659d0b71",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_dnstranslation.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2cf0737ff3ba59be16d1cb394a868c8aefe34b0a555016aebb03a13729a030e4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_waf_sub_class.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6ab383cf0bc7dc3aab8e92fe095bc0eb719ecc9ca0d4948c9ad990b7118d96eb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_sflow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3dd6845d80a146b1554577d6bf1e8b57a2be2de3074034d70321e0c5ab2c85b1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_switch_interface_tag.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "474cdbf688fdf6c45e34a54cc8d7d49f0eba223f3352e543036fd3ca8f804ab9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_fortitoken.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c956b987e38fee31f66e633741bb48dc58c816784dc1833eef0f268ea2c3239d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_content.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "53da00e366a56b369ee8e2ee02d625b6b080cae6ee4e7a64531115a863169106",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_schedule_recurring.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8e7d0f5e98672d68763209e2bd6bccc8c1729834a0474095bc37a94eb56db8d8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dlp_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b507f3ff9771c5cc03584232bf3430788c74501d6bf32aa5afb103a12a055500",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_dns.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6397724dcf213c2e85a81cf5840cf131c765d18ccacd7c251b20f95c86cdd222",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_fsso.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "db7c93d5490e6fe6acf8e260fc5b2d584c7a116aad51146d67c8491d20fa6a1e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dhcp6_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c4c655ba79f9ea95320788a31dc333b35ca1c5cbc7dfad801170101989260403",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer_override_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d8b8cd9de3750a3ab906597fba3e8881bbf063c9b16bd6042ccc9ea521955342",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_h2qp_osu_provider.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f5155daf299016b9c25765ae94be46b0b8ee237022293caf0c32d4fa16cc4789",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_password_policy_guest_admin.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3145fbd3b819ed5331fc1416a47c7fb656baa2d9242ffd8f45dd1c9b9bcc3eb0",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_traffic_quota.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3eea3e008fda973e02216344a1e87675307f9e03b323180a9668d7b37a3b4919",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_antivirus_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "09d216d1d4013c5da20e34372213b212f347594be106a3e7579e8198f2628934",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_device_category.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "76ebeba9292adb3dce59415e0f7ee6f6bf373a223af73a8d2bb668ed95db3396",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c07a60fad746ca46337331d15e5bdb1203898274088c9b21de2b71ac7a87d69c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd2_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ce2e17d661b54931a5cdec1699f50cd3ee1bb5709c3beb4016a7e7a932c762c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc3381fd2d40051534f8341e3c514aeeef58e774f99c06b9c10182f10b224f6a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer_override_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eee35d4e2bf465302c4938e88fbba09c864e3aa843f3c6f2e31c47752e85f5f0",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_device_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2c2865840fdabfab2a58210db371cfc12ea1378924401156e23297c730e472e5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_lte_modem.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9bc7efebfae691cda1e715b113cc29ab749deabcbefd1e608237bb2f2a048db9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_vlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fe5417105c8f73c2b5f1806c46fd13b0de9bb72b2c738ffa9764cf0f7b8cda47",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ssh_filter_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3d981b665bd6edd956a7a49a52a908f3a1b768f8a94bafa2a8a2568ff5785284",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5be20f29fe844922acc0f3f6d1f02763bb130493ca5ff50a75dba8f33eb97201",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_pppoe_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "48c5f026305807ce718c5952d5520ea1f180699a2babbfaca33b19c820311e6b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_shaping_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2da4e2e9c5ed74cdffcf1e952971eb265a6dd930cb1422211d435e68f5441c5b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_web_host_check_software.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "32f45006da044edcb5c13cf291bb23549400bcab210cb49f74bacf1809a138cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b3297a5273d28c828dbd147c68c64dbd6f890b898b3061c69269c619a7ea4e9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fortimanager.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c3b216c419a38b91b240764fb9e81af72c7d87ac6efcd1e6ac4a7b5e934b21d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_chart.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "071beb41a83009d8d7516ca524b7e0bba4e3f9e94b0c0d25fa7884f362a2be0c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_rule.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ece8601774e87b25efdb679710a04b3db02a738045480caa1748d3bb8a3b1352",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_device_detection_portal.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd981ee13bffb73ff76d6249252f63da7a56f03bb12baaf65a7b0544211f4e46",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_multicast.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "38c5c5814aaa827398be70c1eb2b5dcab53eaab29346929b72874a8aa19a7580",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_gui_display.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fae3a19cc2e68811d1530ff8059ab262ddbb04a76c6b28592279db553aa7d9c7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "71fdd4412f7ed955082f435d0fcb619a97ccff005751cb6cb71e45b3ab33d60c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ipv6_neighbor_cache.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a27248f2fbe28261ab7196716cd08f4cd54688a0aea8650f03177a5ac3ab6ec",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_ips_urlfilter_setting6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea7b0e4550b4a36e0d9f653397d0a5bc2cee9f9b766d69208eeb06c2a1cf3d2d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_property.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2bccd4cf2e5bf57b2e22cdaadb8e8b6d66589708996d758e0bfd2f923d90a99",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_mail.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1f4fb0a17116fde70383d00894cc8a75c4ef5b044b359f6a274a03f6d939284",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_ca.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9512437b260e7c1cb27af8d381a8ce6448cee6836094e54f8ffc044de039c739",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_qos_map.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d7d42acb01277259ff3c6c784572ea10972a0a7e5a4a805ecb544aa055cf5a1e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd3_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d5d1530e0ff91782ca5205acdb7a15a0cc374f67315802acee5ce4233f874e14",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_debug_url.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc1a78e10ee1d7913dcf78728bba45d726c010bd07a9b0270b49aca4cd1f992d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_multicast_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "123d2b74e91b6ca0cc70b5aa8aef7adbbfd1470a5658d049457e6cfac74e725a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_radius_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1e7c8145c06582cf2510586281fc027688add7f6a6f9e2a9a226afe7750cff67",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_peergrp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9fb9de45fdbe43f6ca3ce43df8111d2ee450c9687bc78bad86b87d2840a04848",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_ips_urlfilter_cache_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "20aac80a41e5f4243d3343842dc360d539f0c696f081755b0988274a17068188",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6167df880d8ce25bcb7002ba8a812d22ba54abdf8069b4f4ac812c444d8b9d94",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vipgrp46.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d9f2bbda0913e0d0a0d128d0ced3b4121e883e25ad67d27f9f50e58a4cd6f654",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dlp_fp_sensitivity.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "842539ef99eb3aa1f60c2e66095d2ca630ce09485a0f04db773b3ef87b412f38",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer3_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b355fd492caeed0e86f47fc4c25418a5b6aebc741bc745e07c048c6211114123",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_service_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0226880033844cbef1288944f04acb6fc51459a0ede2d8b950b75ad7864d8108",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_rule_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b53400cac4111e2f8ea28977f91b3590d303cea3492ee66898b79138eee6b63f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_phase1_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d9b19fef375a9b2d124562b9c829ef3658cbfcf7d6b80b73d2752d6d110a2a58",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ipmacbinding_table.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "13d764dbfe81f92df48c1fee9f3725eba11c6c82ea38a170e45a616af90e024e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_proxy_addrgrp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b977d41231762a18fe806f8d28636b83656dd7e5e5706df6c0412e316280e3b6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_local.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b9e73bdcaef2e501e468fee5480427923dead2502d809725f1e50742430558ef",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_sflow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "109610254d7a8868821d80e79def7b59348d780033245d7cf5888361340f61bc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_registered_forticlient.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "df1bf75416017ae1fbbc3078f7b358d027a7a42436b79341b2a38994ac976b08",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_access_list6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cf0ce3488885e1c23ed9f92925eb49691fb732c0aebba48430f52466a1a20730",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_service_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "34a664463c96921840eaf8694009bedac1384af5c596e85803a8d8bd3ff29c02",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssl_ssh_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "921618b687c876469577442abe1cc489460526dcae1f309c7c8091324a40baa5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_mac_sync_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e01dbb92782c94183eae0e223bc6c6bd6bb7d621878a58adb30d61f2cf81739a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_static.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e36d2c05d5d54b2a60c810c1b941cfad0e0624e6ec2068fbd9700b3693cc9c50",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd4_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "24cde8800a2097b2fabd5c9104a06f927579663a0f86c930d3b8d6504e778ca6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssh_host_key.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3f6c60e686caf2a44ea38943f45fc790fcedb10cc7b6d19761318edbb4b3eee2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ssh_local_ca.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "515687701c43a629485ab9054c8a26410dee9b7c344b9eac5fae6709aa7b5c9c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ttl_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8ad0e338fc117f7548c4326b70b00bb3b8440059a7cbd6da421595d1f28b2947",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dnsfilter_domain_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cbe1217459f7199fda35ad3506e3de5e2bfc40dee32a838800e391204ffa221a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_eventfilter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "459e15383c0f3fbdb70bd34eb46ed46f91c1dfc2969b31979b3d365446f07a7a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ipv6_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8d5fe62faa9aeecc748ba8bfea1053113aa7c4afb77b2b34a220ae5380340213",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_quarantine.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1fbb01da00d05aa342ac050e0102cd2c8e214c605d142a8b9dd7c520b21121b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dnsfilter_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3c08dfae3f26af948f0375cc8e23b434e809e7cf987fa121183c7b97964d9057",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_security_policy_802_1x.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1b404eeb23cf1b238728cb35c048c9507fc23db773f0da83fa14dc94bf948157",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_email_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6f3aff1f1c2a0b60ac5722c5f30a7fecfda252c105c3b9fd3aaec61c180a4978",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_fsso_polling.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "98b488524101377fd0f146d687c32a8eee0854952f8cc29574d7e91bdbfff818",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_cache_service.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f8bd0b63913d24078aa5bea716dc14f4149e86954950f7b205aa72790b2aabc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_management_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77e56be45168f820cf1388eb97dafe329f31241e107eb9e36580ece3f20838ec",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_mheader.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "723a2e007f981ec62121aa7f10adce2e208df54ec23310603b4bbb5cd2f81a95",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_network_visibility.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7789447a0f2941d4d730e39c3c8ff1edfb5f9c28eae747a7f5928404d47c9f1d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_zone.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eace13dc0d35d359adbce846396143cbb2ecb3eed01c50749da952d956c3d671",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_qos_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8026417993ac4876d02a9c8b2559fe4c228000ac60d15c534a4753250ef4a04",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_roaming_consortium.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0d22fe139b4dd87a15c77aed5fe50b35a1e7d773ac750b493a208957fbd407a4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_security_exempt_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a914e8af7ca4611e59b54270182ec80590ac737f6f6955bd2dcab5bea12112a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vip6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab53a5f853c77ce4ce92c9a11c6defa7e022e742cf32a45e7295519286f7f815",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fips_cc.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "24f08fbcae7cf13ada14ca9155ff35ce5f25c572077543c1ad3797cb73e9c333",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_application_rule_settings.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "76147bcdc79131351fc4cf76a6aede934e1ccbe47e5e964d8848155395785f82",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_ftgd_local_rating.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "367a2938d48e1094751a827cd8d9fc124e3c593c9b51346b0a5ee4a9bb990fbf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_multicast_flow.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4b2fafee5a72bdce0bf4f971f2153f8c6775e49890169602e14c835ce8754522",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_bgp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "48117301d39f3dbbbc5385b1cba01825e42e50575718c1dcdc4167b2fe64a7a9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_modem.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "29c9b30873e8944d05801a2d5380ba127dcd67b4dcb8feeb307a38bd92d6113a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer3_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "45fe02f68142c7b6f906dd4841867eb13e9fcc0086a4c66993312a844e475f6f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_central_management.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "99d31f74a4846bea2e79b3d6f79d935a2c0de0440233a141026504ee676a622d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0246bffaf4316fdd82daddd3103efe0c6aa963d785c188d99f095ab06dc94b62",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd4_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c5f3549393ed2ef46cfbb057ea32581324877de62c9e7a233b8d6763fbedae54",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_tacacsplus.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "59d4e47806830cd677c5748e0c767684a8f6653e497101f64d06b62d4050ca63",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_auth_path.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0345e039faf2b8c75c4b6257dc4dc41d3d4d8291b3a14bac4f6fe65d1a08e1fe",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "86fecf763f078d2ba58495a03446351cec14da5a64fd7060273ce09601122322",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_registration_forticare.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c15c26bf64841e7fdb564da1d30ab434718e36535afd5de1cb8445958f0a3cb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_null_device_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d4ea86b4bd9d379656d8712e7f4b443418fbb695caeef86da0678cea2ed29c2a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_phase2_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "960fb20f0cb9b13c7a6bc900fbace0c923227f7f117cbec4395f0dbd162b2451",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_physical_switch.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "481fef172e22fcc3f0f1728b94538669a7b602ce6059361d5ce979ffe696cc3b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_memory_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8b2891713158defc94dcb299f02eaebe58d3fe6ecd9db7ce6e3d1f222ef53bf7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_dos_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6d36e331947da89efc025f61206dbba8455aa71ea46f0a9ced3a0753cbe392bf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortiguard_override_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9ebf5909da41e77b122fed65b2ea3f13dd3256929965bc8f2b2dd5493ddb6f48",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_automation_destination.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7a2d67ab8423dee30aa6b687ca3b9240f4f82624ca9ba22da66d2751809b4d43",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_theme.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cac0c10806758b57116ecd79398d6f1bddb14a0f92eef8d345f6ce2b3ef2a1e6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_switch_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fed7e873d38e218783bd796e1071f0cbabdd6f34a9510e5f73e62a40cb5bc50b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_wtp_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "76770bb1c5adc5ecfbcc33d1de1eaeedc24caccb4506f4fa97ad4b65e04b9527",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_alertemail_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc8dce89f2bdff7c5a7ba47a4e47157dcd24200607827105ffd3128328435242",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ssl_web_user_bookmark.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "190666396395075468d583c512df6ec0621a4980a6383c9f293ff4e662854a43",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_security_policy_captive_portal.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0b24bb7775089c59d51ea743f9aa2749bf5b381256c6e0eca6cd2db780029ea7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_password_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f3ef039061ea2225e93000162cc35d35f0456e6e5d92bb052641e984fc881b45",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortiguard_override_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "07bb06612bc750eb949b0b2a104a0a68f1ef2931b448128916517762e9b986ff",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_system.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "72ad0971bbfb5943dbb443071dbd800f91482b0af1450dc58a949b2960047293",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_application_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "641400d03f30da88cee7f36fcb668d9433413381f3d59f945ca1fdde1d773db0",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_null_device_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2e435bfc8efd3b46ae36e3e328834ff5df6d32b1317d536b2a49010e6bad0cf7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_multicast6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8c4d0ded253a8d8988e458b629e04dad405029333e371984a7e43066e3a3344",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_resource_limits.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d01a2f7864146559d6566fa752d7e722fffd8218fe4d668a509a8ed94a57bea5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_3g_modem_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f55ecb7e89d67a15495f5a9064fecb6a6793b3f9ef52ce31775ec02e543576b5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_webcache.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1de88fb4b8fd8b86503ac357229b46ed8182f615431747200e7ea792f19eb24a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_memory_global_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3a1036ac3c00abbbdd8718a1d673bd58e9b577f2ca112bd1302514ea633395a3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ippool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f710e371ecf8c0d3aaf50d443c0f96b4bf8e6097fd15560badaef4ea015e9167",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_snmp_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d5e384851418277dfee8ba270f08b2924526111da859657ee0ac4f7b4e2f3325",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_ips_urlfilter_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "777b244952d1b0638401fe0f2b11dd77a011d669c017e8734bd0f0a70891b4a3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_certificate_crl.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "65efca0790bc892659a2d1706b8dde93f1d933ffbe062ddb963a7b606f503b6c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_application_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1bc2ab84389f7d00a186bda4c0b1ea0b70c61a7f55c3e52b4c29b997f6ea1565",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ha.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1c0053b80f610180f958ca6860798b373fc5ed0fa64a79805edc071c7737f22b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_sensor.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f1960e8c17cec826e90ca1825ffb6b601c5aa28ed05ef7e3db0291457fa3dc45",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ippool6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dadb40b38155d19e07d604452853651e7133a037f12dfe991957fcb91a00ef0a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_address6_template.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ca358b3858ae73ac80d1432d8217c4d605fed288510ff7979d608113cf6edac8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_virtual_port_pool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "25a03569c25cfe6cbe68f195f57596e4cbe0a6f203f1e749651cdd08289bf386",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_domain_controller.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "62da711bf48707cbfbecce98c89dffbc61e6ce1c4a9c00ef2af8e40bd457dbf1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_custom_field.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9034c7597f936ccb29927d617ef99aa0ef3514efbe01390cfbef898f0154a76",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_webtrends_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e24a45683be6fb52d73ae884be754331aed3b5f866924d30e56af644d5f0450a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_internet_service_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "39668ab07da7400687be2c40e7b1fb9358668b964654c49ad8c2948384d1b641",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_wtp_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "268f56ae016a4a8134df093cc26e544eaccd04c3a88b9040707642acd85f6596",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8f8a6112a9a902993a4b569ce2984cea9a7903569cd5e424c3ab0612d8d0e7f7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_ldb_monitor.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb1b0f97e5c2e6d6959ce64c966251db306af5496f4850fe40b930a6f94114fb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_syslogd_override_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ba9a2930d54f898f5774a42ff654f4953eb8a61820b4ed86ee7d08b1d1f49e72",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_stp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "024b956ee762a460fc4192e97af2ea773a680a39f88ced3eb94e26cc8209f55a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_antivirus_heuristic.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e8900f433a82c8fddc597ac71529400e7eb03354242cbe39392c3d780989dc22",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_explicit.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8775a398001809054b4c8c425986c3f0d700e96283464f3e12f82df63d43c3e9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b9aa6110d260d7080f655557ee9b5aac7d738a253a66c9218d1773544bb527dc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_webproxy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fbd316423a7d77801a113d590b0e9e60e244521f7d07ba7f3ff71919fa547aec",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_webtrends_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3b91ede5155e86544bc89d6c0d1ef234704927cdea80f48b53486ec5cea89897",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vipgrp6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "903e4c43617f76a92dae31aede19051502c3ed377c7935cc88798e377e466b45",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortianalyzer_filter.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b9a788cd52cfd72bfd575cf8092e94b3df514ec20921e9ebec9ffc727c2dc852",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_mobile_tunnel.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eab5932c921205207a69fcd8ed09a871893cbfc6066d1d3e5021976e151207b8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_icap_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ede0e02d3a3195c0a396fd09dc2c0b162a736747ec8f2cffaad2640d49b09516",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_endpoint_control_forticlient_registration_sync.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4e018ed42e07c4b616defd4078a0b98a4a3f1724cb1ebe6648f67ca6dd385d4d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_icon.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6c1774483acbc21fa40c26d9456a6cabe3252f3c7ac15b2776f01a81dbfc0985",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_crl.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "635bfb71edc3dd889ef18ad6b222d44af2de8438ed3c3713320d9bc3102be6d2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_csf.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "66b95aadb6664ebc6561f93bd0199c54d624c9fba6907f50831fb9192b47e2cc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_url_match.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "be9b2b0973557062aecd3dc68fa48d46c5130f54e2158a05667d35c153515b5c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_authentication_scheme.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5d1b966352f3109cc6b63defd6a54c87d65dc136e84c4b35c9af34ecebec533f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_ips_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "06df507e91dbd71f4991a0075acab333f00ba2e3bd33e55b27788ecc73047cd8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_qos_ip_dscp_map.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8dd0259464ec6ca8607e1a33cc84917054890e70a18cd581823abb3c8133a3c5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_icap_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ed4cbca3046c447d1e3dc227f7ae3b5b11807c6e1c26221c92ebebf7c9562f13",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_key_chain.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b9e5f2cc5213713e5855a899a1badeb05d34751b9db8464b99ab069f15218bed",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_wisp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d8aad71e9f9612359e09053c6e097121a365ac9b5f72c05ad86e54be9084f5b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ocvpn.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6ea6589add71f1277bcd883056db5a597a454fcbac1a261a3006c198aebb5400",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8170285347861bc5fc8ddb1ee593119ac049db80bb6cb8b8ebea7320b8f3c83",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_utm.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f1a69ab504cb622acb528e5aebea36868c8fff4222f66b0d2e5e6faf5dab202",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_facts.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b0abc77d5c74fba3bea8592a4cd624646d952688d94516577017d831f6043d56",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_virtual_wire_pair.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "182f0862736c943fa8f88acdd9521804b487924707ec1b3b56b8abbbcba8d3c6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_spamfilter_bword.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea4af3224a029e32f5158354e912462a3c406c0ff74d1b6aac3467a427a1cd85",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_concentrator.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "afc824cbeb03e553e8436f5c2de9c46f486fb3360f5be3ac245ff01a5f1e9719",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_probe_response.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6f428261d5418441b48792802946b6355c05d6f1311a39c943b9f11271e85d14",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_lldp_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57279456b3bc7963a63be16f336c28094c5bd37e5b4a60789026070f44160b93",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_manualkey_interface.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "acbd68223113c588d5f690ef283dd3d4419def606fd1a114945619ff312a28e3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_fortiguard_setting.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e6a8c0734710d2fd8859960b886d0a9c4b386ecedc11840811bd6f230adead95",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_link_monitor.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8e571810a0a29251950c88ff956439ee482cc27f1289ee50a7b96beebd6a4e7d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_vdom_link.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e13577dbd57a96f44515a0bcce42905326462810bf95bddb5110178833b1680e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_certificate_ocsp_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "45b3cd6e51f33101a98b3c7741f77302c161f7f0783d16d3463da4811795dd68",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b8fade3c6319920875d09f684ca855bef944a4dcb05f0f404b2251e92afc19",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "32599cec5c0fd7a5309c8ac61e894d746e709d0b09aa529b5443541819be6bfb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_radius.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bad58a1c61c189632528689c5ee9165612a52913bedb3398bf6bfef674ce42a7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_hs_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9513c5507cfeb95cf5f5ea12b23e2d382a7dd83d353cad6da7703b659d8cd20",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_internet_service_custom_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "baa83d79f8968855e800b6845a785c3c5c5873e147da862c8bbcb32ec0542f82",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_bonjour_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f3b8fee21ed59fe4f4f2b98d9ed4885de7c731935098fd4b0f6b9dc27e161e81",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_wildcard_fqdn_custom.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2269f23316e7c8a3898365b9b231d3bfcbada74f8cdd469b937cd51e0f81833f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_qos_queue_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "67145e5960e0a97a49d057467d14f67eab09072f89d52c38a0772919810d317c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_shaper_per_ip_shaper.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "094ca19e43e702c76e91e98daa63a6e89b0fef430d9f974ddd9f98e97a24ec8c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_vap_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8f9f289819229e44633de64b0b33016659e3c937daaaf88d0c983074f7f43b7a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vipgrp64.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3df5f16599f6ece3972037999882fb017f06febb80cebe4c94933e5cfeb36be5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7e7ce1fde184595819af62d7d518e67a32a25c8c0f9676e9588fad471b685c9d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_virtual_switch.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6d9f074e3eaea0929904f7e03f6a0ab032f0ed60aad66acd9df857f3eb46410a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_dataset.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3dd9877818237cc6777a815c0c71940ee0a206bb20f568a52d14d31949188818",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_vpn_ipsec_forticlient.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c733df942d27635b3c139b2db26a92982bee05a0f028b9281b08549ad0444f2e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wanopt_content_delivery_network_rule.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a45aee8c9dbe2a4f74d790e1450af0a0e630e732359d0a71ab0c41dc03e87a8",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_managed_switch.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "783f14cc066ba2274d1e4c3c4333101be0777d6039a5e31fee5d4a5d2b902e12",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_user_adgrp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "321d96bcf9bd18fa258e7c1d474e1359fba002f1f850af5eee67f051e2237c71",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_local_in_policy6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5785b888e02268a602bf19dadd6204cb9b10a1a7c1f928277f538698c2220ed4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_global.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d274301ef94928027310d226bca9022f600f9d74e8f7a3c3e95a1b2fd6accd24",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dns.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4a19c3d883badc1669e2ea75f4243ae0d5de9958a0a928d7495b5f237302a218",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_log_threat_weight.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "395f3089896340e4616dda96ed48313d9d7831a91ee79fd4228ffb73e8b83dde",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_fortisandbox.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c008ca03af5aee70f315cc396bcee517cb8a59c77627a2ade9993db57fcc761a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_cluster_sync.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9103e433cf3bd424e1cdfe995f27db90611b0580cb8743be1549f7f1ffd8b3c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_report_style.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "abea7debdb4a9924a7dfc28e5c142a9a499b8b2ebdb5f7de65a7ebb77f72a391",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_wireless_controller_hotspot20_anqp_venue_name.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2cd1940e1a1652d0d36622b2f6fe19380eb31dafba7e92c01d37b47cdd7d7d56",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_addrgrp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7cbd00e97ec2f4a7f8870dd07b3ba3db7c6a43031cc19697b9a432339340506f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ntp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "11c7159a87f8fc2a6d27d11255d9ffd49e43dddcb768af1f9432fe16abbe7115",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_admin.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3179ea1efe77d710808c1977fd9b7ec34351e2b5ab67049b847b590e008aeb2b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_local_in_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "544c257f6d97ef752622ad406f037bce4746bed1c230eccd6d4decd1cddb8c0f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_switch_controller_switch_log.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9c500cf082e6c933070b06f4e28e1e0bf0e0987b59395ca460761d7d1d95c3c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_static6.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d675fcd99a5634cfd195349839a14957e3f8ffa4668ec5c42832b0bbccc922a4",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_vip64.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6091326f81f2d2dee4feae9766c636258e6ba9b78a6c6f76584b4a9eda5f385d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_auth.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "628acaa12f4a03ec88dcdca615cf88f06528c8c3b6864e1614fdff989c90ce8c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_prefix_list.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e840debba9acaebe24cbecbddd2dab739b8a4f99b2bccfd3bae53b4debfe16e5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_api_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "253b8575d08954a5203d6a43c8a09b304a53b9d9dbc6285e3d62acef582d1efd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_password_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f7a3422499cfe1c2d1ad5ef4100f0922088b59736a083a906075f769b49385eb",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_dhcp_server.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "233591efb62d33fc7533a4137da5d90b5f164a37d887f54703e064b0fa51ddd7",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_web_proxy_forward_server_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6a409f11f50a8ba3b8a05942c45a2df4039503ffcbcfa1807a0a4c45943691b2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_router_bfd.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc5a2166dada20dc65fbbae5fde889ee2d919b95973d30c913974f72d7398bdd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_search_engine.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "15190813c8596ec3ca9d3585600f83c726c6a2e836665d9edeca8a08fceb9218",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_dlp_filepattern.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea925332416e47357734f34f8b6fc98b98beed1e61cd5fd64da76c5a2909cf7f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_policy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7e759ceb420e4374c399f900d369b788cbae99ce5d091804751368d9f0ac2715",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_firewall_service_category.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "714c622f0383e9477b2f0a9c23d72f1067f72f329f8c73c7c7ded8390fe29a3c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_custom_language.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0e270259e2f64406b08ca6d084c4226e2f51ff100ebde892515069609d2e7c0c",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_webfilter_ftgd_local_cat.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cb68629725f49c2f48fd92d6e18d9f5159cb26d0f60334b4b6b2f5a576d37829",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_ips_urlfilter_dns.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1b4861a1bcb8598be9b80e3134b24910252049425ee705b59eee0bda6df25f83",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/fortios_system_replacemsg_sslvpn.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b8301d740157b07311bed0bec6409826b19ab0e1532e22b4d276169980e070b7",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/fortios.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8fba77d426b98ec604f7780406aad955de37714418d0db9fde33ad6beebea6ef",
+   "format": 1
+  },
+  {
+   "name": "plugins/httpapi",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/httpapi/fortios.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad2033b873e2b31044958d81bae9781574c800f61a9c1b62046f092146d23d53",
+   "format": 1
+  }
+ ],
+ "format": 1
+}

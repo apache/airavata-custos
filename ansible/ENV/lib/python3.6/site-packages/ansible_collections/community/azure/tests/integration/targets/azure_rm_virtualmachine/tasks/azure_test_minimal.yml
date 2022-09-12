@@ -1,0 +1,64 @@
+- include_tasks: setup.yml
+- name: Create minimal VM with defaults
+  register: vm_output
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: '{{ resource_group }}'
+    name: '{{ vm_name }}'
+    admin_username: testuser
+    admin_password: Pass123$$$abx!
+    vm_size: Standard_B1ms
+    virtual_network: '{{ network_name }}'
+    image:
+      offer: UbuntuServer
+      publisher: Canonical
+      sku: 16.04-LTS
+      version: latest
+- name: Delete VM
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: '{{ resource_group }}'
+    name: '{{ vm_name }}'
+    remove_on_absent: all_autocreated
+    state: absent
+- name: Query auto created NIC
+  register: nic_result
+  azure.azcollection.azure_rm_networkinterface_info:
+    resource_group: '{{ resource_group }}'
+    name: '{{ vm_name }}01'
+- name: Query auto created security group
+  register: nsg_result
+  azure.azcollection.azure_rm_securitygroup_info:
+    resource_group: '{{ resource_group }}'
+    name: '{{ vm_name }}01'
+- name: Query auto created public IP
+  register: pip_result
+  azure.azcollection.azure_rm_publicipaddress_info:
+    resource_group: '{{ resource_group }}'
+    name: '{{ vm_name }}01'
+- name: Assert that autocreated resources were deleted
+  assert:
+    that:
+    - nic_result.networkinterfaces | length == 0
+    - nsg_result.securitygroups | length == 0
+    - pip_result.publicipaddresses | length == 0
+- name: Destroy subnet
+  azure.azcollection.azure_rm_subnet:
+    resource_group: '{{ resource_group }}'
+    virtual_network: '{{ network_name }}'
+    name: '{{ subnet_name }}'
+    state: absent
+- name: Destroy virtual network
+  azure.azcollection.azure_rm_virtualnetwork:
+    resource_group: '{{ resource_group }}'
+    name: '{{ network_name }}'
+    state: absent
+- name: Destroy availability set
+  azure.azcollection.azure_rm_availabilityset:
+    resource_group: '{{ resource_group }}'
+    name: '{{ availability_set }}'
+    state: absent
+- name: Destroy storage account
+  azure.azcollection.azure_rm_storageaccount:
+    resource_group: '{{ resource_group }}'
+    name: '{{ storage_account }}'
+    force_delete_nonempty: true
+    state: absent
