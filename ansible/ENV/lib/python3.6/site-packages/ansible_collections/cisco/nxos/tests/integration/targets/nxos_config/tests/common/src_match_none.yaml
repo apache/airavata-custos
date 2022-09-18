@@ -1,0 +1,48 @@
+---
+- debug: msg="START common/src_match_none.yaml on connection={{ ansible_connection
+    }}"
+
+- set_fact: intname="{{ nxos_int1 }}"
+
+- name: setup
+  cisco.nxos.nxos_config:
+    commands:
+      - no description
+      - no shutdown
+    parents:
+      - interface {{ intname }}
+    match: none
+
+- name: configure device with config
+  register: result
+  cisco.nxos.nxos_config:
+    commands:
+      - description this is a test
+      - shutdown
+    parents:
+      - interface {{ intname }}
+    match: none
+    defaults: true
+
+- assert:
+    that:
+      - result.changed == true
+      - result.updates is defined
+
+- name: check device with config
+  register: result
+  cisco.nxos.nxos_config:
+    commands:
+      - description this is a test
+      - shutdown
+    parents:
+      - interface {{ intname }}
+    defaults: true
+
+- assert:
+    that:
+      - result.changed == false
+      - result.updates is not defined
+
+- debug: msg="END common/src_match_none.yaml on connection={{ ansible_connection
+    }}"

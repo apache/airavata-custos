@@ -1,0 +1,38 @@
+---
+# vars file for dellemc.os9.os9_dcb, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_dcb:
+    dcb_enable: true
+    dcb_map:
+      - name:  test
+        priority_pgid: 0 0 0 3 0 0 0 0 
+        priority_group:
+          - pgid: 0
+            bandwidth: 50
+            pfc: false
+            state: present
+          - pgid: 3
+            bandwidth: 50
+            pfc: true
+            state: present
+        intf:
+          - name: fortyGigE 1/8
+            state: absent
+          - name: fortyGigE 1/9
+            state: present
+    dcb_buffer:
+      - name: buffer
+        description: testbuffer
+        priority_params:
+          - pgid: 0
+            buffer_size: 70
+            pause: 40
+            resume: 40
+            state: present
+        intf:
+          - name: fortyGigE 1/8
+            state: present
+          - name: fortyGigE 1/5
+            state: present
+        state: present

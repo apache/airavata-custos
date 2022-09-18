@@ -1,0 +1,243 @@
+---
+- name: Create subnet in check mode
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: snet
+  check_mode: yes
+- name: 'VERIFY: Create subnet in check mode'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - not snet.uuid
+
+- name: Create subnet
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: snet
+- name: 'VERIFY: Create subnet'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'production'
+      - snet.tags.sla == '24-7'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Remember subnet uuid
+  set_fact:
+    subnet_uuid: '{{ snet.uuid }}'
+
+- name: Create subnet idempotence
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: snet
+- name: 'VERIFY: Create subnet idempotence'
+  assert:
+    that:
+      - snet is not changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'production'
+      - snet.tags.sla == '24-7'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Update subnet in check mode
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: snet
+  check_mode: yes
+- name: 'VERIFY: Update subnet in check mode'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'production'
+      - snet.tags.sla == '24-7'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Update subnet
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: snet
+- name: 'VERIFY: Update subnet'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'staging'
+      - snet.tags.sla == '8-5'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Update subnet idempotence
+  cloudscale_ch.cloud.subnet:
+    uuid: '{{ subnet_uuid }}'
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      name: '{{ cloudscale_resource_prefix }}-net'
+      zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: snet
+- name: 'VERIFY: Update subnet idempotence'
+  assert:
+    that:
+      - snet is not changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'staging'
+      - snet.tags.sla == '8-5'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Update subnet by Network UUID
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      uuid: '{{ net.uuid }}'
+    dns_servers:
+      - 9.9.9.9
+      - 8.8.8.8
+    gateway_address: 192.168.23.1
+  register: snet
+- name: 'VERIFY: Update subnet'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.dns_servers == ['9.9.9.9', '8.8.8.8']
+      - snet.gateway_address == '192.168.23.1'
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'staging'
+      - snet.tags.sla == '8-5'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Update subnet by Network UUID idempotence
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      uuid: '{{ net.uuid }}'
+    dns_servers:
+      - 9.9.9.9
+      - 8.8.8.8
+    gateway_address: 192.168.23.1
+  register: snet
+- name: 'VERIFY: Update subnet'
+  assert:
+    that:
+      - snet is not changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.dns_servers == ['9.9.9.9', '8.8.8.8']
+      - snet.gateway_address == '192.168.23.1'
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'staging'
+      - snet.tags.sla == '8-5'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Reset DNS servers in subnet
+  cloudscale_ch.cloud.subnet:
+    cidr: '{{ cloudscale_subnet_cidr }}'
+    network:
+      uuid: '{{ net.uuid }}'
+    gateway_address: 192.168.23.1
+    reset: true
+  register: snet
+- name: 'VERIFY: Update subnet'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.dns_servers != ['9.9.9.9', '8.8.8.8']
+      - snet.gateway_address == '192.168.23.1'
+      - snet.tags.project == 'ansible-test'
+      - snet.tags.stage == 'staging'
+      - snet.tags.sla == '8-5'
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Delete subnet in check mode
+  cloudscale_ch.cloud.subnet:
+    uuid: "{{ snet.uuid }}"
+    state: absent
+  register: snet
+  check_mode: yes
+- name: 'VERIFY: Delete subnet in check mode'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.state == "present"
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Delete subnet
+  cloudscale_ch.cloud.subnet:
+    uuid: "{{ snet.uuid }}"
+    state: absent
+  register: snet
+- name: 'VERIFY: Delete subnet'
+  assert:
+    that:
+      - snet is changed
+      - snet.cidr == cloudscale_subnet_cidr
+      - snet.uuid == subnet_uuid
+      - snet.state == "absent"
+      - snet.network.zone.slug == cloudscale_test_zone
+
+- name: Delete subnet idempotence
+  cloudscale_ch.cloud.subnet:
+    uuid: "{{ snet.uuid }}"
+    state: absent
+  register: snet
+- name: 'VERIFY: Delete subnet idempotence'
+  assert:
+    that:
+      - snet is not changed
+      - snet.uuid == subnet_uuid
+      - snet.state == "absent"

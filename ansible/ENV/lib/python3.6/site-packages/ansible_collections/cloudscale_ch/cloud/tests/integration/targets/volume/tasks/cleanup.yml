@@ -1,0 +1,5 @@
+---
+- name: Remove test server
+  cloudscale_ch.cloud.server:
+    uuid: '{{ server.uuid }}'
+    state: 'absent'

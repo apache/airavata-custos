@@ -1,0 +1,143 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{#############################################
+Purpose:
+Configure sflow commands for os9 Devices
+os9_sflow:
+    sflow_enable: true
+    collector:
+      - collector_ip: 1.1.1.1
+        agent_addr: 2.2.2.2
+        udp_port: 2
+        max_datagram_size: 1000
+        vrf: true
+        state: present
+    polling_interval: 30
+    sample_rate: 1024
+    extended_switch : true
+    max_header_size: true
+    fortyGigE 1/1:
+      sflow_enable : true
+      ingress_enable: true
+      polling_interval: 30
+      sample_rate: 1024
+      max_header_size: true
+###################################################}
+{% if os9_sflow is defined and os9_sflow %}
+
+{% if os9_sflow %}
+{% for key,value in os9_sflow.items() %}
+  {% if key == "sflow_enable" %}
+    {% if value %}
+sflow enable
+    {% else %}
+no sflow enable
+    {% endif %}
+  
+  {% elif key == "collector" %}
+    {% if value %}
+      {% for item in value %}
+        {% if item.state is defined and item.state == "absent" %}
+          {% if item.collector_ip is defined and item.agent_addr is defined %}
+            {% if item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.max_datagram_size is defined and item.max_datagram_size and item.vrf is defined and item.vrf %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} max-datagram-size {{ item.max_datagram_size }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.max_datagram_size is defined and item.max_datagram_size %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} max-datagram-size {{ item.max_datagram_size }}
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.vrf is defined and item.vrf %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.vrf is defined and item.vrf and item.max_datagram_size is defined and item.max_datagram_size %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} max-datagram-size {{ item.max_datagram_size }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }}
+            {% elif item.collector_ip and item.agent_addr and item.max_datagram_size is defined and item.max_datagram_size %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} max-datagram-size {{ item.max_datagram_size }}
+            {% elif item.collector_ip and item.agent_addr and item.vrf is defined and item.vrf %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} vrf management
+            {% elif item.collector_ip and item.agent_addr %}
+no sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }}
+            {% endif %}
+          {% endif %}
+        {% else %}
+          {% if item.collector_ip is defined and item.agent_addr is defined %}
+            {% if item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.max_datagram_size is defined and item.max_datagram_size and item.vrf is defined and item.vrf %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} max-datagram-size {{ item.max_datagram_size }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.max_datagram_size is defined and item.max_datagram_size %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} max-datagram-size {{ item.max_datagram_size }}
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port and item.vrf is defined and item.vrf %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.vrf is defined and item.vrf and item.max_datagram_size is defined and item.max_datagram_size %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} max-datagram-size {{ item.max_datagram_size }} vrf management
+            {% elif item.collector_ip and item.agent_addr and item.udp_port is defined and item.udp_port %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} {{ item.udp_port }}
+            {% elif item.collector_ip and item.agent_addr and item.max_datagram_size is defined and item.max_datagram_size %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} max-datagram-size {{ item.max_datagram_size }}
+            {% elif item.collector_ip and item.agent_addr and item.vrf is defined and item.vrf %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }} vrf management
+            {% elif item.collector_ip and item.agent_addr %}
+sflow collector {{ item.collector_ip }} agent-addr {{ item.agent_addr }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+  {% elif key =="polling_interval" %}
+    {% if value %}
+sflow polling-interval {{ value }}
+    {% else %}
+no sflow polling-interval
+    {% endif %}
+
+  {% elif key =="sample_rate" %}
+    {% if value %}
+sflow sample-rate {{ value }}
+    {% else %}
+no sflow sample-rate
+    {% endif %}
+
+  {% elif key == "extended_switch" %}
+    {% if value %}
+sflow extended-switch enable
+    {% else %}
+no sflow extended-switch enable
+    {% endif %}
+
+  {% elif key == "max_header_size" %}
+    {% if value %}
+sflow max-header-size extended
+    {% else %}
+no sflow max-header-size extended
+    {% endif %}
+  
+  {% elif '/' in key %}  
+  {% set intf_vars  = os9_sflow[key] %}
+interface {{ key }}
+    {% if intf_vars.sflow_enable is defined and intf_vars.sflow_enable %}
+ sflow enable
+    {% else %}
+ no sflow enable
+    {% endif %}
+    {% if intf_vars.ingress_enable is defined and intf_vars.ingress_enable %}
+ sflow ingress-enable
+    {% else %}
+ no sflow ingress-enable
+    {% endif %}
+    {% if intf_vars.max_header_size is defined and intf_vars.max_header_size %}
+ sflow max-header-size extended
+    {% else %}
+ no sflow max-header-size extended
+    {% endif %}
+    {% if intf_vars.polling_interval is defined and intf_vars.polling_interval %}
+ sflow polling-interval {{ intf_vars.polling_interval }}
+    {% else %}
+ no sflow polling-interval
+    {% endif %}
+    {% if intf_vars.sample_rate is defined and intf_vars.sample_rate %}
+ sflow sample-rate {{ intf_vars.sample_rate }}
+    {% else %}
+ no sflow sample-rate
+    {% endif %}
+
+  {% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}

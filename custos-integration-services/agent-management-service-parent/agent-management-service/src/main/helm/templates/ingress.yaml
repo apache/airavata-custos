@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /agent-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: agent-management-service
-              servicePort: envoyhttp
+              service:
+                  name: agent-management-service
+                  port:
+                     name: envoyhttp
 
   tls:
     - hosts:

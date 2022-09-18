@@ -1,0 +1,185 @@
+# Test code for the nac_sancticity_global module.
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- include_vars: "../../integration_config.yml"
+
+- name: Set initial global settings
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    name: arrayname01
+    cache_block_size: 32768
+    cache_flush_threshold: 80
+    automatic_load_balancing: disabled
+    host_connectivity_reporting: disabled
+    default_host_type: linux dm-mp
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname01' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 32768 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 80 and
+              not graph['json'][0]['autoLoadBalancingEnabled'] and
+              not graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 28 }}"
+    msg: "Failed to set initial global settings"
+
+- name: Repeat initial global settings
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    name: arrayname01
+    cache_block_size: 32768
+    cache_flush_threshold: 80
+    automatic_load_balancing: disabled
+    host_connectivity_reporting: disabled
+    default_host_type: linux dm-mp
+  register: result
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ not result.changed and
+              graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname01' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 32768 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 80 and
+              not graph['json'][0]['autoLoadBalancingEnabled'] and
+              not graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 28 }}"
+    msg: "Failed to set initial global settings"
+
+- name: Change global settings (check-mode)
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    name: arrayname02
+    cache_block_size: 8192
+    cache_flush_threshold: 60
+    automatic_load_balancing: disabled
+    host_connectivity_reporting: disabled
+    default_host_type: windows
+  check_mode: true
+  register: result
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ result.changed and
+              graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname01' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 32768 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 80 and
+              not graph['json'][0]['autoLoadBalancingEnabled'] and
+              not graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 28 }}"
+    msg: "Failed to set initial global settings"
+
+- name: Change global settings
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    name: arrayname02
+    cache_block_size: 8192
+    cache_flush_threshold: 60
+    automatic_load_balancing: disabled
+    host_connectivity_reporting: disabled
+    default_host_type: windows
+  register: result
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ result.changed and
+              graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname02' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 8192 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 60 and
+              not graph['json'][0]['autoLoadBalancingEnabled'] and
+              not graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 1 }}"
+    msg: "Failed to set initial global settings"
+
+- name: Turn on autoload balancing which should force enable host connection reporting
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    automatic_load_balancing: enabled
+  register: result
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ result.changed and
+              graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname02' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 8192 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 60 and
+              graph['json'][0]['autoLoadBalancingEnabled'] and
+              graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 1 }}"
+    msg: "Failed to set initial global settings"
+
+- name: Change array name only
+  na_santricity_global:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    name: arrayname03
+  register: result
+- name: Retrieve the current array graph
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/graph/xpath-filter?query=/sa"
+  register: graph
+- name: Validate initial global settings
+  assert:
+    that: "{{ result.changed and
+              graph['json'][0]['saData']['storageArrayLabel'] == 'arrayname03' and
+              graph['json'][0]['cache']['cacheBlkSize'] == 8192 and
+              graph['json'][0]['cache']['demandFlushThreshold'] == 60 and
+              graph['json'][0]['autoLoadBalancingEnabled'] and
+              graph['json'][0]['hostConnectivityReportingEnabled'] and
+              graph['json'][0]['defaultHostTypeIndex'] == 1 }}"
+    msg: "Failed to set initial global settings"

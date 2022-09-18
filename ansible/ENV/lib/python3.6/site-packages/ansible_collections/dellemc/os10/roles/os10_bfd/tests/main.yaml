@@ -1,0 +1,11 @@
+---
+# vars file for dellemc.os10.os10_bfd,
+# below gives a sample configuration
+# Sample variables for OS10 device
+os10_bfd:
+  bfd:
+    interval: 100
+    min_rx: 100
+    multiplier: 3
+    role: "active"
+    state: "present"

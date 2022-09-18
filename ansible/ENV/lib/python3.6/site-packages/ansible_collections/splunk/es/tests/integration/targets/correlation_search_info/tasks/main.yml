@@ -1,0 +1,79 @@
+---
+- name: Test correlation_search - CREATE
+  correlation_search:
+    name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake Coorelation Search From Playbook, description edition."
+    search: 'source="/var/log/snort.log"'
+    state: "present"
+  register: correlation_search_create_output
+
+- name: Assert Create splunk.es.correlation_search CHANGED
+  assert:
+    that:
+      - correlation_search_create_output is changed
+      - correlation_search_create_output is not failed
+
+- name: Test correlation_search - CREATE IDEMPOTENT
+  correlation_search:
+    name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake Coorelation Search From Playbook, description edition."
+    search: 'source="/var/log/snort.log"'
+    state: "present"
+  register: correlation_search_create_output2
+
+- name: Assert Create splunk.es.correlation_search IDEMPOTENT
+  assert:
+    that:
+      - correlation_search_create_output2 is not changed
+      - correlation_search_create_output2 is not failed
+
+- name: Test correlation_search_info
+  correlation_search_info:
+    name: "Test Fake Coorelation Search From Playbook"
+  register: correlation_search_info_output
+
+- name: Assert Create splunk.es.correlation_search CHANGED
+  assert:
+    that:
+      - correlation_search_info_output is not changed
+      - correlation_search_info_output is not failed
+
+- name: Test correlation_search - DELETE
+  correlation_search:
+    name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake Coorelation Search From Playbook, description edition."
+    search: 'source="/var/log/snort.log"'
+    state: "absent"
+  register: correlation_search_delete_output
+
+- name: Assert Create splunk.es.correlation_search CHANGED
+  assert:
+    that:
+      - correlation_search_delete_output is changed
+      - correlation_search_delete_output is not failed
+
+- name: Test correlation_search - DELETE IDEMPOTENT
+  correlation_search:
+    name: "Test Fake Coorelation Search From Playbook"
+    description: "Test Fake Coorelation Search From Playbook, description edition."
+    search: 'source="/var/log/snort.log"'
+    state: "absent"
+  register: correlation_search_delete_output2
+
+- name: Assert Create splunk.es.correlation_search IDEMPOTENT
+  assert:
+    that:
+      - correlation_search_delete_output2 is not changed
+      - correlation_search_delete_output2 is not failed
+
+- name: Test correlation_search_info
+  correlation_search_info:
+    name: "Test Fake Coorelation Search From Playbook"
+    ignore_errors: yes
+  register: correlation_search_info_output2
+
+- name: Assert Create splunk.es.correlation_search FAILED
+  assert:
+    that:
+      - correlation_search_info_output2 is not changed
+      - correlation_search_info_output2 is failed

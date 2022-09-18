@@ -1,0 +1,112 @@
+# Test code for the na_santricity_alerts_syslog module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+- name: Set facts for na_santricity_alerts_syslog module's intergration test.
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+
+- name: Delete all alert syslog servers
+  na_santricity_alerts_syslog:
+    <<: *creds
+
+- name: Add alert syslog servers (change, check_mode)
+  na_santricity_alerts_syslog:
+    <<: *creds
+    servers:
+      - address: "192.168.1.100"
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Add alert syslog servers (change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+    servers:
+      - address: "192.168.1.100"
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Add alert syslog servers (no change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+    test: true
+    servers:
+      - address: "192.168.1.100"
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Remove one alert syslog server (change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+    test: true
+    servers:
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Add one alert syslog server (change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+    test: true
+    servers:
+      - address: "192.168.1.100"
+      - address: "192.168.2.100"
+        port: 514
+      - address: "192.168.3.100"
+        port: 1000
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete all alert syslog servers (change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete all alert syslog servers (no change)
+  na_santricity_alerts_syslog:
+    <<: *creds
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"

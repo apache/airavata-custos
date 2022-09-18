@@ -1,0 +1,8 @@
+plugin_routing:
+  action:
+    os6_config:
+      redirect: dellemc.os6.os6
+    os6_command:
+      redirect: dellemc.os6.os6
+    os6_facts:
+      redirect: dellemc.os6.os6

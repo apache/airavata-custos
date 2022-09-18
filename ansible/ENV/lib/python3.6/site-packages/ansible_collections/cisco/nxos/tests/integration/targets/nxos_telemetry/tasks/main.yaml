@@ -1,0 +1,16 @@
+---
+- set_fact: run_test="true"
+
+- set_fact: run_test="false"
+  when: platform is not search("N9K")
+
+- set_fact: run_test="false"
+  when: imagetag is search("I2|I3|I4|I5|I6")
+
+- include: cli.yaml
+  tags: cli
+  when: run_test
+
+- include: nxapi.yaml
+  tags: nxapi
+  when: run_test

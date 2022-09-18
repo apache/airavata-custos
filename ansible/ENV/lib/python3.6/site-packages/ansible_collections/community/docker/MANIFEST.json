@@ -1,0 +1,30 @@
+{
+ "collection_info": {
+  "description": "Modules and plugins for working with Docker", 
+  "repository": "https://github.com/ansible-collections/community.docker", 
+  "tags": [
+   "docker"
+  ], 
+  "dependencies": {}, 
+  "authors": [
+   "Ansible Docker Working Group"
+  ], 
+  "issues": "https://github.com/ansible-collections/community.docker/issues", 
+  "name": "docker", 
+  "license": [], 
+  "documentation": null, 
+  "namespace": "community", 
+  "version": "1.6.0", 
+  "readme": "README.md", 
+  "license_file": "COPYING", 
+  "homepage": "https://github.com/ansible-collections/community.docker"
+ }, 
+ "file_manifest_file": {
+  "format": 1, 
+  "ftype": "file", 
+  "chksum_sha256": "65b7e878e334a32f88efda9c608f0e51d556109eeb0d9f90d1afda1a0f16e14d", 
+  "name": "FILES.json", 
+  "chksum_type": "sha256"
+ }, 
+ "format": 1
+}

@@ -1,0 +1,9 @@
+---
+# vars file for dellemc.os6.os6_system, 
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_system:
+    hostname: os6
+    enable_password: force10
+    mtu: 2000

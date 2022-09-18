@@ -1,0 +1,43 @@
+{
+ "collection_info": {
+  "description": "This is a Collection of the CyberArk Ansible Security Automation toolkit.", 
+  "repository": "https://github.com/cyberark/ansible-security-automation-collection", 
+  "tags": [
+   "cyberark", 
+   "access", 
+   "security", 
+   "account", 
+   "epv", 
+   "vault", 
+   "identity", 
+   "credential", 
+   "secret", 
+   "privileged"
+  ], 
+  "dependencies": {}, 
+  "authors": [
+   "CyberArk Business Development (@cyberark-bizdev)", 
+   "Edward Nunez (@enunez-cyberark)", 
+   "James Stutes (@JimmyJamCABD)"
+  ], 
+  "issues": null, 
+  "name": "pas", 
+  "license": [
+   "MIT"
+  ], 
+  "documentation": null, 
+  "namespace": "cyberark", 
+  "version": "1.0.6", 
+  "readme": "README.md", 
+  "license_file": null, 
+  "homepage": null
+ }, 
+ "file_manifest_file": {
+  "format": 1, 
+  "ftype": "file", 
+  "chksum_sha256": "de3d99879b5667a414bbc88f0674a20f54edcd05e0a5646ec5426319cf87698c", 
+  "name": "FILES.json", 
+  "chksum_type": "sha256"
+ }, 
+ "format": 1
+}

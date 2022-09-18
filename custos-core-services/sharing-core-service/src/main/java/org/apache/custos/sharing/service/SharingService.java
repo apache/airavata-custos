@@ -747,30 +747,53 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             long tenantId = request.getTenantId();
             int limit = request.getLimit() == 0 ? -1 : request.getLimit();
 
-            List<org.apache.custos.sharing.persistance.model.Entity> entities = entityRepository.
-                    searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
-
+            List<org.apache.custos.sharing.persistance.model.Entity> entities = new ArrayList<>();
+            List<SearchCriteria> criteriaList = request.getSearchCriteriaList();
             HashMap<String, org.apache.custos.sharing.service.Entity> entryMap = new HashMap<>();
 
+            AtomicBoolean sharedByFound = new AtomicBoolean(false);
 
-            List<String> internalEntityIds = new ArrayList<>();
-
-            if (entities != null && !entities.isEmpty()) {
-
-                for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
-                    internalEntityIds.add(entity.getId());
+            criteriaList.forEach(criteria -> {
+                if (criteria.getSearchField().equals(EntitySearchField.SHARED_BY)) {
+                    sharedByFound.set(true);
+                    List<Sharing> sharingList = sharingRepository.findAllEntitiesSharedBy(tenantId, criteria.getValue());
+                    sharingList.stream().forEach(s -> {
+                        Entity en = null;
+                        try {
+                            en = EntityMapper.createEntity(s.getEntity());
+                            entryMap.put(en.getId(), en);
+                        } catch (SQLException throwables) {
+                            LOGGER.error(" Error in shared by search  Exception: ", throwables);
+                        }
+                    });
                 }
+            });
 
-                List<Sharing> sharings = sharingRepository.
-                        findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
-                if (sharings != null && !sharings.isEmpty()) {
-                    for (Sharing sharing : sharings) {
-                        Entity entity = EntityMapper.createEntity(sharing.getEntity());
-                        entryMap.put(entity.getId(), entity);
+            if (!sharedByFound.get()) {
 
+                entities = entityRepository.
+                        searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
+
+                List<String> internalEntityIds = new ArrayList<>();
+
+                if (entities != null && !entities.isEmpty()) {
+
+                    for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
+                        internalEntityIds.add(entity.getId());
+                    }
+
+                    List<Sharing> sharings = sharingRepository.
+                            findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
+
+                    if (sharings != null && !sharings.isEmpty()) {
+                        for (Sharing sharing : sharings) {
+                            Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                            entryMap.put(entity.getId(), entity);
+                        }
                     }
                 }
             }
+
             List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>(entryMap.values());
             org.apache.custos.sharing.service.Entities resp = org.apache.custos.sharing.service.Entities
                     .newBuilder()

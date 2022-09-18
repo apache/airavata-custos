@@ -1,0 +1,35 @@
+{
+ "collection_info": {
+  "namespace": "ngine_io",
+  "name": "vultr",
+  "version": "1.1.0",
+  "authors": [
+   "Ren\u00e9 Moser (@resmo)",
+   "Yanis Guenane (@Spredzy)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "cloud",
+   "vultr",
+   "ngine_io"
+  ],
+  "description": "Ansible Collection for Vultr Cloud",
+  "license": [
+   "GPL-3.0-or-later"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/ngine-io/ansible-collection-vultr",
+  "documentation": "",
+  "homepage": "https://github.com/ngine-io/ansible-collection-vultr",
+  "issues": "https://github.com/ngine-io/ansible-collection-vultr/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "7a121733ea987beeec0056cb85b19aa25b176666bd97a8f23a9d52639262f321",
+  "format": 1
+ },
+ "format": 1
+}

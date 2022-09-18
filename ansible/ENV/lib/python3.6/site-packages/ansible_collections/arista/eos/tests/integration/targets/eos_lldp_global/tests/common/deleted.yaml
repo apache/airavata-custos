@@ -1,0 +1,28 @@
+---
+- include_tasks: _reset_config.yaml
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_global
+
+- name: Returns LLDP configuration to default parameters
+  register: result
+  become: true
+  arista.eos.eos_lldp_global:
+    state: deleted
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == result.before
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_global
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == result.after
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == {}

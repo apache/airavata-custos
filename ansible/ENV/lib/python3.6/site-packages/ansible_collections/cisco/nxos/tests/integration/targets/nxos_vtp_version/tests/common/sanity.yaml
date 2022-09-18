@@ -1,0 +1,51 @@
+---
+- debug: msg="START connection={{ ansible_connection }} nxos_vtp_version sanity
+    test"
+
+- set_fact: vtp_run="true"
+
+- set_fact: vtp_run="false"
+  when: platform is search('N3K-F|N9K-F')
+
+- block:
+
+    - name: disable feature vtp
+      ignore_errors: true
+      cisco.nxos.nxos_feature:
+        feature: vtp
+        state: disabled
+
+    - name: enable feature vtp
+      cisco.nxos.nxos_feature:
+        feature: vtp
+        state: enabled
+
+    - name: configure supporting vtp domain
+      cisco.nxos.nxos_vtp_domain:
+        domain: foo
+
+    - name: configure vtp version
+      register: result
+      cisco.nxos.nxos_vtp_version: &id001
+        version: 2
+
+    - assert:
+        that:
+          - result.changed == true
+
+    - name: Conf Idempotence
+      register: result
+      cisco.nxos.nxos_vtp_version: *id001
+
+    - assert:
+        that:
+          - result.changed == false
+  when: vtp_run | bool
+  always:
+
+    - name: disable feature vtp
+      cisco.nxos.nxos_feature:
+        feature: vtp
+        state: disabled
+
+- debug: msg="END connection={{ ansible_connection }} nxos_vtp_version sanity test"

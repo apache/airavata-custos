@@ -1,0 +1,27 @@
+- name: Set current storage system credentials
+  include_role:
+    name: netapp_eseries.santricity.nar_santricity_common
+    tasks_from: build_info.yml
+  when: current_eseries_api_url is not defined
+  tags:
+    - always
+
+- name: Ensure security settings are configured
+  import_tasks: security.yml
+
+- name: Ensure management interfaces are configured
+  import_tasks: interface.yml
+  tags:
+    - interface
+    - ntp
+    - dns
+    - ssh
+
+- name: Ensure all global system settings are configured
+  import_tasks: system.yml
+
+- name: Ensure event logging has been configured
+  import_tasks: logging.yml
+
+- name: Ensure drive and controller firmware are correct
+  import_tasks: firmware.yml

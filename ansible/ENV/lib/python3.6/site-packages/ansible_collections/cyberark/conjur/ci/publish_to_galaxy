@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Strip the 'v' from the Tag Name
+TAG=${TAG_NAME//"v"}
+
+CURRENT_DIR="$(cd "$(dirname "$BASH_SOURCE")"; pwd)"
+
+pushd "$CURRENT_DIR/.." >/dev/null
+  docker run --rm -t \
+    -v "$CURRENT_DIR/..:/runner" \
+    ansible/ansible-runner \
+    ansible-galaxy collection publish --api-key="${GALAXY_API_KEY}" /runner/cyberark-conjur-${TAG}.tar.gz
+popd  >/dev/null

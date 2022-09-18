@@ -1,0 +1,36 @@
+{
+ "collection_info": {
+  "namespace": "community",
+  "name": "hashi_vault",
+  "version": "1.1.3",
+  "authors": [
+   "Jonathan Davila",
+   "Brian Scholer (@briantist)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "vault",
+   "hashicorp",
+   "secret",
+   "secrets",
+   "password",
+   "passwords"
+  ],
+  "description": "Plugins related to HashiCorp Vault",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {},
+  "repository": "https://github.com/ansible-collections/community.hashi_vault",
+  "documentation": null,
+  "homepage": "https://github.com/ansible-collections/community.hashi_vault",
+  "issues": "https://github.com/ansible-collections/community.hashi_vault/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "a3bec7d8a7cf1a3a1a7090a4b60181bbe87fd9918fe502267b2251a85ee5a21c",
+  "format": 1
+ },
+ "format": 1
+}

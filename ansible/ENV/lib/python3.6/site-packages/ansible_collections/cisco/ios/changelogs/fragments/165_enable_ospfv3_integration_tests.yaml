@@ -1,0 +1,3 @@
+---
+trivial:
+  - To enable ios ospfv3 integration tests for zuul ios instance.

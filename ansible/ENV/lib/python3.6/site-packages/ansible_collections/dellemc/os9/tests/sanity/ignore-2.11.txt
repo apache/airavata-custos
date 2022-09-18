@@ -1,0 +1,4 @@
+plugins/action/os9.py action-plugin-docs
+plugins/modules/os9_config.py validate-modules:parameter-list-no-elements
+plugins/modules/os9_facts.py validate-modules:parameter-list-no-elements
+plugins/modules/os9_command.py validate-modules:parameter-list-no-elements

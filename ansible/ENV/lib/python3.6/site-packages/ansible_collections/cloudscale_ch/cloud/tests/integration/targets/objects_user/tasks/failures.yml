@@ -1,0 +1,44 @@
+---
+- name: Fail missing params
+  cloudscale_ch.cloud.objects_user:
+  register: obj
+  ignore_errors: True
+- name: 'VERIFY: Fail name and UUID'
+  assert:
+    that:
+      - obj is failed
+
+- name: Create two objects user with the same display_name
+  uri:
+    url: 'https://api.cloudscale.ch/v1/objects-users'
+    method: POST
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    body:
+      display_name: '{{ cloudscale_resource_prefix }}-duplicate'
+    body_format: json
+    status_code: 201
+  register: duplicate
+  with_sequence: count=2
+
+- name: Try access to duplicate display_name
+  cloudscale_ch.cloud.objects_user:
+    display_name: '{{ cloudscale_resource_prefix }}-duplicate'
+  register: obj
+  ignore_errors: True
+- name: 'VERIFY: Try access to duplicate name'
+  assert:
+    that:
+    - obj is failed
+    - obj.msg.startswith("More than one objects-users resource with 'display_name' exists")
+
+- name: Fail creation with ID
+  cloudscale_ch.cloud.objects_user:
+    id: ea3b39a3-77a8-4d0b-881d-0bb00a1e7f48
+  register: obj
+  ignore_errors: True
+- name: 'VERIFY: Fail server group creation with ID'
+  assert:
+    that:
+    - obj is failed
+    - obj.msg.startswith("state is present but all of the following are missing")

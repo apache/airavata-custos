@@ -1,0 +1,47 @@
+---
+# vars file for dellemc.os6.os6_bgp,
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+  os6_bgp:
+    asn: 11
+    router_id: 1.1.1.1
+    maxpath_ibgp: 2
+    maxpath_ebgp: 2
+    ipv4_network:
+      - address: 101.1.2.0 255.255.255.0
+        state: present
+    ipv6_network:
+      - address: 2001:4898:5808:ffa0::/126
+        state: present
+    neighbor:
+      - type: ipv4
+        ip: 10.10.234.16
+        remote_asn: 64818
+        timer: 2 5
+        default_originate: True
+        peergroup: MUX_HNV_ACCESS
+        admin: up
+        src_loopback: 2
+        src_loopback_state: present
+        state: present
+      - type: ipv6
+        ip: 2001:4898:5808:ffa2::1
+        timer: 2 4
+        default_originate: True
+        ebgp_multihop: 3
+        remote_asn: 64818
+        peergroup: MUX_HNV_ACCESS
+        state: present
+      - type: peergroup
+        name: MUX_HNV_ACCESS
+        timer: 2 4
+        ebgp_multihop: 4
+        remote_asn: 64918
+        subnet: 10.128.5.192/27
+        state: present
+    redistribute:
+      - route_type: connected
+        address_type: ipv6
+        state: present
+    state: present

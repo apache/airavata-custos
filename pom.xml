@@ -33,7 +33,7 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.0</version>
+   <version>1.1</version>
 
     <modules>
         <module>custos-core-services</module>
@@ -355,7 +355,7 @@
             <id>container</id>
             <properties>
                 <spring.profiles.active>production</spring.profiles.active>
-                <vault.token>{{token}}</vault.token>
+                <vault.token>s.SoaSEW6VF1zAHwiRp5hpzSf2</vault.token>
                 <vault.scheme>http</vault.scheme>
                 <vault.host>vault.vault.svc.cluster.local</vault.host>
                 <vault.port>8200</vault.port>
@@ -364,17 +364,17 @@
                 <iam.dev.password>{{token}}</iam.dev.password>
                 <iam.staging.username>{{token}}</iam.staging.username>
                 <iam.staging.password>{{token}}</iam.staging.password>
-                <iam.production.username>{{token}}</iam.production.username>
-                <iam.production.password>{{token}}</iam.production.password>
+                <iam.production.username>admin</iam.production.username>
+                <iam.production.password>dwqZkp5OOfKiew==</iam.production.password>
                 <cilogon.dev.id>{{token}}</cilogon.dev.id>
                 <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
                 <cilogon.staging.id>{{token}}</cilogon.staging.id>
                 <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
-                <cilogon.production.id>{{token}}</cilogon.production.id>
-                <cilogon.production.sec>{{token}}</cilogon.production.sec>
+                <cilogon.production.id>cilogon:/adminClient/2f039527fe4715c2f6f19eb0ae327ba7/1633292562101</cilogon.production.id>
+                <cilogon.production.sec>qiOYx_WR3BAfFeE3y9tLFPAsRn2ytblkXIMCVwGJzl07GAdwmBQRfgVc2eW65ZzA2L2Wy7ByZexS0wTqWtUHRA</cilogon.production.sec>
                 <custos.email.password>{{token}}</custos.email.password>
                 <spring.datasource.username>root</spring.datasource.username>
-                <spring.datasource.password>{{token}}</spring.datasource.password>
+                <spring.datasource.password>UtahSALTlakeCITY</spring.datasource.password>
 
             </properties>
             <activation>
@@ -537,11 +537,11 @@
                                      keyfile="${ssh.privatekey}"
                                      passphrase="${ssh.passphrase}" trust="true">
                                 </scp>
-                                <sshexec host="${host}"
-                                         username="${ssh.username}"
-                                         keyfile="${ssh.privatekey}"
-                                         passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm delete  ${project.artifactId} -n custos "/>
+<!--                                <sshexec host="${host}"-->
+<!--                                         username="${ssh.username}"-->
+<!--                                         keyfile="${ssh.privatekey}"-->
+<!--                                         passphrase="${ssh.passphrase}" trust="true"-->
+<!--                                         command="helm delete  ${project.artifactId} -n custos "/>-->
 
                                 <sshexec host="${host}"
                                          username="${ssh.username}"
@@ -683,7 +683,9 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
-        <host>services.usecustos.org</host>
+<!--        <host>prod.custos.usecustos.org</host>-->
+
+        <host>custos10.sciencegateways.iu.edu</host>
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
@@ -693,7 +695,8 @@
         <kafka-clients.version>1.0.0</kafka-clients.version>
 
         <email.version>1.5.0-b01</email.version>
-        <ssh.username>custos</ssh.username>
+<!--        <ssh.username>custos</ssh.username>-->
+        <ssh.username>custosadmin</ssh.username>
         <project.version>1.0</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
 

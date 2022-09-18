@@ -1,0 +1,43 @@
+---
+# vars file for dellemc.os6.os6_acl,
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+
+os6_acl:
+  - name: macl-implicit
+    type: mac
+    remark:
+      - description: 1
+        state: present
+    entries:
+      - number: 4
+        seq_number: 1000
+        permit: false
+        protocol:
+        match_condition: any 0000.1F3D.084B 0000.0000.0000
+        state: present
+      - number: 5
+        seq_number: 1001
+        permit: true
+        protocol:
+        match_condition: any any 0x0806
+        state: present
+      - number: 6
+        seq_number: 2002
+        permit: deny
+        protocol:
+        match_condition: any any
+        state:
+    stage_ingress:
+      - name: vlan 30
+        state: present
+        seq_number: 40
+      - name: vlan 50
+        state: present
+        seq_number: 50
+    stage_egress:
+      - name: vlan 40
+        state: present
+        seq_number:
+    state: present

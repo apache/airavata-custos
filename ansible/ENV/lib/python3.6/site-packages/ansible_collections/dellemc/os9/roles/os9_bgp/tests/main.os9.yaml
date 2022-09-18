@@ -1,0 +1,97 @@
+---
+# vars file for dellemc.os9.os9_bgp, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+  os9_bgp:
+    asn: 11
+    router_id: 192.168.3.100
+    maxpath_ibgp: 2
+    maxpath_ebgp: 2
+    best_path:
+       as_path: ignore
+       as_path_state: absent
+       ignore_router_id: true
+       med:
+        - attribute: confed
+          state: present
+        - attribute: missing-as-best
+          state: present
+    ipv4_network:
+      - address: 102.1.1.0/30
+        state: present
+    ipv6_network:
+      - address: "2001:4898:5808:ffa0::/126"
+        state: present
+      - address: "2001:4898:5808:ffa1::/126"
+        state: present
+    neighbor:
+      - name: per
+        type: peergroup
+        remote_asn: 12
+        remote_asn_state: absent
+        default_originate: False
+        src_loopback: 0
+        src_loopback_state: present
+        ebgp_multihop: 255
+        state: present
+
+      - name: peer1
+        type: peergroup
+        remote_asn: 14
+        distribute_list:
+           in: an
+           in_state: present
+           out: bb
+           out_state: present
+        passive: True
+        subnet: 10.128.4.192/27
+        state: present
+
+      - ip: 192.168.10.2
+        type: ipv4
+        remote_asn: 12
+        timer: 5 10
+        default_originate: False
+        peergroup: per
+        peergroup_state: present
+        distribute_list: 
+           in: aa
+           in_state: present
+        admin: up
+        state: present
+
+      - ip: 192.168.13.3
+        type: ipv4
+        remote_asn: 13
+        sender_loop_detect: false
+        src_loopback: 1
+        src_loopback_state: present
+        distribute_list:
+           in: aa
+           in_state: present
+           out: aa
+           out_state: present
+        ebgp_multihop: 25
+        state: present
+
+      - ip: 2001:4898:5808:ffa2::1
+        type: ipv6
+        remote_asn: 14
+        peergroup: per
+        peergroup_state: present
+        distribute_list:
+           in: aa
+           in_state: present
+        src_loopback: 0
+        src_loopback_state: present
+        ebgp_multihop: 255
+        admin: up
+        state: present
+    redistribute:
+      - route_type: static
+        state: present
+        address_type: ipv4
+      - route_type: connected
+        address_type: ipv6
+        state: present
+    state: present

@@ -1,0 +1,59 @@
+---
+# vars file for dellemc.os9.os9_vrrp, 
+# below gives a example configuration
+# Sample variables for OS9 device
+os9_vrrp:
+    fortyGigE 0/28:
+      vrrp:
+        delay_min: 4
+        delay_reload: 5
+      vrrp_group:
+        - group_id: 2
+          type: ipv6
+          description: "Interface-vrrp-ipv6"
+          virtual_address: 2001:4898:5808:ffa3::9
+          enable: true
+          priority: 120
+          preempt: false
+          track_interface:
+            - resource_id: 3
+              priority_cost: 25
+              state: present
+            - interface: port-channel 120
+              priority_cost: 20
+            - interface: fortyGigE 0/40
+              state: present
+          track_interface_state: present
+          adv_interval_centisecs: 200
+          hold_time_centisecs: 20
+          state: present
+        - group_id: 4
+          state: present
+          description: "Interface-vrrp4"
+          virtual_address: 10.28.0.2
+          enable: true
+          priority: 120
+          preempt: false
+          version: 3
+          track_interface:
+            - resource_id: 3
+              priority_cost: 25
+              state: present
+            - interface: port-channel 120
+              priority_cost: 20
+            - interface: fortyGigE 0/20
+              state: absent
+          track_interface_state: present
+          adv_interval_centisecs: 200
+          hold_time_centisecs: 200
+          authentication:
+            key: 0
+            key_string: vrrpkey
+            state: present
+        - group_id: 3
+          state: present
+          description: "Interface-vrrp3"
+          virtual_address: 10.28.0.3
+          enable: true
+          priority: 120
+          preempt: false

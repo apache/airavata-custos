@@ -12,9 +12,12 @@ spec:
        http:
         paths:
           - path: /org.apache.custos.log.management.service.LogManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: log-management-service
-              servicePort: grpc
+              service:
+                 name: log-management-service
+                 port:
+                   name: grpc
 
   tls:
     - hosts:

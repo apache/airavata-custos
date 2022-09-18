@@ -1,0 +1,10 @@
+---
+# vars file for dellemc.os6.os6_logging, 
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_logging:
+    logging:
+      - ip: 1.1.1.1
+        state: present
+    source_interface: "vlan 30"

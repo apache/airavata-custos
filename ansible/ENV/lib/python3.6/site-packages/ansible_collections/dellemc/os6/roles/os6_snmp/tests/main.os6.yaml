@@ -1,0 +1,23 @@
+---
+# vars file for dellemc.os6.os6_snmp, 
+# below gives a sample configuration
+ # Sample variables for OS6 device
+ 
+os6_snmp:
+    snmp_contact:  test
+    snmp_location: Santa Clara
+    snmp_community:
+      - name: public
+        access_mode: ro
+        state: absent
+      - name: private
+        access_mode: rw
+        state: absent
+    snmp_traps: 
+      - name: all
+        state: present
+    snmp_host:
+      - ip: 4.4.4.4
+        communitystring: public
+        udpport: 1
+        state: absent

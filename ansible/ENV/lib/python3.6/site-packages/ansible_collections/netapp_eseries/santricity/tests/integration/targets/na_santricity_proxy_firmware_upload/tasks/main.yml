@@ -1,0 +1,65 @@
+# Test code for the na_santricity_proxy_firmware_upload module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Test na_santricity_proxy_firmware_upload module
+  set_fact:
+    credentials: &creds
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+    firmware:
+      - /home/swartzn/Downloads/N5600-840834-D03.dlp
+      - /home/swartzn/Downloads/RC_08405000_m3_e10_840_5600.dlp
+
+- name: Clear any existing proxy drive firmware
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+
+- name: Clear any existing proxy drive firmware (no changed)
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+  register: results
+- name: Verify all drive firmware has been removed
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Drive firmware exists!"
+
+- name: Add drive firmware to proxy (changed, check_mode)
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+    firmware: "{{ firmware }}"
+  register: results
+  check_mode: true
+- name: Verify drive firmware has been added
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Drive firmware exists!"
+
+- name: Add drive firmware to proxy (changed)
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+    firmware: "{{ firmware }}"
+  register: results
+- name: Verify drive firmware has been added
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Drive firmware exists!"
+
+- name: Remove drive firmware to proxy (changed)
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+  register: results
+- name: Verify drive firmware has been added
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Drive firmware exists!"
+
+- name: Remove drive firmware to proxy (no changed)
+  na_santricity_proxy_firmware_upload:
+    <<: *creds
+  register: results
+- name: Verify drive firmware has been added
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Drive firmware exists!"

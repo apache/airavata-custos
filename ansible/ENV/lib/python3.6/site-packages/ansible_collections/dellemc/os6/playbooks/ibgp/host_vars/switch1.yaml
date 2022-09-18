@@ -1,0 +1,47 @@
+hostname: switch1
+ansible_ssh_user: xxxx
+ansible_ssh_pass: xxxx
+ansible_become: yes
+ansible_become_method: enable
+ansible_network_os: dellemc.os6.os6
+switch1_hostname: "switch1"
+
+os6_system:
+  hostname: "{{ switch1_hostname }}"
+  #enable_password: xxxx
+  mtu: 2000
+
+os6_vlan:
+    vlan 20:
+      default_vlan: False
+      name: "os6vlan"
+      untagged_members:
+        - port: Te7/0/1
+          state: present
+      state: present
+
+os6_interface:
+    Te7/0/1:
+      desc: "bgp"
+      admin: up
+      portmode: access
+
+    vlan 20:
+      ip_type_dynamic: False
+      ip_and_mask: 20.20.20.3 255.255.255.0
+
+os6_bgp:
+    asn: 4545
+    router_id: 20.20.20.3
+    maxpath_ibgp: 3
+    ipv4_network:
+       - address: 20.20.20.3 255.255.255.255
+         state: present
+    neighbor:
+      - type: ipv4
+        ip: 20.20.20.2
+        remote_asn: 4545
+        timer: 5 10
+        default_originate: True
+        state: present
+    state: present

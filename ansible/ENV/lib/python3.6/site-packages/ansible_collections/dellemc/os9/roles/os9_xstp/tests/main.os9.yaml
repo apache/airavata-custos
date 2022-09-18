@@ -1,0 +1,34 @@
+---
+# vars file for dellemc.os9.os9_xstp, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_xstp:
+    type: rstp
+    enable: true
+    stp: 
+      bridge_priority: 4096
+      state: present
+
+    rstp:
+      bridge_priority: 4096
+      state: present
+
+    pvst:
+      vlan:
+        - range_or_id: 10
+          bridge_priority: 4096
+      state: present
+
+    mstp:
+      mstp_instances:
+        - number: 1
+          vlans: 10,12
+          bridge_priority: 4096
+          vlans_state: present
+      state: present
+    intf:
+      fortyGigE 1/25:
+      stp_type:
+        - stp
+        - mstp
+      edge_port: true

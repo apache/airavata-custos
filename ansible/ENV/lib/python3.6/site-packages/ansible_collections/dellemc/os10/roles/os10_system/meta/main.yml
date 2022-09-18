@@ -1,0 +1,18 @@
+# Copyright (c) 2020 Dell Inc.
+---
+galaxy_info:
+  author: Dell EMC Networking Engineering
+  description: The os10_system role facilitates the configuration of system attributes in devices running Dell EMC SmartFabric OS10.
+  company: Dell Technologies
+  license: GPLv3
+  min_ansible_version: 2.9.6
+
+  platforms:
+  - name: os10
+
+  galaxy_tags:
+    - networking
+    - dell
+    - emc
+    - dellemc
+    - os10

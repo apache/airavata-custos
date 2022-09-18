@@ -1,0 +1,189 @@
+# Test code for the na_santricity_host module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_host module's intergration test.
+  set_fact:
+    vars:
+      credentials: &creds
+        ssid: "{{ ssid }}"
+        api_url: "{{ base_url }}"
+        api_username: "{{ username }}"
+        api_password: "{{ password }}"
+        validate_certs: "{{ validate_cert }}"
+
+- name: Create iSCSI host
+  na_santricity_host:
+    <<: *creds
+    name: windows_iscsi_host
+    host_type: Windows
+    ports:
+      - type: iscsi
+        label: iscsi_p1
+        port: iqn.windows.host.com.1
+      - type: iscsi
+        label: iscsi_p2
+        port: iqn.windows.host.com.2
+
+- name: Create FC host
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc_host
+    host_type: Linux dm-mp
+    ports:
+      - type: fc
+        label: fc_p1
+        port: "0x1122334455667788"
+      - type: fc
+        label: fc_p2
+        port: "01:23:45:67:89:1a:bc:de"
+
+- name: (Repeat) Create iSCSI host (no change)
+  na_santricity_host:
+    <<: *creds
+    name: windows_iscsi_host
+    host_type: Windows
+    ports:
+      - type: iscsi
+        label: iscsi_p1
+        port: iqn.windows.host.com.1
+      - type: iscsi
+        label: iscsi_p2
+        port: iqn.windows.host.com.2
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Create FC host (no change)
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc_host
+    host_type: Linux dm-mp
+    ports:
+      - type: fc
+        label: fc_p1
+        port: "0x1122334455667788"
+      - type: fc
+        label: fc_p2
+        port: "01:23:45:67:89:1a:bc:de"
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Create FC host with an used port (change, check_mode)
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc2_host
+    host_type: Linux dm-mp
+    force_port: true
+    ports:
+      - type: fc
+        label: fc2_p1
+        port: "0x1122334455667788"
+  check_mode: true
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Create FC host with an used port (change)
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc2_host
+    host_type: Linux dm-mp
+    force_port: true
+    ports:
+      - type: fc
+        label: fc2_p1
+        port: "0x1122334455667788"
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Create FC host with an used port (no change)
+  na_santricity_host:
+    <<: *creds
+    name: linux_fc2_host
+    host_type: Linux dm-mp
+    force_port: true
+    ports:
+      - type: fc
+        label: fc2_p1
+        port: "0x1122334455667788"
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete iSCSI host (changed)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: windows_iscsi_host
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete FC host (changed)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: linux_fc_host
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete second FC host (changed)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: linux_fc2_host
+  register: results
+- name: Verify changes were made
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Delete iSCSI host (no change)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: windows_iscsi_host
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Delete second FC host (no change)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: linux_fc_host
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Delete FC host (no change)
+  na_santricity_host:
+    <<: *creds
+    state: absent
+    name: linux_fc2_host
+  register: results
+- name: Verify no changes were made
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"

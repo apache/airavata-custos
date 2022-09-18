@@ -1,0 +1,143 @@
+---
+- debug: msg="START connection={{ ansible_connection }} nxos_user basic test"
+
+- name: Remove old entries of user
+  cisco.nxos.nxos_user: &rem
+    aggregate:
+
+      - name: ansibletest1
+
+      - name: ansibletest2
+
+      - name: ansibletest3
+
+      - name: ansibletest_failed
+
+      - name: ansibletest_warn
+
+      - name: ansibletest_role
+    state: absent
+
+- name: Create user
+  register: result
+  cisco.nxos.nxos_user:
+    name: ansibletest1
+    roles: network-operator
+    state: present
+
+- debug: msg="{{result}}"
+
+- assert:
+    that:
+      - result.changed == true
+      - '"username" in result.commands[0]'
+      - '"role network-operator" in result.commands[0]'
+
+- name: Collection of users
+  register: result
+  cisco.nxos.nxos_user:
+    aggregate:
+
+      - name: ansibletest2
+
+      - name: ansibletest3
+    state: present
+    roles: network-admin
+
+- assert:
+    that:
+      - result.changed == true
+
+- cisco.nxos.nxos_command:
+    commands: show password strength-check
+  register: pwd
+
+- set_fact:
+    pwdchck: "{{ True if pwd is search('enabled') else False }}"
+
+- name: Enable password check (if disabled by default) for failure test
+  cisco.nxos.nxos_config: &enable
+    lines: password strength-check
+  when: not pwdchck
+
+- name: Attempt to create user with weak password with pwd check enabled (SHOULD FAIL)
+  cisco.nxos.nxos_user:
+    name: ansibletest_failed
+    configured_password: abc
+  register: result
+  ignore_errors: True
+
+- assert:
+    that: 
+      - result.failed == True
+      - result.msg is search('Wrong Password')
+
+- name: Disable password check (will be always enabled at this stage) for warnings test
+  cisco.nxos.nxos_config:
+    lines: no password strength-check
+
+- name: Attempt to create user with weak password without pwd check enabled (SHOULD WARN)
+  cisco.nxos.nxos_user:
+    name: ansibletest_warn
+    configured_password: abc
+  register: result
+
+- assert:
+    that: 
+      - result.changed == True
+      - result.failed == False
+      - '"Minimum recommended length of 8 characters" in result.warnings[1]'
+      - '"Password should contain characters from at least three of the following classes:" in result.warnings[2]'
+      - '"it is WAY too short" in result.warnings[3]'
+      - '"Configuration accepted because password strength check is disabled" in result.warnings[4]'
+
+- name: Enable password check (if that was the default)
+  cisco.nxos.nxos_config: *enable
+  when: pwdchck
+
+- name: Create a custom role
+  cisco.nxos.nxos_config:
+    lines:
+      - role name customrole
+
+- name: Attempt to create a user with a valid custom role
+  cisco.nxos.nxos_user:
+    name: ansibletest_role
+    role: customrole
+    state: present
+  register: result
+
+- assert:
+    that:
+      - result.changed == True
+      - result.failed == False
+      - '"username ansibletest_role role customrole" in result.commands'
+
+- name: Attempt to create user with invalid role (should fail)
+  cisco.nxos.nxos_user:
+    name: ansibletest_role
+    role: invalid_role
+    state: present
+  register: result
+  ignore_errors: True
+
+- assert:
+    that:
+      - result.failed == True
+      - '"invalid role specified" in result.msg'
+
+- name: tearDown
+  register: result
+  cisco.nxos.nxos_user: *rem
+
+- assert:
+    that:
+      - result.changed == true
+      - '"no username" in result.commands[0]'
+
+- name: Delete custom role
+  cisco.nxos.nxos_config:
+    lines:
+      - no role name customrole
+
+- debug: msg="END connection={{ ansible_connection }} nxos_user basic test"

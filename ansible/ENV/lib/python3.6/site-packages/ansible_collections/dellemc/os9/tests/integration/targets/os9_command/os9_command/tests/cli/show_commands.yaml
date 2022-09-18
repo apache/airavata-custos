@@ -1,0 +1,74 @@
+---
+- debug: msg="START cli/show_commands.yaml"
+
+- name: test bad operator
+  os9_command:
+    commands:
+      - show version
+      - show interfaces TenGigabitEthernet 0/0
+    wait_for:
+      - "result[0] contains 'Description : blah'"
+    provider: "{{ cli }}"
+  register: result
+  ignore_errors: yes
+
+- assert:
+    that:
+      - "result.failed == true"
+      - "result.msg is defined"
+
+- name: get output for single command
+  os9_command:
+    commands: ['show version']
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.stdout is defined"
+
+- name: get output for multiple commands
+  os9_command:
+    commands:
+      - show version
+      - show interfaces
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.stdout is defined"
+      - "result.stdout | length == 2"
+
+- name: show run command with grep Option
+  os9_command:
+    commands:
+      - show run | grep username
+    provider: "{{ cli }}" 
+  register: result  
+
+- assert:
+    that:
+      - "result.stdout | length == 1"
+      
+- name: Execute multiple show commands continously
+  os9_command:
+    commands:
+      - show system
+      - show file-systems
+      - show startup-config
+      - show tech-support
+      - show logging
+      - show system brief | grep Management
+    provider: "{{ cli }}"
+    retries: 8
+    interval: 5
+  register: result
+
+- assert:
+    that:
+      - "result.stdout | length == 6"
+
+- debug: msg="END cli/show_commands.yaml"

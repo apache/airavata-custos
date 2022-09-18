@@ -1,0 +1,269 @@
+- name: Prepare random number
+  set_fact:
+    secgroupname: sg{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}
+    asg_name1: asg1{{ resource_group | hash('md5') | truncate(7, True, '') }}
+    asg_name2: asg2{{ resource_group | hash('md5') | truncate(7, True, '') }}
+    sg_name1: sgasg{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}
+  run_once: true
+- name: Create security group
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+    purge_rules: true
+    rules:
+    - name: DenySSH
+      protocol: Tcp
+      destination_port_range: 22
+      access: Deny
+      priority: 100
+      direction: Inbound
+    - name: AllowSSH
+      protocol: Tcp
+      source_address_prefix: 174.109.158.0/24
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+      direction: Inbound
+- assert:
+    that: '{{ output.state.rules | length }} == 2'
+- name: Gather facts by tags
+  register: output
+  azure.azcollection.azure_rm_securitygroup_info:
+    resource_group: '{{ resource_group }}'
+    tags:
+    - testing
+    - foo:bar
+- assert:
+    that: output.securitygroups | length == 1
+- name: Add/Update rules on existing security group
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    rules:
+    - name: AllowSSH
+      protocol: Tcp
+      source_address_prefix: 174.108.158.0/24
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+    - name: AllowSSHFromHome
+      protocol: Tcp
+      source_address_prefix: 174.109.158.0/24
+      destination_port_range: 22-23
+      priority: 102
+- assert:
+    that:
+    - '{{ output.state.rules | length }} == 3'
+    - output.state.rules[0].source_address_prefix == '174.108.158.0/24'
+- name: Test idempotence
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    rules:
+    - name: AllowSSH
+      protocol: Tcp
+      source_address_prefix: 174.108.158.0/24
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+    - name: AllowSSHFromHome
+      protocol: Tcp
+      source_address_prefix: 174.109.158.0/24
+      destination_port_range: 22-23
+      priority: 102
+- assert:
+    that: not output.changed
+- name: Update tags
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    tags:
+      testing: testing
+      delete: never
+      baz: bar
+    append_tags: false
+- assert:
+    that:
+    - output.state.tags | length == 3
+    - output.state.tags.delete == 'never'
+- name: Purge tags
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    append_tags: false
+    tags:
+      testing: testing
+      delete: on-exit
+- assert:
+    that:
+    - output.state.tags | length == 2
+    - output.state.tags.delete == 'on-exit'
+- name: Gather facts for one accounts
+  register: output
+  azure.azcollection.azure_rm_securitygroup_info:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+- assert:
+    that:
+    - output.securitygroups | length == 1
+- name: Gather facts for all accounts
+  register: output_groups
+  azure.azcollection.azure_rm_securitygroup_info:
+    resource_group: '{{ resource_group }}'
+- assert:
+    that:
+    - output_groups.securitygroups | length > 0
+- name: Create security group with source_address_prefixes
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+    purge_rules: true
+    rules:
+    - name: AllowSSH
+      protocol: Tcp
+      source_address_prefix:
+      - 52.100.120.240
+      - 53.100.250.190
+      - 54.110.200.200
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+      direction: Inbound
+- assert:
+    that:
+    - '{{ output.state.rules | length }} == 1'
+    - '{{ output.state.rules[0].source_address_prefixes | length }} == 3'
+    - not output.state.rules[0].source_address_prefix
+- name: Create security group with source_address_prefixes(idempontent)
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+    purge_rules: true
+    rules:
+    - name: AllowSSH
+      protocol: Tcp
+      source_address_prefix:
+      - 52.100.120.240
+      - 53.100.250.190
+      - 54.110.200.200
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+      direction: Inbound
+- assert:
+    that: not output.changed
+- name: Add a single one group
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ secgroupname }}'
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+    rules:
+    - name: DenySSH
+      protocol: Tcp
+      source_address_prefix:
+      - 54.120.120.240
+      destination_port_range: 22
+      access: Deny
+      priority: 102
+      direction: Inbound
+- assert:
+    that:
+    - output.changed
+    - '{{ output.state.rules | length }} == 2'
+- name: Create Application security group 1
+  register: asg1
+  azure.azcollection.azure_rm_applicationsecuritygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ asg_name1 }}'
+    tags:
+      testing: testing
+- name: Create Application security group 2
+  register: asg2
+  azure.azcollection.azure_rm_applicationsecuritygroup:
+    resource_group: '{{ resource_group_secondary }}'
+    name: '{{ asg_name2 }}'
+    tags:
+      testing: testing
+- name: Create security group with application security group
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ sg_name1 }}'
+    purge_rules: true
+    rules:
+    - name: AsgToAsg
+      protocol: Tcp
+      source_application_security_groups:
+      - '{{ asg1.id }}'
+      destination_application_security_groups:
+      - resource_group: '{{ resource_group_secondary }}'
+        name: '{{ asg_name2 }}'
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+      direction: Inbound
+- assert:
+    that:
+    - output.changed
+- name: Create security group with application security group - Idempotent
+  register: output
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ sg_name1 }}'
+    purge_rules: true
+    rules:
+    - name: AsgToAsg
+      protocol: Tcp
+      source_application_security_groups:
+      - '{{ asg_name1 }}'
+      destination_application_security_groups:
+      - resource_group: '{{ resource_group_secondary }}'
+        name: '{{ asg_name2 }}'
+      destination_port_range: 22
+      access: Allow
+      priority: 101
+      direction: Inbound
+- assert:
+    that:
+    - not output.changed
+- name: Delete security group
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ sg_name1 }}'
+    state: absent
+- name: Delete all security groups
+  with_items: '{{ output_groups.securitygroups }}'
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: '{{ resource_group }}'
+    name: '{{ item.name }}'
+    state: absent
+- name: Should have no security groups remaining
+  register: output
+  azure.azcollection.azure_rm_securitygroup_info:
+    resource_group: '{{ resource_group }}'
+- assert:
+    that:
+    - output.securitygroups | length == 0

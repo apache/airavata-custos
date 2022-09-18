@@ -1,0 +1,55 @@
+# Test code for the na_santricity_alerts module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set credential facts
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    certificates:
+      - "/home/swartzn/ExampleRootCA.crt"
+      - "/home/swartzn/ExampleIssuingCA.crt"
+      - "/home/swartzn/ExampleClient.crt"
+
+- name: Remove certificates
+  na_santricity_client_certificate:
+    <<: *creds
+
+- name: Upload certificate (changed, check_mode)
+  na_santricity_client_certificate:
+    <<: *creds
+    certificates: "{{ certificates }}"
+  register: result
+  check_mode: true
+- assert:
+    that: "{{ result['changed'] }}"
+    msg: "Failed to upload certificates to storage array."
+
+- name: Upload certificate (changed)
+  na_santricity_client_certificate:
+    <<: *creds
+    certificates: "{{ certificates }}"
+  register: result
+- assert:
+    that: "{{ result['changed'] }}"
+    msg: "Failed to upload certificates to storage array."
+
+- name: Repeat upload certificate (no change)
+  na_santricity_client_certificate:
+    <<: *creds
+    certificates: "{{ certificates }}"
+  register: result
+- assert:
+    that: "{{ not result['changed'] }}"
+    msg: "Failed not to make any changes."
+
+- name: Remove certificates
+  na_santricity_client_certificate:
+    <<: *creds
+  register: result
+- assert:
+    that: "{{ result['changed'] }}"
+    msg: "Failed to remove uploaded certificates"

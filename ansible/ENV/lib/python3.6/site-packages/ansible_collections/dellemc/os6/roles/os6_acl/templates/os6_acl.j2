@@ -1,0 +1,202 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{####################################
+
+Purpose:
+Configure ACL commands for os6 devices
+
+os6_acl:
+  - name: macl-implicit
+    type: mac
+    remark:
+      - description: 1
+        number: 3
+        state: present
+    entries:
+      - number: 4
+        seq_number: 1000
+        permit: false
+        protocol:
+        match_condition: any 0000.1F3D.084B 0000.0000.0000
+        state: present
+      - number: 5
+        seq_number: 1001
+        permit: true
+        protocol:
+        match_condition: any any 0x0806
+        state: present
+      - number: 6
+        seq_number: 2002
+        permit: deny
+        protocol:
+        match_condition: any any
+        state:
+    stage_ingress:
+      - name: vlan 30
+        state: present
+        seq_number: 40
+      - name: vlan 50
+        state: present
+        seq_number: 50
+    stage_egress:
+      - name:
+        state:
+        seq_number:
+    state: present
+#####################################}
+{% if os6_acl is defined and os6_acl %}
+{% set acl_dict = {} %}
+  {% for val in os6_acl %}
+    {% if val.name is defined and val.name %}
+      {% if val.state is defined and val.state == "absent" %}
+        {% if val.type is defined and val.type == "ipv4" %}
+no ip access-list {{ val.name }}
+        {% elif val.type is defined and val.type == "ipv6" %}
+no ipv6 access-list {{ val.name }}
+        {% elif val.type is defined and val.type == "mac" %}
+no mac access-list extended {{ val.name }}
+        {% endif %}
+      {% else %}
+        {% if val.type is defined and (val.type == "ipv4" or val.type == "ipv6" or val.type == "mac") %}
+          {% if val.type == "mac" %}
+{{ val.type }} access-list extended {{ val.name }}
+          {% elif val.type == "ipv4" %}
+ip access-list {{ val.name }}
+          {% else %}
+{{ val.type }} access-list {{ val.name }}
+          {% endif %}
+            {% if val.remark is defined and val.remark %}
+              {% for remark in val.remark %}
+                {% if remark.description is defined and remark.description %}
+                  {% if remark.state is defined and remark.state == "absent" %}
+no remark {{ remark.description }}
+                  {% else %}
+remark {{ remark.description }}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if val.entries is defined and val.entries %}
+              {% for rule in val.entries %}
+                {% if rule.seq_number is defined and rule.seq_number %}
+                  {% if rule.state is defined and rule.state == "absent" %}
+no {{ rule.seq_number }}
+                  {% else %}
+{% set seq_num = rule.seq_number %}
+                    {% if rule.permit is defined %}
+                      {% if rule.permit %}
+                        {% set is_permit = "permit" %}
+                      {% else %}
+                        {% set is_permit = "deny" %}
+                      {% endif %}
+                    {% endif %}
+                    {% if rule.protocol is defined and rule.protocol %}
+                      {% set protocol = rule.protocol %}
+                    {% else %}
+                      {% set protocol = "" %}
+                    {% endif %}
+                    {% if rule.protocol is defined and rule.protocol and rule.match_condition is defined and rule.match_condition %}
+{{ seq_num }} {{ is_permit }} {{ protocol }} {{ rule.match_condition }}
+                    {% elif rule.protocol is defined and rule.protocol %}
+{{ seq_num }} {{ is_permit }} {{ protocol }}
+                    {% elif rule.match_condition is defined and rule.match_condition %}
+{{ seq_num }} {{ is_permit }} {{ rule.match_condition }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+exit
+            {% if val.stage_ingress is defined and val.stage_ingress  %}
+              {% for intf in val.stage_ingress %}
+                {% if intf.state is defined and intf.state == "absent" %}
+                  {% if intf.name is defined and intf.name %}
+{% set key = intf.name  %}
+{% set key_val_list = acl_dict.setdefault(key, []) %}
+                    {% if val.type is defined and val.type == "mac" %}
+{% set value = ("no mac access-group " +  val.name + " " + "in") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                    {% elif val.type is defined and val.type == "ipv4" %}
+{% set value = ("no ip access-group " +  val.name + " " + "in") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if intf.name is defined and intf.name %}
+{% set key = intf.name  %}
+{% set key_val_list = acl_dict.setdefault(key, []) %}
+                    {% if val.type is defined and val.type == "mac" %}
+                      {% if intf.seq_number is defined and intf.seq_number %}
+{% set value1 =  intf.seq_number|string %}
+{% set value = ("mac access-group " +  val.name + " " + "in " +  value1) %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% else %}
+{% set value = ("mac access-group " +  val.name + " " + "in ") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% endif %}
+                    {% elif val.type is defined and val.type == "ipv4" %}
+                      {% if intf.seq_number is defined and intf.seq_number %}
+{% set value1 =  intf.seq_number|string %}
+{% set value = ("ip access-group " +  val.name + " " + "in " +  value1) %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% else %}
+{% set value = ("ip access-group " +  val.name + " " + "in ") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if val.stage_egress is defined and val.stage_egress %}
+              {% for intf in val.stage_egress %}
+                {% if intf.state is defined and intf.state == "absent" %}
+                  {% if intf.name is defined and intf.name %}
+{% set key = intf.name  %}
+{% set key_val_list = acl_dict.setdefault(key, []) %}
+                    {% if val.type is defined and val.type == "mac" %}
+{% set value = ("no mac access-group " +  val.name + " " + "out") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                    {% elif val.type is defined and val.type == "ipv4" %}
+{% set value = ("no ip access-group " +  val.name + " " + "out") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  {% if intf.name is defined and intf.name %}
+{% set key = intf.name  %}
+{% set key_val_list = acl_dict.setdefault(key, []) %}
+                    {% if val.type is defined and val.type == "mac" %}
+                      {% if intf.seq_number is defined and intf.seq_number %}
+{% set value1 =  intf.seq_number|string %}
+{% set value = ("mac access-group " +  val.name + " " + "out " +  value1) %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% else %}
+{% set value = ("mac access-group " +  val.name + " " + "out ") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% endif %}
+                    {% elif val.type is defined and val.type == "ipv4" %}
+                      {% if intf.seq_number is defined and intf.seq_number %}
+{% set value1 =  intf.seq_number|string %}
+{% set value = ("ip access-group " +  val.name + " " + "out " +  value1) %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% else %}
+{% set value = ("ip access-group " +  val.name + " " + "out ") %}
+{% set acl_val = acl_dict[key].append(value) %}
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}  
+  {% endfor %}
+ {% for intf_name, acl_list in acl_dict.items() %}
+interface {{ intf_name }}
+   {% for acl in acl_list %}
+{{ acl }}
+   {% endfor %}
+exit
+ {% endfor %}
+{% endif %}

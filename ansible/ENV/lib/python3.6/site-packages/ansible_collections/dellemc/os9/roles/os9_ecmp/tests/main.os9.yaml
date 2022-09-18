@@ -1,0 +1,14 @@
+---
+# vars file for dellemc.os9.os9_ecmp, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_ecmp:
+  ecmp 1:
+    interface:
+      - fortyGigE 1/49
+      - fortyGigE 1/51
+    link_bundle_monitor: true
+    state: present 
+  weighted_ecmp: true
+  ecmp_group_max_paths: 3
+  ecmp_group_path_fallback: true

@@ -1,0 +1,34 @@
+{
+ "collection_info": {
+  "namespace": "frr",
+  "name": "frr",
+  "version": "1.0.3",
+  "authors": [
+   "Ansible Network Community (ansible-network)"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "routing",
+   "networking",
+   "facts"
+  ],
+  "description": "Ansible Collection for Free Range Routing (FRR).",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {
+   "ansible.netcommon": "*"
+  },
+  "repository": "https://github.com/ansible-collections/frr.frr",
+  "documentation": null,
+  "homepage": null,
+  "issues": null
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "0d2d1d447cf4457e2426e9c8c258aa7af29abe40bdf564e291df55913a144652",
+  "format": 1
+ },
+ "format": 1
+}

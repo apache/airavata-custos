@@ -1,0 +1,19 @@
+---
+- name: List all floating IPs
+  uri:
+    url: 'https://api.cloudscale.ch/v1/floating-ips'
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    status_code: 200
+  register: floating_ip_list
+
+- name: Remove all floating IPs created by this test run
+  cloudscale_ch.cloud.floating_ip:
+    # TODO: fix
+    # ip: '{{ item.network | ipaddr("address") }}'
+    ip:  '{{ item.network.split("/")[0] }}'
+    state: 'absent'
+  when: "cloudscale_resource_prefix in (item.reverse_ptr | string ) or ('ansible_name' in item.tags and cloudscale_resource_prefix in item.tags['ansible_name'])"
+  with_items: '{{ floating_ip_list.json }}'
+  loop_control:
+    label: '{{ item.reverse_ptr }} ({{ item.network }})'

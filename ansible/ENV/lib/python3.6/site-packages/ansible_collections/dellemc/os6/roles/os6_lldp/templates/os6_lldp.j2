@@ -1,0 +1,159 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{###################################################
+Purpose:
+Configure LLDP commands for os6 Devices.
+
+os6_lldp:
+  timers:
+    reinit: 2
+    interval: 5
+    hold: 5
+  notification_interval: 5
+  advertise:
+    med:
+      global_med: true
+      fast_start_repeat_count: 4
+      config_notification: true
+  local_interface:
+    Gi1/0/1:
+      mode:
+        tx: true
+        rx: false
+      notification: true
+      advertise:
+        med:
+          config_notification: true
+          enable: true
+
+
+{###############################################################################################}
+{% if os6_lldp is defined and os6_lldp %}
+{% for key,value in os6_lldp.items() %}
+  {% if key == "timers" %}
+    {% if value %}
+      {% set item = os6_lldp.timers %}
+        {% if item.reinit is defined and item.reinit and item.interval is defined and item.interval and item.hold is defined and item.hold %}
+lldp timers interval {{ item.interval }} hold {{ item.hold }} reinit {{ item.reinit }}
+        {% elif item.reinit is defined and item.reinit and item.interval is defined and item.interval %}
+lldp timers interval {{ item.interval }} reinit {{ item.reinit }}
+        {% elif item.reinit is defined and item.reinit and item.hold is defined and item.hold %}
+lldp timers hold {{ item.hold }} reinit {{ item.reinit }}
+        {% elif item.interval is defined and item.interval and item.hold is defined and item.hold %}
+lldp timers interval {{ item.interval }} hold {{ item.hold }}
+        {% else %}
+          {% if item.reinit is defined %}
+            {% if item.reinit %}
+lldp timers reinit {{ item.reinit }}
+            {% else %}
+no lldp timers reinit {{ item.reinit }}
+            {% endif %}
+          {% endif %}
+          {% if item.interval is defined %}
+            {% if item.interval %}
+lldp timers interval {{ item.interval }}
+            {% else %}
+no lldp timers interval {{ item.interval }}
+            {% endif %}
+          {% endif %}
+          {% if item.hold is defined %}
+            {% if item.hold %}
+lldp timers hold {{ item.hold }}
+            {% else %}
+no lldp timers hold {{ item.hold }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+    {% endif %}
+  {% elif key == "notification_interval" %}
+     {% if value %}
+lldp notification-interval {{ value }}
+     {% else %}
+no lldp notification-interval
+     {% endif %}
+  {% elif key == "advertise" %}
+    {% if value %}
+      {% for ke,valu in value.items() %}
+        {% if ke == "med" %}
+          {% if valu %}
+            {% for med,val in valu.items() %}
+              {% if med == "fast_start_repeat_count" %}
+                {% if val %}
+lldp med faststartrepeatcount {{ val }}
+                {% else %}
+no lldp med faststartrepeatcount
+                {% endif %}
+              {% elif med == "config_notification" %}
+                {% if val %}
+lldp med confignotification all
+                {% else %}
+no lldp med confignotification all
+                {% endif %}
+              {% elif med == "global_med" %}
+                {% if val %}
+lldp med all
+                {% else %}
+no lldp med all
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endif %}
+{% if os6_lldp is defined and os6_lldp %}
+{% for key in os6_lldp.keys() %}
+{% set lldp_vars  = os6_lldp[key] %}
+{% if key == "local_interface" %}
+  {% for intf in lldp_vars.keys() %}
+  {% set intf_vars = lldp_vars[intf] %}
+interface {{ intf }}
+    {% if intf_vars.mode is defined and intf_vars.mode %}
+      {% set intf_vars_mode  = intf_vars.mode %}
+      {% if intf_vars_mode.tx is defined %}
+        {% if intf_vars_mode.tx %}
+lldp transmit
+        {% else %}
+no lldp transmit
+        {% endif %}
+      {% endif %}
+      {% if intf_vars_mode.rx is defined %}
+        {% if intf_vars_mode.rx %}
+lldp receive
+        {% else %}
+no lldp receive
+        {% endif %}
+      {% endif %}      
+    {% endif %}
+    {% if intf_vars.notification is defined %}
+      {% if intf_vars.notification %}
+lldp notification
+      {% else %}
+no lldp notification   
+      {% endif %}
+    {% endif %}
+    {% if intf_vars.advertise is defined and intf_vars.advertise %}
+      {% if intf_vars.advertise.med is defined and intf_vars.advertise.med %}
+        {% if intf_vars.advertise.med.enable is defined %}
+          {% if intf_vars.advertise.med.enable %}
+lldp med
+          {% else %}
+no lldp med 
+          {% endif %}
+        {% endif %}
+        {% if intf_vars.advertise.med.config_notification is defined %}
+          {% if intf_vars.advertise.med.config_notification %}
+lldp med confignotification
+          {% else %}
+no lldp med confignotification 
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+exit
+  {% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}

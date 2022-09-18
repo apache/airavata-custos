@@ -1,0 +1,64 @@
+---
+- debug: msg="START cli/basic-motd.yaml on connection={{ ansible_connection }}"
+
+- name: Remove previous motd banner
+  become: true
+  arista.eos.eos_config:
+    lines: no banner motd
+
+- name: Set motd
+  become: true
+  register: result
+  arista.eos.eos_banner:
+    banner: motd
+    text: "this is my motd banner\nthat has a multiline\nstring\n"
+    state: present
+
+- assert:
+    that:
+      - result.changed == true
+      - "'this is my motd banner' in result.commands"
+      - "'that has a multiline' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Set motd again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_banner:
+    banner: motd
+    text: "this is my motd banner\nthat has a multiline\nstring\n"
+    state: present
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - result.session_name is not defined
+
+- name: Remove motd
+  become: true
+  register: result
+  arista.eos.eos_banner:
+    banner: motd
+    text: "this is my motd banner\nthat has a multiline\nstring\n"
+    state: absent
+
+- assert:
+    that:
+      - result.changed == true
+      - "'no banner motd' in result.commands"
+      - "'ansible_1' in result.session_name"
+
+- name: Remove motd again (idempotent)
+  become: true
+  register: result
+  arista.eos.eos_banner:
+    banner: motd
+    text: "this is my motd banner\nthat has a multiline\nstring\n"
+    state: absent
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0
+      - result.session_name is not defined

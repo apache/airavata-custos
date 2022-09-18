@@ -1,0 +1,17 @@
+---
+- name: List all objects users
+  uri:
+    url: 'https://api.cloudscale.ch/v1/objects-users'
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    status_code: 200
+  register: objects_user_list
+
+- name: Remove all objects users created by this test run
+  cloudscale_ch.cloud.objects_user:
+    id: '{{ item.id }}'
+    state: absent
+  when: cloudscale_resource_prefix in item.display_name
+  with_items: '{{ objects_user_list.json }}'
+  loop_control:
+    label: '{{ item.display_name }} ({{ item.id }})'

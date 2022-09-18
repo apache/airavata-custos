@@ -1,0 +1,171 @@
+# Test code for the Meraki modules
+# Copyright: (c) 2018, Kevin Breit (@kbreit)
+
+# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+---
+- block:
+  - name: Create wireless network
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_name: TestNetWireless
+      type: wireless
+    delegate_to: localhost
+    register: new_net
+
+  - set_fact:
+      net: '{{new_net.data.id}}'
+
+  - name: Create single firewall rule with check mode
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+      rules:
+        - comment: Integration test rule
+          policy: allow
+          protocol: tcp
+          dest_port: 80
+          dest_cidr: 192.0.2.0/24
+      allow_lan_access: no
+    delegate_to: localhost
+    check_mode: yes
+    register: create_one_check
+
+  - debug:
+      msg: '{{create_one_check}}'
+
+  - assert:
+      that:
+        - create_one_check.data.0.comment == 'Integration test rule'
+        - create_one_check.data.1.policy == 'deny'
+        - create_one_check.data is defined
+        - create_one_check is changed
+
+  - name: Create single firewall rule
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+      rules:
+        - comment: Integration test rule
+          policy: allow
+          protocol: tcp
+          dest_port: 80
+          dest_cidr: 192.0.2.0/24
+      allow_lan_access: no
+    delegate_to: localhost
+    register: create_one
+
+  - debug:
+      msg: '{{create_one}}'
+
+  - assert:
+      that:
+        - create_one.data.rules.0.comment == 'Integration test rule'
+        - create_one.data.rules.1.policy == 'deny'
+        - create_one.data is defined
+
+  - name: Enable local LAN access with check mode
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+      allow_lan_access: yes
+    delegate_to: localhost
+    check_mode: yes
+    register: enable_lan_check
+
+  - debug:
+      var: enable_lan_check
+
+  - assert:
+      that:
+        - enable_lan_check.data.rules.1.policy == 'allow'
+        - enable_lan_check is changed
+
+  - name: Enable local LAN access
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+      allow_lan_access: yes
+    delegate_to: localhost
+    register: enable_lan
+
+  - assert:
+      that:
+        - enable_lan.data.rules.1.policy == 'allow'
+
+  - name: Update rules without specifying LAN access with check mode
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: present
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+      rules:
+        - comment: Integration test rule
+          policy: allow
+          protocol: tcp
+          dest_port: 8080
+          dest_cidr: 192.0.2.0/24
+    delegate_to: localhost
+    register: update_one_check
+
+  - debug:
+      msg: '{{update_one_check}}'
+
+  - assert:
+      that:
+        - update_one_check.data.rules.0.comment == 'Integration test rule'
+        - update_one_check.data is defined
+
+  - name: Query firewall rules
+    meraki_mr_l3_firewall:
+      auth_key: '{{ auth_key }}'
+      state: query
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+    delegate_to: localhost
+    register: query
+
+  - debug:
+      msg: '{{query}}'
+
+  - assert:
+      that:
+        - query.data.rules.1.comment == 'Wireless clients accessing LAN'
+        - query.data.rules.2.comment == 'Default rule'
+        - query.changed == False
+
+############################################################################
+# Tear down starts here
+############################################################################
+  always:
+  - name: Delete wireless SSID
+    meraki_ssid:
+      auth_key: '{{ auth_key }}'
+      state: absent
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+      number: 1
+    delegate_to: localhost
+
+  - name: Delete wireless network
+    meraki_network:
+      auth_key: '{{ auth_key }}'
+      state: absent
+      org_name: '{{test_org_name}}'
+      net_id: '{{net}}'
+    delegate_to: localhost

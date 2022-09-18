@@ -1,0 +1,88 @@
+# Test code for the na_santricity_nvme_interface module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_nvme_interface module test
+  set_fact:
+    credentials: &creds
+      ssid: 1
+      api_url: https://192.168.1.100:8443/devmgr/v2/
+      api_username: admin
+      api_password: adminpassword
+      validate_certs: false
+    interface_a1_ip: 192.168.1.1
+    interface_b1_ip: 192.168.2.1
+
+- name: Set the initial nvme interfaces
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  loop:
+    - ["A", "1", "{{ interface_a1_ip }}"]
+    - ["B", "1", "{{ interface_b1_ip }}"]
+
+- name: Repeat the initial nvme interfaces (no change)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "{{ interface_a1_ip }}"]
+    - ["B", "1", "{{ interface_b1_ip }}"]
+- name: Verify no changes were made
+  assert:
+    that: "{{ not item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Change the initial nvme interfaces (changed, check_mode)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "192.168.3.230"]
+    - ["B", "1", "192.168.3.231"]
+  check_mode: true
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Change the initial nvme interfaces (changed)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "192.168.3.230"]
+    - ["B", "1", "192.168.3.231"]
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"
+
+- name: Revert to the initial nvme interfaces (changed)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: "{{ item[0] }}"
+    channel: "{{ item[1] }}"
+    address: "{{ item[2] }}"
+  register: results
+  loop:
+    - ["A", "1", "{{ interface_a1_ip }}"]
+    - ["B", "1", "{{ interface_b1_ip }}"]
+- name: Verify no changes were made
+  assert:
+    that: "{{ item['changed'] }}"
+    msg: "Unexpected results!"
+  loop: "{{ lookup('list', results['results']) }}"

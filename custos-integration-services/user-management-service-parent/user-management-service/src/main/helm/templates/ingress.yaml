@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /user-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: user-management-service
-              servicePort: envoyhttp
+              service:
+                name: user-management-service
+                port:
+                  name: envoyhttp
 
   tls:
     - hosts:

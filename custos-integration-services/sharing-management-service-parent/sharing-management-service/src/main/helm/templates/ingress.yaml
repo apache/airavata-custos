@@ -12,9 +12,12 @@ spec:
       http:
         paths:
           - path: /sharing-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: sharing-management-service
-              servicePort: envoyhttp
+              service:
+                  name: sharing-management-service
+                  port:
+                     name: envoyhttp
 
   tls:
     - hosts:

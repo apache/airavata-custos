@@ -1,0 +1,8 @@
+dnf-utils
+git
+ansible
+python3-voluptuous
+python3-pycodestyle
+python3-pylint
+yamllint
+glibc-langpack-en

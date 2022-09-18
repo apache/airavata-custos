@@ -1,0 +1,105 @@
+# Test code for the na_santricity_nvme_interface module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set facts for na_santricity_nvme_interface module test
+  set_fact:
+    credentials: &creds
+      ssid: 1
+      api_url: https://192.168.1.100:8443/devmgr/v2/
+      api_username: admin
+      api_password: adminpassword
+      validate_certs: false
+    original_interface: &iface
+      address: 192.168.131.101
+      subnet_mask: 255.255.255.0
+      gateway: 0.0.0.0
+
+- name: Ensure NVMeoF interfaces are properly configured.
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: A
+    channel: 1
+    config_method: dhcp
+    mtu: 9000
+    speed: 25
+
+- name: Ensure NVMeoF interfaces are properly configured (no change).
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: A
+    channel: 1
+    config_method: dhcp
+    mtu: 9000
+    speed: 25
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Ensure NVMe interfaces are properly configured. (change, check_mode)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: A
+    channel: 1
+    config_method: static
+    address: 192.168.130.200
+    subnet_mask: 255.255.254.0
+    gateway: 192.168.130.1
+    mtu: 1500
+    speed: auto
+  check_mode: true
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Ensure NVMe interfaces are properly configured. (change)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: A
+    channel: 1
+    config_method: static
+    address: 192.168.130.200
+    subnet_mask: 255.255.254.0
+    gateway: 192.168.130.1
+    mtu: 1500
+    speed: auto
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Ensure NVMe interfaces are properly configured. (no change)
+  na_santricity_nvme_interface:
+    <<: *creds
+    controller: A
+    channel: 1
+    config_method: static
+    address: 192.168.130.200
+    subnet_mask: 255.255.254.0
+    gateway: 192.168.130.1
+    mtu: 1500
+    speed: auto
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Ensure NVMeoF interfaces are properly configured. (change)
+  na_santricity_nvme_interface:
+    <<: *creds
+    <<: *iface
+    controller: A
+    channel: 1
+    config_method: static
+    mtu: 1500
+    speed: auto
+  register: results
+- name: Verify results
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"

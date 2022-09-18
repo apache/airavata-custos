@@ -1,0 +1,248 @@
+---
+- block:
+
+    - debug: msg="START cli/nxapi_ssl.yaml"
+
+    - name: Configure NXAPI HTTPs w/weak ciphers
+      register: result
+      cisco.nxos.nxos_nxapi: &id001
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: false
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc ciphers
+
+    - name: Assert weak ciphers configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl ciphers weak'
+
+    - name: Configure NXAPI HTTP w/weak ciphers again
+      register: result
+      cisco.nxos.nxos_nxapi: *id001
+
+    - name: Assert configuration is idempotent
+      assert: &id003
+        that:
+          - result.changed == false
+
+    - name: Configure NXAPI HTTPs w/strong ciphers
+      register: result
+      cisco.nxos.nxos_nxapi: &id002
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: true
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc ciphers
+
+    - name: Assert strong ciphers configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'no nxapi ssl ciphers weak'
+
+    - name: Configure NXAPI HTTPs w/strong ciphers again
+      register: result
+      cisco.nxos.nxos_nxapi: *id002
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs w/default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id004
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/default TLSv1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1'
+
+    - name: Configure NXAPI HTTPs w/default again
+      register: result
+      cisco.nxos.nxos_nxapi: *id004
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs TLSv1.1 -default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id005
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        tlsv1_1: true
+        tlsv1_0: false
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLSv1.1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1.1'
+
+    - name: Configure NXAPI HTTPs w/TLSv1.1 -default TLSv1 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id005
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs TLSv1.2 -default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id006
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        tlsv1_2: true
+        tlsv1_0: false
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLSv1.2 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1.2'
+
+    - name: Configure NXAPI HTTPs w/TLSv1.2 -default TLSv1 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id006
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 +default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id007
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: true
+        tlsv1_2: true
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLS1.2 +default TLSv1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1 TLSv1.2'
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id007
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 TLS1.1 -default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id008
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: true
+        tlsv1_0: false
+        tlsv1_1: true
+        tlsv1_2: true
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLS1.2 TLS1.2 -default TLSv1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1.1 TLSv1.2'
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 TLS1.1 -default TLSv1 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id008
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 TLS1.1 +default TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id009
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: true
+        tlsv1_1: true
+        tlsv1_2: true
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLS1.2 TLS1.1 +default TLSv1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1 TLSv1.1 TLSv1.2'
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 TLS1.1 +default TLSv1 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id009
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+
+    - name: Configure NXAPI HTTPs with explicit TLS1.2 TLS1.1 TLSv1
+      register: result
+      cisco.nxos.nxos_nxapi: &id010
+        enable_https: true
+        enable_sandbox: '{{nxapi_sandbox_option|default(omit)}}'
+        ssl_strong_ciphers: true
+        tlsv1_0: true
+        tlsv1_1: true
+        tlsv1_2: true
+
+    - register: result
+      cisco.nxos.nxos_command:
+        commands:
+          - show run all | inc nxapi | inc protocols
+
+    - name: Assert NXAPI HTTPs w/TLS1.2 TLS1.2 TLSv1 configuration
+      assert:
+        that:
+          - result.stdout_lines[0][0] == 'nxapi ssl protocols TLSv1 TLSv1.1 TLSv1.2'
+
+    - name: Configure NXAPI HTTPs w/TLS1.2 TLS1.1 TLSv1 again
+      register: result
+      cisco.nxos.nxos_nxapi: *id010
+
+    - name: Assert configuration is idempotent
+      assert: *id003
+  always:
+
+    - name: Cleanup - Disable NXAPI
+      register: result
+      cisco.nxos.nxos_nxapi:
+        state: absent
+
+    - name: Cleanup - Re-enable NXAPI
+      register: result
+      cisco.nxos.nxos_nxapi:
+        state: present
+
+    - debug: msg="END cli/nxapi_ssl.yaml"
+  when: (platform is match("N9K") or platform is match("N3K") or platform is match("N9K-F")
+    or platform is match("N35") or platform is match("N3L")) and major_version is
+    version('9.2', '>=')

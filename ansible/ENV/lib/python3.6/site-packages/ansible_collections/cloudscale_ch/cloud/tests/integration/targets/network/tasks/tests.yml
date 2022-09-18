@@ -1,0 +1,159 @@
+---
+- name: Create network in check mode
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: net
+  check_mode: yes
+- name: 'VERIFY: Create network in check mode'
+  assert:
+    that:
+      - net is changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net'
+      - not net.uuid
+
+- name: Create network
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net'
+    zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: net
+- name: 'VERIFY: Create network'
+  assert:
+    that:
+      - net is changed
+      - net.mtu == 9000
+      - net.name == '{{ cloudscale_resource_prefix }}-net'
+      - net.zone.slug == cloudscale_test_zone
+      - net.uuid
+      - net.tags.project == 'ansible-test'
+      - net.tags.stage == 'production'
+      - net.tags.sla == '24-7'
+
+- name: Remember uuid
+  set_fact:
+    network_uuid: '{{ net.uuid }}'
+
+- name: Create network idempotence
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net'
+    zone: '{{ cloudscale_test_zone }}'
+    tags:
+      project: ansible-test
+      stage: production
+      sla: 24-7
+  register: net
+- name: 'VERIFY: Create network idempotence'
+  assert:
+    that:
+      - net is not changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net'
+      - net.zone.slug == cloudscale_test_zone
+      - net.uuid == network_uuid
+      - net.tags.project == 'ansible-test'
+      - net.tags.stage == 'production'
+      - net.tags.sla == '24-7'
+
+- name: Update network in check mode
+  cloudscale_ch.cloud.network:
+    uuid: '{{ network_uuid }}'
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: net
+  check_mode: yes
+- name: 'VERIFY: Update network in check mode'
+  assert:
+    that:
+      - net is changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net'
+      - net.uuid == network_uuid
+      - net.zone.slug == cloudscale_test_zone
+      - net.tags.project == 'ansible-test'
+      - net.tags.stage == 'production'
+      - net.tags.sla == '24-7'
+
+- name: Update network
+  cloudscale_ch.cloud.network:
+    uuid: '{{ network_uuid }}'
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: net
+- name: 'VERIFY: Update network'
+  assert:
+    that:
+      - net is changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net2'
+      - net.uuid == network_uuid
+      - net.zone.slug == cloudscale_test_zone
+      - net.tags.project == 'ansible-test'
+      - net.tags.stage == 'staging'
+      - net.tags.sla == '8-5'
+
+- name: Update network idempotence
+  cloudscale_ch.cloud.network:
+    uuid: '{{ network_uuid }}'
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    tags:
+      project: ansible-test
+      stage: staging
+      sla: 8-5
+  register: net
+- name: 'VERIFY: Update network idempotence'
+  assert:
+    that:
+      - net is not changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net2'
+      - net.uuid == network_uuid
+      - net.zone.slug == cloudscale_test_zone
+      - net.tags.project == 'ansible-test'
+      - net.tags.stage == 'staging'
+      - net.tags.sla == '8-5'
+
+- name: Delete network in check mode
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    state: absent
+  register: net
+  check_mode: yes
+- name: 'VERIFY: Delete network in check mode'
+  assert:
+    that:
+      - net is changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net2'
+      - net.uuid == network_uuid
+
+- name: Delete network
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    state: absent
+  register: net
+- name: 'VERIFY: Delete network'
+  assert:
+    that:
+      - net is changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net2'
+      - net.uuid == network_uuid
+
+- name: Delete network idempotence
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-net2'
+    state: absent
+  register: net
+- name: 'VERIFY: Delete network idempotence'
+  assert:
+    that:
+      - net is not changed
+      - net.name == '{{ cloudscale_resource_prefix }}-net2'
+      - not net.uuid

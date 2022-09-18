@@ -1,0 +1,30 @@
+ancestor: null
+releases:
+  0.3.0:
+    changes:
+      bugfixes:
+      - vultr - Fixed the issue retry max delay param was ignored.
+      minor_changes:
+      - vultr_server_info, vultr_server - Improved handling of discontinued plans
+        (https://github.com/ansible/ansible/issues/66707).
+    fragments:
+    - 66792-vultr-improve-plan.yml
+    - 67437-vultr-fix-retry-max-delay-param.yml
+    modules:
+    - description: Gather information about the Vultr Bare Metal plans available.
+      name: vultr_plan_baremetal_info
+      namespace: ''
+    - description: Manages baremetal servers on Vultr.
+      name: vultr_server_baremetal
+      namespace: ''
+    release_date: '2020-07-03'
+  1.0.0:
+    release_date: '2020-08-16'
+  1.1.0:
+    changes:
+      minor_changes:
+      - vultr_block_storage - Included ability to resize, attach and detach Block
+        Storage Volumes.
+    fragments:
+    - 14-attach-detach-and-resize-volumes.yml
+    release_date: '2021-02-02'

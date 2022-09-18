@@ -1,0 +1,45 @@
+---
+- hosts: ome
+  connection: local
+  name: Dell OpenManage Ansible OME firmware baseline operations.
+  gather_facts: False
+
+  collections:
+    - dellemc.openmanage
+
+  tasks:
+  - name: create baseline for device Ids.
+    ome_firmware_baseline:
+      hostname: "{{hostname}}"
+      username: "{{username}}"
+      password: "{{password}}"
+      baseline_name: "baseline_name"
+      baseline_description: "baseline_description"
+      catalog_name: "catalog_name"
+      device_ids:
+        - 1010
+        - 2020
+
+  - name: create baseline for servicetags.
+    ome_firmware_baseline:
+      hostname: "{{hostname}}"
+      username: "{{username}}"
+      password: "{{password}}"
+      baseline_name: "baseline_name"
+      baseline_description: "baseline_description"
+      catalog_name: "catalog_name"
+      device_service_tags:
+        - "SVCTAG1"
+        - "SVCTAG2"
+
+  - name: create baseline for device groups.
+    ome_firmware_baseline:
+      hostname: "{{hostname}}"
+      username: "{{username}}"
+      password: "{{password}}"
+      baseline_name: "baseline_name"
+      baseline_description: "baseline_description"
+      catalog_name: "catalog_name"
+      device_group_names:
+        - "Group1"
+        - "Group2"

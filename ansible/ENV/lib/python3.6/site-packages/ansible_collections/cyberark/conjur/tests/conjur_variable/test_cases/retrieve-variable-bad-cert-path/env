@@ -1,0 +1,1 @@
+export CONJUR_CERT_FILE=./bad/cert/path

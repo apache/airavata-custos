@@ -1,0 +1,46 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+      holdtime: 100
+      tlv_select:
+        management_address: false
+        port_description: false
+        system_description: true
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_global
+
+- name: Merge provided LLDP configuration with device configuration
+  register: result
+  become: true
+  arista.eos.eos_lldp_global:
+    config: '{{ config }}'
+    state: merged
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == result.before
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lldp_global
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == result.after
+
+- set_fact:
+    expected_config:
+      timer: 3000
+      holdtime: 100
+      reinit: 5
+      tlv_select:
+        management_address: false
+        port_description: false
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lldp_global == expected_config

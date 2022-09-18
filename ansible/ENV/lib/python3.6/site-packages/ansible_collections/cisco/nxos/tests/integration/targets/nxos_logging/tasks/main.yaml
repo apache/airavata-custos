@@ -1,0 +1,18 @@
+---
+- block:
+
+    - include: cli.yaml
+      tags:
+        - cli
+
+    - include: nxapi.yaml
+      tags:
+        - nxapi
+  always:
+
+    - name: Set Baud Rate Back to 9600 so our tests don't break
+      connection: ansible.netcommon.network_cli
+      cisco.nxos.nxos_config:
+        lines:
+          - speed 9600
+        parents: line console

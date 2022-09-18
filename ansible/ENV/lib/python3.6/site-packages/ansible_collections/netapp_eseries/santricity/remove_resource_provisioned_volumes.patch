@@ -1,0 +1,190 @@
+diff --git a/README.md b/README.md
+index e50c7f2..6a53a3e 100644
+--- a/README.md
++++ b/README.md
+@@ -349,7 +349,6 @@ Collection Variables
+     eseries_system_cache_flush_threshold:          # Unwritten data will be flushed when exceeds this threshold
+     eseries_system_autoload_balance:               # Whether automatic load balancing should be enabled. Choices: enabled, disabled
+     eseries_system_host_connectivity_reporting:    # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+-    eseries_system_resource_provisioned_volumes:   # Whether volumes should skip initializing and leave volumes unmapped. Choices: enabled, disabled
+     eseries_system_default_host_type:              # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
+                                                    #    non-clustered Windows (Windows), or the storage system default host type is incorrect.
+                                                    # Common host type definitions:
+diff --git a/plugins/modules/na_santricity_global.py b/plugins/modules/na_santricity_global.py
+index a8d094e..4d517e3 100644
+--- a/plugins/modules/na_santricity_global.py
++++ b/plugins/modules/na_santricity_global.py
+@@ -63,14 +63,6 @@ options:
+             - enabled
+             - disabled
+         required: False
+-    resource_provisioned_volume:
+-        description:
+-            - Enable resource-provisioned volumes to eliminate volume initialization and provide additional unmapped blocks that may increase SSD wear life.
+-        type: str
+-        choices:
+-            - enabled
+-            - disabled
+-        required: False
+ notes:
+     - Check mode is supported.
+     - This module requires Web Services API v1.3 or newer.
+@@ -124,11 +116,6 @@ host_connectivity_reporting:
+     returned: on success
+     type: str
+     sample: enabled
+-resource_provisioned_volume:
+-    description: Whether volumes will be skip initializing and provide unmapped volumes
+-    returned: on success
+-    type: str
+-    sample: enabled
+ cache_settings:
+     description: Current cache block size and flushing threshold values
+     returned: on success
+@@ -152,7 +139,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+                                default_host_type=dict(type="str", require=False),
+                                automatic_load_balancing=dict(type="str", choices=["enabled", "disabled"], required=False),
+                                host_connectivity_reporting=dict(type="str", choices=["enabled", "disabled"], required=False),
+-                               resource_provisioned_volume=dict(type="str", choices=["enabled", "disabled"], required=False),
+                                name=dict(type='str', required=False, aliases=['label']))
+ 
+         super(NetAppESeriesGlobalSettings, self).__init__(ansible_options=ansible_options,
+@@ -165,20 +151,15 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+         self.host_type_index = args["default_host_type"]
+ 
+         self.autoload_enabled = None
+-        self.resource_provisioned_volume_enabled = None
+-        self.host_connectivity_reporting_enabled = None
+-
+         if args["automatic_load_balancing"]:
+             self.autoload_enabled = args["automatic_load_balancing"] == "enabled"
+ 
++        self.host_connectivity_reporting_enabled = None
+         if args["host_connectivity_reporting"]:
+             self.host_connectivity_reporting_enabled = args["host_connectivity_reporting"] == "enabled"
+         elif self.autoload_enabled:
+             self.host_connectivity_reporting_enabled = True
+ 
+-        if args["resource_provisioned_volume"]:
+-            self.resource_provisioned_volume_enabled = args["resource_provisioned_volume"] == "enabled"
+-
+         if self.autoload_enabled and not self.host_connectivity_reporting_enabled:
+             self.module.fail_json(msg="Option automatic_load_balancing requires host_connectivity_reporting to be enabled. Array [%s]." % self.ssid)
+ 
+@@ -193,7 +174,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+             try:
+                 rc, capabilities = self.request("storage-systems/%s/capabilities" % self.ssid)
+                 self.current_configuration_cache["autoload_capable"] = "capabilityAutoLoadBalancing" in capabilities["productCapabilities"]
+-                self.current_configuration_cache["resource_provisioned_volume_capable"] = "capabilityFastInitialization" in capabilities["productCapabilities"]
+                 self.current_configuration_cache["cache_block_size_options"] = capabilities["featureParameters"]["cacheBlockSizes"]
+             except Exception as error:
+                 self.module.fail_json(msg="Failed to retrieve storage array capabilities. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+@@ -223,12 +203,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+             except Exception as error:
+                 self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+ 
+-            try:
+-                rc, array_info = self.request("storage-systems/%s/resource-provisioned-volumes" % self.ssid)
+-                self.current_configuration_cache["resource_provisioned_volume_enabled"] = array_info["enableResourceProvisionedVolumes"]
+-            except Exception as error:
+-                self.module.fail_json(msg="Failed to determine current configuration. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+-
+         return self.current_configuration_cache
+ 
+     def change_cache_block_size_required(self):
+@@ -295,13 +269,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+ 
+         return self.host_connectivity_reporting_enabled != self.get_current_configuration()["host_connectivity_reporting_enabled"]
+ 
+-    def change_resource_provisioned_volume_enabled_required(self):
+-        """Determine whether resource provisioned volume state change is required."""
+-        if self.resource_provisioned_volume_enabled is None:
+-            return False
+-
+-        return self.resource_provisioned_volume_enabled != self.get_current_configuration()["resource_provisioned_volume_enabled"]
+-
+     def change_name_required(self):
+         """Determine whether storage array name change is required."""
+         if self.name is None:
+@@ -347,21 +314,13 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+             self.module.fail_json(msg="Failed to set automatic load balancing state. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+ 
+     def update_host_connectivity_reporting_enabled(self):
+-        """Update host connectivity reporting state."""
++        """Update automatic load balancing state."""
+         try:
+             rc, host_connectivity_reporting = self.request("storage-systems/%s/symbol/setHostConnectivityReporting?verboseErrorResponse=true" % self.ssid,
+                                                            method="POST", data={"enableHostConnectivityReporting": self.host_connectivity_reporting_enabled})
+         except Exception as error:
+             self.module.fail_json(msg="Failed to enable host connectivity reporting. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+ 
+-    def update_resource_provisioned_volume_enabled(self):
+-        """Update resource-provisioned volume state."""
+-        try:
+-            rc, resource_provisioned_volume = self.request("storage-systems/%s/resource-provisioned-volumes" % self.ssid, method="POST",
+-                                                           data={"enableResourceProvisionedVolumes": self.resource_provisioned_volume_enabled})
+-        except Exception as error:
+-            self.module.fail_json(msg="Failed to enable resource-provision volumes. Array [%s]. Error [%s]." % (self.ssid, to_native(error)))
+-
+     def update_name(self):
+         """Update storage array's name."""
+         try:
+@@ -375,8 +334,7 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+         self.get_current_configuration()
+ 
+         if (self.change_autoload_enabled_required() or self.change_cache_block_size_required() or self.change_cache_flush_threshold_required() or
+-                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required() or
+-                self.change_resource_provisioned_volume_enabled_required()):
++                self.change_host_type_required() or self.change_name_required() or self.change_host_connectivity_reporting_enabled_required()):
+             change_required = True
+ 
+         if change_required and not self.module.check_mode:
+@@ -384,8 +342,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+                 self.update_autoload()
+             if self.change_host_connectivity_reporting_enabled_required():
+                 self.update_host_connectivity_reporting_enabled()
+-            if self.change_resource_provisioned_volume_enabled_required():
+-                self.update_resource_provisioned_volume_enabled()
+             if self.change_cache_block_size_required() or self.change_cache_flush_threshold_required():
+                 self.update_cache_settings()
+             if self.change_host_type_required():
+@@ -399,7 +355,6 @@ class NetAppESeriesGlobalSettings(NetAppESeriesModule):
+                               default_host_type_index=self.get_current_configuration()["default_host_type_index"],
+                               automatic_load_balancing="enabled" if self.get_current_configuration()["autoload_enabled"] else "disabled",
+                               host_connectivity_reporting="enabled" if self.get_current_configuration()["host_connectivity_reporting_enabled"] else "disabled",
+-                              resource_provisioned_volume="enabled" if self.get_current_configuration()["resource_provisioned_volume_enabled"] else "disabled",
+                               array_name=self.get_current_configuration()["name"])
+ 
+ 
+diff --git a/roles/nar_santricity_management/defaults/main.yml b/roles/nar_santricity_management/defaults/main.yml
+index 64277cf..db9145a 100644
+--- a/roles/nar_santricity_management/defaults/main.yml
++++ b/roles/nar_santricity_management/defaults/main.yml
+@@ -49,7 +49,6 @@ eseries_system_username: admin                   # Storage system username. Defa
+ #eseries_system_cache_flush_threshold:        # Unwritten data will be flushed when exceeds this threshold
+ #eseries_system_autoload_balance:             # Whether automatic load balancing should be enabled. Choices: enabled, disabled
+ #eseries_system_host_connectivity_reporting:  # Whether host connectivity reporting should be enabled. Choices: enabled, disabled
+-#eseries_system_resource_provisioned_volumes: # Whether volumes should skip initializing and leave volumes unmapped. Choices: enabled, disabled
+ #eseries_system_default_host_type:            # Only required when using something other than Linux kernel 3.10 or later with DM-MP (Linux DM-MP),
+                                               #     non-clustered Windows (Windows), or the storage system default host type is incorrect. Common definitions below:
+                                               #     - AIX MPIO: The Advanced Interactive Executive (AIX) OS and the native MPIO driver
+diff --git a/roles/nar_santricity_management/tasks/system.yml b/roles/nar_santricity_management/tasks/system.yml
+index f43dfe8..1aad86b 100644
+--- a/roles/nar_santricity_management/tasks/system.yml
++++ b/roles/nar_santricity_management/tasks/system.yml
+@@ -10,7 +10,6 @@
+     cache_flush_threshold: "{{ eseries_system_cache_flush_threshold | default(omit) }}"
+     automatic_load_balancing: "{{ eseries_system_autoload_balance | default(omit) }}"
+     host_connectivity_reporting: "{{ eseries_system_host_connectivity_reporting | default(omit) }}"
+-    resource_provisioned_volume: "{{ eseries_system_resource_provisioned_volumes | default(omit) }}"
+     default_host_type: "{{ eseries_system_default_host_type | default(omit)}}"
+   connection: local
+   when: "eseries_system_name is defined or
+@@ -18,7 +17,6 @@
+          eseries_system_cache_flush_threshold is defined or
+          eseries_system_autoload_balance is defined or
+          eseries_system_host_connectivity_reporting is defined or
+-         eseries_system_resource_provisioned_volumes is defined or
+          eseries_system_default_host_type is defined"
+   tags:
+     - system

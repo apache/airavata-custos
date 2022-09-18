@@ -1,0 +1,12 @@
+---
+# Sample variables for OS10 device
+cli:
+  host: "{{ ansible_host }}"
+  username: "{{ os10_cli_user | default('admin') }}"
+  password: "{{ os10_cli_pass | default('admin') }}"
+  timeout: 300
+
+os10_cli_user: xxxx
+os10_cli_pass: xxxx
+ansible_network_os: dellemc.os10.os10
+

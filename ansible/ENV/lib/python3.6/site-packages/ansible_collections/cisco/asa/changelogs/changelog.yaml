@@ -1,0 +1,73 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: (deprecated, removed after 2022-06-01) Manage access-lists on a
+        Cisco ASA
+      name: asa_acl
+      namespace: ''
+    - description: Access-Lists resource module
+      name: asa_acls
+      namespace: ''
+    - description: Run arbitrary commands on Cisco ASA devices
+      name: asa_command
+      namespace: ''
+    - description: Manage configuration sections on Cisco ASA devices
+      name: asa_config
+      namespace: ''
+    - description: Collect facts from remote devices running Cisco ASA
+      name: asa_facts
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage object groups on
+        a Cisco ASA
+      name: asa_og
+      namespace: ''
+    - description: Object Group resource module
+      name: asa_ogs
+      namespace: ''
+    plugins:
+      cliconf:
+      - description: Use asa cliconf to run command on Cisco ASA platform
+        name: asa
+        namespace: null
+    release_date: '2020-06-23'
+  1.0.1:
+    changes:
+      bugfixes:
+      - Make `src`, `backup` and `backup_options` in asa_config work when module alias
+        is used (https://github.com/ansible-collections/cisco.asa/pull/61).
+      minor_changes:
+      - Removes Cisco ASA sanity ignores and sync for argspec and docstring
+        (https://github.com/ansible-collections/cisco.asa/pull/59).
+      - Updated docs.
+    fragments:
+    - 48-add-change-log-1.0.0.yaml
+    - 1.1.0_update_docs.yaml
+    - fix_config_module_src_backup.yaml
+    - remove_asa_ignore.yaml
+    release_date: '2020-08-03'
+  1.0.2:
+    changes:
+      release_summary:
+      - Re-releasing 1.0.1 with updated changelog.
+    fragments:
+    - 1.0.2.yaml
+    release_date: '2020-08-07'
+  1.0.3:
+    changes:
+      bugfixes:
+      - Unexpected set of CMDs fired when source and destination were both set to hosts acl (https://github.com/ansible-collections/cisco.asa/pull/69).
+    fragments:
+    - 69-asa-acls-bugfix.yaml
+    release_date: '2020-08-28'
+  1.0.4:
+    changes:
+      bugfixes:
+      - Update asa acls RM to use newer RM design approach and addeed support for any4/any6 feature (https://github.com/ansible-collections/cisco.asa/pull/64).
+      - Add version key to galaxy.yaml to work around ansible-galaxy bug
+      - To fix ASA OGs module where delete by name was not resulting to an expected behaviour (https://github.com/ansible-collections/cisco.asa/pull/77).
+    fragments:
+    - 56_acl_any4_ay6_feature_update_use_rm_approach.yaml
+    - galaxy-version.yaml
+    - 76_asa_og_state_delete_not_working_as_expected.yaml
+    release_date: '2020-11-26'

@@ -1,0 +1,36 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{####################################
+
+Purpose:
+Configure logging commands for os6 Devices
+
+os6_logging:
+    logging:
+      - ip: 1.1.1.1
+        state: absent
+    source_interface: "vlan 30"
+
+#####################################}
+{% if os6_logging is defined and os6_logging %}
+
+{% for key,value in os6_logging.items() %}
+  {% if key == "logging" %}
+    {% for item in value %}
+      {% if item.ip is defined and item.ip %}
+        {% if item.state is defined and item.state == "absent" %}
+no logging {{ item.ip }}
+        {% else %}
+logging {{ item.ip }}
+exit
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% elif key == "source_interface" %}
+      {% if value %}
+logging source-interface {{ value }}
+      {% else %}
+no logging source-interface
+      {% endif %}
+  {% endif %}
+{% endfor %}
+{% endif %}

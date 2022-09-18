@@ -1,0 +1,170 @@
+# Test code for the na_santricity_alerts module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+# Clear embedded, legacy, and passwords before executing integration tests!
+
+- name: Set initial credential variables
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    proxy_credentials: &proxy_creds
+      ssid: "{{ proxy_ssid }}"
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+    proxy_legacy_credentials: &proxy_legacy_creds
+      ssid: "{{ proxy_legacy_ssid }}"
+      api_url: "{{ proxy_base_url }}"
+      api_username: "{{ proxy_username }}"
+      api_password: "{{ proxy_password }}"
+      validate_certs: "{{ proxy_validate_cert }}"
+
+# TODO: series of tests for embedded
+# Validate admin passwords are updated regardless of supplied api_password and current_admin_password options
+- name: Set storage system's initial admin password (embedded, changed)
+  na_santricity_auth:
+    <<: *creds
+    minimum_password_length: 8
+    password: infiniti
+    user: admin
+
+- name: Set storage system's non-admin passwords (embedded, changed)
+  na_santricity_auth:
+    <<: *creds
+    password: "{{ item }}_password"
+    user: "{{ item }}"
+  ignore_errors: true
+  loop: ["monitor", "support", "security", "storage"]
+
+- name: Set storage system's initial admin password (embedded, changed)
+  na_santricity_auth:
+    <<: *creds
+    minimum_password_length: 0
+    password: ""
+    user: admin
+
+- name: Set storage system's initial admin password (embedded, changed)
+  na_santricity_auth:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: ""
+    validate_certs: "{{ validate_cert }}"
+    minimum_password_length: 8
+
+- name: Set proxy's initial password (proxy, changed)
+  na_santricity_auth:
+    ssid: proxy
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    password: infiniti
+    user: admin
+
+#    # TODO: series of tests for proxy
+- name: Add storage systems to proxy without passwords
+  na_santricity_proxy_systems:
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    subnet_mask: "{{ proxy_discover_subnet }}"
+    systems: "{{ systems }}"
+    password: ""
+
+# Validate proxy system's admin passwords are updated regardless of current_admin_password options
+- name: Set storage system's initial password (proxy system with embedded, changed)
+  na_santricity_auth:
+    <<: *proxy_creds
+    minimum_password_length: 8
+    current_admin_password: ""  # THIS NEEDS TO MATCH STORAGE SYSTEM'S STORED-PASSWORD
+    password: infiniti
+    user: admin
+
+- name: Set storage system's initial password (proxy system without embedded, changed)
+  na_santricity_auth:
+    <<: *proxy_legacy_creds
+    minimum_password_length: 8
+    current_admin_password: "" # THIS NEEDS TO MATCH LEGACY STORAGE SYSTEM'S STORED-PASSWORD
+    password: infiniti
+    user: admin
+
+- pause: seconds=10
+
+- name: Set storage system's initial password (proxy system with embedded, changed)
+  na_santricity_auth:
+    ssid: "10"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: infiniti  # THIS NEEDS TO MATCH STORAGE SYSTEM'S STORED-PASSWORD
+    password: "{{ item }}_password"
+    user: "{{ item }}"
+  loop: ["monitor", "support", "security", "storage"]
+
+- name: Set storage system's initial password (proxy system with embedded, changed)
+  na_santricity_auth:
+    ssid: "10"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: infiniti  # THIS NEEDS TO MATCH STORAGE SYSTEM'S STORED-PASSWORD
+    minimum_password_length: 0
+    password: ""
+    user: admin
+
+- name: Set storage system's initial password (proxy system without embedded, changed)
+  na_santricity_auth:
+    ssid: "20"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    current_admin_password: infiniti # THIS NEEDS TO MATCH STORAGE SYSTEM'S STORED-PASSWORD
+    password: ""
+    user: admin
+
+- name: Set storage system's initial password (proxy system without embedded, changed)
+  na_santricity_auth:
+    ssid: proxy
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"
+    minimum_password_length: 0
+    password: ""
+    user: admin
+
+- name: Set storage system's initial password (proxy system with embedded, changed)
+  na_santricity_auth:
+    ssid: Proxy
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "" # THIS NEEDS TO MATCH PROXY'S PASSWORD
+    validate_certs: "{{ proxy_validate_cert }}"
+    minimum_password_length: 8
+
+- name: Set storage system's initial password (proxy system with embedded, changed)
+  na_santricity_auth:
+    ssid: "10"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "" # THIS NEEDS TO MATCH PROXY'S PASSWORD
+    validate_certs: "{{ proxy_validate_cert }}"
+    minimum_password_length: 8
+
+- name: Remove storage system from proxy
+  na_santricity_proxy_systems:
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "" # THIS NEEDS TO MATCH PROXY'S PASSWORD
+    validate_certs: "{{ proxy_validate_cert }}"

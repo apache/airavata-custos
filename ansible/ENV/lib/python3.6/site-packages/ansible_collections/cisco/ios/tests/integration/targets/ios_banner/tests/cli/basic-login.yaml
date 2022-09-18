@@ -1,0 +1,36 @@
+---
+- name: setup - remove login
+  cisco.ios.ios_banner:
+    banner: login
+    state: absent
+    provider: '{{ cli }}'
+
+- name: Set login
+  register: result
+  cisco.ios.ios_banner:
+    banner: login
+    text: "this is my login banner\nthat has a multiline\nstring\n"
+    state: present
+    provider: '{{ cli }}'
+
+- debug:
+    msg: '{{ result }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'banner login @\nthis is my login banner\nthat has a multiline\nstring\n\
+        @' in result.commands"
+
+- name: Set login again (idempotent)
+  register: result
+  cisco.ios.ios_banner:
+    banner: login
+    text: "this is my login banner\nthat has a multiline\nstring\n"
+    state: present
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0

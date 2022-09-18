@@ -1,0 +1,437 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{#############################################
+
+Purpose:
+Configure AAA commands for os6 Devices
+
+os6_aaa:
+  tacacs_server:
+        key: 7
+        key_string: 9ea8ec421c2e2e5bec757f44205015f6d81e83a4f0aa52fa
+        timeout: 10
+        host:
+          - ip: 10.0.0.50
+            key: 0
+            key_string: aaa
+            port: 3
+            timeout: 2
+            state: present
+  radius_server:
+        key: 7
+        key_string: 9ea8ec421c2e2e5bec757f44205015f6d81e83a4f0aa52fb
+        retransmit: 5
+        timeout: 10
+        deadtime: 2000
+        host:
+          - ip: 10.0.0.1
+            key: 0
+            key_string: aaa
+            name: radius
+            retransmit: 5
+            auth_port: 3
+            timeout: 2
+            state: present
+        acct:
+          - ip: 10.0.0.1
+            key: 0
+            key_string: aasdvsdvfssfsfa
+            name: radius
+            auth-port: 2
+            state: present
+        auth:
+          - ip: 10.0.0.2
+            key: 0
+            key_string: asdnksfnfnksnddjknsdn
+            name: radius
+            usage: all
+            priority: 2
+            timeout: 2
+            retransmit: 5
+            auth_port: 3
+            deadtime: 6
+            attribute:
+              - id: 6
+                type: {{attribute_type.mandatory}}
+                state: present
+              - id: 31
+                type: {{attribute_type.mac_ietf_lower_case}}
+                state: present
+            state: present
+        attribute:
+          - id: 6
+            type: {{attribute_type.mandatory}}
+            state: present
+          - id: 31
+            type: {{attribute_type.mac_ietf_lower_case}}
+            state: present
+
+
+  aaa_authentication:
+     auth_list: 
+       - name: default
+         login_or_enable: login
+         server: tacacs
+         use_password: local
+         state: present
+       - name: console
+         server: radius
+         login_or_enable: login
+         use_password: local
+     dot1x: none
+  aaa_authorization:
+      exec:
+          - authorization_list_name: aaa
+            authorization_method: none
+            use_data: local
+            state: present
+      network: radius
+  aaa_accounting:
+      dot1x: none
+  aaa_server:
+      radius: 
+        dynamic_author:
+          auth_type: all
+          client: 
+            - ip: 10.0.0.1
+            key: 0
+            key_string: aaa
+              state: present
+          state: present
+
+##################################################}
+{% if os6_aaa is defined and os6_aaa %}
+{% for key in os6_aaa.keys() %}
+  {% set aaa_vars =  os6_aaa[key] %}
+  {% if key == "tacacs_server" %}
+    {% set server = "tacacs-server" %}
+  {% endif %}
+  {% if key == "radius_server" %}
+    {% set server = "radius server" %}
+  {% endif %}
+  {% if server is defined and server %}
+    {% if aaa_vars %}
+    {% set item = aaa_vars %}
+      {% if item.timeout is defined %}
+        {% if item.timeout %}
+{{ server }} timeout {{ item.timeout }}
+        {% else %}
+no {{ server }} timeout
+        {% endif %}
+      {% endif %}
+      {% if item.retransmit is defined and server == "radius server" %}
+        {% if item.retransmit %}
+{{ server }} retransmit {{ item.retransmit }}
+        {% else %}
+no {{ server }} retransmit
+        {% endif %}
+      {% endif %}
+      {% if item.deadtime is defined and server == "radius server" %}
+        {% if item.deadtime %}
+{{ server }} deadtime {{ item.deadtime }}
+        {% else %}
+no {{ server }} deadtime
+        {% endif %}
+      {% endif %}
+      {% if item.key is defined %}
+        {% if item.key == 0 or item.key == 7 %}
+          {% if item.key_string is defined and item.key_string%}
+{{ server }} key {{ item.key }} {{ item.key_string }}
+          {% endif %}
+        {% elif item.key %}
+{{ server }} key {{ item.key }}
+        {% else %}
+no {{ server }} key
+        {% endif %}
+      {% endif %}
+      {% if item.host is defined and item.host %}
+        {% for hostlist in item.host %}
+          {% if hostlist.ip is defined and hostlist.ip %}
+            {% if hostlist.state is defined and hostlist.state == "absent" %}
+              {% if server == "tacacs-server" %}
+no {{ server }} host {{ hostlist.ip }}
+              {% else %}
+no {{ server }} {{ hostlist.ip }}
+              {% endif %}
+            {% else %}
+              {% if server == "tacacs-server" %}
+{{ server }} host {{ hostlist.ip }}
+                {% if (hostlist.key is defined) %}
+                  {% if hostlist.key == 0 or hostlist.key == 7 %}
+                    {% if hostlist.key_string is defined and hostlist.key_string %}
+key {{ hostlist.key }} {{ hostlist.key_string }}
+                    {% endif %}
+                  {% elif hostlist.key %}
+key {{ hostlist.key }}
+                  {% else %}
+no key
+                  {% endif %} 
+                {% endif %}
+                {% if (hostlist.timeout is defined and hostlist.timeout) %}
+timeout {{ hostlist.timeout }}
+                {% endif %}
+                {% if (hostlist.auth_port is defined and hostlist.auth_port) %}
+port {{ hostlist.auth_port }}
+                {% endif %}
+exit
+              {% elif server == "radius server" %}
+{{ server }} {{ hostlist.ip }}
+                {% if (hostlist.key is defined) %}
+                  {% if hostlist.key == 0 or hostlist.key == 7 %}
+                    {% if hostlist.key_string is defined and hostlist.key_string %}
+key {{ hostlist.key }} {{ hostlist.key_string }}
+                    {% endif %}
+                  {% elif hostlist.key %}
+key {{ hostlist.key }}
+                  {% else %}
+no key
+                  {% endif %}
+                {% endif %}
+                {% if (hostlist.name is defined) %}
+                  {% if (hostlist.name) %}
+name "{{ hostlist.name }}"
+                  {% else %}
+no name
+                  {% endif %}
+                {% endif %}
+                {% if (hostlist.timeout is defined and hostlist.timeout) %}
+timeout {{ hostlist.timeout }}
+                {% endif %}
+                {% if (hostlist.auth_port is defined and hostlist.auth_port) %}
+auth-port {{ hostlist.auth_port }}
+                {% endif %}
+exit
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if item.acct is defined and item.acct and server == "radius server" %}
+        {% for acctlist in item.acct %}
+          {% if acctlist.ip is defined and acctlist.ip %}
+            {% if acctlist.state is defined and acctlist.state == "absent" %}
+no {{ server }} acct {{ acctlist.ip }}
+            {% else %}
+{{ server }} acct {{ acctlist.ip }}
+                {% if (acctlist.key is defined) %}
+                  {% if acctlist.key == 0 or acctlist.key == 7 %}
+                    {% if acctlist.key_string is defined and acctlist.key_string %}
+key {{ acctlist.key }} {{ acctlist.key_string }}
+                    {% endif %}
+                  {% elif acctlist.key %}
+key {{ acctlist.key }}
+                  {% else %}
+no key
+                  {% endif %}
+                {% endif %}
+                {% if (acctlist.name is defined) %}
+                  {% if (acctlist.name) %}
+name "{{ acctlist.name }}"
+                  {% else %}
+no name
+                  {% endif %}
+                {% endif %}
+                {% if (acctlist.auth_port is defined and acctlist.auth_port) %}
+acct-port {{ acctlist.auth_port }}
+                {% endif %}
+exit
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if item.auth is defined and item.auth and server == "radius server" %}
+        {% for authlist in item.auth %}
+          {% if authlist.ip is defined and authlist.ip %}
+            {% if authlist.state is defined and authlist.state == "absent" %}
+no {{ server }} auth {{ authlist.ip }}
+            {% else %}
+{{ server }} auth {{ authlist.ip }}
+                {% if (authlist.key is defined) %}
+                  {% if authlist.key == 0 or authlist.key == 7 %}
+                    {% if authlist.key_string is defined and authlist.key_string %}
+key {{ authlist.key }} {{ authlist.key_string }}
+                    {% endif %}
+                  {% elif authlist.key %}
+key {{ authlist.key }}
+                  {% else %}
+no key
+                  {% endif %}
+                {% endif %}
+                {% if (authlist.name is defined) %}
+                  {% if (authlist.name) %}
+name "{{ authlist.name }}"
+                  {% else %}
+no name
+                  {% endif %}
+                {% endif %}
+                {% if (authlist.auth_port is defined and authlist.auth_port) %}
+auth-port {{ authlist.auth_port }}
+                {% endif %}
+                {% if (authlist.priority is defined and authlist.priority) %}
+priority {{ authlist.priority }}
+                {% endif %}
+                {% if (authlist.timeout is defined and authlist.timeout) %}
+timeout {{ authlist.timeout }}
+                {% endif %}
+                {% if (authlist.retransmit is defined and authlist.retransmit) %}
+retransmit {{ authlist.retransmit }}
+                {% endif %}
+                {% if (authlist.deadtime is defined and authlist.deadtime) %}
+deadtime {{ authlist.deadtime }}
+                {% endif %}
+                {% if (authlist.usage is defined and authlist.usage) %}
+usage {{ authlist.usage }}
+                {% endif %}
+                {% if authlist.attribute is defined and authlist.attribute and server == "radius server" %}
+                  {% for attributelist in authlist.attribute %}
+                    {% if attributelist.id is defined and attributelist.id and attributelist.type is defined %}
+                      {% if attributelist.state is defined and attributelist.state == "absent" %}
+no attribute {{ attributelist.id }} {{ attributelist.type }}
+                      {% else %}
+                        {% if attributelist.type %}
+attribute {{ attributelist.id }} {{ attributelist.type }}
+                        {% endif %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+exit
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if item.attribute is defined and item.attribute and server == "radius server" %}
+        {% for attributelist in item.attribute %}
+          {% if attributelist.id is defined and attributelist.id and attributelist.type is defined %}
+            {% if attributelist.state is defined and attributelist.state == "absent" %}
+no {{ server }} attribute {{ attributelist.id }} {{ attributelist.type }}
+            {% else %}
+              {% if attributelist.type %}
+{{ server }} attribute {{ attributelist.id }} {{ attributelist.type }}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+  {% if os6_aaa.aaa_authentication is defined and os6_aaa.aaa_authentication %}
+    {% if os6_aaa.aaa_authentication.auth_list is defined and os6_aaa.aaa_authentication.auth_list %}
+      {% for auth_list in os6_aaa.aaa_authentication.auth_list %}
+        {% if auth_list.login_or_enable is defined and auth_list.login_or_enable %}
+          {% if auth_list.name is defined and auth_list.name %}
+            {% if auth_list.state is defined and auth_list.state == "absent" %}
+no aaa authentication {{ auth_list.login_or_enable }} {{ auth_list.name }}
+            {% else %}
+              {% if auth_list.server is defined and auth_list.server %}
+                {% if auth_list.use_password is defined and auth_list.use_password %}
+aaa authentication {{ auth_list.login_or_enable }} "{{ auth_list.name }}" {{ auth_list.server }} {{ auth_list.use_password }}
+                {% else %}
+aaa authentication {{ auth_list.login_or_enable }} "{{ auth_list.name }}" {{ auth_list.server }}
+                {% endif %}
+              {% else %}
+                {% if auth_list.use_password is defined and auth_list.use_password %}
+aaa authentication {{ auth_list.login_or_enable }} "{{ auth_list.name }}" {{ auth_list.use_password }}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if os6_aaa.aaa_authentication.dot1x is defined %}
+      {% set aaa_authentication = os6_aaa.aaa_authentication %}
+      {% if aaa_authentication.dot1x == "none"  or aaa_authentication.dot1x == "radius" or aaa_authentication.dot1x == "ias" %}
+aaa authentication dot1x default {{ aaa_authentication.dot1x }}
+      {% else %}
+no aaa authentication dot1x default
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if os6_aaa.aaa_authorization is defined and os6_aaa.aaa_authorization %}
+    {% set aaa_authorization = os6_aaa.aaa_authorization %}
+    {% if aaa_authorization.exec is defined and aaa_authorization.exec %}
+      {% for command in aaa_authorization.exec %}
+        {% if command.authorization_list_name is defined and command.authorization_list_name %}
+          {% if command.state is defined and command.state == "absent" %}
+no aaa authorization exec {{ command.authorization_list_name }}
+          {% else %}
+            {% if command.use_data is defined and command.use_data %}
+              {% if command.authorization_method is defined and command.authorization_method %}
+aaa authorization exec "{{ command.authorization_list_name }}" {{ command.use_data }} {{ command.authorization_method }}
+              {% else %}
+aaa authorization exec "{{ command.authorization_list_name }}" {{ command.use_data }}
+              {% endif %}
+            {% else %}
+              {% if command.authorization_method is defined and command.authorization_method %}
+aaa authorization exec "{{ command.authorization_list_name }}" {{ command.authorization_method }}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if os6_aaa.aaa_authorization.network is defined %}
+      {% set aaa_authorization = os6_aaa.aaa_authorization %}
+      {% if aaa_authorization.network %}
+aaa authorization network default {{ aaa_authorization.network }}
+      {% else %}
+no aaa authorization network default radius
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if os6_aaa.aaa_accounting is defined and os6_aaa.aaa_accounting %}
+    {% set aaa_accounting = os6_aaa.aaa_accounting %}
+    {% if aaa_accounting.dot1x is defined %}
+      {% if aaa_accounting.dot1x == "none" %}
+aaa accounting dot1x default none
+      {% elif aaa_accounting.dot1x %}
+aaa accounting dot1x default {{ aaa_accounting.dot1x }} radius
+      {% else %}
+no aaa accounting dot1x default
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if os6_aaa.aaa_server is defined and os6_aaa.aaa_server %}
+    {% set aaa_server = os6_aaa.aaa_server %}
+    {% if aaa_server.radius is defined and aaa_server.radius %}
+      {% if aaa_server.radius.dynamic_author is defined and aaa_server.radius.dynamic_author %}
+      {% set dynamic_author = aaa_server.radius.dynamic_author %}
+        {% if dynamic_author.state is defined %} 
+          {% if dynamic_author.state == "absent" %}
+no aaa server radius dynamic-author
+          {% else %}
+aaa server radius dynamic-author
+            {% if dynamic_author.client is defined and dynamic_author.client %}
+              {% for client in dynamic_author.client %}
+                {% if ((client.state is defined and client.state) and (client.ip is defined and client.ip)) %}
+                  {% if client.state == "absent" %}
+no client {{ client.ip }}
+                  {% else %}
+                    {% if client.key is defined and (client.key == 0 or client.key == 7) %}
+                      {% if client.key_string is defined and client.key_string %}
+client {{ client.ip }} server-key {{ client.key }} {{ client.key_string }}
+                      {% endif %}
+                    {% elif client.key_string is defined and client.key_string %}
+client {{ client.ip }} server-key {{ client.key_string }}
+                    {% else %}
+client {{ client.ip }}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {% if dynamic_author.auth_type is defined %}
+              {% if dynamic_author.auth_type %}
+auth-type {{ dynamic_author.auth_type }}
+              {% else %}
+no auth-type
+              {% endif %}
+            {% endif %}
+exit
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endif %}

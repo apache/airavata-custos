@@ -1,0 +1,14 @@
+---
+- name: Retrieve Conjur variable
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Clean artifact path
+      file:
+        state: absent
+        path: /conjur_secrets.txt
+
+    - name: Retrieve Conjur variable
+      vars:
+        super_secret_key: "{{lookup('conjur_variable', 'ansible/test-secret')}}"
+      shell: echo "{{super_secret_key}}" > /conjur_secrets.txt

@@ -1,0 +1,37 @@
+#jinja2: trim_blocks: True,lstrip_blocks: True
+{####################################
+
+Purpose:
+Configure users commands for os6 Devices
+
+os6_users:
+  - username: test
+    password: test
+    privilege: 0
+    state: absent
+
+#####################################}
+{% if os6_users is defined and os6_users %}
+
+{% for item in os6_users %}
+  {% if item.username is defined %}
+    {% if item.state is defined and item.state == "absent" %}
+no username {{ item.username }}
+    {% else %}
+      {% if item.password is defined and item.password %}
+        {% if item.privilege is defined and item.privilege %}
+username {{ item.username }} password {{ item.password }} privilege {{ item.privilege }}
+        {% else %}
+username {{ item.username }} password {{ item.password }} 
+        {% endif %}
+      {% elif not item.password %}
+        {% if item.privilege is defined and item.privilege %}
+username {{ item.username }} nopassword privilege {{ item.privilege }}
+        {% else %}
+username {{ item.username }} nopassword
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endif %}

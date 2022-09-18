@@ -1,0 +1,592 @@
+# Test code for the MSO modules
+# Copyright: (c) 2020, Cindy Zhao (@cizhao) <cizhao@cisco.com>
+
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+- name: Test that we have an ACI MultiSite host, username and password
+  fail:
+    msg: 'Please define the following variables: mso_hostname, mso_username and mso_password.'
+  when: mso_hostname is not defined or mso_username is not defined or mso_password is not defined
+
+# CLEAN ENVIRONMENT
+- name: Set vars
+  set_fact:
+    mso_info: &mso_info
+      host: '{{ mso_hostname }}'
+      username: '{{ mso_username }}'
+      password: '{{ mso_password }}'
+      validate_certs: '{{ mso_validate_certs | default(false) }}'
+      use_ssl: '{{ mso_use_ssl | default(true) }}'
+      use_proxy: '{{ mso_use_proxy | default(true) }}'
+      output_level: '{{ mso_output_level | default("info") }}'
+
+- name: Query MSO version
+  mso_version:
+    <<: *mso_info
+    state: query
+  register: version
+
+- name: Remove schemas
+  mso_schema:
+    <<: *mso_info
+    schema: '{{ item }}'
+    state: absent
+  loop:
+  - '{{ mso_schema | default("ansible_test") }}_2'
+  - '{{ mso_schema | default("ansible_test") }}'
+
+- name: Ensure site exists
+  mso_site:
+    <<: *mso_info
+    site: '{{ mso_site | default("ansible_test") }}'
+    apic_username: '{{ apic_username }}'
+    apic_password: '{{ apic_password }}'
+    apic_site_id: '{{ apic_site_id | default(101) }}'
+    urls:
+    - https://{{ apic_hostname }}
+    state: present
+
+- name: Ensure tenant ansible_test exists
+  mso_tenant: 
+    <<: *mso_info
+    tenant: ansible_test
+    users:
+      - '{{ mso_username }}'
+    sites:
+    - '{{ mso_site | default("ansible_test") }}'
+    state: present
+
+- name: Ensure schema 1 with Template1, Template2, Template4 and Template5
+  mso_schema_template:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    tenant: ansible_test
+    template: '{{ item }}'
+    state: present
+  loop:
+  - Template1
+  - Template2
+  - Template4
+  - Template5
+
+- name: Ensure schema 2 with Template3 exist
+  mso_schema_template:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}_2'
+    tenant: ansible_test
+    template: Template3
+    state: present
+
+- name: Add physical site to templates
+  mso_schema_site:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: '{{ item }}'
+    state: present
+  loop:
+  - Template1
+  - Template2
+  - Template5
+
+- name: Ensure VRF1 exists
+  mso_schema_template_vrf: 
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template1
+    vrf: VRF1
+    layer3_multicast: true
+    state: present
+
+- name: Add template BD to Template3
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}_2'
+    template: Template3
+    bd: ansible_test_3
+    vrf:
+      name: VRF1
+      schema: '{{ mso_schema | default("ansible_test") }}'
+      template: Template1
+    state: present
+  register: nm_add_bd_template_3
+
+- name: Add template BD to Template2
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template2
+    bd: ansible_test_2
+    vrf:
+      name: VRF1
+      schema: '{{ mso_schema | default("ansible_test") }}'
+      template: Template1
+    state: present
+  register: nm_add_bd_template_2
+
+- name: Add template BD to Template4
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template4
+    bd: ansible_test_4
+    vrf:
+      name: VRF1
+      schema: '{{ mso_schema | default("ansible_test") }}'
+      template: Template1
+    state: present
+  register: nm_add_bd_template_4
+
+- name: Add template BD to Template1 without disabling layer2_stretch
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    vrf:
+      name: VRF1
+    state: present
+  register: nm_add_bd
+
+- name: Add site BD
+  mso_schema_site_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    state: present
+  register: nm_add_site_bd
+
+- name: Add site BD subnet with layer2_stretch enabled
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: present
+  ignore_errors: yes
+  register: add_site_bd_subnet_with_l2Stretch_enabled
+
+- name: Verify add_site_bd_subnet_with_l2Stretch_enabled
+  assert:
+    that:
+    - add_site_bd_subnet_with_l2Stretch_enabled.msg == "The l2Stretch of template bd should be false in order to create a site bd subnet. Set l2Stretch as false using mso_schema_template_bd"
+
+- name: Disable layer2_stretch in template BD
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    layer2_stretch: false
+    vrf:
+      name: VRF1
+    state: present
+  register: nm_add_bd
+
+- name: Add site BD subnet with layer2_stretch disabled (check_mode)
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: present
+  check_mode: yes
+  register: cm_add_site_bd_subnet
+
+- name: Verify cm_add_site_bd_subnet
+  assert:
+    that:
+    - cm_add_site_bd_subnet is changed
+    - cm_add_site_bd_subnet.previous == {}
+    - cm_add_site_bd_subnet.current.ip == "10.1.0.1/16"
+    - cm_add_site_bd_subnet.current.scope == "private"
+    - cm_add_site_bd_subnet.current.description == "10.1.0.1/16"
+    - cm_add_site_bd_subnet.current.shared == False
+    - cm_add_site_bd_subnet.current.noDefaultGateway == False
+    - cm_add_site_bd_subnet.current.querier == False
+
+- name: Add site BD subnet with layer2_stretch disabled (normal_mode)
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: present
+  register: nm_add_site_bd_subnet
+
+- name: Verify nm_add_site_bd_subnet
+  assert:
+    that:
+    - nm_add_site_bd_subnet is changed
+    - nm_add_site_bd_subnet.previous == {}
+    - nm_add_site_bd_subnet.current.ip == "10.1.0.1/16"
+    - nm_add_site_bd_subnet.current.scope == "private"
+    - nm_add_site_bd_subnet.current.description == "10.1.0.1/16"
+    - nm_add_site_bd_subnet.current.shared == False
+    - nm_add_site_bd_subnet.current.noDefaultGateway == False
+    - nm_add_site_bd_subnet.current.querier == False
+
+- name: Add site BD subnet again
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: present
+  register: nm_add_site_bd_subnet_again
+
+- name: Verify nm_add_site_bd_subnet_again
+  assert:
+    that:
+    - nm_add_site_bd_subnet_again is not changed
+
+- name: Add another site BD subnet
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.10.10.1/16
+    description: another subnet
+    scope: public
+    shared: true
+    no_default_gateway: true
+    querier: true
+    state: present
+  register: nm_add_another_site_bd_subnet
+
+- name: Verify nm_add_another_site_bd_subnet
+  assert:
+    that:
+    - nm_add_another_site_bd_subnet is changed
+    - nm_add_another_site_bd_subnet.previous == {}
+    - nm_add_another_site_bd_subnet.current.description == "another subnet"
+    - nm_add_another_site_bd_subnet.current.scope == "public"
+    - nm_add_another_site_bd_subnet.current.shared == true
+    - nm_add_another_site_bd_subnet.current.noDefaultGateway == true
+    - nm_add_another_site_bd_subnet.current.querier == true
+
+- name: Add BD ansible_test_5 to Schema1, template5
+  mso_schema_template_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    template: Template5
+    bd: ansible_test_5
+    layer2_stretch: false
+    vrf:
+      name: VRF1
+      schema: '{{ mso_schema | default("ansible_test") }}'
+      template: Template1
+    state: present
+
+- name: Add site BD5
+  mso_schema_site_bd:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template5
+    bd: ansible_test_5
+    state: present
+
+- name: Add site BD5 subnet with layer2_stretch disabled (normal_mode)
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template5
+    bd: ansible_test_5
+    subnet: 10.1.0.5/16
+    is_virtual_ip: true
+    scope: public
+    shared: true
+    no_default_gateway: true
+    querier: true
+    state: present
+  register: nm_add_site_bd_subnet5
+
+- name: Verify nm_add_site_bd_subnet5 for a version that's not 3.1
+  assert:
+    that:
+    - nm_add_site_bd_subnet5 is changed
+    - nm_add_site_bd_subnet5.previous == {}
+    - nm_add_site_bd_subnet5.current.ip == "10.1.0.5/16"
+    - nm_add_site_bd_subnet5.current.scope == "public"
+    - nm_add_site_bd_subnet5.current.description == "10.1.0.5/16"
+    - nm_add_site_bd_subnet5.current.shared == True
+    - nm_add_site_bd_subnet5.current.noDefaultGateway == True
+    - nm_add_site_bd_subnet5.current.querier == True
+  when: version.current.version is version('3.1.1g', '!=')
+
+- name: Verify nm_add_site_bd_subnet5 for a version that's 3.1
+  assert:
+    that:
+    - nm_add_site_bd_subnet5 is changed
+    - nm_add_site_bd_subnet5.previous == {}
+    - nm_add_site_bd_subnet5.current.ip == "10.1.0.5/16"
+    - nm_add_site_bd_subnet5.current.scope == "public"
+    - nm_add_site_bd_subnet5.current.description == "10.1.0.5/16"
+    - nm_add_site_bd_subnet5.current.shared == True
+    - nm_add_site_bd_subnet5.current.noDefaultGateway == True
+    - nm_add_site_bd_subnet5.current.querier == True
+    - nm_add_site_bd_subnet5.current.virtual == True
+  when: version.current.version is version('3.1.1g', '==')
+
+- name: Query all subnets
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    state: query
+  register: query_all
+
+- name: Verify query_all
+  assert:
+    that:
+    - query_all is not changed
+    - query_all.current | length == 2
+    - query_all.current.0.ip == "10.1.0.1/16"
+    - query_all.current.1.ip == "10.10.10.1/16"
+
+- name: Query a specific site BD subnet
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: query
+  register: query_subnet
+
+- name: Verify query_subnet
+  assert:
+    that:
+    - query_subnet is not changed
+    - query_subnet.current.ip == "10.1.0.1/16"
+
+- name: Query a specific site BD5 subnet
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template5
+    bd: ansible_test_5
+    subnet: 10.1.0.5/16
+    state: query
+  register: query_subnet5
+
+- name: Verify query_subnet5 for no 3.1 version
+  assert:
+    that:
+    - query_subnet5 is not changed
+    - query_subnet5.current.ip == "10.1.0.5/16"
+  when: version.current.version is version('3.1.1g', '!=')
+
+- name: Verify query_subnet5 for 3.1 version
+  assert:
+    that:
+    - query_subnet5 is not changed
+    - query_subnet5.current.ip == "10.1.0.5/16"
+    - query_subnet5.current.virtual == true
+  when: version.current.version is version('3.1.1g', '==')
+
+- name: Remove a site BD subnet
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: absent
+  register: rm_subnet
+
+- name: Verify rm_subnet
+  assert:
+    that:
+    - rm_subnet is changed
+    - rm_subnet.current == {}
+    - rm_subnet.previous.ip == "10.1.0.1/16"
+
+- name: Remove the site BD subnet again
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: absent
+  register: rm_subnet_again
+
+- name: Verify rm_subnet_again
+  assert:
+    that:
+    - rm_subnet_again is not changed
+    - rm_subnet_again.previous == rm_subnet_again.current == {}
+
+- name: Remove a site BD 5 subnet
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template5
+    bd: ansible_test_5
+    subnet: 10.1.0.5/16
+    state: absent
+  register: rm_subnet5
+
+- name: Verify rm_subnet5
+  assert:
+    that:
+    - rm_subnet5 is changed
+    - rm_subnet5.current == {}
+    - rm_subnet5.previous.ip == "10.1.0.5/16"
+
+# Use non_existing_schema
+- name: Query subnet by non_existing_schema
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: non_existing_schema
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: non_existing_schema
+
+- name: Verify non_existing_schema
+  assert:
+    that:
+    - non_existing_schema.msg == "Provided schema 'non_existing_schema' does not exist"
+
+# Use non_existing_template
+- name: Query subnet by non_existing_template
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: non_existing_template
+    bd: ansible_test_1
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: non_existing_template
+
+- name: Verify non_existing_template
+  assert:
+    that:
+    - non_existing_template.msg == "Provided template 'non_existing_template' does not exist. Existing templates{{':'}} Template1, Template2, Template4, Template5"
+
+# Use non_existing_template_bd
+- name: Query subnet by non_existing_template_bd
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: non_existing_template_bd
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: non_existing_template_bd
+
+- name: Verify non_existing_template_bd
+  assert:
+    that:
+    - non_existing_template_bd.msg == "Provided BD 'non_existing_template_bd' does not exist. Existing template BDs{{':'}} ansible_test_1"
+
+# Use template without site associated
+- name: Query with no site associated to template
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}_2'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template3
+    bd: ansible_test_3
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: template_without_sites
+
+- name: Verify template_without_sites
+  assert:
+    that:
+    - template_without_sites.msg == "No site associated with template 'Template3'. Associate the site with the template using mso_schema_site."
+
+# Use non_existing_subnet
+- name: Query with non_existing_site
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template1
+    bd: ansible_test_1
+    subnet: non_existing_subnet
+    state: query
+  ignore_errors: yes
+  register: non_existing_subnet
+
+- name: Verify non_existing_subnet
+  assert:
+    that:
+    - non_existing_subnet.msg == "Subnet IP 'non_existing_subnet' not found"
+
+# Use non_existing_site_template_association
+- name: Query with non_existing_site_template_association
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template4
+    bd: ansible_test_4
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: non_existing_site_template_association
+
+- name: Verify non_existing_site_template_association
+  assert:
+    that:
+    - non_existing_site_template_association.msg == "Provided site/template 'ansible_test-Template4' does not exist."
+
+# Use BD at template level but not at site level
+- name: Query with non_existing_site_bd
+  mso_schema_site_bd_subnet:
+    <<: *mso_info
+    schema: '{{ mso_schema | default("ansible_test") }}'
+    site: '{{ mso_site | default("ansible_test") }}'
+    template: Template2
+    bd: ansible_test_2
+    subnet: 10.1.0.1/16
+    state: query
+  ignore_errors: yes
+  register: non_existing_site_bd
+
+- name: Verify non_existing_site_bd
+  assert:
+    that:
+    - non_existing_site_bd.msg == "Provided BD 'ansible_test_2' does not exist. Existing site BDs{{':'}} "
+
+- name: Remove schemas for next ci test case
+  mso_schema:
+    <<: *mso_info
+    schema: '{{ item }}'
+    state: absent
+  loop:
+  - '{{ mso_schema | default("ansible_test") }}_2'
+  - '{{ mso_schema | default("ansible_test") }}'

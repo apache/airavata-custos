@@ -1,0 +1,64 @@
+# Test code for the na_santricity_discover module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+- name: Discover storage systems using SANtricity Web Services Proxy
+  na_santricity_discover:
+    proxy_url: "{{ proxy_base_url }}"
+    proxy_username: "{{ proxy_username }}"
+    proxy_password: "{{ proxy_password }}"
+    proxy_validate_certs: "{{ proxy_validate_cert }}"
+    subnet_mask: "{{ proxy_discover_subnet }}"
+    prefer_embedded: false
+  register: systems
+- name: find storage system
+  set_fact:
+    api_url: |-
+      {%- for system_serial in (systems["systems_found"].keys() | list) -%}
+        {%- if system_serial == expected_serial_with_proxy_legacy %}
+          {{- systems["systems_found"][system_serial]["api_urls"][0] -}}
+        {%- endif -%}
+      {%- endfor -%}
+- name: Verify storage system is found
+  fail:
+    msg: "Storage system was not discovered"
+  when: api_url == "" or api_url != proxy_base_url
+
+- name: Discover storage systems using SANtricity Web Services Proxy with a preference for embedded url
+  na_santricity_discover:
+    proxy_url: "{{ proxy_base_url }}"
+    proxy_username: "{{ proxy_username }}"
+    proxy_password: "{{ proxy_password }}"
+    proxy_validate_certs: "{{ proxy_validate_cert }}"
+    subnet_mask: "{{ proxy_discover_subnet }}"
+    prefer_embedded: true
+  register: systems
+- name: find storage system
+  set_fact:
+    api_url: |-
+      {%- for system_serial in (systems["systems_found"].keys() | list) -%}
+        {%- if system_serial == expected_serial_with_proxy_embedded %}
+          {{- systems["systems_found"][system_serial]["api_urls"][0] -}}
+        {%- endif -%}
+      {%- endfor -%}
+- name: Verify storage system is found
+  fail:
+    msg: "Storage system was not discovered"
+  when: api_url == "" or api_url == proxy_base_url
+
+- name: Discover storage systems not using SANtricity Web Services Proxy (requires SANtricity version 11.60.2 or later)
+  na_santricity_discover:
+    subnet_mask: "{{ proxy_discover_subnet }}"
+  register: systems
+- name: find storage system
+  set_fact:
+    api_url: |-
+      {%- for system_serial in (systems["systems_found"].keys() | list) -%}
+        {%- if system_serial == expected_serial_without_proxy %}
+          {{- systems["systems_found"][system_serial]["api_urls"][0] -}}
+        {%- endif -%}
+      {%- endfor -%}
+- name: Verify storage system is found
+  fail:
+    msg: "Storage system was not discovered"
+  when: api_url == ""

@@ -1,0 +1,174 @@
+---
+- when: sops_installed
+  block:
+
+    - name: Test lookup with missing file
+      set_fact:
+        sops_file_does_not_exists: "{{ lookup('community.sops.sops', 'file-does-not-exists.sops.yml') }}"
+      ignore_errors: yes
+      register: sops_lookup_missing_file
+
+    - assert:
+        that:
+          - "sops_lookup_missing_file is failed"
+          - "'could not locate file in lookup: file-does-not-exists.sops.yml' in sops_lookup_missing_file.msg"
+
+    - name: Test lookup with missing file with empty_on_not_exist
+      set_fact:
+        sops_file_does_not_exists_empty: "{{ lookup('community.sops.sops', 'file-does-not-exists.sops.yml', empty_on_not_exist=true) }}"
+      register: sops_lookup_missing_file_empty_on_not_exist
+
+    - assert:
+        that:
+          - "sops_lookup_missing_file_empty_on_not_exist is success"
+          - "sops_file_does_not_exists_empty == ''"
+
+    - name: Test lookup of non-sops file
+      set_fact:
+        sops_wrong_file: "{{ lookup('community.sops.sops', 'wrong.yaml') }}"
+      ignore_errors: yes
+      register: sops_lookup_wrong_file
+
+    - assert:
+        that:
+          - "sops_lookup_wrong_file is failed"
+          - "'sops metadata not found' in sops_lookup_wrong_file.msg"
+
+    - name: Test simple lookup
+      set_fact:
+        sops_success: "{{ lookup('community.sops.sops', 'simple.sops.yaml') }}"
+      ignore_errors: yes
+      register: sops_lookup_simple
+
+    - assert:
+        that:
+          - "sops_lookup_simple is success"
+          - "sops_success == 'foo: bar'"
+
+    - name: Test rstrip
+      set_fact:
+        with_rstrip: "{{ lookup('community.sops.sops', 'rstrip.sops', rstrip=true) }}"
+        without_rstrip: "{{ lookup('community.sops.sops', 'rstrip.sops', rstrip=false) }}"
+        default_rstrip: "{{ lookup('community.sops.sops', 'rstrip.sops') }}"
+
+    - assert:
+        that:
+          - with_rstrip == 'This file has three newlines at the end.'
+          - without_rstrip == 'This file has three newlines at the end.\n\n\n'
+          - default_rstrip == 'This file has three newlines at the end.'
+
+    - name: Test binary
+      set_fact:
+        binary_with_rstrip: "{{ lookup('community.sops.sops', 'binary.sops', rstrip=true, base64=true) }}"
+        binary_without_rstrip: "{{ lookup('community.sops.sops', 'binary.sops', rstrip=false, base64=true) }}"
+
+    - assert:
+        that:
+          - binary_with_rstrip == 'AQIDAAQ='
+          - binary_without_rstrip == 'AQIDAAQgCg=='
+
+    - name: Test hidden binary
+      set_fact:
+        hidden_binary: "{{ lookup('community.sops.sops', 'hidden-binary', output_type='binary') }}"
+        hidden_binary__json: "{{ lookup('community.sops.sops', 'hidden-binary.json', output_type='binary') }}"
+        hidden_binary__yaml: "{{ lookup('community.sops.sops', 'hidden-binary.yaml', output_type='binary') }}"
+        hidden_binary_yaml: "{{ lookup('community.sops.sops', 'hidden-binary-yaml', input_type='yaml', output_type='binary') }}"
+        hidden_binary_yaml__json: "{{ lookup('community.sops.sops', 'hidden-binary-yaml.json', input_type='yaml', output_type='binary') }}"
+        hidden_binary_yaml__yaml: "{{ lookup('community.sops.sops', 'hidden-binary-yaml.yaml', input_type='yaml', output_type='binary') }}"
+        hidden_json: "{{ lookup('community.sops.sops', 'hidden-json', input_type='json', output_type='json') }}"
+        hidden_json__json: "{{ lookup('community.sops.sops', 'hidden-json.json', input_type='json', output_type='json') }}"
+        hidden_json__yaml: "{{ lookup('community.sops.sops', 'hidden-json.yaml', input_type='json', output_type='json') }}"
+        hidden_yaml: "{{ lookup('community.sops.sops', 'hidden-yaml', input_type='yaml', output_type='yaml') }}"
+        hidden_yaml__json: "{{ lookup('community.sops.sops', 'hidden-yaml.json', input_type='yaml', output_type='yaml') }}"
+        hidden_yaml__yaml: "{{ lookup('community.sops.sops', 'hidden-yaml.yaml', input_type='yaml', output_type='yaml') }}"
+        hidden_json__as_yaml: "{{ lookup('community.sops.sops', 'hidden-json', input_type='json', output_type='yaml') }}"
+        hidden_json__json__as_yaml: "{{ lookup('community.sops.sops', 'hidden-json.json', input_type='json', output_type='yaml') }}"
+        hidden_json__yaml__as_yaml: "{{ lookup('community.sops.sops', 'hidden-json.yaml', input_type='json', output_type='yaml') }}"
+        hidden_yaml__as_json: "{{ lookup('community.sops.sops', 'hidden-yaml', input_type='yaml', output_type='json') }}"
+        hidden_yaml__json__as_json: "{{ lookup('community.sops.sops', 'hidden-yaml.json', input_type='yaml', output_type='json') }}"
+        hidden_yaml__yaml__as_json: "{{ lookup('community.sops.sops', 'hidden-yaml.yaml', input_type='yaml', output_type='json') }}"
+
+    - assert:
+        that:
+          - hidden_binary == test_str_abcd
+          - hidden_binary__json == test_str_abcd
+          - hidden_binary__yaml == test_str_abcd
+          - hidden_binary_yaml == test_str_binary_data
+          - hidden_binary_yaml__json == test_str_binary_data
+          - hidden_binary_yaml__yaml == test_str_binary_data
+          - hidden_json == test_dict
+          - hidden_json__json == test_dict
+          - hidden_json__yaml == test_dict
+          - hidden_yaml == test_dict_yaml
+          - hidden_yaml__json == test_dict_yaml
+          - hidden_yaml__yaml == test_dict_yaml
+          - hidden_json__as_yaml == test_dict_yaml
+          - hidden_json__json__as_yaml == test_dict_yaml
+          - hidden_json__yaml__as_yaml == test_dict_yaml
+          - hidden_yaml__as_json == test_dict
+          - hidden_yaml__json__as_json == test_dict
+          - hidden_yaml__yaml__as_json == test_dict
+      vars:
+        test_dict:
+          a: b
+          c: d
+        test_dict_yaml:
+          "a: b\nc: d"
+        test_str_binary_data: This is binary data.
+        test_str_abcd: a is b, and c is d
+
+    - name: Test fake sops binary (lookup parameters)
+      set_fact:
+        fake_sops_output: "{{ lookup('community.sops.sops', 'simple.sops.yaml', sops_binary=role_path ~ '/files/fake-sops.sh', enable_local_keyservice=True, aws_access_key_id='xxx') }}"
+        fake_sops_output_2: "{{ lookup('community.sops.sops', 'simple.sops.yaml', sops_binary=role_path ~ '/files/fake-sops-val.sh', config_path='/path/to/asdf', aws_secret_access_key='yyy') }}"
+        fake_sops_output_3: "{{ lookup('community.sops.sops', 'simple.sops.yaml', sops_binary=role_path ~ '/files/fake-sops-rep.sh', keyservice=['a', 'b'], aws_session_token='zzz') }}"
+
+    - assert:
+        that:
+          - fake_sops_output == 'fake sops output'
+          - fake_sops_output_2 == 'fake sops output 2'
+          - fake_sops_output_3 == 'fake sops output 3'
+
+    - name: Work around Ansible bug for next test
+      # https://github.com/ansible/ansible/issues/73268
+      set_fact:
+        sops_binary: "{{ role_path }}/files/fake-sops.sh"
+    - name: Test fake sops binary (Ansible variables, 1/3)
+      set_fact:
+        fake_sops_output: "{{ lookup('community.sops.sops', 'simple.sops.yaml') }}"
+      vars:
+        # sops_binary: "{{ role_path }}/files/fake-sops.sh"
+        sops_enable_local_keyservice: true
+        sops_aws_access_key_id: xxx
+
+    - name: Work around Ansible bug for next test
+      # https://github.com/ansible/ansible/issues/73268
+      set_fact:
+        sops_binary: "{{ role_path }}/files/fake-sops-val.sh"
+    - name: Test fake sops binary (Ansible variables, 2/3)
+      set_fact:
+        fake_sops_output_2: "{{ lookup('community.sops.sops', 'simple.sops.yaml') }}"
+      vars:
+        # sops_binary: "{{ role_path }}/files/fake-sops-val.sh"
+        sops_config_path: /path/to/asdf
+        sops_aws_secret_access_key: yyy
+
+    - name: Work around Ansible bug for next test
+      # https://github.com/ansible/ansible/issues/73268
+      set_fact:
+        sops_binary: "{{ role_path }}/files/fake-sops-rep.sh"
+    - name: Test fake sops binary (Ansible variables, 3/3)
+      set_fact:
+        fake_sops_output_3: "{{ lookup('community.sops.sops', 'simple.sops.yaml') }}"
+      vars:
+        # sops_binary: "{{ role_path }}/files/fake-sops-rep.sh"
+        sops_keyservice:
+          - a
+          - b
+        sops_session_token: zzz
+
+    - assert:
+        that:
+          - fake_sops_output == 'fake sops output'
+          - fake_sops_output_2 == 'fake sops output 2'
+          - fake_sops_output_3 == 'fake sops output 3'

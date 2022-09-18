@@ -1,0 +1,21 @@
+---
+platforms:
+  - name: centos
+    image: quay.io/xlab-steampunk/sensu-go-tests-centos:7
+    pre_build_image: true
+    pull: true
+    groups: [ agents ]
+    override_command: false
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+
+# Upstream container - just to populate the inventory
+provisioner:
+  inventory:
+    hosts:
+      all:
+        children:
+          backends:
+            hosts:
+              upstream-backend:

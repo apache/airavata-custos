@@ -1,0 +1,34 @@
+---
+- include_tasks: _reset_config.yaml
+
+- set_fact:
+    config:
+      system:
+        priority: 20
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp
+
+- name: Replaces device lacp configuration with provided configuration
+  register: result
+  become: true
+  arista.eos.eos_lacp:
+    config: '{{ config }}'
+    state: replaced
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp == result.before
+
+- become: true
+  arista.eos.eos_facts:
+    gather_network_resources: lacp
+
+- assert:
+    that:
+      - ansible_facts.network_resources.lacp == result.after
+
+- assert:
+    that:
+      - config == ansible_facts.network_resources.lacp

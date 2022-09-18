@@ -1,0 +1,18 @@
+ancestor: null
+releases:
+  0.1.0:
+    changes:
+      bugfixes:
+      - kubevirt - Add aliases 'interface_name' for network_name (https://github.com/ansible/ansible/issues/55641).
+      release_summary: This is the first pre-release version of community.kubevirt
+        after migrating from community.general.
+    fragments:
+    - 0.1.0.yml
+    - 55903_kubevirt.yml
+    release_date: '2020-11-25'
+  1.0.0:
+    changes:
+      release_summary: This is the first stable release version of community.kubevirt.
+    fragments:
+    - 1.0.0.yaml
+    release_date: '2020-12-22'

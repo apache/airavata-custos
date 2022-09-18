@@ -1,0 +1,287 @@
+# Test code for the na_santricity_asup module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- name: Set credential facts
+  set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+
+- name: Enable auto-support using default values
+  na_santricity_asup:
+    <<: *creds
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected default state
+  assert:
+    that: "{{ current.json.asupEnabled and
+              current.json.onDemandEnabled and
+              current.json.remoteDiagsEnabled and
+              current.json.schedule.dailyMinTime == 0 and
+              current.json.schedule.dailyMaxTime == 1439 }}"
+    msg: "Unexpected auto-support state"
+- name: Validate auto-support schedule
+  assert:
+    that: "{{ item in current.json.schedule.daysOfWeek }}"
+    msg: "{{ item }} is missing from the schedule"
+  loop: "{{ lookup('list', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']) }}"
+
+- name: Disable auto-support
+  na_santricity_asup:
+    <<: *creds
+    state: disabled
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support is disabled
+  assert:
+    that: "{{ not current.json.asupEnabled }}"
+    msg: "Auto-support failed to be disabled"
+
+- name: Enable auto-support using specific values
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    active: true
+    start: 22
+    end: 24
+    days:
+      - friday
+      - saturday
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current.json.asupEnabled and
+              current.json.onDemandEnabled and
+              current.json.remoteDiagsEnabled and
+              current.json.schedule.dailyMinTime == (22 * 60) and
+              current.json.schedule.dailyMaxTime == (24 * 60 - 1) }}"
+    msg: "Unexpected auto-support state"
+- name: Validate auto-support schedule
+  assert:
+    that: "{{ item in current.json.schedule.daysOfWeek }}"
+    msg: "{{ item }} is missing from the schedule"
+  loop: "{{ lookup('list', ['friday', 'saturday']) }}"
+
+- name: Auto auto-support schedule
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    active: true
+    start: 0
+    end: 5
+    days:
+      - monday
+      - thursday
+      - sunday
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current.json.asupEnabled and
+              current.json.onDemandEnabled and
+              current.json.remoteDiagsEnabled and
+              current.json.schedule.dailyMinTime == (0 * 60) and
+              current.json.schedule.dailyMaxTime == (5 * 60) }}"
+    msg: "Unexpected auto-support state"
+- name: Validate auto-support schedule
+  assert:
+    that: "{{ item in current.json.schedule.daysOfWeek }}"
+    msg: "{{ item }} is missing from the schedule"
+  loop: "{{ lookup('list', ['monday', 'thursday', 'sunday']) }}"
+
+- name: Repeat auto-support schedule change to verify idempotency
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    active: true
+    start: 0
+    end: 5
+    days:
+      - monday
+      - thursday
+      - sunday
+  register: result
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current.json.asupEnabled and
+              current.json.onDemandEnabled and
+              current.json.remoteDiagsEnabled and
+              current.json.schedule.dailyMinTime == (0 * 60) and
+              current.json.schedule.dailyMaxTime == (5 * 60) }}"
+    msg: "Unexpected auto-support state"
+- name: Validate auto-support schedule
+  assert:
+    that: "{{ item in current.json.schedule.daysOfWeek }}"
+    msg: "{{ item }} is missing from the schedule"
+  loop: "{{ lookup('list', ['monday', 'thursday', 'sunday']) }}"
+- name: Validate change was not detected
+  assert:
+    that: "{{ not result.changed }}"
+    msg: "Invalid change was detected"
+
+- name: Auto auto-support schedule
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    active: false
+    start: 0
+    end: 5
+    days:
+      - monday
+      - thursday
+      - sunday
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current.json.asupEnabled and not current.json.onDemandEnabled and not current.json.remoteDiagsEnabled }}"
+    msg: "Unexpected auto-support state"
+
+- name: Auto auto-support direct delivery method
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    method: http
+    routing_type: direct
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current['json']['delivery']['method'] == 'http' }}"
+    msg: "Delievery method should be http!"
+
+- name: Auto auto-support direct delivery method
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    method: https
+    routing_type: direct
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current['json']['delivery']['method'] == 'https' }}"
+    msg: "Delievery method should be https!"
+
+- name: Auto auto-support proxy delivery method
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    method: https
+    routing_type: proxy
+    proxy:
+      host: 192.168.1.1
+      port: 1000
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current['json']['delivery']['method'] == 'https' and
+              current['json']['delivery']['proxyHost'] == '192.168.1.1' and
+              current['json']['delivery']['proxyPort'] == 1000 }}"
+    msg: "Delievery method should be https-proxy-host!"
+
+- name: Auto auto-support proxy-script delivery method
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    method: https
+    routing_type: script
+    proxy:
+      script: autosupport_script.sh
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current['json']['delivery']['method'] == 'https' and
+              current['json']['delivery']['proxyScript'] == 'autosupport_script.sh' }}"
+    msg: "Delievery method should be https-proxy-script!"
+
+- name: Auto auto-support email delivery method
+  na_santricity_asup:
+    <<: *creds
+    state: enabled
+    method: email
+    email:
+      server: server@example.com
+      sender: noreply@example.com
+- name: Collect auto-support state information from the array
+  uri:
+    url: "{{ base_url }}device-asup"
+    user: "{{ username }}"
+    password: "{{ password }}"
+    body_format: json
+    validate_certs: no
+  register: current
+- name: Validate auto-support expected state
+  assert:
+    that: "{{ current['json']['delivery']['method'] == 'smtp' and
+              current['json']['delivery']['mailRelayServer'] == 'server@example.com' and
+              current['json']['delivery']['mailSenderAddress'] == 'noreply@example.com' }}"
+    msg: "Delievery method should be email!"

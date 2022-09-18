@@ -1,0 +1,51 @@
+---
+- debug: msg="START cli/config.yaml on connection={{ ansible_connection }}"
+
+- name: setup
+  become: true
+  arista.eos.eos_config:
+    lines: hostname {{ inventory_hostname_short }}
+    match: none
+
+- name: get current running-config
+  become: true
+  register: config
+  arista.eos.eos_command:
+    commands: show running-config
+
+- name: configure hostname
+  become: true
+  register: result
+  arista.eos.eos_config:
+    lines: hostname foo
+    config: '{{ config.stdout[0] }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'hostname foo' in result.updates"
+
+- name: get current running-config
+  become: true
+  register: config
+  arista.eos.eos_command:
+    commands: show running-config
+
+- name: configure hostname again
+  become: true
+  register: result
+  arista.eos.eos_config:
+    lines: hostname foo
+    config: '{{ config.stdout[0] }}'
+
+- assert:
+    that:
+      - result.changed == false
+
+- name: teardown
+  become: true
+  arista.eos.eos_config:
+    lines: hostname {{ inventory_hostname_short }}
+    match: none
+
+- debug: msg="END cli/config.yaml on connection={{ ansible_connection }}"

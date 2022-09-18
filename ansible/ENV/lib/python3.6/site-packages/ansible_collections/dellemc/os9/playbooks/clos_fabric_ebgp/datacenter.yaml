@@ -1,0 +1,11 @@
+---
+- hosts: datacenter
+  gather_facts: no
+  connection: network_cli
+  collections:
+    - dellemc.os9
+  roles:
+    - os9_interface
+    - os9_bgp
+    - os9_snmp
+    - os9_system

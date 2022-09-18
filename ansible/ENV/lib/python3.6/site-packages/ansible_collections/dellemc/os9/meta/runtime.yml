@@ -1,0 +1,8 @@
+plugin_routing:
+  action:
+    os9_config:
+      redirect: dellemc.os9.os9
+    os9_command:
+      redirect: dellemc.os9.os9
+    os9_facts:
+      redirect: dellemc.os9.os9

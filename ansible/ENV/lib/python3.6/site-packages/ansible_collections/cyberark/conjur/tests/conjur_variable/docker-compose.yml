@@ -1,0 +1,58 @@
+version: '3'
+services:
+  ansible:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: sleep
+    command: infinity
+    environment:
+      CONJUR_APPLIANCE_URL: https://conjur-https
+      CONJUR_ACCOUNT: cucumber
+      CONJUR_AUTHN_LOGIN: host/ansible/ansible-master
+      CONJUR_AUTHN_API_KEY: ${ANSIBLE_MASTER_AUTHN_API_KEY}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    links:
+      - "conjur_https:conjur-https"
+    volumes:
+      - ../../plugins:/root/.ansible/plugins
+      - ../..:/cyberark
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  pg:
+    image: postgres:9.4
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: password
+      POSTGRES_PASSWORD: StrongPass
+
+  conjur:
+    image: cyberark/conjur
+    command: server -a cucumber -p 3000
+    environment:
+      DATABASE_URL: postgres://postgres:StrongPass@pg/postgres
+      CONJUR_DATA_KEY: "W0BuL8iTr/7QvtjIluJbrb5LDAnmXzmcpxkqihO3dXA="
+    depends_on:
+      - pg
+
+  conjur_https:
+    hostname: conjur-https
+    build:
+      context: .
+      dockerfile: Dockerfile_nginx
+    entrypoint: nginx-debug -g 'daemon off;'
+    environment:
+      TERM: xterm
+    depends_on:
+      - conjur
+
+  conjur_cli:
+    image: cyberark/conjur-cli:5
+    entrypoint: sleep
+    command: infinity
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:3000
+      CONJUR_ACCOUNT: cucumber
+      CONJUR_AUTHN_LOGIN: admin
+      CONJUR_AUTHN_API_KEY: ${CONJUR_ADMIN_AUTHN_API_KEY}
+    volumes:
+      - ./policy:/policy

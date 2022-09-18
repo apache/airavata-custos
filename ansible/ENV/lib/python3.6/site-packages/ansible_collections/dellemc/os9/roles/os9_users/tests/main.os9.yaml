@@ -1,0 +1,28 @@
+---
+# vars file for dellemc.os9.os9_users, 
+# below gives a sample configuration
+# Sample variables for OS9 device
+os9_users:
+   - userrole: role1
+     userrole_state: present
+     userrole_inherit: sysadmin
+   - username: test
+     password: test
+     pass_key: 7
+     access_class: a1
+     role: role1
+     privilege: 0
+     state: present
+   - username: u1
+     password: false
+     privilege: 1
+     access_class: a1
+     role: netadmin
+     state: present
+   - username: u2
+     secret: test1
+     secret_key: 0
+     access_class: a2
+     privilege: 3
+     role: sysadmin
+     state: present

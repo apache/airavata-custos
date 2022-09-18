@@ -1,0 +1,383 @@
+# Test code for the nac_sancticity_mgmt_interface module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+# Note: Ensure controller B has IPv6 enabled, otherwise the first task will fail.
+
+- include_vars: "../../integration_config.yml"
+
+- set_fact:
+    controller_a: '070000000000000000000001'
+    controller_b: '070000000000000000000002'
+    original_channel_a1_info: &channel_a1_info
+      state: enabled
+      address: 10.113.1.192
+      subnet_mask: 255.255.255.0
+      gateway: 10.113.1.1
+      config_method: static
+      dns_config_method: static
+      dns_address: 10.193.0.250
+      dns_address_backup: 10.192.0.250
+      ntp_config_method: static
+      ntp_address: 216.239.35.0
+      ntp_address_backup: 216.239.35.4
+      ssh: true
+    original_channel_b1_info: &channel_b1_info
+      state: enabled
+      address: 10.113.1.193
+      subnet_mask: 255.255.255.0
+      gateway: 10.113.1.1
+      config_method: static
+      dns_config_method: static
+      dns_address: 10.193.0.250
+      dns_address_backup: 10.192.0.250
+      ntp_config_method: static
+      ntp_address: 216.239.35.0
+      ntp_address_backup: 216.239.35.4
+      ssh: true
+    address_info_list: &test_info
+      address: 10.113.1.251
+      subnet_mask: 255.255.255.0
+      gateway: 10.113.1.1
+
+- name: Set controller A port 1 to dhcp
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    controller: A
+    port: "1"
+    config_method: dhcp
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url.replace(original_channel_a1_info['address'], original_channel_b1_info['address']) }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller A port 1 is set to dhcp
+  assert:
+    that: "{{ (item['controllerRef'] != controller_a or item['channel'] != 1) or item['ipv4AddressConfigMethod'] == 'configDhcp' }}"
+    msg: "Failed to set controller A port 1 to dhcp!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: Restore controller A port 1 to static
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url.replace(original_channel_a1_info['address'], original_channel_b1_info['address']) }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    controller: A
+    port: "1"
+    <<: *channel_a1_info
+
+- name: Disable controller B port 1
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "disabled"
+    port: "1"
+    controller: B
+
+- name: Set controller B port 1 to dhcp
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: dhcp
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to dhcp
+  assert:
+    that: "{{ (item['controllerRef'] != controller_b or item['channel'] != 1) or item['ipv4AddressConfigMethod'] == 'configDhcp' }}"
+    msg: "Failed to set controller B port 1 to dhcp!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: Set controller B port 1 to static ip address (changed, check_mode)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+  check_mode: true
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to static ip address
+  assert:
+    that: "{{ result['changed'] and
+           ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+            item['ipv4AddressConfigMethod'] == 'configDhcp') }}"
+    msg: "Failed to set controller B port 1 to static ip address!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: Set controller B port 1 to static ip address (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to static ip address
+  assert:
+    that: "{{ result['changed'] and
+              ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+               (item['ipv4AddressConfigMethod'] == 'configStatic' and
+                item['ipv4Address'] == address_info_list['address'] and
+                item['ipv4SubnetMask'] == address_info_list['subnet_mask'] and
+                item['ipv4GatewayAddress'] == address_info_list['gateway'])) }}"
+    msg: "Failed to set controller B port 1 to static ip address!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: set controller B port 1 dns setting to dhcp
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+    dns_config_method: dhcp
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to dhcp
+  assert:
+    that: "{{ ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+               item['dnsProperties']['acquisitionProperties']['dnsAcquisitionType'] == 'dhcp') }}"
+    msg: "Failed to set controller B port 1 dns setting to dhcp!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: set controller B port 1 dns is set to static (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+    dns_config_method: static
+    dns_address: 192.168.1.1
+    dns_address_backup: 192.168.1.2
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 dns is set to static
+  assert:
+    that: "{{ result['changed'] and
+              ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+               (item['dnsProperties']['acquisitionProperties']['dnsAcquisitionType'] == 'stat') and
+                item['dnsProperties']['acquisitionProperties']['dnsServers'][0]['addressType'] == 'ipv4' and
+                item['dnsProperties']['acquisitionProperties']['dnsServers'][0]['ipv4Address'] == '192.168.1.1' and
+                item['dnsProperties']['acquisitionProperties']['dnsServers'][1]['addressType'] == 'ipv4' and
+                item['dnsProperties']['acquisitionProperties']['dnsServers'][1]['ipv4Address'] == '192.168.1.2') }}"
+    msg: "Failed to set controller B port 1 dns setting to static!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: disable controller B port 1 ntp settings (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+    ntp_config_method: disabled
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to dhcp
+  assert:
+    that: "{{ (item['controllerRef'] != controller_b or item['channel'] != 1) or
+              item['ntpProperties']['acquisitionProperties']['ntpAcquisitionType'] == 'disabled' }}"
+    msg: "Failed to disable controller B port 1 ntp!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: set controller B port 1 ntp setting to dhcp (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+    ntp_config_method: dhcp
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to dhcp
+  assert:
+    that: "{{ result['changed'] and
+              ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+               item['ntpProperties']['acquisitionProperties']['ntpAcquisitionType'] == 'dhcp') }}"
+    msg: "Failed to set controller B port 1 ntp setting to dhcp!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: set controller B port 1 ntp setting to static (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    state: "enabled"
+    port: "1"
+    controller: B
+    config_method: static
+    <<: *test_info
+    ntp_config_method: static
+    ntp_address: 192.168.1.1
+    ntp_address_backup: 192.168.1.2
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/configuration/ethernet-interfaces"
+  register: interfaces
+- name: Validate controller B port 1 is set to static
+  assert:
+    that: "{{ result['changed'] and
+              ((item['controllerRef'] != controller_b or item['channel'] != 1) or
+               (item['ntpProperties']['acquisitionProperties']['ntpAcquisitionType'] == 'stat') and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][0]['addrType'] == 'ipvx' and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][0]['ipvxAddress']['addressType'] == 'ipv4' and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][0]['ipvxAddress']['ipv4Address'] == '192.168.1.1' and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][1]['addrType'] == 'ipvx' and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][1]['ipvxAddress']['addressType'] == 'ipv4' and
+                item['ntpProperties']['acquisitionProperties']['ntpServers'][1]['ipvxAddress']['ipv4Address'] == '192.168.1.2') }}"
+    msg: "Failed to set controller B port 1 ntp setting to static!"
+  loop: "{{ lookup('list', interfaces['json']) }}"
+
+- name: disable controller B ssh
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    port: "1"
+    controller: B
+    ssh: false
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/controllers"
+  register: controllers
+- name: Validate controller B ssh is enabled
+  assert:
+    that: "{{ item['controllerRef'] != controller_b or not item['networkSettings']['remoteAccessEnabled'] }}"
+    msg: "Failed to disable controller B ssh!"
+  loop: "{{ lookup('list', controllers['json']) }}"
+
+- name: enable controller B ssh (changed)
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    port: "1"
+    controller: B
+    ssh: true
+  register: result
+- name: Retrieve the current management interfaces
+  uri:
+    user: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    url: "{{ base_url }}storage-systems/{{ ssid }}/controllers"
+  register: controllers
+- name: Validate controller B ssh is enabled
+  assert:
+    that: "{{ result['changed'] and (item['controllerRef'] != controller_b or item['networkSettings']['remoteAccessEnabled']) }}"
+    msg: "Failed to set controller B port 1 ntp setting to static!"
+  loop: "{{ lookup('list', controllers['json']) }}"
+
+- name: Restore controller B port 1 settings
+  netapp_eseries.santricity.na_santricity_mgmt_interface:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+    port: "1"
+    controller: B
+    <<: *channel_b1_info

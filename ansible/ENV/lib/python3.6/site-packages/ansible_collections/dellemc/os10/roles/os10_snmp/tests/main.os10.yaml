@@ -1,0 +1,29 @@
+---
+# vars file for dellemc.os10.os10_snmp,
+# below gives a sample configuration
+# Sample variables for OS10 device
+os10_snmp:
+    snmp_contact: test
+    snmp_location: Chennai
+    snmp_community:
+      - name: public
+        access_mode: ro
+        state: present
+    snmp_traps:
+      - name: all
+        state: present
+    snmp_view:
+      - name: view_1
+        oid_subtree: 2
+        include: false
+        state: absent
+    snmp_host:
+      - ip: 1.1.1.1
+        communitystring: c1
+        version: "2c"
+        udpport: 4
+        state: present
+      - ip: 2.2.2.2
+        version: 1
+        communitystring: c3
+        state: present

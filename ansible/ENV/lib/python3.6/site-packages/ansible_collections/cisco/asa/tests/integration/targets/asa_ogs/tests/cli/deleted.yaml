@@ -1,0 +1,61 @@
+---
+- debug:
+    msg: Start asa_ogs deleted integration tests ansible_connection={{
+      ansible_connection }}
+
+- include_tasks: _remove_config.yaml
+
+- include_tasks: _populate_config.yaml
+
+- block:
+
+    - name: Delete given module attributes
+      register: result
+      cisco.asa.asa_ogs: &id001
+        config:
+          - object_type: network
+            object_groups:
+              - name: test_og_network
+          - object_type: security
+            object_groups:
+              - name: test_og_security
+        state: deleted
+
+    - assert:
+        that:
+          - result.commands|length == 2
+          - result.changed == true
+          - result.commands|symmetric_difference(deleted.commands) == []
+
+    - name: Delete given module attributes (IDEMPOTENT)
+      register: result
+      cisco.asa.asa_ogs: *id001
+
+    - assert:
+        that:
+          - result.changed == false
+
+    - include_tasks: _populate_config.yaml
+
+    - name: Delete ALL configured module attributes
+      register: result
+      cisco.asa.asa_ogs:
+        state: deleted
+
+    - assert:
+        that:
+          - result.commands|length == 4
+          - result.changed == true
+          - result.commands|symmetric_difference(delete_all.commands) == []
+
+    - name: Delete ALL configured module attributes (IDEMPOTENT)
+      register: result
+      cisco.asa.asa_ogs:
+        state: deleted
+
+    - assert:
+        that:
+          - result.changed == false
+  always:
+
+    - include_tasks: _remove_config.yaml

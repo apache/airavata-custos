@@ -1,0 +1,15 @@
+---
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        informational: true
+        threshold: 10%
+    patch:
+      default:
+        threshold: 10%
+fixes:
+  - "/ansible_collections/ngine_io/cloudstack/::"

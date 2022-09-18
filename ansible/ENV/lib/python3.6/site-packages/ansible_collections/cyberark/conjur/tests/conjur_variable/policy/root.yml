@@ -1,0 +1,21 @@
+---
+- !policy
+  id: ansible
+  annotations:
+    description: Policy for Ansible master
+  body:
+
+  - !host
+    id: ansible-master
+    annotations:
+      description: Host for running Ansible on remote targets
+
+  - &variables
+    - !variable test-secret
+    - !variable test-secret-in-file
+    - !variable var with spaces
+
+  - !permit
+    role: !host ansible-master
+    privileges: [ read, execute ]
+    resource: *variables

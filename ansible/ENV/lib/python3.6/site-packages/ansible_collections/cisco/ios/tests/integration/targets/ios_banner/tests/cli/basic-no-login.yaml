@@ -1,0 +1,34 @@
+---
+- name: Setup
+  cisco.ios.ios_banner:
+    banner: login
+    text: "Junk login banner\nover multiple lines\n"
+    state: present
+    provider: '{{ cli }}'
+
+- name: remove login
+  register: result
+  cisco.ios.ios_banner:
+    banner: login
+    state: absent
+    provider: '{{ cli }}'
+
+- debug:
+    msg: '{{ result }}'
+
+- assert:
+    that:
+      - result.changed == true
+      - "'no banner login' in result.commands"
+
+- name: remove login (idempotent)
+  register: result
+  cisco.ios.ios_banner:
+    banner: login
+    state: absent
+    provider: '{{ cli }}'
+
+- assert:
+    that:
+      - result.changed == false
+      - result.commands | length == 0

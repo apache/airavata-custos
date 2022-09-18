@@ -1,0 +1,108 @@
+:github_url: https://github.com/sensu/sensu-go-ansible/blob/master/plugins/modules/{{ module }}.py
+
+.. _sensu.sensu_go.{{ module }}_module:
+
+{% set title = module + ' -- ' + short_description | rst_ify %}
+{{ title }}
+{{ '=' * title | length }}
+
+{%   for desc in description %}
+{{ desc | rst_ify }}
+
+{%   endfor %}
+
+{% if version_added is defined -%}
+.. versionadded:: {{ version_added }}
+{% endif %}
+
+{% if requirements -%}
+Requirements
+------------
+
+The below requirements are needed on the host that executes this module:
+
+{%   for req in requirements %}
+- {{ req | rst_ify }}
+{%   endfor %}
+{% endif %}
+
+
+Examples
+--------
+
+.. code-block:: yaml+jinja
+
+{{ examples | indent(3, True) }}
+
+
+{% if notes -%}
+Notes
+-----
+
+.. note::
+{%   for note in notes %}
+   {{ note | rst_ify }}
+
+{%   endfor %}
+{% endif %}
+
+
+{% if seealso -%}
+See Also
+--------
+
+.. seealso::
+
+{% for item in seealso %}
+   - :ref:`{{ item.module }}_module`
+{% endfor %}
+{% endif %}
+
+
+{% macro option_desc(opts, level) %}
+{%   for name, spec in opts | dictsort recursive %}
+{%     set req = "required" if spec.required else "optional" %}
+{%     set default = ", default: " ~ spec.default if spec.default else "" %}
+{{ "  " * level }}{{ name }} ({{ req }})
+{%     for para in spec.description %}
+  {{ "  " * level }}{{ para | rst_ify }}
+
+{%     endfor %}
+  {{ "  " * level }}| **type**: {{ spec.type | default("str") }}
+{%     if spec.default %}
+  {{ "  " * level }}| **default**: {{ spec.default }}
+{%     endif %}
+{%     if spec.choices %}
+  {{ "  " * level }}| **choices**: {{ ", ".join(spec.choices) }}
+{%     endif %}
+
+{%     if spec.suboptions %}
+{{ option_desc(spec.suboptions, level + 1) }}
+{%     endif %}
+{%   endfor %}
+{% endmacro %}
+
+{% if options -%}
+Parameters
+----------
+
+{{ option_desc(options, 0) }}
+{% endif %}
+
+{% if returndocs -%}
+Return Values
+-------------
+
+{% for name, spec in returndocs.items() %}
+{{ name }}
+{%   for para in spec.description %}
+   {{ para | rst_ify }}
+
+{%   endfor %}
+   **sample**:
+
+   .. code-block:: yaml
+
+      {{ spec.sample | to_yaml(default_flow_style=False, indent=2) | indent(6) }}
+{% endfor %}
+{% endif %}

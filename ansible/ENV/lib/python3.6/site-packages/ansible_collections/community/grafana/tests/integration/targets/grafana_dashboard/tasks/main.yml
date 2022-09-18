@@ -1,0 +1,5 @@
+- block:
+  - include: dashboard-from-url.yml
+  - include: delete-dashboard.yml
+  - include: dashboard-from-id.yml
+  - include: dashboard-from-file.yml

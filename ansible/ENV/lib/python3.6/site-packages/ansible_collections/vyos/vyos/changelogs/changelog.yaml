@@ -1,0 +1,174 @@
+ancestor: null
+releases:
+  1.0.0:
+    modules:
+    - description: Manage multiline banners on VyOS devices
+      name: vyos_banner
+      namespace: ''
+    - description: Run one or more commands on VyOS devices
+      name: vyos_command
+      namespace: ''
+    - description: Manage VyOS configuration on remote device
+      name: vyos_config
+      namespace: ''
+    - description: Get facts about vyos devices.
+      name: vyos_facts
+      namespace: ''
+    - description: FIREWALL global resource module
+      name: vyos_firewall_global
+      namespace: ''
+    - description: FIREWALL interfaces resource module
+      name: vyos_firewall_interfaces
+      namespace: ''
+    - description: FIREWALL rules resource module
+      name: vyos_firewall_rules
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage Interface on VyOS
+        network devices
+      name: vyos_interface
+      namespace: ''
+    - description: Interfaces resource module
+      name: vyos_interfaces
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage L3 interfaces on
+        VyOS network devices
+      name: vyos_l3_interface
+      namespace: ''
+    - description: L3 interfaces resource module
+      name: vyos_l3_interfaces
+      namespace: ''
+    - description: LAG interfaces resource module
+      name: vyos_lag_interfaces
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage link aggregation
+        groups on VyOS network devices
+      name: vyos_linkagg
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage LLDP configuration
+        on VyOS network devices
+      name: vyos_lldp
+      namespace: ''
+    - description: LLDP global resource module
+      name: vyos_lldp_global
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage LLDP interfaces configuration
+        on VyOS network devices
+      name: vyos_lldp_interface
+      namespace: ''
+    - description: LLDP interfaces resource module
+      name: vyos_lldp_interfaces
+      namespace: ''
+    - description: Manage logging on network devices
+      name: vyos_logging
+      namespace: ''
+    - description: OSPFv2 resource module
+      name: vyos_ospfv2
+      namespace: ''
+    - description: OSPFV3 resource module
+      name: vyos_ospfv3
+      namespace: ''
+    - description: Tests reachability using ping from VyOS network devices
+      name: vyos_ping
+      namespace: ''
+    - description: (deprecated, removed after 2022-06-01) Manage static IP routes
+        on Vyatta VyOS network devices
+      name: vyos_static_route
+      namespace: ''
+    - description: Static routes resource module
+      name: vyos_static_routes
+      namespace: ''
+    - description: Run `set system` commands on VyOS devices
+      name: vyos_system
+      namespace: ''
+    - description: Manage the collection of local users on VyOS device
+      name: vyos_user
+      namespace: ''
+    - description: Manage VLANs on VyOS network devices
+      name: vyos_vlan
+      namespace: ''
+    plugins:
+      cliconf:
+      - description: Use vyos cliconf to run command on VyOS platform
+        name: vyos
+        namespace: null
+    release_date: '2020-06-23'
+  1.0.1:
+    changes:
+      minor_changes:
+      - Add doc plugin fixes (https://github.com/ansible-collections/vyos.vyos/pull/51)
+    fragments:
+    - 51-doc-plugin-fixes.yaml
+    release_date: '2020-06-23'
+  1.0.2:
+    changes:
+      bugfixes:
+      - Added workaround to avoid set_fact dynamically assigning value. This behavior
+        seems to have been broken after ansible2.9.
+      - Make `src`, `backup` and `backup_options` in vyos_config work when module
+        alias is used (https://github.com/ansible-collections/vyos.vyos/pull/67).
+      - vyos_config - fixed issue where config could be saved while in check mode
+        (https://github.com/ansible-collections/vyos.vyos/pull/53)
+      minor_changes:
+      - Fixed the typo in the modulename of ospfv2 and ospfv3 unit tests.
+      - Updated docs.
+      - terminal plugin - Added additional escape sequence to be removed from terminal
+        output.
+    fragments:
+    - 65-remove-unwanted-terminal-chars.yaml
+    - 70-workaround-set_fact.yaml
+    - 72-modulename-typofix.yaml
+    - 73-update-docs.yaml
+    - fix_src_backup_with_module_alias.yaml
+    - prevent-vyos_config-saving-in-check-mode.yaml
+    release_date: '2020-07-31'
+  1.0.3:
+    changes:
+      release_summary:
+      - Rereleasing 1.0.2 with updated changelog.
+    fragments:
+    - 1.0.3.yaml
+    release_date: '2020-08-06'
+  1.0.4:
+    changes:
+      minor_changes:
+      - Moved intent testcases from integration suite to unit tests.
+      - Reformatted files with latest version of Black (20.8b1).
+    fragments:
+    - 71-refactor-interface-test.yaml
+    - 80-reformat-files.yaml
+    release_date: '2020-08-27'
+  1.0.5:
+    changes:
+      bugfixes:
+      - Added openvpn vtu interface support.
+      - Update network integration auth timeout for connection local.
+      - terminal plugin - Overhaul ansi_re to remove more escape sequences
+    fragments:
+    - 86-openvpn_vtu_interface.yaml
+    - local_auth_timeout.yaml
+    - terminal-escape-codes.yaml
+    release_date: '2020-10-08'
+  1.1.0:
+    changes:
+      minor_changes:
+      - Added ospf_interfaces resource module.
+    fragments:
+    - vyos_ospf_interfaces_rm.yaml
+    modules:
+    - description: OSPF Interfaces resource module
+      name: vyos_ospf_interfaces
+      namespace: ''
+    release_date: '2020-10-30'
+  1.1.1:
+    changes:
+      bugfixes:
+      - Add version key to galaxy.yaml to work around ansible-galaxy bug
+      - Enable configuring an interface which is not present in the running config.
+      - vyos_config - Only process src files as commands when they actually contain
+        commands. This fixes an issue were the whitespace preceding a configuration
+        key named 'set' was stripped, tripping up the parser.
+    fragments:
+    - 91-new-interface.yaml
+    - config-processed-as-command.yaml
+    - galaxy-version.yaml
+    release_date: '2021-01-27'

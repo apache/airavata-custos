@@ -12,9 +12,13 @@ spec:
       http:
         paths:
           - path: /org.apache.custos.user.management.service.UserManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: user-management-service
-              servicePort: grpc
+                service:
+                  name: user-management-service
+                  port:
+                    name: grpc
+
 
   tls:
     - hosts:

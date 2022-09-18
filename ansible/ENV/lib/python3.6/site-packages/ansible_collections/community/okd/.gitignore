@@ -1,0 +1,18 @@
+*.retry
+.idea
+*.log
+.cache/
+__pycache__/
+
+# temp collection path
+# Can't ignore this directory for now, as the files have to be viewable by git in order to be sanity-checked
+# ansible_collections/
+# Galaxy artifacts.
+*.tar.gz
+
+# Changelog cache files.
+changelogs/.plugin-cache.yaml
+
+# Temporary test files.
+tests/output
+tests/integration/cloud-config-*

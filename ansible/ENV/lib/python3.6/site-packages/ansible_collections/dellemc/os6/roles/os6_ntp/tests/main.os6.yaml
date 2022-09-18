@@ -1,0 +1,9 @@
+---
+# vars file for dellemc.os6.os6_ntp, 
+# below gives a sample configuration
+# Sample variables for OS6 device
+
+os6_ntp:
+    server:
+      - ip: 2.2.2.2
+        state: present

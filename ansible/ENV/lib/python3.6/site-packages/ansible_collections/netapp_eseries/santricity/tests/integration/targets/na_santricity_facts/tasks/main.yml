@@ -1,0 +1,19 @@
+# Test code for the na_santricity_facts module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+
+- name: Retrieve facts from SANtricity Web Services Embedded
+  na_santricity_facts:
+    ssid: "{{ ssid }}"
+    api_url: "{{ base_url }}"
+    api_username: "{{ username }}"
+    api_password: "{{ password }}"
+    validate_certs: "{{ validate_cert }}"
+
+- name: Retrieve facts from SANtricity Web Services Proxy
+  na_santricity_facts:
+    ssid: "{{ proxy_ssid }}"
+    api_url: "{{ proxy_base_url }}"
+    api_username: "{{ proxy_username }}"
+    api_password: "{{ proxy_password }}"
+    validate_certs: "{{ proxy_validate_cert }}"

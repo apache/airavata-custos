@@ -1,0 +1,1853 @@
+{
+ "files": [
+  {
+   "name": ".",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "AUTHORS.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "20ba10875a772e1f03a1201e2af16ab0ff46b3eed3661809936dc9e19e37e43c",
+   "format": 1
+  },
+  {
+   "name": "meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4b56231de1b268ad158f668d218971b707a99395b8f0cc11dbbea17e4a8903a5",
+   "format": 1
+  },
+  {
+   "name": "docs",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".github",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".github/workflows",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".github/workflows/ansible-test.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c964667408f735283dfb7c927388137b5dd0df2bbcd5069ef63bf8940a1e73f",
+   "format": 1
+  },
+  {
+   "name": "README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c1d7dc192e3cc5fc624b828c9e601d931b5d5340681b0872b441e2cf83ee9b8",
+   "format": 1
+  },
+  {
+   "name": "CHANGELOG.rst",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f4cb7aa83ae240e9838afea74327385c8b75e377aff8fffd76d211684cbd8a15",
+   "format": 1
+  },
+  {
+   "name": "tests",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/sanity",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/sanity/ignore-2.9.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f6cf8392610782f3b18bcfeb0180b42258f0aafd596331605da01fd8e20710e1",
+   "format": 1
+  },
+  {
+   "name": "tests/.gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "67b0f799f12726b149fd9677334c10b059e231bf2fa7150d55e9b4d5fd242062",
+   "format": 1
+  },
+  {
+   "name": "tests/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/module_utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/module_utils/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/module_utils/test_ome.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "912312ae2fcc3a0aaf7010cbee33e009b78480b93d26771d4f312666632783a1",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_redfish_storage_volume.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57e3329a4af928cf0118c54c513175b9190843bd1afe573eaa015606a2dfda19",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5f439709585eb2d76e1b6ea645c6400d5360c99490b2290433c3dc0a5bdac493",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_system_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0796fa6f74350d53960309a764e658aa385aaddeb22bb0f179a6d1391c4dfa45",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_configuration_compliance_baseline.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3bae45e27cd4bebba88c9c63c5207ce8026abcd6d1049de3e7210a8291497142",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_application_certificate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0280f7afa09beaad65dfb503782bace0a6f04ff767447970c1950b216b4982d7",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_firmware_catalog.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "139fede6b331bd58abe0baf042fcaaa00f7b3db3fdb48f746543b311ba926acb",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_discovery.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0bbe3fffa0bc1d54658fcac812d787feb3ee5de3869341c2037dc1197faa32c3",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_device_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bc6929f417feeea725cccf7ad17cf9d906931d5f9bd63bab778e0a5681d7845f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_configure_idrac_services.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e4ce8f6489ab1a040149f89d6d9ce6dc1940a83f543aa852689c383d27f43248",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_device_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f245efaa07d62d902101b028648c75c0a674deacf99481323f8b7fceabc4d1d5",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_lifecycle_controller_job_status_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7dd805b79ed5fd9b9803cdc04909024849985e39415440da0f5402d034238b62",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_configuration_compliance_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb83b565c36cc6d8bf224432ef37e2b2b98e7b03c70b7fa9da5b9a7cc504639c",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "71ca2a6c0d63983850e8ef88cf4883b4c6700e6afa1960356b911507f3377452",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_application_network_proxy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bcdace4f9bdc2cf5320e1d0141c4e213f6711cb688436352f473cd54054e16a7",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_timezone_ntp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6c822134d0aae1a7e77908495401e819d498bcffc4ec92009019270375120e0b",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_get_firmware_inventory.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b19ad034058caacea1912fc39d665d3ee6d5634b0d12348e029169a34bd5b3ac",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_template_identity_pool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "366a647f3c3007d0ca0e103ee24b0b63e91d2ec1cc07076cea4150a4e5a44b64",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "13fdedff53b67b5aa74002e14f8d0c817969a0e6bde84575d03c20a4caebd11b",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_smart_fabric_uplink.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9b5829f481aafe183a6d5c43bbafaec3bb668e5765dec8b54fa5c1bc84296118",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1ba8a5b7c540f17ed2de30bfc8828501af1fe0faa0a3b80e0f8624baa1cc253b",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5a32c28fdf4887d99eb383d825710bfda8ee1237329cc059a14bfe8f11cea71a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_redfish_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e6126ea08058b77a9981a0f06d99759c9c1671e6aa2ed00cdf738a8d2957c03",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_application_network_address.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2478bd3aeedc0fc247b881e984a348b406ca591a68463b31d5cef1465613d2ab",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_lifecycle_controller_jobs.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7bf01582f571aeab188a178ee0e0e79fdbde1f20c40376e2a6caf3953fa3ab9c",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_syslog.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5f8b6e26dc26a77d012596bf66239c3611bfc6baba431098fb08821c0fd9ea92",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_idrac_storage_volume.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "615e9ec3d02b3f9230f25d9bec28261638ee431f412260dd69942afcc1102ab2",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_os_deployment.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1fa6a30fb83ea33bd6e71fcc9fdd36c1537209d22890b28c9570b7976b756118",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_get_system_inventory.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2d6850bae2890663ef7e7edd50744955a5733eb5dc0309910dc2cec71f556568",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_job_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3ada75733f8a26f1e792bb93a337bf227c78f9ef2509060825329fcc55e9cd7f",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_lifecycle_controller_logs.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c275ce6b64bd0abf24acc04cf8b8f78961187f6fb15c8302fff2ccd6aaf337d",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/common.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2d927dc263d5a29c33b8ee8b3777bb59907ec623e031a528d9bc38caee341e0a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_firmware_baseline_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "878b7f5a575d8ea0c712ee324b1a96a4aa3a263116676dbc3e4a9199ac41b783",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_idrac_lc_attributes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ccd751fd072d475ab5152199ca2a10f716a97433d51f6cfa5e4b97f15208e946",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_smart_fabric.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cdf865f849593505058988251d51b11d51599aee382c96d7427170c1a637199a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_powerstate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a187e509fdf9269072ffd282da85693af212cd85817f874ea5062783c3e2f887",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_bios.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3f9bb11e1336b97e4630de536dacbea43da93215654647f3e7c31c8cd137e2de",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_application_network_webserver.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f3d502a99e19c97418dde416d97c4acb8bc37800b43a648ebb546b7e6373c7f9",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_redfish_powerstate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a69138a8f7d9ff6d599d1f8695fb29b9638e800ff3e08da367423e594d62d478",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_template_network_vlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "39f51f38504f5c6c0f1f33e3c94704f703751bd94b431f064f9534cd720e22a2",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_configure_idrac_eventing.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0bf087e099653f84fd5fd5df22032a5f6d06a18ad06b5f202f2f4e5bc6a79025",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_network_vlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b27ce276aba122492caf903db7d743cfbddef537977ede22ee981d6549f6d3d3",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_template.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5b2700a2f062fad21c3c5f02e9e748fc4a3034ee6cebdda49396d00e9047c460",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_server_config_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55eef0e0ceb1b6fac1a3b1d6efdb38d0ff513900943a2baa792f6294a44b9090",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_redfish_storage_controller.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c209a885bc48c323a427ee004a299aa9038889029c60c1e6b62b556467ac8048",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_dellemc_system_lockdown_mode.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8ae1e1e27870e4a2915ee15ac9e656a0657f4d22ac17888ae8e84ec09fd71829",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_firmware_baseline.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ccdf8c3f1a5a6f7a6266466b82e863f0418f2cf543fbf9a003baf3f33a4b7e9a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_lifecycle_controller_status_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "43bd8bab38b5d07cfb3f3836230366ada237b3c07e1bc6634fed5485168aed4c",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_identity_pool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "37be00c3b97bef9dddbde77000e22fc3c6c75f307c3e7292ad4299444e0e0cf4",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_firmware_baseline_compliance_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d9b92493f563ad40927fc72a7e40bd7466383fba116271db914545bbaef41f19",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_network_vlan_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8536f0b33ee05b6973f38e77c2a50446186b99b424192bdfc593d1b6c8197326",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_reset.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "47256156543ec38724b05f09d0fe303ad6b855b7c79971afabd0378e2aa2b274",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_template_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bf7dcd18048f2ddcd377ba3eb024b18d17b7df0731283eb5c5be80f4d7caacdb",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/conftest.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "294d7e04c77784d9f79c138968735110720bddaed7042d60373e9cc217395c82",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_user_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7ac605d2d50cf2cd3d064bb11519585c970b846f3be3a5c45a418cd96181b83a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_network_port_breakout.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c7a9f682f5b6132c7b4cf54681e248fdd6cee77c729b5951098e78168e702004",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_firmware_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "71c8e77312248a81b0fca753cd7bb90b51f53b53bcd89791daa295faf3383083",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_ome_application_network_time.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c424acc95283a1b033b2d372c696135f6239a330b3723b5cdfb99c8ab191a27a",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/modules/test_idrac_network.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d02342553afd4401c06a5e5942b9e5b7ef047fa5fe76f4dec8eb2057dd8e1936",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/plugins/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/unit/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "tests/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b18a7c35d1cf1f754503ff2cfe90d6479a2cc9f5bfd03268d52a320046b16241",
+   "format": 1
+  },
+  {
+   "name": "tests/requirements.txt",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "79b3fda8885f7f67f27561b56d558b01ffb8f1fe7ca1f599c18950a12b278af1",
+   "format": 1
+  },
+  {
+   "name": "CONTRIBUTOR_AGREEMENT.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5aac0072af3ecdb3f426b99849523cea1cfb83992544748b736d1a234557e424",
+   "format": 1
+  },
+  {
+   "name": "playbooks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/firmware",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/firmware/redfish_firmware_from_local_jobtracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d91b75e9c3e278a1bde0e80d2b1765e3cdde2ec6e5ba18ed4c7e6885180e3c25",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/firmware/redfish_firmware_from_http_jobtracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a90ce075a556dc204d642096144ced2e9d17e47593fe5be084b41a53479e7690",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/firmware/redfish_firmware.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "46f697dfb33d3f4c19e9d09d4cb86411e6a3b8ffd4e33c55006c1f3f4ac63ed5",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage/redfish_storage_volume_initialize_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d44e3088af67763f843814582017fda93951e5855360cdb3e20b246cd459858",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage/redfish_storage_volume_delete_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c81937b2d5cd2565d95d56f2212b6e99474859770ecaa2a628d5e58d864495ff",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage/redfish_storage_volume_create_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "30355f4e37a577498acc708bffe6e72b1f606161feae786ae0778ae64a1924b1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage/redfish_storage_volume.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "241c034db4787ea0bef603ebf60da43a453fdf58f5afd1750fda2936c4d5736e",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/storage/redfish_storage_volume_modify_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "02f50950e36536de7556a1249d4df158baeb722969f35815461683af8cbf1e72",
+   "format": 1
+  },
+  {
+   "name": "playbooks/redfish/redfish_powerstate.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3670975c96d63efeb23072336ad337ad6a529d75a03e26edbe592e2f325772a2",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/compliance",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/compliance/ome_configuration_compliance_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3f0a90b5503befb6a27f7621bc07ce69939b9cf11d2f02992330ba3f7fda3a4",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/compliance/ome_configuration_compliance_baseline_workflow.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "deeb3d26a22fd85f70a22835ea189ea881a134d12c18f91181f44b4fc8ef1604",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/compliance/ome_configuration_compliance_baseline.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4afad59889d68cde210a14f891ed08d3259f4d4831f7089d429d452f683fc604",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_discovery.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "74d62a4549514285b86cf3b83dc74344187fd75dc67d69cdbd0adfa97f3d3f9b",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_network_vlan.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e1c71c42545a361f8e1ea26edecc7c70edfb1dd0e235f095e68fc70ad1ebd8d1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_with_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9c1169db67f3fa85a9e83cbda3ec53fdf5f0bab197dfac5ce14a328fc01091a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_lcd_display_string_deploy.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "46245b4d94d913d312b53f25310339afabdae98b6d29cfd2570e3472c8b38a88",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_network_vlan.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "142bebfe409400c23bc6415888efcab09f803d0bdb27dceec816b30aad67ac35",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "852b3ef9ba9bc104463c3ba12f5a7031e6511ffb786d4422bac34eed712f55f0",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_info_with_filter.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "59b4f939ade64f50a35f933737e12875c9ea1cba798f887b444116444e978674",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0833a13bba9dfe7c9b43ad38915e063a6037a46a863f50ce7deba391abe9638",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/template/ome_template_create_modify_lcd_display.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "14ce289928b8f0dfa30cfd0c2acfd5e2fe761767b24c76872250e1aa7c3da285",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_device_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d164da79799438eb961bbb6b1b6638f3ceeb1e0ac039839875ed91d8d303e3a1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/component_reports_filtering",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/component_reports_filtering/component_complaince_report_with_baseline.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d35cd09816d7d42a2680e38cf76b6c4d2792b1131ae9570767b4f92487bac1e1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/component_reports_filtering/component_complaince_report_with_devices.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77b8186cfe538ccc38781fd5358a949ec2eb42070920b69417d6d15a3950f057",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/ome_firmware_baseline_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cfb35228a7a10fb2c869633190c357c03798b43ec42adfc5fc6277de71b19a11",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/ome_firmware_baseline_compliance_info_filters.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e0664a6ecbcf9c4274560af6a5167758f6ff384c9fb782be707038e998f70b81",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/ome_firmware_baseline.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1bfa7df7165e7ef44c793ecf6142f6c29640fdba155f9e7d7df28db5e935692c",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/baseline/ome_firmware_baseline_compliance_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0bc35da85fc493f861a5b2d6b0802554a29f9f953ec71274a39dc8da90a69a9",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/catalog",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/catalog/ome_firmware_catalog.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a83fe9a255dfb218444d797343e75b33f155e604fcdfd397c694bdbee833a860",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/catalog/ome_firmware_catalog_with_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4cb2b51f307dd82db9c6863e42437ec3e49977d44699f9ef9a38ca2d9d97c459",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/ome_firmware_with_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b742afed58323f72e0d1930b8bfb84a2e340a918e350cc0db66905d8b400a1c9",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/firmware/ome_firmware.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b00b8a63cbdd0172d81407b6bdf02dbc166ffc3a52016419e9b210337d416eda",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_device_group.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "df2a9cd9fa732e80ae3906c44a88033aac6a62e50b14719bf31396a550cb862a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/user",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/user/ome_user_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9446e0ebac19bfb6a36ffb2d038ed5d7e75bd925eaed1785b1431ab53780f14",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/user/ome_user.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "68ac4332fbaf1a9c1dc0c79def174d4b7ddfe88ad2eeb66a0bcbd7fd3ba927f0",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_template_identity_pool.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ef63b2514fd916be275d6551da99c374269608917bb6aaabe65f018070c7ebe1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/powerstate",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/powerstate/ome_powerstate.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad0e1cbea3e1e1a073b05331355dd50121e75476b89765de7a1a34791ee26604",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/powerstate/ome_powerstate_with_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "08840ae1fb43b25ef1b70b5a20e2e2c0cf17aa94797e70c0c9ea1cf3ebd3c2ed",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_smart_fabric_uplink.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cc3fee971e2072522eb0493320ca31d5cd5cd782c7736c110929a541745025d4",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_identity_pool.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3e117d49273ddc7d435b7ae3562721770a94599e35ead8032f552737d0fa6a0d",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_network_vlan_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "298bc2935b442829be2bc65b8cb1b58d6c268ec976005d23f76b3bd442f189a5",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_job_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3fcb0be9826946de62fd72251b1bc2632b1f8989b6a5f9ce6165a3487a1aa4be",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_network_port_breakout.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5949860264d5e13b3808071a76451d6e1ae86ced09e54e6b40914f9415dc9276",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_smart_fabric.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a9f783c57bddb509213c28790153ce3350796f111007c5bad79fd0f4e1c178a5",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/profile",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/profile/ome_profile.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5686dc95dc9e349da00b0ac2208b58c363f8484a7071a0040f0eea09aaa1903b",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/profile/ome_profile_assign_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d1787aa44475959a560ca35bf59045f5fcdf9313fa96f2dc165e72aaea4bb71d",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/profile/ome_profile_unassign_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9941d490ba629688e6af0008bc355eadb04b40249e98e762a1993a815bea1ae1",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/profile/ome_profile_migrate_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b83e853ddd086519809749e3f8932a810412812f3079444914d1fb87bb3fbbaa",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_certificate.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1c1f0855139ec77ac072359d1345d0adf3a57a0f63b2ff1a825f85d2d42086ab",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_address_with_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2de8b52fb113b2219bd7fe2a5d841fafdba7e06fe72fddf4b0fb6a613ea83fa8",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_time.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "088994094b30a4678938630f71954aca5296ee95babf7b0a62100d38649a592a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_proxy.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b4e14287298db887c19e0f3f9c610f4d286b55ebcdb258aa5329e81f3aa37a2f",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_webserver_port_changed_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab029032e0a60ea5524ac1a6e75a2a89395f71134004150d141cfbd7e3cafe2a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_time_zone_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d30a435e8ec0030ca04fee849029f392ef17633308f065a868dc0ee2d51128e7",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_webserver.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "87872ad7975328d79e257f5f0f8ade6aa81900021683772fd1e0753de7a55e3e",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/application/ome_application_network_address.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "aa34a395978cc9ad4635892e4c5dcbca11cdb4832c00ee8749bdbe6c5b6cf3be",
+   "format": 1
+  },
+  {
+   "name": "playbooks/ome/ome_network_port_breakout_job_traking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b166065950ec5f212541a58eebdeed5f1e340bb63abcd915fb39993231cc3331",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_system_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "27e5fcf5d97b9dfcd3f1c393be693a8e38aa5ddf8ffd7b9f18c1ae34522c6abd",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_reset_result_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "75b3f83a3dadd5ec9516dbf24fa8038902dde5957d3054ee4bd2cd1d25107aca",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_configure_idrac_eventing.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4d75429ceeb69664c1529d4b6fb32d2c2614b0ff4595a0ac7a8c9f11af940168",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_configure_idrac_services.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6ff139eb3dd8613a71725701861ad4486a74e35594320cd263ab2bf79317aaa2",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_lifecycle_controller_job_status_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eec7bfd4332278024a269bbcbf335a02858d70d385f0a5ddc32ef4039367c8f4",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_get_firmware_inventory.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7e55c77aa44f98cb8f0f77b861c3227777bf56cfa06c946169d708e26062da4c",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_system_lockdown_mode.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f84b988648530e65e2cc58cfdc466c346dede217b0bf5cd0fc4eaa59883233f",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_redfish_storage_controller.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a12a1d0d2bcb2c8a8bdc985d3d8315af9d2f61d028cd70b904bd57b0cc0a2af2",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_server_config_profile.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6533011e8d52a4304b1414f64cf1cea049895b96ce6329ca73c6e2602904b709",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_timezone_ntp.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dee446dcc749b897bb06eea6830135fb6d20b98e515c64124d21269046105095",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_firmware.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f4739d290b1ecad3b05483f6e0ec66de62bb8ceea11185456418477abcfc2d7a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_user.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bc75e3a835696432566493c37fb0a0ca6893e921d7a268002445dd74d46a6ef4",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_lifecycle_controller_jobs.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a0ab782b379c3b5b654d4c6bffa3fdbc152c08b2e5a054355ec460c7e92a8c38",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_lifecycle_controller_status_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "077ed562a49845c8ecd3e0a36facd8012a67b2d8f669ab5ac04ea4264e124d78",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_idrac_storage_volume.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fafb76b47c99ce9209da53a5b0e26d8050ec2f71bcc036071dd7956009562c5b",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_syslog.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b1afc37258f886aab9e2023e97a571df415b93f0eed2b139ebc00365442a7a1a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_os_deployment.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d0650a20530783cf18d6d92d7eaaed2d5da256845ce01178d02b2e913d7e8246",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_reset.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ab10a7882c43c0e6b5d8914315c6ba27cd4392c8a1cd218b0feab607e032436b",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_get_system_inventory.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c79da91062bd63b723d20c40b1ac3798b393eec3df3475070f76f7902b7c3b6",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_lifecycle_controller_logs.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1f79e395e4b49354f6636fc6e435398eab498ae6b74cedfe745e8acc92bded2a",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_redfish_storage_controller_job_tracking.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7706b3e8597589b3cd529afd169b54d257fde6386401878b9aa52e06d7be0deb",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_firmware_info.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8e4c60cdc2d778eb009e51becbba96045d90a3c22f7683a7d248831375194e43",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/dellemc_idrac_lc_attributes.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "85c20e24b45eb112917422f59e8fedc71488999fa83ee465ae1cdc4ffe3d6041",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_network.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "559df1738d1eb0b083d9e63e0282e12bdf0ed927232f478b5bca11373e62e6df",
+   "format": 1
+  },
+  {
+   "name": "playbooks/idrac/idrac_bios.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f7e362b17402fcbb2b9116dfe735b4282c4d1eed2c95a7af929276bff1d29036",
+   "format": 1
+  },
+  {
+   "name": "changelogs",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "changelogs/config.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8af435bbe577b80a5fda86567dcac849e7762f04a7251e029833b3f073272d84",
+   "format": 1
+  },
+  {
+   "name": "changelogs/changelog.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fa6c5f66a61f613cce9c29cbcb74f5b437c038cff6e766d026b4a7b4c26bcc9e",
+   "format": 1
+  },
+  {
+   "name": "changelogs/.plugin-cache.yaml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8ac6e37086685d4da0507fb34e84b696978d3176de6620d34cf42cbd68e39e1e",
+   "format": 1
+  },
+  {
+   "name": ".gitignore",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "198848d0b940f132d2f9dfb16c39c866cebb4bb12fe4582485188117a30219b6",
+   "format": 1
+  },
+  {
+   "name": "COPYING.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+   "format": 1
+  },
+  {
+   "name": "CODING_GUIDELINES.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "af90ea03f3722fb34b9daacb6484d5ffa82d4e2bd57fc05bddcc8857767bede0",
+   "format": 1
+  },
+  {
+   "name": "plugins",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/redfish.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c8abe5c4d9dd57a73a4ba55e5ea90a1e7de9ed20b7e89dce65134b3b167a3dac",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/idrac_redfish.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a16daf34b75121bb7faad0c4ded766397e02ee69be8cd400e4457aaaa58e4401",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/dellemc_idrac.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f007aa901a613b17d05880421e08de2da31d3856808c07a2446e53d979937ecb",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/module_utils/ome.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb83a9a633480b23b5df94258efd7d33a07d6a7d1c82ac35e0f79bceb26fc21a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_network.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e66f740f52f3cd516e50f44c029ce6841d658de4216496a9e38e618b89efb02",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_smart_fabric.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0544ea960fad7954c08f02ede0ba2ae641f65a19408722d3667d6a4d27372576",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_powerstate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f85334968e0fdfa6d4fd9ff85c4b84acd4fabad2e2f5196161ce4e5c28c1231",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_bios.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "61fac886dee6472ad5752c2d2e22dd20ab8f16ed873764c15782560886f543bd",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "59961d1814dc8c6b659b0be9d676e86354dfb1897fd0a7cb044154147b4a5e7d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_system_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "251211479ed3c29e5af3da627fafb6b29cf31b28649ebfe0fa8b80971f7c336b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/redfish_powerstate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1fc7bb69de68e8692b216f2d6c391da397d168079701e5b1266bbc4ee8ea28b9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_configuration_compliance_baseline.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a8c4117cbada6051f0a446902150c1f723a03f7551627935d23b0e652ca216ff",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_application_certificate.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eb9c57688ec3fc69bbfb1bb0514fac9e2a97d29de2723155e8a6a8de02c02462",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_discovery.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "155275c5bda8e72a33fdbff36997451e5cfd84f0b0dbca042b2b7d6f368dd93f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_configure_idrac_eventing.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "870e94cec142c98cd246bc3b5ba9e38d503ffbe633db509381c4e1b15a51d85d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_network_vlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "303464153d71a094882ad6533e02d6c52f1218e10d12b518dd8119a509014314",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_device_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea2c81c26ab4e81e4ba72deac176bfa40a1eac1b4937c79baa140e0284f132bf",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_template.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5c5ecf2251cbc474f16a13ff41505c4027e4e51e1f118114995c3a06514ce86e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_configuration_compliance_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e5d02005686089c52c6f09543f4c36f94b50acf0aa43d598d69c75f7a4c4bfc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_redfish_storage_controller.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1f989c42c6ed884fcfb2339e589b91b255b83f1ad7412da379c4d2fc011099a3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_system_lockdown_mode.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a975ba9dd65f7b1e7c58b8c1d4da8e5550050216de2e8fad15aa8c98b14cd4da",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_application_network_proxy.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b95c5f379d3e3468b7310336d88604b8fd10d6b947c608c31a2aa911e359e7d5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_smart_fabric_uplink.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a397745f9e9600fcf97f405147dd63cff88e04408b02e017b3c1545234898666",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_application_network_address.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "456edc9d23d3c21883cb482c4b7fe38e336ae5684681548f957daea7668d9d4f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_lifecycle_controller_jobs.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7d5e8f757f25a54d41c29d0688ed8ca71f3b15da7d53f6ec33ed20353cd7a876",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_lifecycle_controller_status_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0cf5932b4c00be9352b834e93f24e29ae57ed2ae994b2f777c3b0e2bb4569589",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_os_deployment.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b031f3574c3786abf2e8e01936fd8f4c0dc70959af01ef89034cace1eeb97c5f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_lifecycle_controller_logs.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8c4a0eb470da1d5ae4031168250de9dcb677e70e208d43787602411cf835b6e6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_application_network_time.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b66bf5bd6a9b71b124acfec76560726c149d998619739bfb979efa82788eb806",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_idrac_lc_attributes.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c964348135a313e04c80b4c9b6ae20f3141fd7d899f8527aad0ae524823fbe3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/redfish_storage_volume.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "616a048b742af37bfa0a689a9e2f76c05b8d066f561d63b09c6d3de031541d35",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_application_network_webserver.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "68ff59deed8a175b50fb4f02c8589a3074dbc112758d8c10e06cd35da3a573e6",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_template_network_vlan.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "717338bf127ec1576b7045d0ea7bf875a102e65dcef9e6677e04d6f4833fddd3",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_firmware_catalog.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6b2fd35165d1ea9f5d6ac7438132f313f6a14e82252bf2c5d98c45a86fed5bda",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_configure_idrac_services.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "00ef22ab4cb4da9625c38033aa776cdd2dbee91910afbe839052ca2d729a58e2",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_device_group.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4148403a5d0d89bafb0a093734ef65bbcd360a1200c2eb06575841303fffc77b",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_lifecycle_controller_job_status_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ad9f34282d07a1e6cb22a4b2d1273838dd1ab0e46f49bfe639b74f78408676ce",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f9e24db7cc38153f75f8a73f5e4dabccc77a9ecf08145c9431d67621139fc3d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_server_config_profile.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "23c4be1c7a68395f85f2378d2154c590371e5a559cd8cf05ff1fc44ec0527772",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_timezone_ntp.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10e44e7c6b6eea44237e7d4ea6a0ba6e2b0c17c4d951bd78e8941d7aff4beff5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_get_firmware_inventory.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0012062c15c4f7a418e052ae44e342ae95fee9036287820e6ae4da2fa69c4b0a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_template_identity_pool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ed81abeffb29aa574fde8231145fbd6f6dc9d1630aff22fb54f5503a07634325",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_firmware_baseline.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f69299b803ba8fa1edb4a8ad53dae932390b097ab976d4c8f0e856203276723",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f34166316c020e81d189f9afa900dbbf995608bb3b6fc87c3228ba50b8885a8a",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "84c2d2ebe0cb9a076892f256130df325f429cf67efe985f71bea735597e4b674",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_user.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ca91cfac465c37c56163c4abeb8c30597a71087e94c58dae376c4d475a4fa2f9",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/redfish_firmware.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "66b148fa90e80302ad3ca7d1819c623b6a667674dd1fc530854753418c3f13fe",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_identity_pool.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0747e3343333a0bfa77b8ac5fccad2d80ce8af6bf39d019e92a38b3dc691d67f",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_syslog.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "911040e879359be7555b487f8d90ad1130ca2b6191b6fd1707f7db20adca9c4e",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_idrac_storage_volume.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "85c2856ee3408c66666ef7333c091b77bfd96299ca4d1853ff472c47d346a99d",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_firmware_baseline_compliance_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "848546b0febc53f8e6dc76dd4ef8b68bbdb06a1e919b04e9efa5cdfc05898dea",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_reset.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cb4b083b28d997de88d48e6afec70874633ddaff4c04cb282bfef806bc1522ab",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_network_vlan_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4ad3c4b38234b8e50faa58ba30de2fefbb97354dca69c9eb9b88874327007f82",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/dellemc_get_system_inventory.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1216c1c2178bb2fcf94129e9f7f1263fcc1db68ed6d76fb9caa4be335897f302",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_job_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f93ae0417d1f926e88c6faa935b4b4f03d1b6ad808d80d9a31cf792205d89bc",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_template_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d5e2ea773a06ec1d565ae3bd89baf41ec9fe27b4d0ba877a39c00805350705b5",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_user_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8fa04c6ddd753bf41326f25c1044021edb0418dacddff27bce20e6ae0e5de9ac",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/idrac_firmware_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f91a26fe7683e347accef2739980b84cc8c3adcd8664057e09a1e0a926d6e822",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_network_port_breakout.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0c6d3ba3470f3a66dcc2b860150adc903fe78af904215fbe20950c029b1659b1",
+   "format": 1
+  },
+  {
+   "name": "plugins/modules/ome_firmware_baseline_info.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea8e56e2a6679341251d575990cce1e0fb339ddb8161001c86dd9852046d0fb7",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/redfish_auth_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f55c6918a2215a25447ee131f069b55635e805c2451e089c18ccda94cc5d824f",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/network_share_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "98d8877a3ceb891a40e3ecb802f3843c6775aba98a9e2760f01bf913ed69a964",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/ome_auth_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fe1aeb4df2f16c6429fccfaead1ee2c26b538e50d99c9aa494401a07a37bc0c2",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/idrac_auth_options.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "783de4ef5f9dc9ee36e225fb8c45a867861de74827477225318616798f012085",
+   "format": 1
+  },
+  {
+   "name": "plugins/doc_fragments/__init__.py",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "format": 1
+  },
+  {
+   "name": "plugins/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c82ee692702ec1dd604cdbc38ff252114e5204e1b0627045a66c9451e7a918ac",
+   "format": 1
+  },
+  {
+   "name": "CODE_OF_CONDUCT.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4fc1212fcee3969583950394cdc6507ba67b85d24635f991d1eecda9cedc25d5",
+   "format": 1
+  }
+ ],
+ "format": 1
+}

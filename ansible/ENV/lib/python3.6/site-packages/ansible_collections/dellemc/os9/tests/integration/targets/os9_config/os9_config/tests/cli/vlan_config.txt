@@ -1,0 +1,9 @@
+interface Vlan 1000
+ description "vlan added from ansible"
+ name Testansible-1000
+ ip unreachables
+ ip helper-address 100.1.1.1
+ ip udp-helper udp-port 1000
+ no shutdown
+~
+

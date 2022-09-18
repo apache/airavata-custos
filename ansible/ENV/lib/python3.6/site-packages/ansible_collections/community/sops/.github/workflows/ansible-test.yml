@@ -1,0 +1,120 @@
+name: CI
+on:
+  # Run CI against all pushes (direct commits, also merged PRs), Pull Requests
+  push:
+  pull_request:
+  # Run CI once per day (at 06:00 UTC)
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  sanity:
+    name: Sanity (Ⓐ${{ matrix.ansible }})
+    strategy:
+      matrix:
+        ansible:
+          # It's important that Sanity is tested against all stable-X.Y branches
+          # Testing against `devel` may fail as new tests are added.
+          - stable-2.9
+          - stable-2.10
+          - devel
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/community/sops
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          # it is just required to run that once as "ansible-test sanity" in the docker image
+          # will run on all python versions it supports.
+          python-version: 3.8
+
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+      # run ansible-test sanity inside of Docker.
+      # The docker container has all the pinned dependencies that are required.
+      - name: Run sanity tests
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/community/sops
+
+#  units:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Check out code
+#        uses: actions/checkout@v1
+#        with:
+#          path: ansible_collections/community/sops
+#
+#      - name: Set up Python 3.8
+#        uses: actions/setup-python@v1
+#        with:
+#          python-version: 3.8
+#
+#      - name: Install ansible-base (devel)
+#        run: pip install https://github.com/ansible/ansible/archive/devel.tar.gz --disable-pip-version-check
+#
+#      - name: Run unit tests
+#        run: ansible-test units --docker -v --color --python 3.6 --coverage
+#
+#      - name: Generate coverage report.
+#        run: ansible-test coverage xml -v --requirements --group-by command --group-by version
+#
+#      - uses: codecov/codecov-action@v1
+#        with:
+#          fail_ci_if_error: false
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ansible:
+          # It's important that Sanity is tested against all stable-X.Y branches
+          # Testing against `devel` may fail as new tests are added.
+          - stable-2.9
+          - stable-2.10
+          - devel
+        docker_container:
+          - ubuntu1604
+          - ubuntu1804
+          - ubuntu2004
+        exclude:
+          - ansible: devel
+            docker_container: ubuntu1604
+          # ubuntu2004 is only available with ansible-core 2.11+ / devel
+          - ansible: stable-2.9
+            docker_container: ubuntu2004
+          - ansible: stable-2.10
+            docker_container: ubuntu2004
+    #container:
+    #  image: python:${{ matrix.python_version }}-alpine
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: ansible_collections/community/sops
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install ansible-base (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+      - name: Run integration tests in ${{ matrix.docker_container }} Docker container
+        run: ansible-test integration --docker ${{ matrix.docker_container }} -v --color --retry-on-error --continue-on-error --diff --coverage
+        working-directory: ./ansible_collections/community/sops
+
+      - name: Generate coverage report.
+        run: ansible-test coverage xml -v --requirements --group-by command --group-by version
+        working-directory: ./ansible_collections/community/sops
+
+      - uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: false

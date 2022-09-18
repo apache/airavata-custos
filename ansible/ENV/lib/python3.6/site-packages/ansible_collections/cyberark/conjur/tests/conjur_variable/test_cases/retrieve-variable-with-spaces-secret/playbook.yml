@@ -1,0 +1,14 @@
+---
+- name: Retrieve Conjur variable with spaces in the variable name
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Clean artifact path
+      file:
+        state: absent
+        path: /conjur_secrets.txt
+
+    - name: Retrieve Conjur variable with spaces in the variable name
+      vars:
+        super_secret_key: "{{lookup('conjur_variable', 'ansible/var with spaces')}}"
+      shell: echo "{{super_secret_key}}" > /conjur_secrets.txt

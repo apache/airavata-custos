@@ -1,0 +1,44 @@
+---
+- name: Fail missing params
+  cloudscale_ch.cloud.network:
+  register: net
+  ignore_errors: True
+- name: 'VERIFY: Fail name and UUID'
+  assert:
+    that:
+      - net is failed
+
+- name: Create two networks with the same name
+  uri:
+    url: 'https://api.cloudscale.ch/v1/networks'
+    method: POST
+    headers:
+      Authorization: 'Bearer {{ cloudscale_api_token }}'
+    body:
+      name: '{{ cloudscale_resource_prefix }}-duplicate'
+    body_format: json
+    status_code: 201
+  register: duplicate
+  with_sequence: count=2
+
+- name: Try access to duplicate name
+  cloudscale_ch.cloud.network:
+    name: '{{ cloudscale_resource_prefix }}-duplicate'
+  register: net
+  ignore_errors: True
+- name: 'VERIFY: Try access to duplicate name'
+  assert:
+    that:
+    - net is failed
+    - net.msg.startswith("More than one networks resource with 'name' exists")
+
+- name: Fail network creation with UUID
+  cloudscale_ch.cloud.network:
+    uuid: ea3b39a3-77a8-4d0b-881d-0bb00a1e7f48
+  register: net
+  ignore_errors: True
+- name: 'VERIFY: Fail network creation with UUID'
+  assert:
+    that:
+    - net is failed
+    - net.msg.startswith("state is present but all of the following are missing")

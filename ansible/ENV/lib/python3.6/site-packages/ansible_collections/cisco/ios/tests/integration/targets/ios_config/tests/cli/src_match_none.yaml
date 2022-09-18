@@ -1,0 +1,34 @@
+---
+- debug: msg="START cli/src_match_none.yaml on connection={{ ansible_connection
+    }}"
+
+- name: setup
+  cisco.ios.ios_config:
+    commands:
+      - no description
+      - no shutdown
+    parents:
+      - interface Loopback999
+    match: none
+
+- name: configure device with config
+  register: result
+  cisco.ios.ios_config:
+    src: basic/config.j2
+    match: none
+
+- assert:
+    that:
+      - result.changed == true
+
+- name: check device with config
+  register: result
+  cisco.ios.ios_config:
+    src: basic/config.j2
+
+- assert:
+    that:
+      - result.changed == false
+      - result.updates is not defined
+
+- debug: msg="END cli/src_match_none.yaml on connection={{ ansible_connection }}"

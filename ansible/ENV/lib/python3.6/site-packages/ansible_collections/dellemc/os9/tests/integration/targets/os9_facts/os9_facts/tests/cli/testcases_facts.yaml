@@ -1,0 +1,55 @@
+---
+- debug: msg="START cli/testcases_facts.yaml"
+
+- name: Get all the interfaces facts
+  os9_facts:
+    gather_subset:
+      - interfaces
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.ansible_facts is defined"
+      - "result.ansible_facts.ansible_net_all_ipv4_addresses is defined"
+      - "result.ansible_facts.ansible_net_interfaces is defined"
+      - "result.ansible_facts.ansible_net_neighbors is defined"
+
+- name: Get all the facts Excpet Interfaces using ! Operator and validate
+  os9_facts:
+    gather_subset:
+        - "!interfaces"
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.ansible_facts is defined"
+      - "result.ansible_facts.ansible_net_all_ipv4_addresses is not defined"
+      - "result.ansible_facts.ansible_net_interfaces is not defined"
+      - "result.ansible_facts.ansible_net_neighbors is not defined"
+      - "result.ansible_facts.ansible_net_config is defined"
+      - "result.ansible_facts.ansible_net_filesystems is defined"
+
+- name: Test with multiple subsets provided
+  os9_facts:
+    gather_subset:
+      - config
+      - hardware
+    provider: "{{ cli }}"
+  register: result
+
+- assert:
+    that:
+      - "result.changed == false"
+      - "result.ansible_facts is defined"
+      - "result.ansible_facts.ansible_net_filesystems is  defined"
+      - "result.ansible_facts.ansible_net_memtotal_mb is  defined"
+      - "result.ansible_facts.ansible_net_memfree_mb is defined"
+      - "result.ansible_facts.ansible_net_config is defined"
+
+ 
+
+- debug: msg="START cli/testcases_facts.yaml"

@@ -1,0 +1,36 @@
+{
+ "collection_info": {
+  "namespace": "cisco",
+  "name": "meraki",
+  "version": "2.2.1",
+  "authors": [
+   "Kevin Breit"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "networking",
+   "wireless",
+   "firewall",
+   "switching",
+   "cisco"
+  ],
+  "description": "An Ansible collection for managing the Cisco Meraki Dashboard",
+  "license": [
+   "GPL-3.0-only"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/CiscoDevNet/ansible-meraki",
+  "documentation": "",
+  "homepage": "",
+  "issues": "https://github.com/CiscoDevNet/ansible-meraki/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "2254d19664229f23c760d0778d01925d16c8d33d905fb7cd04fd020054019baf",
+  "format": 1
+ },
+ "format": 1
+}

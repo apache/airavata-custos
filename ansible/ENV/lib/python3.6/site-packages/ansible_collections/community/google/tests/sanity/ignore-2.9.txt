@@ -1,0 +1,11 @@
+plugins/modules/gce_eip.py pylint:blacklisted-name
+plugins/modules/gce_img.py pylint:blacklisted-name
+plugins/modules/gce_instance_template.py pylint:blacklisted-name
+plugins/modules/gce_instance_template.py validate-modules:doc-missing-type
+plugins/modules/gce_lb.py pylint:blacklisted-name
+plugins/modules/gce_mig.py pylint:blacklisted-name
+plugins/modules/gce_net.py pylint:blacklisted-name
+plugins/modules/gce_pd.py pylint:blacklisted-name
+plugins/modules/gce_snapshot.py pylint:blacklisted-name
+plugins/modules/gce_tag.py pylint:blacklisted-name
+scripts/inventory/gce.py pylint:blacklisted-name

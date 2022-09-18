@@ -1,0 +1,26 @@
+# System directories files
+.DS_Store
+.idea/
+
+# Test output
+tests/*/junit/
+tests/*/conjur.pem
+tests/*/access_token
+**/test-files/output
+junit
+
+# Pycache directories and files
+**/__pycache__/
+.pytest_cache
+*.pyc
+
+# Distributable directories files
+*.tar.gz
+vendor/
+
+# Temporary files
+*.log
+.cache
+*.retry
+*.tmp
+conjur.pem

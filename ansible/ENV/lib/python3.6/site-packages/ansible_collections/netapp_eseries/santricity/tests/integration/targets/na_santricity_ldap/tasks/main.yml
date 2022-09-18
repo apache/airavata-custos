@@ -1,0 +1,104 @@
+# Test code for the nac_sancticity_ldap module
+# (c) 2020, NetApp, Inc
+# BSD-3 Clause (see COPYING or https://opensource.org/licenses/BSD-3-Clause)
+- include_vars: "../../integration_config.yml"
+
+- set_fact:
+    credentials: &creds
+      ssid: "{{ ssid }}"
+      api_url: "{{ base_url }}"
+      api_username: "{{ username }}"
+      api_password: "{{ password }}"
+      validate_certs: "{{ validate_cert }}"
+    ldap_info: &info
+      bind_user: "{{ bind_user }}"
+      bind_password: "{{ bind_password }}"
+      server_url: "{{ server_url }}"
+      search_base: "{{ search_base }}"
+    role_mappings:
+      - ".*":
+          - storage.admin
+          - security.admin
+          - support.admin
+          - storage.monitor
+      - ".*":
+          - storage.monitor
+
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: disabled
+
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: disabled
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Define a default LDAP domain, utilizing defaults where possible (changed, check_mode)
+  na_santricity_ldap:
+    <<: *creds
+    <<: *info
+    state: present
+    identifier: test1
+    role_mappings: "{{ role_mappings[0] }}"
+  check_mode: true
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Define a default LDAP domain, utilizing defaults where possible (changed)
+  na_santricity_ldap:
+    <<: *creds
+    <<: *info
+    state: present
+    identifier: test1
+    role_mappings: "{{ role_mappings[0] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Define a default LDAP domain, utilizing defaults where possible (no change)
+  na_santricity_ldap:
+    <<: *creds
+    <<: *info
+    state: present
+    identifier: test1
+    role_mappings: "{{ role_mappings[0] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ not results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: (Repeat) Define a default LDAP domain, utilizing defaults where possible (change)
+  na_santricity_ldap:
+    <<: *creds
+    <<: *info
+    state: present
+    identifier: test1
+    role_mappings: "{{ role_mappings[1] }}"
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"
+
+- name: Delete default LDAP domain
+  na_santricity_ldap:
+    <<: *creds
+    state: absent
+    identifier: test1
+  register: results
+- name: Verify LDAP changes
+  assert:
+    that: "{{ results['changed'] }}"
+    msg: "Unexpected results!"

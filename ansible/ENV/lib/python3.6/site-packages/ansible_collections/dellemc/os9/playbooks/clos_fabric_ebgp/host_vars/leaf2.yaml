@@ -1,0 +1,65 @@
+hostname: leaf2
+ansible_ssh_user: xxxxx
+ansible_ssh_pass: xxxxx
+ansible_network_os: dellemc.os9.os9
+leaf_hostname: "leaf-2"
+os9_system:
+  hostname: "{{ leaf_hostname }}"
+  hash_algo:
+    algo:
+      - name: ecmp
+        mode: xor1
+        state: present
+os9_interface:
+    TenGigabitEthernet 0/0:
+            desc: "Connected to Spine 1"
+            mtu: 9216
+            portmode:
+            admin: up
+            switchport: False
+            ip_and_mask: 100.1.17.2/24
+            ipv6_and_mask: 2001:100:1:11::2/64
+            state_ipv6: present
+    TenGigabitEthernet 0/1:
+            desc: "Connected to Spine 2"
+            mtu: 9216
+            portmode:
+            admin: up
+            switchport: False
+            ip_and_mask: 100.2.17.2/24
+            ipv6_and_mask: 2001:100:2:11::2/64
+os9_bgp:
+    asn: 64802
+    router_id: 100.0.2.2
+    best_path:
+       as_path: ignore
+       as_path_state: present
+       med:
+        - attribute: confed
+          state: present
+    neighbor:
+      - type: ipv4
+        remote_asn: 64901
+        ip: 100.1.18.1
+        admin: up
+        state: present
+      - type: ipv4
+        remote_asn: 64901
+        ip: 100.1.17.1
+        admin: up
+        state: present
+      - type: ipv4
+        remote_asn: 64901
+        ip: 100.2.17.1
+        admin: up
+        state: present
+      - type: ipv6
+        remote_asn: 64901
+        ip: 2001:100:1:11::1
+        admin: up
+        state: present
+      - type: ipv6
+        remote_asn: 64901
+        ip: 2001:100:2:11::1
+        admin: up
+    state: present

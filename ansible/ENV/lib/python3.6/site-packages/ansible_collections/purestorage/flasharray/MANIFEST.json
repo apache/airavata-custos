@@ -1,0 +1,36 @@
+{
+ "collection_info": {
+  "description": "Collection of modules to manage Pure Storage FlashArrays (including Cloud Block Store)", 
+  "repository": "https://github.com/Pure-Storage-Ansible/FlashArray-Collection", 
+  "tags": [
+   "purestorage", 
+   "flasharray", 
+   "cloudblockstore", 
+   "storage"
+  ], 
+  "dependencies": {}, 
+  "authors": [
+   "Pure Storage Ansible Team <pure-ansible-team@purestorage.com>"
+  ], 
+  "issues": "https://github.com/Pure-Storage-Ansible/FlashArray-Collection/issues", 
+  "name": "flasharray", 
+  "license": [
+   "GPL-3.0-or-later", 
+   "BSD-2-Clause"
+  ], 
+  "documentation": "https://github.com/Pure-Storage-Ansible/FlashArray-Collection", 
+  "namespace": "purestorage", 
+  "version": "1.8.0", 
+  "readme": "README.md", 
+  "license_file": null, 
+  "homepage": null
+ }, 
+ "file_manifest_file": {
+  "format": 1, 
+  "ftype": "file", 
+  "chksum_sha256": "377899f70e982e871899f3b7f26c1badd50a0946e8500bcdca99671bf0e43fbe", 
+  "name": "FILES.json", 
+  "chksum_type": "sha256"
+ }, 
+ "format": 1
+}

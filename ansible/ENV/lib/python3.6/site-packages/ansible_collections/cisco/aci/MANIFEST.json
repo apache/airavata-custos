@@ -1,0 +1,45 @@
+{
+ "collection_info": {
+  "namespace": "cisco",
+  "name": "aci",
+  "version": "2.0.0",
+  "authors": [
+   "Dag Wieers (@dagwieers) <dag@wieers.com>",
+   "Swetha Chunduri (@schunduri)",
+   "Jacob McGill (@jmcgill298)",
+   "Rob Huelga (@RobW3LGA)",
+   "Bruno Calogero <brunocalogero@hotmail.com>",
+   "Simon Metzger <smnmtzgr@gmail.com>",
+   "Tim Knipper <tim.knipper@gmail.com>",
+   "Apoorva Gururaja (@aciguru)",
+   "Devarshi Shah (@devarshishah3)",
+   "Ramses Smeyers (@rsmeyers)",
+   "Lionel Hercot (@lhercot) <lhercot@cisco.com>"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "cisco",
+   "aci",
+   "cloud",
+   "collection",
+   "networking",
+   "sdn"
+  ],
+  "description": "Ansible Modules for Cisco ACI",
+  "license": [],
+  "license_file": "LICENSE",
+  "dependencies": {},
+  "repository": "https://github.com/CiscoDevNet/ansible-aci",
+  "documentation": "https://docs.ansible.com/ansible/latest/scenario_guides/guide_aci.html",
+  "homepage": "https://github.com/CiscoDevNet/ansible-aci",
+  "issues": "https://github.com/CiscoDevNet/ansible-aci/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "32bbbd55c5e031a722d4a2f865619448b65ecd8cf42e47009d1460968bd7e9fc",
+  "format": 1
+ },
+ "format": 1
+}

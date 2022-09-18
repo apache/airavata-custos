@@ -1,0 +1,109 @@
+---
+- block:
+
+    - name: Create user with password
+      cisco.ios.ios_user:
+        name: auth_user
+        privilege: 15
+        role: network-operator
+        state: present
+        configured_password: pass123
+
+    - name: reset connection with {{ ansible_user }
+      meta: reset_connection
+
+    - name: test login for {{ ansible_user }} user with password
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      vars:
+        ansible_user: auth_user
+        ansible_password: pass123
+
+    - name: reset connection with {{ ansible_user }
+      meta: reset_connection
+
+    - name: test login with invalid password (should fail)
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      ignore_errors: true
+      register: results
+      vars:
+        ansible_user: auth_user
+        ansible_password: badpass
+
+    - name: reset connection with {{ ansible_user }
+      meta: reset_connection
+
+    - name: check that attempt failed
+      assert:
+        that:
+          - results.failed
+  always:
+
+    - name: delete user
+      register: result
+      cisco.ios.ios_user:
+        name: auth_user
+        state: absent
+
+    - name: reset connection
+      meta: reset_connection
+
+- block:
+
+    - name: Ensure ssh key is not world readable
+      file:
+        path: '{{ role_path }}/files/test_rsa'
+        mode: 384
+
+    - name: Create user with sshkey
+      cisco.ios.ios_user:
+        name: ssh_user
+        privilege: 15
+        role: network-operator
+        state: present
+        sshkey: "{{ lookup('file', 'files/test_rsa.pub') }}"
+
+    - name: reset connection with {{ ansible_user }
+      meta: reset_connection
+
+    - name: test sshkey login for {{ ansible_user }} user
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      vars:
+        ansible_user: ssh_user
+        ansible_private_key_file: "{{ role_path }}/files/test_rsa"
+
+    - name: reset connection with {{ ansible_user }}
+      meta: reset_connection
+
+    - name: test with {{ ansible_user }} user without keys
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      ignore_errors: true
+      register: results
+      vars:
+        ansible_user: ssh_user
+        ansible_private_key_file: ""
+
+    - name: reset connection with {{ ansible_user }}
+      meta: reset_connection
+
+    - name: check that attempt failed
+      assert:
+        that:
+          - results.failed
+  always:
+
+    - name: delete user
+      register: result
+      cisco.ios.ios_user:
+        name: ssh_user
+        state: absent
+
+    - name: reset connection
+      meta: reset_connection
