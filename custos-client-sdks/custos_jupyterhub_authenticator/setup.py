@@ -16,7 +16,7 @@ long_description = (this_directory / "README.md").read_text()
 setup(
     name='custos_jupyterhub_authenticator',
     long_description_content_type="text/markdown",
-    version='1.0.3',
+    version='1.0.5',
     packages=find_packages(),
     package_data={'': ['*.md']},
     include_package_data=True,
