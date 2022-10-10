@@ -8,15 +8,12 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: "${host}"
-      http:
+    - http:
         paths:
           - path: /services(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: custos-integration-services-swagger
-              servicePort: http
-
-  tls:
-    - hosts:
-        - custos.scigap.org
-      secretName: tls-services-secret
+              service:
+                 name: custos-integration-services-swagger
+                 port:
+                    name: http

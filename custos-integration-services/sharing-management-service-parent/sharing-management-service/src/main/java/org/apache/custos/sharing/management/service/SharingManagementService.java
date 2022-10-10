@@ -692,10 +692,10 @@ public class SharingManagementService extends SharingManagementServiceImplBase {
             responseObserver.onNext(status);
             responseObserver.onCompleted();
 
-            for (String username : request.getOwnerIdList()) {
-
-                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
-            }
+//            for (String username : request.getOwnerIdList()) {
+//
+//                validateAndGetUserProfile(username, clientId, clientSec, tenantId);
+//            }
 
         } catch (Exception ex) {
             String msg = "Error occurred at userHasAccess " + ex.getMessage();

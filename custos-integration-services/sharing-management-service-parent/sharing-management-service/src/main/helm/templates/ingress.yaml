@@ -8,15 +8,12 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /sharing-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: sharing-management-service
-              servicePort: envoyhttp
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret
+              service:
+                  name: sharing-management-service
+                  port:
+                     name: envoyhttp

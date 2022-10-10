@@ -150,8 +150,9 @@ public class CredentialManager {
 
             }
         } catch (Exception ex) {
+            LOGGER.error("basic token decoding error:", ex);
             throw new CredentialGenerationException
-                    ("Error occurred while decoding token ", ex);
+                    ("Error occurred while decoding  basic token ", ex);
 
         }
         return null;
@@ -160,6 +161,7 @@ public class CredentialManager {
 
     public Credential decodeJWTToken(String token) {
         try {
+            LOGGER.info("Received token " + token);
             java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
             String[] parts = token.split("\\."); // split out the "parts" (header, payload and signature)
 
@@ -195,8 +197,9 @@ public class CredentialManager {
 
             return credential;
         } catch (Exception ex) {
+            LOGGER.error("JWT token decoding error:", ex);
             throw new CredentialGenerationException
-                    ("Error occurred while decoding token ", ex);
+                    ("Error occurred while decoding JWT token ", ex);
 
         }
 
@@ -220,8 +223,9 @@ public class CredentialManager {
             credential.setParentId(jsonMap.get("agent-parent-id").toString());
             return credential;
         } catch (Exception ex) {
+            LOGGER.error("Agent token decoding error:", ex);
             throw new CredentialGenerationException
-                    ("Error occurred while decoding token ", ex);
+                    ("Error occurred while decoding agent token ", ex);
         }
     }
 

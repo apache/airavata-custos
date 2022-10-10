@@ -8,15 +8,12 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - host: {{ .Values.deployment.host }}
-       http:
+     - http:
         paths:
          - path: /org.apache.custos.identity.management.service.IdentityManagementService(/|$)(.*)
+           pathType: "Prefix"
            backend:
-              serviceName: identity-management-service
-              servicePort: grpc
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret
+              service:
+                 name: identity-management-service
+                 port:
+                    name: grpc

@@ -4,19 +4,16 @@ metadata:
   name: ${artifactId}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /identity-management/$2
-    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
+#    cert-manager.io/cluster-issuer: {{ .Values.deployment.clusterIssuer }}
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: {{ .Values.deployment.host }}
-      http:
+    - http:
         paths:
           - path: /identity-management(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: identity-management-service
-              servicePort: envoyhttp
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret
+              service:
+                 name: identity-management-service
+                 port:
+                    name: envoyhttp

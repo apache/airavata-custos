@@ -52,8 +52,6 @@ public class KeycloakClient {
 
     private final static int SESSION_IDLE_TIMEOUT = 3600;
 
-    @Autowired
-    private KeycloakAuthClient keycloakAuthClient;
 
     @Value("${iam.server.client.id:admin-cli}")
     private String clientId;
@@ -1344,6 +1342,11 @@ public class KeycloakClient {
         Keycloak client = null;
         try {
             client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword);
+
+            LOGGER.info("iamServerURL "+ iamServerURL);
+            LOGGER.info("SuperAdminRealmId "+ superAdminRealmID);
+            LOGGER.info("SuperAdminUserName "+ superAdminUserName);
+            LOGGER.info("SuperAdminPassword "+ superAdminPassword);
 
             List<UserRepresentation> userResourceList = client.realm(realmId).users().search(
                     username.toLowerCase(), null, null, null, null, null);

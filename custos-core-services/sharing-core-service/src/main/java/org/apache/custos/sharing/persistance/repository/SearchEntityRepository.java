@@ -28,4 +28,9 @@ public interface SearchEntityRepository {
 
 
     List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria, int limit, int offset);
+
+    List<Entity> searchEntitiesWithParent(long tenantId, String externalParentId, int limit, int offset);
+
+    List<Entity> searchEntitiesRecursive(long tenantId, List<SearchCriteria> searchCriteria);
+
 }

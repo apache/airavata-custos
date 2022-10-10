@@ -8,15 +8,12 @@ metadata:
   name: ${artifactId}-ingress-grpc
 spec:
   rules:
-     - host: {{ .Values.deployment.host }}
-       http:
+     - http:
         paths:
           - path: /org.apache.custos.sharing.management.service.SharingManagementService(/|$)(.*)
+            pathType: "Prefix"
             backend:
-              serviceName: sharing-management-service
-              servicePort: grpc
-
-  tls:
-    - hosts:
-        - {{ .Values.deployment.host }}
-      secretName: tls-services-secret
+              service:
+                name: sharing-management-service
+                port:
+                   name: grpc

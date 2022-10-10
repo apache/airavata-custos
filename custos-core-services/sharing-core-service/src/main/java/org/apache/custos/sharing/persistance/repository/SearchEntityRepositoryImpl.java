@@ -30,6 +30,7 @@ import org.springframework.stereotype.Repository;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,60 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
 
         return q.getResultList();
 
+    }
+
+    @Override
+    public List<Entity> searchEntitiesWithParent(long tenantId, String externalParentId, int limit, int offset) {
+        String query = "SELECT * FROM entity E WHERE ";
+        query = query + "E.tenant_id = :" + "TENANT_ID" + " AND ";
+
+        query = query + "E.external_parent_id = :" + EntitySearchField.PARENT_ID.name() + " AND ";
+
+        query = query.substring(0, query.length() - 5);
+        query = query + " ORDER BY E.created_at DESC";
+
+        if (limit > 0) {
+            query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
+        }
+
+        Query q = entityManager.createNativeQuery(query, Entity.class);
+        q.setParameter("TENANT_ID", tenantId);
+        q.setParameter(EntitySearchField.PARENT_ID.name(), externalParentId);
+        if (limit > 0) {
+            q.setParameter("limit", limit);
+            q.setParameter("offset", offset);
+        }
+
+        return q.getResultList();
+
+    }
+
+    @Override
+    public List<Entity> searchEntitiesRecursive(long tenantId, List<SearchCriteria> searchCriteriaList) {
+
+        String externalParentId = null;
+        for (SearchCriteria searchCriteria : searchCriteriaList) {
+            if (searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
+                externalParentId = searchCriteria.getValue();
+            }
+        }
+
+        if (externalParentId != null) {
+            String query = "with recursive cte " +
+                    "(external_id,external_parent_id) as " +
+                    "(select external_id,external_parent_id from entity s where s.external_parent_id = :PARENT_ID" +
+                    " union all select p.external_id,p.external_parent_id from entity p " +
+                    "inner join cte on p.external_parent_id=cte.external_id)" +
+                    "select * from cte";
+
+            Query q = entityManager.createNativeQuery(query, Entity.class);
+            q.setParameter("PARENT_ID", externalParentId);
+
+
+            return q.getResultList();
+        } else {
+            return new ArrayList<>();
+        }
     }
 
 
