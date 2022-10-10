@@ -44,6 +44,7 @@ enum EntitySearchField {
     PARENT_ID = 8;
     SHARED_COUNT = 9;
     PERMISSION_TYPE_ID = 10;
+    SHARED_BY=11;
 }
 
 
@@ -116,6 +117,7 @@ message SearchRequest {
     repeated SearchCriteria search_criteria = 6;
     string client_sec = 7;
     repeated string associating_ids = 8;
+    bool search_perm_bottom_up=9;
 }
 
 message PermissionRequest {

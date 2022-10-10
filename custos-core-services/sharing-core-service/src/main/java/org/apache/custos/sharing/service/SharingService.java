@@ -747,11 +747,63 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             long tenantId = request.getTenantId();
             int limit = request.getLimit() == 0 ? -1 : request.getLimit();
 
-            List<org.apache.custos.sharing.persistance.model.Entity> entities = entityRepository.
-                    searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
-
+            List<org.apache.custos.sharing.persistance.model.Entity> entities = new ArrayList<>();
             HashMap<String, org.apache.custos.sharing.service.Entity> entryMap = new HashMap<>();
 
+            List<String> sharingList = new ArrayList<>();
+            sharingList.add(Constants.DIRECT_CASCADING);
+            sharingList.add(Constants.DIRECT_NON_CASCADING);
+
+            String initialParentId = null;
+
+            for(SearchCriteria searchCriteria:request.getSearchCriteriaList()){
+                if(searchCriteria.getSearchField().equals(EntitySearchField.SHARED_BY)){
+                    String value = searchCriteria.getValue();
+                    List<Sharing> sharings =   sharingRepository.findAllEntitiesSharedBy(tenantId,value,sharingList);
+                    if (sharings != null && !sharings.isEmpty()) {
+                        for (Sharing sharing : sharings) {
+                            Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                            entryMap.put(entity.getId(), entity);
+
+                        }
+
+                    }
+                    List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>(entryMap.values());
+                    org.apache.custos.sharing.service.Entities resp = org.apache.custos.sharing.service.Entities
+                            .newBuilder()
+                            .addAllEntityArray(entityList)
+                            .build();
+                    responseObserver.onNext(resp);
+                    responseObserver.onCompleted();
+                    return;
+                }else if(searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
+                    initialParentId = searchCriteria.getValue();
+                }
+            }
+
+            if (request.getSearchPermBottomUp()) {
+                entities = entityRepository.
+                        searchEntitiesWithParent(tenantId, initialParentId, limit, request.getOffset());
+                List<org.apache.custos.sharing.persistance.model.Entity> totalEntityList= new ArrayList<>();
+                totalEntityList.addAll(entities);
+                while(!entities.isEmpty()) {
+                    List<org.apache.custos.sharing.persistance.model.Entity> entityList= new ArrayList<>();
+                    for(org.apache.custos.sharing.persistance.model.Entity entity: entities){
+                        List<org.apache.custos.sharing.persistance.model.Entity> exList = entityRepository.
+                                searchEntitiesWithParent(tenantId, entity.getExternalId(), limit, request.getOffset());
+                        if(!exList.isEmpty()) {
+                            entityList.addAll(exList);
+                        }
+                    }
+                    entities = entityList;
+                    totalEntityList.addAll(entities);
+                }
+                entities = totalEntityList;
+
+            } else {
+                entities = entityRepository.
+                        searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
+            }
 
             List<String> internalEntityIds = new ArrayList<>();
 
