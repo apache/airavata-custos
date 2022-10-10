@@ -747,8 +747,14 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             long tenantId = request.getTenantId();
             int limit = request.getLimit() == 0 ? -1 : request.getLimit();
 
-            List<org.apache.custos.sharing.persistance.model.Entity> entities = entityRepository.
-                    searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
+            List<org.apache.custos.sharing.persistance.model.Entity> entities = new ArrayList<>();
+            if (request.getSearchPermBottomUp()) {
+                entities = entityRepository.
+                        searchEntitiesRecursive(tenantId, request.getSearchCriteriaList());
+            } else {
+                entities = entityRepository.
+                        searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
+            }
 
             HashMap<String, org.apache.custos.sharing.service.Entity> entryMap = new HashMap<>();
 
@@ -763,11 +769,20 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
                 List<Sharing> sharings = sharingRepository.
                         findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
-                if (sharings != null && !sharings.isEmpty()) {
-                    for (Sharing sharing : sharings) {
-                        Entity entity = EntityMapper.createEntity(sharing.getEntity());
-                        entryMap.put(entity.getId(), entity);
 
+
+                if (sharings != null && !sharings.isEmpty()) {
+                    if (request.getSearchPermBottomUp()) {
+                        for(org.apache.custos.sharing.persistance.model.Entity en: entities){
+                            Entity entity = EntityMapper.createEntity(en);
+                            entryMap.put(entity.getId(), entity);
+                        }
+
+                    } else {
+                        for (Sharing sharing : sharings) {
+                            Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                            entryMap.put(entity.getId(), entity);
+                        }
                     }
                 }
             }
