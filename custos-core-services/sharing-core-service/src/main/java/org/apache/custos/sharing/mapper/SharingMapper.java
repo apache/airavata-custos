@@ -112,7 +112,7 @@ public class SharingMapper {
                 .setOwnerId(sharing.getAssociatingId())
                 .setOwnerType(type)
                 .setSharedBy(sharing.getSharedBy()!=null?sharing.getSharedBy():"")
-                .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder()
+                .addPermissions(org.apache.custos.sharing.service.PermissionType.newBuilder()
                         .setId(permissionType.getExternalId()).build()).build();
 
     }
@@ -124,7 +124,7 @@ public class SharingMapper {
                     map(shr -> {
                         try {
                             SharingMetadata metadata = SharingMetadata.newBuilder()
-                                    .setPermission(org.apache.custos.sharing.service.PermissionType.newBuilder().
+                                    .addPermissions(org.apache.custos.sharing.service.PermissionType.newBuilder().
                                             setId(shr.getPermissionType().getExternalId())
                                             .setName(shr.getPermissionType().getName()
                                             ).setDescription(shr.getPermissionType().getDescription() == null ?

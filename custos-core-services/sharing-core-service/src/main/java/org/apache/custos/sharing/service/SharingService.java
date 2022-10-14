@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @GRpcService
 public class SharingService extends org.apache.custos.sharing.service.SharingServiceGrpc.SharingServiceImplBase {
@@ -817,8 +818,35 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                         findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
                 if (sharings != null && !sharings.isEmpty()) {
                     for (Sharing sharing : sharings) {
-                        Entity entity = EntityMapper.createEntity(sharing.getEntity());
-                        entryMap.put(entity.getId(), entity);
+                        if(entryMap.containsKey(sharing.getEntity().getId())){
+                          Entity entity =   entryMap.get(sharing.getEntity().getId());
+                           SharingMetadata sharingMetadata =  entity.toBuilder().getMetadata();
+                          List<org.apache.custos.sharing.service.PermissionType> permissionTypes = sharingMetadata.getPermissionsList().stream().filter(perm->{
+                               if(perm.getId().equals(sharing.getPermissionType().getExternalId())){
+                                   return true;
+                               }else{
+                                   return  false;
+                               }
+                            }).collect(Collectors.toList());
+                          if(permissionTypes.isEmpty()){
+
+                          }
+                            sharingMetadata =  sharingMetadata.toBuilder()
+                                    .addPermissions(PermissionType.newBuilder()
+                                            .setId(sharing.getPermissionType()
+                                                    .getExternalId()).build()).build();
+                           entity = entity.toBuilder().setMetadata(sharingMetadata).build();
+                           entryMap.put(entity.getId(), entity);
+
+                        }else {
+                            Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                            SharingMetadata sharingMetadata = SharingMetadata.newBuilder()
+                                    .addPermissions(PermissionType.newBuilder()
+                                            .setId(sharing.getPermissionType()
+                                                    .getExternalId()).build()).build();
+                            entity = entity.toBuilder().setMetadata(sharingMetadata).build();
+                            entryMap.put(entity.getId(), entity);
+                        }
 
                     }
                 }
@@ -1324,7 +1352,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     new ArrayList<>(selectedList).forEach(selVar -> {
                         if ((shr.getEntity().getId().equals(selVar.getEntity().getId())
                                 && shr.getOwnerId().equals(selVar.getOwnerId()) &&
-                                shr.getPermission().getId().equals(selVar.getPermission().getId()))) {
+                                shr.getPermissions(0).getId().equals(selVar.getPermissions(0).getId()))) {
                             matched.set(true);
                         }
                     });
