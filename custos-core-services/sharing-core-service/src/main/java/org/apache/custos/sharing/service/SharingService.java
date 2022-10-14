@@ -1287,7 +1287,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     new ArrayList<>(selectedList).forEach(selVar -> {
                         if ((shr.getEntity().getId().equals(selVar.getEntity().getId())
                                 && shr.getOwnerId().equals(selVar.getOwnerId()) &&
-                                shr.getPermission().getId().equals(selVar.getPermission().getId()))) {
+                                shr.getPermissions(0).getId().equals(selVar.getPermissions(0).getId()))) {
                             matched.set(true);
                         }
                     });
