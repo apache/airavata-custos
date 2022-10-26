@@ -27,6 +27,7 @@ import org.apache.custos.iam.service.UserAttribute;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
+import org.apache.custos.identity.service.AuthenticationRequest;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.integration.core.utils.Constants;
 import org.apache.custos.user.profile.client.UserProfileClient;
@@ -577,7 +578,18 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-            if (token != null && token.getAccessToken() != null) {
+            AuthenticationRequest authenticationRequest = AuthenticationRequest
+                    .newBuilder()
+                    .setClientId(request.getClientId())
+                    .setClientSecret(request.getClientSec())
+                    .setTenantId(request.getTenantId())
+                    .setUsername(request.getUsername())
+                    .setPassword(request.getOldPassword())
+                    .build();
+
+           AuthToken authToken =  identityClient.authenticate(authenticationRequest);
+
+            if (authToken.getAccessToken() != null  && token != null && token.getAccessToken() != null) {
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
@@ -586,7 +598,7 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                 responseObserver.onCompleted();
             } else {
                 LOGGER.error("Cannot find service token");
-                responseObserver.onError(Status.CANCELLED.
+                responseObserver.onError(Status.PERMISSION_DENIED.
                         withDescription("Cannot find service token").asRuntimeException());
             }
 
