@@ -21,24 +21,33 @@
 ---
 - hosts: old_custos
   roles:
-    - migrate_db
+    - role: migrate_db # execute migrate_db role only when migrate_db tag is specified
+      tags: [migrate_db, never]
 - hosts: old_keycloak
   roles:
-    - migrate_db
+    - role: migrate_db
+      tags: [migrate_db, never]
 - hosts: old_hashicorp
   roles:
-    - migrate_db
+    - role: migrate_db
+      tags: [migrate_db, never]
 - hosts: hashicorp
   roles:
+    - role: env_setup # execute env_setup role only when env_setup tag is specified
+      tags: [env_setup, never]
     - nginx
     - consul
     - vault
 - hosts: keycloak
   roles:
+    - role: env_setup
+      tags: [env_setup, never]
     - nginx
     - keycloak
 - hosts: custos
   roles:
+    - role: env_setup
+      tags: [env_setup, never]
     - nginx
     - database
     - zookeeper

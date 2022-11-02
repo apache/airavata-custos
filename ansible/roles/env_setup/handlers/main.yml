@@ -17,3 +17,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
+---
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted
