@@ -64,7 +64,10 @@ public class ServiceInterceptor implements ServerInterceptor {
                     Iterator it = interceptorSet.iterator();
                     while (it.hasNext()) {
                         IntegrationServiceInterceptor interceptor = (IntegrationServiceInterceptor) it.next();
-                        resp = interceptor.intercept(methodName, metadata, (resp == null) ? message : resp);
+                        if (serviceName.split(".service")[0]
+                                .equals(interceptor.toString().split(".interceptors")[0])) {
+                            resp = interceptor.intercept(methodName, metadata, (resp == null) ? message : resp);
+                        }
                     }
                     super.onMessage(resp);
                 } catch (UnAuthorizedException ex) {
