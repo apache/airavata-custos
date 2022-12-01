@@ -808,16 +808,28 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             List<String> internalEntityIds = new ArrayList<>();
 
-            if (entities != null && !entities.isEmpty()) {
+            if ((entities != null && !entities.isEmpty())|| !entryMap.isEmpty()) {
 
-                for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
-                    internalEntityIds.add(entity.getId());
+
+                if (entities != null) {
+
+                    for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
+                        internalEntityIds.add(entity.getId());
+                    }
+                }
+                if(!entryMap.isEmpty()) {
+                    LOGGER.info("entnry Map is not empty");
+                    entryMap.forEach((k,v)->{
+                        LOGGER.info("key "+k);
+                        internalEntityIds.add(k);
+                    });
                 }
 
                 List<Sharing> sharings = sharingRepository.
                         findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
                 if (sharings != null && !sharings.isEmpty()) {
                     for (Sharing sharing : sharings) {
+                        LOGGER.info("sharing  key "+ sharing.getEntity().getId());
                         if(entryMap.containsKey(sharing.getEntity().getId())){
                           Entity entity =   entryMap.get(sharing.getEntity().getId());
                            SharingMetadata sharingMetadata =  entity.toBuilder().getMetadata();
@@ -829,7 +841,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                                }
                             }).collect(Collectors.toList());
                           if(permissionTypes.isEmpty()){
-
+                              LOGGER.info("permission types empty ");
                           }
                             sharingMetadata =  sharingMetadata.toBuilder()
                                     .addPermissions(PermissionType.newBuilder()
