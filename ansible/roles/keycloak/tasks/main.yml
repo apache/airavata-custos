@@ -25,6 +25,13 @@
   become: yes
   when: ansible_os_family == "Debian"
 
+- name: Setup postgresql for keycloak
+  include_tasks: setup_postgres.yml
+
+- name: Restore old server's dump file
+  include_tasks: restore_db.yml
+  tags: [never, migrate_db]
+
 - name: Create Keycloak deployment directory {{ keycloak_install_dir }}
   file: path={{ keycloak_install_dir }}
     state=directory
@@ -65,104 +72,28 @@
 - name: place unzipped keycloak on path
   unarchive:
     src: "/{{ user_home }}/keycloak-{{ keycloak_version }}.zip"
-    dest: "{{ keycloak_install_dir }}"
+    dest: "{{ user_home }}"
     remote_src: yes
   become: yes
 
-- name: Run Keycloak maven build
-  command: mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install chdir="{{ keycloak_source_dir_new }}/"
-  environment:
-    MAVEN_OPTS: "-Xmx2048m"
-  register: build
-  tags: update
-  become_user: "{{ user }}"
-
-- name: Delete configuration directories of the distributions
+- name: Delete default configuration file
   file:
     state: absent
-    path: "{{ keycloak_install_dir }}/standalone/configuration"
+    path: "{{ keycloak_install_dir }}/conf/keycloak.conf"
   become_user: "{{ user }}"
   ignore_errors: yes
 
-# Unarchive keycloak distribution
-- name: Unarchive keycloak
-  unarchive:
-    src: "{{ keycloak_source_dir_new }}/distribution/server-dist/target/keycloak-{{ keycloak_version }}.zip"
-    dest: "{{ user_home }}"
-    copy: no
-  become_user: "{{ user }}"
-
-- name: Create modules/system/layers/keycloak/org/postgresql directory
-  become: yes
-  file:
-    path: "{{ user_home }}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/postgresql/main"
-    state: directory
-    mode: 0755
-    owner: "{{ user }}"
-    group: "{{ group }}"
-
-- name: copy module.xml to org/postgresql dir
-  template:
-    src: module.xml.j2
-    dest: "{{ user_home }}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/postgresql/main/module.xml"
-    owner: "{{ user }}"
-    group: "{{ group }}"
-    mode: '0644'
-  become: yes
-  become_user: "{{ user }}"
-
-- name: Download postgresql jar
-  ansible.builtin.get_url:
-    url: https://jdbc.postgresql.org/download/postgresql-42.3.6.jar
-    dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/postgresql-42.3.6.jar"
-    mode: '0644'
-
-- name: Setup postgresql for keycloak
-  include_tasks: setup_postgres.yml
-
-- name: Restore old server's dump file
-  include_tasks: restore_db.yml
-  tags: [never, migrate_db]
-
-# <---------------------------- Server Configuration -------------------------------->
-
-# SSL Configuration & postgresql
-- name: copy keycloak configuration file (Standalone)
+- name: copy configuration file (keycloak.conf)
   template: >
-    src=standalone.xml.j2
-    dest="{{ user_home }}/{{ keycloak_install_dir }}/standalone/configuration/standalone.xml"
+    src=keycloak.conf.j2
+    dest="{{ keycloak_install_dir }}/conf/keycloak.conf"
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
   become_user: "{{ user }}"
-  tags:
-       - standalone
 
-# </------------------------------ Server Configuration ends ---------------------------->
-
-# <---------- setup init script for keycloak, starts the server after reboot ----------->
-
-- name: Create Keycloak run directory
-  become: yes
-  file:
-    path: "{{ user_home }}/run"
-    state: directory
-    mode: 0755
-    owner: "{{ user }}"
-    group: "{{ group }}"
-
-- name: Copy keycloak script to run directory
-  template: >
-    src=keycloak-standalone-init.j2
-    dest="{{ user_home }}/run/keycloak.sh"
-    owner="{{ user }}"
-    group="{{ group }}"
-    mode="u=rwx,g=rx,o=rx"
-  become_user: "{{ user }}"
-  tags:
-    - standalone
-
-- name: copy systemd script file (Standalone) for {{ user }}
+# <--------------------------start keycloak Identity server------------------------------>
+- name: create keycloak daemon process
   template: >
     src=keycloak.service.j2
     dest="/etc/systemd/system/keycloak.service"
@@ -170,10 +101,7 @@
     group="{{ group }}"
     mode="u=rwx,g=rx,o=rx"
   become: yes
-  tags:
-    - standalone
 
-# <--------------------------start keycloak Identity server------------------------------>
 - name: reload systemctl daemon
   command: systemctl daemon-reload
   become: yes
@@ -186,3 +114,114 @@
     state: restarted
     enabled: yes
   become: yes
+
+#- name: Run Keycloak maven build
+#  command: mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install chdir="{{ keycloak_source_dir_new }}/"
+#  environment:
+#    MAVEN_OPTS: "-Xmx2048m"
+#  register: build
+#  tags: update
+#  become_user: "{{ user }}"
+#
+## Unarchive keycloak distribution
+#- name: Unarchive keycloak
+#  unarchive:
+#    src: "{{ keycloak_source_dir_new }}/distribution/server-dist/target/keycloak-{{ keycloak_version }}.zip"
+#    dest: "{{ user_home }}"
+#    copy: no
+#  become_user: "{{ user }}"
+#
+#- name: Create modules/system/layers/keycloak/org/postgresql directory
+#  become: yes
+#  file:
+#    path: "{{ user_home }}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/postgresql/main"
+#    state: directory
+#    mode: 0755
+#    owner: "{{ user }}"
+#    group: "{{ group }}"
+#
+#- name: copy module.xml to org/postgresql dir
+#  template:
+#    src: module.xml.j2
+#    dest: "{{ user_home }}/{{ keycloak_install_dir }}/modules/system/layers/keycloak/org/postgresql/main/module.xml"
+#    owner: "{{ user }}"
+#    group: "{{ group }}"
+#    mode: '0644'
+#  become: yes
+#  become_user: "{{ user }}"
+#
+#- name: Download postgresql jar
+#  ansible.builtin.get_url:
+#    url: https://jdbc.postgresql.org/download/postgresql-42.3.6.jar
+#    dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/postgresql-42.3.6.jar"
+#    mode: '0644'
+#
+#- name: Setup postgresql for keycloak
+#  include_tasks: setup_postgres.yml
+#
+#- name: Restore old server's dump file
+#  include_tasks: restore_db.yml
+#  tags: [never, migrate_db]
+#
+## <---------------------------- Server Configuration -------------------------------->
+#
+## SSL Configuration & postgresql
+#- name: copy keycloak configuration file (Standalone)
+#  template: >
+#    src=standalone.xml.j2
+#    dest="{{ user_home }}/{{ keycloak_install_dir }}/standalone/configuration/standalone.xml"
+#    owner="{{ user }}"
+#    group="{{ group }}"
+#    mode="u=rw,g=r,o=r"
+#  become_user: "{{ user }}"
+#  tags:
+#       - standalone
+#
+## </------------------------------ Server Configuration ends ---------------------------->
+#
+## <---------- setup init script for keycloak, starts the server after reboot ----------->
+#
+#- name: Create Keycloak run directory
+#  become: yes
+#  file:
+#    path: "{{ user_home }}/run"
+#    state: directory
+#    mode: 0755
+#    owner: "{{ user }}"
+#    group: "{{ group }}"
+#
+#- name: Copy keycloak script to run directory
+#  template: >
+#    src=keycloak-standalone-init.j2
+#    dest="{{ user_home }}/run/keycloak.sh"
+#    owner="{{ user }}"
+#    group="{{ group }}"
+#    mode="u=rwx,g=rx,o=rx"
+#  become_user: "{{ user }}"
+#  tags:
+#    - standalone
+#
+#- name: copy systemd script file (Standalone) for {{ user }}
+#  template: >
+#    src=keycloak.service.j2
+#    dest="/etc/systemd/system/keycloak.service"
+#    owner="{{ user }}"
+#    group="{{ group }}"
+#    mode="u=rwx,g=rx,o=rx"
+#  become: yes
+#  tags:
+#    - standalone
+#
+## <--------------------------start keycloak Identity server------------------------------>
+#- name: reload systemctl daemon
+#  command: systemctl daemon-reload
+#  become: yes
+#  tags:
+#    - always
+#
+#- name: Restart Keycloak server
+#  service:
+#    name: keycloak
+#    state: restarted
+#    enabled: yes
+#  become: yes
