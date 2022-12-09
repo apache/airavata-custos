@@ -34,7 +34,7 @@ custos_domain: "{{ hostvars['custos']['domain'] }}"
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
 custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_git_branch: baremetal
+custos_git_branch: ansible-baremetal
 custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
 custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
 custos_distribution_version: 1.1-SNAPSHOT
@@ -53,7 +53,7 @@ custos_port: 31499
 keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"
 keycloak_repo: https://github.com/keycloak/keycloak.git
 keycloak_source_dir: "{{ user_home }}/keycloak-source"
-keycloak_deployment_dir: "{{ user_home }}/keycloak-9.0.2"
+keycloak_source_dir_new: "{{ user_home }}/keycloak-source"
 
 # Database related variables
 db_name: core_services_server_db
