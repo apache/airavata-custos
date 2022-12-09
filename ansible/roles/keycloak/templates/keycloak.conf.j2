@@ -25,10 +25,10 @@ db-url={{keycloak_db_url}}
 # HTTP
 
 # The file path to a server certificate or certificate chain in PEM format.
-https-certificate-file=/etc/letsencrypt/live/{{ ansible_host }}/fullchain.pem
+https-certificate-file=/{{ user_home }}/certs/fullchain.pem
 
 # The file path to a private key in PEM format.
-https-certificate-key-file=/etc/letsencrypt/live/{{ ansible_host }}/privkey.pem
+https-certificate-key-file=/{{ user_home }}/certs/privkey.pem
 
 # To make it compatible with the older version where keycloak is accessed at /auth
 http-relative-path=/auth

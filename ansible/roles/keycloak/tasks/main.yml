@@ -46,17 +46,6 @@
     owner={{ user }}
     group={{ group }}
 
-## Clone Keycloak repo
-#- name: git checkout from Keycloak github repo {{ keycloak_repo }} # branch {{ keycloak_git_branch }}
-#  git:
-#    repo: "{{ keycloak_repo }}"
-#    dest: "{{ keycloak_source_dir_new }}"
-#    version: "{{ keycloak_version }}"
-#    force: yes
-#  register: checkout
-#  tags: update
-#  become_user: "{{ user }}"
-
 - name: get keycloak zip
   get_url:
     dest: "{{ user_home }}"
@@ -74,13 +63,14 @@
     src: "/{{ user_home }}/keycloak-{{ keycloak_version }}.zip"
     dest: "{{ user_home }}"
     remote_src: yes
+    owner: "{{ user }}"
   become: yes
 
 - name: Delete default configuration file
   file:
     state: absent
     path: "{{ keycloak_install_dir }}/conf/keycloak.conf"
-  become_user: "{{ user }}"
+  become: yes
   ignore_errors: yes
 
 - name: copy configuration file (keycloak.conf)
@@ -90,7 +80,7 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
-  become_user: "{{ user }}"
+  become: yes
 
 # <--------------------------start keycloak Identity server------------------------------>
 - name: create keycloak daemon process
