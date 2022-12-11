@@ -34,7 +34,7 @@ custos_domain: "{{ hostvars['custos']['domain'] }}"
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
 custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_git_branch: develop
+custos_git_branch: ansible-baremetal
 custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
 custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
 custos_distribution_version: 1.1-SNAPSHOT
