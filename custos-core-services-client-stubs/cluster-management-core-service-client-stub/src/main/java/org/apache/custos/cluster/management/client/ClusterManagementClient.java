@@ -45,7 +45,7 @@ public class ClusterManagementClient {
                                    @Value("${cluster.management.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         clusterManagementServiceStub = ClusterManagementServiceGrpc.newStub(managedChannel);
         clusterManagementServiceBlockingStub = ClusterManagementServiceGrpc.newBlockingStub(managedChannel);
     }

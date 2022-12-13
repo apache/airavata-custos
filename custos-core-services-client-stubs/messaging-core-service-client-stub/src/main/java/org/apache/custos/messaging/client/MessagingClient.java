@@ -50,7 +50,7 @@ public class MessagingClient {
                            @Value("${messaging.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         messagingServiceBlockingStub = MessagingServiceGrpc.newBlockingStub(managedChannel);
         messagingServiceFutureStub = MessagingServiceGrpc.newStub(managedChannel);
         emailServiceStub = EmailServiceGrpc.newStub(managedChannel);

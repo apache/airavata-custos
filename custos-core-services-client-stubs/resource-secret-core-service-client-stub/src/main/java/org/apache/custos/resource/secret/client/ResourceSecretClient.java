@@ -41,7 +41,7 @@ public class ResourceSecretClient {
                                 @Value("${resource.secret.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         resourceSecretServiceBlockingStub = ResourceSecretServiceGrpc.newBlockingStub(managedChannel);
     }
 

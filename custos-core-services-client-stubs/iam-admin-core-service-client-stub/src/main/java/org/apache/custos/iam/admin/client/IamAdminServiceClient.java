@@ -52,7 +52,7 @@ public class IamAdminServiceClient {
                                  @Value("${iam.server.url}") String url) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         iamAdminServiceStub = IamAdminServiceGrpc.newStub(managedChannel);
         iamAdminServiceBlockingStub = IamAdminServiceGrpc.newBlockingStub(managedChannel);
         this.iamServerURL = url;

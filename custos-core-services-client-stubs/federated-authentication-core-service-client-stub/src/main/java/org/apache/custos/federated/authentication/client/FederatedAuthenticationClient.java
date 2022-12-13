@@ -48,7 +48,7 @@ public class FederatedAuthenticationClient {
                                          @Value("${federated.authentication.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         federatedAuthenticationServiceStub = FederatedAuthenticationServiceGrpc.newStub(managedChannel);
         federatedAuthenticationServiceBlockingStub = FederatedAuthenticationServiceGrpc.newBlockingStub(managedChannel);
     }

@@ -51,7 +51,7 @@ public class TenantProfileClient {
                                @Value("${tenant.profile.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         profileServiceStub = TenantProfileServiceGrpc.newStub(managedChannel);
         profileServiceBlockingStub = TenantProfileServiceGrpc.newBlockingStub(managedChannel);
     }
