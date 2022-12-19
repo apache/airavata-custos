@@ -756,19 +756,25 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             sharingList.add(Constants.DIRECT_NON_CASCADING);
 
             String initialParentId = null;
-
-            for(SearchCriteria searchCriteria:request.getSearchCriteriaList()){
-                if(searchCriteria.getSearchField().equals(EntitySearchField.SHARED_BY)){
+            List<String> internalEntityIds = new ArrayList<>();
+            for (SearchCriteria searchCriteria : request.getSearchCriteriaList()) {
+                if (searchCriteria.getSearchField().equals(EntitySearchField.SHARED_BY)) {
                     String value = searchCriteria.getValue();
-                    List<Sharing> sharings =   sharingRepository.findAllEntitiesSharedBy(tenantId,value,sharingList);
+                    List<Sharing> sharings = sharingRepository.findAllEntitiesSharedBy(tenantId, value, sharingList);
                     if (sharings != null && !sharings.isEmpty()) {
                         for (Sharing sharing : sharings) {
                             Entity entity = EntityMapper.createEntity(sharing.getEntity());
+                            SharingMetadata sharingMetadata = entity.toBuilder().getMetadata();
+                            sharingMetadata = sharingMetadata.toBuilder()
+                                    .addPermissions(PermissionType.newBuilder()
+                                            .setId(sharing.getPermissionType()
+                                                    .getExternalId()).build()).build();
+                            entity = entity.toBuilder().setMetadata(sharingMetadata).build();
                             entryMap.put(entity.getId(), entity);
-
                         }
 
                     }
+
                     List<org.apache.custos.sharing.service.Entity> entityList = new ArrayList<>(entryMap.values());
                     org.apache.custos.sharing.service.Entities resp = org.apache.custos.sharing.service.Entities
                             .newBuilder()
@@ -777,7 +783,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     responseObserver.onNext(resp);
                     responseObserver.onCompleted();
                     return;
-                }else if(searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
+
+                } else if (searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
                     initialParentId = searchCriteria.getValue();
                 }
             }
@@ -785,14 +792,14 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             if (request.getSearchPermBottomUp()) {
                 entities = entityRepository.
                         searchEntitiesWithParent(tenantId, initialParentId, limit, request.getOffset());
-                List<org.apache.custos.sharing.persistance.model.Entity> totalEntityList= new ArrayList<>();
+                List<org.apache.custos.sharing.persistance.model.Entity> totalEntityList = new ArrayList<>();
                 totalEntityList.addAll(entities);
-                while(!entities.isEmpty()) {
-                    List<org.apache.custos.sharing.persistance.model.Entity> entityList= new ArrayList<>();
-                    for(org.apache.custos.sharing.persistance.model.Entity entity: entities){
+                while (!entities.isEmpty()) {
+                    List<org.apache.custos.sharing.persistance.model.Entity> entityList = new ArrayList<>();
+                    for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
                         List<org.apache.custos.sharing.persistance.model.Entity> exList = entityRepository.
                                 searchEntitiesWithParent(tenantId, entity.getExternalId(), limit, request.getOffset());
-                        if(!exList.isEmpty()) {
+                        if (!exList.isEmpty()) {
                             entityList.addAll(exList);
                         }
                     }
@@ -806,51 +813,35 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                         searchEntities(tenantId, request.getSearchCriteriaList(), limit, request.getOffset());
             }
 
-            List<String> internalEntityIds = new ArrayList<>();
 
-            if ((entities != null && !entities.isEmpty())|| !entryMap.isEmpty()) {
+            if ((entities != null && !entities.isEmpty())) {
 
-
-                if (entities != null) {
-
-                    for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
-                        internalEntityIds.add(entity.getId());
-                    }
-                }
-                if(!entryMap.isEmpty()) {
-                    LOGGER.info("entnry Map is not empty");
-                    entryMap.forEach((k,v)->{
-                        LOGGER.info("key "+k);
-                        internalEntityIds.add(k);
-                    });
+                for (org.apache.custos.sharing.persistance.model.Entity entity : entities) {
+                    internalEntityIds.add(entity.getId());
                 }
 
                 List<Sharing> sharings = sharingRepository.
                         findAllSharingEntitiesForUsers(tenantId, request.getAssociatingIdsList(), internalEntityIds);
                 if (sharings != null && !sharings.isEmpty()) {
                     for (Sharing sharing : sharings) {
-                        LOGGER.info("sharing  key "+ sharing.getEntity().getId());
-                        if(entryMap.containsKey(sharing.getEntity().getId())){
-                          Entity entity =   entryMap.get(sharing.getEntity().getId());
-                           SharingMetadata sharingMetadata =  entity.toBuilder().getMetadata();
-                          List<org.apache.custos.sharing.service.PermissionType> permissionTypes = sharingMetadata.getPermissionsList().stream().filter(perm->{
-                               if(perm.getId().equals(sharing.getPermissionType().getExternalId())){
-                                   return true;
-                               }else{
-                                   return  false;
-                               }
+                        if (entryMap.containsKey(sharing.getEntity().getId())) {
+                            Entity entity = entryMap.get(sharing.getEntity().getId());
+                            SharingMetadata sharingMetadata = entity.toBuilder().getMetadata();
+                            List<org.apache.custos.sharing.service.PermissionType> permissionTypes = sharingMetadata.getPermissionsList().stream().filter(perm -> {
+                                if (perm.getId().equals(sharing.getPermissionType().getExternalId())) {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
                             }).collect(Collectors.toList());
-                          if(permissionTypes.isEmpty()){
-                              LOGGER.info("permission types empty ");
-                          }
-                            sharingMetadata =  sharingMetadata.toBuilder()
+                            sharingMetadata = sharingMetadata.toBuilder()
                                     .addPermissions(PermissionType.newBuilder()
                                             .setId(sharing.getPermissionType()
                                                     .getExternalId()).build()).build();
-                           entity = entity.toBuilder().setMetadata(sharingMetadata).build();
-                           entryMap.put(entity.getId(), entity);
+                            entity = entity.toBuilder().setMetadata(sharingMetadata).build();
+                            entryMap.put(entity.getId(), entity);
 
-                        }else {
+                        } else {
                             Entity entity = EntityMapper.createEntity(sharing.getEntity());
                             SharingMetadata sharingMetadata = SharingMetadata.newBuilder()
                                     .addPermissions(PermissionType.newBuilder()
