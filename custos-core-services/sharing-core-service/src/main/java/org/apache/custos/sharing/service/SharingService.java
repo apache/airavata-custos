@@ -757,6 +757,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
 
             String initialParentId = null;
             List<String> internalEntityIds = new ArrayList<>();
+            boolean sharedWithChecking = false;
+            String sharedWithUser = "";
             for (SearchCriteria searchCriteria : request.getSearchCriteriaList()) {
                 if (searchCriteria.getSearchField().equals(EntitySearchField.SHARED_BY)) {
                     String value = searchCriteria.getValue();
@@ -784,6 +786,9 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     responseObserver.onCompleted();
                     return;
 
+                } else if (searchCriteria.getSearchField().equals(EntitySearchField.SHARED_WITH)) {
+                    sharedWithChecking = true;
+                    sharedWithUser = searchCriteria.getValue();
                 } else if (searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
                     initialParentId = searchCriteria.getValue();
                 }
@@ -839,7 +844,15 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                                             .setId(sharing.getPermissionType()
                                                     .getExternalId()).build()).build();
                             entity = entity.toBuilder().setMetadata(sharingMetadata).build();
-                            entryMap.put(entity.getId(), entity);
+
+                            if (sharedWithChecking) {
+                                if (!entity.getOwnerId().equals(sharedWithUser)) {
+                                    entryMap.put(entity.getId(), entity);
+                                }
+                            } else {
+                                entryMap.put(entity.getId(), entity);
+                            }
+
 
                         } else {
                             Entity entity = EntityMapper.createEntity(sharing.getEntity());
@@ -848,7 +861,14 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                                             .setId(sharing.getPermissionType()
                                                     .getExternalId()).build()).build();
                             entity = entity.toBuilder().setMetadata(sharingMetadata).build();
-                            entryMap.put(entity.getId(), entity);
+
+                            if (sharedWithChecking) {
+                                if (!entity.getOwnerId().equals(sharedWithUser)) {
+                                    entryMap.put(entity.getId(), entity);
+                                }
+                            } else {
+                                entryMap.put(entity.getId(), entity);
+                            }
                         }
 
                     }
@@ -1639,7 +1659,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     Constants.INDIRECT_CASCADING,
                     userId);
 
-            List<Sharing> exSharings = sharingRepository.findSharingForEntityOfTenant(tenantId, internalEntityId, checkTypes);
+            List<Sharing> exSharings = sharingRepository.
+                    findAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantId(internalEntityId, internalPermissionType, userId, tenantId);
             if (!exSharings.isEmpty()) {
                 sharingRepository.
                         deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
@@ -1648,7 +1669,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                                 userId,
                                 tenantId,
                                 exSharings.get(0).getInheritedParent().getId());
-                revokeCascadingPermissionForChildEntities(internalEntityId,
+                revokeCascadingPermissionForChildEntities(entityId,
                         internalPermissionType,
                         userId,
                         tenantId,
@@ -1683,6 +1704,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                 .findAllByExternalParentIdAndTenantId(entityId, tenantId);
 
         entityList.forEach(entity -> {
+            LOGGER.info("looking for sharings: " + entity.getId() + " inherited Id: " + inheritedParentId);
             sharingRepository.
                     deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
                             entity.getId(),
@@ -1691,7 +1713,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                             tenantId,
                             inheritedParentId);
 
-            revokeCascadingPermissionForChildEntities(entity.getId(),
+            revokeCascadingPermissionForChildEntities(entity.getExternalId(),
                     internalPermissionType, userId, tenantId, inheritedParentId);
         });
 
