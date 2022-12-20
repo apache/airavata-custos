@@ -1616,6 +1616,11 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             return;
         }
 
+        List<String> checkTypes = new ArrayList<>();
+        checkTypes.add(Constants.INDIRECT_CASCADING);
+        checkTypes.add(Constants.DIRECT_CASCADING);
+        checkTypes.add(Constants.DIRECT_NON_CASCADING);
+
 
         for (String userId : usersList) {
 
@@ -1633,13 +1638,24 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     tenantId,
                     Constants.INDIRECT_CASCADING,
                     userId);
+
+            List<Sharing> exSharings = sharingRepository.findSharingForEntityOfTenant(tenantId, internalEntityId, checkTypes);
+            if (!exSharings.isEmpty()) {
+                sharingRepository.
+                        deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
+                                internalEntityId,
+                                internalPermissionType,
+                                userId,
+                                tenantId,
+                                exSharings.get(0).getInheritedParent().getId());
+                revokeCascadingPermissionForChildEntities(internalEntityId,
+                        internalPermissionType,
+                        userId,
+                        tenantId,
+                        exSharings.get(0).getInheritedParent().getId());
+            }
+
         }
-
-
-        List<String> checkTypes = new ArrayList<>();
-        checkTypes.add(Constants.INDIRECT_CASCADING);
-        checkTypes.add(Constants.DIRECT_CASCADING);
-        checkTypes.add(Constants.DIRECT_NON_CASCADING);
 
         List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
                 internalEntityId, checkTypes);
@@ -1648,7 +1664,6 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
             entity.setSharedCount(newSharings.size());
             entityRepository.save(entity);
         }
-
 
         org.apache.custos.sharing.service.Status status = org.apache.custos.sharing.service.Status
                 .newBuilder()
@@ -1659,4 +1674,27 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
     }
 
 
+    private boolean revokeCascadingPermissionForChildEntities
+            (String entityId, String internalPermissionType, String userId, long tenantId, String inheritedParentId) {
+        List<String> newSharingTypes = new ArrayList<>();
+        newSharingTypes.add(Constants.INDIRECT_CASCADING);
+
+        List<org.apache.custos.sharing.persistance.model.Entity> entityList = entityRepository
+                .findAllByExternalParentIdAndTenantId(entityId, tenantId);
+
+        entityList.forEach(entity -> {
+            sharingRepository.
+                    deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
+                            entity.getId(),
+                            internalPermissionType,
+                            userId,
+                            tenantId,
+                            inheritedParentId);
+
+            revokeCascadingPermissionForChildEntities(entity.getId(),
+                    internalPermissionType, userId, tenantId, inheritedParentId);
+        });
+
+        return true;
+    }
 }
