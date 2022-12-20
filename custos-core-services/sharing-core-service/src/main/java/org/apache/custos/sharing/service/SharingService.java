@@ -789,6 +789,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                 } else if (searchCriteria.getSearchField().equals(EntitySearchField.SHARED_WITH)) {
                     sharedWithChecking = true;
                     sharedWithUser = searchCriteria.getValue();
+                    LOGGER.info("shared with "+sharedWithChecking+" shared with user"+sharedWithUser);
                 } else if (searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
                     initialParentId = searchCriteria.getValue();
                 }
@@ -863,7 +864,9 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                             entity = entity.toBuilder().setMetadata(sharingMetadata).build();
 
                             if (sharedWithChecking) {
+                                LOGGER.info(" Outside shared me"+ sharedWithChecking);
                                 if (!entity.getOwnerId().equals(sharedWithUser)) {
+                                    LOGGER.info(" Inside shared me"+ entity.getOwnerId());
                                     entryMap.put(entity.getId(), entity);
                                 }
                             } else {
