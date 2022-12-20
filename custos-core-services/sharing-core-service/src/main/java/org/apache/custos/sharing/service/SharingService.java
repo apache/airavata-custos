@@ -1639,7 +1639,8 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                     Constants.INDIRECT_CASCADING,
                     userId);
 
-            List<Sharing> exSharings = sharingRepository.findSharingForEntityOfTenant(tenantId, internalEntityId, checkTypes);
+            List<Sharing> exSharings = sharingRepository.
+                    findAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantId(internalEntityId, internalPermissionType,userId, tenantId);
             if (!exSharings.isEmpty()) {
                 sharingRepository.
                         deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
@@ -1648,7 +1649,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                                 userId,
                                 tenantId,
                                 exSharings.get(0).getInheritedParent().getId());
-                revokeCascadingPermissionForChildEntities(internalEntityId,
+                revokeCascadingPermissionForChildEntities(entityId,
                         internalPermissionType,
                         userId,
                         tenantId,
@@ -1683,6 +1684,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                 .findAllByExternalParentIdAndTenantId(entityId, tenantId);
 
         entityList.forEach(entity -> {
+            LOGGER.info("looking for sharings: "+ entity.getId()+ " inherited Id: "+ inheritedParentId);
             sharingRepository.
                     deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
                             entity.getId(),
@@ -1691,7 +1693,7 @@ public class SharingService extends org.apache.custos.sharing.service.SharingSer
                             tenantId,
                             inheritedParentId);
 
-            revokeCascadingPermissionForChildEntities(entity.getId(),
+            revokeCascadingPermissionForChildEntities(entity.getExternalId(),
                     internalPermissionType, userId, tenantId, inheritedParentId);
         });
 

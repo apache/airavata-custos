@@ -98,4 +98,8 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
                                                         List<String> sharingType);
 
 
+    public List<Sharing> findAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantId(
+            String entityId, String permissionTypeId, String associatingId, long tenantId);
+
+
 }

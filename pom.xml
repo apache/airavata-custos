@@ -376,8 +376,8 @@
                 <cilogon.production.id>{{token}</cilogon.production.id>
                 <cilogon.production.sec>{{token}</cilogon.production.sec>
                 <custos.email.password>{{token}</custos.email.password>
-                <spring.datasource.username>{{token}}</spring.datasource.username>
-                <spring.datasource.password>{{token}}</spring.datasource.password>
+                <spring.datasource.username>root</spring.datasource.username>
+                <spring.datasource.password>UtahSALTlakeCITY</spring.datasource.password>
 
             </properties>
             <activation>

@@ -45,6 +45,7 @@ enum EntitySearchField {
     SHARED_COUNT = 9;
     PERMISSION_TYPE_ID = 10;
     SHARED_BY=11;
+    SHARED_WITH=12;
 }
 
 
