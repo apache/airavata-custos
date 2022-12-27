@@ -28,7 +28,20 @@ import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.identity.service.GetJWKSRequest;
 import org.apache.custos.integration.core.utils.ShamirSecretHandler;
 import org.apache.custos.resource.secret.management.service.ResourceSecretManagementServiceGrpc;
-import org.apache.custos.resource.secret.service.*;
+import org.apache.custos.resource.secret.service.AddResourceCredentialResponse;
+import org.apache.custos.resource.secret.service.CertificateCredential;
+import org.apache.custos.resource.secret.service.CredentialMap;
+import org.apache.custos.resource.secret.service.GetResourceCredentialByTokenRequest;
+import org.apache.custos.resource.secret.service.GetResourceCredentialSummariesRequest;
+import org.apache.custos.resource.secret.service.GetSecretRequest;
+import org.apache.custos.resource.secret.service.KVCredential;
+import org.apache.custos.resource.secret.service.PasswordCredential;
+import org.apache.custos.resource.secret.service.ResourceCredentialOperationStatus;
+import org.apache.custos.resource.secret.service.ResourceCredentialSummaries;
+import org.apache.custos.resource.secret.service.ResourceOwnerType;
+import org.apache.custos.resource.secret.service.ResourceType;
+import org.apache.custos.resource.secret.service.SSHCredential;
+import org.apache.custos.resource.secret.service.SecretMetadata;
 
 import java.io.IOException;
 import java.util.List;
@@ -723,6 +736,167 @@ public class ResourceSecretManagementClient extends AbstractClient {
                 .build();
 
         return blockingStub.deletePWDCredential(tokenRequest);
+    }
+
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return AddResourceCredentialResponse
+     */
+    public AddResourceCredentialResponse addCertificateCredentials(String clientId, String ownerId, String privateKey,
+                                                                   String x509Cert) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.addCertificateCredential(certificateCredential);
+    }
+
+
+    /**
+     * Get certificate credentials
+     *
+     * @param clientId
+     * @param credentialToken
+     * @return CertificateCredential
+     */
+    public CertificateCredential getCertificateCredentials(String clientId, String credentialToken) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(credentialToken)
+                .build();
+
+        return blockingStub.getCertificateCredential(tokenRequest);
+    }
+
+
+    /**
+     * Delete certificate credentials
+     *
+     * @param clientId
+     * @param credentialToken
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteCertificateCredentials(String clientId, String credentialToken) {
+        GetResourceCredentialByTokenRequest tokenRequest = GetResourceCredentialByTokenRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setToken(credentialToken)
+                .build();
+
+        return blockingStub.deleteCertificateCredential(tokenRequest);
+    }
+
+    /**
+     * Update certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param privateKey
+     * @param x509Cert
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus updateCertificateCredentials(String clientId, String ownerId, String token,
+                                                                          String privateKey, String x509Cert) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .setToken(token)
+                .build();
+
+        CertificateCredential certificateCredential = CertificateCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setPrivateKey(privateKey)
+                .setX509Cert(x509Cert)
+                .build();
+
+        return blockingStub.updateCertificateCredential(certificateCredential);
+    }
+
+
+    /**
+     * Save certificate credentials
+     *
+     * @param clientId
+     * @param ownerId
+     * @param key
+     * @param value
+     * @return AddResourceCredentialResponse
+     */
+    public ResourceCredentialOperationStatus addKVCredentials(String clientId, String ownerId, String key, String value) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .setValue(value)
+                .build();
+
+        return blockingStub.addKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Get certificate credentials
+     *
+     * @param clientId
+     * @return CertificateCredential
+     */
+    public KVCredential getKVCredentials(String clientId, String ownerId, String key) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setKey(key)
+                .build();
+
+        return blockingStub.getKVCredential(kvCredential);
+    }
+
+
+    /**
+     * Delete certificate credentials
+     *
+     * @param clientId
+     * @param key
+     * @return ResourceCredentialOperationStatus
+     */
+    public ResourceCredentialOperationStatus deleteKVCredentials(String clientId, String ownerId, String key) {
+        SecretMetadata metadata = SecretMetadata.newBuilder()
+                .setClientId(clientId)
+                .setOwnerId(ownerId)
+                .build();
+
+        KVCredential kvCredential = KVCredential
+                .newBuilder()
+                .setMetadata(metadata)
+                .setToken(key)
+                .build();
+
+        return blockingStub.deleteKVCredential(kvCredential);
     }
 
     ManagedChannel getManagedChannel() {
