@@ -18,6 +18,7 @@
  */
 
 package org.apache.custos.core.services.api;
+
 import io.grpc.ServerInterceptor;
 import org.apache.custos.agent.profile.validator.AgentInputValidator;
 import org.apache.custos.cluster.management.validator.ClusterManagementInputValidator;
@@ -27,6 +28,7 @@ import org.apache.custos.credential.store.validator.CredentialStoreInputValidato
 import org.apache.custos.federated.authentication.validator.FederatedAuthenticationInputValidator;
 import org.apache.custos.iam.validator.IAMInputValidator;
 import org.apache.custos.identity.validator.IdentityInputValidator;
+import org.apache.custos.logging.validator.CustosLoggingInputValidator;
 import org.apache.custos.messaging.events.publisher.MessageProducer;
 import org.apache.custos.resource.secret.validator.ResourceSecretInputValidator;
 import org.apache.custos.sharing.validator.SharingInputValidator;
@@ -36,13 +38,14 @@ import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.apache.custos.logging.validator.CustosLoggingInputValidator;
 
+import java.util.Optional;
 import java.util.Stack;
 
 
@@ -57,45 +60,57 @@ public class CoreServicesServer {
     }
 
 
-
     @Bean
-    public Stack<Validator> getInterceptorSet(AgentInputValidator inputValidator,
-                                                       ClusterManagementInputValidator clusterManagementInputValidator,
-                                                       CredentialStoreInputValidator credentialStoreInputValidator,
-                                                       CustosLoggingInputValidator custosLoggingInputValidator,
-                                                       FederatedAuthenticationInputValidator federatedAuthenticationInputValidator,
-                                                       IAMInputValidator iamInputValidator,
-                                                       IdentityInputValidator identityInputValidator,
-                                                       ResourceSecretInputValidator resourceSecretInputValidator,
-                                                       SharingInputValidator sharingInputValidator,
-                                                       TenantProfileInputValidator tenantProfileInputValidator,
-                                                       UserProfileInputValidator userProfileInputValidator) {
+    public Stack<Validator> getInterceptorSet(TenantProfileInputValidator tenantProfileInputValidator,
+                                              UserProfileInputValidator userProfileInputValidator,
+                                              IAMInputValidator iamValidator,
+                                              IdentityInputValidator identityValidator,
+                                              CredentialStoreInputValidator credentialStoreValidator,
+                                              Optional<AgentInputValidator> agentValidator,
+                                              Optional<ClusterManagementInputValidator> clusterMValidator,
+                                              Optional<CustosLoggingInputValidator> loggingValidator,
+                                              Optional<FederatedAuthenticationInputValidator> federatedValidator,
+                                              Optional<ResourceSecretInputValidator> resourceSecretValidator,
+                                              Optional<SharingInputValidator> sharingValidator) {
         Stack<Validator> interceptors = new Stack<>();
-        interceptors.add(inputValidator);
-        interceptors.add(clusterManagementInputValidator);
-        interceptors.add(credentialStoreInputValidator);
-        interceptors.add(custosLoggingInputValidator);
-        interceptors.add(federatedAuthenticationInputValidator);
-        interceptors.add(iamInputValidator);
-        interceptors.add(identityInputValidator);
-        interceptors.add(resourceSecretInputValidator);
-        interceptors.add(sharingInputValidator);
+        interceptors.add(iamValidator);
         interceptors.add(tenantProfileInputValidator);
         interceptors.add(userProfileInputValidator);
+        interceptors.add(identityValidator);
+        interceptors.add(credentialStoreValidator);
 
+        if (agentValidator.isPresent()) {
+            interceptors.add(agentValidator.get());
+        }
+        if (clusterMValidator.isPresent()) {
+            interceptors.add(clusterMValidator.get());
+        }
+
+        if (loggingValidator.isPresent()) {
+            interceptors.add(loggingValidator.get());
+        }
+
+        if (federatedValidator.isPresent()) {
+            interceptors.add(federatedValidator.get());
+        }
+        if (resourceSecretValidator.isPresent()) {
+            interceptors.add(resourceSecretValidator.get());
+        }
+        if (sharingValidator.isPresent()) {
+            interceptors.add(sharingValidator.get());
+        }
         return interceptors;
     }
 
 
-
-
     @Bean
     @GRpcGlobalInterceptor
-    ServerInterceptor validationInterceptor(Stack<Validator> validators){
+    ServerInterceptor validationInterceptor(Stack<Validator> validators) {
         return new ServiceInterceptor(validators);
     }
 
     @Bean
+    @ConditionalOnProperty(name= "enable.messaging.service", havingValue="true")
     public MessageProducer registerMessageProducer(@Value("${core.messaging.service.broker.url}") String borkerURL,
                                                    @Value("${core.messaging.service.publisher.id}") String publisherId) {
         return new MessageProducer(borkerURL, publisherId);
