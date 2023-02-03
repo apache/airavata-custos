@@ -46,6 +46,7 @@
         <module>sharing-core-service</module>
         <module>custos-logging</module>
         <module>custos-messaging-core-service</module>
+        <module>sharing-core-impl</module>
     </modules>
 
 
