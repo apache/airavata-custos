@@ -578,18 +578,19 @@ public class UserManagementService extends UserManagementServiceGrpc.UserManagem
                     .build();
             AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
-            AuthenticationRequest authenticationRequest = AuthenticationRequest
-                    .newBuilder()
-                    .setClientId(request.getClientId())
-                    .setClientSecret(request.getClientSec())
-                    .setTenantId(request.getTenantId())
-                    .setUsername(request.getUsername())
-                    .setPassword(request.getOldPassword())
-                    .build();
-
-           AuthToken authToken =  identityClient.authenticate(authenticationRequest);
-
-            if (authToken.getAccessToken() != null  && token != null && token.getAccessToken() != null) {
+//            AuthenticationRequest authenticationRequest = AuthenticationRequest
+//                    .newBuilder()
+//                    .setClientId(request.getClientId())
+//                    .setClientSecret(request.getClientSec())
+//                    .setTenantId(request.getTenantId())
+//                    .setUsername(request.getUsername())
+//                    .setPassword(request.getOldPassword())
+//                    .build();
+//
+//           AuthToken authToken =  identityClient.authenticate(authenticationRequest);
+//
+//            if (authToken.getAccessToken() != null  && token != null && token.getAccessToken() != null) {
+                if (token != null && token.getAccessToken() != null) {
 
                 request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
 
