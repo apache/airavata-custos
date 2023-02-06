@@ -11,13 +11,13 @@ public interface SharingAPI {
      * Create an Entity Type
      * @param entityType
      */
-    public void createEntityType(EntityType entityType);
+    public void createEntityType(String tenantId, EntityType entityType);
 
     /**
      * Update a given Entity Type
      * @param entityType
      */
-    public  void updateEntityType(EntityType entityType);
+    public  void updateEntityType(String tenantId,EntityType entityType);
 
     /**
      * Delete a given Entity
