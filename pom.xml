@@ -36,16 +36,10 @@
    <version>1.1-SNAPSHOT</version>
 
     <modules>
-        <module>custos-core-services</module>
-        <module>custos-integration-services</module>
-        <module>custos-core-services-client-stubs</module>
-        <module>custos-integration-core</module>
-        <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
         <module>custos-tests</module>
-        <module>custos-external-services-distributions</module>
-        <module>custos-core-services-server</module>
-        <module>custos-integration-services-server</module>
+        <module>custos-services</module>
+        <module>custos-core</module>
     </modules>
 
     <dependencyManagement>
