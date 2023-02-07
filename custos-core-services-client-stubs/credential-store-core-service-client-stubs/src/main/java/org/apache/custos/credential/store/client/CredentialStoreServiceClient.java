@@ -49,7 +49,7 @@ public class CredentialStoreServiceClient {
                                         @Value("${credential.store.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         credentialStoreServiceStub = CredentialStoreServiceGrpc.newStub(managedChannel);
         credentialStoreServiceBlockingStub = CredentialStoreServiceGrpc.newBlockingStub(managedChannel);
     }

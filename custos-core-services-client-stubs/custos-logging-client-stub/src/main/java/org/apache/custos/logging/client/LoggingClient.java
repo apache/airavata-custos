@@ -51,7 +51,7 @@ public class LoggingClient {
                          @Value("${custos.logging.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         loggingServiceBlockingStub = LoggingServiceGrpc.newBlockingStub(managedChannel);
         loggingServiceFutureStub = LoggingServiceGrpc.newFutureStub(managedChannel);
 

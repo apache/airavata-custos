@@ -50,7 +50,7 @@ public class UserProfileClient {
                              @Value("${user.profile.core.service.port}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         userProfileServiceStub = UserProfileServiceGrpc.newStub(managedChannel);
         userProfileServiceBlockingStub = UserProfileServiceGrpc.newBlockingStub(managedChannel);
     }
