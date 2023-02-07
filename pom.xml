@@ -660,7 +660,7 @@
         <mysql.connector.java>8.0.18</mysql.connector.java>
         <javax.persistance>1.0.2</javax.persistance>
 
-        <keycloak.admin.version>9.0.2</keycloak.admin.version>
+        <keycloak.admin.version>20.0.1</keycloak.admin.version>
 
         <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
 

@@ -1,0 +1,88 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+#  specific language governing permissions and limitations
+#  under the License.
+#
+
+grpc.port={{ custos_core_grpc_port }}
+server.port={{ custos_core_server_port }}
+##spring.zipkin.baseUrl={{ custos_core_spring_zipkin_baseUrl }}
+spring.application.name={{ custos_core_spring_app_name }}
+##spring.sleuth.sampler.probability={{ custos_core_spring_sleuth_sampler_probability }}
+spring.main.allow-bean-definition-overriding={{ custos_core_spring_main_allow_bean_definition_overriding }}
+management.security.enabled={{ custos_core_management_security_enabled }}
+management.endpoints.web.exposure.include={{ custos_core_management_endpoints_web_exposure_include }}
+management.endpoint.metrics.enabled={{ custos_core_management_endpoint_metrics_enabled }}
+spring.jmx.enabled={{ custos_core_spring_jmx_enabled }}
+
+spring.datasource.url = {{ custos_core_spring_datasource_url }}
+spring.datasource.username = {{ custos_core_spring_datasource_username }}
+spring.datasource.password = {{ custos_core_spring_datasource_password }}
+
+## Hibernate Properties
+# The SQL dialect makes Hibernate generate better SQL for the chosen database
+spring.jpa.properties.hibernate.dialect = {{ custos_core_spring_jpa_properties_hibernate_dialect }}
+spring.jpa.properties.hibernate.enable_lazy_load_no_trans={{ custos_core_spring_jpa_properties_hibernate_enable_lazy_load_no_trans }}
+# Hibernate ddl auto (create, create-drop, validate, update)
+spring.jpa.hibernate.ddl-auto = {{ custos_core_spring_jpa_hibernate_ddl_auto }}
+spring.profiles.active={{ custos_core_spring_profiles_active }}
+logging.level.root={{ custos_core_logging_level_root }}
+
+ciLogon.admin.client.id={{ custos_core_ciLogon_admin_client_id }}
+ciLogon.admin.client.secret={{ custos_core_ciLogon_admin_client_secret }}
+ciLogon.admin.auth.endpoint={{ custos_core_ciLogon_admin_auth_endpoint }}
+
+iam.server.client.id={{ custos_core_iam_server_client_id }}
+iam.server.truststore.path={{ custos_core_iam_server_truststore_path }}
+iam.server.truststore.password={{ custos_core_iam_server_truststore_password }}
+iam.server.url={{ custos_core_iam_server_url }}
+iam.server.admin.username={{ custos_core_iam_server_admin_username }}
+iam.server.admin.password={{ custos_core_iam_server_admin_password }}
+iam.server.super.admin.realm.id={{ custos_core_iam_server_super_admin_realm_id }}
+iam.federated.cilogon.authorization.endpoint={{ custos_core_iam_federated_cilogon_authorization_endpoint }}
+iam.federated.cilogon.token.endpoint={{ custos_core_iam_federated_cilogon_token_endpoint }}
+iam.federated.cilogon.token.userinfo.endpoint={{ custos_core_iam_federated_cilogon_token_userinfo_endpoint }}
+iam.federated.cilogon.issuer={{ custos_core_iam_federated_cilogon_issuer }}
+iam.federated.cilogon.jwksUri={{ custos_core_iam_federated_cilogon_jwksUri }}
+introspection.endpoint={{ custos_core_introspection_endpoint }}
+issuer={{ custos_core_issuer }}
+authorization.endpoint={{ custos_core_authorization_endpoint }}
+token.endpoint={{ custos_core_token_endpoint }}
+end.session.endpoint={{ custos_core_end_session_endpoint }}
+user.info.endpoint={{ custos_core_user_info_endpoint }}
+jwks_uri={{ custos_core_jwks_uri }}
+registration.endpoint={{ custos_core_registration_endpoint }}
+cluster.management.core.service.dns.name={{ custos_core_cluster_management_core_service_dns_name }}
+cluster.management.core.service.port={{ custos_core_cluster_management_core_service_port }}
+
+core.services.server.hostname={{ custos_core_services_server_hostname }}
+core.services.server.port={{ custos_core_services_server_port }}
+
+custos.identity.auth.cache.enabled={{ custos_core_custos_identity_auth_cache_enabled }}
+custos.identity.auth.cache.size={{ custos_core_custos_identity_auth_cache_size }}
+
+core.messaging.service.broker.url={{ custos_core_core_messaging_service_broker_url }}
+core.messaging.service.publisher.id={{ custos_core_core_messaging_service_publisher_id }}
+mail.smtp.auth={{ custos_core_mail_smtp_auth }}
+mail.smtp.starttls.enable={{ custos_core_mail_smtp_starttls_enable }}
+mail.smtp.host={{ custos_core_mail_smtp_host }}
+mail.smtp.port={{ custos_core_mail_smtp_port }}
+mail.smtp.ssl.trust={{ custos_core_mail_smtp_ssl_trust }}
+mail.sender.username={{ custos_core_mail_sender_username }}
+mail.sender.password={{ custos_core_mail_sender_password }}
+
+user.profile.core.service.dns.name={{ custos_core_user_profile_core_service_dns_name }}
+user.profile.core.service.port={{ custos_core_user_profile_core_service_port }}

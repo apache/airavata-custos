@@ -1,0 +1,15 @@
+server {
+  listen 80;
+  listen [::]:80;
+
+  listen 443 ssl;
+  ssl_certificate /etc/letsencrypt/live/{{ ansible_host }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ ansible_host }}/privkey.pem;
+
+  root /var/www/{{ ansible_host }}/html;
+  index index.html index.htm index.nginx-debian.html;
+  server_name {{ ansible_host }} www.{{ ansible_host }};
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}

@@ -1,0 +1,8 @@
+<html>
+    <head>
+        <title>Welcome to your_domain!</title>
+    </head>
+    <body>
+        <h1>Success!  The your_domain server block is working!</h1>
+    </body>
+</html>
