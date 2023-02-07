@@ -27,6 +27,23 @@ Science gateways represent potential targets for cybersecurity threats to users,
 
 **To find out more, please check out the [Custos website](https://airavata.apache.org/custos/) and the [Custos wiki](https://cwiki.apache.org/confluence/display/CUSTOS/Home).**
 
+##Custos POM changes for MAC M1:
+
+
+For successfully running the maven build for custom on Mac M1 laptops following changes are needed in the parent configuration files . These changes are related to protobuf and gen-grpc-java plugins as the the compatible version with Mac M1 are needed for both . These changes should be made at both the places where the plugins are specified .The architecture of the Mac M1 which is osx-x86_64 has to be passed along with versions for build to be successful.
+
+
+    <configuration>
+        <protocArtifact>com.google.protobuf:protoc:3.1.0:exe:osx-x86_64
+        </protocArtifact>
+        <pluginId>grpc-java</pluginId>
+        <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.0:exe:osx-x86_64
+        </pluginArtifact>
+    </configuration>
+
+
+
+
 ## Quickstart
 
 ## Installation Instructions
