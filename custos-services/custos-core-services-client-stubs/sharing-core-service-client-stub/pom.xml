@@ -58,6 +58,11 @@
             <artifactId>custos-integration-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -134,6 +134,11 @@
           </dependency>
         <dependency>
             <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
             <artifactId>messaging-core-service-client-stub</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>

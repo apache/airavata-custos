@@ -185,7 +185,7 @@ public interface SharingAPI {
      * @param permissionTypeId
      * @return
      */
-    public SharedOwners getListOfSharedUsers(String tenantId, String entityId, String permissionTypeId)
+    public List<String> getListOfSharedUsers(String tenantId, String entityId, String permissionTypeId)
             throws CustosSharingException;
 
     ;
@@ -198,7 +198,7 @@ public interface SharingAPI {
      * @param permissionTypeId
      * @return
      */
-    public SharedOwners getListOfDirectlySharedUsers(String tenantId, String entityId, String permissionTypeId)
+    public List<String>  getListOfDirectlySharedUsers(String tenantId, String entityId, String permissionTypeId)
             throws CustosSharingException;
 
     ;
@@ -212,7 +212,7 @@ public interface SharingAPI {
      * @param permissionTypeId
      * @return
      */
-    public SharedOwners getListOfSharedGroups(String tenantId, String entityId, String permissionTypeId)
+    public List<String>  getListOfSharedGroups(String tenantId, String entityId, String permissionTypeId)
             throws CustosSharingException;
 
     ;
@@ -225,7 +225,7 @@ public interface SharingAPI {
      * @param permissionTypeId
      * @return
      */
-    public SharedOwners getListOfDirectlySharedGroups(String tenantId, String entityId, String permissionTypeId)
+    public List<String>  getListOfDirectlySharedGroups(String tenantId, String entityId, String permissionTypeId)
             throws CustosSharingException;
 
     ;
@@ -243,6 +243,31 @@ public interface SharingAPI {
             throws CustosSharingException;
 
     ;
+
+    /**
+     * Share Entity with given user or group
+     * @param tenantId
+     * @param entityId
+     * @param permissionType
+     * @param associatingIds
+     * @param cascade
+     * @param ownerType
+     * @param sharedBy
+     * @throws CustosSharingException
+     */
+    public void shareEntity(String tenantId, String entityId, String permissionType,
+                            List<String> associatingIds,boolean cascade,String ownerType, String sharedBy) throws CustosSharingException;
+
+
+
+
+    public List<SharingMetadata> getAllDirectSharings(String tenantId) throws CustosSharingException;
+
+
+
+
+    public List<SharingMetadata> getAllSharings(String tenantId, String entityId) throws CustosSharingException;
+
 
 
     /**

@@ -36,10 +36,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class SharingImpl implements SharingAPI {
@@ -181,7 +183,6 @@ public class SharingImpl implements SharingAPI {
             if (!types.isEmpty()) {
 
                 for (org.apache.custos.sharing.core.persistance.model.EntityType type : types) {
-
                     entityTypes.add(EntityTypeMapper.createEntityType(type));
                 }
 
@@ -544,7 +545,7 @@ public class SharingImpl implements SharingAPI {
     }
 
     @Override
-    public List<Entity> searchEntities(String tenantId, List<SearchCriteria> searchCriteriaList,List<String> associatingIdList,
+    public List<Entity> searchEntities(String tenantId, List<SearchCriteria> searchCriteriaList, List<String> associatingIdList,
                                        int limit, int offset,
                                        boolean searchPermBottomUp) throws CustosSharingException {
         try {
@@ -570,7 +571,7 @@ public class SharingImpl implements SharingAPI {
                 }
 
                 List<Sharing> sharings = sharingRepository.
-                        findAllSharingEntitiesForUsers(tenantId,associatingIdList , internalEntityIds);
+                        findAllSharingEntitiesForUsers(tenantId, associatingIdList, internalEntityIds);
 
 
                 if (sharings != null && !sharings.isEmpty()) {
@@ -599,7 +600,7 @@ public class SharingImpl implements SharingAPI {
     }
 
     @Override
-    public SharedOwners getListOfSharedUsers(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
+    public List<String> getListOfSharedUsers(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
         try {
             LOGGER.debug("Fetching shared users in tenant " + tenantId + " for entity " + entityId);
             List<Sharing> sharings = null;
@@ -643,9 +644,7 @@ public class SharingImpl implements SharingAPI {
                                 internalPermissionTypeId, Constants.USER);
             }
 
-            SharedOwners owners = SharingMapper.getSharedOwners(sharings);
-            return owners;
-
+            return SharingMapper.getSharedOwners(sharings);
         } catch (Exception ex) {
             String msg = "Error occurred while fetching  getListOfSharedUsers  for entity "
                     + entityId + " in " + tenantId + " reason :" + ex.getMessage();
@@ -655,7 +654,7 @@ public class SharingImpl implements SharingAPI {
     }
 
     @Override
-    public SharedOwners getListOfDirectlySharedUsers(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
+    public List<String> getListOfDirectlySharedUsers(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
         try {
             LOGGER.debug("Get list of directly shared users in  " + tenantId + " for entity " + entityId);
 
@@ -700,7 +699,7 @@ public class SharingImpl implements SharingAPI {
     }
 
     @Override
-    public SharedOwners getListOfSharedGroups(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
+    public List<String> getListOfSharedGroups(String tenantId, String entityId, String permissionTypeId) throws CustosSharingException {
         try {
             LOGGER.debug("Fetching list of shared groups " + tenantId + " for entity " + entityId);
 
@@ -731,9 +730,7 @@ public class SharingImpl implements SharingAPI {
                     findAllByEntityAndPermissionTypeAndOwnerType(tenantId, internalEntityId,
                             internalPermissionTypeId, Constants.GROUP);
 
-            SharedOwners owners = SharingMapper.getSharedOwners(sharings);
-
-            return owners;
+            return SharingMapper.getSharedOwners(sharings);
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching   shared groups  for entity " + permissionTypeId + " in "
@@ -744,7 +741,7 @@ public class SharingImpl implements SharingAPI {
     }
 
     @Override
-    public SharedOwners getListOfDirectlySharedGroups(String tenantId, String entityId, String permissionTypeId)
+    public List<String> getListOfDirectlySharedGroups(String tenantId, String entityId, String permissionTypeId)
             throws CustosSharingException {
         try {
             LOGGER.debug("Fetching list of shared groups  " + tenantId + " for entity " + entityId);
@@ -776,8 +773,7 @@ public class SharingImpl implements SharingAPI {
                     findAllByEntityAndPermissionTypeAndOwnerType(tenantId, internalEntityId,
                             internalPermissionTypeId, Constants.GROUP);
 
-            SharedOwners owners = SharingMapper.getSharedOwners(sharings);
-            return owners;
+            return SharingMapper.getSharedOwners(sharings);
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching   shared groups  for entity "
@@ -894,6 +890,233 @@ public class SharingImpl implements SharingAPI {
         }
     }
 
+    @Override
+    public void shareEntity(String tenantId, String entityId, String permissionType, List<String> userIds,
+                            boolean cascade, String ownerType, String sharedBy) throws CustosSharingException {
+
+        String internalPermissionId = permissionType + "@" + tenantId;
+
+
+        String internalEntityId = entityId + "@" + tenantId;
+
+
+        Optional<org.apache.custos.sharing.core.persistance.model.PermissionType> optionalPermissionType =
+                permissionTypeRepository.findById(internalPermissionId);
+
+        if (optionalPermissionType.isEmpty()) {
+            String msg = "Permission type not found";
+            LOGGER.error(msg);
+            throw new CustosSharingException(msg);
+        }
+
+        Optional<org.apache.custos.sharing.core.persistance.model.Entity> entityOptional =
+                entityRepository.findById(internalEntityId);
+
+        if (entityOptional.isEmpty()) {
+            String msg = " Entity with Id " + entityId + "  not found";
+            LOGGER.error(msg);
+            throw new CustosSharingException(msg);
+        }
+
+
+        Optional<org.apache.custos.sharing.core.persistance.model.PermissionType> optionalOwnerPermissionType =
+                permissionTypeRepository.findByExternalIdAndTenantId(Constants.OWNER, tenantId);
+
+        if (optionalOwnerPermissionType.get().getId().equals(internalPermissionId)) {
+            String msg = "Owner permission type can not be assigned";
+            LOGGER.error(msg);
+            throw new CustosSharingException(msg);
+        }
+
+        String sharingType = null;
+        List<Sharing> sharings = new ArrayList<>();
+
+        if (cascade) {
+            sharingType = Constants.DIRECT_CASCADING;
+        } else {
+            sharingType = Constants.DIRECT_NON_CASCADING;
+        }
+
+
+        for (String userId : userIds) {
+
+            Sharing sharing = SharingMapper.createSharing(optionalPermissionType.get(),
+                    entityOptional.get(), entityOptional.get(), userId, ownerType, sharingType, sharedBy,
+                    tenantId);
+            sharings.add(sharing);
+        }
+
+        if (cascade) {
+            List<Sharing> childSharings = new ArrayList<>();
+            childSharings = getAllSharingForChildEntities(entityOptional.get(), entityOptional.get(), userIds, tenantId,
+                    optionalPermissionType.get(), childSharings, ownerType,
+                    Constants.INDIRECT_CASCADING, sharedBy);
+            if (!childSharings.isEmpty()) {
+                sharings.addAll(childSharings);
+            }
+        }
+
+
+        List<Sharing> effectiveSharings = new ArrayList<>();
+        if (!sharings.isEmpty()) {
+            sharings.forEach(shr -> {
+                Optional<Sharing> sharing = sharingRepository.findById(shr.getId());
+                if (sharing.isEmpty()) {
+                    effectiveSharings.add(shr);
+                }
+
+            });
+
+        }
+
+        if (!effectiveSharings.isEmpty()) {
+            sharingRepository.saveAll(effectiveSharings);
+
+            //revoke other permissions
+            for (String userId : userIds) {
+                List<org.apache.custos.sharing.core.persistance.model.PermissionType> existingPermissionTypes =
+                        permissionTypeRepository.findAllByTenantId(tenantId);
+
+                existingPermissionTypes.forEach(permission -> {
+                    if (!(permission.getExternalId().equals(Constants.OWNER) || permission.getId().equals(internalPermissionId))) {
+                        sharingRepository.
+                                deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
+                                        internalEntityId,
+                                        permission.getId(),
+                                        userId,
+                                        tenantId,
+                                        internalEntityId);
+                        sharingRepository.deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAndAssociatingId(
+                                internalEntityId,
+                                permission.getId(),
+                                tenantId,
+                                Constants.INDIRECT_CASCADING,
+                                userId);
+                    }
+                });
+            }
+
+
+            List<String> checkTypes = new ArrayList<>();
+            checkTypes.add(Constants.INDIRECT_CASCADING);
+            checkTypes.add(Constants.DIRECT_CASCADING);
+            checkTypes.add(Constants.DIRECT_NON_CASCADING);
+
+            List<Sharing> newSharings = sharingRepository.findAllByEntityAndSharingType(tenantId,
+                    internalEntityId, checkTypes);
+            org.apache.custos.sharing.core.persistance.model.Entity entity = entityOptional.get();
+            if (newSharings != null && newSharings.size() > 0) {
+                entity.setSharedCount(newSharings.size());
+                entityRepository.save(entity);
+            }
+
+
+        }
+    }
+
+
+    @Override
+    public List<SharingMetadata> getAllDirectSharings(String tenantId) {
+        List<org.apache.custos.sharing.core.persistance.model.Entity> entities = entityRepository
+                .findAllByTenantId(tenantId);
+        List<org.apache.custos.sharing.core.persistance.model.PermissionType> permissionTypes =
+                permissionTypeRepository.findAllByTenantId(tenantId);
+        List<org.apache.custos.sharing.core.Entity> arrayList = new ArrayList<>();
+        List<SharingMetadata> sharingMetadata = new ArrayList<>();
+        entities.forEach(entity -> {
+            permissionTypes.forEach(perm -> {
+                String permId = perm.getId();
+                List<String> sharingList = new ArrayList<>();
+                sharingList.add(Constants.DIRECT_CASCADING);
+                sharingList.add(Constants.DIRECT_NON_CASCADING);
+
+                List<Sharing> sharings = sharingRepository.
+                        findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(tenantId, entity.getId(),
+                                permId, Constants.USER, sharingList);
+                sharings.forEach(shr -> {
+                    try {
+                        sharingMetadata.add(SharingMapper.getSharingMetadata(shr, entity, perm, Constants.USER));
+                    } catch (SQLException throwables) {
+                        String msg = "Error occurred while transforming entity" + entity.getId();
+                        LOGGER.error(msg);
+                    }
+                });
+
+
+                List<Sharing> sharingsGroups = sharingRepository.
+                        findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType(tenantId, entity.getId(),
+                                permId, Constants.GROUP, sharingList);
+                sharingsGroups.forEach(shr -> {
+                    try {
+                        sharingMetadata.add(SharingMapper.getSharingMetadata(shr, entity, perm, Constants.GROUP));
+                    } catch (SQLException throwables) {
+                        String msg = "Error occurred while transforming entity" + entity.getId();
+                        LOGGER.error(msg);
+                    }
+                });
+            });
+
+        });
+        return sharingMetadata;
+    }
+
+    @Override
+    public List<SharingMetadata> getAllSharings(String tenantId, String entityId) throws CustosSharingException {
+        List<org.apache.custos.sharing.core.persistance.model.Entity> entities = new ArrayList<>();
+        List<SharingMetadata> sharingMetadata = new ArrayList<>();
+        List<SharingMetadata> selectedList = new ArrayList<>();
+        if (!entityId.isEmpty()) {
+            String internalEntityId = entityId + "@" + tenantId;
+            Optional<org.apache.custos.sharing.core.persistance.model.Entity> entityOptional = entityRepository.findById(internalEntityId);
+            if (entityOptional.isEmpty()) {
+                String msg = "Entity " + entityId + " not found ";
+                LOGGER.error(msg);
+                throw new CustosSharingException(msg);
+            }
+            entities.add(entityOptional.get());
+        } else {
+            entities = entityRepository
+                    .findAllByTenantId(tenantId);
+        }
+        entities.forEach(entity -> {
+            List<Sharing> userSharings = sharingRepository.
+                    findAllByEntityAndOwnerType(tenantId, entity.getId(), Constants.USER);
+            List<Sharing> groupSharings = sharingRepository.
+                    findAllByEntityAndOwnerType(tenantId, entity.getId(), Constants.GROUP);
+            Optional<List<SharingMetadata>> optionalUserSharings = SharingMapper.getSharingMetadata(userSharings);
+            Optional<List<SharingMetadata>> optionalGroupSharings = SharingMapper.getSharingMetadata(groupSharings);
+            if (optionalUserSharings.isPresent()) {
+                sharingMetadata.addAll(optionalUserSharings.get());
+            }
+            if (optionalGroupSharings.isPresent()) {
+                sharingMetadata.addAll(optionalGroupSharings.get());
+            }
+
+        });
+
+
+        //TODO: replace with proper query
+        sharingMetadata.forEach(shr -> {
+            if (selectedList.isEmpty()) {
+                selectedList.add(shr);
+            } else {
+                AtomicBoolean matched = new AtomicBoolean(false);
+                new ArrayList<>(selectedList).forEach(selVar -> {
+                    if ((shr.getEntity().getId().equals(selVar.getEntity().getId())
+                            && shr.getOwnerId().equals(selVar.getOwnerId()) &&
+                            shr.getPermissions(0).getId().equals(selVar.getPermissions(0).getId()))) {
+                        matched.set(true);
+                    }
+                });
+                if (!matched.get()) {
+                    selectedList.add(shr);
+                }
+            }
+        });
+
+        return selectedList;
+    }
+
     private boolean addCascadingPermissionForEntity
             (org.apache.custos.sharing.core.persistance.model.Entity entity, String internalParentId, String tenantId) {
         List<String> newSharingTypes = new ArrayList<>();
@@ -913,5 +1136,33 @@ public class SharingImpl implements SharingAPI {
         }
         return true;
 
+    }
+
+    private List<Sharing> getAllSharingForChildEntities(org.apache.custos.sharing.core.persistance.model.Entity entity,
+                                                        org.apache.custos.sharing.core.persistance.model.Entity inheritedEntity,
+                                                        List<String> userIds,
+                                                        String tenantId,
+                                                        org.apache.custos.sharing.core.persistance.model.PermissionType permissionType,
+                                                        List<Sharing> sharings,
+                                                        String ownerType,
+                                                        String sharingType, String sharedBy) {
+
+        List<org.apache.custos.sharing.core.persistance.model.Entity> entities =
+                entityRepository.findAllByExternalParentIdAndTenantId(entity.getExternalId(), tenantId);
+
+
+        if (entities != null && !entities.isEmpty()) {
+            for (org.apache.custos.sharing.core.persistance.model.Entity child : entities) {
+                for (String userId : userIds) {
+                    Sharing sharing = SharingMapper.createSharing(permissionType,
+                            child, inheritedEntity, userId, ownerType, sharingType, sharedBy, tenantId);
+                    sharings.add(sharing);
+                }
+                getAllSharingForChildEntities(child, inheritedEntity, userIds, tenantId, permissionType, sharings, ownerType, sharingType, sharedBy);
+
+            }
+            return sharings;
+        }
+        return sharings;
     }
 }

@@ -23,75 +23,24 @@ syntax = "proto3";
 option java_multiple_files = true;
 package org.apache.custos.sharing.service;
 
+import "SharingModel.proto";
+
 option go_package = "./pb";
-enum SearchCondition {
-    EQUAL = 0;
-    LIKE = 1;
-    GTE = 2;
-    LTE = 3;
-    NOT = 4;
-}
-
-enum EntitySearchField {
-    NAME = 0;
-    DESCRIPTION = 1;
-    ID = 2;
-    FULL_TEXT = 3;
-    OWNER_ID = 4;
-    CREATED_AT = 5;
-    LAST_MODIFIED_AT = 6;
-    ENTITY_TYPE_ID = 7;
-    PARENT_ID = 8;
-    SHARED_COUNT = 9;
-    PERMISSION_TYPE_ID = 10;
-    SHARED_BY=11;
-    SHARED_WITH=12;
-}
 
 
-message EntityType {
-    string id = 1;
-    string name = 2;
-    string description = 3;
-    int64 created_at = 4;
-    int64 updated_at = 5;
-}
 
-message PermissionType {
-    string id = 1;
-    string name = 2;
-    string description = 3;
-    int64 created_at = 4;
-    int64 updated_at = 5;
-}
-
-message Entity {
-    string id = 1;
-    string type = 2;
-    string owner_id = 3;
-    string parent_id = 4;
-    string name = 5;
-    string description = 6;
-    bytes binary_data = 7;
-    string full_text = 8;
-    int64 original_creation_time = 9;
-    int64 created_at = 10;
-    int64 updated_at = 11;
-    int32 shared_count = 12;
-    SharingMetadata sharing_metadata = 13;
-}
 
 message EntityRequest {
     string client_id = 1;
     int64 tenant_id = 2;
-    Entity entity = 3;
+    org.apache.custos.sharing.core.Entity entity = 3;
     string client_sec = 4;
 }
 
 message EntityTypeRequest {
     string client_id = 1;
     int64 tenant_id = 2;
-    EntityType entity_type = 3;
+    org.apache.custos.sharing.core.EntityType entity_type = 3;
     string client_sec = 4;
 }
 
@@ -99,16 +48,12 @@ message EntityTypeRequest {
 message PermissionTypeRequest {
     string client_id = 1;
     int64 tenant_id = 2;
-    PermissionType permission_type = 3;
+    org.apache.custos.sharing.core.PermissionType permission_type = 3;
     string client_sec = 4;
 }
 
 
-message SearchCriteria {
-    EntitySearchField search_field = 1;
-    string value = 2;
-    SearchCondition condition = 3;
-}
+
 
 message SearchRequest {
     string client_id = 1;
@@ -116,7 +61,7 @@ message SearchRequest {
     string owner_id = 3;
     int32 offset = 4;
     int32 limit = 5;
-    repeated SearchCriteria search_criteria = 6;
+    repeated org.apache.custos.sharing.core.SearchCriteria search_criteria = 6;
     string client_sec = 7;
     repeated string associating_ids = 8;
     bool search_perm_bottom_up=9;
@@ -125,16 +70,16 @@ message SearchRequest {
 message PermissionRequest {
     string client_id = 1;
     int64 tenant_id = 2;
-    Entity entity = 3;
-    PermissionType permission_type = 4;
+    org.apache.custos.sharing.core.Entity entity = 3;
+    org.apache.custos.sharing.core.PermissionType permission_type = 4;
     string client_sec = 5;
 }
 
 message SharingRequest {
     string client_id = 1;
     int64 tenant_id = 2;
-    Entity entity = 3;
-    PermissionType permission_type = 4;
+    org.apache.custos.sharing.core.Entity entity = 3;
+    org.apache.custos.sharing.core.PermissionType permission_type = 4;
     repeated string owner_id = 5;
     bool cascade = 6;
     string client_sec = 7;
@@ -154,15 +99,15 @@ message Status {
 }
 
 message EntityTypes {
-    repeated EntityType types = 1;
+    repeated org.apache.custos.sharing.core.EntityType types = 1;
 }
 
 message PermissionTypes {
-    repeated PermissionType types = 1;
+    repeated org.apache.custos.sharing.core.PermissionType types = 1;
 }
 
 message Entities {
-    repeated Entity entity_array = 1;
+    repeated org.apache.custos.sharing.core.Entity entity_array = 1;
 }
 
 message SharedOwners {
@@ -170,20 +115,14 @@ message SharedOwners {
 }
 
 message GetAllDirectSharingsResponse {
-    repeated SharingMetadata  shared_data = 1;
+    repeated org.apache.custos.sharing.core.SharingMetadata  shared_data = 1;
 }
 
 message GetAllSharingsResponse {
-    repeated SharingMetadata  shared_data = 1;
+    repeated org.apache.custos.sharing.core.SharingMetadata  shared_data = 1;
 }
 
-message SharingMetadata {
-    Entity entity = 1;
-    string owner_id = 2;
-    string owner_type = 3;
-    repeated PermissionType permissions = 4;
-    string shared_by = 5;
-}
+
 
 service SharingService {
 
@@ -191,19 +130,19 @@ service SharingService {
     rpc createEntityType (EntityTypeRequest) returns (Status);
     rpc updateEntityType (EntityTypeRequest) returns (Status);
     rpc deleteEntityType (EntityTypeRequest) returns (Status);
-    rpc getEntityType (EntityTypeRequest) returns (EntityType);
+    rpc getEntityType (EntityTypeRequest) returns (org.apache.custos.sharing.core.EntityType);
     rpc getEntityTypes (SearchRequest) returns (EntityTypes);
 
     rpc createPermissionType (PermissionTypeRequest) returns (Status);
     rpc updatePermissionType (PermissionTypeRequest) returns (Status);
     rpc deletePermissionType (PermissionTypeRequest) returns (Status);
-    rpc getPermissionType (PermissionTypeRequest) returns (PermissionType);
+    rpc getPermissionType (PermissionTypeRequest) returns (org.apache.custos.sharing.core.PermissionType);
     rpc getPermissionTypes (SearchRequest) returns (PermissionTypes);
 
     rpc createEntity (EntityRequest) returns (Status);
     rpc updateEntity (EntityRequest) returns (Status);
     rpc isEntityExists (EntityRequest) returns (Status);
-    rpc getEntity (EntityRequest) returns (Entity);
+    rpc getEntity (EntityRequest) returns (org.apache.custos.sharing.core.Entity);
     rpc deleteEntity (EntityRequest) returns (Status);
     rpc searchEntities (SearchRequest) returns (Entities);
 

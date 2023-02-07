@@ -84,8 +84,17 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
-
-
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.custos</groupId>
+            <artifactId>sharing-core-impl</artifactId>
+            <version>1.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 

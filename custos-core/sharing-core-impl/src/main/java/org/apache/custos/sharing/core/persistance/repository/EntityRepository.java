@@ -27,8 +27,8 @@ import java.util.List;
 
 public interface EntityRepository  extends JpaRepository<Entity, String>, SearchEntityRepository {
 
-    public List<Entity> findAllByExternalParentIdAndTenantId(String externalParentId, long tenantId);
+    public List<Entity> findAllByExternalParentIdAndTenantId(String externalParentId, String tenantId);
 
-    public List<Entity> findAllByTenantId(long tenantId);
+    public List<Entity> findAllByTenantId(String tenantId);
 
 }

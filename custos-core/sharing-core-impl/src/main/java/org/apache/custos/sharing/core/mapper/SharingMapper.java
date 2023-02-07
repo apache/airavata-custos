@@ -19,8 +19,6 @@
 
 package org.apache.custos.sharing.core.mapper;
 
-
-import org.apache.custos.sharing.core.SharedOwners;
 import org.apache.custos.sharing.core.SharingMetadata;
 import org.apache.custos.sharing.core.persistance.model.Entity;
 import org.apache.custos.sharing.core.persistance.model.PermissionType;
@@ -89,9 +87,7 @@ public class SharingMapper {
     }
 
 
-    public static SharedOwners getSharedOwners(List<Sharing> sharingList) {
-
-        SharedOwners.Builder builder = SharedOwners.newBuilder();
+    public static List<String> getSharedOwners(List<Sharing> sharingList) {
 
         List<String> ownerIds = new ArrayList<>();
 
@@ -101,7 +97,7 @@ public class SharingMapper {
                     map(shr -> shr.getAssociatingId()).collect(Collectors.toList());
 
         }
-        return builder.addAllOwnerIds(ownerIds).build();
+        return ownerIds;
 
     }
 

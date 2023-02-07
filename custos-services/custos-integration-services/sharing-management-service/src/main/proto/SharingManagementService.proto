@@ -25,6 +25,7 @@ package org.apache.custos.sharing.management.service;
 option go_package = "./pb";
 
 import "SharingService.proto";
+import "SharingModel.proto";
 import "google/api/annotations.proto";
 
 
@@ -49,7 +50,7 @@ service SharingManagementService {
         };
 
     }
-    rpc getEntityType (org.apache.custos.sharing.service.EntityTypeRequest) returns (org.apache.custos.sharing.service.EntityType) {
+    rpc getEntityType (org.apache.custos.sharing.service.EntityTypeRequest) returns (org.apache.custos.sharing.core.EntityType) {
         option (google.api.http) = {
            get: "/sharing-management/v1.0.0/entity/type"
         };
@@ -80,7 +81,7 @@ service SharingManagementService {
         };
 
     }
-    rpc getPermissionType (org.apache.custos.sharing.service.PermissionTypeRequest) returns (org.apache.custos.sharing.service.PermissionType) {
+    rpc getPermissionType (org.apache.custos.sharing.service.PermissionTypeRequest) returns (org.apache.custos.sharing.core.PermissionType) {
         option (google.api.http) = {
            get: "/sharing-management/v1.0.0/permission/type"
         };
@@ -111,7 +112,7 @@ service SharingManagementService {
         };
 
     }
-    rpc getEntity (org.apache.custos.sharing.service.EntityRequest) returns (org.apache.custos.sharing.service.Entity) {
+    rpc getEntity (org.apache.custos.sharing.service.EntityRequest) returns (org.apache.custos.sharing.core.Entity) {
         option (google.api.http) = {
            get: "/sharing-management/v1.0.0/entity"
         };

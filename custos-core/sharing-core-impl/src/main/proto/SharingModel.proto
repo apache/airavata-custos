@@ -88,25 +88,25 @@ message SearchCriteria {
     SearchCondition condition = 3;
 }
 
-message Status {
-    bool status = 1;
-}
+//message Status {
+//    bool status = 1;
+//}
 
-message EntityTypes {
-    repeated EntityType types = 1;
-}
-
-message PermissionTypes {
-    repeated PermissionType types = 1;
-}
-
-message Entities {
-    repeated Entity entity_array = 1;
-}
-
-message SharedOwners {
-    repeated string owner_ids = 1;
-}
+//message EntityTypes {
+//    repeated EntityType types = 1;
+//}
+//
+//message PermissionTypes {
+//    repeated PermissionType types = 1;
+//}
+//
+//message Entities {
+//    repeated Entity entity_array = 1;
+//}
+//
+//message SharedOwners {
+//    repeated string owner_ids = 1;
+//}
 
 message SharingMetadata {
     Entity entity = 1;

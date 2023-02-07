@@ -24,6 +24,7 @@ import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.sharing.management.service.SharingManagementServiceGrpc;
 import org.apache.custos.sharing.service.*;
+import org.apache.custos.sharing.core.*;
 
 import java.io.IOException;
 

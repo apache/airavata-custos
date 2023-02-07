@@ -35,6 +35,7 @@ import org.apache.custos.sharing.management.exceptions.SharingException;
 import org.apache.custos.sharing.management.service.SharingManagementServiceGrpc.SharingManagementServiceImplBase;
 import org.apache.custos.sharing.service.Status;
 import org.apache.custos.sharing.service.*;
+import org.apache.custos.sharing.core.*;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.*;
 import org.lognet.springboot.grpc.GRpcService;
