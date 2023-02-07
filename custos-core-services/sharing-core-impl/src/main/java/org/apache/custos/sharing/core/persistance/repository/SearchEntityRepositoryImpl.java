@@ -43,7 +43,7 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
     EntityManager entityManager;
 
     @Override
-    public List<Entity> searchEntities(long tenantId, List<SearchCriteria> searchCriteria, int limit, int offset) {
+    public List<Entity> searchEntities(String tenantId, List<SearchCriteria> searchCriteria, int limit, int offset) {
 
         Map<String, Object> valueMap = new HashMap<>();
         String query = createSQLQuery(tenantId, searchCriteria, valueMap, limit, offset);
@@ -58,8 +58,31 @@ public class SearchEntityRepositoryImpl implements SearchEntityRepository {
 
     }
 
+    @Override
+    public List<Entity> searchEntitiesRecursive(String tenantId, List<SearchCriteria> searchCriteriaList) {
 
-    private String createSQLQuery(long tenantId, List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap, int limit, int offset) {
+        String externalParentId = null;
+        for (SearchCriteria searchCriteria : searchCriteriaList) {
+            if (searchCriteria.getSearchField().equals(EntitySearchField.PARENT_ID)) {
+                externalParentId = searchCriteria.getValue();
+            }
+        }
+
+        String query = "with recursive cte " +
+                "(external_id, name, external_parent_id) as " +
+                "(select external_id, name, external_parent_id from entity where external_parent_id=:PARENT_ID" +
+                "union all select p.id, p.name, p.external_parent_id from entity p " +
+                "inner join cte on p.external_parent_id = cte.external_id ) " +
+                "select * from cte";
+
+        Query q = entityManager.createNativeQuery(query, Entity.class);
+        q.setParameter("PARENT_ID", externalParentId);
+
+        return q.getResultList();
+    }
+
+
+    private String createSQLQuery(String tenantId, List<SearchCriteria> searchCriteriaList, Map<String, Object> valueMap, int limit, int offset) {
 
         String query = "SELECT * FROM entity E WHERE ";
         query = query + "E.tenant_id = :" + "TENANT_ID" + " AND ";

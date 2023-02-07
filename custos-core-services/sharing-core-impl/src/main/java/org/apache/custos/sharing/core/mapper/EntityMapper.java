@@ -36,7 +36,7 @@ public class EntityMapper {
     private static final Logger LOGGER = LoggerFactory.getLogger(EntityMapper.class);
 
 
-    public static Entity createEntity(org.apache.custos.sharing.service.Entity entity, long tenantId,
+    public static Entity createEntity(org.apache.custos.sharing.core.Entity entity, String tenantId,
                                       EntityType type) throws SQLException {
 
         Entity perEntity = new Entity();
@@ -79,10 +79,10 @@ public class EntityMapper {
     }
 
 
-    public static org.apache.custos.sharing.service.Entity createEntity(Entity entity) throws SQLException {
+    public static org.apache.custos.sharing.core.Entity createEntity(Entity entity) throws SQLException {
 
-        org.apache.custos.sharing.service.Entity.Builder builder =
-                org.apache.custos.sharing.service.Entity
+        org.apache.custos.sharing.core.Entity.Builder builder =
+                org.apache.custos.sharing.core.Entity
                         .newBuilder();
         builder
                 .setId(entity.getExternalId())

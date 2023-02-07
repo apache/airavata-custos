@@ -31,13 +31,13 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.sharing_type IN  ?3", nativeQuery = true)
-    public List<Sharing> findSharingForEntityOfTenant(long tenantId, String entityId, List<String> sharingTypes);
+    public List<Sharing> findSharingForEntityOfTenant(String tenantId, String entityId, List<String> sharingTypes);
 
     @Modifying
     @Transactional
     @Query(value = "delete  from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.sharing_type = ?3", nativeQuery = true)
-    public void removeGivenCascadingPermissionsForEntity(long tenantId, String entityId, String sharingType);
+    public void removeGivenCascadingPermissionsForEntity(String tenantId, String entityId, String sharingType);
 
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
@@ -49,13 +49,13 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.sharing_type IN ?3", nativeQuery = true)
     public List<Sharing> findAllByEntityAndSharingType
-            (long tenantId, String entityId,  List<String> sharingTypes);
+            (String tenantId, String entityId,  List<String> sharingTypes);
 
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.permission_type_id = ?3 and s.associating_id_type = ?4", nativeQuery = true)
     public List<Sharing> findAllByEntityAndPermissionTypeAndOwnerType
-            (long tenantId, String entityId, String permissionTypeId, String associatingIdType);
+            (String tenantId, String entityId, String permissionTypeId, String associatingIdType);
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             " and s.associating_id_type = ?3", nativeQuery = true)
@@ -66,28 +66,28 @@ public interface SharingRepository extends JpaRepository<Sharing, String> {
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.permission_type_id = ?3 and s.associating_id_type = ?4 and s.sharing_type IN ?5", nativeQuery = true)
     public List<Sharing> findAllByEntityAndPermissionTypeAndOwnerTypeAndSharingType
-            (long tenantId, String entityId, String permissionTypeId, String associatingIdType, List<String> sharingList);
+            (String tenantId, String entityId, String permissionTypeId, String associatingIdType, List<String> sharingList);
 
 
     @Transactional
     public List<Sharing> deleteAllByInheritedParentIdAndPermissionTypeIdAndTenantIdAndSharingTypeAndAssociatingId(
-            String inheritedParentId, String permissionTypeId, long tenantId, String sharingType, String associatedId);
+            String inheritedParentId, String permissionTypeId, String tenantId, String sharingType, String associatedId);
 
 
     @Transactional
     public void deleteAllByEntityIdAndPermissionTypeIdAndAssociatingIdAndTenantIdAndInheritedParentId(
-            String entityId, String permissionTypeId, String associatingId, long tenantId, String inheritedParentId);
+            String entityId, String permissionTypeId, String associatingId, String tenantId, String inheritedParentId);
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.entity_id = ?2 " +
             "and s.permission_type_id IN ?3 and s.associating_id IN  ?4", nativeQuery = true)
-    public List<Sharing> findAllSharingOfEntityForGroupsUnderPermissions(long tenantId, String entityId,
+    public List<Sharing> findAllSharingOfEntityForGroupsUnderPermissions(String tenantId, String entityId,
                                                                          List<String> permissionTypes,
                                                                          List<String> associatedIds);
 
 
     @Query(value = "select * from sharing s where s.tenant_id = ?1 and s.associating_id IN  ?2 " +
             "and s.entity_id  IN ?3", nativeQuery = true)
-    public List<Sharing> findAllSharingEntitiesForUsers(long tenantId,
+    public List<Sharing> findAllSharingEntitiesForUsers(String tenantId,
                                                         List<String> associatedIds,
                                                         List<String> entityIds);
 

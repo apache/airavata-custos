@@ -27,5 +27,5 @@ import java.util.List;
 public interface EntityTypeRepository extends JpaRepository<EntityType, String> {
 
 
-    public List<EntityType> findAllByTenantId(long tenantId);
+    public List<EntityType> findAllByTenantId(String tenantId);
 }

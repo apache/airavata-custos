@@ -60,7 +60,7 @@ public class Sharing {
 
 
     @Column(nullable = false)
-    private long tenantId;
+    private String tenantId;
 
 
     @JoinColumn(name = "permission_type_id")
@@ -126,11 +126,11 @@ public class Sharing {
         this.id = id;
     }
 
-    public long getTenantId() {
+    public String getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(long tenantId) {
+    public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
     }
 

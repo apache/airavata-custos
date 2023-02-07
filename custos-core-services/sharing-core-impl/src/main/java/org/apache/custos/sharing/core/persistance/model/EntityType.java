@@ -47,7 +47,7 @@ public class EntityType {
     private String description;
 
     @Column(nullable = false)
-    private long tenantId;
+    private String tenantId;
 
     @Column(nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -111,11 +111,11 @@ public class EntityType {
         this.entitySet = entitySet;
     }
 
-    public long getTenantId() {
+    public String getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(long tenantId) {
+    public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
     }
 

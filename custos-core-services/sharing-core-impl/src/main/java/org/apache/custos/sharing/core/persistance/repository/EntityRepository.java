@@ -31,8 +31,4 @@ public interface EntityRepository  extends JpaRepository<Entity, String>, Search
 
     public List<Entity> findAllByTenantId(long tenantId);
 
-
-
-
-
 }

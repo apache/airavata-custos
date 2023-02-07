@@ -17,18 +17,17 @@
  *  under the License.
  */
 
-package org.apache.custos.sharing.core.persistance.repository;
+package org.apache.custos.sharing.core.utils;
 
+public class Constants {
 
-import org.apache.custos.sharing.core.SearchCriteria;
-import org.apache.custos.sharing.core.persistance.model.Entity;
+    public static final String OWNER = "OWNER";
 
-import java.util.List;
+    public static final String DIRECT_CASCADING = "DIRECT_CASCADING";
+    public static final String INDIRECT_CASCADING = "INDIRECT_CASCADING";
+    public static final String DIRECT_NON_CASCADING = "DIRECT_NON_CASCADING";
 
-public interface SearchEntityRepository {
+    public static final String USER = "user";
+    public static final String GROUP = "group";
 
-
-    List<Entity> searchEntities(String tenantId, List<SearchCriteria> searchCriteria, int limit, int offset);
-
-    List<Entity> searchEntitiesRecursive(String tenantId, List<SearchCriteria> searchCriteria);
 }

@@ -19,7 +19,7 @@
 
 package org.apache.custos.sharing.core.mapper;
 
-import org.apache.custos.sharing.persistance.model.PermissionType;
+import org.apache.custos.sharing.core.persistance.model.PermissionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ public class PermissionTypeMapper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionTypeMapper.class);
 
-    public static PermissionType createPermissionType(org.apache.custos.sharing.service.PermissionType entityType, long tenantId) {
+    public static PermissionType createPermissionType(org.apache.custos.sharing.core.PermissionType entityType, String tenantId) {
 
         PermissionType type = new PermissionType();
         String id = entityType.getId() + "@" + tenantId;
@@ -46,10 +46,10 @@ public class PermissionTypeMapper {
         return type;
     }
 
-    public static org.apache.custos.sharing.service.PermissionType createPermissionType(PermissionType type) {
-        org.apache.custos.sharing.service.PermissionType.Builder builder =
+    public static org.apache.custos.sharing.core.PermissionType createPermissionType(PermissionType type) {
+        org.apache.custos.sharing.core.PermissionType.Builder builder =
 
-                org.apache.custos.sharing.service.PermissionType
+                org.apache.custos.sharing.core.PermissionType
                         .newBuilder()
                         .setId(type.getExternalId())
                         .setCreatedAt(type.getCreatedAt().getTime())

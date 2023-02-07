@@ -40,7 +40,7 @@ public class Entity {
     private String externalId;
 
     @Column
-    private long tenantId;
+    private String tenantId;
 
     @Column
     private String externalParentId;
@@ -182,11 +182,11 @@ public class Entity {
         this.binaryData = binaryData;
     }
 
-    public long getTenantId() {
+    public String getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(long tenantId) {
+    public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
     }
 

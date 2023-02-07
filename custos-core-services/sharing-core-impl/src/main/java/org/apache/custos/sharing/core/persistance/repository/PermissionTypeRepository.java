@@ -28,7 +28,7 @@ import java.util.Optional;
 
 public interface PermissionTypeRepository extends JpaRepository<PermissionType, String> {
 
-    public List<PermissionType> findAllByTenantId(long tenantId);
+    public List<PermissionType> findAllByTenantId(String tenantId);
 
-    public Optional<PermissionType> findByExternalIdAndTenantId(String externalId, long tenantId);
+    public Optional<PermissionType> findByExternalIdAndTenantId(String externalId, String tenantId);
 }

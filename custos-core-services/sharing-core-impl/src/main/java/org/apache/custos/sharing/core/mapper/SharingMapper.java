@@ -19,11 +19,12 @@
 
 package org.apache.custos.sharing.core.mapper;
 
-import org.apache.custos.sharing.persistance.model.Entity;
-import org.apache.custos.sharing.persistance.model.PermissionType;
-import org.apache.custos.sharing.persistance.model.Sharing;
-import org.apache.custos.sharing.service.SharedOwners;
-import org.apache.custos.sharing.service.SharingMetadata;
+
+import org.apache.custos.sharing.core.SharedOwners;
+import org.apache.custos.sharing.core.SharingMetadata;
+import org.apache.custos.sharing.core.persistance.model.Entity;
+import org.apache.custos.sharing.core.persistance.model.PermissionType;
+import org.apache.custos.sharing.core.persistance.model.Sharing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public class SharingMapper {
                                         String ownerType,
                                         String sharingType,
                                         String sharedBy,
-                                        long tenantId) {
+                                        String tenantId) {
 
         String id = entity.getId() + "_" +
                 inheritedEntity.getId() + "_" + ownerId + "_" + permissionType.getId() + "_" + tenantId;
@@ -66,7 +67,7 @@ public class SharingMapper {
     }
 
 
-    public static Sharing getNewSharing(Sharing oldSharing, long tenantId, Entity entity) {
+    public static Sharing getNewSharing(Sharing oldSharing, String tenantId, Entity entity) {
         String id = entity.getId() + "_" +
                 oldSharing.getInheritedParent().getId() + "_" + oldSharing.getAssociatingId() + "_" + oldSharing.getPermissionType().getId() + "_" + tenantId;
 
@@ -106,13 +107,13 @@ public class SharingMapper {
 
     public static SharingMetadata getSharingMetadata(Sharing sharing, Entity entity,
                                                      PermissionType permissionType, String type) throws SQLException {
-        org.apache.custos.sharing.service.Entity en = EntityMapper.createEntity(entity);
+        org.apache.custos.sharing.core.Entity en = EntityMapper.createEntity(entity);
         return SharingMetadata.newBuilder()
                 .setEntity(en)
                 .setOwnerId(sharing.getAssociatingId())
                 .setOwnerType(type)
                 .setSharedBy(sharing.getSharedBy()!=null?sharing.getSharedBy():"")
-                .addPermissions(org.apache.custos.sharing.service.PermissionType.newBuilder()
+                .addPermissions(org.apache.custos.sharing.core.PermissionType.newBuilder()
                         .setId(permissionType.getExternalId()).build()).build();
 
     }
@@ -124,7 +125,7 @@ public class SharingMapper {
                     map(shr -> {
                         try {
                             SharingMetadata metadata = SharingMetadata.newBuilder()
-                                    .addPermissions(org.apache.custos.sharing.service.PermissionType.newBuilder().
+                                    .addPermissions(org.apache.custos.sharing.core.PermissionType.newBuilder().
                                             setId(shr.getPermissionType().getExternalId())
                                             .setName(shr.getPermissionType().getName()
                                             ).setDescription(shr.getPermissionType().getDescription() == null ?

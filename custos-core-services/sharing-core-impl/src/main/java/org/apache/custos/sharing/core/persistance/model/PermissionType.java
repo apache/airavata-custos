@@ -41,7 +41,7 @@ public class PermissionType {
     private String externalId;
 
     @Column(nullable = false)
-    private long tenantId;
+    private String tenantId;
 
     @Column(nullable = false)
     private String name;
@@ -70,11 +70,11 @@ public class PermissionType {
         this.id = id;
     }
 
-    public long getTenantId() {
+    public String getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(long tenantId) {
+    public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
     }
 

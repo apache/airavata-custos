@@ -19,7 +19,7 @@
 
 package org.apache.custos.sharing.core.mapper;
 
-import org.apache.custos.sharing.persistance.model.EntityType;
+import org.apache.custos.sharing.core.persistance.model.EntityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ public class EntityTypeMapper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EntityTypeMapper.class);
 
-    public static EntityType createEntityType(org.apache.custos.sharing.service.EntityType entityType, long tenantId) {
+    public static EntityType createEntityType(org.apache.custos.sharing.core.EntityType entityType, String tenantId) {
 
         EntityType type = new EntityType();
         String id = entityType.getId() + "@" + tenantId;
@@ -44,13 +44,14 @@ public class EntityTypeMapper {
         if (entityType.getCreatedAt() > 0 ) {
             type.setCreatedAt(new Date(entityType.getCreatedAt()));
         }
+
         return type;
     }
 
 
-    public static org.apache.custos.sharing.service.EntityType createEntityType(EntityType entityType) {
+    public static org.apache.custos.sharing.core.EntityType createEntityType(EntityType entityType) {
 
-        org.apache.custos.sharing.service.EntityType.Builder builder = org.apache.custos.sharing.service.EntityType
+        org.apache.custos.sharing.core.EntityType.Builder builder = org.apache.custos.sharing.core.EntityType
                 .newBuilder()
                 .setId(entityType.getExternalId())
                 .setCreatedAt(entityType.getCreatedAt().getTime())
