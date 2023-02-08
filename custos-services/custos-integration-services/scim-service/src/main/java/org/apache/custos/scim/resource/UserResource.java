@@ -222,11 +222,23 @@ public class UserResource extends AbstractResource {
     @PostMapping(value = {"/.search"}, produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
     public ResponseEntity getUsersByPost(@RequestBody  String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
+
+
+        JSONObject newObj = new JSONObject();
+        JSONObject custosExtention = new JSONObject(resourceString);
+        if (claim.isPresent()) {
+            newObj.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            newObj.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            newObj.put(Constants.TENANT_ID, String.valueOf(claim.get().getTenantId()));
+            newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        }
+
+        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
 
         UserResourceManager userResourceManager = new UserResourceManager();
 
-        SCIMResponse response = userResourceManager.listWithPOST(resourceString, resourceManager);
+        SCIMResponse response = userResourceManager.listWithPOST(custosExtention.toString(), resourceManager);
 
         return buildResponse(response);
 
