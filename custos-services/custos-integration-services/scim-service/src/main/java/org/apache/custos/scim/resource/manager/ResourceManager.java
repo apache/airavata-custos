@@ -19,12 +19,14 @@
 
 package org.apache.custos.scim.resource.manager;
 
+import io.grpc.Status;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.*;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.identity.service.AuthToken;
 import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
+import org.apache.custos.scim.exception.CustosSCIMException;
 import org.apache.custos.scim.utils.Constants;
 import org.apache.custos.user.profile.client.UserProfileClient;
 import org.apache.custos.user.profile.service.UserProfile;
@@ -173,21 +175,21 @@ public class ResourceManager implements UserManager {
 
                 try {
                     return this.convert(userRepresentation);
-                } catch (InternalErrorException e) {
-                    String msg = "Error occurred while converting user representation to charon";
-                    throw new CharonException(msg, e);
+                } catch (InternalErrorException | NotFoundException e) {
+                    String msg = "Error occurred while converting user representation";
+                    throw new CustosSCIMException(msg, e);
                 }
 
             } else {
                 String msg = "User not successfully registered";
                 LOGGER.error(msg);
-                throw new RuntimeException(msg);
+                throw new CustosSCIMException(msg);
             }
 
         } else {
             String msg = "Token not found ";
             LOGGER.error(msg);
-            throw new RuntimeException(msg);
+            throw new CustosSCIMException(msg);
         }
 
     }
@@ -304,7 +306,52 @@ public class ResourceManager implements UserManager {
 
     @Override
     public List<Object> listUsersWithPost(SearchRequest searchRequest, Map<String, Boolean> map) throws CharonException, NotImplementedException, BadRequestException {
-        throw new NotImplementedException("Method not implemented");
+
+//        Object obj = map.get(Constants.CUSTOS_EXTENSION);
+//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+//        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
+//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+//
+//        long tenant = Long.valueOf(tenantId);
+//
+//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+//                .newBuilder()
+//                .setClientId(clientId)
+//                .setClientSecret(clientSec)
+//                .setTenantId(tenant)
+//                .build();
+//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+//
+//        if (token != null && token.getAccessToken() != null) {
+//
+//            UserSearchMetadata metada = UserSearchMetadata.newBuilder().setUsername(decodedId).build();
+//
+//            UserSearchRequest request = UserSearchRequest
+//                    .newBuilder()
+//                    .setTenantId(tenant)
+//                    .setAccessToken(token.getAccessToken())
+//                    .setUser(metada)
+//                    .build();
+//
+//            UserRepresentation userRep = iamAdminServiceClient.getUser(request);
+//
+//            if (userRep == null || userRep.getUsername().equals("")) {
+//                throw new NotFoundException("User not found");
+//            }
+//
+//            try {
+//                return convert(userRep);
+//            } catch (InternalErrorException e) {
+//                throw new CharonException(SCIMConstants.USER);
+//            }
+//
+//        } else {
+//            String msg = "Token not found ";
+//            LOGGER.error(msg);
+//            throw new NotFoundException(msg);
+//        }
+        return null;
     }
 
     @Override
@@ -674,7 +721,7 @@ public class ResourceManager implements UserManager {
     }
 
 
-    private User convert(UserRepresentation representation) throws BadRequestException, CharonException, InternalErrorException {
+    private User convert(UserRepresentation representation) throws BadRequestException, CharonException, InternalErrorException, NotFoundException {
 
         //obtain the json encoder
         JSONEncoder encoder = getEncoder();
@@ -716,7 +763,7 @@ public class ResourceManager implements UserManager {
     }
 
 
-    private String getUser(UserRepresentation representation) {
+    private String getUser(UserRepresentation representation) throws NotFoundException {
         JSONObject object = new JSONObject();
         object.put("id", representation.getUsername());
         object.put("externalId", representation.getUsername());
@@ -730,7 +777,7 @@ public class ResourceManager implements UserManager {
         Instant instant = Instant.ofEpochMilli(Double.doubleToLongBits(representation.getCreationTime()));
         JSONObject meta = new JSONObject();
         meta.put("created", instant.toString());
-        String location = "https://custos.scigap.org:32036/scim/v2/Users/" + representation.getUsername();
+        String location =  AbstractResourceManager.getResourceEndpointURL(SCIMConstants.USER_ENDPOINT)+ representation.getUsername();
         meta.put("location", location);
         meta.put("resourceType", SCIMConstants.USER);
 
