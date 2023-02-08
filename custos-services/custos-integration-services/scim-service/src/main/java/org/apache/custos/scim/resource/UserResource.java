@@ -220,7 +220,7 @@ public class UserResource extends AbstractResource {
             @ApiResponse(code = 404, message = "Valid users are not found")})
 
     @PostMapping(value = {"/.search"}, produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
-    public ResponseEntity getUsersByPost(String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+    public ResponseEntity getUsersByPost(@RequestBody  String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
         authHandler.validateAndConfigure(authorizationHeader, false);
 
