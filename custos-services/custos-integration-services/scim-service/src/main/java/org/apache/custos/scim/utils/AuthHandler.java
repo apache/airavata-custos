@@ -24,13 +24,11 @@ import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.identity.client.IdentityClient;
 import org.apache.custos.integration.services.commons.interceptors.AuthInterceptor;
 import org.apache.custos.integration.services.commons.model.AuthClaim;
+import org.apache.custos.scim.exception.NotAuthorizedException;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
-import org.json.JSONObject;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 
-import javax.swing.text.html.Option;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
