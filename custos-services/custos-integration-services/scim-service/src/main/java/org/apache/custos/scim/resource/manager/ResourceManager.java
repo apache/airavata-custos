@@ -19,7 +19,6 @@
 
 package org.apache.custos.scim.resource.manager;
 
-import io.grpc.Status;
 import org.apache.custos.credential.store.client.CredentialStoreServiceClient;
 import org.apache.custos.iam.admin.client.IamAdminServiceClient;
 import org.apache.custos.iam.service.*;
@@ -54,10 +53,8 @@ import org.wso2.charon3.core.schema.SCIMResourceTypeSchema;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.wso2.charon3.core.protocol.endpoints.AbstractResourceManager.getDecoder;
 import static org.wso2.charon3.core.protocol.endpoints.AbstractResourceManager.getEncoder;
@@ -307,51 +304,47 @@ public class ResourceManager implements UserManager {
     @Override
     public List<Object> listUsersWithPost(SearchRequest searchRequest, Map<String, Boolean> map) throws CharonException, NotImplementedException, BadRequestException {
 
-//        Object obj = map.get(Constants.CUSTOS_EXTENSION);
-//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
-//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
-//        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
-//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
-//
-//        long tenant = Long.valueOf(tenantId);
-//
-//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-//                .newBuilder()
-//                .setClientId(clientId)
-//                .setClientSecret(clientSec)
-//                .setTenantId(tenant)
-//                .build();
-//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-//
-//        if (token != null && token.getAccessToken() != null) {
-//
-//            UserSearchMetadata metada = UserSearchMetadata.newBuilder().setUsername(decodedId).build();
-//
-//            UserSearchRequest request = UserSearchRequest
-//                    .newBuilder()
-//                    .setTenantId(tenant)
-//                    .setAccessToken(token.getAccessToken())
-//                    .setUser(metada)
-//                    .build();
-//
-//            UserRepresentation userRep = iamAdminServiceClient.getUser(request);
-//
-//            if (userRep == null || userRep.getUsername().equals("")) {
-//                throw new NotFoundException("User not found");
-//            }
-//
-//            try {
-//                return convert(userRep);
-//            } catch (InternalErrorException e) {
-//                throw new CharonException(SCIMConstants.USER);
-//            }
-//
-//        } else {
-//            String msg = "Token not found ";
-//            LOGGER.error(msg);
-//            throw new NotFoundException(msg);
-//        }
-        return null;
+        try {
+            JSONObject obj = new JSONObject(searchRequest.getDomainName());
+            String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+            String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+            String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+
+            long tenant = Long.valueOf(tenantId);
+
+            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+                    .newBuilder()
+                    .setClientId(clientId)
+                    .setClientSecret(clientSec)
+                    .setTenantId(tenant)
+                    .build();
+            AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+
+            if (token != null && token.getAccessToken() != null) {
+
+                FindUsersRequest findUsersRequest = FindUsersRequest.newBuilder().setAccessToken(token.getAccessToken())
+                        .setOffset(searchRequest.getStartIndex() - 1).setOffset(searchRequest.getCount()).build();
+
+                FindUsersResponse userRep = iamAdminServiceClient.getUsers(findUsersRequest);
+
+                List<Object> userList = userRep.getUsersList().stream().map(user-> {
+                    try {
+                        return convert(user);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }).collect(Collectors.toList());
+
+                for (UserRepresentation representation : userRep.getUsersList()) {
+                    userList.add(convert(representation));
+                }
+                return userList;
+            } else {
+                throw new CustosSCIMException("Invalid Credentials", new UnauthorizedException());
+            }
+        } catch (Exception ex) {
+            throw new CustosSCIMException(" Error occurred while fetching users ", ex);
+        }
     }
 
     @Override
@@ -777,7 +770,7 @@ public class ResourceManager implements UserManager {
         Instant instant = Instant.ofEpochMilli(Double.doubleToLongBits(representation.getCreationTime()));
         JSONObject meta = new JSONObject();
         meta.put("created", instant.toString());
-        String location =  AbstractResourceManager.getResourceEndpointURL(SCIMConstants.USER_ENDPOINT)+ representation.getUsername();
+        String location = AbstractResourceManager.getResourceEndpointURL(SCIMConstants.USER_ENDPOINT) + representation.getUsername();
         meta.put("location", location);
         meta.put("resourceType", SCIMConstants.USER);
 

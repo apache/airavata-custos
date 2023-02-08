@@ -234,7 +234,7 @@ public class UserResource extends AbstractResource {
             newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
         }
 
-        custosExtention.put(Constants.CUSTOS_EXTENSION, newObj);
+        custosExtention.put(Constants.DOMAIN, newObj.toString());
 
         UserResourceManager userResourceManager = new UserResourceManager();
 
