@@ -83,8 +83,9 @@ public class ResourceManager implements UserManager {
     private CredentialStoreServiceClient credentialStoreServiceClient;
 
 
-    public ResourceManager(@Value("${scim.resource.user.endpoint}") String userEndpoint,
-                           @Value("${scim.resource.group.endpoint}") String groupEndpoint) {
+    public ResourceManager(@Value("${scim.resource.user.endpoint:/v2/Users}") String userEndpoint,
+                           @Value("${scim.resource.group.endpoint:/v2/Groups}") String groupEndpoint,
+                           @Value("${scim.user.schema.location}") String location) {
 
         Map<String, String> endpointMap = new HashMap();
         endpointMap.put(SCIMConstants.USER_ENDPOINT, userEndpoint);
@@ -93,7 +94,7 @@ public class ResourceManager implements UserManager {
 
         try {
             SCIMUserSchemaExtensionBuilder.getInstance()
-                    .buildUserSchemaExtension(Constants.USER_SCHEMA_EXTENTION_LOCATION);
+                    .buildUserSchemaExtension(location);
         } catch (Exception e) {
             String msg = "User schema building error";
             LOGGER.error(msg, e);
