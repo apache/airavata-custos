@@ -341,10 +341,6 @@ public class ResourceManager implements UserManager {
                 List<Object> users = new ArrayList<>();
 
                 users.add(userList.size());
-
-                for (UserRepresentation representation : userRep.getUsersList()) {
-                    userList.add(convert(representation));
-                }
                 users.addAll(userList);
                 return users;
             } else {
