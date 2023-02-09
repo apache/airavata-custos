@@ -322,7 +322,8 @@ public class ResourceManager implements UserManager {
 
             if (token != null && token.getAccessToken() != null) {
 
-                FindUsersRequest findUsersRequest = FindUsersRequest.newBuilder().setAccessToken(token.getAccessToken())
+                FindUsersRequest findUsersRequest = FindUsersRequest.newBuilder()
+                        .setAccessToken(token.getAccessToken())
                         .setOffset(searchRequest.getStartIndex() - 1)
                         .setTenantId(tenant)
                         .setLimit(searchRequest.getCount())
@@ -337,11 +338,15 @@ public class ResourceManager implements UserManager {
                         throw new RuntimeException(e);
                     }
                 }).collect(Collectors.toList());
+                List<Object> users = new ArrayList<>();
+
+                users.add(userList.size());
 
                 for (UserRepresentation representation : userRep.getUsersList()) {
                     userList.add(convert(representation));
                 }
-                return userList;
+                users.addAll(userList);
+                return users;
             } else {
                 throw new CustosSCIMException("Invalid Credentials", new UnauthorizedException());
             }
