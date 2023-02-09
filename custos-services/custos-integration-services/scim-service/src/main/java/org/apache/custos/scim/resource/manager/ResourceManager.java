@@ -325,7 +325,7 @@ public class ResourceManager implements UserManager {
                 FindUsersRequest findUsersRequest = FindUsersRequest.newBuilder().setAccessToken(token.getAccessToken())
                         .setOffset(searchRequest.getStartIndex() - 1)
                         .setTenantId(tenant)
-                        .setOffset(searchRequest.getCount())
+                        .setLimit(searchRequest.getCount())
                         .build();
 
                 FindUsersResponse userRep = iamAdminServiceClient.getUsers(findUsersRequest);
