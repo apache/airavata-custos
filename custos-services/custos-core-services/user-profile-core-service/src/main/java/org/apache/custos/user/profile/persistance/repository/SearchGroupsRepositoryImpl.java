@@ -41,9 +41,10 @@ public class SearchGroupsRepositoryImpl implements SearchGroupsRepository {
     EntityManager entityManager;
 
     @Override
-    public List<Group> searchEntities(long tenantId, org.apache.custos.user.profile.service.Group group) {
+    public List<Group> searchEntities(long tenantId, org.apache.custos.user.profile.service.Group group, int offset,
+                                      int limit) {
         Map<String, Object> valueMap = new HashMap<>();
-        String query = createSQLQuery(tenantId, group, valueMap);
+        String query = createSQLQuery(tenantId, group, valueMap,  offset,  limit);
 
 
         Query q = entityManager.createNativeQuery(query, Group.class);
@@ -54,7 +55,8 @@ public class SearchGroupsRepositoryImpl implements SearchGroupsRepository {
         return q.getResultList();
     }
 
-    private String createSQLQuery(long tenantId, org.apache.custos.user.profile.service.Group group, Map<String, Object> valueMap) {
+    private String createSQLQuery(long tenantId, org.apache.custos.user.profile.service.Group group,
+                                  Map<String, Object> valueMap, int offset, int limit) {
 
         String query = "SELECT * FROM group_entity E WHERE ";
 
@@ -105,6 +107,12 @@ public class SearchGroupsRepositoryImpl implements SearchGroupsRepository {
         query = query.substring(0, query.length() - 5);
 
         query = query + " ORDER BY E.created_at DESC";
+
+        if (limit > 0) {
+            query = query + " LIMIT " + ":limit" + " OFFSET " + ":offset";
+            valueMap.put("limit", limit);
+            valueMap.put("offset", offset);
+        }
 
         return query;
     }

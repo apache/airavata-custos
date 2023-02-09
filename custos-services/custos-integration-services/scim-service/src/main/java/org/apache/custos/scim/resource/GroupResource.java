@@ -269,7 +269,7 @@ public class GroupResource extends AbstractResource {
             @ApiResponse(code = 404, message = "Valid groups are not found")})
 
     @PostMapping(value = ("/.search"), produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
-    public ResponseEntity getGroupsByPost(String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
+    public ResponseEntity getGroupsByPost(@RequestBody  String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
         authHandler.validateAndConfigure(authorizationHeader, false);
 
