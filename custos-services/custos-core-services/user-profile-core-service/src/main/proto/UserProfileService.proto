@@ -120,7 +120,8 @@ message GroupRequest {
     string membership_type = 5;
     string id = 6;
     string client_sec =7;
-
+    int32 offset =8;
+    int32 limit=9;
 }
 
 message GetAllGroupsResponse {

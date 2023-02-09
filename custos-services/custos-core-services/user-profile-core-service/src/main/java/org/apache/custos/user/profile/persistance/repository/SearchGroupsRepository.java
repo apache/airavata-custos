@@ -25,5 +25,6 @@ import java.util.List;
 
 public interface SearchGroupsRepository {
 
-    List<Group> searchEntities(long tenantId, org.apache.custos.user.profile.service.Group group);
+    List<Group> searchEntities(long tenantId, org.apache.custos.user.profile.service.Group group,int offset,
+                               int limit);
 }
