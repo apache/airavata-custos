@@ -892,7 +892,8 @@ public class ResourceManager implements UserManager {
         meta.put("resourceType", SCIMConstants.GROUP);
         Instant instant = Instant.ofEpochMilli(Double.doubleToLongBits(group.getCreatedTime()));
         meta.put("created", instant.toString());
-        meta.put("lastModified", group.getLastModifiedTime());
+        Instant instantLastmodified = Instant.ofEpochMilli(Double.doubleToLongBits(group.getLastModifiedTime()));
+        meta.put("lastModified", instantLastmodified.toString());
 
         object.put("meta", meta);
         JSONArray array = new JSONArray();
