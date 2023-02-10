@@ -722,6 +722,7 @@ public class ResourceManager implements UserManager {
             List<org.apache.custos.user.profile.service.Group> groupsList = getAllGroupsResponse.getGroupsList();
 
             List<Object> groups = new ArrayList<>();
+            groups.add(groupsList.size());
 
             for (org.apache.custos.user.profile.service.Group group : groupsList) {
                 org.apache.custos.user.profile.service.GroupRequest groupRequest =
