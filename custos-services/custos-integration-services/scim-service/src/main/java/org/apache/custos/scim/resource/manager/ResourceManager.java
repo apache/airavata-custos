@@ -729,7 +729,7 @@ public class ResourceManager implements UserManager {
                         org.apache.custos.user.profile.service.GroupRequest
                                 .newBuilder()
                                 .setTenantId(tenant)
-                                .setId(group.getId())
+                                .setGroup(group)
                                 .build();
                 GetAllUserProfilesResponse response = userProfileClient.getAllChildUsers(groupRequest);
                 List<UserProfile> userProfileList = response.getProfilesList();
