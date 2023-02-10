@@ -28,6 +28,8 @@ import org.apache.custos.identity.service.GetUserManagementSATokenRequest;
 import org.apache.custos.scim.exception.CustosSCIMException;
 import org.apache.custos.scim.utils.Constants;
 import org.apache.custos.user.profile.client.UserProfileClient;
+import org.apache.custos.user.profile.service.GetAllGroupsResponse;
+import org.apache.custos.user.profile.service.GetAllUserProfilesResponse;
 import org.apache.custos.user.profile.service.UserProfile;
 import org.apache.custos.user.profile.service.UserStatus;
 import org.json.JSONArray;
@@ -53,7 +55,10 @@ import org.wso2.charon3.core.schema.SCIMResourceTypeSchema;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.wso2.charon3.core.protocol.endpoints.AbstractResourceManager.getDecoder;
@@ -331,7 +336,7 @@ public class ResourceManager implements UserManager {
 
                 FindUsersResponse userRep = iamAdminServiceClient.getUsers(findUsersRequest);
 
-                List<Object> userList = userRep.getUsersList().stream().map(user-> {
+                List<Object> userList = userRep.getUsersList().stream().map(user -> {
                     try {
                         return convert(user);
                     } catch (Exception e) {
@@ -445,255 +450,295 @@ public class ResourceManager implements UserManager {
     @Override
     public Group createGroup(Group group, Map<String, Boolean> map) throws CharonException, ConflictException, NotImplementedException, BadRequestException {
 
-        List<Object> members = group.getMembers();
-
-        String str = (String) members.get(0);
-
-        JSONObject obj = new JSONObject(str);
-
-        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
-        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
-        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
-
-        long tenant = Long.valueOf(tenantId);
-
-        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                .newBuilder()
-                .setClientId(clientId)
-                .setClientSecret(clientSec)
-                .setTenantId(tenant)
-                .build();
-
-        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-        if (token != null && token.getAccessToken() != null) {
-
-            GroupRepresentation representation = GroupRepresentation
-                    .newBuilder()
-                    .setName(group.getDisplayName())
-                    .build();
-
-            GroupsRequest request = GroupsRequest
-                    .newBuilder()
-                    .setAccessToken(token.getAccessToken())
-                    .setTenantId(tenant)
-                    .setClientId(clientId)
-                    .addGroups(representation)
-                    .build();
-
-            GroupsResponse response = iamAdminServiceClient.createGroups(request);
-
-            org.apache.custos.user.profile.service.Group groupR =
-                    org.apache.custos.user.profile.service.Group
-                            .newBuilder()
-                            .setId(response.getGroups(0).getId())
-                            .setName(group.getDisplayName())
-                            .build();
-
-            org.apache.custos.user.profile.service.GroupRequest groupRequest =
-                    org.apache.custos.user.profile.service.GroupRequest
-                            .newBuilder()
-                            .setTenantId(tenant)
-                            .setGroup(groupR)
-                            .build();
-            userProfileClient.createGroup(groupRequest);
-
-            try {
-                return convert(response.getGroups(0));
-            } catch (InternalErrorException e) {
-                String msg = "Error occurred while converting group representation to charon";
-                throw new CharonException(msg, e);
-            }
-
-        } else {
-            String msg = "Token not found ";
-            LOGGER.error(msg);
-            throw new RuntimeException(msg);
-        }
+//        List<Object> members = group.getMembers();
+//
+//        String str = (String) members.get(0);
+//
+//        JSONObject obj = new JSONObject(str);
+//
+//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+//
+//        long tenant = Long.valueOf(tenantId);
+//
+//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+//                .newBuilder()
+//                .setClientId(clientId)
+//                .setClientSecret(clientSec)
+//                .setTenantId(tenant)
+//                .build();
+//
+//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+//
+//        if (token != null && token.getAccessToken() != null) {
+//
+//            GroupRepresentation representation = GroupRepresentation
+//                    .newBuilder()
+//                    .setName(group.getDisplayName())
+//                    .build();
+//
+//            GroupsRequest request = GroupsRequest
+//                    .newBuilder()
+//                    .setAccessToken(token.getAccessToken())
+//                    .setTenantId(tenant)
+//                    .setClientId(clientId)
+//                    .addGroups(representation)
+//                    .build();
+//
+//            GroupsResponse response = iamAdminServiceClient.createGroups(request);
+//
+//            org.apache.custos.user.profile.service.Group groupR =
+//                    org.apache.custos.user.profile.service.Group
+//                            .newBuilder()
+//                            .setId(response.getGroups(0).getId())
+//                            .setName(group.getDisplayName())
+//                            .build();
+//
+//            org.apache.custos.user.profile.service.GroupRequest groupRequest =
+//                    org.apache.custos.user.profile.service.GroupRequest
+//                            .newBuilder()
+//                            .setTenantId(tenant)
+//                            .setGroup(groupR)
+//                            .build();
+//            userProfileClient.createGroup(groupRequest);
+//
+//            try {
+//                return convert(response.getGroups(0));
+//            } catch (InternalErrorException e) {
+//                String msg = "Error occurred while converting group representation to charon";
+//                throw new CharonException(msg, e);
+//            }
+//
+//        } else {
+//            String msg = "Token not found ";
+//            LOGGER.error(msg);
+//            throw new RuntimeException(msg);
+//        }
+        throw new NotImplementedException();
 
     }
 
     @Override
     public Group getGroup(String id, Map<String, Boolean> map) throws NotImplementedException, BadRequestException, CharonException, NotFoundException {
-        JSONObject object = new JSONObject(id);
-        Object obj = object.get(Constants.CUSTOS_EXTENSION);
-        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
-        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
-        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
-        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
-        String accessToken = ((String) ((JSONObject) obj).get(Constants.ACCESS_TOKEN));
-
-        long tenant = Long.valueOf(tenantId);
-
-        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                .newBuilder()
-                .setClientId(clientId)
-                .setClientSecret(clientSec)
-                .setTenantId(tenant)
-                .build();
-        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-        if (token != null && token.getAccessToken() != null) {
-
-            GroupRepresentation groupRepresentation = GroupRepresentation.newBuilder().setId(decodedId).build();
-
-            GroupRequest groupsRequest = GroupRequest
-                    .newBuilder()
-                    .setAccessToken(token.getAccessToken())
-                    .setClientId(clientId)
-                    .setClientSec(clientSec)
-                    .setTenantId(tenant)
-                    .setGroup(groupRepresentation)
-                    .build();
-
-            GroupRepresentation representation = iamAdminServiceClient.findGroup(groupsRequest);
-
-            try {
-                return convert(representation);
-            } catch (InternalErrorException e) {
-                throw new CharonException(SCIMConstants.GROUP);
-            }
-
-        } else {
-            String msg = "Token not found ";
-            LOGGER.error(msg);
-            throw new RuntimeException(msg);
-        }
+//        JSONObject object = new JSONObject(id);
+//        Object obj = object.get(Constants.CUSTOS_EXTENSION);
+//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+//        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
+//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+//        String accessToken = ((String) ((JSONObject) obj).get(Constants.ACCESS_TOKEN));
+//
+//        long tenant = Long.valueOf(tenantId);
+//
+//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+//                .newBuilder()
+//                .setClientId(clientId)
+//                .setClientSecret(clientSec)
+//                .setTenantId(tenant)
+//                .build();
+//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+//
+//        if (token != null && token.getAccessToken() != null) {
+//
+//            GroupRepresentation groupRepresentation = GroupRepresentation.newBuilder().setId(decodedId).build();
+//
+//            GroupRequest groupsRequest = GroupRequest
+//                    .newBuilder()
+//                    .setAccessToken(token.getAccessToken())
+//                    .setClientId(clientId)
+//                    .setClientSec(clientSec)
+//                    .setTenantId(tenant)
+//                    .setGroup(groupRepresentation)
+//                    .build();
+//
+//            GroupRepresentation representation = iamAdminServiceClient.findGroup(groupsRequest);
+//
+//            try {
+//                return convert(representation);
+//            } catch (InternalErrorException e) {
+//                throw new CharonException(SCIMConstants.GROUP);
+//            }
+//
+//        } else {
+//            String msg = "Token not found ";
+//            LOGGER.error(msg);
+//            throw new RuntimeException(msg);
+//        }
+        throw new NotImplementedException();
 
     }
 
     @Override
     public void deleteGroup(String id) throws NotFoundException, CharonException, NotImplementedException, BadRequestException {
-        JSONObject object = new JSONObject(id);
-        Object obj = object.get(Constants.CUSTOS_EXTENSION);
-        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
-        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
-        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
-        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
-        String accessToken = ((String) ((JSONObject) obj).get(Constants.ACCESS_TOKEN));
-
-        long tenant = Long.valueOf(tenantId);
-
-        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                .newBuilder()
-                .setClientId(clientId)
-                .setClientSecret(clientSec)
-                .setTenantId(tenant)
-                .build();
-        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-        if (token != null && token.getAccessToken() != null) {
-
-            GroupRepresentation groupRepresentation = GroupRepresentation.newBuilder().setId(decodedId).build();
-
-            GroupRequest groupsRequest = GroupRequest
-                    .newBuilder()
-                    .setAccessToken(token.getAccessToken())
-                    .setClientId(clientId)
-                    .setClientSec(clientSec)
-                    .setTenantId(tenant)
-                    .setGroup(groupRepresentation)
-                    .build();
-
-            OperationStatus response = iamAdminServiceClient.deleteGroup(groupsRequest);
-
-
-            if (response.getStatus()) {
-                org.apache.custos.user.profile.service.Group group = org.apache.custos.user.profile.service.Group.newBuilder()
-                        .setId(decodedId)
-                        .build();
-
-                org.apache.custos.user.profile.service.GroupRequest groupRequest = org.apache.custos.user.profile.service.GroupRequest
-                        .newBuilder().
-                                setTenantId(tenant).
-                                setGroup(group).build();
-
-                userProfileClient.deleteGroup(groupRequest);
-            }
-
-        } else {
-            String msg = "Token not found ";
-            LOGGER.error(msg);
-            throw new RuntimeException(msg);
-        }
+//        JSONObject object = new JSONObject(id);
+//        Object obj = object.get(Constants.CUSTOS_EXTENSION);
+//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+//        String decodedId = ((String) ((JSONObject) obj).get(Constants.ID));
+//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+//        String accessToken = ((String) ((JSONObject) obj).get(Constants.ACCESS_TOKEN));
+//
+//        long tenant = Long.valueOf(tenantId);
+//
+//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+//                .newBuilder()
+//                .setClientId(clientId)
+//                .setClientSecret(clientSec)
+//                .setTenantId(tenant)
+//                .build();
+//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+//
+//        if (token != null && token.getAccessToken() != null) {
+//
+//            GroupRepresentation groupRepresentation = GroupRepresentation.newBuilder().setId(decodedId).build();
+//
+//            GroupRequest groupsRequest = GroupRequest
+//                    .newBuilder()
+//                    .setAccessToken(token.getAccessToken())
+//                    .setClientId(clientId)
+//                    .setClientSec(clientSec)
+//                    .setTenantId(tenant)
+//                    .setGroup(groupRepresentation)
+//                    .build();
+//
+//            OperationStatus response = iamAdminServiceClient.deleteGroup(groupsRequest);
+//
+//
+//            if (response.getStatus()) {
+//                org.apache.custos.user.profile.service.Group group = org.apache.custos.user.profile.service.Group.newBuilder()
+//                        .setId(decodedId)
+//                        .build();
+//
+//                org.apache.custos.user.profile.service.GroupRequest groupRequest = org.apache.custos.user.profile.service.GroupRequest
+//                        .newBuilder().
+//                                setTenantId(tenant).
+//                                setGroup(group).build();
+//
+//                userProfileClient.deleteGroup(groupRequest);
+//            }
+//
+//        } else {
+//            String msg = "Token not found ";
+//            LOGGER.error(msg);
+//            throw new RuntimeException(msg);
+//        }
+         throw new NotImplementedException();
 
     }
 
     @Override
     public Group updateGroup(Group group, Group group1, Map<String, Boolean> map) throws NotImplementedException, BadRequestException, CharonException, NotFoundException {
-        List<Object> members = group1.getMembers();
-
-        String str = (String) members.get(0);
-
-        JSONObject obj = new JSONObject(str);
-
-        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
-        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
-        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
-
-        long tenant = Long.valueOf(tenantId);
-
-
-        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
-                .newBuilder()
-                .setClientId(clientId)
-                .setClientSecret(clientSec)
-                .setTenantId(tenant)
-                .build();
-        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
-
-        if (token != null && token.getAccessToken() != null) {
-
-            GroupRepresentation representation = GroupRepresentation
-                    .newBuilder()
-                    .setId(group1.getId())
-                    .setName(group1.getDisplayName())
-                    .build();
-
-            GroupRequest request = GroupRequest
-                    .newBuilder()
-                    .setAccessToken(token.getAccessToken())
-                    .setTenantId(tenant)
-                    .setClientId(clientId)
-                    .setClientSec(clientSec)
-                    .setGroup(representation)
-                    .build();
-
-            GroupRepresentation response = iamAdminServiceClient.updateGroup(request);
-
-            org.apache.custos.user.profile.service.Group groupR =
-                    org.apache.custos.user.profile.service.Group
-                            .newBuilder()
-                            .setId(group1.getId())
-                            .setName(group1.getDisplayName())
-                            .build();
-
-            org.apache.custos.user.profile.service.GroupRequest groupRequest =
-                    org.apache.custos.user.profile.service.GroupRequest
-                            .newBuilder()
-                            .setTenantId(tenant)
-                            .setGroup(groupR)
-                            .build();
-            userProfileClient.updateGroup(groupRequest);
-
-            try {
-                return convert(response);
-            } catch (InternalErrorException e) {
-                String msg = "Error occurred while converting group representation to charon";
-                throw new CharonException(msg, e);
-            }
-
-        } else {
-            String msg = "Token not found ";
-            LOGGER.error(msg);
-            throw new RuntimeException(msg);
-        }
+//        List<Object> members = group1.getMembers();
+//
+//        String str = (String) members.get(0);
+//
+//        JSONObject obj = new JSONObject(str);
+//
+//        String clientId = ((String) ((JSONObject) obj).get(Constants.CLIENT_ID));
+//        String clientSec = ((String) ((JSONObject) obj).get(Constants.CLIENT_SEC));
+//        String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+//
+//        long tenant = Long.valueOf(tenantId);
+//
+//
+//        GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest
+//                .newBuilder()
+//                .setClientId(clientId)
+//                .setClientSecret(clientSec)
+//                .setTenantId(tenant)
+//                .build();
+//        AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
+//
+//        if (token != null && token.getAccessToken() != null) {
+//
+//            GroupRepresentation representation = GroupRepresentation
+//                    .newBuilder()
+//                    .setId(group1.getId())
+//                    .setName(group1.getDisplayName())
+//                    .build();
+//
+//            GroupRequest request = GroupRequest
+//                    .newBuilder()
+//                    .setAccessToken(token.getAccessToken())
+//                    .setTenantId(tenant)
+//                    .setClientId(clientId)
+//                    .setClientSec(clientSec)
+//                    .setGroup(representation)
+//                    .build();
+//
+//            GroupRepresentation response = iamAdminServiceClient.updateGroup(request);
+//
+//            org.apache.custos.user.profile.service.Group groupR =
+//                    org.apache.custos.user.profile.service.Group
+//                            .newBuilder()
+//                            .setId(group1.getId())
+//                            .setName(group1.getDisplayName())
+//                            .build();
+//
+//            org.apache.custos.user.profile.service.GroupRequest groupRequest =
+//                    org.apache.custos.user.profile.service.GroupRequest
+//                            .newBuilder()
+//                            .setTenantId(tenant)
+//                            .setGroup(groupR)
+//                            .build();
+//            userProfileClient.updateGroup(groupRequest);
+//
+//            try {
+//                return convert(response);
+//            } catch (InternalErrorException e) {
+//                String msg = "Error occurred while converting group representation to charon";
+//                throw new CharonException(msg, e);
+//            }
+//
+//        } else {
+//            String msg = "Token not found ";
+//            LOGGER.error(msg);
+//            throw new RuntimeException(msg);
+//        }
+        throw new NotImplementedException();
 
     }
 
     @Override
-    public List<Object> listGroupsWithPost(SearchRequest searchRequest, Map<String, Boolean> map) throws NotImplementedException, BadRequestException, CharonException {
-        throw new BadRequestException("Method not implemented");
+    public List<Object> listGroupsWithPost(SearchRequest searchRequest, Map<String, Boolean> map)
+            throws NotImplementedException, BadRequestException, CharonException {
+        try {
+            JSONObject obj = new JSONObject(searchRequest.getDomainName());
+            String tenantId = ((String) ((JSONObject) obj).get(Constants.TENANT_ID));
+
+            long tenant = Long.valueOf(tenantId);
+
+            org.apache.custos.user.profile.service.GroupRequest groupsRequest =
+                    org.apache.custos.user.profile.service.GroupRequest
+                            .newBuilder()
+                            .setTenantId(tenant)
+                            .setLimit(searchRequest.getCount())
+                            .setOffset(searchRequest.getStartIndex() - 1)
+                            .build();
+
+            GetAllGroupsResponse getAllGroupsResponse = userProfileClient.getAllGroups(groupsRequest);
+
+            List<org.apache.custos.user.profile.service.Group> groupsList = getAllGroupsResponse.getGroupsList();
+
+            List<Object> groups = new ArrayList<>();
+
+            for (org.apache.custos.user.profile.service.Group group : groupsList) {
+                org.apache.custos.user.profile.service.GroupRequest groupRequest =
+                        org.apache.custos.user.profile.service.GroupRequest
+                                .newBuilder()
+                                .setTenantId(tenant)
+                                .setId(group.getId())
+                                .build();
+                GetAllUserProfilesResponse response = userProfileClient.getAllChildUsers(groupRequest);
+                List<UserProfile> userProfileList = response.getProfilesList();
+                Group gr = convert(group, userProfileList);
+                groups.add(gr);
+            }
+            return groups;
+        } catch (Exception ex) {
+            throw new CustosSCIMException("Invalid Credentials", new UnauthorizedException());
+        }
     }
 
 
@@ -739,7 +784,8 @@ public class ResourceManager implements UserManager {
     }
 
 
-    private Group convert(GroupRepresentation representation) throws BadRequestException, CharonException, InternalErrorException {
+    private Group convert(org.apache.custos.user.profile.service.Group group, List<UserProfile> members) throws
+            BadRequestException, CharonException, InternalErrorException, NotFoundException {
 
         //obtain the json encoder
         JSONEncoder encoder = getEncoder();
@@ -751,7 +797,7 @@ public class ResourceManager implements UserManager {
         // unless configured returns core-user schema or else returns extended user schema)
         SCIMResourceTypeSchema schema = SCIMResourceSchemaManager.getInstance().getGroupResourceSchema();
 
-        String scimObjectString = getGroup(representation);
+        String scimObjectString = getGroup(group, members);
 
         //decode the SCIM User object, encoded in the submitted payload.
         Group user = (Group) decoder.decodeResource(scimObjectString, schema, new Group());
@@ -835,22 +881,35 @@ public class ResourceManager implements UserManager {
 
     }
 
-    private String getGroup(GroupRepresentation representation) {
+    private String getGroup(org.apache.custos.user.profile.service.Group group, List<UserProfile> members) throws NotFoundException {
         JSONObject object = new JSONObject();
-        object.put("id", representation.getId());
-        object.put("displayName", representation.getName());
+        object.put("id", group.getId());
+        object.put("displayName", group.getName());
         JSONObject meta = new JSONObject();
-        String location = "https://custos.scigap.org:32036/scim/v2/Groups/" + representation.getId();
+        String location = AbstractResourceManager.getResourceEndpointURL(SCIMConstants.GROUP_ENDPOINT) + group.getId();
         meta.put("location", location);
-        meta.put("resourceType", SCIMConstants.USER);
+        meta.put("resourceType", SCIMConstants.GROUP);
+        meta.put("created", group.getCreatedTime());
+        meta.put("lastModified", group.getLastModifiedTime());
 
         object.put("meta", meta);
         JSONArray array = new JSONArray();
         array.put(SCIMConstants.CORE_SCHEMA_URI);
         object.put("schemas", array);
 
-        return object.toString();
 
+        JSONArray userArr = new JSONArray();
+        for (UserProfile userProfile : members) {
+            JSONObject user = new JSONObject();
+            user.put("value", userProfile.getUsername());
+            String userLoc = AbstractResourceManager.getResourceEndpointURL(SCIMConstants.USER_ENDPOINT)
+                    + userProfile.getUsername();
+            user.put("location", userLoc);
+            user.put("display", userProfile.getFirstName());
+            userArr.put(user);
+        }
+        object.put("members", userArr);
+        return object.toString();
     }
 
 
