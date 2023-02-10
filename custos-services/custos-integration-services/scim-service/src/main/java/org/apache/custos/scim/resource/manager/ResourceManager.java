@@ -907,7 +907,7 @@ public class ResourceManager implements UserManager {
             user.put("value", userProfile.getUsername());
             String userLoc = AbstractResourceManager.getResourceEndpointURL(SCIMConstants.USER_ENDPOINT)
                     + userProfile.getUsername();
-            user.put("location", userLoc);
+            user.put("$ref", userLoc);
             user.put("display", userProfile.getFirstName());
             userArr.put(user);
         }
