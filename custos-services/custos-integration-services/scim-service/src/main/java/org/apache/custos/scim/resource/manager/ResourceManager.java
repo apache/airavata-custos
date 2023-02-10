@@ -890,7 +890,8 @@ public class ResourceManager implements UserManager {
         String location = AbstractResourceManager.getResourceEndpointURL(SCIMConstants.GROUP_ENDPOINT) + group.getId();
         meta.put("location", location);
         meta.put("resourceType", SCIMConstants.GROUP);
-        meta.put("created", group.getCreatedTime());
+        Instant instant = Instant.ofEpochMilli(Double.doubleToLongBits(group.getCreatedTime()));
+        meta.put("created", instant.toString());
         meta.put("lastModified", group.getLastModifiedTime());
 
         object.put("meta", meta);
