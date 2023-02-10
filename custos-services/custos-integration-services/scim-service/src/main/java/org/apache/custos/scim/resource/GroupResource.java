@@ -33,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.wso2.charon3.core.protocol.SCIMResponse;
 import org.wso2.charon3.core.protocol.endpoints.GroupResourceManager;
+import org.wso2.charon3.core.protocol.endpoints.UserResourceManager;
 
 import java.util.Map;
 import java.util.Optional;
@@ -271,8 +272,20 @@ public class GroupResource extends AbstractResource {
     @PostMapping(value = ("/.search"), produces = {"application/json", "application/scim+json"}, consumes = {"application/scim+json"})
     public ResponseEntity getGroupsByPost(@RequestBody  String resourceString, @RequestHeader(value = Constants.AUTHORIZATION) String authorizationHeader) {
 
-        authHandler.validateAndConfigure(authorizationHeader, false);
+        Optional<AuthClaim> claim = authHandler.validateAndConfigure(authorizationHeader, false);
 
+
+        JSONObject newObj = new JSONObject();
+        JSONObject custosExtention = new JSONObject(resourceString);
+        if (claim.isPresent()) {
+            newObj.put(Constants.CLIENT_ID, claim.get().getIamAuthId());
+            newObj.put(Constants.CLIENT_SEC, claim.get().getIamAuthSecret());
+            newObj.put(Constants.TENANT_ID, String.valueOf(claim.get().getTenantId()));
+            newObj.put(Constants.ACCESS_TOKEN, authHandler.getToken(authorizationHeader));
+        }
+
+        custosExtention.put(Constants.DOMAIN, newObj.toString());
+        
         GroupResourceManager groupResourceManager = new GroupResourceManager();
 
         SCIMResponse response = groupResourceManager.listWithPOST(resourceString, resourceManager);
