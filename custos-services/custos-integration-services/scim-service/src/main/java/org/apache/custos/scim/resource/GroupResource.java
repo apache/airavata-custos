@@ -285,10 +285,10 @@ public class GroupResource extends AbstractResource {
         }
 
         custosExtention.put(Constants.DOMAIN, newObj.toString());
-        
+
         GroupResourceManager groupResourceManager = new GroupResourceManager();
 
-        SCIMResponse response = groupResourceManager.listWithPOST(resourceString, resourceManager);
+        SCIMResponse response = groupResourceManager.listWithPOST(custosExtention.toString(), resourceManager);
 
         return buildResponse(response);
     }
