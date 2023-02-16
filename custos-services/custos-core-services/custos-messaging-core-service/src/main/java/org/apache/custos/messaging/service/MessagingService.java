@@ -38,7 +38,7 @@ public class MessagingService extends MessagingServiceGrpc.MessagingServiceImplB
     @Autowired
     private MessagingMetadataRepository messagingMetadataRepository;
 
-    @Autowired
+    @Autowired(required=false)
     private MessageProducer messageProducer;
 
     @Override

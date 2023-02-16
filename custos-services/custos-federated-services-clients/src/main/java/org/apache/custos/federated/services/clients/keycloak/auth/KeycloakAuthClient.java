@@ -75,41 +75,18 @@ public class KeycloakAuthClient {
     @Value("${iam.server.truststore.password:keycloak}")
     private String trustStorePassword;
 
-    @Value("${introspection.endpoint}")
-    private String introEndpoint;
+//    @Value("${token.endpoint:}")
+//    private String tokenEndpoint;
 
-    @Value("${issuer}")
-    private String issuer;
+//    @Value("${registration.endpoint}")
+//    private String registrationEndpoint;
 
-    @Value("${authorization.endpoint}")
-    private String authorizationEndpoint;
+//    @Value("${user.info.endpoint}")
+//    private String userInfoEndpoint;
 
-    @Value("${token.endpoint}")
-    private String tokenEndpoint;
-
-    @Value("${end.session.endpoint}")
-    private String sessionEndpoint;
-
-    @Value("${jwks_uri}")
-    private String jwksUri;
-
-    @Value("${registration.endpoint}")
-    private String registrationEndpoint;
-
-    @Value("${user.info.endpoint}")
-    private String userInfoEndpoint;
-
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
-
-    @Autowired
-    private ClusterManagementClient clusterManagementClient;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakAuthClient.class);
 
-    public KeycloakAuthClient() {
-
-    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void initializeSecurity() throws CertificateException, NoSuchAlgorithmException,
@@ -312,12 +289,12 @@ public class KeycloakAuthClient {
 
         // openIdConnectConfig.put("introspection_endpoint", introEndpoint);
         // openIdConnectConfig.put("issuer", issuer);
-        openIdConnectConfig.put("custos_token_endpoint", tokenEndpoint);
+//        openIdConnectConfig.put("custos_token_endpoint", tokenEndpoint);
         //  openIdConnectConfig.put("end_session_endpoint", sessionEndpoint);
         //  openIdConnectConfig.put("token_introspection_endpoint", introEndpoint);
-        openIdConnectConfig.put("custos_userinfo_endpoint", userInfoEndpoint);
+//        openIdConnectConfig.put("custos_userinfo_endpoint", userInfoEndpoint);
         // openIdConnectConfig.put("jwks_uri", jwksUri);
-        openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
+//        openIdConnectConfig.put("registration_endpoint", registrationEndpoint);
         // openIdConnectConfig.remove("check_session_iframe");
 
 
