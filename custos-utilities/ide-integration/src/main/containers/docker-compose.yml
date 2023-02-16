@@ -54,3 +54,19 @@ services:
 #      volumes:
 #        - ./init/mysql/scripts/bash:/docker-entrypoint-initdb.d
 #        - ./init/mysql/scripts/sql:/tmp/sql
+
+    custos_core_services_server:
+      container_name: custos_core_server
+      image: apachecustos/custos-core-services-server:1.1-SNAPSHOT
+      restart: always
+      ports:
+           - "7001:7001"
+           - "9001:9001"
+
+    custos_integration_services_server:
+      container_name: custos_integration_server
+      image: apachecustos/custos-integration-services-server:1.1-SNAPSHOT
+      restart: always
+      ports:
+        - "7000:7000"
+        - "9000:9000"
