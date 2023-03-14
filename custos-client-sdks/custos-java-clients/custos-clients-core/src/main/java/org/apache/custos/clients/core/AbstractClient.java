@@ -20,6 +20,7 @@
 package org.apache.custos.clients.core;
 
 import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import org.slf4j.Logger;
@@ -45,6 +46,11 @@ public abstract  class AbstractClient implements Closeable {
                         .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
                         .build())
                 .build();
+    }
+
+    public AbstractClient(String serviceHost, int servicePort) throws IOException {
+        managedChannel = ManagedChannelBuilder.forAddress(serviceHost,servicePort)
+                         .usePlaintext().build();
     }
 
     @Override

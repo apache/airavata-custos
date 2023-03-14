@@ -92,6 +92,8 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
     private MessagingClient messagingClient;
 
 
+
+
     @Override
     public void createTenant(Tenant request, StreamObserver<CreateTenantResponse> responseObserver) {
         try {
@@ -101,7 +103,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
 
             long tenantId = response.getTenantId();
 
-            GetNewCustosCredentialRequest req = GetNewCustosCredentialRequest.newBuilder().setOwnerId(tenantId).build();
+            GetNewCustosCredentialRequest req = GetNewCustosCredentialRequest.newBuilder()
+                    .setOwnerId(tenantId)
+                    .build();
 
             CredentialMetadata resp = credentialStoreServiceClient.getNewCustosCredentials(req);
 
@@ -636,6 +640,12 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             CredentialMetadata metadata = credentialStoreServiceClient.getCustosCredentialFromClientId(credentialRequest);
 
             if (metadata != null) {
+
+                if (request.getSuperTenant()) {
+                     metadata = metadata.toBuilder().setSuperTenant(true).build();
+                     credentialStoreServiceClient.putCredential(metadata);
+                }
+
                 request = request.toBuilder().setTenantId(metadata.getOwnerId()).build();
                 UpdateStatusResponse response = profileClient.updateTenantStatus(request);
 
@@ -644,6 +654,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                     Context ctx = Context.current().fork();
                     // Set ctx as the current context within the Runnable
                     UpdateStatusRequest finalRequest = request;
+                    CredentialMetadata finalMetadata = metadata;
                     ctx.run(() -> {
                         ServiceCallback callback = new ServiceCallback() {
                             @Override
@@ -651,7 +662,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                                 org.apache.custos.tenant.profile.service.GetTenantRequest tenantRequest =
                                         org.apache.custos.tenant.profile.service.GetTenantRequest
                                                 .newBuilder()
-                                                .setTenantId(metadata.getOwnerId())
+                                                .setTenantId(finalMetadata.getOwnerId())
                                                 .build();
 
                                 org.apache.custos.tenant.profile.service.GetTenantResponse tenantResponse =
@@ -659,7 +670,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                                 Tenant savedTenant = tenantResponse.getTenant();
 
                                 GetCredentialRequest credentialRequest = GetCredentialRequest.newBuilder()
-                                        .setOwnerId(metadata.getOwnerId())
+                                        .setOwnerId(finalMetadata.getOwnerId())
                                         .setType(Type.IAM)
                                         .build();
 
@@ -669,7 +680,7 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
                                         .newBuilder()
                                         .setClientId(iamMeta.getId())
                                         .setClientSecret(iamMeta.getSecret())
-                                        .setTenantId(metadata.getOwnerId())
+                                        .setTenantId(finalMetadata.getOwnerId())
                                         .build();
                                 AuthToken token = identityClient.getUserManagementSATokenRequest(userManagementSATokenRequest);
 
@@ -748,9 +759,9 @@ public class TenantManagementService extends TenantManagementServiceImplBase {
             }
 
         } catch (Exception ex) {
-            String msg = "Tenant update task failed for tenant " + request.getTenantId() + ex.getMessage();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            String msg = "Tenant update task failed for tenant " + request.getTenantId();
+            LOGGER.error(msg,ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).withCause(ex).asRuntimeException());
         }
     }
 

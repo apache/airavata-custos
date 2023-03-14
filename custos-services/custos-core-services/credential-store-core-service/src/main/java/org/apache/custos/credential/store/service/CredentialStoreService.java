@@ -76,6 +76,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     + request.getId() + " Secret " + request.getSecret());
             String path = BASE_PATH + request.getOwnerId() + "/" + request.getType().name();
             Credential credential = new Credential(request.getId(), request.getSecret());
+            credential.setSuperTenant(request.getSuperTenant());
             vaultTemplate.write(path, credential);
             VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
             if (response != null && response.getData() != null && response.getData().getId() != null) {
@@ -328,9 +329,9 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
 
 
         } catch (Exception ex) {
-            String msg = " operation failed for " + request.getOwnerId();
-            LOGGER.error(msg);
-            responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
+            String msg = " Credential generation failed for tenant " + request.getOwnerId();
+            LOGGER.error(msg,ex);
+            responseObserver.onError(Status.INTERNAL.withDescription(msg).withCause(ex).asRuntimeException());
         }
     }
 
