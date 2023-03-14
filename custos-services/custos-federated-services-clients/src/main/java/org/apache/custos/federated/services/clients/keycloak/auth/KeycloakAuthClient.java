@@ -167,6 +167,7 @@ public class KeycloakAuthClient {
                                                              String realmId) {
         try {
             String tokenURL = getTokenEndpoint(realmId);
+            LOGGER.info("token url:"+ tokenURL);
             JSONObject clientCredentials = getClientCredentials(tokenURL, clientId, clientSecret);
             return clientCredentials.getString("access_token");
         } catch (Exception e) {

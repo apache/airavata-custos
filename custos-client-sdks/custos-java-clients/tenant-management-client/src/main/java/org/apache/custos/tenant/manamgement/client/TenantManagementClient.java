@@ -58,6 +58,13 @@ public class TenantManagementClient extends AbstractClient {
 
     }
 
+    public TenantManagementClient(String serviceHost, int servicePort) throws IOException {
+
+        super(serviceHost,servicePort);
+
+        blockingStub = TenantManagementServiceGrpc.newBlockingStub(managedChannel);
+    }
+
 
     /**
      * Register child tenant

@@ -3,14 +3,15 @@ services:
     keycloak:
       image: quay.io/keycloak/keycloak:9.0.2
       ports:
-        - "8443:8443"
+        - "8080:8080"
       environment:
         KEYCLOAK_USER: admin
         KEYCLOAK_PASSWORD: admin
-        KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/test/certs/localhostcert.pem
-        KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/test/certs/localhostkey.pem
-      volumes:
-        - ./keycloak:/opt/keycloak/test/certs
+        PROXY_ADDRESS_FORWARDING: 'true'
+    nginx:
+      image: apachecustos/keycloak-nginx:latest
+      ports:
+        - "443:443"
     vault:
       image: vault:1.7.0
       container_name: vault
@@ -36,6 +37,8 @@ services:
       image: apachecustos/custos-rest-proxy:latest
       container_name: rest-proxy
       restart: on-failure:10
+      depends_on:
+        - custos_integration_services_server
       ports:
         - "10000:50000"
     my_sql_local:
@@ -59,6 +62,10 @@ services:
       container_name: custos_core_server
       image: apachecustos/custos-core-services-server:1.1-SNAPSHOT
       restart: always
+      depends_on:
+        - keycloak
+        - vault
+        - my_sql_local
       ports:
            - "7001:7001"
            - "9001:9001"
@@ -67,6 +74,8 @@ services:
       container_name: custos_integration_server
       image: apachecustos/custos-integration-services-server:1.1-SNAPSHOT
       restart: always
+      depends_on:
+        - custos_core_services_server
       ports:
         - "7000:7000"
         - "9000:9000"
