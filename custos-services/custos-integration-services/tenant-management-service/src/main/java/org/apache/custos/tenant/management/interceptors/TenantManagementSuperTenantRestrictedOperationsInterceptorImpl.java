@@ -27,6 +27,8 @@ import org.apache.custos.integration.services.commons.interceptors.AuthIntercept
 import org.apache.custos.integration.services.commons.model.AuthClaim;
 import org.apache.custos.tenant.management.service.Credentials;
 import org.apache.custos.tenant.profile.client.async.TenantProfileClient;
+import org.apache.custos.tenant.profile.service.GetAllTenantsResponse;
+import org.apache.custos.tenant.profile.service.GetTenantsRequest;
 import org.apache.custos.tenant.profile.service.UpdateStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,19 +42,28 @@ public class TenantManagementSuperTenantRestrictedOperationsInterceptorImpl exte
     private static final Logger LOGGER = LoggerFactory.getLogger(TenantManagementSuperTenantRestrictedOperationsInterceptorImpl.class);
 
     private CredentialStoreServiceClient credentialStoreServiceClient;
+    TenantProfileClient tenantProfileClient;
 
 
     public TenantManagementSuperTenantRestrictedOperationsInterceptorImpl(CredentialStoreServiceClient credentialStoreServiceClient,
                                                                           TenantProfileClient tenantProfileClient, IdentityClient identityClient) {
         super(credentialStoreServiceClient, tenantProfileClient, identityClient);
         this.credentialStoreServiceClient = credentialStoreServiceClient;
+        this.tenantProfileClient = tenantProfileClient;
     }
 
     @Override
     public <ReqT> ReqT intercept(String method, Metadata headers, ReqT msg) {
 
         if (method.equals("updateTenantStatus")) {
-            if (!((UpdateStatusRequest) msg).getSuperTenant()) {
+            if (((UpdateStatusRequest) msg).getSuperTenant()) {
+                GetTenantsRequest allTenants = GetTenantsRequest.newBuilder().setOffset(0).setLimit(2).build();
+                GetAllTenantsResponse tenantsResponse = tenantProfileClient.getAllTenants(allTenants);
+                if (tenantsResponse.getTenantList().size() > 1) {
+                    throw new UnAuthorizedException("Request is not authorized, You have more than one tenant registered with the system  " +
+                            " and super tenant should be the first tenant, please clean up the databases", null);
+                }
+            } else {
                 Optional<AuthClaim> claim = null;
                 String token = getToken(headers);
                 try {
@@ -90,7 +101,7 @@ public class TenantManagementSuperTenantRestrictedOperationsInterceptorImpl exte
                 LOGGER.error(" Authorizing error " + ex.getMessage());
                 throw new UnAuthorizedException("Request is not authorized", ex);
             }
-            if (claim == null || claim.isEmpty()|| !claim.get().isSuperTenant()) {
+            if (claim == null || claim.isEmpty() || !claim.get().isSuperTenant()) {
                 throw new UnAuthorizedException("Request is not authorized", null);
             }
 

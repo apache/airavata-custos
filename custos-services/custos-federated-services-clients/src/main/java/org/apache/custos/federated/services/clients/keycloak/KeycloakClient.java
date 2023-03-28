@@ -91,8 +91,6 @@ public class KeycloakClient {
     @Value("${iam.federated.cilogon.jwksUri:https://cilogon.org/oauth2/certs}")
     private String jwksUri;
 
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
 
     public void createRealm(String realmId, String displayName) {
         Keycloak client = null;

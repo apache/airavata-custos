@@ -44,6 +44,7 @@ import org.apache.custos.tenant.profile.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -70,6 +71,9 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
     @Autowired
     private SharingClient sharingClient;
+
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
 
 
     @Override
@@ -153,6 +157,7 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
         CredentialMetadata metadata = credentialStoreServiceClient.getCredential(getCreRe);
 
+
         SetUpTenantRequest setUpTenantRequest = SetUpTenantRequest
                 .newBuilder()
                 .setTenantId(tenant.getTenantId())
@@ -222,31 +227,34 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
 
         if (!update) {
-            RegisterClientResponse registerClientResponse = federatedAuthenticationClient
-                    .addClient(clientMetadataBuilder.build());
+            // skip CILOGON client creation for local development
+            if (!activeProfile.equalsIgnoreCase("local")) {
+                RegisterClientResponse registerClientResponse = federatedAuthenticationClient
+                        .addClient(clientMetadataBuilder.build());
 
 
-            CredentialMetadata credentialMetadataCILogon = CredentialMetadata
-                    .newBuilder()
-                    .setId(registerClientResponse.getClientId())
-                    .setSecret(registerClientResponse.getClientSecret())
-                    .setOwnerId(tenant.getTenantId())
-                    .setType(Type.CILOGON)
-                    .build();
+                CredentialMetadata credentialMetadataCILogon = CredentialMetadata
+                        .newBuilder()
+                        .setId(registerClientResponse.getClientId())
+                        .setSecret(registerClientResponse.getClientSecret())
+                        .setOwnerId(tenant.getTenantId())
+                        .setType(Type.CILOGON)
+                        .build();
 
-            credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
+                credentialStoreServiceClient.putCredential(credentialMetadataCILogon);
 
 
-            ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
-                    .newBuilder()
-                    .setTenantId(tenant.getTenantId())
-                    .setClientID(registerClientResponse.getClientId())
-                    .setClientSec(registerClientResponse.getClientSecret())
-                    .setScope(tenant.getScope())
-                    .setRequesterEmail(tenant.getRequesterEmail())
-                    .setType(FederatedIDPs.CILOGON)
-                    .build();
-            iamAdminServiceClient.configureFederatedIDP(request);
+                ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
+                        .newBuilder()
+                        .setTenantId(tenant.getTenantId())
+                        .setClientID(registerClientResponse.getClientId())
+                        .setClientSec(registerClientResponse.getClientSecret())
+                        .setScope(tenant.getScope())
+                        .setRequesterEmail(tenant.getRequesterEmail())
+                        .setType(FederatedIDPs.CILOGON)
+                        .build();
+                iamAdminServiceClient.configureFederatedIDP(request);
+            }
 
             PermissionType permissionType = PermissionType
                     .newBuilder()

@@ -40,6 +40,8 @@
         <module>custos-tests</module>
         <module>custos-services</module>
         <module>custos-core</module>
+        <module>custos-utilities/ide-integration</module>
+        <module>custos-utilities/custos-bootstrap-service</module>
     </modules>
 
     <dependencyManagement>
