@@ -54,6 +54,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
     * Keycloak
     * MySQL
     * HashiCorp Vault
+    * CILogon
     
   - Custos Services
     * Custos Core Service
@@ -67,7 +68,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
 
 * Bootstrapping Custos
   
-   If all services were successfully ran. Custos bootstrap service needs to be run to create the Super tenant to launch Custos Portal
+   If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
    ```
     cd custos-utilities/custos-bootstrap-service/
     mvn spring-boot:run
