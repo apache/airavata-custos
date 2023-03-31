@@ -47,7 +47,7 @@ public class SharingClient {
                          @Value("${core.services.server.port:7070}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         sharingServiceBlockingStub = SharingServiceGrpc.newBlockingStub(managedChannel);
 
     }

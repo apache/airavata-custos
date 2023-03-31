@@ -49,7 +49,7 @@ public class IdentityClient {
                           @Value("${core.services.server.port:7070}") int servicePort) {
         this.clientInterceptorList = clientInterceptorList;
         managedChannel = ManagedChannelBuilder.forAddress(
-                serviceHost, servicePort).usePlaintext(true).intercept(clientInterceptorList).build();
+                serviceHost, servicePort).usePlaintext().intercept(clientInterceptorList).build();
         identityServiceStub = IdentityServiceGrpc.newStub(managedChannel);
         identityServiceBlockingStub = IdentityServiceGrpc.newBlockingStub(managedChannel);
     }
