@@ -71,7 +71,6 @@
   copy:
     src: tmp/primary.snap
     dest: /home/exouser/backups/
-  ignore_errors: yes
 
 #- name: import snapshot to consul server
 

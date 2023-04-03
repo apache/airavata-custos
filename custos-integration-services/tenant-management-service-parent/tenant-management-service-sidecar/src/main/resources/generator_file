@@ -1,3 +1,0 @@
-protoc -I.   -Itarget/protoc-dependencies/45c49ddf3ed3308cec70daee4da0d823/ -Itarget/protoc-dependencies/8ac451ce2e503dea8ae3499dfc7022d8  --include_imports --include_source_info --descriptor_set_out=tenant_management_service.pb  src/main/proto/TenantManagementService.proto
-
-python -m grpc_tools.protoc -Isrc/main/proto/  -Itarget/protoc-dependencies/553743830f5a4c5dacb080d8dc7646f8  -Itarget/protoc-dependencies/45c49ddf3ed3308cec70daee4da0d823  --python_out=. --grpc_python_out=. src/main/proto/AgentManagementService.proto

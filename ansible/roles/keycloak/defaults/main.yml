@@ -19,7 +19,7 @@
 #
 
 ---
-keycloak_version: "20.0.1"
+keycloak_version: "9.0.2"
 keycloak_downlaod_url: "https://downloads.jboss.org/keycloak/{{keycloak_version}}/keycloak-{{keycloak_version}}.tar.gz"
 keycloak_install_dir: "keycloak-{{keycloak_version}}"
 keycloak_db_connector_name: "mysql-connector-java-5.1.41"
