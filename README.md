@@ -27,7 +27,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
 
 **To find out more, please check out the [Custos website](https://airavata.apache.org/custos/) and the [Custos wiki](https://cwiki.apache.org/confluence/display/CUSTOS/Home).**
 
-##Custos POM changes for MAC M1:
+## Custos POM changes for MAC M1:
 
 
 For successfully running the maven build for custom on Mac M1 laptops following changes are needed in the parent configuration files . These changes are related to protobuf and gen-grpc-java plugins as the the compatible version with Mac M1 are needed for both . These changes should be made at both the places where the plugins are specified .The architecture of the Mac M1 which is osx-x86_64 has to be passed along with versions for build to be successful.
@@ -42,8 +42,6 @@ For successfully running the maven build for custom on Mac M1 laptops following 
     </configuration>
 
 
-
-
 ## Quickstart
 
 ## Installation Instructions
@@ -56,7 +54,7 @@ For successfully running the maven build for custom on Mac M1 laptops following 
 
 * Docker installed on local environment 
 
-####Clone the repository
+#### Clone the repository
   ```
     git clone -b develop https://github.com/apache/airavata-custos.git
     
@@ -92,7 +90,7 @@ For successfully running the maven build for custom on Mac M1 laptops following 
 
 #### Bootstrapping Custos
   
-   If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
+If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
    ```
     cd custos-utilities/custos-bootstrap-service/
     mvn spring-boot:run
@@ -103,6 +101,7 @@ Custos Portal.
 
 
 #### Install Custos Portal Locally
+
 Following the following link to access portal deployment instructions
 
 [custos portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
