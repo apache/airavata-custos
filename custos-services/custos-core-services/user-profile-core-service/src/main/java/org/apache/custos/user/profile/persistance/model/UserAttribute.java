@@ -19,7 +19,7 @@
 
 package org.apache.custos.user.profile.persistance.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "user_attribute")

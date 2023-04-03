@@ -61,7 +61,7 @@ public class TenantMapper {
         tenantEntity.setUri(tenant.getClientUri());
         tenantEntity.setParentId(tenant.getParentTenantId());
         tenantEntity.setApplicationType(tenant.getApplicationType());
-        tenantEntity.setJwks(tenant.getJwksCount() > 0 ? getJWKSAsString(tenant.getJwksMap()) : null);
+//        tenantEntity.setJwks(tenant.getJwksCount() > 0 ? getJWKSAsString(tenant.getJwksMap()) : null);
         tenantEntity.setJwksUri(tenant.getJwksUri());
         tenantEntity.setExample_extension_parameter(tenant.getExampleExtensionParameter());
         tenantEntity.setTosUri(tenant.getTosUri());

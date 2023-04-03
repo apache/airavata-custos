@@ -22,7 +22,7 @@ package org.apache.custos.logging.persistance.model;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 /**
  * Represents Log event

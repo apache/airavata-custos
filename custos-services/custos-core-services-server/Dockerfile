@@ -1,4 +1,4 @@
-FROM openjdk:11.0.5-jdk-slim
+FROM openjdk:17.0.2-slim
 COPY src/main/resources/certificate.p12   /home/ubuntu/keystore/keycloak-client-truststore.pkcs12
 VOLUME /tmp
 ARG JAR_FILE

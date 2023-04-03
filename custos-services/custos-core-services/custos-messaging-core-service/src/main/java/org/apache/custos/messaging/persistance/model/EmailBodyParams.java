@@ -21,7 +21,7 @@ package org.apache.custos.messaging.persistance.model;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 /**
  * Represents Email Template

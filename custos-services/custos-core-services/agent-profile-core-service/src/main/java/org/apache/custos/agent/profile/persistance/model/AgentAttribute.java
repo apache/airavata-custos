@@ -19,7 +19,7 @@
 
 package org.apache.custos.agent.profile.persistance.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "agent_attribute")
