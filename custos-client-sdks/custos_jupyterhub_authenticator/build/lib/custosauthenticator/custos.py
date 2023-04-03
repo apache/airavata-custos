@@ -51,19 +51,19 @@ class CustosLoginHandler(OAuthLoginHandler):
 
 
 class CustosOAuthenticator(OAuthenticator):
-    custos_host = Unicode(os.environ.get("CUSTOS_HOST") or "custos.scigap.org", config=True)
+    custos_host = Unicode(os.environ.get("CUSTOS_HOST") or "prod.custos.usecustos.org", config=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.login_service = "Custos Login"
         self.login_handler = CustosLoginHandler
         iam_host = ''
-        if self.custos_host == 'custos.scigap.org':
-            iam_host = "keycloak.custos.scigap.org:31000"
-        elif self.custos_host == 'services.staging.usecustos.org':
-            iam_host = "keycloak.staging.usecustos.org:30170"
-        elif self.custos_host == 'service.usecustos.org':
-            iam_host = "keycloak.usecustos.org:31161"
+        if self.custos_host == 'dev.custos.usecustos.org':
+            iam_host = "dev.keycloak.usecustos.org"
+        elif self.custos_host == 'staging.custos.usecustos.org':
+            iam_host = "staging.keycloak.usecustos.org"
+        elif self.custos_host == 'prod.custos.usecustos.org':
+            iam_host = "prod.keycloak.usecustos.org"
         x = super().client_id.split("-")
         tenant_id = x[len(x) - 1]
         self.iam_uri = "https://{}/auth/realms/{}/protocol/openid-connect/".format(iam_host, tenant_id)
@@ -101,7 +101,7 @@ class CustosOAuthenticator(OAuthenticator):
         """We set up auth_state based on additional Custos info if we
             receive it.
             """
-        app_log.info("Authenticating with Custos")
+
         code = handler.get_argument("code")
 
         authS = "{}:{}".format(self.client_id, self.client_secret)

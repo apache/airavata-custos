@@ -39,6 +39,8 @@ from tornado.log import app_log
 from oauthenticator.oauth2 import OAuthenticator
 from oauthenticator.oauth2 import OAuthLoginHandler
 
+log = logging.getLogger(__name__)
+
 
 class CustosLoginHandler(OAuthLoginHandler):
     """See //https://airavata.apache.org/custos/ for general information."""
@@ -51,23 +53,26 @@ class CustosLoginHandler(OAuthLoginHandler):
 
 
 class CustosOAuthenticator(OAuthenticator):
-    custos_host = Unicode(os.environ.get("CUSTOS_HOST") or "custos.scigap.org", config=True)
+    custos_host = Unicode(os.environ.get("CUSTOS_HOST") or "prod.custos.usecustos.org", config=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.login_service = "Custos Login"
         self.login_handler = CustosLoginHandler
         iam_host = ''
-        if self.custos_host == 'custos.scigap.org':
-            iam_host = "keycloak.custos.scigap.org:31000"
-        elif self.custos_host == 'services.staging.usecustos.org':
-            iam_host = "keycloak.staging.usecustos.org:30170"
-        elif self.custos_host == 'service.usecustos.org':
-            iam_host = "keycloak.usecustos.org:31161"
+        if self.custos_host == 'dev.custos.usecustos.org':
+            iam_host = "dev.keycloak.usecustos.org"
+        elif self.custos_host == 'staging.custos.usecustos.org':
+            iam_host = "staging.keycloak.usecustos.org"
+        elif self.custos_host == 'prod.custos.usecustos.org':
+            iam_host = "prod.keycloak.usecustos.org"
         x = super().client_id.split("-")
         tenant_id = x[len(x) - 1]
         self.iam_uri = "https://{}/auth/realms/{}/protocol/openid-connect/".format(iam_host, tenant_id)
         self.group_uri = "https://{}/apiserver/group-management/v1.0.0/user/group/memberships".format(self.custos_host)
+        app_log.info("custos home", self.custos_host)
+        app_log.info("iam url", self.self.iam_uri)
+        app_log.info("iam host", iam_host)
 
     @default("authorize_url")
     def _authorize_url_default(self):
@@ -187,10 +192,8 @@ class CustosOAuthenticator(OAuthenticator):
         matched = False
 
         for group in user_groups:
-            if group['id']  in self.allowed_groups:
+            if group['id'] in self.allowed_groups:
                 matched = True
                 return matched
 
         return matched
-
-

@@ -169,14 +169,11 @@ Open the file `test/hosts.yml`. Set ansible_host and ansible_user for `old_custo
 Make sure that passwordless ssh authentication is set up from your master node to the old servers.
 
 Now Generate backups in your old servers. By default, ansible will load the backups from the locations specified in the file: `ansible/roles/migrate_db/tasks/main.yml`
-Verify that these backups exist before running the ansible-playbook command.
-
 
 To deploy Custos with data migration, run the following command:
 ```bash
 ansible-playbook -i inventories/test/ custos.yml --tags migrate_db,all
 ```
-If you don't see the backups loaded successfully - verify that the backups were transferred from the source locations to the master node (in folder tmp)
 ## Useful commands
 - Deploy Custos with verbose option for debug messages:
 ```bash

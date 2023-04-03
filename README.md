@@ -47,6 +47,65 @@ For successfully running the maven build for custom on Mac M1 laptops following 
 ## Quickstart
 
 ## Installation Instructions
+### Deploy Custos on remote server
+### Setup Custos for local development
+
+#### Prerequisites
+
+* Java 17
+
+* Docker installed on local environment 
+
+####Clone the repository
+  ```
+    git clone -b develop https://github.com/apache/airavata-custos.git
+    
+  ```
+
+#### Build source code
+  
+  Following  command builds the Custos source code and create two docker images of custos_core_server and custos_integration_server
+  
+  ```
+    cd airavata-custos
+    mvn clean install
+  ```
+  
+#### Run Custos on docker
+  
+    Following command starts Custos main services and its depend services
+  - Dependent Services
+    * Keycloak
+    * MySQL
+    * HashiCorp Vault
+    * CILogon
+    
+  - Custos Services
+    * Custos Core Service
+    * Custos Integration Service
+    * Custos Rest Proxy
+    
+  ```
+     cd custos-utilities/ide-integration/src/main/containers
+     docker-compose up
+  ```
+
+#### Bootstrapping Custos
+  
+   If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
+   ```
+    cd custos-utilities/custos-bootstrap-service/
+    mvn spring-boot:run
+   ```
+The above command should create the super tenant and it outputs super tenant credentials. Copy those credentials to configure
+Custos Portal.
+
+
+
+#### Install Custos Portal Locally
+Following the following link to access portal deployment instructions
+
+[custos portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
 
 ## Roadmap
 

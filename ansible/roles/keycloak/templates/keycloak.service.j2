@@ -1,11 +1,11 @@
 [Unit]
 Description=Keycloak service
-After=network.target
 
 [Service]
 User={{ user }}
 Group={{ group }}
-ExecStart={{ user_home }}/{{ keycloak_install_dir }}/bin/kc.sh start
+ExecStart={{ user_home }}/run/keycloak.sh  start
+ExecStop={{ user_home }}/run/keycloak.sh  stop
 Restart=always
 TimeoutSec=60
 Type=Forking

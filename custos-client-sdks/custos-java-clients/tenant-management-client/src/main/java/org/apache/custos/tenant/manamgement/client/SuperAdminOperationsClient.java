@@ -20,6 +20,7 @@
 package org.apache.custos.tenant.manamgement.client;
 
 import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.MetadataUtils;
@@ -57,6 +58,11 @@ public class SuperAdminOperationsClient {
 
         blockingStub = MetadataUtils.attachHeaders(blockingStub,
                 ClientUtils.getAuthorizationHeader(clientId, clientSecret));
+    }
+
+    public SuperAdminOperationsClient(String serviceHost, int servicePort) throws IOException {
+        managedChannel = ManagedChannelBuilder.forAddress(serviceHost, servicePort).usePlaintext().build();
+        blockingStub = TenantManagementServiceGrpc.newBlockingStub(managedChannel);
     }
 
 
@@ -149,11 +155,20 @@ public class SuperAdminOperationsClient {
         TenantManagementServiceGrpc.TenantManagementServiceBlockingStub blockingStub =
                 MetadataUtils.attachHeaders(this.blockingStub, ClientUtils.getAuthorizationHeader(adminUserToken));
         return blockingStub.updateTenantStatus(request);
-
-
     }
 
 
+    public UpdateStatusResponse updateTenantStatus(String clientId, TenantStatus tenantStatus, boolean superTenant,
+                                                   String updatedBy) {
 
+        UpdateStatusRequest request = UpdateStatusRequest
+                .newBuilder()
+                .setClientId(clientId)
+                .setStatus(tenantStatus)
+                .setSuperTenant(superTenant)
+                .setUpdatedBy(updatedBy)
+                .build();
+        return blockingStub.updateTenantStatus(request);
+    }
 
 }
