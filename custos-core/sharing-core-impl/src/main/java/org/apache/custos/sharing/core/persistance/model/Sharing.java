@@ -47,7 +47,7 @@ import java.util.Date;
 public class Sharing {
 
     @Id
-    @Column(length = 1000)
+    @Column
     private String id;
 
     @Column(nullable = false)

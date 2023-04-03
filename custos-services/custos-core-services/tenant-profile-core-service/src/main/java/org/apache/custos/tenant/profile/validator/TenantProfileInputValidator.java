@@ -110,9 +110,9 @@ public class TenantProfileInputValidator implements Validator {
                 throw new MissingParameterException("Redirect uris cannot be  should not be null", null);
             }
 
-            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
-                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
-            }
+//            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
+//                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
+//            }
 
 
         } else {
@@ -166,9 +166,9 @@ public class TenantProfileInputValidator implements Validator {
                 throw new MissingParameterException("Redirect uris cannot be  should not be null", null);
             }
 
-            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
-                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
-            }
+//            if (tenant.getJwksCount() > 0 && (tenant.getJwksUri() != null && !tenant.getJwksUri().trim().equals(""))) {
+//                throw new RuntimeException("jwks and jwks both should not be present in a single request", null);
+//            }
 
         } else {
             throw new RuntimeException("Unexpected input type for method updateTenant");

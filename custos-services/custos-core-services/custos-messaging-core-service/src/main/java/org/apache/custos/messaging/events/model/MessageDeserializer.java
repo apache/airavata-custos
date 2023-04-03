@@ -19,6 +19,7 @@
 
 package org.apache.custos.messaging.events.model;
 
+
 import com.google.protobuf.util.JsonFormat;
 import org.apache.custos.messaging.service.Message;
 import org.apache.kafka.common.serialization.Deserializer;

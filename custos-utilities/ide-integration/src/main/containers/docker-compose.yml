@@ -45,6 +45,7 @@ services:
       container_name: my_sql_local
       image: mysql:8.0.31
       restart: always
+      command: --character-set-server=utf8 --collation-server=utf8_general_ci
       ports:
         - "3306:3306"
       environment:
@@ -53,7 +54,6 @@ services:
         MYSQL_USER: admin
         MYSQL_PASSWORD: admin
         MAX_ALLOWED_PACKET: 1073741824
-      command: --character-set-server=ucs2 --collation-server=ucs2_general_ci
 #      volumes:
 #        - ./init/mysql/scripts/bash:/docker-entrypoint-initdb.d
 #        - ./init/mysql/scripts/sql:/tmp/sql

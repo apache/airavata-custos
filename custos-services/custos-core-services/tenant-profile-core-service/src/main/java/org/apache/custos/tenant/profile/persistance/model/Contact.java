@@ -19,7 +19,7 @@
 
 package org.apache.custos.tenant.profile.persistance.model;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 /**
  * This class represents the contact information of Tenant
