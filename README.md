@@ -32,13 +32,20 @@ Science gateways represent potential targets for cybersecurity threats to users,
 ## Installation Instructions
 ### Deploy Custos on remote server
 ### Setup Custos for local development
-* Clone the repository
+
+#### Prerequisites
+
+* Java 17
+
+* Docker installed on local environment 
+
+####Clone the repository
   ```
     git clone -b develop https://github.com/apache/airavata-custos.git
     
   ```
 
-* Build source code
+#### Build source code
   
   Following  command builds the Custos source code and create two docker images of custos_core_server and custos_integration_server
   
@@ -47,7 +54,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
     mvn clean install
   ```
   
-* Run Custos on docker
+#### Run Custos on docker
   
     Following command starts Custos main services and its depend services
   - Dependent Services
@@ -66,7 +73,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
      docker-compose up
   ```
 
-* Bootstrapping Custos
+#### Bootstrapping Custos
   
    If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
    ```
@@ -75,6 +82,14 @@ Science gateways represent potential targets for cybersecurity threats to users,
    ```
 The above command should create the super tenant and it outputs super tenant credentials. Copy those credentials to configure
 Custos Portal.
+
+
+
+#### Install Custos Portal Locally
+Following the following link to access portal deployment instructions
+
+[custos portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
+
 ## Roadmap
 
 ## Contributing
