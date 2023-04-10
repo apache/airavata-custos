@@ -253,6 +253,52 @@ public class UserManagementClient extends AbstractClient {
 
     }
 
+    /**
+     * This method provides functionality to search users across child tenants of main tenant
+     * @param clientId Custos client Id of the tenant to search users
+     * @param username
+     * @param firstName
+     * @param lastName
+     * @param email
+     * @param offset
+     * @param limit
+     * @return
+     */
+    public FindUsersResponse findUser(String clientId,
+                                      String username, String firstName, String lastName,
+                                      String email, int offset, int limit) {
+
+        UserSearchMetadata.Builder builder = UserSearchMetadata
+                .newBuilder();
+
+        if (username != null) {
+            builder = builder.setUsername(username);
+        }
+
+        if (firstName != null) {
+            builder = builder.setFirstName(firstName);
+        }
+
+        if (lastName != null) {
+            builder = builder.setLastName(lastName);
+        }
+
+        if (email != null) {
+            builder = builder.setEmail(email);
+        }
+        UserSearchMetadata metadata = builder.build();
+
+        FindUsersRequest request = FindUsersRequest
+                .newBuilder()
+                .setUser(metadata)
+                .setLimit(limit)
+                .setOffset(offset)
+                .build();
+
+        return blockingStub.findUsers(request);
+
+    }
+
 
     public OperationStatus resetUserPassword(String username, String password) {
 
