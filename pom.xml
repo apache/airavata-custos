@@ -663,7 +663,7 @@
         <kube.java.client.version>5.0.0</kube.java.client.version>
 
         <testng.version>6.8</testng.version>
-        <org.json.version>20190722</org.json.version>
+        <org.json.version>20230227</org.json.version>
 
         <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
 
