@@ -27,21 +27,6 @@ Science gateways represent potential targets for cybersecurity threats to users,
 
 **To find out more, please check out the [Custos website](https://airavata.apache.org/custos/) and the [Custos wiki](https://cwiki.apache.org/confluence/display/CUSTOS/Home).**
 
-## Custos POM changes for MAC M1:
-
-
-For successfully running the maven build for custom on Mac M1 laptops following changes are needed in the parent configuration files . These changes are related to protobuf and gen-grpc-java plugins as the the compatible version with Mac M1 are needed for both . These changes should be made at both the places where the plugins are specified .The architecture of the Mac M1 which is osx-x86_64 has to be passed along with versions for build to be successful.
-
-
-    <configuration>
-        <protocArtifact>com.google.protobuf:protoc:3.1.0:exe:osx-x86_64
-        </protocArtifact>
-        <pluginId>grpc-java</pluginId>
-        <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.0:exe:osx-x86_64
-        </pluginArtifact>
-    </configuration>
-
-
 ## Quickstart
 
 ## Installation Instructions
@@ -88,7 +73,7 @@ For successfully running the maven build for custom on Mac M1 laptops following 
      docker-compose up
   ```
 
-#### Bootstrapping Custos
+#### Bootstrapping Custos  Super Tenant
   
 If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
    ```
@@ -105,6 +90,45 @@ Custos Portal.
 Following the following link to access portal deployment instructions
 
 [custos portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
+
+## Custos Integration With External Applications
+Custos can be integrated with external applications using Custos REST Endpoints, Python SDK, or Java SDK.
+
+### Integrate Using Java SDK
+In order to perform this operation you need to have a already activated tenant in either Custos Managed Services or Your own deployment.
+Following instructions are given for locally deployed custos setup which can be extended to any deployment,
+
+####Initializing Custos Java SDK
+
+* Add maven dependency to your project
+```
+<dependency>
+   <groupId>org.apache.custos</groupId>
+   <artifactId>custos-java-sdk</artifactId>
+   <version>1.1-SNAPSHOT</version>
+</dependency>
+
+```
+* Initialize Custos Client Provider in your application
+```
+ CustosClientProvider custosClientProvider = new CustosClientProvider.Builder().setServerHost("localhost")
+                    .setServerPort(7000)
+                    .setClientId(CUSTOS CLIENT ID) // client Id generated from above step or any active tenant id
+                    .setClientSec(CUSTOS CLIENT SECRET)  
+                    .usePlainText(true) // Don't use this in production setup
+                    .build();
+```
+Once above step is done, you can use custos available methods for  authentication and authorization purposes
+* Sample client code to register and enable a User
+
+```
+ UserManagementClient userManagementClient =  custosClientProvider.getUserManagementClient();
+ userManagementClient.registerUser("Jhon","Smith","testpassword","smith@1",
+                    "jhon@email.com",false);
+ userManagementClient.enableUser("Jhon");
+ OperationStatus status =  userManagementClient.isUserEnabled("Jhon");
+```
+##### 
 
 ## Roadmap
 
