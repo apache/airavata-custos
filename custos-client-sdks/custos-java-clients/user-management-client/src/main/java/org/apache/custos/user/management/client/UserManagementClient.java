@@ -66,6 +66,21 @@ public class UserManagementClient extends AbstractClient {
 
     }
 
+    public UserManagementClient(String serviceHost, int servicePort, String clientId,
+                                String clientSecret, boolean plainText) throws IOException {
+        super(serviceHost, servicePort, clientId, clientSecret,plainText);
+
+        blockingStub = UserManagementServiceGrpc.newBlockingStub(managedChannel);
+
+        blockingStub = MetadataUtils.attachHeaders(blockingStub,
+                ClientUtils.getAuthorizationHeader(clientId, clientSecret));
+
+        this.clientId = clientId;
+
+        this.clientSec = clientSecret;
+
+    }
+
     public RegisterUserResponse registerUser(String username, String firstName, String lastName,
                                              String password, String email, boolean isTempPassword) {
 

@@ -53,6 +53,22 @@ public abstract  class AbstractClient implements Closeable {
                          .usePlaintext().build();
     }
 
+    public AbstractClient(String serviceHost, int servicePort,String clientId,
+                          String clientSecret, boolean plainText) throws IOException {
+        if (plainText) {
+            managedChannel = ManagedChannelBuilder.forAddress(serviceHost, servicePort)
+                    .usePlaintext().build();
+        }else {
+            managedChannel = NettyChannelBuilder.forAddress(serviceHost, servicePort)
+                    .sslContext(GrpcSslContexts
+                            .forClient()
+                            .trustManager(ClientUtils.getServerCertificate(serviceHost, clientId, clientSecret)) // public key
+                            .build())
+                    .build();
+
+        }
+    }
+
     @Override
     public void close() throws IOException {
         if (managedChannel != null){
