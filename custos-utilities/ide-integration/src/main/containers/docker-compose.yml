@@ -37,8 +37,8 @@ services:
       image: apachecustos/custos-rest-proxy:latest
       container_name: rest-proxy
       restart: on-failure:10
-      depends_on:
-        - custos_integration_services_server
+#      depends_on:
+#        - custos_integration_services_server
       ports:
         - "10000:50000"
     my_sql_local:
@@ -54,9 +54,9 @@ services:
         MYSQL_USER: admin
         MYSQL_PASSWORD: admin
         MAX_ALLOWED_PACKET: 1073741824
-#      volumes:
-#        - ./init/mysql/scripts/bash:/docker-entrypoint-initdb.d
-#        - ./init/mysql/scripts/sql:/tmp/sql
+      volumes:
+        - ./init/mysql/scripts/bash:/docker-entrypoint-initdb.d
+        - ./init/mysql/scripts/sql:/tmp/sql
 
     custos_core_services_server:
       container_name: custos_core_server
