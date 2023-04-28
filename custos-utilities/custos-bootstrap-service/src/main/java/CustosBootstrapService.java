@@ -36,7 +36,7 @@ public class CustosBootstrapService {
                 "Custos",
                 "Admin",
                 "xxxx@gmail.com",
-                "custosAdmin",
+                "custosadmin",
                 "1234",
                 new String[]{"xxxx@gmail.com"},
                 new String[]{"http://localhost:8080/callback"},

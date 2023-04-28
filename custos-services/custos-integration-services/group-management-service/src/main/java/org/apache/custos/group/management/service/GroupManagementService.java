@@ -473,7 +473,7 @@ public class GroupManagementService extends GroupManagementServiceGrpc.GroupMana
             responseObserver.onCompleted();
 
         } catch (Exception ex) {
-            String msg = "Error occurred at removeUserFromGroup " + ex.getMessage();
+            String msg = "Error occurred at getAllGroups " + ex.getMessage();
             LOGGER.error(msg, ex);
             responseObserver.onError(Status.INTERNAL.withDescription(msg).asRuntimeException());
 

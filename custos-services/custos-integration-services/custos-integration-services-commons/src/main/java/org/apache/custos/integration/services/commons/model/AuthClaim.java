@@ -27,9 +27,10 @@ public class AuthClaim {
 
     private String iamAuthSecret;
 
-    private String ciLogonId;
 
-    private String ciLogonSecret;
+    private String ciLogonId="";
+
+    private String ciLogonSecret="";
 
     private String custosId;
 
