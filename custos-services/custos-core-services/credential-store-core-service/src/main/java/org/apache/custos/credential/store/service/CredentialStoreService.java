@@ -432,7 +432,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
             CredentialEntity entity = repository.findByClientId(clientId);
 
             if (entity == null) {
-                String msg = " Credentials not found for user " + clientId;
+                String msg = " Credentials not found for clientId " + clientId;
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
                 return;
             }
@@ -871,7 +871,7 @@ public class CredentialStoreService extends CredentialStoreServiceImplBase {
                     request.getOwnerId());
 
             if (entity == null) {
-                String msg = " Credentials not found for user " + clientId;
+                String msg = " Credentials not found for client Id  " + clientId;
                 responseObserver.onError(Status.NOT_FOUND.withDescription(msg).asRuntimeException());
                 return;
             }

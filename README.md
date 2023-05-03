@@ -30,7 +30,7 @@ Science gateways represent potential targets for cybersecurity threats to users,
 ## Quickstart
 
 ## Installation Instructions
-### Deploy Custos on remote server
+
 ### Setup Custos for local development
 
 #### Prerequisites
@@ -38,6 +38,8 @@ Science gateways represent potential targets for cybersecurity threats to users,
 * Java 17
 
 * Docker installed on local environment 
+
+* Maven 3.6.x
 
 #### Clone the repository
   ```
@@ -56,17 +58,19 @@ Science gateways represent potential targets for cybersecurity threats to users,
   
 #### Run Custos on docker
   
-    Following command starts Custos main services and its depend services
+Following command starts Custos main services and its depend services. All services are listed below and you should be able to
+access them locally if all services are correctly started.
+
   - Dependent Services
-    * Keycloak
-    * MySQL
-    * HashiCorp Vault
-    * CILogon
+    * Keycloak (http://localhost:8080/auth/)
+    * MySQL (0.0.0.0:3306)
+    * HashiCorp Vault (http://localhost:8201/)
+    * CILogon (Not available for local development)
     
   - Custos Services
-    * Custos Core Service
-    * Custos Integration Service
-    * Custos Rest Proxy
+    * Custos Core Service (0.0.0.0:7001 (grpc port))
+    * Custos Integration Service (0.0.0.0:7000 (grpc port))
+    * Custos Rest Proxy (http://localhost:10000(envoy proxy)
     
   ```
      cd custos-utilities/ide-integration/src/main/containers
@@ -83,13 +87,25 @@ If all services were successfully ran. Custos bootstrap service needs to be run 
 The above command should create the super tenant and it outputs super tenant credentials. Copy those credentials to configure
 Custos Portal.
 
-
+```
+Note: Make sure to clean up old databases for fresh start.
+```
 
 #### Install Custos Portal Locally
 
-Following the following link to access portal deployment instructions
+Follow the following link to access portal deployment instructions
 
-[custos portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
+[Custos Portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
+
+You have to configure following properties in the .env file
+
+```
+CUSTOS_CLIENT_ID="SUPERT TENANT ID CREATED FROM ABOVE STEP"
+CUSTOS_CLIENT_SEC="SUPERT TENANT CREDENTIAL CREATED FROM ABOVE STEP"
+CUSTOS_API_URL="http://localhost:10000"
+CUSTOS_SUPER_CLIENT_ID="SUPERT TENANT ID CREATED FROM ABOVE STEP"
+UNDER_MAINTENANCE=False
+```
 
 ## Custos Integration With External Applications
 Custos can be integrated with external applications using Custos REST Endpoints, Python SDK, or Java SDK.
@@ -123,13 +139,13 @@ Once above step is done, you can use custos available methods for  authenticatio
 
 ```
  UserManagementClient userManagementClient =  custosClientProvider.getUserManagementClient();
- userManagementClient.registerUser("Jhon","Smith","testpassword","smith@1",
+ userManagementClient.registerUser("jhon","Smith","testpassword","smith@1",
                     "jhon@email.com",false);
- userManagementClient.enableUser("Jhon");
+ userManagementClient.enableUser("jhon");
  OperationStatus status =  userManagementClient.isUserEnabled("Jhon");
 ```
 ##### 
-
+### Deploy Custos on remote server
 ## Roadmap
 
 ## Contributing
