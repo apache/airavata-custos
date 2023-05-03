@@ -327,7 +327,7 @@ public abstract class AuthInterceptor implements IntegrationServiceInterceptor {
 
         Optional<AuthClaim> childClaim = getAuthClaim(allCredentials);
 
-        if (childClaim.isPresent() && (!validateTenantStatus(childClaim.get().getTenantId()) ||
+        if (childClaim.isPresent() && !authClaim.get().isSuperTenant() && (!validateTenantStatus(childClaim.get().getTenantId()) ||
                 !validateParentChildTenantRelationShip(authClaim.get().getTenantId(), childClaim.get().getTenantId()))) {
             return Optional.empty();
         }
