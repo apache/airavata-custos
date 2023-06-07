@@ -21,8 +21,8 @@
 - name: Install postgresql and postgresql-contrib
   apt:
     name:
-      - postgresql
-      - postgresql-contrib
+      - postgresql-14
+      - postgresql-contrib-14
   become: yes
 
 - name: "Install Python packages"
@@ -71,7 +71,7 @@
 - name: copy postgres hba conf
   template:
     src: pg_hba.conf.j2
-    dest: /etc/postgresql/12/main/pg_hba.conf
+    dest: /etc/postgresql/14/main/pg_hba.conf
     owner: root
     group: root
     mode: '0644'

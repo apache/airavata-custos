@@ -1,5 +1,4 @@
 #
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -52,15 +51,6 @@
   ansible.builtin.service:
     name: vault
     state: restarted
-  become: yes
-
-- name: Copy vault.conf to /etc/nginx/conf.d
-  template:
-    src: vault.conf.j2
-    dest: /etc/nginx/conf.d/vault.conf
-    owner: root
-    group: root
-    mode: '0644'
   become: yes
 
 - name: Restart nginx

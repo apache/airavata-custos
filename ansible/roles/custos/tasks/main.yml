@@ -75,14 +75,14 @@
   unarchive: "src={{ custos_source_dir }}/{{ item }}
               dest={{ custos_deployment_dir }}/ copy=no"
   with_items:
-    - "custos-core-services-server/target/Custos-Core-Services-Server-{{custos_distribution_version}}-bin.zip"
-    - "custos-integration-services-server/target/Custos-Integration-Services-Server-{{custos_distribution_version}}-bin.zip"
+    - "custos-services/custos-core-services-server/target/Custos-Core-Services-Server-{{custos_distribution_version}}-bin.zip"
+    - "custos-services/custos-integration-services-server/target/Custos-Integration-Services-Server-{{custos_distribution_version}}-bin.zip"
   become: yes
   become_user: "{{ user }}"
 
 - name: Copy hashicorp and keycloak truststore files
   copy:
-    src: "{{ custos_source_dir }}/custos-core-services-server/src/main/dist/conf/{{ item }}"
+    src: "{{ custos_source_dir }}/custos-services/custos-core-services-server/src/main/dist/conf/{{ item }}"
     dest: /home/ubuntu/{{ item }}
     remote_src: yes
   with_items:
