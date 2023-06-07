@@ -67,10 +67,10 @@
     state: restarted
   become: yes
 
-- name: Copy snapshot from master node to new server
-  copy:
-    src: tmp/primary.snap
-    dest: /home/exouser/backups/
+#- name: Copy snapshot from master node to new server
+#  copy:
+#    src: tmp/primary.snap
+#    dest: /home/exouser/backups/
 
 #- name: import snapshot to consul server
 

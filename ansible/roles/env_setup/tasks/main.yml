@@ -25,99 +25,24 @@
     cache_valid_time: 86400
   become: yes
 
-- name: install nginx
-  apt:
-    name: nginx
-    state: latest
-  become: yes
-
-- name: allow OpenSSH
-  ufw:
-    rule: allow
-    name: "OpenSSH"
-    state: enabled
-  become: yes
-
-# It is recommended to enable the most restrictive profile
-#  that will still allow the traffic you’ve configured.
-#  Right now, we will only need to allow traffic on port 80.
-- name: allow traffic on port 80
-  ufw:
-    rule: allow
-    name: "Nginx HTTP"
-    state: enabled # enable the ufw rule
-  become: yes
-
-- name: create www directory at "/var/www/{{ ansible_host }}"
-  file:
-    path: /var/www/{{ ansible_host }}
-    state: directory
-    mode: '0775'
-    owner: "{{ user }}"
-    group: "{{ group }}"
-  become: yes
-
-- name: copy sample index.html from {{ inventory_hostname }} to /var/www/{{ ansible_host }}/html
-  template: >
-    src={{ inventory_hostname }}/index.html.j2
-    dest="/var/www/{{ ansible_host }}/index.html"
-    owner="{{ user }}"
-    group="{{ group }}"
-    mode="u=rw,g=r,o=r"
-
-- name: delete default nginx config
-  file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  become: yes
-
-- name: copy default nginx site.conf
-  template:
-    src: "{{ inventory_hostname }}/default_site.conf.j2"
-    dest: /etc/nginx/sites-available/{{ ansible_host }}
-    owner: root
-    group: root
-    mode: '0644'
-  become: yes
-
-- name: link sample html to sites-enabled directory
-  file:
-    src: /etc/nginx/sites-available/{{ ansible_host }}
-    dest: /etc/nginx/sites-enabled/{{ ansible_host }}
-    state: link
-  become: yes
-
-- name: allow HTTPS traffic
-  ufw:
-    rule: allow
-    name: "Nginx Full"
-    state: enabled # enable the ufw rule
-  become: yes
-
-- name: delete redundant Nginx HTTP
-  ufw:
-    rule: allow
-    name: "Nginx HTTP"
-    delete: yes
-    state: enabled # enable the ufw rule
-  become: yes
-
-- name: Restart nginx
-  service:
-    name: nginx
-    state: restarted
-  become: yes
-
 - name: install certbot
   apt:
     name:
-      - certbot
-      - python3-certbot-nginx
-    state: latest
+      - openjdk-17-jdk
+    state: present
+    update_cache: yes
   become: yes
 
-- name: Create certs directory
-  ansible.builtin.file:
-    path: "{{ user_home }}/certs"
-    state: directory
-    mode: '0755'
+- name: set {{ java_home }} as default
+  alternatives:
+    name="{{ item.exe }}"
+    link="/usr/bin/{{ item.exe }}"
+    path="{{ item.path }}/{{ item.exe }}"
+  with_items:
+    - { path: "{{ java_home }}/bin", exe: 'java' }
+    - { path: "{{ java_home }}/bin", exe: 'keytool' }
+    - { path: "{{ java_home }}/bin", exe: 'javac' }
+    - { path: "{{ java_home }}/bin", exe: 'javadoc' }
+  become: yes
+  tags:
+    - always

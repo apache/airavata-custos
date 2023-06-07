@@ -26,7 +26,7 @@ Clone Custos git repo and switch branch.
 ```bash
 git clone https://github.com/apache/airavata-custos.git
 cd airavata-custos
-git switch baremetal
+git switch develop
 ```
 Create a virtual environment in the ansible directory
 ```bash
@@ -74,22 +74,13 @@ Here's the command:
 ansible-vault decrypt inventories/test/group_vars/all/vault.yml
 ```
 
-In the file `test/group_vars/all/vault.yml`, look for `keycloak_ssh_password`, `hashicorp_ssh_password` and `custos_ssh_password` variables. Set these variables with their respective password strings. For ex:
-```yml
-⋮
-keycloak_ssh_password: XXX..XXX
-hashicorp_ssh_password: YYY...YYY
-custos_ssh_password: ZZZ...ZZZ
-⋮
-```
-
 Anytime you change the `vault.yml` file, don't forget to encrypt it back again.
 Here's the command to encrypt:
 ```bash
 ansible-vault encrypt inventories/test/group_vars/all/vault.yml
 ```
 
-Now that you've configured the ssh user and password details for your VMs, we can install nginx on each of these servers at once by running the following command:
+Now that you've configured the ssh user and password details for your VMs, we can install Java 17 on each of these servers at once by running the following command:
 ```bash
 ansible-playbook -i inventories/test/ custos.yml --tags env_setup
 ```
@@ -135,17 +126,51 @@ keycloak_pkcs12_passphrase: YYY...YYY
 ```
 
 ## Deploy application<a name="deploy-application"/>
+
 You're just one step away from deploying Custos. The following command runs the ansible playbook `custos.yml` which has roles to install all dependencies and deploy Custos on the given VM.
 ```bash
 ansible-playbook -i inventories/test/ custos.yml
 ```
-Check if custos core and integration services are up and running using the following commands:
+
+This will install HashiCorp Vault, Keycloak and Custos Services. Please edit the ```custos.yml``` 
+according to deploying services. By default vault, Keycloak and Custos services will be deployed.
+
+### Keycloak Installation Steps
+Run ansible  with host keycloak. Successfull run should enable keycloak service on host machine.Please check
+```bash
+systemctl status keycloak
+```
+
+You have to manually run  ```add-user-keycloak.sh``` to add initial admin user.Once you ran it should be able to
+login to the keycloak portal via URL  ```https://<keycloak.host>/auth/```.
+
+### Vault Installation Steps
+
+Run ansible  with host vault. Successfull run should enable vault service on host machine.Please check
+```bash
+systemctl status vault
+```
+Configure vault.yml following properties based on above properties.
+
+```bash
+vault_token, custos_core_iam_server_admin_username,
+custos_core_iam_server_admin_password, custos_core_ciLogon_admin_client_id,
+custos_core_ciLogon_admin_client_secret
+```
+And rest of the properties accordingly.
+
+Login to vault UI URL and initialize the vault.URL should be  ```https://<vault.host>:8200/ui```.
+
+### Custos Service Installation
+Run ansible  with custos host. Check if custos core and integration services are up and running using the following commands:
 ```bash
 systemctl status intcustos
 ```
 ```bash
 systemctl status corecustos
 ```
+Note: You have it regenerate ```keycloak-client-truststore.pkcs12``` and ```vault-client-truststore.pkcs12``` If those are expired.
+
 
 ## Deploy application with data migration<a name="data-migration"/>
 When deploying Custos, you may want to import data from your old servers to the new ones. We can make use of ansible to automate this data migration.
