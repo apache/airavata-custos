@@ -123,7 +123,7 @@
     state: enabled
     immediate: yes
     port: "{{ custos_int_grpc_port }}/tcp"
-  become_user: root
+  become: yes
 
 - name: allow all networks to access port 80
   firewalld:
@@ -132,7 +132,7 @@
     state: enabled
     immediate: yes
     port: "80/tcp"
-  become_user: root
+  become: yes
 
 
 - name: allow all networks to access 443
@@ -142,4 +142,4 @@
     state: enabled
     immediate: yes
     port: "443/tcp"
-  become_user: root
+  become: yes
