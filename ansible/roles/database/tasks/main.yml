@@ -41,6 +41,8 @@
     state: present
     encoding: "UTF8mb3"
     collation: "utf8_general_ci"
+  become: yes
+  become_user: "{{ user }}"
 
 - name: Import old server's dump file
   include_tasks: import_db.yml

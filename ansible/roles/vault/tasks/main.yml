@@ -52,10 +52,3 @@
     name: vault
     state: restarted
   become: yes
-
-- name: Restart nginx
-  service:
-    name: nginx
-    state: restarted
-  become: yes
-  tags: env_setup

@@ -25,7 +25,44 @@
     cache_valid_time: 86400
   become: yes
 
-- name: install certbot
+#Tasks file can include smaller files if wanted
+#All commons tasks goes here
+- name: Create a new user group "{{ group }}"
+  group: name={{ group }}
+  become: yes
+
+- name: Create a new user "{{ user }}"
+  user: name={{ user }} group={{ group }}
+  become: yes
+
+- name: Install Firewalld (Debian)
+  apt: name=firewalld state=latest update_cache=yes
+  become: yes
+
+  # TODO: stop iptables service, can't have both iptables and firewalld on same host
+  # firewalld is just a frontend for iptables - so we can't remove it
+  # if we try to stop non existing service ansible fails.
+# - name: Stop iptables, ip6tables services
+#   service: name="{{ item }}" state=stopped
+#   with_items:
+#     - iptables
+#     - ip6tables
+
+- name: Start firewalld service
+  service: name=firewalld state=started
+  become: yes
+
+# Issues with firewalld module on Ubuntu https://github.com/ansible/ansible/issues/24855
+# So as workaround, just calling firewall-cmd directly for now
+- name: open firewall port 22 for SSH connections (Debian)
+  command: firewall-cmd --zone=public --add-port=22/tcp
+  become: yes
+
+- name: open firewall port 22 for SSH connections permanently (Debian)
+  command: firewall-cmd --zone=public --permanent --add-port=22/tcp
+  become: yes
+
+- name: install JDK 17
   apt:
     name:
       - openjdk-17-jdk
@@ -46,3 +83,23 @@
   become: yes
   tags:
     - always
+
+- name: download {{ apache_maven_version }}
+  get_url: url="{{ apache_maven_url }}" dest="/opt/{{ apache_maven_version }}-bin.tar.gz"
+  become: yes
+  become_user: root
+
+- name: unzip maven
+  unarchive:
+    src: /opt/{{ apache_maven_version }}-bin.tar.gz
+    dest: /opt
+    remote_src: yes
+  become: yes
+  become_user: root
+
+- name: add maven to PATH
+  template:
+    src: maven.sh
+    dest: /etc/profile.d/maven.sh
+  become: yes
+  become_user: root

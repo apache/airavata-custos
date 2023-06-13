@@ -64,6 +64,7 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
+  become: yes
 
 - name: delete default nginx config
   file:
@@ -130,3 +131,5 @@
     path: "{{ user_home }}/certs"
     state: directory
     mode: '0755'
+  become: yes
+
