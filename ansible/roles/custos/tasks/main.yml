@@ -58,7 +58,7 @@
   register: build
   tags: update
   become: yes
-#  become_user: "{{ user }}"
+  become_user: "{{ user }}"
 
 - name: Delete lib directories of the distributions
   file:
@@ -114,7 +114,7 @@
 - name: Start envoy proxy
   script: "start_envoy_proxy.sh"
   become: yes
-#  become_user: "{{ user }}"
+  become_user: "{{ user }}"
 
 - name: allow all networks to access custos ports
   firewalld:
