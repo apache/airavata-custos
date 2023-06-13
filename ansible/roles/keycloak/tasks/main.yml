@@ -18,19 +18,14 @@
 #
 
 ---
-- name: Install Keycloak pre-requisites (Debian)
-  apt: name={{ item }} state=latest update_cache=yes
-  with_items:
-    - maven
-  become: yes
-  when: ansible_os_family == "Debian"
-
-- name: Create Keycloak deployment directory {{ keycloak_install_dir }}
-  file: path={{ keycloak_install_dir }}
+- name: Create Keycloak source directory
+  file: path={{ keycloak_deployment_dir }}
     state=directory
     mode=0755
     owner={{ user }}
     group={{ group }}
+  become: yes
+
 
 - name: Create Keycloak source directory
   file: path={{ keycloak_source_dir }}
@@ -38,6 +33,7 @@
     mode=0755
     owner={{ user }}
     group={{ group }}
+  become: yes
 
 # Clone Keycloak repo
 - name: git checkout from Keycloak github repo {{ keycloak_repo }} # branch {{ keycloak_git_branch }}
@@ -48,6 +44,7 @@
     force: yes
   register: checkout
   tags: update
+  become: yes
   become_user: "{{ user }}"
 
 - name: Run Keycloak maven build
@@ -56,12 +53,14 @@
     MAVEN_OPTS: "-Xmx2048m"
   register: build
   tags: update
+  become: yes
   become_user: "{{ user }}"
 
 - name: Delete configuration directories of the distributions
   file:
     state: absent
     path: "{{ keycloak_install_dir }}/standalone/configuration"
+  become: yes
   become_user: "{{ user }}"
   ignore_errors: yes
 
@@ -71,6 +70,7 @@
     src: "{{ keycloak_source_dir }}/distribution/server-dist/target/keycloak-{{ keycloak_version }}.zip"
     dest: "{{ user_home }}"
     copy: no
+  become: yes
   become_user: "{{ user }}"
 
 - name: Create modules/system/layers/keycloak/org/postgresql directory
@@ -97,6 +97,8 @@
     url: https://jdbc.postgresql.org/download/postgresql-42.3.6.jar
     dest: "{{ keycloak_deployment_dir }}/modules/system/layers/keycloak/org/postgresql/main/postgresql-42.3.6.jar"
     mode: '0644'
+  become: yes
+  become_user: "{{ user }}"
 
 - name: Setup postgresql for keycloak
   include_tasks: setup_postgres.yml
@@ -115,6 +117,7 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rw,g=r,o=r"
+  become: yes
   become_user: "{{ user }}"
   tags:
        - standalone
@@ -139,6 +142,7 @@
     owner="{{ user }}"
     group="{{ group }}"
     mode="u=rwx,g=rx,o=rx"
+  become: yes
   become_user: "{{ user }}"
   tags:
     - standalone

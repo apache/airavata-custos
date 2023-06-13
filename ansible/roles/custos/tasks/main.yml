@@ -115,3 +115,31 @@
   script: "start_envoy_proxy.sh"
   become: yes
   become_user: "{{ user }}"
+
+- name: allow all networks to access custos ports
+  firewalld:
+    zone: public
+    permanent: yes
+    state: enabled
+    immediate: yes
+    port: "{{ custos_int_grpc_port }}/tcp"
+  become_user: root
+
+- name: allow all networks to access port 80
+  firewalld:
+    zone: public
+    permanent: yes
+    state: enabled
+    immediate: yes
+    port: "80/tcp"
+  become_user: root
+
+
+- name: allow all networks to access 443
+  firewalld:
+    zone: public
+    permanent: yes
+    state: enabled
+    immediate: yes
+    port: "443/tcp"
+  become_user: root

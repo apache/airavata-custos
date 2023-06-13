@@ -31,19 +31,19 @@
 #  roles:
 #    - role: migrate_db
 #      tags: [migrate_db, never]
-- hosts: hashicorp
-  roles:
-    - role: env_setup # execute env_setup role only when env_setup tag is specified
-      tags: [env_setup, never]
-    - nginx
-    - consul
-    - vault
-- hosts: keycloak
-  roles:
-    - role: env_setup
-      tags: [env_setup, never]
-    - nginx
-    - keycloak
+#- hosts: hashicorp
+#  roles:
+#    - role: env_setup # execute env_setup role only when env_setup tag is specified
+#      tags: [env_setup, never]
+#    - nginx
+#    - consul
+#    - vault
+#- hosts: keycloak
+#  roles:
+#    - role: env_setup
+#      tags: [env_setup, never]
+#    - nginx
+#    - keycloak
 - hosts: custos
   roles:
     - role: env_setup

@@ -37,15 +37,22 @@
 
 - name: Copy .my.cnf file
   template: src=my.cnf.j2 dest="{{ user_home }}/.my.cnf"
-  # become: yes
+  become: yes
+  become_user: "{{ user }}"
 
 - name: Removes all anonymous user accounts
   mysql_user: name='' host_all=yes state=absent login_password="{{ custos_core_spring_datasource_password }}"
+  become: yes
+  become_user: "{{ user }}"
 
 - name: Secures the MySQL root user for all hosts
   mysql_user: user=root login_password="{{ custos_core_spring_datasource_password }}" host_all=yes
+  become: yes
+  become_user: "{{ user }}"
 
 - name: Removes the MySQL test database
   mysql_db: db=test state=absent login_password="{{ custos_core_spring_datasource_password }}"
+  become: yes
+  become_user: "{{ user }}"
 
 ...
