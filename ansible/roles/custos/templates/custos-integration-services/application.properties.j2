@@ -7,7 +7,7 @@ spring.profiles.active={{active_profile}}
 scim.user.schema.location=custos_user_schema_extention.json
 
 core.services.server.port={{custos_core_grpc_port}}
-core.services.server.hostname={{ansible_host}}
+core.services.server.hostname=127.0.0.1
 iam.server.url=https://{{ansible_host}}/auth/
 tenant.base.uri=http://{{ansible_host}}/apiserver/tenant-management/v1.0.0/oauth2/tenant
 

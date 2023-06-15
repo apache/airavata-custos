@@ -81,20 +81,22 @@ sharing_subnets:
 custos_core_grpc_port: 7071
 custos_core_server_port: 8081
 
+
+
 custos_int_grpc_port: 7070
-custos_int_server_port: 8080
+custos_int_server_port: 8000
 
 
 # vault variables
-vault_port: 443
-vault_scheme: https
-vault_host: "{{ hostvars['hashicorp'].ansible_host }}"
-vault_uri: https://{{ hostvars['hashicorp'].ansible_host }}
+vault_port: 8200
+vault_scheme: http
+vault_host: "127.0.0.1"
+vault_uri: "http://127.0.0.1:8201"
 spring_cloud_vault_authentication: token
-spring_cloud_vault_ssl_trust_store: file:/home/ubuntu/vault-client-truststore.pkcs12
+
 
 # consul variables
-consul_version: 1.7.1
+consul_version: 1.12.1
 consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
 consul_install_dir: /usr/local/bin
 consul_config_dir: /etc/consul
@@ -103,4 +105,4 @@ consul_data_dir: /var/data
 active_profile: dev
 
 apache_maven_version: "apache-maven-3.6.3"
-apache_maven_url: "https://www-eu.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz"
+apache_maven_url: "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.6.2/apache-maven-3.6.2-bin.tar.gz"

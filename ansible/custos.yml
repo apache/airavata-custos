@@ -1,5 +1,4 @@
 #
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -31,6 +30,7 @@
 #  roles:
 #    - role: migrate_db
 #      tags: [migrate_db, never]
+### enable following for fresh deployment
 #- hosts: hashicorp
 #  roles:
 #    - role: env_setup # execute env_setup role only when env_setup tag is specified
@@ -50,6 +50,6 @@
       tags: [env_setup, never]
     - role: nginx
     - role: database
-#    - zookeeper
-#    - kafka
+#    - zookeeper this is outdated, hence, commented out
+#    - kafka  this is outdated, hence, commented out
     - role: custos
