@@ -35,32 +35,133 @@
   user: name={{ user }} group={{ group }}
   become: yes
 
-- name: Install Firewalld (Debian)
-  apt: name=firewalld state=latest update_cache=yes
+#- name: Install Firewalld (Debian)
+#  apt: name=firewalld state=latest update_cache=yes
+#  become: yes
+#
+#  # TODO: stop iptables service, can't have both iptables and firewalld on same host
+#  # firewalld is just a frontend for iptables - so we can't remove it
+#  # if we try to stop non existing service ansible fails.
+## - name: Stop iptables, ip6tables services
+##   service: name="{{ item }}" state=stopped
+##   with_items:
+##     - iptables
+##     - ip6tables
+#
+#- name: Start firewalld service
+#  service: name=firewalld state=started
+#  become: yes
+#
+## Issues with firewalld module on Ubuntu https://github.com/ansible/ansible/issues/24855
+## So as workaround, just calling firewall-cmd directly for now
+#- name: open firewall port 22 for SSH connections (Debian)
+#  command: firewall-cmd --zone=public --add-port=22/tcp
+#  become: yes
+#
+#- name: open firewall port 22 for SSH connections permanently (Debian)
+#  command: firewall-cmd --zone=public --permanent --add-port=22/tcp
+#  become: yes
+#
+#- name: open firewall port 80
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4  port port="80" protocol=tcp accept
+#  become_user: root
+#
+#- name: open firewall port 443
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4  port port="443" protocol=tcp accept
+#  become_user: root
+#
+#- name: open firewall port {{ custos_int_grpc_port }}
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    rich_rule: rule family=ipv4  port port="{{ custos_int_grpc_port }}" protocol=tcp accept
+#  become_user: root
+
+- name: Allow everything and enable UFW
+  community.general.ufw:
+   state: enabled
+   policy: allow
   become: yes
 
-  # TODO: stop iptables service, can't have both iptables and firewalld on same host
-  # firewalld is just a frontend for iptables - so we can't remove it
-  # if we try to stop non existing service ansible fails.
-# - name: Stop iptables, ip6tables services
-#   service: name="{{ item }}" state=stopped
-#   with_items:
-#     - iptables
-#     - ip6tables
-
-- name: Start firewalld service
-  service: name=firewalld state=started
+- name: Set logging
+  community.general.ufw:
+   logging: 'on'
   become: yes
 
-# Issues with firewalld module on Ubuntu https://github.com/ansible/ansible/issues/24855
-# So as workaround, just calling firewall-cmd directly for now
-- name: open firewall port 22 for SSH connections (Debian)
-  command: firewall-cmd --zone=public --add-port=22/tcp
+- community.general.ufw:
+   rule: limit
+   port: ssh
+   proto: tcp
   become: yes
 
-- name: open firewall port 22 for SSH connections permanently (Debian)
-  command: firewall-cmd --zone=public --permanent --add-port=22/tcp
+- community.general.ufw:
+   rule: allow
+   name: OpenSSH
   become: yes
+
+- name: Allow all access to tcp port 80
+  community.general.ufw:
+   rule: allow
+   port: '80'
+   proto: tcp
+  become: yes
+
+- name: Allow all access to tcp port 80
+  community.general.ufw:
+   rule: allow
+   port: '443'
+   proto: tcp
+  become: yes
+
+- name: Allow all access to tcp port 80
+  community.general.ufw:
+   rule: allow
+   port: '{{ custos_int_grpc_port }}'
+   proto: tcp
+  become: yes
+
+
+
+#- name: allow all networks to access custos ports
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    port: "{{ custos_int_grpc_port }}/tcp"
+#  become: yes
+#
+#- name: allow all networks to access port 80
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    port: "80/tcp"
+#  become: yes
+#
+#
+#- name: allow all networks to access 443
+#  firewalld:
+#    zone: public
+#    permanent: yes
+#    state: enabled
+#    immediate: yes
+#    port: "443/tcp"
+#  become: yes
+
 
 - name: install JDK 17
   apt:
@@ -87,7 +188,7 @@
 - name: download {{ apache_maven_version }}
   get_url: url="{{ apache_maven_url }}" dest="/opt/{{ apache_maven_version }}-bin.tar.gz"
   become: yes
-  become_user: root
+
 
 - name: unzip maven
   unarchive:
@@ -95,11 +196,12 @@
     dest: /opt
     remote_src: yes
   become: yes
-  become_user: root
+
 
 - name: add maven to PATH
   template:
     src: maven.sh
     dest: /etc/profile.d/maven.sh
   become: yes
-  become_user: root
+
+
