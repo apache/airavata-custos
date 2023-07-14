@@ -24,6 +24,7 @@ import org.apache.custos.clients.core.AbstractClient;
 import org.apache.custos.clients.core.ClientUtils;
 import org.apache.custos.sharing.management.service.SharingManagementServiceGrpc;
 import org.apache.custos.sharing.service.*;
+import org.apache.custos.sharing.core.*;
 
 import java.io.IOException;
 
@@ -267,6 +268,14 @@ public class SharingManagementClient extends AbstractClient {
 
     public boolean isShutdown() {
         return managedChannel.isShutdown();
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
     }
 
 }

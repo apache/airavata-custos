@@ -28,6 +28,7 @@ import org.apache.custos.sharing.management.client.SharingManagementClient;
 import org.apache.custos.tenant.manamgement.client.TenantManagementClient;
 import org.apache.custos.user.management.client.UserManagementClient;
 
+
 import java.io.IOException;
 
 /**
@@ -45,16 +46,21 @@ public class CustosClientProvider {
     private String clientSec;
 
 
-    private CustosClientProvider(String serverHost, int serverPort, String clientId, String clientSec) {
+    private boolean plainText;
+
+
+    private CustosClientProvider(String serverHost, int serverPort, String clientId, String clientSec, boolean plainText) {
         this.serverHost = serverHost;
         this.serverPort = serverPort;
         this.clientId = clientId;
         this.clientSec = clientSec;
+        this.plainText = plainText;
     }
 
 
     public IdentityManagementClient getIdentityManagementClient() throws IOException {
         return new IdentityManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
+
     }
 
 
@@ -79,12 +85,11 @@ public class CustosClientProvider {
     }
 
     public UserManagementClient getUserManagementClient() throws IOException {
-        return new UserManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
+        return new UserManagementClient(this.serverHost, this.serverPort, this.clientId, this.clientSec, this.plainText);
     }
 
     public ResourceSecretManagementClient getResourceSecretManagementClientForAgents() throws IOException {
-        return new ResourceSecretManagementAgentClient
-                (this.serverHost, this.serverPort, this.clientId, this.clientSec);
+        return  new ResourceSecretManagementAgentClient(this.serverHost, this.serverPort, this.clientId, this.clientSec);
     }
 
 
@@ -95,6 +100,8 @@ public class CustosClientProvider {
         private String clientId;
 
         private String clientSec;
+
+        private boolean plainText;
 
 
         public Builder() {
@@ -120,13 +127,18 @@ public class CustosClientProvider {
             return this;
         }
 
+        public Builder usePlainText(boolean plainText) {
+            this.plainText = plainText;
+            return this;
+        }
+
 
         public CustosClientProvider build() {
             if (serverHost == null || serverPort == 0 || clientId == null || clientSec == null) {
                 throw new NullPointerException("Server Host, Server Port, clientId, clientSec   should not be null");
             }
 
-            return new CustosClientProvider(this.serverHost, this.serverPort, this.clientId, this.clientSec);
+            return new CustosClientProvider(this.serverHost, this.serverPort, this.clientId, this.clientSec, this.plainText);
 
         }
 

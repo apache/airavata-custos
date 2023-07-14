@@ -1,0 +1,16 @@
+version: "3.3"
+services:
+    keycloak:
+      image: apachecustos/airavata-custos-portal:latest
+      ports:
+        - "8081:8080"
+        - "8444:443"
+      volumes:
+        - /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-utilities/ide-integration/src/main/containers/key.pem:/etc/nginx/privkey.pem
+        - /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-utilities/ide-integration/src/main/containers/certificate.pem:/etc/nginx/fullchain.pem
+      environment:
+        CUSTOS_CLIENT_ID: "custos-zhldgdoy5squtlqvfphu-10000000"
+        CUSTOS_CLIENT_SEC: "ZeIdfLOzqL3g1sXyfl3271KNHCWHCIYc6wl4nLEw"
+        CUSTOS_API_URL: "http://localhost:10000/"
+        CUSTOS_SUPER_CLIENT_ID: "custos-zhldgdoy5squtlqvfphu-10000000"
+        UNDER_MAINTENANCE: "false"

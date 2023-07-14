@@ -66,6 +66,21 @@ public class UserManagementClient extends AbstractClient {
 
     }
 
+    public UserManagementClient(String serviceHost, int servicePort, String clientId,
+                                String clientSecret, boolean plainText) throws IOException {
+        super(serviceHost, servicePort, clientId, clientSecret,plainText);
+
+        blockingStub = UserManagementServiceGrpc.newBlockingStub(managedChannel);
+
+        blockingStub = MetadataUtils.attachHeaders(blockingStub,
+                ClientUtils.getAuthorizationHeader(clientId, clientSecret));
+
+        this.clientId = clientId;
+
+        this.clientSec = clientSecret;
+
+    }
+
     public RegisterUserResponse registerUser(String username, String firstName, String lastName,
                                              String password, String email, boolean isTempPassword) {
 
@@ -120,22 +135,22 @@ public class UserManagementClient extends AbstractClient {
 
     }
 
-    public OperationStatus deleteUserAttributes(String adminToken, UserAttribute[] attributes, String[] users) {
-
-        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
-                UserManagementServiceGrpc.newBlockingStub(managedChannel);
-        unAuthorizedStub =
-                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
-
-
-        DeleteUserAttributeRequest request = DeleteUserAttributeRequest
-                .newBuilder()
-                .addAllAttributes(Arrays.asList(attributes))
-                .addAllUsers(Arrays.asList(users))
-                .build();
-        return unAuthorizedStub.deleteUserAttributes(request);
-
-    }
+//    public OperationStatus deleteUserAttributes(String adminToken, UserAttribute[] attributes, String[] users) {
+//
+//        UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
+//                UserManagementServiceGrpc.newBlockingStub(managedChannel);
+//        unAuthorizedStub =
+//                MetadataUtils.attachHeaders(unAuthorizedStub, ClientUtils.getAuthorizationHeader(adminToken));
+//
+//
+//        DeleteUserAttributeRequest request = DeleteUserAttributeRequest
+//                .newBuilder()
+//                .addAllAttributes(Arrays.asList(attributes))
+//                .addAllUsers(Arrays.asList(users))
+//                .build();
+//        return unAuthorizedStub.deleteUserAttributes(request);
+//
+//    }
 
 
     public OperationStatus addRolesToUsers(String adminToken, String[] roles, String[] username, boolean isClientLevel) {
@@ -289,9 +304,8 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public RegisterUserResponse registerUser(String username, String firstName, String lastName,
-                                             String password, String email, boolean isTempPassword,
-                                             String clientId) {
+    public RegisterUserResponse registerUser(String clientId,String username, String firstName, String lastName,
+                                             String password, String email, boolean isTempPassword) {
 
         UserRepresentation userRepresentation = UserRepresentation
                 .newBuilder()
@@ -314,7 +328,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public UserRepresentation enableUser(String userName, String clientId) {
+    public UserRepresentation enableUser(String clientId, String userName) {
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
@@ -330,20 +344,20 @@ public class UserManagementClient extends AbstractClient {
         return blockingStub.enableUser(request);
     }
 
-    public OperationStatus addUserAttributes(UserAttribute[] attributes, String[] users, String clientId) {
+//    public OperationStatus addUserAttributes(String clientId, UserAttribute[] attributes, String[] users) {
+//
+//
+//        AddUserAttributesRequest request = AddUserAttributesRequest
+//                .newBuilder()
+//                .addAllAttributes(Arrays.asList(attributes))
+//                .addAllUsers(Arrays.asList(users))
+//                .setClientId(clientId)
+//                .build();
+//        return blockingStub.addUserAttributes(request);
+//
+//    }
 
-
-        AddUserAttributesRequest request = AddUserAttributesRequest
-                .newBuilder()
-                .addAllAttributes(Arrays.asList(attributes))
-                .addAllUsers(Arrays.asList(users))
-                .setClientId(clientId)
-                .build();
-        return blockingStub.addUserAttributes(request);
-
-    }
-
-    public OperationStatus deleteUserAttributes(UserAttribute[] attributes, String[] users, String clientId) {
+    public OperationStatus deleteUserAttributes(String clientId, UserAttribute[] attributes, String[] users) {
 
 
         DeleteUserAttributeRequest request = DeleteUserAttributeRequest
@@ -357,8 +371,8 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus addRolesToUsers(String[] roles, String[] username,
-                                           boolean isClientLevel, String clientId, String adminToken) {
+    public OperationStatus addRolesToUsers(String clientId, String adminToken, String[] roles, String[] username,
+                                           boolean isClientLevel) {
         UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
@@ -378,8 +392,8 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus deleteUserRoles(String[] clientRoles,
-                                           String[] realmRoles, String username, String clientId, String adminToken) {
+    public OperationStatus deleteUserRoles(String clientId, String adminToken, String[] clientRoles,
+                                           String[] realmRoles, String username) {
         UserManagementServiceGrpc.UserManagementServiceBlockingStub unAuthorizedStub =
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
         unAuthorizedStub =
@@ -399,7 +413,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus isUserEnabled(String username, String clientId) {
+    public OperationStatus isUserEnabled(String clientId, String username) {
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
@@ -416,7 +430,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus isUsernameAvailable(String username, String clientId) {
+    public OperationStatus isUsernameAvailable(String clientId, String username) {
 
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
@@ -433,7 +447,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public UserRepresentation getUser(String username, String clientId) {
+    public UserRepresentation getUser(String clientId, String username) {
         UserSearchMetadata metadata = UserSearchMetadata
                 .newBuilder()
                 .setUsername(username)
@@ -461,8 +475,20 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public FindUsersResponse findUsers(String searchString, String username, String firstName,
-                                       String lastName, String email, int offset, int limit, String clientId) {
+    /**
+     * This method provides functionality to search users across child tenants of main tenant
+     * @param clientId  Custos client Id of the tenant to search users
+     * @param searchString this could be any search string e.g username, firstname, lastname ...etc
+     * @param username
+     * @param firstName
+     * @param lastName
+     * @param email
+     * @param offset
+     * @param limit
+     * @return
+     */
+    public FindUsersResponse findUsers(String clientId, String searchString, String username, String firstName,
+                                       String lastName, String email, int offset, int limit) {
 
         UserSearchMetadata.Builder builder = UserSearchMetadata
                 .newBuilder();
@@ -501,7 +527,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus resetUserPassword(String username, String password, String clientId) {
+    public OperationStatus resetUserPassword(String clientId, String username, String password) {
 
         ResetUserPassword userPassword = ResetUserPassword
                 .newBuilder()
@@ -515,7 +541,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public OperationStatus deleteUser(String username, String clientId, String adminToken) {
+    public OperationStatus deleteUser(String clientId, String adminToken,String username) {
 
         UserManagementServiceGrpc.UserManagementServiceBlockingStub stub =
                 UserManagementServiceGrpc.newBlockingStub(managedChannel);
@@ -539,8 +565,7 @@ public class UserManagementClient extends AbstractClient {
     }
 
 
-    public UserProfile updateUserProfile(String username, String firstName, String lastName, String email,
-                                         String clientId) {
+    public UserProfile updateUserProfile(String clientId, String username, String firstName, String lastName, String email) {
 
 
         UserProfile userProfile = UserProfile.newBuilder()
@@ -558,6 +583,14 @@ public class UserManagementClient extends AbstractClient {
 
         return blockingStub.updateUserProfile(userProfileRequest);
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        if (managedChannel != null) {
+            managedChannel.shutdown();
+        }
     }
 
 }

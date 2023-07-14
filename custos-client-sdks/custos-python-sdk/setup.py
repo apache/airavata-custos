@@ -7,12 +7,17 @@ def read(fname):
     with open(os.path.join(os.path.dirname(__file__), fname)) as f:
         return f.read()
 
+from pathlib import Path
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='custos-sdk',
-    version='1.0.17',
+    long_description_content_type="text/markdown",
+    version='1.0.18',
     packages=find_packages(),
-    package_data={'': ['*.pem']},
+    package_data={'': ['*.pem','*.md']},
     include_package_data=True,
     url='http://custos.com',
     license='Apache License 2.0',
@@ -27,5 +32,6 @@ setup(
                       'requests>=2.13.0',
                       'requests-oauthlib>=0.7.0',
                       'urllib3>=1.25.9'],
-    description='Apache Custos Python  SDK'
+    description='Apache Custos Python  SDK',
+    long_description=long_description,
 )
