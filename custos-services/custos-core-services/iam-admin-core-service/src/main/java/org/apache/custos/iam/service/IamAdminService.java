@@ -2041,7 +2041,7 @@ public class IamAdminService extends IamAdminServiceImplBase {
                     responseObserver.onCompleted();
                 }
             }
-            {
+           else {
                 responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription("Agent not found ").asRuntimeException());
                 return;
             }
