@@ -26,7 +26,8 @@ import jakarta.persistence.*;
 public class AgentAttribute {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "agent_attr_id_generator")
+    @SequenceGenerator(name = "agent_attr_id_generator", sequenceName = "agent_attr_id_generator_sequence", initialValue = 1500, allocationSize = 100)
     private Long id;
 
     @Column(nullable = false)
