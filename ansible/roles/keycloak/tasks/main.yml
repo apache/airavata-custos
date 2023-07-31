@@ -47,14 +47,14 @@
   become: yes
   become_user: "{{ user }}"
 
-- name: Run Keycloak maven build
-  command: mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install chdir="{{ keycloak_source_dir }}/"
-  environment:
-    MAVEN_OPTS: "-Xmx2048m"
-  register: build
-  tags: update
-  become: yes
-  become_user: "{{ user }}"
+#- name: Run Keycloak maven build
+#  command: mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install chdir="{{ keycloak_source_dir }}/"
+#  environment:
+#    MAVEN_OPTS: "-Xmx2048m"
+#  register: build
+#  tags: update
+#  become: yes
+#  become_user: "{{ user }}"
 
 - name: Delete configuration directories of the distributions
   file:
