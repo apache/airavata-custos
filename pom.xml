@@ -33,17 +33,16 @@
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+   <version>1.1-SNAPSHOT</version>
 
     <modules>
-        <module>custos-core-services</module>
-        <module>custos-integration-services</module>
-        <module>custos-core-services-client-stubs</module>
-        <module>custos-integration-core</module>
-        <module>custos-federated-services-clients</module>
         <module>custos-client-sdks</module>
-        <module>custos-tests</module>
-        <module>custos-external-services-distributions</module>
+<!--        <module>custos-tests</module>-->
+        <module>custos-services</module>
+        <module>custos-core</module>
+        <module>custos-utilities/ide-integration</module>
+        <module>custos-utilities/custos-bootstrap-service</module>
+        <module>custos-rest-proxy</module>
     </modules>
 
     <dependencyManagement>
@@ -139,6 +138,11 @@
                 <version>${javax.persistance}</version>
             </dependency>
             <dependency>
+                <groupId>jakarta.persistence</groupId>
+                <artifactId>jakarta.persistence-api</artifactId>
+                <version>${jakarta.persistance}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-admin-client</artifactId>
                 <version>${keycloak.admin.version}</version>
@@ -230,6 +234,17 @@
             </dependency>
 
             <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>${log.back.version}</version>
@@ -275,6 +290,24 @@
                 <version>${email.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${javax.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${org.slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${org.slf4j.version}</version>
+            </dependency>
+
+
+
         </dependencies>
     </dependencyManagement>
 
@@ -300,257 +333,42 @@
                         </configuration>
                     </plugin>
                     <plugin>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>3.0.2</version>
+                        <groupId>org.xolstice.maven.plugins</groupId>
+                        <artifactId>protobuf-maven-plugin</artifactId>
+                        <version>${protobuf.maven.plugin}</version>
+                        <configuration>
+                            <protocArtifact>com.google.protobuf:protoc:${com.google.protobuf.util}:exe:${os.detected.classifier}
+                            </protocArtifact>
+                            <pluginId>grpc-java</pluginId>
+                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:${io.grpc.version}:exe:${os.detected.classifier}
+                            </pluginArtifact>
+                        </configuration>
                         <executions>
                             <execution>
-                                <id>copy-resources</id>
-                                <!-- here the phase you need -->
-                                <phase>install</phase>
                                 <goals>
-                                    <goal>copy-resources</goal>
+                                    <goal>compile</goal>
+                                    <goal>compile-custom</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <version>1.4.1</version>
+                        <executions>
+                            <execution>
+                                <id>enforce</id>
+                                <goals>
+                                    <goal>enforce</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>
-                                        /Users/isururanawaka/Documents/Airavata_Repository/airavata-custos/custos-integration-services/custos-integration-services-swagger/src/main/resources/protos
-                                    </outputDirectory>   <!-- output directory -->
-                                    <resources>
-                                        <resource>
-                                            <directory>${basedir}/src/main/proto
-                                            </directory>         <!-- source directory -->
-                                            <includes>
-                                                <include>**/*.proto</include>
-                                            </includes>
-                                            <filtering>true</filtering>
-                                        </resource>
-                                    </resources>
+                                    <rules>
+                                        <requireUpperBoundDeps/>
+                                    </rules>
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.xolstice.maven.plugins</groupId>
-                        <artifactId>protobuf-maven-plugin</artifactId>
-                        <version>${protobuf.maven.plugin}</version>
-                        <configuration>
-                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}
-                            </protocArtifact>
-                            <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}
-                            </pluginArtifact>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>compile</goal>
-                                    <goal>compile-custom</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>container</id>
-            <properties>
-                <spring.profiles.active>staging</spring.profiles.active>
-                <vault.token>{{token}}</vault.token>
-                <vault.scheme>https</vault.scheme>
-                <vault.host>vault.custos.scigap.org</vault.host>
-                <vault.port>31190</vault.port>
-                <vault.uri>https://vault.custos.scigap.org:31190</vault.uri>
-                <iam.dev.username>{{token}}</iam.dev.username>
-                <iam.dev.password>{{token}}</iam.dev.password>
-                <iam.staging.username>{{token}}</iam.staging.username>
-                <iam.staging.password>{{token}}</iam.staging.password>
-                <cilogon.dev.id>{{token}}</cilogon.dev.id>
-                <cilogon.dev.sec>{{token}}</cilogon.dev.sec>
-                <cilogon.staging.id>{{token}}</cilogon.staging.id>
-                <cilogon.staging.sec>{{token}}</cilogon.staging.sec>
-                <custos.email.password>{{token}}</custos.email.password>
-
-            </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <resources>
-                    <resource>
-                        <directory>src/main/resources</directory>
-                        <filtering>true</filtering>
-<!--                        <excludes>-->
-<!--                            <exclude>vault-client-truststore.pkcs12</exclude>-->
-<!--                            <exclude>keycloak-client-truststore.pkcs12</exclude>-->
-<!--                        </excludes>-->
-                        <includes>
-                            <include>**/*.pcks12</include>
-                            <include>**/*.properties</include>
-                        </includes>
-                    </resource>
-                </resources>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>${maven.compiler.plugin}</version>
-                        <executions>
-                            <execution>
-                                <id>container</id>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <release>${java.version}</release>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                        <version>${spring.boot.version}</version>
-                        <executions>
-                            <execution>
-                                <id>container</id>
-                                <goals>
-                                    <goal>repackage</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.xolstice.maven.plugins</groupId>
-                        <artifactId>protobuf-maven-plugin</artifactId>
-                        <version>${protobuf.maven.plugin}</version>
-                        <configuration>
-                            <protocArtifact>com.google.protobuf:protoc:3.0.2:exe:${os.detected.classifier}
-                            </protocArtifact>
-                            <pluginId>grpc-java</pluginId>
-                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.0.1:exe:${os.detected.classifier}
-                            </pluginArtifact>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>container</id>
-                                <goals>
-                                    <goal>compile</goal>
-                                    <goal>compile-custom</goal>
-                                    <goal>compile-python</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
-                        <version>${docker.plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>container</id>
-                                <goals>
-                                    <goal>build</goal>
-                                    <goal>push</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <noCache>true</noCache>
-                            <serverId>docker.io</serverId>
-                            <repository>${docker.image.prefix}/${project.artifactId}</repository>
-                            <tag>${project.version}</tag>
-                            <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
-                            <buildArgs>
-                                <JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-                            </buildArgs>
-                            <skip>true</skip>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>com.deviceinsight.helm</groupId>
-                        <artifactId>helm-maven-plugin</artifactId>
-                        <version>${helm.maven.plugin.version}</version>
-                        <configuration>
-                            <chartName>${project.artifactId}</chartName>
-                            <chartFolder>src/main/helm</chartFolder>
-                            <chartRepoUrl>https://charts.helm.sh/stable</chartRepoUrl>
-                            <!--                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>-->
-                            <helmVersion>3.4.2</helmVersion>
-                            <!--                            <chartRepoUrl>null</chartRepoUrl>-->
-                            <chartRepoUrl>https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts</chartRepoUrl>
-                            <helmVersion>2.16.0</helmVersion>
-                            <strictLint>true</strictLint>
-                            <valuesFile>src/main/helm/values.yaml</valuesFile>
-                            <skip>true</skip>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>container</id>
-                                <goals>
-                                    <goal>package</goal>
-                                    <goal>lint</goal>
-                                    <goal>template</goal>
-                                    <goal>deploy</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>scp-to-remote</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.8</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <dependencies>
-                            <dependency>
-                                <groupId>ant</groupId>
-                                <artifactId>ant-commons-net</artifactId>
-                                <version>1.6.5</version>
-                            </dependency>
-                            <dependency>
-                                <groupId>org.apache.ant</groupId>
-                                <artifactId>ant-jsch</artifactId>
-                                <version>1.10.9</version>
-                            </dependency>
-                        </dependencies>
-                        <configuration>
-                            <target>
-
-                                <scp localFile="${project.basedir}/target/helm/${project.artifactId}-${project.version}.tgz"
-                                     remoteToFile="ubuntu@${host}:/home/ubuntu/custos/artifacts"
-                                     verbose="true"
-                                     keyfile="${ssh.privatekey}"
-                                     passphrase="${ssh.passphrase}" trust="true">
-                                </scp>
-                                <sshexec host="${host}"
-                                         username="ubuntu"
-                                         keyfile="${ssh.privatekey}"
-                                         passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm delete ${project.artifactId} -n custos"/>
-
-                                <sshexec host="${host}"
-                                         username="ubuntu"
-                                         keyfile="${ssh.privatekey}"
-                                         passphrase="${ssh.passphrase}" trust="true"
-                                         command="helm install ${project.artifactId} /home/ubuntu/custos/artifacts/${project.artifactId}-${project.version}.tgz -n custos"/>
-
-                                <!-- SSH -->
-                                <taskdef name="sshexec"
-                                         classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHExec"
-                                         classpathref="maven.plugin.classpath" />
-
-                            </target>
-                            <skip>true</skip>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -612,15 +430,16 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <org.slf4j.version>1.7.25</org.slf4j.version>
+        <org.slf4j.version>2.0.6</org.slf4j.version>
         <log4j.version>1.2.17</log4j.version>
+        <log4j2.version>2.8.2</log4j2.version>
         <thrift.version>0.12.0</thrift.version>
         <openjpa.version>2.4.3</openjpa.version>
         <mysql.connector.version>5.1.34</mysql.connector.version>
         <maven.assembly.plugin>3.3.0</maven.assembly.plugin>
         <junit.version>4.8.1</junit.version>
         <jmockit.version>1.8</jmockit.version>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <javax.annotation.version>1.3.2</javax.annotation.version>
         <maven.compiler.plugin>3.8.1</maven.compiler.plugin>
 
@@ -628,14 +447,14 @@
         <os.maven.plugin>1.5.0.Final</os.maven.plugin>
 
         <!-- Spring dependencies -->
-        <spring.boot.version>2.2.0.RELEASE</spring.boot.version>
-        <spring.cloud.version>Greenwich.RELEASE</spring.cloud.version>
-        <grpc.spring.boot.version>2.4.4</grpc.spring.boot.version>
+        <spring.boot.version>3.0.1</spring.boot.version>
+        <spring.cloud.version>2022.0.2</spring.cloud.version>
+        <grpc.spring.boot.version>5.0.0</grpc.spring.boot.version>
 
         <spring.cloud.stream.version>2.0.0.RELEASE</spring.cloud.stream.version>
         <spring.cloud.slueth.version>2.1.6.RELEASE</spring.cloud.slueth.version>
 
-        <io.grpc.version>1.25.0</io.grpc.version>
+        <io.grpc.version>1.51.0</io.grpc.version>
         <google.common.protos>1.17.0</google.common.protos>
         <io.micrometer.version>1.3.1</io.micrometer.version>
         <brave.version>5.9.1</brave.version>
@@ -649,14 +468,15 @@
 
         <mysql.connector.java>8.0.18</mysql.connector.java>
         <javax.persistance>1.0.2</javax.persistance>
+        <jakarta.persistance>3.1.0</jakarta.persistance>
 
         <keycloak.admin.version>9.0.2</keycloak.admin.version>
 
-        <reasteasy.client.version>3.0.14.Final</reasteasy.client.version>
+        <reasteasy.client.version>3.9.1.Final</reasteasy.client.version>
 
-        <com.google.protobuf.util>3.11.3</com.google.protobuf.util>
+        <com.google.protobuf.util>3.21.11</com.google.protobuf.util>
 
-        <springfox.swagger.version>2.9.2</springfox.swagger.version>
+        <springfox.swagger.version>3.0.0</springfox.swagger.version>
         <org.wso2.charon>3.3.16</org.wso2.charon>
         <jaxb.version>2.1</jaxb.version>
 
@@ -677,7 +497,9 @@
 
         <com.codahale.version>0.7.0</com.codahale.version>
 
-        <host>service.staging.usecustos.org</host>
+<!--        <host>prod.custos.usecustos.org</host>-->
+
+        <host>custos.scigap.org</host>
 
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
 
@@ -687,6 +509,15 @@
         <kafka-clients.version>1.0.0</kafka-clients.version>
 
         <email.version>1.5.0-b01</email.version>
+<!--        <ssh.username>custos</ssh.username>-->
+        <ssh.username>ubuntu</ssh.username>
+        <project.version>1.1-SNAPSHOT</project.version>
+        <clusterIssuer>letsencrypt-prod</clusterIssuer>
+
+
+        <javax.version>2.0.1.Final</javax.version>
+
+        <jackson.version>2.14.2</jackson.version>
 
 
     </properties>

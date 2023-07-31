@@ -1,0 +1,108 @@
+#
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+---
+ansible_connection: ssh
+
+user: custos
+group: custos
+user_home: "/home/{{ user }}"
+
+# Domain names for VMs
+keycloak_domain: "{{ hostvars['keycloak']['domain'] }}"
+hashicorp_domain: "{{ hostvars['hashicorp']['domain'] }}"
+custos_domain: "{{ hostvars['custos']['domain'] }}"
+
+# deployment related variables
+custos_deployment_dir: "{{ user_home }}/custos-deployment"
+custos_source_dir: "{{ user_home }}/custos-source"
+custos_repo: "https://github.com/apache/airavata-custos.git"
+custos_git_branch: staging
+custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
+custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
+custos_distribution_version: 1.1-SNAPSHOT
+
+# kafka variables
+kafka_listener_port: 9092
+kafka_url: "{{ ansible_host }}:9092"
+zookeeper_client_port: 2181
+zookeeper_connection_url: localhost:2181
+zookeeper_connection_timeout: 18000
+
+custos_host: "{{ hostvars['custos'].ansible_host }}"
+
+envoy_host: "{{ hostvars['custos'].ansible_host }}"
+envoy_port: 10000
+
+
+#Keycloak
+keycloak_vhost_servername: "{{ hostvars['keycloak'].ansible_host }}"
+keycloak_repo: https://github.com/keycloak/keycloak.git
+keycloak_source_dir: "{{ user_home }}/keycloak-source"
+keycloak_deployment_dir: "{{ user_home }}/keycloak-9.0.2"
+
+# Database related variables
+db_name: core_services_server_db
+
+java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
+
+sharing_subnets:
+  - "149.165.152.112/16"
+#  - "140.182.0.0/16"
+#  - "149.165.0.0/16"
+#  - "192.68.133.0/24"
+#  - "192.12.206.0/24"
+#  - "149.159.0.0/16"
+#  - "156.56.0.0/16"
+#  - "149.161.0.0/16"
+#  - "149.160.0.0/16"
+#  - "149.166.0.0/16"
+#  - "134.68.0.0/16"
+#  - "129.79.0.0/16"
+
+# application properties for Custos Core services
+custos_core_grpc_port: 7071
+custos_core_server_port: 8081
+
+
+
+custos_int_grpc_port: 7070
+custos_int_server_port: 8000
+
+
+# vault variables
+vault_port: 8200
+vault_scheme: http
+vault_host: "127.0.0.1"
+vault_uri: "http://127.0.0.1:8201"
+spring_cloud_vault_authentication: token
+
+
+# consul variables
+consul_version: 1.12.1
+consul_zip_file: consul_{{ consul_version }}_linux_amd64.zip
+consul_install_dir: /usr/local/bin
+consul_config_dir: /etc/consul
+consul_data_dir: /var/data
+
+active_profile: staging
+
+apache_maven_version: "apache-maven-3.6.3"
+apache_maven_url: "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.6.2/apache-maven-3.6.2-bin.tar.gz"

@@ -1,0 +1,277 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.user.management.service;
+option go_package = "./pb";
+import "google/api/annotations.proto";
+import "UserProfileService.proto";
+import "IamAdminService.proto";
+
+
+message UserProfileRequest {
+    org.apache.custos.user.profile.service.UserProfile user_profile = 1;
+    string client_id = 2;
+    int64 tenant_id = 3;
+    string access_token = 4;
+    string client_secret = 5;
+    string performed_by = 6;
+}
+
+message GetUserRequest {
+    string username = 1;
+    org.apache.custos.iam.service.UserSearchRequest user_search_request = 2;
+}
+
+message GetUsersRequest {
+    int64 tenant_id = 1;
+    string email = 2;
+    string username = 3;
+    int32 offset = 4;
+    int32 limit = 5;
+    string search = 6;
+    string iam_client_id = 7;
+    string iam_client_secret = 8;
+}
+
+message ResetPassword {
+    int64 tenant_id = 1;
+    string access_token = 2;
+    string username = 3;
+    string password = 4;
+    string iam_client_id = 5;
+    string iam_client_secret = 6;
+}
+
+message ResetPasswordRequest {
+    ResetPassword password_metadata = 1;
+}
+
+message LinkUserProfileRequest {
+    string current_username = 1;
+    string previous_username = 2;
+    repeated string linking_attributes = 3;
+    int64 tenantId = 4;
+    string iam_client_id = 5;
+    string iam_client_secret = 6;
+    string access_token = 7;
+    string performed_by = 8;
+}
+
+message SynchronizeUserDBRequest {
+    int64 tenant_id = 2;
+    string client_id = 4;
+}
+
+service UserManagementService {
+
+    rpc registerUser (org.apache.custos.iam.service.RegisterUserRequest) returns (org.apache.custos.iam.service.RegisterUserResponse) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user"
+           body: "user"
+         };
+    }
+
+    rpc registerAndEnableUsers (org.apache.custos.iam.service.RegisterUsersRequest) returns (org.apache.custos.iam.service.RegisterUsersResponse) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users"
+           body: "users"
+         };
+    }
+
+    rpc addUserAttributes (org.apache.custos.iam.service.AddUserAttributesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/attributes"
+         };
+    }
+
+    rpc deleteUserAttributes (org.apache.custos.iam.service.DeleteUserAttributeRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/attributes"
+         };
+    }
+
+    rpc enableUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/activation"
+           body: "user"
+         };
+    }
+
+    rpc disableUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/deactivation"
+           body: "user"
+         };
+    }
+
+    rpc grantAdminPrivileges (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/admin"
+           body: "user"
+         };
+    }
+
+    rpc removeAdminPrivileges (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/admin"
+           body: "user"
+         };
+    }
+
+
+    rpc deleteExternalIDPsOfUsers (org.apache.custos.iam.service.DeleteExternalIDPsRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
+    rpc addExternalIDPsOfUsers (org.apache.custos.iam.service.AddExternalIDPLinksRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
+
+    rpc getExternalIDPsOfUsers (org.apache.custos.iam.service.GetExternalIDPsRequest) returns (org.apache.custos.iam.service.GetExternalIDPsResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users/federatedIDPs"
+         };
+    }
+
+    rpc addRolesToUsers (org.apache.custos.iam.service.AddUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/users/roles"
+         };
+    }
+
+    rpc isUserEnabled (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/activation/status"
+         };
+
+    }
+
+    rpc isUsernameAvailable (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/availability"
+         };
+    }
+
+
+    rpc getUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.UserRepresentation) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user"
+         };
+
+    }
+
+    rpc findUsers (org.apache.custos.iam.service.FindUsersRequest) returns (org.apache.custos.iam.service.FindUsersResponse) {
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users"
+         };
+
+    }
+
+    rpc resetPassword (org.apache.custos.iam.service.ResetUserPassword) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           put: "/user-management/v1.0.0/user/password"
+         };
+
+    }
+
+
+    rpc deleteUser (org.apache.custos.iam.service.UserSearchRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user"
+           body: "user"
+         };
+
+    }
+
+
+    rpc deleteUserRoles (org.apache.custos.iam.service.DeleteUserRolesRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/roles"
+         };
+    }
+
+
+    rpc updateUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           put: "/user-management/v1.0.0/user/profile"
+           body: "user_profile"
+         };
+    }
+
+    rpc getUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/profile"
+         };
+    }
+    rpc deleteUserProfile (UserProfileRequest) returns (org.apache.custos.user.profile.service.UserProfile) {
+
+        option (google.api.http) = {
+           delete: "/user-management/v1.0.0/user/profile"
+         };
+
+    }
+    rpc getAllUserProfilesInTenant (UserProfileRequest) returns (org.apache.custos.user.profile.service.GetAllUserProfilesResponse) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/users/profile"
+         };
+
+
+    }
+
+    rpc linkUserProfile (LinkUserProfileRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/user/profile/mapper"
+         };
+
+
+    }
+
+
+    rpc getUserProfileAuditTrails (org.apache.custos.user.profile.service.GetUpdateAuditTrailRequest) returns (org.apache.custos.user.profile.service.GetUpdateAuditTrailResponse) {
+
+        option (google.api.http) = {
+           get: "/user-management/v1.0.0/user/profile/audit"
+         };
+
+    }
+
+    rpc synchronizeUserDBs (SynchronizeUserDBRequest) returns (org.apache.custos.iam.service.OperationStatus) {
+        option (google.api.http) = {
+           post: "/user-management/v1.0.0/db/synchronize"
+        };
+    }
+
+}
+
+
+
+

@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: "1.0"
-description: A helm of  custos configuration service
-name: ${artifactId}
-version: ${project.version}
