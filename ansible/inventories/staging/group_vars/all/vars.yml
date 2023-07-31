@@ -34,7 +34,7 @@ custos_domain: "{{ hostvars['custos']['domain'] }}"
 custos_deployment_dir: "{{ user_home }}/custos-deployment"
 custos_source_dir: "{{ user_home }}/custos-source"
 custos_repo: "https://github.com/apache/airavata-custos.git"
-custos_git_branch: develop
+custos_git_branch: staging
 custos_integration_services_source_dir: "{{ user_home }}/custos_integration_services_source"
 custos_core_services_source_dir: "{{ user_home }}/custos_core_services_source"
 custos_distribution_version: 1.1-SNAPSHOT
@@ -102,7 +102,7 @@ consul_install_dir: /usr/local/bin
 consul_config_dir: /etc/consul
 consul_data_dir: /var/data
 
-active_profile: dev
+active_profile: staging
 
 apache_maven_version: "apache-maven-3.6.3"
 apache_maven_url: "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.6.2/apache-maven-3.6.2-bin.tar.gz"
