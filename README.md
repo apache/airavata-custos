@@ -26,6 +26,9 @@
 Science gateways represent potential targets for cybersecurity threats to users, scientific research, and scientific resources. Custos is a software framework that provides common security operations for science gateways, including user identity and access management, gateway tenant profile management, resource secrets management, and groups and sharing management. The goals of the Custos project are to provide these services to a wide range of science gateway frameworks, providing the community with an open-source, transparent, and reviewed code base for common security operations; and to operate trustworthy security services for the science gateway community using this software base. To accomplish these goals, we implement Custos using a scalable microservice architecture that can provide highly available, fault-tolerant operations. Custos exposes these services through a language-independent Application Programming Interface that encapsulates science gateway usage scenarios.
 
 
+Following diagram illustrate the architecture of the Custos Software.
+
+
 ![Custos_Diagram](Custos_Diagram.png)
 
 **To find out more, please check out the [Custos website](https://airavata.apache.org/custos/).**
@@ -193,3 +196,9 @@ series = {PEARC '22}
 }
 ```
 
+### Acknowledgment
+
+We are thankfull to Nation Science Foundation(NSF) for funding this project.
+
+We are thankfull to  Trusted CI (https://www.trustedci.org/) for conducting the
+First Principles Vulnerability Assesment(FPVA) (https://dl.acm.org/doi/10.1145/1866835.1866852) for this software and providing the above architecture diagram and security improvements. 
