@@ -198,7 +198,7 @@ series = {PEARC '22}
 
 ### Acknowledgment
 
-We are thankfull to Nation Science Foundation(NSF) for funding this project.
+We are thankfull to National Science Foundation(NSF) for funding this project.
 
 We are thankfull to  Trusted CI (https://www.trustedci.org/) for conducting the
 First Principles Vulnerability Assesment(FPVA) (https://dl.acm.org/doi/10.1145/1866835.1866852) for this software and providing the above architecture diagram and security improvements. 
