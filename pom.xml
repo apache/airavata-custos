@@ -424,6 +424,15 @@
                 <version>${os.maven.plugin}</version>
             </extension>
         </extensions>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>${docker.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
 
     </build>
 
@@ -461,7 +470,7 @@
 
         <docker.image.prefix>apachecustos</docker.image.prefix>
         <docker.image.repo>custos</docker.image.repo>
-        <docker.plugin.version>1.4.13</docker.plugin.version>
+        <docker.plugin.version>0.43.4</docker.plugin.version>
 
         <helm.maven.plugin.version>2.8.0</helm.maven.plugin.version>
         <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
