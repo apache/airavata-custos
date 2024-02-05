@@ -8,6 +8,14 @@ services:
         KEYCLOAK_USER: admin
         KEYCLOAK_PASSWORD: admin
         PROXY_ADDRESS_FORWARDING: 'true'
+        DB_VENDOR: mysql
+        DB_ADDR: my_sql_local
+        DB_DATABASE: keycloak
+        DB_USER: admin
+        DB_PASSWORD: admin
+      depends_on:
+        - my_sql_local
+
     nginx:
       image: apachecustos/keycloak-nginx:latest
       ports:
@@ -50,7 +58,6 @@ services:
         - "3306:3306"
       environment:
         MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: core_services_db
         MYSQL_USER: admin
         MYSQL_PASSWORD: admin
         MAX_ALLOWED_PACKET: 1073741824
