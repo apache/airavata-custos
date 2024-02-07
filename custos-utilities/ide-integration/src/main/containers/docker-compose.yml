@@ -2,6 +2,7 @@ version: "3.3"
 services:
     keycloak:
       image: quay.io/keycloak/keycloak:9.0.2
+      container_name: keycloak
       ports:
         - "8080:8080"
       environment:
@@ -20,6 +21,12 @@ services:
       image: apachecustos/keycloak-nginx:latest
       ports:
         - "443:443"
+      environment:
+        KEYCLOAK_HOST: keycloak
+        NGINX_SERVER_NAME: host.docker.internal
+      depends_on:
+        - keycloak
+
     vault:
       image: vault:1.7.0
       container_name: vault
