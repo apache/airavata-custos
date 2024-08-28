@@ -19,6 +19,8 @@
 
 package org.apache.custos.service.profile;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.ws.rs.NotFoundException;
 import org.apache.custos.core.mapper.user.AttributeUpdateMetadataMapper;
 import org.apache.custos.core.mapper.user.GroupMapper;
 import org.apache.custos.core.mapper.user.StatusUpdateMetadataMapper;
@@ -55,13 +57,11 @@ import org.apache.custos.core.user.profile.api.UserProfileAttributeUpdateMetadat
 import org.apache.custos.core.user.profile.api.UserProfileRequest;
 import org.apache.custos.core.user.profile.api.UserProfileStatusUpdateMetadata;
 import org.apache.custos.service.exceptions.InternalServerException;
-import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.ws.rs.NotFoundException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;

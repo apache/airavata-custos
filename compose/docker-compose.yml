@@ -1,0 +1,67 @@
+version: "3.8"
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.0
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://db:3306/keycloak?characterEncoding=UTF-8
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    command:
+      - start-dev
+    restart: unless-stopped
+
+  db:
+    container_name: custos_db
+    image: mysql:8.0.31
+    restart: always
+    command: --character-set-server=utf8 --collation-server=utf8_general_ci
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MAX_ALLOWED_PACKET: 1073741824
+    volumes:
+      - ./dbinit:/docker-entrypoint-initdb.d
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 18080:8080
+
+  vault:
+    image: vault:1.11.0
+    container_name: vault
+    restart: unless-stopped
+    ports:
+      - "8201:8201"
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8201
+      VAULT_API_ADDR: http://127.0.0.1:8200
+      VAULT_CLUSTER_ADDR: http://127.0.0.1:8201
+      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h"}, "ui": true}'
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ./vault/data:/vault/data
+      - ./vault/config:/vault/config
+    entrypoint: vault server
+    command: -config=/vault/config/vault-config.hcl
+    healthcheck:
+      test: "vault login 00000000-0000-0000-0000-000000000000 &&
+                   vault kv get secret &&
+                   vault secrets disable secret &&
+                   vault secrets enable -version=1 -path=secret kv &&
+                   vault secrets enable -version=1 -path=resourcesecret kv"
+      interval: 5s

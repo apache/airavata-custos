@@ -19,6 +19,8 @@
 
 package org.apache.custos.service.federated.client.keycloak;
 
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.slf4j.Logger;
@@ -27,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;

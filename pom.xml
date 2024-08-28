@@ -131,6 +131,11 @@
                 <artifactId>spring-vault-core</artifactId>
                 <version>${spring.vault.version}</version>
             </dependency>
+            <dependency>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>${jakarta.ws.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -187,7 +192,7 @@
         <com.google.protobuf.util>3.21.11</com.google.protobuf.util>
 
         <mysql.connector.java>8.0.31</mysql.connector.java>
-        <keycloak.admin.version>20.0.3</keycloak.admin.version>
+        <keycloak.admin.version>24.0.5</keycloak.admin.version>
         <testng.version>6.8</testng.version>
         <org.json.version>20240303</org.json.version>
         <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
@@ -203,6 +208,7 @@
         <ssh.username>ubuntu</ssh.username>
         <project.version>1.1-SNAPSHOT</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
+        <jakarta.ws.version>4.0.0</jakarta.ws.version>
     </properties>
 
     <repositories>
