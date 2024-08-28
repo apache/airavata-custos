@@ -23,11 +23,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-<!--    <parent>-->
-<!--        <groupId>org.apache</groupId>-->
-<!--        <artifactId>apache</artifactId>-->
-<!--        <version>29</version>-->
-<!--    </parent>-->
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>29</version>
+    </parent>
 
     <groupId>org.apache.custos</groupId>
     <artifactId>custos</artifactId>
@@ -131,121 +131,8 @@
                 <artifactId>spring-vault-core</artifactId>
                 <version>${spring.vault.version}</version>
             </dependency>
-
-<!--            <dependency>-->
-<!--                <groupId>com.fasterxml.jackson</groupId>-->
-<!--                <artifactId>jackson-bom</artifactId>-->
-<!--                <version>2.16.1</version>-->
-<!--                <scope>import</scope>-->
-<!--                <type>pom</type>-->
-<!--            </dependency>-->
         </dependencies>
     </dependencyManagement>
-
-<!--    <profiles>-->
-<!--        <profile>-->
-<!--            <id>default</id>-->
-<!--            <activation>-->
-<!--                <activeByDefault>true</activeByDefault>-->
-<!--            </activation>-->
-<!--            <build>-->
-<!--                <plugins>-->
-<!--                    <plugin>-->
-<!--                        <groupId>org.apache.maven.plugins</groupId>-->
-<!--                        <artifactId>maven-compiler-plugin</artifactId>-->
-<!--                        <version>${maven.compiler.plugin}</version>-->
-<!--                        <executions>-->
-<!--                            <execution>-->
-<!--                                <id>default</id>-->
-<!--                            </execution>-->
-<!--                        </executions>-->
-<!--                        <configuration>-->
-<!--                            <release>${java.version}</release>-->
-<!--                        </configuration>-->
-<!--                    </plugin>-->
-<!--                    <plugin>-->
-<!--                        <groupId>org.xolstice.maven.plugins</groupId>-->
-<!--                        <artifactId>protobuf-maven-plugin</artifactId>-->
-<!--                        <version>${protobuf.maven.plugin}</version>-->
-<!--                        <configuration>-->
-<!--                            <protocArtifact>com.google.protobuf:protoc:${com.google.protobuf.util}:exe:${os.detected.classifier}-->
-<!--                            </protocArtifact>-->
-<!--                            <pluginId>grpc-java</pluginId>-->
-<!--                            <pluginArtifact>io.grpc:protoc-gen-grpc-java:${io.grpc.version}:exe:${os.detected.classifier}-->
-<!--                            </pluginArtifact>-->
-<!--                        </configuration>-->
-<!--                        <executions>-->
-<!--                            <execution>-->
-<!--                                <goals>-->
-<!--                                    <goal>compile</goal>-->
-<!--                                    <goal>compile-custom</goal>-->
-<!--                                </goals>-->
-<!--                            </execution>-->
-<!--                        </executions>-->
-<!--                    </plugin>-->
-<!--                    <plugin>-->
-<!--                        <groupId>org.apache.maven.plugins</groupId>-->
-<!--                        <artifactId>maven-enforcer-plugin</artifactId>-->
-<!--                        <version>1.4.1</version>-->
-<!--                        <executions>-->
-<!--                            <execution>-->
-<!--                                <id>enforce</id>-->
-<!--                                <goals>-->
-<!--                                    <goal>enforce</goal>-->
-<!--                                </goals>-->
-<!--                                <configuration>-->
-<!--                                    <rules>-->
-<!--                                        <requireUpperBoundDeps/>-->
-<!--                                    </rules>-->
-<!--                                </configuration>-->
-<!--                            </execution>-->
-<!--                        </executions>-->
-<!--                    </plugin>-->
-<!--                </plugins>-->
-<!--            </build>-->
-<!--        </profile>-->
-<!--        <profile>-->
-<!--            <id>release</id>-->
-<!--            <build>-->
-<!--                <plugins>-->
-<!--                    <plugin>-->
-<!--                        <groupId>org.apache.rat</groupId>-->
-<!--                        <artifactId>apache-rat-plugin</artifactId>-->
-<!--                        <version>${apache.rat.plugin.version}</version>-->
-<!--                        <configuration>-->
-<!--                            <excludes>-->
-<!--                                <exclude>**/*.json</exclude>-->
-<!--                            </excludes>-->
-<!--                        </configuration>-->
-<!--                        <executions>-->
-<!--                            <execution>-->
-<!--                                <phase>verify</phase>-->
-<!--                                <goals>-->
-<!--                                    <goal>check</goal>-->
-<!--                                </goals>-->
-<!--                            </execution>-->
-<!--                        </executions>-->
-<!--                    </plugin>-->
-<!--                </plugins>-->
-<!--            </build>-->
-<!--        </profile>-->
-
-<!--        <profile>-->
-<!--            <id>integration-tests</id>-->
-<!--            <build>-->
-<!--                <plugins>-->
-<!--                    <plugin>-->
-<!--                        <groupId>org.apache.maven.plugins</groupId>-->
-<!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-<!--                        <version>${maven.surefile.plugin.version}</version>-->
-<!--                        <configuration>-->
-<!--                            <skipTests>true</skipTests>-->
-<!--                        </configuration>-->
-<!--                    </plugin>-->
-<!--                </plugins>-->
-<!--            </build>-->
-<!--        </profile>-->
-<!--    </profiles>-->
 
     <build>
         <plugins>
@@ -276,105 +163,46 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <org.slf4j.version>2.0.6</org.slf4j.version>
-        <log4j.version>1.2.17</log4j.version>
-        <log4j2.version>2.8.2</log4j2.version>
-        <thrift.version>0.12.0</thrift.version>
-        <openjpa.version>2.4.3</openjpa.version>
-        <mysql.connector.version>5.1.34</mysql.connector.version>
-        <maven.assembly.plugin>3.3.0</maven.assembly.plugin>
-        <junit.version>4.8.1</junit.version>
-        <jmockit.version>1.8</jmockit.version>
         <java.version>17</java.version>
-        <javax.annotation.version>1.3.2</javax.annotation.version>
-        <maven.compiler.plugin>3.8.1</maven.compiler.plugin>
 
-        <protobuf.maven.plugin>0.6.1</protobuf.maven.plugin>
-        <protobuf.version>3.24.0</protobuf.version>
+        <maven.compiler.plugin>3.8.1</maven.compiler.plugin>
+        <maven.assembly.plugin>3.3.0</maven.assembly.plugin>
+        <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
         <os.maven.plugin>1.5.0.Final</os.maven.plugin>
+
+        <javax.version>2.0.1.Final</javax.version>
+        <jackson.version>2.14.2</jackson.version>
 
         <!-- Spring dependencies -->
         <spring.boot.version>3.2.2</spring.boot.version>
         <spring.cloud.version>2022.0.2</spring.cloud.version>
-        <grpc.spring.boot.version>5.0.0</grpc.spring.boot.version>
+        <spring.vault.version>3.0.2</spring.vault.version>
+        <spring.cloud.vault.version>4.0.1</spring.cloud.vault.version>
+        <springdoc.version>2.5.0</springdoc.version>
 
-        <spring.cloud.stream.version>2.0.0.RELEASE</spring.cloud.stream.version>
-        <spring.cloud.slueth.version>2.1.6.RELEASE</spring.cloud.slueth.version>
-
-
+        <protobuf.maven.plugin>0.6.1</protobuf.maven.plugin>
+        <protobuf.version>3.24.0</protobuf.version>
+        <protobuf.json.version>0.9.15</protobuf.json.version>
         <io.grpc.version>1.58.0</io.grpc.version>
-        <google.common.protos>1.17.0</google.common.protos>
-        <io.micrometer.version>1.3.1</io.micrometer.version>
-        <brave.version>5.9.1</brave.version>
+        <com.google.protobuf.util>3.21.11</com.google.protobuf.util>
+
+        <mysql.connector.java>8.0.31</mysql.connector.java>
+        <keycloak.admin.version>20.0.3</keycloak.admin.version>
+        <testng.version>6.8</testng.version>
+        <org.json.version>20240303</org.json.version>
+        <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
+        <apache.commons.lang3.version>3.14.0</apache.commons.lang3.version>
 
         <docker.image.prefix>apachecustos</docker.image.prefix>
         <docker.image.repo>custos</docker.image.repo>
         <docker.plugin.version>1.4.13</docker.plugin.version>
-
-        <helm.maven.plugin.version>2.8.0</helm.maven.plugin.version>
-        <maven.assembly.plugin.version>3.2.0</maven.assembly.plugin.version>
-
-        <mysql.connector.java>8.0.31</mysql.connector.java>
-        <javax.persistance>1.0.2</javax.persistance>
-        <jakarta.persistance>3.1.0</jakarta.persistance>
-
-        <keycloak.admin.version>20.0.3</keycloak.admin.version>
-<!--        todo check for the redhat released version -->
-
-        <reasteasy.client.version>3.9.1.Final</reasteasy.client.version>
-
-        <com.google.protobuf.util>3.21.11</com.google.protobuf.util>
-
-        <springfox.swagger.version>3.0.0</springfox.swagger.version>
-        <org.wso2.charon>3.3.16</org.wso2.charon>
-        <jaxb.version>2.1</jaxb.version>
-
-        <kube.java.client.version>5.0.0</kube.java.client.version>
-
-        <testng.version>6.8</testng.version>
-        <org.json.version>20240303</org.json.version>
-
-        <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
-
-        <maven.surefile.plugin.version>3.0.0-M4</maven.surefile.plugin.version>
-
-        <log.back.version>1.2.3</log.back.version>
-
-        <com.jcraft.version>0.1.55</com.jcraft.version>
-
-        <io.commons.version>2.7</io.commons.version>
-
-        <com.codahale.version>0.7.0</com.codahale.version>
-
-<!--        <host>prod.custos.usecustos.org</host>-->
-
         <host>custos.scigap.org</host>
-
         <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
-
         <ssh.passphrase>isjarana</ssh.passphrase>
-        <dozer.version>5.5.1</dozer.version>
-
-        <kafka-clients.version>1.0.0</kafka-clients.version>
-
         <email.version>1.5.0-b01</email.version>
-<!--        <ssh.username>custos</ssh.username>-->
         <ssh.username>ubuntu</ssh.username>
         <project.version>1.1-SNAPSHOT</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
-
-
-        <javax.version>2.0.1.Final</javax.version>
-
-        <jackson.version>2.14.2</jackson.version>
-
-        <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
-        <protobuf.json.version>0.9.15</protobuf.json.version>
-        <springdoc.version>2.5.0</springdoc.version>
-        <apache.commons.lang3.version>3.14.0</apache.commons.lang3.version>
-        <spring.vault.version>3.0.2</spring.vault.version>
-        <spring.cloud.vault.version>4.0.1</spring.cloud.vault.version>
-
     </properties>
 
     <repositories>
@@ -389,6 +217,4 @@
             </snapshots>
         </repository>
     </repositories>
-
-
 </project>

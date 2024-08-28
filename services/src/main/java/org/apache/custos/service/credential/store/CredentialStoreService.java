@@ -367,7 +367,6 @@ public class CredentialStoreService {
                 throw new EntityNotFoundException(msg);
             }
 
-            // TODO path should be considering the client too
             String path = BASE_PATH + entity.getOwnerId() + "/" + Type.CUSTOS.name() +  "/" + clientId;
 
             VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);

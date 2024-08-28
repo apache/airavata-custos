@@ -211,7 +211,7 @@ public class TokenAuthorizer {
                 return authorizeParentChildTenantValidationWithBasicAuth(headers, clientId);
 
             } else if (clientId != null && userToken.isPresent()) {
-                return authorizeParentChildTenantWithBasicAuthAndUserTokenValidation(headers, clientId, userToken.get()); // TODO - LJ Check the scenario is working. Possible for a bug, this method eventually calls the token decode function to extract clientId:clientSecret
+                return authorizeParentChildTenantWithBasicAuthAndUserTokenValidation(headers, clientId, userToken.get());
 
             } else if (clientId != null && isUserToken(headers)) {
                 return authorizeParentChildTenantWithUserTokenValidation(headers, clientId);
