@@ -1,0 +1,91 @@
+server:
+  port: 8081
+
+custos:
+  region: "local"
+  identity:
+    auth:
+      cache:
+        enabled: false
+        size: 1024
+  credential:
+    prefix: custos-
+  tenant:
+    base:
+      uri: http://localhost/api/v1/tenant-management/oauth2/tenant
+  keys:
+    location:<CHANGE_PATH>/application/src/main/resources/keys
+  api:
+    domain: "http://localhost:8081"
+
+spring:
+  application:
+    name: custos-playground
+  datasource:
+    url: "jdbc:mysql://localhost:3306/custos"
+    username: admin
+    password: admin
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  cloud:
+    vault:
+      token: 00000000-0000-0000-0000-000000000000 # Update this with your token
+      scheme: http
+      kv:
+        enabled: true
+      host: localhost
+      port: 8200
+      authentication: token
+      connection-timeout: 5000
+      read-timeout: 15000
+  profiles:
+    active: local
+
+logging:
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+  level:
+    root: info
+
+iam:
+  server:
+    client:
+      id: admin-cli
+    url: http://localhost:8080/
+    admin:
+      username: admin
+      password: admin
+    super:
+      admin:
+        realm:
+          id: master
+  federated:
+    cilogon:
+      authorization:
+        endpoint: https://cilogon.org/authorize
+      token:
+        endpoint: https://cilogon.org/oauth2/token
+        userinfo:
+          endpoint: https://cilogon.org/oauth2/userinfo
+      issuer: https://cilogon.org
+      jwksUri: https://cilogon.org/oauth2/certs
+
+ciLogon:
+  admin:
+    client:
+      id: abc
+      secret: 1234
+    auth:
+      endpoint: https://test.cilogon.org/oauth2/oidc-cm
+  institutions:
+    endpoint: https://cilogon.org/idplist/
+
+springdoc:
+  swagger-ui:
+    title: CUSTOS API
+    oauth:
+      use-pkce-with-authorization-code-grant: true
