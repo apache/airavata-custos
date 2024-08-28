@@ -20,8 +20,10 @@
 package org.apache.custos.service.federated.client.keycloak;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.custos.core.exception.UnauthorizedException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.Response;
 import org.apache.custos.core.constants.Constants;
+import org.apache.custos.core.exception.UnauthorizedException;
 import org.apache.http.HttpStatus;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.GroupResource;
@@ -50,8 +52,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
