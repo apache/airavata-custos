@@ -1,0 +1,65 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.core.identity.management.api;
+
+import "Identity.proto";
+import "CredentialStore.proto";
+
+
+message AuthorizationRequest {
+  int64 tenant_id = 1;
+  string client_id = 2;
+  string client_secret = 3;
+  string redirect_uri = 4;
+  string response_type = 5;
+  string scope = 6;
+  string state = 7;
+  string code_challenge = 8;
+  string code_challenge_method = 9;
+}
+
+message AuthorizationResponse {
+  string redirect_uri = 1;
+}
+
+message GetCredentialsRequest {
+  string client_id = 1;
+  org.apache.custos.core.credential.store.api.Credentials credentials = 2;
+}
+
+message GetAgentTokenRequest {
+  int64 tenant_id = 1;
+  string agent_client_id = 2;
+  string agent_client_secret = 3;
+  string agentId = 4;
+  string agentPassword = 5;
+  string  client_id = 6;
+  string grant_type = 7;
+  string refresh_token = 8;
+}
+
+message EndSessionRequest {
+  string client_id = 1;
+  org.apache.custos.core.identity.api.EndSessionRequest body = 2;
+}

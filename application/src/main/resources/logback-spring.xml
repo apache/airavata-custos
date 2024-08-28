@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+    <springProperty scope="context" name="regionName" source="custos.region"/>
+
+    <!-- Rolling File Appender -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/custos-application.log</file>
+        <encoder>
+            <pattern>%date{YYYY-MM-dd HH:mm:ss.SSS} region=${regionName}, app=${appName}, host=${HOSTNAME}, traceID=%X{traceId:-NONE}, level=%-5level, [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/%d{yyyy-MM}/custos-application-log-%d{MM-dd-yyyy}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <!-- number of days to keep the log files -->
+            <maxHistory>30</maxHistory>
+            <!-- If the total size of all log files exceeds this value, the oldest files will be removed -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Asynchronous Rolling File Appender -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>500</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+
+    <logger name="org.hibernate" level="ERROR"/>
+    <logger name="org.springframework" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+</configuration>
