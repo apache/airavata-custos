@@ -29,16 +29,6 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>custos-java-clients</artifactId>
     <packaging>pom</packaging>
-    <modules>
-        <module>identity-management-client</module>
-        <module>tenant-management-client</module>
-        <module>custos-clients-core</module>
-        <module>user-management-client</module>
-        <module>agent-management-client</module>
-        <module>group-management-client</module>
-        <module>resource-secret-management-client</module>
-        <module>sharing-management-client</module>
-    </modules>
 
     <build>
         <plugins>
