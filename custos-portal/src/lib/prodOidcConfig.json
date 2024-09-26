@@ -1,0 +1,285 @@
+{
+    "issuer": "https://10000000.veda-auth-central.org",
+    "authorization_endpoint": "https://api.veda.usecustos.org/api/v1/identity-management/authorize",
+    "token_endpoint": "https://api.veda.usecustos.org/api/v1/identity-management/token",
+    "userinfo_endpoint": "https://api.veda.usecustos.org/api/v1/user-management/userinfo",
+    "jwks_uri": "https://api.veda.usecustos.org/api/v1/identity-management/.well-known/jwks.json",
+    "response_types_supported": [
+        "code",
+        "none",
+        "id_token",
+        "token",
+        "id_token token",
+        "code id_token",
+        "code token",
+        "code id_token token"
+    ],
+    "subject_types_supported": [
+        "public",
+        "pairwise"
+    ],
+    "id_token_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "scopes_supported": [
+        "openid",
+        "email",
+        "address",
+        "roles",
+        "example:doc:delete",
+        "profile",
+        "offline_access",
+        "microprofile-jwt",
+        "phone",
+        "user:email",
+        "example:doc:create",
+        "web-origins",
+        "example:doc:read",
+        "acr",
+        "example:doc:update"
+    ],
+    "token_endpoint_auth_methods_supported": [
+        "private_key_jwt",
+        "client_secret_basic",
+        "client_secret_post",
+        "tls_client_auth",
+        "client_secret_jwt"
+    ],
+    "claims_supported": [
+        "aud",
+        "sub",
+        "iss",
+        "auth_time",
+        "name",
+        "given_name",
+        "family_name",
+        "preferred_username",
+        "email",
+        "acr"
+    ],
+    "introspection_endpoint_auth_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "request_parameter_supported": true,
+    "pushed_authorization_request_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/ext/par/request",
+    "introspection_endpoint": "https://api.veda.usecustos.org/api/v1/identity-management/token/introspect",
+    "claims_parameter_supported": true,
+    "id_token_encryption_enc_values_supported": [
+        "A256GCM",
+        "A192GCM",
+        "A128GCM",
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512"
+    ],
+    "userinfo_encryption_enc_values_supported": [
+        "A256GCM",
+        "A192GCM",
+        "A128GCM",
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512"
+    ],
+    "introspection_endpoint_auth_methods_supported": [
+        "private_key_jwt",
+        "client_secret_basic",
+        "client_secret_post",
+        "tls_client_auth",
+        "client_secret_jwt"
+    ],
+    "authorization_encryption_alg_values_supported": [
+        "RSA-OAEP",
+        "RSA-OAEP-256",
+        "RSA1_5"
+    ],
+    "tls_client_certificate_bound_access_tokens": true,
+    "response_modes_supported": [
+        "query",
+        "fragment",
+        "form_post",
+        "query.jwt",
+        "fragment.jwt",
+        "form_post.jwt",
+        "jwt"
+    ],
+    "backchannel_logout_session_supported": true,
+    "backchannel_authentication_request_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "ES256",
+        "RS256",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "authorization_encryption_enc_values_supported": [
+        "A256GCM",
+        "A192GCM",
+        "A128GCM",
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512"
+    ],
+    "revocation_endpoint_auth_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "backchannel_token_delivery_modes_supported": [
+        "poll",
+        "ping"
+    ],
+    "revocation_endpoint_auth_methods_supported": [
+        "private_key_jwt",
+        "client_secret_basic",
+        "client_secret_post",
+        "tls_client_auth",
+        "client_secret_jwt"
+    ],
+    "request_uri_parameter_supported": true,
+    "grant_types_supported": [
+        "authorization_code",
+        "implicit",
+        "refresh_token",
+        "password",
+        "client_credentials",
+        "urn:ietf:params:oauth:grant-type:device_code",
+        "urn:openid:params:grant-type:ciba",
+        "urn:ietf:params:oauth:grant-type:token-exchange"
+    ],
+    "require_request_uri_registration": true,
+    "code_challenge_methods_supported": [
+        "plain",
+        "S256"
+    ],
+    "id_token_encryption_alg_values_supported": [
+        "RSA-OAEP",
+        "RSA-OAEP-256",
+        "RSA1_5"
+    ],
+    "frontchannel_logout_session_supported": true,
+    "authorization_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "request_object_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512",
+        "none"
+    ],
+    "request_object_encryption_alg_values_supported": [
+        "RSA-OAEP",
+        "RSA-OAEP-256",
+        "RSA1_5"
+    ],
+    "check_session_iframe": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/login-status-iframe.html",
+    "backchannel_logout_supported": true,
+    "acr_values_supported": [
+        "0",
+        "1"
+    ],
+    "request_object_encryption_enc_values_supported": [
+        "A256GCM",
+        "A192GCM",
+        "A128GCM",
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512"
+    ],
+    "device_authorization_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/auth/device",
+    "userinfo_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512",
+        "none"
+    ],
+    "claim_types_supported": [
+        "normal"
+    ],
+    "userinfo_encryption_alg_values_supported": [
+        "RSA-OAEP",
+        "RSA-OAEP-256",
+        "RSA1_5"
+    ],
+    "end_session_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/logout",
+    "revocation_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/revoke",
+    "backchannel_authentication_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/protocol/openid-connect/ext/ciba/auth",
+    "frontchannel_logout_supported": true,
+    "token_endpoint_auth_signing_alg_values_supported": [
+        "PS384",
+        "ES384",
+        "RS384",
+        "HS256",
+        "HS512",
+        "ES256",
+        "RS256",
+        "HS384",
+        "ES512",
+        "PS256",
+        "PS512",
+        "RS512"
+    ],
+    "registration_endpoint": "https://auth.veda.usecustos.org/auth/realms/10000000/clients-registrations/openid-connect"
+}
