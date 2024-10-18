@@ -292,7 +292,7 @@ public class IdentityService {
         try {
             LOGGER.debug("Request for fetch OIDC configuration " + request.getTenantId());
 
-            JSONObject object = keycloakAuthClient.getOIDCConfiguration(String.valueOf(request.getTenantId()), request.getClientId());
+            JSONObject object = keycloakAuthClient.getOIDCConfiguration(String.valueOf(request.getTenantId()));
 
             return OIDCConfiguration.newBuilder()
                     .setIssuer("https://" + request.getTenantId() + ".usecustos.org")

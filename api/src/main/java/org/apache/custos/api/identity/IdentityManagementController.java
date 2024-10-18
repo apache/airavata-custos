@@ -46,6 +46,7 @@ import org.apache.custos.service.credential.store.CredentialManager;
 import org.apache.custos.service.management.IdentityManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -59,6 +60,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -498,21 +500,28 @@ public class IdentityManagementController {
         }
     }
 
-    @GetMapping("/.well-known/openid-configuration")
+    @GetMapping("/tenant/{tenantId}/.well-known/openid-configuration")
     @Operation(
             summary = "Get OIDC Configuration",
+            parameters = {
+                    @Parameter(
+                            name = "tenantId",
+                            in = ParameterIn.PATH,
+                            required = true,
+                            schema = @Schema(type = "integer", format = "int64")
+                    ),
+            },
             description = "Retrieves the OpenID Connect (OIDC) configuration using the provided GetOIDCConfiguration request. " +
                     "Returns an OIDCConfiguration object.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Successful operation", content = @Content(schema = @Schema(implementation = OIDCConfiguration.class))),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized Request", content = @Content()),
-                    @ApiResponse(responseCode = "404", description = "When the associated Tenant or Credentials cannot be found", content = @Content()),
+                    @ApiResponse(responseCode = "404", description = "When the associated Tenant cannot be found", content = @Content()),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content())
             }
     )
-    public ResponseEntity<OIDCConfiguration> getOIDCConfiguration(@RequestParam(value = "client_id") String clientId) {
+    public ResponseEntity<OIDCConfiguration> getOIDCConfiguration(@PathVariable("tenantId") long tenantId) {
         GetOIDCConfiguration request = GetOIDCConfiguration.newBuilder()
-                .setClientId(clientId)
+                .setTenantId(tenantId)
                 .build();
         OIDCConfiguration response = identityManagementService.getOIDCConfiguration(request);
         return ResponseEntity.ok(response);

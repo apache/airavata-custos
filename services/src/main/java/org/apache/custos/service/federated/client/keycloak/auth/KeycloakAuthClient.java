@@ -274,7 +274,7 @@ public class KeycloakAuthClient {
         return openIdConnectConfig.getString("introspection_endpoint");
     }
 
-    public JSONObject getOIDCConfiguration(String tenantId, String clientId) throws Exception {
+    public JSONObject getOIDCConfiguration(String tenantId) throws Exception {
         String openIdConnectUrl = getOpenIDConfigurationUrl(tenantId);
         return new JSONObject(getFromUrl(openIdConnectUrl, null));
     }
