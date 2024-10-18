@@ -851,7 +851,12 @@ public class UserProfileService {
                         break;
                     }
                 }
-                groupList.add(GroupMapper.createGroup(groupMap.get(gr), ownerId));
+                int totalMembers = groupMembershipRepository.countByGroupId(gr);
+                var requesterRole = groupMembershipRepository.findFirstByGroupIdAndUserProfileId(gr, userId)
+                        .orElseThrow()
+                        .getUserGroupMembershipType()
+                        .getId();
+                groupList.add(GroupMapper.createGroup(groupMap.get(gr), ownerId, totalMembers, requesterRole));
             });
 
             return GetAllGroupsResponse.newBuilder().addAllGroups(groupList).build();

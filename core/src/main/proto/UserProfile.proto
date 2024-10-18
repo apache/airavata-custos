@@ -136,6 +136,8 @@ message Group {
   repeated GroupAttribute attributes = 8;
   string description = 9;
   string owner_id = 10;
+  int32 total_members = 11;
+  string requester_role = 12;
 }
 
 message GroupAttribute {

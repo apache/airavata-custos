@@ -23,6 +23,7 @@ import org.apache.custos.core.model.user.UserGroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface GroupMembershipRepository extends JpaRepository<UserGroupMembership, String> {
 
@@ -35,4 +36,8 @@ public interface GroupMembershipRepository extends JpaRepository<UserGroupMember
     List<UserGroupMembership> findAllByGroupIdAndUserProfileIdAndUserGroupMembershipTypeId(String groupId, String userProfileId, String groupMembershipId);
 
     List<UserGroupMembership> findAllByGroupIdAndUserGroupMembershipTypeId(String id, String groupMembershipId);
+
+    Optional<UserGroupMembership> findFirstByGroupIdAndUserProfileId(String groupId, String userProfileId);
+
+    int countByGroupId(String id);
 }

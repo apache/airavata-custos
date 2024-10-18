@@ -108,6 +108,13 @@ public class GroupMapper {
         return groupEntity;
     }
 
+    public static org.apache.custos.core.user.profile.api.Group createGroup(Group groupEntity, String ownerId, int totalMembers, String requesterRole) {
+        return createGroup(groupEntity, ownerId)
+                .toBuilder()
+                .setTotalMembers(totalMembers)
+                .setRequesterRole(requesterRole)
+                .build();
+    }
 
     public static org.apache.custos.core.user.profile.api.Group createGroup(Group group, String ownerId) {
 
