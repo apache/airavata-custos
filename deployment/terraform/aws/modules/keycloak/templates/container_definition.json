@@ -1,0 +1,113 @@
+[
+  {
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${log_group}",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${environment}"
+      }
+    },
+    "portMappings": [
+      {
+        "protocol": "tcp",
+        "containerPort": 8080
+      },
+      {
+        "protocol": "tcp",
+        "containerPort": 7800
+      },
+      {
+        "protocol": "tcp",
+        "containerPort": 9990
+      }
+    ],
+    "cpu": ${container_cpu_units},
+    "environment": [
+      {
+        "name": "KC_DB",
+        "value": "postgres"
+      },
+      {
+        "name": "KC_DB_URL",
+        "value": "jdbc:postgresql://${db_addr}:5432/keycloak"
+      },
+      {
+        "name": "KC_DB_ADDR",
+        "value": "${db_addr}"
+      },
+      {
+        "name": "KC_DB_USERNAME",
+        "value": "keycloak"
+      },
+      {
+        "name": "DNS_NAME",
+        "value": "${dns_name}"
+      },
+      {
+        "name": "ENVIRONMENT_NAME",
+        "value": "${environment}"
+      },
+      {
+        "name": "JAVA_OPTS",
+        "value": "-XX:+DisableExplicitGC -XX:+UseG1GC -Xms${jvm_heap_min}m -Xmx${jvm_heap_max}m -XX:MetaspaceSize=${jvm_meta_min}m -XX:MaxMetaspaceSize=${jvm_meta_max}m -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses -Djava.security.egd=file:/dev/urandom -Dnashorn.args=--no-deprecation-warning"
+      },
+      {
+        "name": "KEYCLOAK_ADMIN",
+        "value": "keycloak_admin"
+      },
+      {
+        "name": "KC_LOG_LEVEL",
+        "value": "INFO,org.infinispan:ERROR,org.jgroups:ERROR"
+      },
+      {
+        "name": "KC_HTTP_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "KC_PROXY",
+        "value": "edge"
+      },
+      {
+        "name": "KC_HOSTNAME_STRICT",
+        "value": "false"
+      },
+      {
+        "name": "KC_HOSTNAME_PATH",
+        "value": "/auth"
+      },
+      {
+        "name": "KC_HTTP_RELATIVE_PATH",
+        "value": "/auth"
+      },
+      {
+          "name": "ROOT_LOGLEVEL",
+          "value": "INFO"
+      }
+    ],
+    "secrets": [
+      {
+        "name": "KC_DB_PASSWORD",
+        "valueFrom": "arn:aws:ssm:${region}:${aws_account_id}:parameter/${name}/${environment}/DB_PASSWORD"
+      },
+      {
+        "name": "KEYCLOAK_ADMIN_PASSWORD",
+        "valueFrom": "arn:aws:ssm:${region}:${aws_account_id}:parameter/${name}/${environment}/KEYCLOAK_PASSWORD"
+      }
+    ],
+    "memory": ${container_memory_limit},
+    "memoryReservation": ${container_memory_reserved},
+    "stopTimeout": 20,
+    "image": "${image}",
+    "startTimeout": 30,
+    "healthCheck": null,
+    "essential": true,
+    "readonlyRootFilesystem": false,
+    "dockerLabels": {
+      "environment": "${environment}",
+      "service": "${name}"
+    },
+    "privileged": false,
+    "name": "${name}"
+  }
+]
