@@ -4,7 +4,7 @@ import { extendTheme, ChakraProvider } from '@chakra-ui/react';
 import { AuthProvider, AuthProviderProps } from 'react-oidc-context';
 import { APP_REDIRECT_URI, BACKEND_URL, CLIENT_ID, TENANT_ID } from './lib/constants';
 import { WebStorageStateStore } from 'oidc-client-ts';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import localOidcConfig from './lib/localOidcConfig.json';
 
 const theme = extendTheme({
@@ -31,12 +31,12 @@ const Index = () => {
     const fetchOidcConfig = async () => {
       try {
         let data;
-        if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-          data = localOidcConfig;
-        } else {
+        // if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+        //   data = localOidcConfig;
+        // } else {
           const response = await fetch(`${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`); // Replace with actual API endpoint
           data = await response.json();
-        }
+       // }
 
         // Determine redirect_uri based on environment
         const redirectUri = APP_REDIRECT_URI;

@@ -12,7 +12,7 @@ export let APP_URL:string;
 // } 
 // else {
     // Client ID goes here
-    CLIENT_ID = 'veda-iui65nmkgaf7bihdyndc-10000000';
+    CLIENT_ID = 'custos-kgap8hu6ih4hddvlzzlb-10000000';
     BACKEND_URL = 'https://api.playground.usecustos.org';
     APP_URL = 'http://localhost:5173'
 // }
