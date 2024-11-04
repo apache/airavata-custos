@@ -1,0 +1,21 @@
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = req_ext
+
+[dn]
+C = US
+ST = Georgia
+L = Atlanta
+O = "Apache Airavata Custos"
+CN = secrets.usecustos.org
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = secrets.usecustos.org
+DNS.2 = localhost
+IP.1 = 127.0.0.1
