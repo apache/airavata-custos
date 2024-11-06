@@ -116,7 +116,14 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
 
   return (
     <Grid templateColumns="repeat(15, 1fr)" minHeight="100vh">
-      <GridItem colSpan={isCollapsed ? 1 : 3} minWidth={isCollapsed ? "60px" : "240px"} maxWidth={isCollapsed ? "60px" : "240px"} bg="#F7F7F7">
+      <GridItem
+        colSpan={isCollapsed ? 1 : 3}
+        minWidth={isCollapsed ? "60px" : "240px"}
+        maxWidth={isCollapsed ? "60px" : "240px"}
+        bg="#F7F7F7"
+        position="fixed"  // Keep the sidebar fixed
+        h="100vh"
+      >
         <Flex h="100vh" p={4} direction="column" justifyContent="space-between">
           <Box>
             <Flex justifyContent="space-between" align="center">
@@ -155,7 +162,13 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
           </Box>
         </Flex>
       </GridItem>
-      <GridItem colSpan={isCollapsed ? 14 : 12} p={16} minWidth="0">
+      <GridItem
+        colSpan={isCollapsed ? 14 : 12}
+        p={16}
+        ml={isCollapsed ? "60px" : "240px"}  // Adjust margin based on sidebar width
+        minWidth="0"
+        overflowY="auto" // Allow scrolling only in the content area
+      >
         {children}
       </GridItem>
     </Grid>
