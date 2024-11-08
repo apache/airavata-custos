@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   Grid,
   GridItem,
@@ -15,6 +15,7 @@ import {
   DrawerCloseButton,
   DrawerBody,
   useDisclosure,
+  Spacer
 } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
 import { FiUser, FiUsers, FiChevronLeft, FiChevronRight, FiMenu } from "react-icons/fi";
@@ -34,12 +35,13 @@ interface NavItemProps {
   text: string;
   activeTab: string;
   isCollapsed: boolean;
+  onClose: () => void;
 }
 
-const NavItem = ({ to, icon, text, activeTab, isCollapsed }: NavItemProps) => {
+const NavItem = memo(({ to, icon, text, activeTab, isCollapsed, onClose }: NavItemProps) => {
   const isActive = activeTab.toLowerCase() === text.toLowerCase();
   return (
-    <Link to={to}>
+    <Link to={to} onClick={onClose}>
       <Stack
         direction="row"
         align="center"
@@ -54,11 +56,16 @@ const NavItem = ({ to, icon, text, activeTab, isCollapsed }: NavItemProps) => {
       </Stack>
     </Link>
   );
-};
+});
 
-export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
+export const NavContainer = memo(({ activeTab, children }: NavContainerProps) => {
   const auth = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('navCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -68,24 +75,35 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('navCollapsed', JSON.stringify(isCollapsed));
+  }, [isCollapsed]);
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev: boolean) => !prev);
+  };
+
   if (isMobile) {
     return (
       <>
-        <Button onClick={onOpen} variant="ghost" position="fixed" top={4} left={4}>
-          <Icon as={FiMenu} w={6} h={6} />
-        </Button>
+        <Box position="fixed" top={4} left={4} zIndex={10}>
+          <Button onClick={onOpen} variant="ghost">
+            <Icon as={FiMenu} w={6} h={6} />
+          </Button>
+        </Box>
         <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
           <DrawerOverlay />
           <DrawerContent bg="#F7F7F7">
             <DrawerCloseButton />
-            <DrawerBody p={4}>
+            <DrawerBody p={4} display="flex" flexDirection="column">
               <Heading size="md">Custos Auth Portal</Heading>
               <Stack direction="column" mt={4}>
-                <NavItem to="/applications" icon={AiOutlineAppstore} text="Applications" activeTab={activeTab} isCollapsed={false} />
-                <NavItem to="/groups" icon={FiUsers} text="Groups" activeTab={activeTab} isCollapsed={false} />
-                <NavItem to="/users" icon={FiUser} text="Users" activeTab={activeTab} isCollapsed={false} />
+                <NavItem to="/applications" icon={AiOutlineAppstore} text="Applications" activeTab={activeTab} isCollapsed={false} onClose={onClose} />
+                <NavItem to="/groups" icon={FiUsers} text="Groups" activeTab={activeTab} isCollapsed={false} onClose={onClose} />
+                <NavItem to="/users" icon={FiUser} text="Users" activeTab={activeTab} isCollapsed={false} onClose={onClose} />
               </Stack>
-              <Box mt="auto">
+              <Spacer />
+              <Box>
                 <Text fontWeight="bold">{auth.user?.profile?.name}</Text>
                 <Text fontSize="sm" color="gray.500">{auth.user?.profile?.email}</Text>
                 <Button
@@ -107,7 +125,7 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
             </DrawerBody>
           </DrawerContent>
         </Drawer>
-        <Box p={4} pt={20}>
+        <Box p={5} pt={16}> {/* Adjusted padding here for mobile view */}
           {children}
         </Box>
       </>
@@ -121,21 +139,21 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
         minWidth={isCollapsed ? "60px" : "240px"}
         maxWidth={isCollapsed ? "60px" : "240px"}
         bg="#F7F7F7"
-        position="fixed"  // Keep the sidebar fixed
+        position="fixed"
         h="100vh"
       >
         <Flex h="100vh" p={4} direction="column" justifyContent="space-between">
           <Box>
             <Flex justifyContent="space-between" align="center">
               {!isCollapsed && <Heading size="md">Custos Auth Portal</Heading>}
-              <Button variant="ghost" onClick={() => setIsCollapsed(!isCollapsed)} size="sm">
+              <Button variant="ghost" onClick={toggleCollapse} size="sm">
                 <Icon as={isCollapsed ? FiChevronRight : FiChevronLeft} />
               </Button>
             </Flex>
             <Stack direction="column" mt={4}>
-              <NavItem to="/applications" icon={AiOutlineAppstore} text="Applications" activeTab={activeTab} isCollapsed={isCollapsed} />
-              <NavItem to="/groups" icon={FiUsers} text="Groups" activeTab={activeTab} isCollapsed={isCollapsed} />
-              <NavItem to="/users" icon={FiUser} text="Users" activeTab={activeTab} isCollapsed={isCollapsed} />
+              <NavItem to="/applications" icon={AiOutlineAppstore} text="Applications" activeTab={activeTab} isCollapsed={isCollapsed} onClose={onClose} />
+              <NavItem to="/groups" icon={FiUsers} text="Groups" activeTab={activeTab} isCollapsed={isCollapsed} onClose={onClose} />
+              <NavItem to="/users" icon={FiUser} text="Users" activeTab={activeTab} isCollapsed={isCollapsed} onClose={onClose} />
             </Stack>
           </Box>
           <Box mt="auto">
@@ -164,13 +182,13 @@ export const NavContainer = ({ activeTab, children }: NavContainerProps) => {
       </GridItem>
       <GridItem
         colSpan={isCollapsed ? 14 : 12}
-        p={16}
-        ml={isCollapsed ? "60px" : "240px"}  // Adjust margin based on sidebar width
+        p={10}  /* Adjusted padding here for desktop view */
+        ml={isCollapsed ? "60px" : "240px"}
         minWidth="0"
-        overflowY="auto" // Allow scrolling only in the content area
+        overflowY="auto"
       >
         {children}
       </GridItem>
     </Grid>
   );
-};
+});
