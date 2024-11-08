@@ -125,7 +125,7 @@ export const NavContainer = memo(({ activeTab, children }: NavContainerProps) =>
             </DrawerBody>
           </DrawerContent>
         </Drawer>
-        <Box p={5} pt={16}> {/* Adjusted padding here for mobile view */}
+        <Box p={5} pt={16}>
           {children}
         </Box>
       </>
@@ -182,7 +182,7 @@ export const NavContainer = memo(({ activeTab, children }: NavContainerProps) =>
       </GridItem>
       <GridItem
         colSpan={isCollapsed ? 14 : 12}
-        p={10}  /* Adjusted padding here for desktop view */
+        p={10} 
         ml={isCollapsed ? "60px" : "240px"}
         minWidth="0"
         overflowY="auto"
