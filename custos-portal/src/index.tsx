@@ -31,17 +31,10 @@ const Index = () => {
     const fetchOidcConfig = async () => {
       try {
         let data;
-        // if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-        //   data = localOidcConfig;
-        // } else {
-          const response = await fetch(`${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`); // Replace with actual API endpoint
-          data = await response.json();
-       // }
-
-        // Determine redirect_uri based on environment
+        const response = await fetch(`${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`); // Replace with actual API endpoint
+        data = await response.json();
         const redirectUri = APP_REDIRECT_URI;
 
-        // Create the OIDC config based on the fetched data
         const theConfig: AuthProviderProps = {
           authority: `${BACKEND_URL}/api/v1/identity-management/`,
           client_id: CLIENT_ID,
