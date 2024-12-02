@@ -23,7 +23,20 @@
 [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/apache/airavata-custos)](https://github.com/apache/airavata-custos/pulls?q=is%3Apr+is%3Aclosed)
 [![Build Status](https://travis-ci.org/apache/airavata-custos.png?branch=develop)](https://travis-ci.org/github/apache/airavata-custos)
 
-Science gateways represent potential targets for cybersecurity threats to users, scientific research, and scientific resources. Custos is a software framework that provides common security operations for science gateways, including user identity and access management, gateway tenant profile management, resource secrets management, and groups and sharing management. The goals of the Custos project are to provide these services to a wide range of science gateway frameworks, providing the community with an open-source, transparent, and reviewed code base for common security operations; and to operate trustworthy security services for the science gateway community using this software base. To accomplish these goals, we implement Custos using a scalable microservice architecture that can provide highly available, fault-tolerant operations. Custos exposes these services through a language-independent Application Programming Interface that encapsulates science gateway usage scenarios.
+Apache Airavata Custos is an open-source security framework designed to address the challenges of **identity and access management (IAM)** in distributed and collaborative environments. Initially tailored for science gateways, Custos provides a comprehensive suite of security operations, including **authentication**, **authorization**, **group management**, and **secrets management**, ensuring secure access to resources and sensitive data.
+
+Custos equips applications with the tools to manage user identities and enforce access policies efficiently, making it an ideal solution for environments with diverse user bases and complex security needs. By supporting **federated authentication**, **dynamic group membership**, and **group-based access control**, Custos bridges the gap between verifying user identities and defining what users are allowed to do. Its **language-independent APIs** enable seamless integration with applications across various ecosystems.
+
+### Key Features
+- **Identity and Access Management**: Centralized management of authentication, authorization, and group-based access controls.
+- **Federated Authentication**: Integrates with external identity providers like CILogon, institutional login systems, and protocols like SAML and OpenID Connect.
+- **Dynamic Authorization**: Supports group-based access control (GBAC), role-based access control (RBAC), and attribute-based access control (ABAC) for fine-grained, context-aware permissions.
+- **Group and Tenant Management**: Enables automated group membership and multi-tenant support for flexible, application-specific configurations.
+- **Secrets Management**: Secures sensitive credentials with HashiCorp Vault, ensuring safe and compliant resource management.
+- **Extensible Integration**: Offers REST APIs, Java SDK, and Python SDK for integration with external applications and workflows.
+
+Custos serves both as a robust, open-source IAM solution for the science gateway community and a framework adaptable to any collaborative or distributed application ecosystem. By addressing IAM challenges with scalability and security at its core, Custos empowers organizations to operate with confidence in increasingly interconnected environments.
+
 
 
 Following diagram illustrate the architecture of the Custos Software.
