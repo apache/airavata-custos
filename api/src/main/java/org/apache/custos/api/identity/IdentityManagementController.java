@@ -39,7 +39,7 @@ import org.apache.custos.core.identity.management.api.AuthorizationResponse;
 import org.apache.custos.core.identity.management.api.EndSessionRequest;
 import org.apache.custos.core.identity.management.api.GetCredentialsRequest;
 import org.apache.custos.service.auth.AuthClaim;
-import org.apache.custos.service.auth.KeyLoader;
+import org.apache.custos.service.auth.KeyService;
 import org.apache.custos.service.auth.TokenAuthorizer;
 import org.apache.custos.service.credential.store.Credential;
 import org.apache.custos.service.credential.store.CredentialManager;
@@ -84,12 +84,12 @@ public class IdentityManagementController {
 
     private final IdentityManagementService identityManagementService;
     private final TokenAuthorizer tokenAuthorizer;
-    private final KeyLoader keyLoader;
+    private final KeyService keyService;
 
-    public IdentityManagementController(IdentityManagementService identityManagementService, TokenAuthorizer tokenAuthorizer, KeyLoader keyLoader) {
+    public IdentityManagementController(IdentityManagementService identityManagementService, TokenAuthorizer tokenAuthorizer, KeyService keyService) {
         this.identityManagementService = identityManagementService;
         this.tokenAuthorizer = tokenAuthorizer;
-        this.keyLoader = keyLoader;
+        this.keyService = keyService;
     }
 
     @PostMapping("/authenticate")
@@ -529,11 +529,11 @@ public class IdentityManagementController {
 
     @GetMapping("/.well-known/jwks.json")
     public ResponseEntity<?> keys() {
-        KeyPair keyPair = keyLoader.getKeyPair();
+        KeyPair keyPair = keyService.getKeyPair();
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
 
         JWK jwk = new RSAKey.Builder(rsaPublicKey)
-                .keyID(keyLoader.getKeyID())
+                .keyID(keyService.getKeyID())
                 .keyUse(KeyUse.SIGNATURE)
                 .build();
 

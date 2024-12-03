@@ -51,21 +51,21 @@ public class TokenService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TokenService.class);
 
-    private final KeyLoader keyLoader;
+    private final KeyService keyService;
     private final UserProfileService userProfileService;
     private final CacheManager cacheManager;
 
     @Autowired
-    public TokenService(KeyLoader keyLoader, UserProfileService userProfileService, CacheManager cacheManager) {
-        this.keyLoader = keyLoader;
+    public TokenService(KeyService keyService, UserProfileService userProfileService, CacheManager cacheManager) {
+        this.keyService = keyService;
         this.userProfileService = userProfileService;
         this.cacheManager = cacheManager;
     }
 
 
     public String generateWithCustomClaims(String token, long tenantId) throws Exception {
-        KeyPair keyPair = keyLoader.getKeyPair();
-        String keyID = keyLoader.getKeyID();
+        KeyPair keyPair = keyService.getKeyPair();
+        String keyID = keyService.getKeyID();
 
         SignedJWT signedJWT = SignedJWT.parse(token);
 

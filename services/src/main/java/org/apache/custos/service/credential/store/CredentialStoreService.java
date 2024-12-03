@@ -44,10 +44,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.vault.core.VaultTemplate;
+import org.springframework.vault.support.VaultResponse;
 import org.springframework.vault.support.VaultResponseSupport;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -60,6 +63,7 @@ public class CredentialStoreService {
     private static final Logger LOGGER = LoggerFactory.getLogger(CredentialStoreService.class);
 
     private static final String BASE_PATH = "/secret/";
+    private static final String KEY_PATH = BASE_PATH + "keys";
 
     private final VaultTemplate vaultTemplate;
 
@@ -595,6 +599,26 @@ public class CredentialStoreService {
             LOGGER.error(msg);
             throw new InternalServerException(msg, ex);
         }
+    }
+
+    public void storeKeyPair(String privateKey, String publicKey) {
+        Map<String, String> keys = new HashMap<>();
+        keys.put("privateKey", privateKey);
+        keys.put("publicKey", publicKey);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("data", keys);
+
+        vaultTemplate.write(KEY_PATH, data);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, String> retrieveKeyPair() {
+        VaultResponse response = vaultTemplate.read(KEY_PATH);
+        if (response != null && response.getData() != null) {
+            return (Map<String, String>) response.getData().get("data");
+        }
+        return null;
     }
 
     private OperationMetadata convertFromEntity(StatusEntity entity) {

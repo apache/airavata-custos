@@ -29,8 +29,6 @@ custos:
   tenant:
     base:
       uri: http://localhost/api/v1/tenant-management/oauth2/tenant
-  keys:
-    location:<CHANGE_PATH>/application/src/main/resources/keys
   api:
     domain: "http://localhost:8081"
 
