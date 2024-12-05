@@ -216,6 +216,7 @@
         <project.version>1.1-SNAPSHOT</project.version>
         <clusterIssuer>letsencrypt-prod</clusterIssuer>
         <jakarta.ws.version>4.0.0</jakarta.ws.version>
+        <custos.dist.name>apache-airavata-custos-${project.version}</custos.dist.name>
     </properties>
 
     <repositories>
