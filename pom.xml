@@ -151,12 +151,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
+                <version>3.1.1</version>
                 <configuration>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <checkModificationExcludes>
-                        <checkModificationExclude>pom.xml</checkModificationExclude>
-                    </checkModificationExcludes>
+                    <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
                 </configuration>
             </plugin>
             <plugin>
@@ -205,16 +202,7 @@
         <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
         <apache.commons.lang3.version>3.14.0</apache.commons.lang3.version>
 
-        <docker.image.prefix>apachecustos</docker.image.prefix>
-        <docker.image.repo>custos</docker.image.repo>
-        <docker.plugin.version>1.4.13</docker.plugin.version>
-        <host>custos.scigap.org</host>
-        <ssh.privatekey>/Users/isururanawaka/.ssh/custos/id_rsa</ssh.privatekey>
-        <ssh.passphrase>isjarana</ssh.passphrase>
-        <email.version>1.5.0-b01</email.version>
         <ssh.username>ubuntu</ssh.username>
-        <project.version>1.1-SNAPSHOT</project.version>
-        <clusterIssuer>letsencrypt-prod</clusterIssuer>
         <jakarta.ws.version>4.0.0</jakarta.ws.version>
         <custos.dist.name>apache-airavata-custos-${project.version}</custos.dist.name>
     </properties>
