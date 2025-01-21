@@ -83,10 +83,11 @@ Custos can be integrated with external applications using Custos REST Endpoints,
 In order to perform this operation you need to have a already activated tenant in either Custos Managed Services or Your own deployment.
 Following instructions are given for locally deployed custos setup which can be extended to any deployment,
 
-####Initializing Custos Java SDK
+#### Initializing Custos Java SDK
 
 * Add maven dependency to your project
-```<dependency>
+```
+<dependency>
    <groupId>org.apache.custos</groupId>
    <artifactId>custos-java-sdk</artifactId>
    <version>1.1-SNAPSHOT</version>
