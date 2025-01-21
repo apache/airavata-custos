@@ -49,7 +49,7 @@ Following diagram illustrate the architecture of the Custos Software.
 
 #### Clone the repository
 ```sh
-git clone -b https://github.com/apache/airavata-custos.git
+git clone https://github.com/apache/airavata-custos.git
 ```
 
 #### Start Docker Containers
