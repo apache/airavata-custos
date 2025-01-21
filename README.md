@@ -68,50 +68,6 @@ docker compose up
    2. You'll need to save your initial root token and unsealed key.
 3. Place your root token in `/application/src/main/resources/application.yml`, on line 50.
 
-#### Template code for super tenant
-In `/services/src/main/java/org/apache/custos/service/management/TenantManagementService.java`, add this piece of code into the class (and add all necessary imports):
-
-```java
-    @PostMapping("/initialize")
-    @Hidden
-    public ResponseEntity<CreateTenantResponse> initSuperTenant() {
-        // TODO - add validation for exactly one execution for
-        Tenant tenant = Tenant.newBuilder()
-                .setClientName("Custos Super Tenant")
-                .setRequesterEmail("xxxx@custos.com")
-                .setAdminFirstName("CUSTOS")
-                .setAdminLastName("ADMIN")
-                .setAdminEmail("xxxx@custos.com")
-                .setAdminUsername("custosadmin")
-                .setAdminPassword("custos@887")
-                .addAllContacts(List.of("xxxx@custos.com"))
-                .addAllRedirectUris(List.of("http://localhost:8080/", "http://localhost:5173/callback/",
-                        "http://127.0.0.1:5173/callback/", "http:///127.0.0.1:8081/swagger-ui/oauth2-redirect.html",
-                        "http://localhost:3000/login/generic_oauth", "http://localhost:8000/hub/oauth_callback"))
-                .setClientUri("http://localhost:8080/")
-                .setScope("openid email profile cilogon")
-                .setDomain("localhost")
-                .setLogoUri("http://localhost:8080/")
-                .setComment("Custos bootstrapping Tenant")
-                .setApplicationType("web")
-                .build();
-
-        CreateTenantResponse response = tenantManagementService.createTenant(tenant);
-        UpdateStatusRequest request = UpdateStatusRequest
-                .newBuilder()
-                .setClientId(response.getClientId())
-                .setStatus(TenantStatus.ACTIVE)
-                .setSuperTenant(true)
-                .setUpdatedBy(Constants.SYSTEM)
-                .build();
-        UpdateStatusResponse updateStatusResponse = tenantManagementService.updateTenantStatus(request);
-        System.out.println("Client Id :" + response.getClientId() + " Client Secret :" + response.getClientSecret());
-        System.out.println(updateStatusResponse);
-        return ResponseEntity.ok().build();
-    }
-```
-
-After adding this piece of code, follow these instructions:
 1. Install all dependencies through maven.
 2. Run the CustosApplication class to bring up the backend.
 3. Make a POST request to http://127.0.0.1:8081/api/v1/tenant-management/initialize (no headers, no body)
@@ -119,7 +75,6 @@ After adding this piece of code, follow these instructions:
 
 #### You're all set!
 You can now make requests to Custos.
-
 
 ## Custos Integration With External Applications
 Custos can be integrated with external applications using Custos REST Endpoints, Python SDK, or Java SDK.
