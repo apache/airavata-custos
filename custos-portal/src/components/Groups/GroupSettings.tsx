@@ -52,6 +52,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { TransferOwnershipModal } from "./TransferOwnershipModal";
 import { LeftRightLayout } from "../LeftRightLayout";
+import { StackedBorderBox } from "../StackedBorderBox";
 
 interface GroupSettingsProps {
   groupId: string | undefined;
@@ -159,15 +160,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
         Edit group membership, roles, and other information.
       </Text>
 
-      <Stack
-        border="1px solid"
-        borderColor="border.neutral.tertiary"
-        rounded="xl"
-        p={8}
-        mt={8}
-        divider={<Divider />}
-        spacing={8}
-      >
+      <StackedBorderBox>
         <LeftRightLayout
           left={<Text fontSize="lg">Basic Information</Text>}
           right={
@@ -330,7 +323,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
             </Flex>
           }
         />
-      </Stack>
+      </StackedBorderBox>
 
       <Stack direction="row" mt={8} spacing={4}>
         <ActionButton onClick={handleSaveChanges}>Save Changes</ActionButton>

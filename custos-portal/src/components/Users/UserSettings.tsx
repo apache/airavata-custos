@@ -25,6 +25,7 @@ import { Link, useParams } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa6";
 import { LeftRightLayout } from "../LeftRightLayout";
 import { FiTrash2 } from "react-icons/fi";
+import { StackedBorderBox } from "../StackedBorderBox";
 
 const DUMMY_ROLES: any = [
   {
@@ -76,7 +77,7 @@ export const UserSettings = () => {
 
         <Flex mt={4} justify="space-between">
           <Box>
-            <PageTitle>Stella Zhou</PageTitle>
+            <PageTitle>John Doe</PageTitle>
             <Text color="default.secondary" mt={2}>
               {email}
             </Text>
@@ -86,15 +87,7 @@ export const UserSettings = () => {
           </ActionButton>
         </Flex>
 
-        <Stack
-          border="1px solid"
-          borderColor="border.neutral.tertiary"
-          rounded="xl"
-          p={8}
-          mt={8}
-          divider={<Divider />}
-          spacing={8}
-        >
+        <StackedBorderBox>
           <LeftRightLayout
             left={<Text fontSize="lg">Basic Information</Text>}
             right={
@@ -197,7 +190,7 @@ export const UserSettings = () => {
               ))
             }
           </Box>
-        </Stack>
+        </StackedBorderBox>
       </NavContainer>
     </>
   );
