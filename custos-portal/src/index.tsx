@@ -17,29 +17,33 @@
  *  under the License.
  */
 
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { extendTheme, ChakraProvider } from '@chakra-ui/react';
-import { AuthProvider, AuthProviderProps } from 'react-oidc-context';
-import { APP_REDIRECT_URI, BACKEND_URL, CLIENT_ID, TENANT_ID } from './lib/constants';
-import { WebStorageStateStore } from 'oidc-client-ts';
-import { useEffect, useState } from 'react';
-import localOidcConfig from './lib/localOidcConfig.json';
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import { extendTheme, ChakraProvider } from "@chakra-ui/react";
+import { AuthProvider, AuthProviderProps } from "react-oidc-context";
+import {
+  APP_REDIRECT_URI,
+  BACKEND_URL,
+  CLIENT_ID,
+  TENANT_ID,
+} from "./lib/constants";
+import { WebStorageStateStore } from "oidc-client-ts";
+import { useEffect, useState } from "react";
 
 const theme = extendTheme({
   colors: {
     default: {
-      "default": "#1E1E1E",
-      "secondary": "#757575",
-      "tertiary": "#B3B3B3"
+      default: "#1E1E1E",
+      secondary: "#757575",
+      tertiary: "#B3B3B3",
     },
     border: {
       neutral: {
-        "default": "#303030",
-        "secondary": "#767676",
-        "tertiary": "#B2B2B2",
-      }
-    }
+        default: "#303030",
+        secondary: "#767676",
+        tertiary: "#B2B2B2",
+      },
+    },
   },
 });
 
@@ -50,7 +54,9 @@ const Index = () => {
     const fetchOidcConfig = async () => {
       try {
         let data;
-        const response = await fetch(`${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`); // Replace with actual API endpoint
+        const response = await fetch(
+          `${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`
+        ); // Replace with actual API endpoint
         data = await response.json();
         const redirectUri = APP_REDIRECT_URI;
 
@@ -58,8 +64,8 @@ const Index = () => {
           authority: `${BACKEND_URL}/api/v1/identity-management/`,
           client_id: CLIENT_ID,
           redirect_uri: redirectUri,
-          response_type: 'code',
-          scope: 'openid email',
+          response_type: "code",
+          scope: "openid email",
           metadata: {
             authorization_endpoint: data.authorization_endpoint,
             token_endpoint: data.token_endpoint,
@@ -74,7 +80,7 @@ const Index = () => {
 
         setOidcConfig(theConfig);
       } catch (error) {
-        console.error('Error fetching OIDC config:', error);
+        console.error("Error fetching OIDC config:", error);
       }
     };
 
@@ -90,8 +96,8 @@ const Index = () => {
       <AuthProvider
         {...oidcConfig}
         onSigninCallback={async (user) => {
-          console.log('User signed in', user);
-          window.location.href = '/groups';
+          console.log("User signed in", user);
+          window.location.href = "/groups";
         }}
       >
         <App />
@@ -100,6 +106,6 @@ const Index = () => {
   );
 };
 
-const container = document.getElementById('root') as HTMLElement;
+const container = document.getElementById("root") as HTMLElement;
 const root = createRoot(container);
 root.render(<Index />);

@@ -24,7 +24,6 @@ import {
   Text,
   FormLabel,
   Input,
-  SimpleGrid,
   Stack,
   Divider,
   Button,
@@ -52,25 +51,11 @@ import { Group, Member } from "../../interfaces/Groups";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { TransferOwnershipModal } from "./TransferOwnershipModal";
+import { LeftRightLayout } from "../LeftRightLayout";
 
 interface GroupSettingsProps {
   groupId: string | undefined;
 }
-
-const LeftRightLayout = ({
-  left,
-  right,
-}: {
-  left: React.ReactNode;
-  right: React.ReactNode;
-}) => {
-  return (
-    <SimpleGrid columns={2} spacing={8}>
-      <Box>{left}</Box>
-      <Box>{right}</Box>
-    </SimpleGrid>
-  );
-};
 
 export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
   const [name, setName] = React.useState("");
@@ -131,7 +116,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
     })();
   }, []);
 
-  const handleSaveChanges = async() => {
+  const handleSaveChanges = async () => {
     console.log(name, description);
 
     const resp = await customFetch(
@@ -140,11 +125,11 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
         method: "PUT",
         body: JSON.stringify({
           name,
-          description
+          description,
         }),
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -155,21 +140,17 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
       navigate(0);
     } else {
       toast({
-        title: 'Could not save group',
-        status: 'error',
+        title: "Could not save group",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-
-
-  }
+  };
 
   if (!groupId) {
     return;
   }
-
-
 
   return (
     <>
