@@ -24,9 +24,7 @@ import {
   Text,
   FormLabel,
   Input,
-  SimpleGrid,
   Stack,
-  Divider,
   Button,
   Table,
   Thead,
@@ -52,25 +50,12 @@ import { Group, Member } from "../../interfaces/Groups";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { TransferOwnershipModal } from "./TransferOwnershipModal";
+import { LeftRightLayout } from "../LeftRightLayout";
+import { StackedBorderBox } from "../StackedBorderBox";
 
 interface GroupSettingsProps {
   groupId: string | undefined;
 }
-
-const LeftRightLayout = ({
-  left,
-  right,
-}: {
-  left: React.ReactNode;
-  right: React.ReactNode;
-}) => {
-  return (
-    <SimpleGrid columns={2} spacing={8}>
-      <Box>{left}</Box>
-      <Box>{right}</Box>
-    </SimpleGrid>
-  );
-};
 
 export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
   const [name, setName] = React.useState("");
@@ -131,7 +116,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
     })();
   }, []);
 
-  const handleSaveChanges = async() => {
+  const handleSaveChanges = async () => {
     console.log(name, description);
 
     const resp = await customFetch(
@@ -140,11 +125,11 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
         method: "PUT",
         body: JSON.stringify({
           name,
-          description
+          description,
         }),
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -155,21 +140,17 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
       navigate(0);
     } else {
       toast({
-        title: 'Could not save group',
-        status: 'error',
+        title: "Could not save group",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
-
-
-  }
+  };
 
   if (!groupId) {
     return;
   }
-
-
 
   return (
     <>
@@ -178,15 +159,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
         Edit group membership, roles, and other information.
       </Text>
 
-      <Stack
-        border="1px solid"
-        borderColor="border.neutral.tertiary"
-        rounded="xl"
-        p={8}
-        mt={8}
-        divider={<Divider />}
-        spacing={8}
-      >
+      <StackedBorderBox>
         <LeftRightLayout
           left={<Text fontSize="lg">Basic Information</Text>}
           right={
@@ -349,7 +322,7 @@ export const GroupSettings = ({ groupId }: GroupSettingsProps) => {
             </Flex>
           }
         />
-      </Stack>
+      </StackedBorderBox>
 
       <Stack direction="row" mt={8} spacing={4}>
         <ActionButton onClick={handleSaveChanges}>Save Changes</ActionButton>
