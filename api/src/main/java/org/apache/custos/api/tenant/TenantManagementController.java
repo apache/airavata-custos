@@ -19,6 +19,7 @@
 
 package org.apache.custos.api.tenant;
 
+import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.credential.store.api.CredentialMetadata;
 import org.apache.custos.core.exception.UnauthorizedException;
 import org.apache.custos.core.federated.authentication.api.CacheManipulationRequest;
@@ -37,16 +38,7 @@ import org.apache.custos.core.tenant.management.api.DeleteTenantRequest;
 import org.apache.custos.core.tenant.management.api.GetTenantRequest;
 import org.apache.custos.core.tenant.management.api.TenantValidationRequest;
 import org.apache.custos.core.tenant.management.api.UpdateTenantRequest;
-import org.apache.custos.core.tenant.profile.api.GetAllTenantsForUserRequest;
-import org.apache.custos.core.tenant.profile.api.GetAllTenantsForUserResponse;
-import org.apache.custos.core.tenant.profile.api.GetAllTenantsResponse;
-import org.apache.custos.core.tenant.profile.api.GetAttributeUpdateAuditTrailResponse;
-import org.apache.custos.core.tenant.profile.api.GetAuditTrailRequest;
-import org.apache.custos.core.tenant.profile.api.GetStatusUpdateAuditTrailResponse;
-import org.apache.custos.core.tenant.profile.api.GetTenantsRequest;
-import org.apache.custos.core.tenant.profile.api.Tenant;
-import org.apache.custos.core.tenant.profile.api.UpdateStatusRequest;
-import org.apache.custos.core.tenant.profile.api.UpdateStatusResponse;
+import org.apache.custos.core.tenant.profile.api.*;
 import org.apache.custos.service.auth.AuthClaim;
 import org.apache.custos.service.auth.TokenAuthorizer;
 import org.apache.custos.service.management.TenantManagementService;
@@ -399,6 +391,46 @@ public class TenantManagementController {
 //        tokenAuthorizer.authorize(headers);
         Map<String, String> response = tenantManagementService.addClient(tenantId, (String) body.get("tenantUrl"), (List<String>) body.get("redirectUris"));
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/initialize")
+    @Hidden
+    public ResponseEntity<CreateTenantResponse> initSuperTenant() {
+        // TODO - add validation for exactly one execution for (to deprecate)
+        // Will streamline this -- this function will be run at most once on application start
+        Tenant tenant = Tenant.newBuilder()
+                .setClientName("Custos Super Tenant")
+                .setRequesterEmail("xxxx@custos.com")
+                .setAdminFirstName("CUSTOS")
+                .setAdminLastName("ADMIN")
+                .setAdminEmail("xxxx@custos.com")
+                .setAdminUsername("custosadmin")
+                .setAdminPassword("custos@887")
+                .addAllContacts(List.of("xxxx@custos.com"))
+                .addAllRedirectUris(List.of("http://localhost:8080/", "http://localhost:5173/callback/",
+                        "http://127.0.0.1:5173/callback/", "http://127.0.0.1:8081/swagger-ui/oauth2-redirect.html",
+                        "http://localhost:8081/swagger-ui/oauth2-redirect.html",
+                        "http://localhost:3000/login/generic_oauth", "http://localhost:8000/hub/oauth_callback"))
+                .setClientUri("http://localhost:8080/")
+                .setScope("openid email profile cilogon")
+                .setDomain("localhost")
+                .setLogoUri("http://localhost:8080/")
+                .setComment("Custos bootstrapping Tenant")
+                .setApplicationType("web")
+                .build();
+
+        CreateTenantResponse response = tenantManagementService.createTenant(tenant);
+        UpdateStatusRequest request = UpdateStatusRequest
+                .newBuilder()
+                .setClientId(response.getClientId())
+                .setStatus(TenantStatus.ACTIVE)
+                .setSuperTenant(true)
+                .setUpdatedBy(Constants.SYSTEM)
+                .build();
+        UpdateStatusResponse updateStatusResponse = tenantManagementService.updateTenantStatus(request);
+        System.out.println("Client Id :" + response.getClientId() + " Client Secret :" + response.getClientSecret());
+        System.out.println(updateStatusResponse);
+        return ResponseEntity.ok().build();
     }
 
 
