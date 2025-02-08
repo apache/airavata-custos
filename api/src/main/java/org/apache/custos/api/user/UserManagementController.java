@@ -65,15 +65,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
@@ -448,29 +440,6 @@ public class UserManagementController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user")
-    @Operation(
-            summary = "Retrieve User",
-            description = "This operation retrieves a specified user's profile. The UserSearchRequest should specify " +
-                    "the criteria to identify the particular user. It returns a UserRepresentation that includes " +
-                    "detailed information about the user."
-    )
-    public ResponseEntity<UserRepresentation> getUser(@Valid @RequestBody UserSearchRequest request, @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
-
-        if (claim.isPresent()) {
-            AuthClaim authClaim = claim.get();
-            request = request.toBuilder().setClientId(authClaim.getIamAuthId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .setTenantId(claim.get().getTenantId()).build();
-        } else {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
-        }
-
-        UserRepresentation response = userManagementService.getUser(request);
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/users")
     @Operation(
             summary = "Find Users",
@@ -601,14 +570,29 @@ public class UserManagementController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user/profile")
+    @GetMapping("/user/profile/{username}")
     @Operation(
             summary = "Get User Profile",
-            description = "This operation retrieves the profile of a specified user. The UserProfileRequest should specify which user's " +
-                    "profile is to be retrieved. The system would return a ResponseEntity containing the UserProfile for the specified user."
+            description = "This operation retrieves the profile of a specified user. Parameters should be passed in the query string."
     )
-    public ResponseEntity<UserProfile> getUserProfile(@Valid @RequestBody UserProfileRequest request, @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<UserProfile> getUserProfile(
+            @PathVariable("username") String username,
+            @RequestHeader HttpHeaders headers
+    ) {
+        // Authorization check
         Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+
+        // Build the UserProfile using the builder pattern
+        UserProfile userProfile = UserProfile.newBuilder()
+                .setUsername(username)
+                .build();
+
+        // Build the UserProfileRequest using the builder pattern
+        UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setUserProfile(userProfile)
+                .setLimit(1)
+                .setOffset(0)
+                .build();
 
         if (claim.isPresent()) {
             request = request.toBuilder().setTenantId(claim.get().getTenantId()).build();
@@ -616,7 +600,9 @@ public class UserManagementController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        // Retrieve user profile
         UserProfile response = userManagementService.getUserProfile(request);
+
         return ResponseEntity.ok(response);
     }
 

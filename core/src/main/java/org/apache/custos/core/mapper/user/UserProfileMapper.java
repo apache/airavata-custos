@@ -20,9 +20,7 @@
 package org.apache.custos.core.mapper.user;
 
 import org.apache.custos.core.constants.Constants;
-import org.apache.custos.core.model.user.UserAttribute;
-import org.apache.custos.core.model.user.UserProfile;
-import org.apache.custos.core.model.user.UserRole;
+import org.apache.custos.core.model.user.*;
 import org.apache.custos.core.user.profile.api.UserStatus;
 import org.apache.custos.core.user.profile.api.UserTypes;
 
@@ -47,6 +45,8 @@ public class UserProfileMapper {
     public static UserProfile createUserProfileEntityFromUserProfile(org.apache.custos.core.user.profile.api.UserProfile userProfile) {
 
         UserProfile entity = new UserProfile();
+        System.out.println("BEFORE:" + userProfile);
+
 
         entity.setUsername(userProfile.getUsername());
         userProfile.getEmail();
@@ -107,6 +107,8 @@ public class UserProfileMapper {
             });
         }
         entity.setUserRole(userRoleSet);
+
+        System.out.println("AFTER:" + userProfile);
 
         return entity;
     }
@@ -179,6 +181,24 @@ public class UserProfileMapper {
             builder.setType(UserTypes.END_USER);
         } else {
             builder.setType(UserTypes.valueOf(profileEntity.getType()));
+        }
+
+        if (profileEntity.getUserGroupMemberships() != null && !profileEntity.getUserGroupMemberships().isEmpty()) {
+            List<String> clientRoles = new ArrayList<>();
+            List<String> realmRoles = new ArrayList<>();
+
+            for (UserGroupMembership userGroupMembership: profileEntity.getUserGroupMemberships()) {
+                for (GroupRole gr: userGroupMembership.getGroup().getGroupRole()) {
+                    if (gr.getType().equals("client")) {
+                        clientRoles.add(gr.getValue());
+                    } else if (gr.getType().equals("realm")) {
+                        realmRoles.add(gr.getValue());
+                    }
+                }
+            }
+
+            builder.addAllClientRoles(clientRoles);
+            builder.addAllRealmRoles(realmRoles);
         }
 
         return builder.build();

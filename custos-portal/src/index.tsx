@@ -53,11 +53,10 @@ const Index = () => {
   useEffect(() => {
     const fetchOidcConfig = async () => {
       try {
-        let data;
         const response = await fetch(
           `${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`
         ); // Replace with actual API endpoint
-        data = await response.json();
+        const data = await response.json();
         const redirectUri = APP_REDIRECT_URI;
 
         const theConfig: AuthProviderProps = {

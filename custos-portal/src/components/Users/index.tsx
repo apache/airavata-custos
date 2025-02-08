@@ -14,12 +14,16 @@ import {
   Th,
   Td,
   Tbody,
+  Spinner,
 } from "@chakra-ui/react";
 import { PageTitle } from "../PageTitle";
 import { ActionButton } from "../ActionButton";
 import { CiSearch } from "react-icons/ci";
 import { User } from "../../interfaces/Users";
 import { Link } from "react-router-dom";
+import { useApi } from "../../hooks/useApi";
+import { BACKEND_URL, CLIENT_ID } from "../../lib/constants";
+import { timeAgo } from "../../lib/util";
 
 const DUMMY_DATA: User[] = [
   {
@@ -43,6 +47,23 @@ const DUMMY_DATA: User[] = [
 ];
 
 export const Users = () => {
+  const offset = 0;
+  const limit = 10;
+
+  // create urlsearchparams
+
+  const urlSearchParams = new URLSearchParams();
+  urlSearchParams.append("offset", offset.toString());
+  urlSearchParams.append("limit", limit.toString());
+  urlSearchParams.append("user.id", "*");
+  urlSearchParams.append("client_id", CLIENT_ID);
+
+  const allUsers = useApi(
+    `${BACKEND_URL}/api/v1/user-management/users?${urlSearchParams.toString()}`
+  );
+
+  console.log(allUsers);
+
   return (
     <>
       <NavContainer activeTab="Users">
@@ -85,7 +106,7 @@ export const Users = () => {
             </Thead>
 
             <Tbody>
-              {DUMMY_DATA.map((user) => (
+              {allUsers?.data?.users?.map((user) => (
                 <Tr key={user.email}>
                   <Td>
                     <Link to={`/users/${user.email}`}>
@@ -96,18 +117,24 @@ export const Users = () => {
                           cursor: "pointer",
                         }}
                       >
-                        {user.name}
+                        {user.first_name} {user.last_name}
                       </Text>
                     </Link>
                   </Td>
                   <Td>{user.email}</Td>
-                  <Td>{user.joined}</Td>
-                  <Td>{user.lastSignedIn}</Td>
+                  <Td>{new Date(user.creation_time).toDateString()}</Td>
+                  <Td>
+                    {user.last_login_at
+                      ? timeAgo(new Date(user.last_login_at))
+                      : "N/A"}
+                  </Td>
                   <Td>
                     <ActionButton onClick={() => {}}>Disable</ActionButton>
                   </Td>
                 </Tr>
               ))}
+
+              {allUsers?.isPending && <Spinner />}
             </Tbody>
           </Table>
         </TableContainer>
