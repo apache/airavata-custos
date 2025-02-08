@@ -15,7 +15,7 @@
     KIND, either express or implied.  See the License for the
     specific language governing permissions and limitations
     under the License.
--->`
+-->
 
 # Apache Airavata Custos Security
 
@@ -52,7 +52,7 @@ Following diagram illustrate the architecture of the Custos Software.
 git clone https://github.com/apache/airavata-custos.git
 ```
 
-#### Start Docker Containers
+#### Start Docker Containers (to run a development environment)
 Navigate to `/compose`, and start the following containers:
 - Keycloack (http://localhost:8080)
 - Custos DB (MySQL, http://localhost:3306)
@@ -60,18 +60,20 @@ Navigate to `/compose`, and start the following containers:
 - Adminer (http://localhost:18080)
 
 ```sh
-docker compose up
+docker compose up -d
 ```
 
 #### Configure Vault
 1. Go to the Vault's exposed port (http://localhost:8200) and walk through the configuration process. 
    2. You'll need to save your initial root token and unsealed key.
-3. Place your root token in `/application/src/main/resources/application.yml`, on line 50.
+2. Place your root token in `/application/src/main/resources/application.yml`, under `spring.cloud.vault.token`
 
-1. Install all dependencies through maven.
-2. Run the CustosApplication class to bring up the backend.
-3. Make a POST request to http://127.0.0.1:8081/api/v1/tenant-management/initialize (no headers, no body)
-4. Grab the client id and client secret from output on the backend.
+3. Install all dependencies through maven.
+   4. `mvn clean install`
+4. Run the CustosApplication class to bring up the backend.
+   5. `mvn spring-boot:run`
+5. Make a POST request to http://127.0.0.1:8081/api/v1/tenant-management/initialize (no headers, no body)
+6. Grab the client id and client secret from output on the backend.
 
 #### You're all set!
 You can now make requests to Custos.
