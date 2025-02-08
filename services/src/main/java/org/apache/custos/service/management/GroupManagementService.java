@@ -19,6 +19,7 @@
 
 package org.apache.custos.service.management;
 
+import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.iam.api.GroupRepresentation;
 import org.apache.custos.core.iam.api.UserAttribute;
 import org.apache.custos.core.iam.api.UserRepresentation;
@@ -26,15 +27,8 @@ import org.apache.custos.core.iam.api.UserSearchMetadata;
 import org.apache.custos.core.iam.api.UserSearchRequest;
 import org.apache.custos.core.identity.api.AuthToken;
 import org.apache.custos.core.identity.api.GetUserManagementSATokenRequest;
-import org.apache.custos.core.user.profile.api.GetAllGroupsResponse;
-import org.apache.custos.core.user.profile.api.GetAllUserProfilesResponse;
-import org.apache.custos.core.user.profile.api.Group;
-import org.apache.custos.core.user.profile.api.GroupAttribute;
-import org.apache.custos.core.user.profile.api.GroupMembership;
-import org.apache.custos.core.user.profile.api.GroupToGroupMembership;
-import org.apache.custos.core.user.profile.api.UserGroupMembershipTypeRequest;
-import org.apache.custos.core.user.profile.api.UserProfile;
-import org.apache.custos.core.user.profile.api.UserProfileRequest;
+import org.apache.custos.core.user.profile.api.*;
+import org.apache.custos.service.auth.AuthClaim;
 import org.apache.custos.service.exceptions.InternalServerException;
 import org.apache.custos.service.iam.IamAdminService;
 import org.apache.custos.service.identity.IdentityService;
@@ -126,6 +120,60 @@ public class GroupManagementService {
             LOGGER.error(msg, ex);
             throw new InternalServerException(msg, ex);
         }
+    }
+
+    public Group patchGroup(AuthClaim authClaim, String groupId, org.apache.custos.core.user.profile.api.Group groupChangeProperties) {
+        String REMOVE_ALL_TAG = "custos-remove-all"; // TODO: update ProtobufPropertiesModule.java for a cleaner solution
+
+        GroupRequest exGroupReq = GroupRequest.newBuilder()
+                .setTenantId(authClaim.getTenantId())
+                .setClientId(authClaim.getIamAuthId())
+                .setClientSec(authClaim.getIamAuthSecret())
+                .setPerformedBy(authClaim.getPerformedBy() != null ? authClaim.getPerformedBy() : Constants.SYSTEM)
+                .setGroup(groupChangeProperties.toBuilder().setId(groupId).build())
+                .build();
+
+        Group exGroup = findGroup(exGroupReq);
+
+        Group.Builder mergedGroupBuilder = exGroup.toBuilder()
+                .setName(!groupChangeProperties.getName().isEmpty() ? groupChangeProperties.getName() : exGroup.getName())
+                .setDescription(!groupChangeProperties.getDescription().isEmpty() ? groupChangeProperties.getDescription() : exGroup.getDescription());
+
+        List<String> clientRolesLst = groupChangeProperties.getClientRolesList();
+        if (!clientRolesLst.isEmpty()) {
+            mergedGroupBuilder.clearClientRoles();
+            if (!clientRolesLst.get(0).equals(REMOVE_ALL_TAG)) {
+                mergedGroupBuilder.addAllClientRoles(groupChangeProperties.getClientRolesList());
+            }
+        }
+
+        List<String> realmRolesLst = groupChangeProperties.getRealmRolesList();
+        if (!realmRolesLst.isEmpty()) {
+            mergedGroupBuilder.clearRealmRoles();
+            if (!realmRolesLst.get(0).equals(REMOVE_ALL_TAG)) {
+                mergedGroupBuilder.addAllRealmRoles(groupChangeProperties.getRealmRolesList());
+            }
+        }
+
+        List<GroupAttribute> groupAttributeList = groupChangeProperties.getAttributesList();
+        if (!groupAttributeList.isEmpty()) {
+            mergedGroupBuilder.clearAttributes();
+            if (!groupAttributeList.get(0).getKey().equals(REMOVE_ALL_TAG)) {
+                mergedGroupBuilder.addAllAttributes(groupChangeProperties.getAttributesList());
+            }
+        }
+
+        Group mergedGroup = mergedGroupBuilder.build();
+
+        GroupRequest updateGroupRequest = GroupRequest.newBuilder()
+                .setTenantId(authClaim.getTenantId())
+                .setClientId(authClaim.getIamAuthId())
+                .setClientSec(authClaim.getIamAuthSecret())
+                .setPerformedBy(authClaim.getPerformedBy() != null ? authClaim.getPerformedBy() : Constants.SYSTEM)
+                .setGroup(mergedGroup.toBuilder().setId(groupId).build())
+                .build();
+
+        return updateGroup(updateGroupRequest);
     }
 
     public org.apache.custos.core.user.profile.api.Status deleteGroup(org.apache.custos.core.user.profile.api.GroupRequest request) {
