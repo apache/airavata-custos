@@ -62,7 +62,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -342,59 +341,7 @@ public class GroupManagementController {
     )
     public ResponseEntity<Group> patchGroup(@PathVariable("groupId") String groupId, @RequestBody Group request, @RequestHeader HttpHeaders headers) {
         AuthClaim authClaim = authorize(headers);
-
-        GroupRequest exGroupReq = GroupRequest.newBuilder()
-                .setTenantId(authClaim.getTenantId())
-                .setClientId(authClaim.getIamAuthId())
-                .setClientSec(authClaim.getIamAuthSecret())
-                .setPerformedBy(authClaim.getPerformedBy() != null ? authClaim.getPerformedBy() : Constants.SYSTEM)
-                .setGroup(request.toBuilder().setId(groupId).build())
-                .build();
-
-        Group exGroup = groupManagementService.findGroup(exGroupReq);
-
-        Group.Builder mergedGroupBuilder = exGroup.toBuilder()
-                .setName(!request.getName().isEmpty() ? request.getName() : exGroup.getName())
-                .setDescription(!request.getDescription().isEmpty() ? request.getDescription() : exGroup.getDescription());
-
-        String REMOVE_ALL_TAG = "custos-remove-all";
-
-        List<String> clientRolesLst = request.getClientRolesList();
-         if (!clientRolesLst.isEmpty()) {
-             mergedGroupBuilder.clearClientRoles();
-             if (!clientRolesLst.get(0).equals(REMOVE_ALL_TAG)) {
-                 mergedGroupBuilder.addAllClientRoles(request.getClientRolesList());
-             }
-        }
-
-        List<String> realmRolesLst = request.getRealmRolesList();
-        if (!realmRolesLst.isEmpty()) {
-            mergedGroupBuilder.clearRealmRoles();
-            if (!realmRolesLst.get(0).equals(REMOVE_ALL_TAG)) {
-                mergedGroupBuilder.addAllRealmRoles(request.getRealmRolesList());
-            }
-        }
-
-        List<GroupAttribute> groupAttributeList = request.getAttributesList();
-        if (!groupAttributeList.isEmpty()) {
-            mergedGroupBuilder.clearAttributes();
-            if (!groupAttributeList.get(0).getKey().equals(REMOVE_ALL_TAG)) {
-                mergedGroupBuilder.addAllAttributes(request.getAttributesList());
-            }
-        }
-
-        Group mergedGroup = mergedGroupBuilder.build();
-
-        GroupRequest updateGroupRequest = GroupRequest.newBuilder()
-                .setTenantId(authClaim.getTenantId())
-                .setClientId(authClaim.getIamAuthId())
-                .setClientSec(authClaim.getIamAuthSecret())
-                .setPerformedBy(authClaim.getPerformedBy() != null ? authClaim.getPerformedBy() : Constants.SYSTEM)
-                .setGroup(mergedGroup.toBuilder().setId(groupId).build())
-                .build();
-
-        Group updatedGroup = groupManagementService.updateGroup(updateGroupRequest);
-
+        Group updatedGroup = groupManagementService.patchGroup(authClaim, groupId, request);
         return ResponseEntity.ok(updatedGroup);
     }
 
