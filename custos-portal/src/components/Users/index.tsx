@@ -22,29 +22,8 @@ import { CiSearch } from "react-icons/ci";
 import { User } from "../../interfaces/Users";
 import { Link } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
-import { BACKEND_URL, CLIENT_ID } from "../../lib/constants";
+import { BACKEND_URL } from "../../lib/constants";
 import { timeAgo } from "../../lib/util";
-
-const DUMMY_DATA: User[] = [
-  {
-    name: "Stella Zhou",
-    email: "xz106@au.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-  {
-    name: "John Doe",
-    email: "asdf@asdf.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-  {
-    name: "Jane Doe",
-    email: "jane.doe@asdf.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-];
 
 export const Users = () => {
   const offset = 0;
@@ -55,14 +34,10 @@ export const Users = () => {
   const urlSearchParams = new URLSearchParams();
   urlSearchParams.append("offset", offset.toString());
   urlSearchParams.append("limit", limit.toString());
-  urlSearchParams.append("user.id", "*");
-  urlSearchParams.append("client_id", CLIENT_ID);
 
   const allUsers = useApi(
-    `${BACKEND_URL}/api/v1/user-management/users?${urlSearchParams.toString()}`
+    `${BACKEND_URL}/api/v1/user-management/users/profile?${urlSearchParams.toString()}`
   );
-
-  console.log(allUsers);
 
   return (
     <>
@@ -93,51 +68,57 @@ export const Users = () => {
         </InputGroup>
 
         {/* TABLE */}
-        <TableContainer mt={4}>
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Joined</Th>
-                <Th>Last Signed In</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-
-            <Tbody>
-              {allUsers?.data?.users?.map((user) => (
-                <Tr key={user.email}>
-                  <Td>
-                    <Link to={`/users/${user.email}`}>
-                      <Text
-                        color="blue.400"
-                        _hover={{
-                          color: "blue.600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {user.first_name} {user.last_name}
-                      </Text>
-                    </Link>
-                  </Td>
-                  <Td>{user.email}</Td>
-                  <Td>{new Date(user.creation_time).toDateString()}</Td>
-                  <Td>
-                    {user.last_login_at
-                      ? timeAgo(new Date(user.last_login_at))
-                      : "N/A"}
-                  </Td>
-                  <Td>
-                    <ActionButton onClick={() => {}}>Disable</ActionButton>
-                  </Td>
+        {allUsers?.isPending ? (
+          <Box textAlign="center" mt={4}>
+            <Spinner />
+          </Box>
+        ) : (
+          <TableContainer mt={4}>
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Email</Th>
+                  <Th>Joined</Th>
+                  <Th>Last Modified</Th>
+                  <Th>Actions</Th>
                 </Tr>
-              ))}
+              </Thead>
 
-              {allUsers?.isPending && <Spinner />}
-            </Tbody>
-          </Table>
-        </TableContainer>
+              <Tbody>
+                {allUsers?.data?.profiles?.map((user: User) => (
+                  <Tr key={user.email}>
+                    <Td>
+                      <Link to={`/users/${user.email}`}>
+                        <Text
+                          color="blue.400"
+                          _hover={{
+                            color: "blue.600",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {user.first_name} {user.last_name}
+                        </Text>
+                      </Link>
+                    </Td>
+                    <Td>{user.email}</Td>
+                    <Td>
+                      {new Date(parseInt(user.created_at)).toDateString()}
+                    </Td>
+                    <Td>
+                      {user.last_modified_at
+                        ? timeAgo(new Date(parseInt(user.last_modified_at)))
+                        : "N/A"}
+                    </Td>
+                    <Td>
+                      <ActionButton onClick={() => {}}>Disable</ActionButton>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        )}
       </NavContainer>
     </>
   );

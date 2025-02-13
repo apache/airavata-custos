@@ -22,7 +22,7 @@ export const decodeToken = (token: string | undefined) => {
   return JSON.parse(atob(token.split('.')[1]));
 };
 
-export function timeAgo(date) {
+export function timeAgo(date: number) {
   const now = new Date();
   const seconds = Math.floor((now - date) / 1000);
 
@@ -52,4 +52,10 @@ export function timeAgo(date) {
 
   const years = Math.floor(months / 12);
   return `${years} year${years !== 1 ? "s" : ""} ago`;
+}
+
+export function isEmpty(arr: unknown[]) {
+  if (!arr) return true;
+
+  return arr.length == 0;
 }
