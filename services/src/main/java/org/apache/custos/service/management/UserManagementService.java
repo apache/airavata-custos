@@ -949,15 +949,17 @@ public class UserManagementService {
 
             org.apache.custos.core.user.profile.api.UserProfileRequest userProfileRequest = org.apache.custos.core.user.profile.api.UserProfileRequest
                     .newBuilder()
-                    .setProfile(request.getUserProfile())
+//                    .setProfile(request.getUserProfile())
                     .setTenantId(request.getTenantId())
                     .setOffset(request.getOffset())
                     .setLimit(request.getLimit())
                     .build();
 
-            return request.getUserProfile().getAttributesList().isEmpty()
-                    ? userProfileService.getAllUserProfilesInTenant(userProfileRequest)
-                    : userProfileService.findUserProfilesByAttributes(userProfileRequest);
+            return userProfileService.getAllUserProfilesInTenant(userProfileRequest);
+
+//            return request.getUserProfile().getAttributesList().isEmpty()
+//                    ? userProfileService.getAllUserProfilesInTenant(userProfileRequest)
+//                    : userProfileService.findUserProfilesByAttributes(userProfileRequest);
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling  all  user profiles in tenant " + ex.getMessage();
