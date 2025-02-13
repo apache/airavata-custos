@@ -57,6 +57,7 @@ const Index = () => {
           `${BACKEND_URL}/api/v1/identity-management/tenant/${TENANT_ID}/.well-known/openid-configuration`
         ); // Replace with actual API endpoint
         const data = await response.json();
+
         const redirectUri = APP_REDIRECT_URI;
 
         const theConfig: AuthProviderProps = {
