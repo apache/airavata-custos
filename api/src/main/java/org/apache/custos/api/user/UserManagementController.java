@@ -635,16 +635,24 @@ public class UserManagementController {
                     "Upon successful execution, the system sends back a ResponseEntity containing GetAllUserProfilesResponse, " +
                     "wrapping all user profiles in the tenant."
     )
-    public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(@RequestBody UserProfileRequest request, @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
+    public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(
+            @RequestParam(value = "offset") int offset,
+            @RequestParam(value = "limit") int limit,
+            @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
 
-        if (claim.isPresent()) {
-            request = request.toBuilder().setTenantId(claim.get().getTenantId()).build();
-        } else {
+        if (claim.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setOffset(offset)
+                .setLimit(limit)
+                .setTenantId(claim.get().getTenantId())
+                .build();
+
         GetAllUserProfilesResponse response = userManagementService.getAllUserProfilesInTenant(request);
+
         return ResponseEntity.ok(response);
     }
 

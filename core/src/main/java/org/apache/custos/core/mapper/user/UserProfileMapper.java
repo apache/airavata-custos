@@ -186,7 +186,6 @@ public class UserProfileMapper {
         if (profileEntity.getUserGroupMemberships() != null && !profileEntity.getUserGroupMemberships().isEmpty()) {
             List<String> clientRoles = new ArrayList<>();
             List<String> realmRoles = new ArrayList<>();
-
             for (UserGroupMembership userGroupMembership: profileEntity.getUserGroupMemberships()) {
                 for (GroupRole gr: userGroupMembership.getGroup().getGroupRole()) {
                     if (gr.getType().equals("client")) {
@@ -196,7 +195,6 @@ public class UserProfileMapper {
                     }
                 }
             }
-
             builder.addAllClientRoles(clientRoles);
             builder.addAllRealmRoles(realmRoles);
         }
