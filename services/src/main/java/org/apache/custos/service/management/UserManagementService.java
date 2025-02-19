@@ -822,10 +822,8 @@ public class UserManagementService {
 
                     if (profile != null && StringUtils.isNotBlank(profile.getUsername())) {
                         profile = profile.toBuilder()
-                                .setEmail(request.getUserProfile().getEmail())
                                 .setFirstName(request.getUserProfile().getFirstName())
                                 .setLastName(request.getUserProfile().getLastName())
-                                .setUsername(request.getUserProfile().getUsername())
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(profile).build();
                         userProfileService.updateUserProfile(userProfileRequest);
