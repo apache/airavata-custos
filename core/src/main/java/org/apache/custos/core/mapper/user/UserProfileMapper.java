@@ -71,14 +71,14 @@ public class UserProfileMapper {
 
         entity.setStatus(userProfile.getStatus().name());
 
-        Set<org.apache.custos.core.model.user.UserAttribute> attributeSet = new HashSet<>();
+        Set<UserAttribute> attributeSet = new HashSet<>();
         if (!userProfile.getAttributesList().isEmpty()) {
 
 
             userProfile.getAttributesList().forEach(atr -> {
                 if (!atr.getValuesList().isEmpty()) {
                     for (String value : atr.getValuesList()) {
-                        UserAttribute userAttribute = new org.apache.custos.core.model.user.UserAttribute();
+                        UserAttribute userAttribute = new UserAttribute();
                         userAttribute.setKey(atr.getKey());
                         userAttribute.setValue(value);
                         userAttribute.setUserProfile(entity);
