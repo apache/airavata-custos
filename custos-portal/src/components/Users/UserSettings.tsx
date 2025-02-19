@@ -79,8 +79,6 @@ export const UserSettings = () => {
     );
   }
 
-  console.log(user);
-
   return (
     <>
       <NavContainer activeTab="Users">

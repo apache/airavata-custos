@@ -29,7 +29,6 @@ export const Users = () => {
   const offset = 0;
   const limit = 10;
 
-  // create urlsearchparams
 
   const urlSearchParams = new URLSearchParams();
   urlSearchParams.append("offset", offset.toString());
@@ -38,7 +37,7 @@ export const Users = () => {
   const allUsers = useApi(
     `${BACKEND_URL}/api/v1/user-management/users/profile?${urlSearchParams.toString()}`
   );
-
+    
   return (
     <>
       <NavContainer activeTab="Users">
