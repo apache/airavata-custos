@@ -33,39 +33,6 @@ import { isEmpty } from "../../lib/util";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 
-// const DUMMY_ROLES: any = [
-//   {
-//     application: "Grafana",
-//     role: "grafana:viewer",
-//     description: "Grafana Viewer",
-//   },
-//   {
-//     application: "Grafana",
-//     role: "grafana:editor",
-//     description: "Grafana Editor",
-//   },
-//   {
-//     application: "Grafana",
-//     role: "grafana:admin",
-//     description: "Grafana Admin",
-//   },
-// ];
-
-// const DUMMY_ACTIVITY: any = [
-//   {
-//     action: "User Created",
-//     timestamp: "2021-10-01",
-//   },
-//   {
-//     action: "User Disabled",
-//     timestamp: "2021-10-01",
-//   },
-//   {
-//     action: "User Enabled",
-//     timestamp: "2021-10-01",
-//   },
-// ];
-
 export const UserSettings = () => {
   const { email } = useParams();
   const auth = useAuth();
@@ -263,19 +230,6 @@ export const UserSettings = () => {
               </Text>
             )}
           </Box>
-
-          {/* <Box>
-            <Text fontSize="lg">Activity</Text>
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              DUMMY_ACTIVITY.map((activity: any) => (
-                <Flex key={activity.action} gap={4} mt={4}>
-                  <Text color="gray.400">{activity.timestamp}</Text>
-                  <Text fontWeight="bold">{activity.action}</Text>
-                </Flex>
-              ))
-            }
-          </Box> */}
         </StackedBorderBox>
       </NavContainer>
     </>
