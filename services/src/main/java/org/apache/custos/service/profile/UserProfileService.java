@@ -157,6 +157,8 @@ public class UserProfileService {
                 entity.setId(userId);
                 entity.setTenantId(request.getTenantId());
                 entity.setCreatedAt(exEntity.get().getCreatedAt());
+                entity.setUserGroupMemberships(exEntity.get().getUserGroupMemberships());
+                entity.setStatusUpdateMetadata(exEntity.get().getStatusUpdateMetadata());
 
                 UserProfile exProfile = exEntity.get();
 
@@ -184,6 +186,11 @@ public class UserProfileService {
         }
     }
 
+    /**
+     * Returns the user profile, not including any inherited group roles
+     * @param request Must specify profile.username
+     * @return The user profile
+     */
     public org.apache.custos.core.user.profile.api.UserProfile getUserProfile(UserProfileRequest request) {
         try {
             LOGGER.debug("Request received to getUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
@@ -195,13 +202,36 @@ public class UserProfileService {
             if (entity.isPresent()) {
                 UserProfile profileEntity = entity.get();
                 return UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity, null);
-
             } else {
                 return null;
             }
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+    /**
+     * Returns the full user profile, including roles inherited from groups
+     * @param request Must specify profile.username
+     * @return The full user profile
+     */
+    public org.apache.custos.core.user.profile.api.UserProfile getFullUserProfile(UserProfileRequest request) {
+        try {
+            LOGGER.debug("Request received to getFullUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
+            String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
+            Optional<UserProfile> entity = repository.findById(userId);
+
+            if (entity.isPresent()) {
+                UserProfile profileEntity = entity.get();
+                return UserProfileMapper.createFullUserProfileFromUserProfileEntity(profileEntity);
+            } else {
+                return null;
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching full user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
             LOGGER.error(msg);
             throw new RuntimeException(msg, ex);
         }

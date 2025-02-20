@@ -763,7 +763,7 @@ public class UserManagementService {
     }
 
     /**
-     * Updates the user profile for the given user.
+     * Updates the user profile (in tenant and keycloak) for the given user.
      *
      * @param request The user profile request containing the updated user profile information.
      * @return The updated user profile.
@@ -785,7 +785,6 @@ public class UserManagementService {
 
             CheckingResponse response = iamAdminService.isUserExist(info);
 
-
             if (!response.getIsExist()) {
                 String msg = "User not found with username " + request.getUserProfile().getUsername();
                 LOGGER.error(msg);
@@ -798,7 +797,6 @@ public class UserManagementService {
                     .toBuilder()
                     .setFirstName(request.getUserProfile().getFirstName())
                     .setLastName(request.getUserProfile().getLastName())
-                    .setEmail(request.getUserProfile().getEmail())
                     .build();
 
             UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
@@ -827,18 +825,15 @@ public class UserManagementService {
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(profile).build();
                         userProfileService.updateUserProfile(userProfileRequest);
-                        return profile;
-
+                        return userProfileService.getFullUserProfile(userProfileRequest);
                     } else {
                         UserProfile userProfile = UserProfile.newBuilder()
-                                .setEmail(request.getUserProfile().getEmail())
                                 .setFirstName(request.getUserProfile().getFirstName())
                                 .setLastName(request.getUserProfile().getLastName())
-                                .setUsername(request.getUserProfile().getUsername())
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(userProfile).build();
                         userProfileService.createUserProfile(userProfileRequest);
-                        return profile;
+                        return userProfileService.getFullUserProfile(userProfileRequest);
                     }
 
                 } catch (Exception ex) {
@@ -909,7 +904,7 @@ public class UserManagementService {
     }
 
     /**
-     * Retrieves the user profile based on the provided request.
+     * Retrieves the full user profile based on the provided request (including inherited group roles)
      *
      * @param request the request object containing the user profile search criteria
      * @return the user profile object corresponding to the retrieved profile
@@ -925,7 +920,7 @@ public class UserManagementService {
                     .setTenantId(request.getTenantId())
                     .build();
 
-            return userProfileService.getUserProfile(userProfileRequest);
+            return userProfileService.getFullUserProfile(userProfileRequest);
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling  user profile " + ex.getMessage();
