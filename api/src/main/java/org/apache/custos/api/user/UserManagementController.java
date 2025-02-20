@@ -69,10 +69,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -448,29 +450,6 @@ public class UserManagementController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user")
-    @Operation(
-            summary = "Retrieve User",
-            description = "This operation retrieves a specified user's profile. The UserSearchRequest should specify " +
-                    "the criteria to identify the particular user. It returns a UserRepresentation that includes " +
-                    "detailed information about the user."
-    )
-    public ResponseEntity<UserRepresentation> getUser(@Valid @RequestBody UserSearchRequest request, @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
-
-        if (claim.isPresent()) {
-            AuthClaim authClaim = claim.get();
-            request = request.toBuilder().setClientId(authClaim.getIamAuthId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .setTenantId(claim.get().getTenantId()).build();
-        } else {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
-        }
-
-        UserRepresentation response = userManagementService.getUser(request);
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/users")
     @Operation(
             summary = "Find Users",
@@ -570,45 +549,65 @@ public class UserManagementController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/user/profile")
+    @PatchMapping("/user/profile/{username}")
     @Operation(
             summary = "Update User Profile",
-            description = "This operation updates profiles of existing users. The UserProfileRequest should specify the updated " +
+            description = "This operation updates profiles of existing users. The UserProfile should only specify fields that should be updated. Currently, only the first and last name can be updated." +
                     "user details. Upon successful profile update, the system sends back the updated UserProfile wrapped in a ResponseEntity."
     )
-    public ResponseEntity<UserProfile> updateUserProfile(@RequestBody UserProfileRequest request, @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
+    public ResponseEntity<UserProfile> updateUserProfile(@RequestBody UserProfile userProfile, @PathVariable("username") String username, @RequestHeader HttpHeaders headers) {
+        // need to update first name, last name, that's about it?
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
 
-        if (claim.isPresent()) {
-            AuthClaim authClaim = claim.get();
-            AuthToken authToken = tokenAuthorizer.getSAToken(authClaim.getIamAuthId(), authClaim.getIamAuthSecret(), authClaim.getTenantId());
-
-            if (authToken == null || StringUtils.isBlank(authToken.getAccessToken())) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized. Service Account token is invalid");
-            }
-
-            request = request.toBuilder().setClientId(authClaim.getIamAuthId())
-                    .setClientSecret(authClaim.getIamAuthSecret())
-                    .setTenantId(authClaim.getTenantId())
-                    .setAccessToken(authToken.getAccessToken())
-                    .setPerformedBy(Constants.SYSTEM).build();
-        } else {
+        if (claim.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        AuthClaim authClaim = claim.get();
+        AuthToken authToken = tokenAuthorizer.getSAToken(authClaim.getIamAuthId(), authClaim.getIamAuthSecret(), authClaim.getTenantId());
+
+        if (authToken == null || StringUtils.isBlank(authToken.getAccessToken())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized. Service Account token is invalid");
+        }
+
+        userProfile = userProfile.toBuilder().setUsername(username).build();
+
+        UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setUserProfile(userProfile)
+                .setClientId(authClaim.getIamAuthId())
+                .setClientSecret(authClaim.getIamAuthSecret())
+                .setTenantId(authClaim.getTenantId())
+                .setAccessToken(authToken.getAccessToken())
+                .setPerformedBy(Constants.SYSTEM)
+                .build();
 
         UserProfile response = userManagementService.updateUserProfile(request);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user/profile")
+    @GetMapping("/user/profile/{username}")
     @Operation(
             summary = "Get User Profile",
-            description = "This operation retrieves the profile of a specified user. The UserProfileRequest should specify which user's " +
-                    "profile is to be retrieved. The system would return a ResponseEntity containing the UserProfile for the specified user."
+            description = "This operation retrieves the profile of a specified user. Parameters should be passed in the query string."
     )
-    public ResponseEntity<UserProfile> getUserProfile(@Valid @RequestBody UserProfileRequest request, @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<UserProfile> getUserProfile(
+            @PathVariable("username") String username,
+            @RequestHeader HttpHeaders headers
+    ) {
+        // Authorization check
         Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+
+        // Build the UserProfile using the builder pattern
+        UserProfile userProfile = UserProfile.newBuilder()
+                .setUsername(username)
+                .build();
+
+        // Build the UserProfileRequest using the builder pattern
+        UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setUserProfile(userProfile)
+                .setLimit(1)
+                .setOffset(0)
+                .build();
 
         if (claim.isPresent()) {
             request = request.toBuilder().setTenantId(claim.get().getTenantId()).build();
@@ -616,7 +615,9 @@ public class UserManagementController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        // Retrieve user profile
         UserProfile response = userManagementService.getUserProfile(request);
+
         return ResponseEntity.ok(response);
     }
 
@@ -649,16 +650,24 @@ public class UserManagementController {
                     "Upon successful execution, the system sends back a ResponseEntity containing GetAllUserProfilesResponse, " +
                     "wrapping all user profiles in the tenant."
     )
-    public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(@RequestBody UserProfileRequest request, @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
+    public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(
+            @RequestParam(value = "offset") int offset,
+            @RequestParam(value = "limit") int limit,
+            @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
 
-        if (claim.isPresent()) {
-            request = request.toBuilder().setTenantId(claim.get().getTenantId()).build();
-        } else {
+        if (claim.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setOffset(offset)
+                .setLimit(limit)
+                .setTenantId(claim.get().getTenantId())
+                .build();
+
         GetAllUserProfilesResponse response = userManagementService.getAllUserProfilesInTenant(request);
+
         return ResponseEntity.ok(response);
     }
 

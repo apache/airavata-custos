@@ -17,6 +17,8 @@ import {
   FormLabel,
   IconButton,
   Code,
+  Spinner,
+  HStack,
 } from "@chakra-ui/react";
 import { PageTitle } from "../PageTitle";
 import { ActionButton } from "../ActionButton";
@@ -25,42 +27,57 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { LeftRightLayout } from "../LeftRightLayout";
 import { FiTrash2 } from "react-icons/fi";
 import { StackedBorderBox } from "../StackedBorderBox";
-
-const DUMMY_ROLES: any = [
-  {
-    application: "Grafana",
-    role: "grafana:viewer",
-    description: "Grafana Viewer",
-  },
-  {
-    application: "Grafana",
-    role: "grafana:editor",
-    description: "Grafana Editor",
-  },
-  {
-    application: "Grafana",
-    role: "grafana:admin",
-    description: "Grafana Admin",
-  },
-];
-
-const DUMMY_ACTIVITY: any = [
-  {
-    action: "User Created",
-    timestamp: "2021-10-01",
-  },
-  {
-    action: "User Disabled",
-    timestamp: "2021-10-01",
-  },
-  {
-    action: "User Enabled",
-    timestamp: "2021-10-01",
-  },
-];
+import { BACKEND_URL, CLIENT_ID } from "../../lib/constants";
+import { useApi } from "../../hooks/useApi";
+import { isEmpty } from "../../lib/util";
+import { useEffect, useState } from "react";
+import { useAuth } from "react-oidc-context";
 
 export const UserSettings = () => {
   const { email } = useParams();
+  const auth = useAuth();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [group, setGroup] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const userResp = await fetch(
+        `${BACKEND_URL}/api/v1/user-management/user/profile/${email}`,
+        {
+          headers: {
+            Authorization: `Bearer ${auth.user?.access_token}`,
+          },
+        }
+      );
+      const userData = await userResp.json();
+
+      const groupResp = await fetch(
+        `${BACKEND_URL}/api/v1/group-management/users/${email}/group-memberships`,
+        {
+          headers: {
+            client_id: CLIENT_ID,
+            userId: email,
+            Authorization: `Bearer ${auth.user?.access_token}`,
+          },
+        }
+      );
+      const groupData = await groupResp.json();
+
+      setUser(userData);
+      setGroup(groupData);
+    }
+
+    fetchData();
+  }, []);
+
+  if (!user || !group) {
+    return (
+      <NavContainer activeTab="Users">
+        <Spinner />
+      </NavContainer>
+    );
+  }
 
   return (
     <>
@@ -76,9 +93,11 @@ export const UserSettings = () => {
 
         <Flex mt={4} justify="space-between">
           <Box>
-            <PageTitle>John Doe</PageTitle>
+            <PageTitle>
+              {user.first_name} {user.last_name}
+            </PageTitle>
             <Text color="default.secondary" mt={2}>
-              {email}
+              {user.email}
             </Text>
           </Box>
           <ActionButton icon={FiTrash2} onClick={() => {}}>
@@ -94,19 +113,34 @@ export const UserSettings = () => {
                 <Stack spacing={4}>
                   <FormControl color="default.default">
                     <FormLabel>Name</FormLabel>
-                    <Input type="text" />
+                    <Input
+                      type="text"
+                      value={user.first_name + " " + user.last_name}
+                    />
                   </FormControl>
                   <FormControl>
                     <FormLabel>Email</FormLabel>
-                    <Input type="text" />
+                    <Input type="text" value={user.email} />
                   </FormControl>
                   <FormControl>
                     <FormLabel>Joined</FormLabel>
-                    <Input type="text" disabled={true} />
+                    <Input
+                      type="text"
+                      disabled={true}
+                      value={new Date(
+                        parseInt(user.created_at)
+                      ).toLocaleString()}
+                    />
                   </FormControl>
                   <FormControl>
-                    <FormLabel>Last Signed In</FormLabel>
-                    <Input type="text" disabled={true} />
+                    <FormLabel>Last Modified</FormLabel>
+                    <Input
+                      type="text"
+                      disabled={true}
+                      value={new Date(
+                        parseInt(user.last_modified_at)
+                      ).toLocaleString()}
+                    />
                   </FormControl>
                 </Stack>
               </>
@@ -114,7 +148,7 @@ export const UserSettings = () => {
           />
 
           <Box>
-            <Text fontSize="lg">Groups</Text>
+            <Text fontSize="lg">Group Memberships</Text>
             <TableContainer mt={4}>
               <Table variant="simple">
                 <Thead>
@@ -148,46 +182,51 @@ export const UserSettings = () => {
           </Box>
 
           <Box>
-            <Text fontSize="lg">Roles</Text>
-            <Text mt={2} color="gray.600">
-              Through their group memberships, this user has the following roles
-            </Text>
+            <Text fontSize="lg">Client Roles</Text>
+            {!isEmpty(user.client_roles) ? (
+              <>
+                <Text mt={2} color="gray.600">
+                  Through their group memberships, this user has the following
+                  client roles
+                </Text>
 
-            <TableContainer mt={4}>
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th>Application</Th>
-                    <Th>Role</Th>
-                    <Th>Description</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {DUMMY_ROLES.map((role: any) => (
-                    <Tr key={role.role}>
-                      <Td>{role.application}</Td>
-                      <Td>
-                        <Code>{role.role}</Code>
-                      </Td>
-                      <Td>{role.description}</Td>
-                    </Tr>
+                <HStack mt={2}>
+                  {user.client_roles?.map((role: string) => (
+                    <Code key={role} size="lg">
+                      {role}
+                    </Code>
                   ))}
-                </Tbody>
-              </Table>
-            </TableContainer>
+                </HStack>
+              </>
+            ) : (
+              <Text mt={2} color="gray.600">
+                This user has no client roles
+              </Text>
+            )}
           </Box>
 
           <Box>
-            <Text fontSize="lg">Activity</Text>
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              DUMMY_ACTIVITY.map((activity: any) => (
-                <Flex key={activity.action} gap={4} mt={4}>
-                  <Text color="gray.400">{activity.timestamp}</Text>
-                  <Text fontWeight="bold">{activity.action}</Text>
-                </Flex>
-              ))
-            }
+            <Text fontSize="lg">Realm Roles</Text>
+            {!isEmpty(user.realm_roles) ? (
+              <>
+                <Text mt={2} color="gray.600">
+                  Through their group memberships, this user has the following
+                  realm roles
+                </Text>
+
+                <HStack mt={2}>
+                  {user.client_roles?.map((role: string) => (
+                    <Code key={role} size="lg">
+                      {role}
+                    </Code>
+                  ))}
+                </HStack>
+              </>
+            ) : (
+              <Text mt={2} color="gray.600">
+                This user has no realm roles
+              </Text>
+            )}
           </Box>
         </StackedBorderBox>
       </NavContainer>
