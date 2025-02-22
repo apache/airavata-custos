@@ -22,12 +22,9 @@ package org.apache.custos.api.user;
 import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.iam.api.AddExternalIDPLinksRequest;
 import org.apache.custos.core.iam.api.AddUserAttributesRequest;
-import org.apache.custos.core.iam.api.AddUserRolesRequest;
 import org.apache.custos.core.iam.api.DeleteExternalIDPsRequest;
 import org.apache.custos.core.iam.api.DeleteUserAttributeRequest;
 import org.apache.custos.core.iam.api.DeleteUserRolesRequest;
-import org.apache.custos.core.iam.api.FindUsersRequest;
-import org.apache.custos.core.iam.api.FindUsersResponse;
 import org.apache.custos.core.iam.api.GetExternalIDPsRequest;
 import org.apache.custos.core.iam.api.GetExternalIDPsResponse;
 import org.apache.custos.core.iam.api.OperationStatus;
@@ -38,16 +35,18 @@ import org.apache.custos.core.iam.api.RegisterUsersResponse;
 import org.apache.custos.core.iam.api.ResetUserPassword;
 import org.apache.custos.core.iam.api.UserAttribute;
 import org.apache.custos.core.iam.api.UserRepresentation;
-import org.apache.custos.core.iam.api.UserSearchMetadata;
 import org.apache.custos.core.iam.api.UserSearchRequest;
 import org.apache.custos.core.identity.api.AuthToken;
 import org.apache.custos.core.user.management.api.LinkUserProfileRequest;
 import org.apache.custos.core.user.management.api.SynchronizeUserDBRequest;
 import org.apache.custos.core.user.management.api.UserProfileRequest;
+import org.apache.custos.core.user.profile.api.UsersRolesRequest;
+import org.apache.custos.core.user.profile.api.UsersRolesFullRequest;
 import org.apache.custos.core.user.profile.api.GetAllUserProfilesResponse;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailRequest;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailResponse;
 import org.apache.custos.core.user.profile.api.UserProfile;
+import org.apache.custos.core.user.profile.api.Status;
 import org.apache.custos.service.auth.AuthClaim;
 import org.apache.custos.service.auth.TokenAuthorizer;
 import org.apache.custos.service.management.UserManagementService;
@@ -397,33 +396,50 @@ public class UserManagementController {
 
     @PostMapping("/users/roles")
     @Operation(
-            summary = "Add Roles To Users",
-            description = "This operation adds specified roles to identified users. The AddUserRolesRequest " +
-                    "should include user identifiers and the list of roles to be added. Upon successful execution, " +
-                    "the system associates the specified roles with the user profiles and returns an OperationStatus reflecting the result."
+            summary = "Add roles to tenant users",
+            description = "This operation adds specified roles (client & realm) to identified users."
     )
-    public ResponseEntity<OperationStatus> addRolesToUsers(@Valid @RequestBody AddUserRolesRequest request, @RequestHeader HttpHeaders headers) {
-        headers = attachUserToken(headers, request.getClientId());
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, request.getClientId());
+    public ResponseEntity<Status> addUsersRoles(@Valid @RequestBody UsersRolesRequest request, @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
 
-        if (claim.isPresent()) {
-            AuthClaim authClaim = claim.get();
-            AuthToken authToken = tokenAuthorizer.getSAToken(authClaim.getIamAuthId(), authClaim.getIamAuthSecret(), authClaim.getTenantId());
-
-            if (authToken == null || StringUtils.isBlank(authToken.getAccessToken())) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized. Service Account token is invalid");
-            }
-
-            request = request.toBuilder().setClientId(authClaim.getIamAuthId())
-                    .setTenantId(authClaim.getTenantId())
-                    .setAccessToken(authToken.getAccessToken())
-                    .setPerformedBy(authClaim.getPerformedBy()).build();
-        } else {
+        if (claim.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
-        OperationStatus response = userManagementService.addRolesToUsers(request);
-        return ResponseEntity.ok(response);
+        AuthClaim authClaim = claim.get();
+
+        UsersRolesFullRequest fullRequest = UsersRolesFullRequest.newBuilder()
+                .setUsersRoles(request)
+                .setTenantId(authClaim.getTenantId())
+                .build();
+
+        Status operationStatus = userManagementService.addRolesToUsers(fullRequest);
+
+        return ResponseEntity.ok(operationStatus);
+    }
+
+    @DeleteMapping("/users/roles")
+    @Operation(
+            summary = "Delete roles from tenant users",
+            description = "This operation deletes specified roles (client & realm) to identified users."
+    )
+    public ResponseEntity<Status> deleteUsersRoles(@Valid @RequestBody UsersRolesRequest request, @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
+
+        if (claim.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
+        }
+
+        AuthClaim authClaim = claim.get();
+
+        UsersRolesFullRequest fullRequest = UsersRolesFullRequest.newBuilder()
+                .setUsersRoles(request)
+                .setTenantId(authClaim.getTenantId())
+                .build();
+
+        Status operationStatus = userManagementService.deleteRolesFromUsers(fullRequest);
+
+        return ResponseEntity.ok(operationStatus);
     }
 
     @GetMapping("/user/activation/status")
@@ -448,40 +464,6 @@ public class UserManagementController {
     public ResponseEntity<OperationStatus> isUsernameAvailable(@RequestBody UserSearchRequest request, @RequestHeader HttpHeaders headers) {
         OperationStatus response = userManagementService.isUsernameAvailable(generateUserSearchRequestWithoutAdditionalHeader(request.toBuilder(), headers).build());
         return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/users")
-    @Operation(
-            summary = "Find Users",
-            description = "This operation searches for users that match the criteria provided in the FindUsersRequest, " +
-                    "which can include attributes like username, email, roles, etc. It returns a FindUsersResponse " +
-                    "containing the matching users' profiles."
-    )
-    public ResponseEntity<FindUsersResponse> findUsers(@RequestParam(value = "client_id") String clientId,
-                                                       @RequestParam(value = "offset") int offset,
-                                                       @RequestParam(value = "limit") int limit,
-                                                       @RequestParam("user.id") String userId,
-                                                       @RequestHeader HttpHeaders headers) {
-        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers, clientId);
-
-        if (claim.isPresent()) {
-            AuthClaim authClaim = claim.get();
-            UserSearchMetadata userSearchMetadata = UserSearchMetadata.newBuilder()
-                    .setId(userId)
-                    .build();
-            FindUsersRequest request = FindUsersRequest.newBuilder().setClientId(authClaim.getIamAuthId())
-                    .setClientSec(authClaim.getIamAuthSecret())
-                    .setTenantId(claim.get().getTenantId())
-                    .setOffset(offset)
-                    .setLimit(limit)
-                    .setUser(userSearchMetadata)
-                    .build();
-
-            FindUsersResponse response = userManagementService.findUsers(request);
-            return ResponseEntity.ok(response);
-        } else {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
-        }
     }
 
     @PutMapping("/user/password")

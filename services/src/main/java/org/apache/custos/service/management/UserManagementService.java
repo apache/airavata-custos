@@ -24,13 +24,10 @@ import com.nimbusds.jwt.SignedJWT;
 import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.iam.api.AddExternalIDPLinksRequest;
 import org.apache.custos.core.iam.api.AddUserAttributesRequest;
-import org.apache.custos.core.iam.api.AddUserRolesRequest;
 import org.apache.custos.core.iam.api.CheckingResponse;
 import org.apache.custos.core.iam.api.DeleteExternalIDPsRequest;
 import org.apache.custos.core.iam.api.DeleteUserAttributeRequest;
 import org.apache.custos.core.iam.api.DeleteUserRolesRequest;
-import org.apache.custos.core.iam.api.FindUsersRequest;
-import org.apache.custos.core.iam.api.FindUsersResponse;
 import org.apache.custos.core.iam.api.GetAllResources;
 import org.apache.custos.core.iam.api.GetAllResourcesResponse;
 import org.apache.custos.core.iam.api.GetExternalIDPsRequest;
@@ -57,6 +54,8 @@ import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailRequest;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailResponse;
 import org.apache.custos.core.user.profile.api.UserProfile;
 import org.apache.custos.core.user.profile.api.UserStatus;
+import org.apache.custos.core.user.profile.api.UsersRolesFullRequest;
+import org.apache.custos.core.user.profile.api.Status;
 import org.apache.custos.service.exceptions.AuthenticationException;
 import org.apache.custos.service.exceptions.InternalServerException;
 import org.apache.custos.service.iam.IamAdminService;
@@ -517,49 +516,6 @@ public class UserManagementService {
     }
 
     /**
-     * Finds users based on the provided search request.
-     *
-     * @param request the request object containing the user search criteria
-     * @return the response object containing the found users
-     * @throws AuthenticationException if an authentication exception occurs
-     * @throws InternalServerException if an internal server exception occurs
-     */
-    public FindUsersResponse findUsers(FindUsersRequest request) {
-        try {
-            long initiationTime = System.currentTimeMillis();
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setClientSecret(request.getClientSec())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityService.getUserManagementServiceAccountAccessToken(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-
-                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                FindUsersResponse user = iamAdminService.findUsers(request);
-                long endTime = System.currentTimeMillis();
-                long total = endTime - initiationTime;
-                LOGGER.debug("request received: " + initiationTime + " request end time" + endTime + " difference " + total);
-                return user;
-
-            } else {
-                LOGGER.error("Cannot find service token");
-                throw new RuntimeException("Cannot find service token");
-            }
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while pulling users, " + ex.getMessage();
-            LOGGER.error(msg);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                throw new AuthenticationException(msg, ex);
-            } else {
-                throw new InternalServerException(msg, ex);
-            }
-        }
-    }
-
-    /**
      * Resets the password for a user.
      *
      * @param request the request object containing the information to reset the password
@@ -592,61 +548,39 @@ public class UserManagementService {
         }
     }
 
-    /**
-     * Adds roles to users based on the provided request.
-     *
-     * @param request the request object containing the information to add roles to users
-     * @return the operation status indicating the result of adding roles to users
-     * @throws AuthenticationException if an authentication exception occurs
-     * @throws InternalServerException if an internal server exception occurs
-     */
-    public OperationStatus addRolesToUsers(AddUserRolesRequest request) {
+    public Status addRolesToUsers(UsersRolesFullRequest request) {
         try {
-            OperationStatus response = iamAdminService.addRolesToUsers(request);
+            String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
+            String[] roles = request.getUsersRoles().getRolesList().toArray(new String[0]);
 
-            for (String user : request.getUsernamesList()) {
-                UserSearchMetadata metadata = UserSearchMetadata
-                        .newBuilder()
-                        .setUsername(user).build();
-
-                UserSearchRequest searchRequest = UserSearchRequest
-                        .newBuilder()
-                        .setClientId(request.getClientId())
-                        .setTenantId(request.getTenantId())
-                        .setAccessToken(request.getAccessToken())
-                        .setUser(metadata)
-                        .build();
-
-                UserRepresentation representation = iamAdminService.getUser(searchRequest);
-
-                if (representation != null) {
-                    UserProfile profile = this.convertToProfile(representation);
-
-                    org.apache.custos.core.user.profile.api.UserProfileRequest req = org.apache.custos.core.user.profile.api.UserProfileRequest.newBuilder()
-                            .setTenantId(request.getTenantId())
-                            .setProfile(profile)
-                            .build();
-
-
-                    UserProfile existingUser = userProfileService.getUserProfile(req);
-
-                    if (existingUser == null || StringUtils.isBlank(existingUser.getUsername())) {
-                        userProfileService.createUserProfile(req);
-                    } else {
-                        userProfileService.updateUserProfile(req);
-                    }
+            for (String username : usernames) {
+                for (String role: roles) {
+                     userProfileService.addUserRole(username, role, request.getUsersRoles().getRoleType(), request.getTenantId());
                 }
             }
-            return response;
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while adding roles to users, " + ex.getMessage();
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding client roles: " + ex.getMessage();
             LOGGER.error(msg);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                throw new AuthenticationException(msg, ex);
-            } else {
-                throw new InternalServerException(msg, ex);
+            throw new InternalServerException(msg, ex);
+        }
+    }
+
+    public Status deleteRolesFromUsers(UsersRolesFullRequest request) {
+        try {
+            String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
+            String[] roles = request.getUsersRoles().getRolesList().toArray(new String[0]);
+
+            for (String username : usernames) {
+                for (String role: roles) {
+                    userProfileService.deleteUserRole(username, role, request.getUsersRoles().getRoleType(), request.getTenantId());
+                }
             }
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding client roles: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
         }
     }
 

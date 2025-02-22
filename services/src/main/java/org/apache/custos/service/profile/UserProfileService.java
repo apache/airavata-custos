@@ -113,6 +113,73 @@ public class UserProfileService {
     @Autowired
     private GroupMembershipTypeRepository groupMembershipTypeRepository;
 
+    private boolean isValidRoleType(String type) {
+        return (type.equals(org.apache.custos.core.constants.Constants.ROLE_TYPE_CLIENT) || type.equals(org.apache.custos.core.constants.Constants.ROLE_TYPE_REALM));
+    }
+    public boolean addUserRole(String username, String role, String type, long tenantId) {
+        try {
+            if (!isValidRoleType(type)) {
+                throw new IllegalArgumentException("Role type must be `client` or `realm`");
+            }
+
+            String userId = username + "@" + tenantId;
+
+            Optional<UserProfile> op = repository.findById(userId);
+
+            if (op.isEmpty()) {
+                throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+            }
+
+            UserProfile userProfile = op.get();
+
+            org.apache.custos.core.model.user.UserRole userRole = new org.apache.custos.core.model.user.UserRole();
+            userRole.setType(type);
+            userRole.setValue(role);
+            userRole.setUserProfile(userProfile);
+
+            roleRepository.save(userRole);
+
+            return true;
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding role " + role + " for " + username + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+    public boolean deleteUserRole(String username, String role, String type, long tenantId) {
+        try {
+            if (!isValidRoleType(type)) {
+                throw new IllegalArgumentException("Role type must be `client` or `realm`");
+            }
+
+            String userId = username + "@" + tenantId;
+
+            Optional<UserProfile> op = repository.findById(userId);
+
+            if (op.isEmpty()) {
+                throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+            }
+
+            UserProfile userProfile = op.get();
+
+            Optional<org.apache.custos.core.model.user.UserRole> optionalUserRole = roleRepository.findByTypeAndValueAndUserProfile(type, role, userProfile);
+
+            if (optionalUserRole.isEmpty()) {
+                throw new EntityNotFoundException("User role " + role + "(" + type + ") not found for user: " + userId + ". To remove roles inherited from groups, please remove the user from the group.");
+            }
+
+            userProfile.getUserRole().remove(optionalUserRole.get());
+
+            repository.save(userProfile); // trigger orphan removal
+
+            return true;
+        } catch(Exception ex) {
+            String msg = "Error occurred while removing role " + role + " for " + username + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
 
     public org.apache.custos.core.user.profile.api.UserProfile createUserProfile(UserProfileRequest request) {
         try {
@@ -130,7 +197,6 @@ public class UserProfileService {
             }
 
             return request.getProfile();
-
         } catch (Exception ex) {
             String msg = "Error occurred while creating user profile for " + request.getProfile().getUsername() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();

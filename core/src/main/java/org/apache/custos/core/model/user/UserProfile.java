@@ -35,6 +35,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.Date;
 import java.util.Set;
+import java.util.Objects;
 
 @Entity
 @Table(name = "user_profile")
@@ -76,6 +77,18 @@ public class UserProfile {
     @Column
     private String type;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserProfile that = (UserProfile) o;
+        return id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<UserRole> userRole;
