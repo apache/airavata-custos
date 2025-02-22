@@ -109,6 +109,27 @@ message GetUpdateAuditTrailResponse {
   repeated UserProfileStatusUpdateMetadata status_audit = 2;
 }
 
+message UsersRolesRequest {
+  repeated string usernames = 1;
+  repeated string roles = 2;
+  string role_type = 3;
+}
+
+message UsersRolesFullRequest {
+  int64 tenant_id = 1;
+  UsersRolesRequest users_roles = 2;
+}
+
+message UserAttributeRequest {
+  string username = 1;
+  repeated UserAttribute attributes = 2;
+}
+
+message UserAttributeFullRequest {
+  int64 tenant_id = 1;
+  UserAttributeRequest userAttributeRequest = 2;
+}
+
 message GroupRequest {
   int64 tenant_id = 1;
   Group group = 2;

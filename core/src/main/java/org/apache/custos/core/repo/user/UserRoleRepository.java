@@ -21,6 +21,9 @@ package org.apache.custos.core.repo.user;
 
 import org.apache.custos.core.model.user.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+import org.apache.custos.core.model.user.UserProfile;
 
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
+    Optional<UserRole> findByTypeAndValueAndUserProfile(String type, String value, UserProfile userProfile);
 }

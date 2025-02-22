@@ -20,9 +20,12 @@
 package org.apache.custos.core.mapper.user;
 
 import org.apache.custos.core.constants.Constants;
-import org.apache.custos.core.model.user.UserAttribute;
 import org.apache.custos.core.model.user.UserProfile;
+import org.apache.custos.core.model.user.UserAttribute;
 import org.apache.custos.core.model.user.UserRole;
+import org.apache.custos.core.model.user.GroupRole;
+import org.apache.custos.core.model.user.UserGroupMembership;
+
 import org.apache.custos.core.user.profile.api.UserStatus;
 import org.apache.custos.core.user.profile.api.UserTypes;
 
@@ -111,6 +114,29 @@ public class UserProfileMapper {
         return entity;
     }
 
+    public static org.apache.custos.core.user.profile.api.UserProfile createFullUserProfileFromUserProfileEntity(UserProfile profileEntity) {
+        org.apache.custos.core.user.profile.api.UserProfile userProfile = createUserProfileFromUserProfileEntity(profileEntity, null);
+
+        org.apache.custos.core.user.profile.api.UserProfile.Builder builder = userProfile.toBuilder();
+
+        if (profileEntity.getUserGroupMemberships() != null && !profileEntity.getUserGroupMemberships().isEmpty()) {
+            List<String> clientRoles = new ArrayList<>();
+            List<String> realmRoles = new ArrayList<>();
+            for (UserGroupMembership userGroupMembership: profileEntity.getUserGroupMemberships()) {
+                for (GroupRole gr: userGroupMembership.getGroup().getGroupRole()) {
+                    if (gr.getType().equals(Constants.ROLE_TYPE_CLIENT)) {
+                        clientRoles.add(gr.getValue());
+                    } else if (gr.getType().equals(Constants.ROLE_TYPE_REALM)) {
+                        realmRoles.add(gr.getValue());
+                    }
+                }
+            }
+            builder.addAllClientRoles(clientRoles);
+            builder.addAllRealmRoles(realmRoles);
+        }
+
+        return builder.build();
+    }
 
     /**
      * Creates a protobuf UserProfile object from a UserProfileEntity object.

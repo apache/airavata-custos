@@ -22,13 +22,20 @@ import { useAuth } from "react-oidc-context";
 
 export const useApi = (url: string, options?: RequestInit) => {
   const auth = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
+
   useEffect(() => {
+    if (!url) return; // Avoid calling fetch if the URL is empty
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const fetchData = async () => {
       setIsPending(true);
+      setError(""); // Reset error before fetching
+
       try {
         const response = await fetch(url, {
           ...options,
@@ -36,18 +43,30 @@ export const useApi = (url: string, options?: RequestInit) => {
             ...options?.headers,
             Authorization: `Bearer ${auth.user?.access_token}`,
           },
+          signal, // Pass the signal to fetch
         });
+
         if (!response.ok) throw new Error(response.statusText);
         const json = await response.json();
-        setIsPending(false);
-        setData(json);
-        setError("");
-      } catch (error) {
-        setError(`${error} Could not Fetch Data.`);
-        setIsPending(false);
+
+        if (!signal.aborted) {
+          setData(json);
+        }
+      } catch (err) {
+        if (!signal.aborted) {
+          setError(`Error: ${err.message} - Could not fetch data.`);
+        }
+      } finally {
+        if (!signal.aborted) {
+          setIsPending(false);
+        }
       }
     };
+
     fetchData();
+
+    return () => controller.abort(); // Cleanup on unmount or dependency change
   }, [auth.user?.access_token, options, url]);
+
   return { data, isPending, error };
 };

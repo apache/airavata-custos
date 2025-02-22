@@ -52,6 +52,7 @@ import org.apache.custos.core.user.profile.api.GroupMembership;
 import org.apache.custos.core.user.profile.api.GroupRequest;
 import org.apache.custos.core.user.profile.api.Status;
 import org.apache.custos.core.user.profile.api.UserAttribute;
+import org.apache.custos.core.user.profile.api.UserAttributeFullRequest;
 import org.apache.custos.core.user.profile.api.UserGroupMembershipTypeRequest;
 import org.apache.custos.core.user.profile.api.UserProfileAttributeUpdateMetadata;
 import org.apache.custos.core.user.profile.api.UserProfileRequest;
@@ -113,6 +114,126 @@ public class UserProfileService {
     @Autowired
     private GroupMembershipTypeRepository groupMembershipTypeRepository;
 
+    public void addUserAttributes(UserAttributeFullRequest request) {
+        String userId = request.getUserAttributeRequest().getUsername() + "@" + request.getTenantId();
+
+        Optional<UserProfile> opProfile = repository.findById(userId);
+        if (opProfile.isEmpty()) {
+            throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+        }
+        UserProfile profileEntity = opProfile.get();
+
+        for (UserAttribute userAttribute : request.getUserAttributeRequest().getAttributesList()) {
+            for (String value : userAttribute.getValuesList()) {
+                org.apache.custos.core.model.user.UserAttribute userAttributeEntity = new org.apache.custos.core.model.user.UserAttribute();
+                userAttributeEntity.setUserProfile(profileEntity);
+                userAttributeEntity.setKey(userAttribute.getKey());
+                userAttributeEntity.setValue(value);
+
+                userAttributeRepository.save(userAttributeEntity);
+            }
+        }
+    }
+
+    public void deleteUserAttributes(UserAttributeFullRequest request) {
+        String userId = request.getUserAttributeRequest().getUsername() + "@" + request.getTenantId();
+
+        Optional<UserProfile> opProfile = repository.findById(userId);
+        if (opProfile.isEmpty()) {
+            throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+        }
+        UserProfile profileEntity = opProfile.get();
+
+        for (UserAttribute userAttribute : request.getUserAttributeRequest().getAttributesList()) {
+            for (String value : userAttribute.getValuesList()) {
+
+                Optional<org.apache.custos.core.model.user.UserAttribute> opUserAttribute = userAttributeRepository.findUserAttributeByKeyValueAndValueAndUserProfile(
+                        userAttribute.getKey(),
+                        value,
+                        profileEntity
+                );
+
+                if (opUserAttribute.isEmpty()) {
+                    throw new EntityNotFoundException("Could not find the user attribute with key " + userAttribute.getKey() + " and value " + value + " for user " + userId);
+                }
+
+                profileEntity.getUserAttribute().remove(opUserAttribute.get());
+
+                repository.save(profileEntity); // cascade deletion
+            }
+        }
+
+
+    }
+
+    private boolean isValidRoleType(String type) {
+        return (type.equals(org.apache.custos.core.constants.Constants.ROLE_TYPE_CLIENT) || type.equals(org.apache.custos.core.constants.Constants.ROLE_TYPE_REALM));
+    }
+
+    public boolean addUserRole(String username, String role, String type, long tenantId) {
+        try {
+            if (!isValidRoleType(type)) {
+                throw new IllegalArgumentException("Role type must be `client` or `realm`");
+            }
+
+            String userId = username + "@" + tenantId;
+
+            Optional<UserProfile> op = repository.findById(userId);
+
+            if (op.isEmpty()) {
+                throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+            }
+
+            UserProfile userProfile = op.get();
+
+            org.apache.custos.core.model.user.UserRole userRole = new org.apache.custos.core.model.user.UserRole();
+            userRole.setType(type);
+            userRole.setValue(role);
+            userRole.setUserProfile(userProfile);
+
+            roleRepository.save(userRole);
+
+            return true;
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding role " + role + " for " + username + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+    public boolean deleteUserRole(String username, String role, String type, long tenantId) {
+        try {
+            if (!isValidRoleType(type)) {
+                throw new IllegalArgumentException("Role type must be `client` or `realm`");
+            }
+
+            String userId = username + "@" + tenantId;
+
+            Optional<UserProfile> op = repository.findById(userId);
+
+            if (op.isEmpty()) {
+                throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
+            }
+
+            UserProfile userProfile = op.get();
+
+            Optional<org.apache.custos.core.model.user.UserRole> optionalUserRole = roleRepository.findByTypeAndValueAndUserProfile(type, role, userProfile);
+
+            if (optionalUserRole.isEmpty()) {
+                throw new EntityNotFoundException("User role " + role + "(" + type + ") not found for user: " + userId + ". To remove roles inherited from groups, please remove the user from the group.");
+            }
+
+            userProfile.getUserRole().remove(optionalUserRole.get());
+
+            repository.save(userProfile); // trigger orphan removal
+
+            return true;
+        } catch(Exception ex) {
+            String msg = "Error occurred while removing role " + role + " for " + username + " reason: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
 
     public org.apache.custos.core.user.profile.api.UserProfile createUserProfile(UserProfileRequest request) {
         try {
@@ -130,7 +251,6 @@ public class UserProfileService {
             }
 
             return request.getProfile();
-
         } catch (Exception ex) {
             String msg = "Error occurred while creating user profile for " + request.getProfile().getUsername() + "at "
                     + request.getTenantId() + " reason :" + ex.getMessage();
@@ -157,6 +277,8 @@ public class UserProfileService {
                 entity.setId(userId);
                 entity.setTenantId(request.getTenantId());
                 entity.setCreatedAt(exEntity.get().getCreatedAt());
+                entity.setUserGroupMemberships(exEntity.get().getUserGroupMemberships());
+                entity.setStatusUpdateMetadata(exEntity.get().getStatusUpdateMetadata());
 
                 UserProfile exProfile = exEntity.get();
 
@@ -184,6 +306,11 @@ public class UserProfileService {
         }
     }
 
+    /**
+     * Returns the user profile, not including any inherited group roles
+     * @param request Must specify profile.username
+     * @return The user profile
+     */
     public org.apache.custos.core.user.profile.api.UserProfile getUserProfile(UserProfileRequest request) {
         try {
             LOGGER.debug("Request received to getUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
@@ -195,13 +322,36 @@ public class UserProfileService {
             if (entity.isPresent()) {
                 UserProfile profileEntity = entity.get();
                 return UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity, null);
-
             } else {
                 return null;
             }
 
         } catch (Exception ex) {
             String msg = "Error occurred while fetching user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
+            LOGGER.error(msg);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+    /**
+     * Returns the full user profile, including roles inherited from groups
+     * @param request Must specify profile.username
+     * @return The full user profile
+     */
+    public org.apache.custos.core.user.profile.api.UserProfile getFullUserProfile(UserProfileRequest request) {
+        try {
+            LOGGER.debug("Request received to getFullUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
+            String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
+            Optional<UserProfile> entity = repository.findById(userId);
+
+            if (entity.isPresent()) {
+                UserProfile profileEntity = entity.get();
+                return UserProfileMapper.createFullUserProfileFromUserProfileEntity(profileEntity);
+            } else {
+                return null;
+            }
+        } catch (Exception ex) {
+            String msg = "Error occurred while fetching full user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
             LOGGER.error(msg);
             throw new RuntimeException(msg, ex);
         }

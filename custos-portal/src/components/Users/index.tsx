@@ -14,35 +14,30 @@ import {
   Th,
   Td,
   Tbody,
+  Spinner,
 } from "@chakra-ui/react";
 import { PageTitle } from "../PageTitle";
 import { ActionButton } from "../ActionButton";
 import { CiSearch } from "react-icons/ci";
 import { User } from "../../interfaces/Users";
 import { Link } from "react-router-dom";
-
-const DUMMY_DATA: User[] = [
-  {
-    name: "Stella Zhou",
-    email: "xz106@au.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-  {
-    name: "John Doe",
-    email: "asdf@asdf.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-  {
-    name: "Jane Doe",
-    email: "jane.doe@asdf.edu",
-    joined: "2021-10-01",
-    lastSignedIn: "2021-10-01",
-  },
-];
+import { useApi } from "../../hooks/useApi";
+import { BACKEND_URL } from "../../lib/constants";
+import { timeAgo } from "../../lib/util";
 
 export const Users = () => {
+  const offset = 0;
+  const limit = 10;
+
+
+  const urlSearchParams = new URLSearchParams();
+  urlSearchParams.append("offset", offset.toString());
+  urlSearchParams.append("limit", limit.toString());
+
+  const allUsers = useApi(
+    `${BACKEND_URL}/api/v1/user-management/users/profile?${urlSearchParams.toString()}`
+  );
+    
   return (
     <>
       <NavContainer activeTab="Users">
@@ -72,45 +67,57 @@ export const Users = () => {
         </InputGroup>
 
         {/* TABLE */}
-        <TableContainer mt={4}>
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Joined</Th>
-                <Th>Last Signed In</Th>
-                <Th>Actions</Th>
-              </Tr>
-            </Thead>
-
-            <Tbody>
-              {DUMMY_DATA.map((user) => (
-                <Tr key={user.email}>
-                  <Td>
-                    <Link to={`/users/${user.email}`}>
-                      <Text
-                        color="blue.400"
-                        _hover={{
-                          color: "blue.600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {user.name}
-                      </Text>
-                    </Link>
-                  </Td>
-                  <Td>{user.email}</Td>
-                  <Td>{user.joined}</Td>
-                  <Td>{user.lastSignedIn}</Td>
-                  <Td>
-                    <ActionButton onClick={() => {}}>Disable</ActionButton>
-                  </Td>
+        {allUsers?.isPending ? (
+          <Box textAlign="center" mt={4}>
+            <Spinner />
+          </Box>
+        ) : (
+          <TableContainer mt={4}>
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Email</Th>
+                  <Th>Joined</Th>
+                  <Th>Last Modified</Th>
+                  <Th>Actions</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </TableContainer>
+              </Thead>
+
+              <Tbody>
+                {allUsers?.data?.profiles?.map((user: User) => (
+                  <Tr key={user.email}>
+                    <Td>
+                      <Link to={`/users/${user.email}`}>
+                        <Text
+                          color="blue.400"
+                          _hover={{
+                            color: "blue.600",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {user.first_name} {user.last_name}
+                        </Text>
+                      </Link>
+                    </Td>
+                    <Td>{user.email}</Td>
+                    <Td>
+                      {new Date(parseInt(user.created_at)).toDateString()}
+                    </Td>
+                    <Td>
+                      {user.last_modified_at
+                        ? timeAgo(new Date(parseInt(user.last_modified_at)))
+                        : "N/A"}
+                    </Td>
+                    <Td>
+                      <ActionButton onClick={() => {}}>Disable</ActionButton>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        )}
       </NavContainer>
     </>
   );

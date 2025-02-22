@@ -20,7 +20,7 @@
 import packageJson from '../../package.json';
 
 export const PORTAL_VERSION = packageJson.version;
-export const CLIENT_ID = 'custos-gcq8jxkwpvs2gcudzmfn-10000000';;
+export const CLIENT_ID = 'custos-2o7lfqdfsfxhjdp6qmxi-10000000';
 export const BACKEND_URL = 'http://localhost:8081';
 export const APP_URL = "http://localhost:5173";
 

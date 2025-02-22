@@ -27,9 +27,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.util.Objects;
 
 @Entity
-@Table(name = "user_role")
+@Table(
+        name = "user_role",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_profile_id", "type", "value"})
+)
+
 public class UserRole {
 
     @Id
@@ -77,4 +83,19 @@ public class UserRole {
     public void setUserProfile(UserProfile userProfile) {
         this.userProfile = userProfile;
     }
+
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserRole userRole = (UserRole) o;
+        return Objects.equals(userProfile, userRole.userProfile) &&
+                Objects.equals(type, userRole.type) &&
+                Objects.equals(value, userRole.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userProfile, type, value);
+    }
+
 }
