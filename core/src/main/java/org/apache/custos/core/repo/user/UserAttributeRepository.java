@@ -25,9 +25,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserAttributeRepository extends JpaRepository<UserAttribute, Long> {
 
     @Query("SELECT DISTINCT atr.userProfile from UserAttribute atr where atr.keyValue = ?1 and atr.value =?2")
     List<UserProfile> findFilteredUserProfiles(String key, String value);
+
+    Optional<UserAttribute> findUserAttributeByKeyValueAndValueAndUserProfile(String keyValue, String value, UserProfile userProfile);
 }

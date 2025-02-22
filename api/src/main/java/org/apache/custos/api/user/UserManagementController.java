@@ -45,6 +45,8 @@ import org.apache.custos.core.user.profile.api.UsersRolesFullRequest;
 import org.apache.custos.core.user.profile.api.GetAllUserProfilesResponse;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailRequest;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailResponse;
+import org.apache.custos.core.user.profile.api.UserAttributeRequest;
+import org.apache.custos.core.user.profile.api.UserAttributeFullRequest;
 import org.apache.custos.core.user.profile.api.UserProfile;
 import org.apache.custos.core.user.profile.api.Status;
 import org.apache.custos.service.auth.AuthClaim;
@@ -392,6 +394,55 @@ public class UserManagementController {
         }
         GetExternalIDPsResponse response = userManagementService.getExternalIDPsOfUsers(request);
         return ResponseEntity.ok(response);
+    }
+
+
+    @PostMapping("/user/attributes")
+    @Operation(
+            summary = "Add attributes to a tenant user",
+            description = "This operation adds specified attributes to a tenant user. The id of each attribute passed in is ignored."
+    )
+    public ResponseEntity<Status> addTenantUserAttributes(@RequestBody UserAttributeRequest request, @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
+
+        if (claim.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
+        }
+
+        AuthClaim authClaim = claim.get();
+
+        UserAttributeFullRequest userAttributeFullRequest = UserAttributeFullRequest.newBuilder()
+                .setUserAttributeRequest(request)
+                .setTenantId(authClaim.getTenantId())
+                .build();
+
+        Status status = userManagementService.addAttributesToUser(userAttributeFullRequest);
+
+        return ResponseEntity.ok(status);
+    }
+
+    @DeleteMapping("/user/attributes")
+    @Operation(
+            summary = "Delete attributes from a tenant user",
+            description = "This operation removes specified attributes to a tenant user. The id of each attribute passed in is ignored."
+    )
+    public ResponseEntity<Status> deleteTenantUserAttributes(@RequestBody UserAttributeRequest request, @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
+
+        if (claim.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
+        }
+
+        AuthClaim authClaim = claim.get();
+
+        UserAttributeFullRequest userAttributeFullRequest = UserAttributeFullRequest.newBuilder()
+                .setUserAttributeRequest(request)
+                .setTenantId(authClaim.getTenantId())
+                .build();
+
+        Status status = userManagementService.deleteAttributesFromUser(userAttributeFullRequest);
+
+        return ResponseEntity.ok(status);
     }
 
     @PostMapping("/users/roles")

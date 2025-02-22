@@ -77,19 +77,6 @@ public class UserProfile {
     @Column
     private String type;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        UserProfile that = (UserProfile) o;
-        return id.equals(that.getId());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "userProfile", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<UserRole> userRole;
 
@@ -106,6 +93,18 @@ public class UserProfile {
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL)
     private Set<UserGroupMembership> userGroupMemberships;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserProfile that = (UserProfile) o;
+        return id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
     public String getId() {
         return id;

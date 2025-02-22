@@ -56,6 +56,7 @@ import org.apache.custos.core.user.profile.api.UserProfile;
 import org.apache.custos.core.user.profile.api.UserStatus;
 import org.apache.custos.core.user.profile.api.UsersRolesFullRequest;
 import org.apache.custos.core.user.profile.api.Status;
+import org.apache.custos.core.user.profile.api.UserAttributeFullRequest;
 import org.apache.custos.service.exceptions.AuthenticationException;
 import org.apache.custos.service.exceptions.InternalServerException;
 import org.apache.custos.service.iam.IamAdminService;
@@ -548,6 +549,28 @@ public class UserManagementService {
         }
     }
 
+    public Status addAttributesToUser(UserAttributeFullRequest request) {
+        try {
+            userProfileService.addUserAttributes(request);
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding attributes: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
+        }
+    }
+
+    public Status deleteAttributesFromUser(UserAttributeFullRequest request) {
+        try {
+            userProfileService.deleteUserAttributes(request);
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding attributes: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
+        }
+    }
+
     public Status addRolesToUsers(UsersRolesFullRequest request) {
         try {
             String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
@@ -560,7 +583,7 @@ public class UserManagementService {
             }
             return Status.newBuilder().setStatus(true).build();
         } catch(Exception ex) {
-            String msg = "Error occurred while adding client roles: " + ex.getMessage();
+            String msg = "Error occurred while adding roles: " + ex.getMessage();
             LOGGER.error(msg);
             throw new InternalServerException(msg, ex);
         }
@@ -578,7 +601,7 @@ public class UserManagementService {
             }
             return Status.newBuilder().setStatus(true).build();
         } catch(Exception ex) {
-            String msg = "Error occurred while adding client roles: " + ex.getMessage();
+            String msg = "Error occurred while adding deleting roles: " + ex.getMessage();
             LOGGER.error(msg);
             throw new InternalServerException(msg, ex);
         }
