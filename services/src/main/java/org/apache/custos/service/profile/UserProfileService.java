@@ -314,20 +314,17 @@ public class UserProfileService {
     public org.apache.custos.core.user.profile.api.UserProfile getUserProfile(UserProfileRequest request) {
         try {
             LOGGER.debug("Request received to getUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
-
             String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
-
             Optional<UserProfile> entity = repository.findById(userId);
 
-            if (entity.isPresent()) {
-                UserProfile profileEntity = entity.get();
-                return UserProfileMapper.createUserProfileFromUserProfileEntity(profileEntity, null);
-            } else {
-                return null;
+            if (entity.isEmpty()) {
+                throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
             }
 
+            return UserProfileMapper.createUserProfileFromUserProfileEntity(entity.get(), null);
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while updating user profile for " + request.getProfile().getUsername() + " at "
+                    + request.getTenantId() + " reason: " + ex.getMessage();
             LOGGER.error(msg);
             throw new RuntimeException(msg, ex);
         }
@@ -340,18 +337,15 @@ public class UserProfileService {
      */
     public org.apache.custos.core.user.profile.api.UserProfile getFullUserProfile(UserProfileRequest request) {
         try {
-            LOGGER.debug("Request received to getFullUserProfile for " + request.getProfile().getUsername() + "at " + request.getTenantId());
+            LOGGER.debug("Request received to getFullUserProfile for " + request.getProfile().getUsername() + "@ " + request.getTenantId());
             String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
             Optional<UserProfile> entity = repository.findById(userId);
 
-            if (entity.isPresent()) {
-                UserProfile profileEntity = entity.get();
-                return UserProfileMapper.createFullUserProfileFromUserProfileEntity(profileEntity);
-            } else {
-                return null;
-            }
+            return entity.map(UserProfileMapper::createFullUserProfileFromUserProfileEntity)
+                    .orElseThrow(() -> new EntityNotFoundException("Could not find the UserProfile with the id: " + userId));
         } catch (Exception ex) {
-            String msg = "Error occurred while fetching full user profile for " + request.getProfile().getUsername() + "at " + request.getTenantId();
+            String msg = "Error occurred while updating user profile for " + request.getProfile().getUsername() + " at "
+                    + request.getTenantId() + " reason: " + ex.getMessage();
             LOGGER.error(msg);
             throw new RuntimeException(msg, ex);
         }
