@@ -405,7 +405,7 @@ public class CredentialStoreService {
     public GetAllCredentialsResponse getAllCredentialsFromToken(TokenRequest request) {
         try {
             String token = request.getToken();
-            Credential credential = credentialManager.decodeToken(token);
+            Credential credential = credentialManager.decodeJWTToken(token);
 
             if (credential == null || credential.getId() == null) {
                 LOGGER.error("Invalid access token");
@@ -420,16 +420,6 @@ public class CredentialStoreService {
             }
 
             String subPath = BASE_PATH + entity.getOwnerId();
-
-            String validatingPath = BASE_PATH + entity.getOwnerId() + "/" + Type.CUSTOS.name();
-            VaultResponseSupport<Credential> validationResponse = vaultTemplate.read(validatingPath, Credential.class);
-
-            if (validationResponse == null || validationResponse.getData() == null || !validationResponse.getData().getSecret().equals(credential.getSecret())) {
-                String msg = "Invalid secret for Id: " + credential.getId();
-                LOGGER.error(msg);
-                throw new AuthenticationException(msg);
-            }
-
             List<String> paths = vaultTemplate.list(subPath);
 
             List<CredentialMetadata> credentialMetadata = new ArrayList<>();

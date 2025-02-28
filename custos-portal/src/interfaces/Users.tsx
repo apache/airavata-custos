@@ -1,6 +1,10 @@
 export interface User {
-  name: string;
+  username: string;
   email: string;
-  joined: string;
-  lastSignedIn: string;
+  first_name: string;
+  last_name: string;
+  created_at: string;
+  client_roles: string[];
+  realm_roles: string[];
+  last_modified_at: string;
 }

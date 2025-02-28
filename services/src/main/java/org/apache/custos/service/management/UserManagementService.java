@@ -24,13 +24,10 @@ import com.nimbusds.jwt.SignedJWT;
 import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.iam.api.AddExternalIDPLinksRequest;
 import org.apache.custos.core.iam.api.AddUserAttributesRequest;
-import org.apache.custos.core.iam.api.AddUserRolesRequest;
 import org.apache.custos.core.iam.api.CheckingResponse;
 import org.apache.custos.core.iam.api.DeleteExternalIDPsRequest;
 import org.apache.custos.core.iam.api.DeleteUserAttributeRequest;
 import org.apache.custos.core.iam.api.DeleteUserRolesRequest;
-import org.apache.custos.core.iam.api.FindUsersRequest;
-import org.apache.custos.core.iam.api.FindUsersResponse;
 import org.apache.custos.core.iam.api.GetAllResources;
 import org.apache.custos.core.iam.api.GetAllResourcesResponse;
 import org.apache.custos.core.iam.api.GetExternalIDPsRequest;
@@ -57,6 +54,9 @@ import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailRequest;
 import org.apache.custos.core.user.profile.api.GetUpdateAuditTrailResponse;
 import org.apache.custos.core.user.profile.api.UserProfile;
 import org.apache.custos.core.user.profile.api.UserStatus;
+import org.apache.custos.core.user.profile.api.UsersRolesFullRequest;
+import org.apache.custos.core.user.profile.api.Status;
+import org.apache.custos.core.user.profile.api.UserAttributeFullRequest;
 import org.apache.custos.service.exceptions.AuthenticationException;
 import org.apache.custos.service.exceptions.InternalServerException;
 import org.apache.custos.service.iam.IamAdminService;
@@ -517,49 +517,6 @@ public class UserManagementService {
     }
 
     /**
-     * Finds users based on the provided search request.
-     *
-     * @param request the request object containing the user search criteria
-     * @return the response object containing the found users
-     * @throws AuthenticationException if an authentication exception occurs
-     * @throws InternalServerException if an internal server exception occurs
-     */
-    public FindUsersResponse findUsers(FindUsersRequest request) {
-        try {
-            long initiationTime = System.currentTimeMillis();
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setClientSecret(request.getClientSec())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityService.getUserManagementServiceAccountAccessToken(userManagementSATokenRequest);
-
-            if (token != null && token.getAccessToken() != null) {
-
-                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                FindUsersResponse user = iamAdminService.findUsers(request);
-                long endTime = System.currentTimeMillis();
-                long total = endTime - initiationTime;
-                LOGGER.debug("request received: " + initiationTime + " request end time" + endTime + " difference " + total);
-                return user;
-
-            } else {
-                LOGGER.error("Cannot find service token");
-                throw new RuntimeException("Cannot find service token");
-            }
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while pulling users, " + ex.getMessage();
-            LOGGER.error(msg);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                throw new AuthenticationException(msg, ex);
-            } else {
-                throw new InternalServerException(msg, ex);
-            }
-        }
-    }
-
-    /**
      * Resets the password for a user.
      *
      * @param request the request object containing the information to reset the password
@@ -592,61 +549,61 @@ public class UserManagementService {
         }
     }
 
-    /**
-     * Adds roles to users based on the provided request.
-     *
-     * @param request the request object containing the information to add roles to users
-     * @return the operation status indicating the result of adding roles to users
-     * @throws AuthenticationException if an authentication exception occurs
-     * @throws InternalServerException if an internal server exception occurs
-     */
-    public OperationStatus addRolesToUsers(AddUserRolesRequest request) {
+    public Status addAttributesToUser(UserAttributeFullRequest request) {
         try {
-            OperationStatus response = iamAdminService.addRolesToUsers(request);
+            userProfileService.addUserAttributes(request);
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding attributes: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
+        }
+    }
 
-            for (String user : request.getUsernamesList()) {
-                UserSearchMetadata metadata = UserSearchMetadata
-                        .newBuilder()
-                        .setUsername(user).build();
+    public Status deleteAttributesFromUser(UserAttributeFullRequest request) {
+        try {
+            userProfileService.deleteUserAttributes(request);
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding attributes: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
+        }
+    }
 
-                UserSearchRequest searchRequest = UserSearchRequest
-                        .newBuilder()
-                        .setClientId(request.getClientId())
-                        .setTenantId(request.getTenantId())
-                        .setAccessToken(request.getAccessToken())
-                        .setUser(metadata)
-                        .build();
+    public Status addRolesToUsers(UsersRolesFullRequest request) {
+        try {
+            String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
+            String[] roles = request.getUsersRoles().getRolesList().toArray(new String[0]);
 
-                UserRepresentation representation = iamAdminService.getUser(searchRequest);
-
-                if (representation != null) {
-                    UserProfile profile = this.convertToProfile(representation);
-
-                    org.apache.custos.core.user.profile.api.UserProfileRequest req = org.apache.custos.core.user.profile.api.UserProfileRequest.newBuilder()
-                            .setTenantId(request.getTenantId())
-                            .setProfile(profile)
-                            .build();
-
-
-                    UserProfile existingUser = userProfileService.getUserProfile(req);
-
-                    if (existingUser == null || StringUtils.isBlank(existingUser.getUsername())) {
-                        userProfileService.createUserProfile(req);
-                    } else {
-                        userProfileService.updateUserProfile(req);
-                    }
+            for (String username : usernames) {
+                for (String role: roles) {
+                     userProfileService.addUserRole(username, role, request.getUsersRoles().getRoleType(), request.getTenantId());
                 }
             }
-            return response;
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while adding roles to users, " + ex.getMessage();
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding roles: " + ex.getMessage();
             LOGGER.error(msg);
-            if (ex.getMessage().contains("UNAUTHENTICATED")) {
-                throw new AuthenticationException(msg, ex);
-            } else {
-                throw new InternalServerException(msg, ex);
+            throw new InternalServerException(msg, ex);
+        }
+    }
+
+    public Status deleteRolesFromUsers(UsersRolesFullRequest request) {
+        try {
+            String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
+            String[] roles = request.getUsersRoles().getRolesList().toArray(new String[0]);
+
+            for (String username : usernames) {
+                for (String role: roles) {
+                    userProfileService.deleteUserRole(username, role, request.getUsersRoles().getRoleType(), request.getTenantId());
+                }
             }
+            return Status.newBuilder().setStatus(true).build();
+        } catch(Exception ex) {
+            String msg = "Error occurred while adding deleting roles: " + ex.getMessage();
+            LOGGER.error(msg);
+            throw new InternalServerException(msg, ex);
         }
     }
 
@@ -763,7 +720,7 @@ public class UserManagementService {
     }
 
     /**
-     * Updates the user profile for the given user.
+     * Updates the user profile (in tenant and keycloak) for the given user.
      *
      * @param request The user profile request containing the updated user profile information.
      * @return The updated user profile.
@@ -785,7 +742,6 @@ public class UserManagementService {
 
             CheckingResponse response = iamAdminService.isUserExist(info);
 
-
             if (!response.getIsExist()) {
                 String msg = "User not found with username " + request.getUserProfile().getUsername();
                 LOGGER.error(msg);
@@ -798,7 +754,6 @@ public class UserManagementService {
                     .toBuilder()
                     .setFirstName(request.getUserProfile().getFirstName())
                     .setLastName(request.getUserProfile().getLastName())
-                    .setEmail(request.getUserProfile().getEmail())
                     .build();
 
             UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
@@ -822,25 +777,20 @@ public class UserManagementService {
 
                     if (profile != null && StringUtils.isNotBlank(profile.getUsername())) {
                         profile = profile.toBuilder()
-                                .setEmail(request.getUserProfile().getEmail())
                                 .setFirstName(request.getUserProfile().getFirstName())
                                 .setLastName(request.getUserProfile().getLastName())
-                                .setUsername(request.getUserProfile().getUsername())
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(profile).build();
                         userProfileService.updateUserProfile(userProfileRequest);
-                        return profile;
-
+                        return userProfileService.getFullUserProfile(userProfileRequest);
                     } else {
                         UserProfile userProfile = UserProfile.newBuilder()
-                                .setEmail(request.getUserProfile().getEmail())
                                 .setFirstName(request.getUserProfile().getFirstName())
                                 .setLastName(request.getUserProfile().getLastName())
-                                .setUsername(request.getUserProfile().getUsername())
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(userProfile).build();
                         userProfileService.createUserProfile(userProfileRequest);
-                        return profile;
+                        return userProfileService.getFullUserProfile(userProfileRequest);
                     }
 
                 } catch (Exception ex) {
@@ -911,7 +861,7 @@ public class UserManagementService {
     }
 
     /**
-     * Retrieves the user profile based on the provided request.
+     * Retrieves the full user profile based on the provided request (including inherited group roles)
      *
      * @param request the request object containing the user profile search criteria
      * @return the user profile object corresponding to the retrieved profile
@@ -927,7 +877,7 @@ public class UserManagementService {
                     .setTenantId(request.getTenantId())
                     .build();
 
-            return userProfileService.getUserProfile(userProfileRequest);
+            return userProfileService.getFullUserProfile(userProfileRequest);
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling  user profile " + ex.getMessage();
@@ -949,15 +899,17 @@ public class UserManagementService {
 
             org.apache.custos.core.user.profile.api.UserProfileRequest userProfileRequest = org.apache.custos.core.user.profile.api.UserProfileRequest
                     .newBuilder()
-                    .setProfile(request.getUserProfile())
+//                    .setProfile(request.getUserProfile())
                     .setTenantId(request.getTenantId())
                     .setOffset(request.getOffset())
                     .setLimit(request.getLimit())
                     .build();
 
-            return request.getUserProfile().getAttributesList().isEmpty()
-                    ? userProfileService.getAllUserProfilesInTenant(userProfileRequest)
-                    : userProfileService.findUserProfilesByAttributes(userProfileRequest);
+            return userProfileService.getAllUserProfilesInTenant(userProfileRequest);
+
+//            return request.getUserProfile().getAttributesList().isEmpty()
+//                    ? userProfileService.getAllUserProfilesInTenant(userProfileRequest)
+//                    : userProfileService.findUserProfilesByAttributes(userProfileRequest);
 
         } catch (Exception ex) {
             String msg = "Error occurred while pulling  all  user profiles in tenant " + ex.getMessage();

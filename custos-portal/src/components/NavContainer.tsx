@@ -48,6 +48,7 @@ import { AiOutlineAppstore } from "react-icons/ai";
 import { IconType } from "react-icons";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "react-oidc-context";
+import { BACKEND_URL } from "../lib/constants";
 
 interface NavContainerProps {
   activeTab: string;
@@ -164,6 +165,7 @@ export const NavContainer = memo(
                     _hover={{ color: "gray.500" }}
                     onClick={async () => {
                       await auth.removeUser();
+                      await auth.signoutRedirect();
                       onClose();
                     }}
                   >
@@ -248,6 +250,19 @@ export const NavContainer = memo(
                 size="sm"
                 _hover={{ color: "gray.500" }}
                 onClick={async () => {
+                  await fetch(
+                    `${BACKEND_URL}/api/v1/identity-management/user/logout`,
+                    {
+                      method: "POST",
+                      body: JSON.stringify({
+                        refresh_token: auth.user?.refresh_token,
+                      }),
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${auth.user?.access_token}`,
+                      },
+                    }
+                  );
                   await auth.removeUser();
                 }}
               >
