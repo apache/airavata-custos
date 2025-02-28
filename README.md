@@ -48,70 +48,35 @@ Following diagram illustrate the architecture of the Custos Software.
 * Maven 3.6.x
 
 #### Clone the repository
-  ```
-    git clone -b develop https://github.com/apache/airavata-custos.git
-    
-  ```
-
-#### Build source code
-  
-  Following  command builds the Custos source code and create two docker images of custos_core_server and custos_integration_server
-  
-  ```
-    cd airavata-custos
-    mvn clean install
-  ```
-  
-#### Run Custos on docker
-  
-Following command starts Custos main services and its depend services. All services are listed below and you should be able to
-access them locally if all services are correctly started.
-
-  - Dependent Services
-    * Keycloak (http://localhost:8080/auth/)
-    * MySQL (0.0.0.0:3306)
-    * HashiCorp Vault (http://localhost:8201/)
-    * CILogon (Not available for local development)
-    
-  - Custos Services
-    * Custos Core Service (0.0.0.0:7001 (grpc port))
-    * Custos Integration Service (0.0.0.0:7000 (grpc port))
-    * Custos Rest Proxy (http://localhost:10000(envoy proxy)
-    
-  ```
-     cd custos-utilities/ide-integration/src/main/containers
-     docker-compose up
-  ```
-
-#### Bootstrapping Custos  Super Tenant
-  
-If all services were successfully ran. Custos bootstrap service needs to be run to create a  Super tenant to launch Custos Portal
-   ```
-    cd custos-utilities/custos-bootstrap-service/
-    mvn spring-boot:run
-   ```
-The above command should create the super tenant and it outputs super tenant credentials. Copy those credentials to configure
-Custos Portal.
-
-```
-Note: Make sure to clean up old databases for fresh start.
+```sh
+git clone https://github.com/apache/airavata-custos.git
 ```
 
-#### Install Custos Portal Locally
+#### Start Docker Containers (to run a development environment)
+Navigate to `/compose`, and start the following containers:
+- Keycloack (http://localhost:8080)
+- Custos DB (MySQL, http://localhost:3306)
+- Vault (http://localhost:8200)
+- Adminer (http://localhost:18080)
 
-Follow the following link to access portal deployment instructions
-
-[Custos Portal](https://github.com/apache/airavata-custos-portal/blob/master/README.md)
-
-You have to configure following properties in the .env file
-
+```sh
+docker compose up -d
 ```
-CUSTOS_CLIENT_ID="SUPERT TENANT ID CREATED FROM ABOVE STEP"
-CUSTOS_CLIENT_SEC="SUPERT TENANT CREDENTIAL CREATED FROM ABOVE STEP"
-CUSTOS_API_URL="http://localhost:10000"
-CUSTOS_SUPER_CLIENT_ID="SUPERT TENANT ID CREATED FROM ABOVE STEP"
-UNDER_MAINTENANCE=False
-```
+
+#### Configure Vault
+1. Go to the Vault's exposed port (http://localhost:8200) and walk through the configuration process. 
+   2. You'll need to save your initial root token and unsealed key.
+2. Place your root token in `/application/src/main/resources/application.yml`, under `spring.cloud.vault.token`
+
+3. Install all dependencies through maven.
+   4. `mvn clean install`
+4. Run the CustosApplication class to bring up the backend.
+   5. `mvn spring-boot:run`
+5. Make a POST request to http://127.0.0.1:8081/api/v1/tenant-management/initialize (no headers, no body)
+6. Grab the client id and client secret from output on the backend.
+
+#### You're all set!
+You can now make requests to Custos.
 
 ## Custos Integration With External Applications
 Custos can be integrated with external applications using Custos REST Endpoints, Python SDK, or Java SDK.
@@ -120,10 +85,11 @@ Custos can be integrated with external applications using Custos REST Endpoints,
 In order to perform this operation you need to have a already activated tenant in either Custos Managed Services or Your own deployment.
 Following instructions are given for locally deployed custos setup which can be extended to any deployment,
 
-####Initializing Custos Java SDK
+#### Initializing Custos Java SDK
 
 * Add maven dependency to your project
-```<dependency>
+```
+<dependency>
    <groupId>org.apache.custos</groupId>
    <artifactId>custos-java-sdk</artifactId>
    <version>1.1-SNAPSHOT</version>
@@ -202,3 +168,4 @@ We are thankfull to National Science Foundation(NSF) for funding this project.
 
 We are thankfull to  Trusted CI (https://www.trustedci.org/) for conducting the
 First Principles Vulnerability Assesment(FPVA) (https://dl.acm.org/doi/10.1145/1866835.1866852) for this software and providing the above architecture diagram and security improvements. 
+`
