@@ -265,37 +265,19 @@ public class UserProfileService {
 
             String userId = request.getProfile().getUsername() + "@" + request.getTenantId();
 
-            Optional<UserProfile> exEntity = repository.findById(userId);
+            Optional<UserProfile> opExEntity = repository.findById(userId);
 
+            if (opExEntity.isPresent()) {
+                UserProfile exEntity = opExEntity.get();
 
-            if (exEntity.isPresent()) {
-                UserProfile entity = UserProfileMapper.createUserProfileEntityFromUserProfile(request.getProfile());
-                Set<AttributeUpdateMetadata> metadata = AttributeUpdateMetadataMapper.
-                        createAttributeUpdateMetadataEntity(exEntity.get(), entity, request.getPerformedBy());
+                exEntity.setFirstName(request.getProfile().getFirstName());
+                exEntity.setLastName(request.getProfile().getLastName());
 
-                entity.setAttributeUpdateMetadata(metadata);
-                entity.setId(userId);
-                entity.setTenantId(request.getTenantId());
-                entity.setCreatedAt(exEntity.get().getCreatedAt());
-                entity.setUserGroupMemberships(exEntity.get().getUserGroupMemberships());
-                entity.setStatusUpdateMetadata(exEntity.get().getStatusUpdateMetadata());
+                repository.save(exEntity);
 
-                UserProfile exProfile = exEntity.get();
-
-                if (exProfile.getUserAttribute() != null) {
-                    userAttributeRepository.deleteAll(exProfile.getUserAttribute());
-                }
-
-                if (exProfile.getUserRole() != null) {
-                    roleRepository.deleteAll(exProfile.getUserRole());
-                }
-
-                repository.save(entity);
                 return request.getProfile();
-
             } else {
-                LOGGER.error("Cannot find a user profile for " + userId);
-                throw new EntityNotFoundException("Cannot find a user profile for " + userId);
+                throw new EntityNotFoundException("Can't find user profile");
             }
 
         } catch (Exception ex) {
