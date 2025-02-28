@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -267,7 +268,81 @@ public class GroupManagementController {
 
         Group updatedGroup = groupManagementService.updateGroup(groupRequest);
         return ResponseEntity.ok(updatedGroup);
+    }
 
+    @PatchMapping("/groups/{groupId}")
+    @Operation(
+            summary = "Patch Group",
+            description = "Patches group with given ID. To remove all realm_roles or client_roles, pass in a list with \"custos-remove-all\" as the first list element. To remove all group attributes, pass in a list with \"custos-remove-all\" as the key of the first list element.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schemaProperties = {
+                                    @SchemaProperty(
+                                            name = "name",
+                                            schema = @Schema(
+                                                    type = "string",
+                                                    description = "Group Name"
+                                            )
+                                    ),
+                                    @SchemaProperty(
+                                            name = "description",
+                                            schema = @Schema(
+                                                    type = "string",
+                                                    description = "Group Description"
+                                            )
+                                    ),
+                                    @SchemaProperty(
+                                            name = "attributes",
+                                            array = @ArraySchema(
+                                                    schema = @Schema(implementation = GroupAttribute.class),
+                                                    arraySchema = @Schema(description = "List of Group Attributes")
+                                            )
+                                    ),
+                                    @SchemaProperty(
+                                            name = "realm_roles",
+                                            array = @ArraySchema(
+                                                    schema = @Schema(implementation = String.class),
+                                                    arraySchema = @Schema(description = "List of Realm Roles")
+                                            )
+                                    ),
+                                    @SchemaProperty(
+                                            name = "client_roles",
+                                            array = @ArraySchema(
+                                                    schema = @Schema(implementation = String.class),
+                                                    arraySchema = @Schema(description = "List of Client Roles")
+                                            )
+                                    )
+                            }
+                    )
+            ),
+            parameters = {
+                    @Parameter(
+                            name = "client_id",
+                            in = ParameterIn.HEADER,
+                            description = "The client ID initiating the group update request",
+                            required = true,
+                            schema = @Schema(type = "string")
+                    ),
+                    @Parameter(
+                            name = "groupId",
+                            in = ParameterIn.PATH,
+                            description = "The ID of the group to update",
+                            required = true,
+                            schema = @Schema(type = "string")
+                    )
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Group updated successfully", content = @Content(schema = @Schema(implementation = Group.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized Request", content = @Content()),
+                    @ApiResponse(responseCode = "404", description = "When the associated Group cannot be found", content = @Content()),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content())
+            }
+    )
+    public ResponseEntity<Group> patchGroup(@PathVariable("groupId") String groupId, @RequestBody Group request, @RequestHeader HttpHeaders headers) {
+        AuthClaim authClaim = authorize(headers);
+        Group updatedGroup = groupManagementService.patchGroup(authClaim, groupId, request);
+        return ResponseEntity.ok(updatedGroup);
     }
 
     @DeleteMapping("/groups/{groupId}")
