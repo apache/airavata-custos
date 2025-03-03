@@ -26,7 +26,7 @@ export interface GroupMembership {
   owner_id: string;
   num_members?: number;
   your_role?: string;
-};
+}
 
 export interface Member {
   username: string;
@@ -49,6 +49,7 @@ export interface Group {
   attributes?: Attribute[];
   description: string;
   owner_id: string;
+  requester_role: string;
 }
 
 export interface Attribute {
