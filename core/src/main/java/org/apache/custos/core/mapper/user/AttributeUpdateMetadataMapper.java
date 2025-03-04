@@ -22,9 +22,9 @@ package org.apache.custos.core.mapper.user;
 import org.apache.custos.core.model.user.AttributeUpdateMetadata;
 import org.apache.custos.core.model.user.UserProfile;
 import org.apache.custos.core.user.profile.api.UserProfileAttributeUpdateMetadata;
-
+import org.apache.custos.core.model.user.UserRole;
+import org.apache.custos.core.constants.Operation;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -32,6 +32,15 @@ import java.util.Set;
  */
 public class AttributeUpdateMetadataMapper {
 
+    private static AttributeUpdateMetadata createAttribute(UserProfile prof, String fieldKey, String fieldValue, String updatedBy, Operation operation) {
+        AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+        attributeUpdateMetadata.setUserProfile(prof);
+        attributeUpdateMetadata.setUpdatedFieldKey(fieldKey);
+        attributeUpdateMetadata.setUpdatedFieldValue(fieldValue);
+        attributeUpdateMetadata.setUpdatedBy(updatedBy);
+        attributeUpdateMetadata.setOperation(operation);
+        return attributeUpdateMetadata;
+    }
 
     /**
      * Creates a set of AttributeUpdateMetadata objects based on the changes made to a UserProfile object.
@@ -44,49 +53,43 @@ public class AttributeUpdateMetadataMapper {
     public static Set<AttributeUpdateMetadata> createAttributeUpdateMetadataEntity(UserProfile oldProf, UserProfile newProf, String updatedBy) {
 
         Set<AttributeUpdateMetadata> metadataSet = new HashSet<>();
-        if (!(Objects.equals(oldProf.getTenantId(), newProf.getTenantId()))) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfile(newProf);
-            attributeUpdateMetadata.setUpdatedFieldKey("tenantId");
-            attributeUpdateMetadata.setUpdatedFieldValue(String.valueOf(newProf.getTenantId()));
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            metadataSet.add(attributeUpdateMetadata);
-        }
 
         if (!oldProf.getUsername().equals(newProf.getUsername())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfile(newProf);
-            attributeUpdateMetadata.setUpdatedFieldKey("username");
-            attributeUpdateMetadata.setUpdatedFieldValue(newProf.getUsername());
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            metadataSet.add(attributeUpdateMetadata);
+            metadataSet.add(createAttribute(oldProf, "username", newProf.getUsername(), updatedBy, Operation.UPDATE));
         }
 
         if (!oldProf.getEmailAddress().equals(newProf.getEmailAddress())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfile(newProf);
-            attributeUpdateMetadata.setUpdatedFieldKey("emailAddress");
-            attributeUpdateMetadata.setUpdatedFieldValue(newProf.getEmailAddress());
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            metadataSet.add(attributeUpdateMetadata);
+            metadataSet.add(createAttribute(oldProf, "emailAddress", newProf.getEmailAddress(), updatedBy, Operation.UPDATE));
         }
 
         if (!oldProf.getFirstName().equals(newProf.getFirstName())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfile(newProf);
-            attributeUpdateMetadata.setUpdatedFieldKey("firstName");
-            attributeUpdateMetadata.setUpdatedFieldValue(newProf.getFirstName());
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            metadataSet.add(attributeUpdateMetadata);
+            metadataSet.add(createAttribute(oldProf, "firstName", newProf.getFirstName(), updatedBy, Operation.UPDATE));
         }
 
         if (!oldProf.getLastName().equals(newProf.getLastName())) {
-            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
-            attributeUpdateMetadata.setUserProfile(newProf);
-            attributeUpdateMetadata.setUpdatedFieldKey("lastName");
-            attributeUpdateMetadata.setUpdatedFieldValue(newProf.getLastName());
-            attributeUpdateMetadata.setUpdatedBy(updatedBy);
-            metadataSet.add(attributeUpdateMetadata);
+            metadataSet.add(createAttribute(oldProf, "lastName", newProf.getLastName(), updatedBy, Operation.UPDATE));
+        }
+
+        if (!oldProf.getUserRole().equals(newProf.getUserRole())) {
+            // find the differences between oldProf and newProf
+            Set<UserRole> oldUserRoles = new HashSet<>(oldProf.getUserRole());
+            Set<UserRole> newUserRoles = new HashSet<>(newProf.getUserRole());
+            Set<UserRole> addedRoles = new HashSet<>();
+            for (UserRole role : newUserRoles) {
+                if (oldUserRoles.contains(role)) {
+                    oldUserRoles.remove(role);
+                } else {
+                    addedRoles.add(role);
+                }
+            }
+
+            for (UserRole role : addedRoles) {
+                metadataSet.add(createAttribute(oldProf, role.getType() + "Roles", role.getValue(), updatedBy, Operation.CREATE));
+            }
+
+            for (UserRole role : oldUserRoles) {
+                metadataSet.add(createAttribute(oldProf, role.getType() + "Roles", role.getValue(), updatedBy, Operation.DELETE));
+            }
         }
 
         return metadataSet;

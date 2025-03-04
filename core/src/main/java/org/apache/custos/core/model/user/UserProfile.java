@@ -98,7 +98,7 @@ public class UserProfile {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserProfile that = (UserProfile) o;
-        return id.equals(that.getId());
+        return username.equals(that.getUsername());
     }
 
     @Override

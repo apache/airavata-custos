@@ -114,8 +114,11 @@ public class UserProfileService {
     @Autowired
     private GroupMembershipTypeRepository groupMembershipTypeRepository;
 
-    public void addUserAttributes(UserAttributeFullRequest request) {
-        String userId = request.getUserAttributeRequest().getUsername() + "@" + request.getTenantId();
+    private String getAttributeFieldValue(String key, String value) {
+        return "{key: '" + key + "', value: '" + value + "'}";
+    }
+    public org.apache.custos.core.user.profile.api.UserProfile addUserAttributes(UserAttributeFullRequest request) {
+        String userId = request.getUsername() + "@" + request.getTenantId();
 
         Optional<UserProfile> opProfile = repository.findById(userId);
         if (opProfile.isEmpty()) {
@@ -130,13 +133,24 @@ public class UserProfileService {
                 userAttributeEntity.setKey(userAttribute.getKey());
                 userAttributeEntity.setValue(value);
 
-                userAttributeRepository.save(userAttributeEntity);
+                profileEntity.getUserAttribute().add(userAttributeEntity);
+                repository.save(profileEntity);
+
+                AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+                attributeUpdateMetadata.setOperation(org.apache.custos.core.constants.Operation.CREATE);
+                attributeUpdateMetadata.setUpdatedFieldKey("attributes");
+                attributeUpdateMetadata.setUpdatedBy("");
+                attributeUpdateMetadata.setUpdatedFieldValue(getAttributeFieldValue(userAttribute.getKey(), value));
+                attributeUpdateMetadata.setUserProfile(profileEntity);
+                attributeUpdateMetadataRepository.save(attributeUpdateMetadata);
             }
         }
+
+        return UserProfileMapper.createFullUserProfileFromUserProfileEntity(profileEntity);
     }
 
-    public void deleteUserAttributes(UserAttributeFullRequest request) {
-        String userId = request.getUserAttributeRequest().getUsername() + "@" + request.getTenantId();
+    public org.apache.custos.core.user.profile.api.UserProfile deleteUserAttributes(UserAttributeFullRequest request) {
+        String userId = request.getUsername() + "@" + request.getTenantId();
 
         Optional<UserProfile> opProfile = repository.findById(userId);
         if (opProfile.isEmpty()) {
@@ -160,10 +174,18 @@ public class UserProfileService {
                 profileEntity.getUserAttribute().remove(opUserAttribute.get());
 
                 repository.save(profileEntity); // cascade deletion
+
+                AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+                attributeUpdateMetadata.setOperation(org.apache.custos.core.constants.Operation.DELETE);
+                attributeUpdateMetadata.setUpdatedFieldKey("attributes");
+                attributeUpdateMetadata.setUpdatedBy("");
+                attributeUpdateMetadata.setUpdatedFieldValue(getAttributeFieldValue(userAttribute.getKey(), value));
+                attributeUpdateMetadata.setUserProfile(profileEntity);
+                attributeUpdateMetadataRepository.save(attributeUpdateMetadata);
             }
         }
 
-
+        return UserProfileMapper.createFullUserProfileFromUserProfileEntity(profileEntity);
     }
 
     private boolean isValidRoleType(String type) {
@@ -184,14 +206,23 @@ public class UserProfileService {
                 throw new EntityNotFoundException("Could not find the UserProfile with the id: " + userId);
             }
 
-            UserProfile userProfile = op.get();
+            UserProfile oldProfileEntity = op.get();
+            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+
+            attributeUpdateMetadata.setOperation(org.apache.custos.core.constants.Operation.CREATE);
+            attributeUpdateMetadata.setUpdatedFieldKey(type+"Roles");
+            attributeUpdateMetadata.setUpdatedBy("");
+            attributeUpdateMetadata.setUpdatedFieldValue(role);
+            attributeUpdateMetadata.setUserProfile(oldProfileEntity);
 
             org.apache.custos.core.model.user.UserRole userRole = new org.apache.custos.core.model.user.UserRole();
             userRole.setType(type);
             userRole.setValue(role);
-            userRole.setUserProfile(userProfile);
+            userRole.setUserProfile(oldProfileEntity);
+            oldProfileEntity.getUserRole().add(userRole);
 
-            roleRepository.save(userRole);
+            repository.save(oldProfileEntity);
+            attributeUpdateMetadataRepository.save(attributeUpdateMetadata);
 
             return true;
         } catch(Exception ex) {
@@ -224,8 +255,16 @@ public class UserProfileService {
             }
 
             userProfile.getUserRole().remove(optionalUserRole.get());
-
             repository.save(userProfile); // trigger orphan removal
+
+            AttributeUpdateMetadata attributeUpdateMetadata = new AttributeUpdateMetadata();
+            attributeUpdateMetadata.setOperation(org.apache.custos.core.constants.Operation.DELETE);
+            attributeUpdateMetadata.setUpdatedFieldKey(type+"Roles");
+            attributeUpdateMetadata.setUpdatedBy("");
+            attributeUpdateMetadata.setUpdatedFieldValue(role);
+            attributeUpdateMetadata.setUserProfile(userProfile);
+
+            attributeUpdateMetadataRepository.save(attributeUpdateMetadata);
 
             return true;
         } catch(Exception ex) {
@@ -269,11 +308,14 @@ public class UserProfileService {
 
             if (opExEntity.isPresent()) {
                 UserProfile exEntity = opExEntity.get();
+                UserProfile newEntity = UserProfileMapper.createUserProfileEntityFromUserProfile(request.getProfile());
 
+                Set<AttributeUpdateMetadata> metadataSet = AttributeUpdateMetadataMapper.createAttributeUpdateMetadataEntity(exEntity, newEntity, request.getPerformedBy());
                 exEntity.setFirstName(request.getProfile().getFirstName());
                 exEntity.setLastName(request.getProfile().getLastName());
 
                 repository.save(exEntity);
+                attributeUpdateMetadataRepository.saveAll(metadataSet);
 
                 return request.getProfile();
             } else {
@@ -281,7 +323,7 @@ public class UserProfileService {
             }
 
         } catch (Exception ex) {
-            String msg = "Error occurred while updating user profile for " + request.getProfile().getUsername() + "at "
+            String msg = "Error occurred while updating user profile for " + request.getProfile().getUsername() + " @ "
                     + request.getTenantId() + " reason :" + ex.getMessage();
             LOGGER.error(msg, ex);
             throw new RuntimeException(msg, ex);
@@ -386,6 +428,7 @@ public class UserProfileService {
             return GetAllUserProfilesResponse
                     .newBuilder()
                     .addAllProfiles(userProfileList)
+                    .setLength((int) repository.count())
                     .build();
 
         } catch (Exception ex) {
@@ -448,42 +491,35 @@ public class UserProfileService {
     }
 
     public GetUpdateAuditTrailResponse getUserProfileAuditTrails(GetUpdateAuditTrailRequest request) {
-        try {
-            LOGGER.debug("Request received to getUserProfileAuditTrails for " + request.getUsername() + "at " + request.getTenantId());
+        LOGGER.debug("Request received to getUserProfileAuditTrails for " + request.getUsername() + "at " + request.getTenantId());
 
-            String username = request.getUsername();
-            long tenantId = request.getTenantId();
-            String userId = username + "@" + tenantId;
+        String username = request.getUsername();
+        long tenantId = request.getTenantId();
+        String userId = username + "@" + tenantId;
 
-            List<StatusUpdateMetadata> statusUpdateMetadata = statusUpdaterRepository.findAllByUserProfileId(userId);
-            List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileId(userId);
+        List<StatusUpdateMetadata> statusUpdateMetadata = statusUpdaterRepository.findAllByUserProfileId(userId);
+        List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileId(userId);
 
-            List<UserProfileStatusUpdateMetadata> userProfileStatusUpdateMetadata = null;
-            List<UserProfileAttributeUpdateMetadata> userProfileAttributeUpdateMetadata = null;
+        List<UserProfileStatusUpdateMetadata> userProfileStatusUpdateMetadata = null;
+        List<UserProfileAttributeUpdateMetadata> userProfileAttributeUpdateMetadata = null;
 
-            if (statusUpdateMetadata != null && !statusUpdateMetadata.isEmpty()) {
-                userProfileStatusUpdateMetadata = statusUpdateMetadata.stream()
-                        .map(StatusUpdateMetadataMapper::createUserProfileStatusMetadataFrom)
-                        .toList();
-            }
-
-            if (attributeUpdateMetadata != null && !attributeUpdateMetadata.isEmpty()) {
-                userProfileAttributeUpdateMetadata = attributeUpdateMetadata.stream()
-                        .map(AttributeUpdateMetadataMapper::createAttributeUpdateMetadataFromEntity)
-                        .toList();
-            }
-
-            return GetUpdateAuditTrailResponse
-                    .newBuilder()
-                    .addAllAttributeAudit(userProfileAttributeUpdateMetadata)
-                    .addAllStatusAudit(userProfileStatusUpdateMetadata)
-                    .build();
-
-        } catch (Exception ex) {
-            String msg = "Error occurred while fetching  audit trials " + request.getUsername() + "at " + request.getTenantId();
-            LOGGER.error(msg);
-            throw new RuntimeException(msg, ex);
+        if (statusUpdateMetadata != null && !statusUpdateMetadata.isEmpty()) {
+            userProfileStatusUpdateMetadata = statusUpdateMetadata.stream()
+                    .map(StatusUpdateMetadataMapper::createUserProfileStatusMetadataFrom)
+                    .toList();
         }
+
+        if (attributeUpdateMetadata != null && !attributeUpdateMetadata.isEmpty()) {
+            userProfileAttributeUpdateMetadata = attributeUpdateMetadata.stream()
+                    .map(AttributeUpdateMetadataMapper::createAttributeUpdateMetadataFromEntity)
+                    .toList();
+        }
+
+        return GetUpdateAuditTrailResponse
+                .newBuilder()
+                .addAllAttributeAudit(userProfileAttributeUpdateMetadata)
+//                    .addAllStatusAudit(userProfileStatusUpdateMetadata)
+                .build();
     }
 
     public org.apache.custos.core.user.profile.api.Group createGroup(GroupRequest request) {

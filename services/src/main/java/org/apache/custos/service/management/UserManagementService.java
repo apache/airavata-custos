@@ -516,61 +516,6 @@ public class UserManagementService {
         }
     }
 
-    /**
-     * Resets the password for a user.
-     *
-     * @param request the request object containing the information to reset the password
-     * @return an OperationStatus object indicating the result of the password reset
-     * @throws InternalServerException if an error occurs while resetting the password
-     */
-    public OperationStatus resetPassword(ResetUserPassword request) {
-        try {
-
-            GetUserManagementSATokenRequest userManagementSATokenRequest = GetUserManagementSATokenRequest.newBuilder()
-                    .setClientId(request.getClientId())
-                    .setClientSecret(request.getClientSec())
-                    .setTenantId(request.getTenantId())
-                    .build();
-            AuthToken token = identityService.getUserManagementServiceAccountAccessToken(userManagementSATokenRequest);
-
-            if (token != null && StringUtils.isNotBlank(token.getAccessToken())) {
-                request = request.toBuilder().setAccessToken(token.getAccessToken()).build();
-                return iamAdminService.resetPassword(request);
-
-            } else {
-                LOGGER.error("Cannot find service token");
-                throw new RuntimeException("Cannot find service token");
-            }
-
-        } catch (Exception ex) {
-            String msg = "Error occurred  while resetting password " + ex.getMessage();
-            LOGGER.error(msg);
-            throw new InternalServerException(msg, ex);
-        }
-    }
-
-    public Status addAttributesToUser(UserAttributeFullRequest request) {
-        try {
-            userProfileService.addUserAttributes(request);
-            return Status.newBuilder().setStatus(true).build();
-        } catch(Exception ex) {
-            String msg = "Error occurred while adding attributes: " + ex.getMessage();
-            LOGGER.error(msg);
-            throw new InternalServerException(msg, ex);
-        }
-    }
-
-    public Status deleteAttributesFromUser(UserAttributeFullRequest request) {
-        try {
-            userProfileService.deleteUserAttributes(request);
-            return Status.newBuilder().setStatus(true).build();
-        } catch(Exception ex) {
-            String msg = "Error occurred while adding attributes: " + ex.getMessage();
-            LOGGER.error(msg);
-            throw new InternalServerException(msg, ex);
-        }
-    }
-
     public Status addRolesToUsers(UsersRolesFullRequest request) {
         try {
             String[] usernames = request.getUsersRoles().getUsernamesList().toArray(new String[0]);
@@ -750,10 +695,22 @@ public class UserManagementService {
 
             UserRepresentation userRepresentation = iamAdminService.getUser(info);
 
+            String newFirstName = userRepresentation.getFirstName();
+            String newLastName = userRepresentation.getLastName();
+
+            if (!request.getUserProfile().getFirstName().isBlank()) {
+                newFirstName = request.getUserProfile().getFirstName();
+            }
+
+            if (!request.getUserProfile().getLastName().isBlank()) {
+                newLastName = request.getUserProfile().getLastName();
+            }
+
+
             userRepresentation = userRepresentation
                     .toBuilder()
-                    .setFirstName(request.getUserProfile().getFirstName())
-                    .setLastName(request.getUserProfile().getLastName())
+                    .setFirstName(newFirstName)
+                    .setLastName(newLastName)
                     .build();
 
             UpdateUserProfileRequest updateUserProfileRequest = UpdateUserProfileRequest
@@ -777,22 +734,15 @@ public class UserManagementService {
 
                     if (profile != null && StringUtils.isNotBlank(profile.getUsername())) {
                         profile = profile.toBuilder()
-                                .setFirstName(request.getUserProfile().getFirstName())
-                                .setLastName(request.getUserProfile().getLastName())
+                                .setFirstName(newFirstName)
+                                .setLastName(newLastName)
                                 .build();
                         userProfileRequest = userProfileRequest.toBuilder().setProfile(profile).build();
                         userProfileService.updateUserProfile(userProfileRequest);
                         return userProfileService.getFullUserProfile(userProfileRequest);
                     } else {
-                        UserProfile userProfile = UserProfile.newBuilder()
-                                .setFirstName(request.getUserProfile().getFirstName())
-                                .setLastName(request.getUserProfile().getLastName())
-                                .build();
-                        userProfileRequest = userProfileRequest.toBuilder().setProfile(userProfile).build();
-                        userProfileService.createUserProfile(userProfileRequest);
-                        return userProfileService.getFullUserProfile(userProfileRequest);
+                        throw new EntityNotFoundException("Tenant user profile not found.");
                     }
-
                 } catch (Exception ex) {
                     String msg = "Error occurred while saving user profile in local DB, rolling back IAM service" + ex.getMessage();
                     LOGGER.error(msg);
@@ -1169,23 +1119,7 @@ public class UserManagementService {
         }
     }
 
-    /**
-     * Deletes the external IDPs (Identity Providers) of the users based on the provided request.
-     *
-     * @param request the request object containing the information to delete the external IDPs of users
-     * @return the operation status indicating the result of deleting the external IDPs of users
-     **/
-    public OperationStatus deleteExternalIDPsOfUsers(DeleteExternalIDPsRequest request) {
-        try {
-            LOGGER.debug("Request received to deleteExternalIDPsOfUsers for " + request.getTenantId());
-            return iamAdminService.deleteExternalIDPLinksOfUsers(request);
 
-        } catch (Exception ex) {
-            String msg = "Error occurred while  deleting external IDPs of Users " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new InternalServerException(msg, ex);
-        }
-    }
 
     /**
      * This method retrieves the external IDPs (Identity Providers) of users based on the provided request.
@@ -1206,24 +1140,7 @@ public class UserManagementService {
         }
     }
 
-    /**
-     * Adds external IDPs (Identity Provider) links of users.
-     *
-     * @param request the request containing the external IDPs links to be added
-     * @return the operation status indicating the result of the operation
-     * @throws InternalServerException if an error occurs while adding the external IDPs links
-     */
-    public OperationStatus addExternalIDPsOfUsers(AddExternalIDPLinksRequest request) {
-        try {
-            LOGGER.debug("Request received to addExternalIDPsOfUsers of users in " + request.getTenantId());
-            return iamAdminService.addExternalIDPLinksOfUsers(request);
 
-        } catch (Exception ex) {
-            String msg = "Error occurred while  adding external IDPs of Users " + ex.getMessage();
-            LOGGER.error(msg, ex);
-            throw new InternalServerException(msg, ex);
-        }
-    }
 
     /**
      * Synchronizes user databases.
