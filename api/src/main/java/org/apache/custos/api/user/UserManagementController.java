@@ -360,8 +360,11 @@ public class UserManagementController {
                     "wrapping all user profiles in the tenant."
     )
     public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(
-            @RequestParam(value = "offset") int offset,
-            @RequestParam(value = "limit") int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "20") int limit,
+            @RequestParam(value = "first_name", defaultValue = "", required = false) String firstName,
+            @RequestParam(value = "last_name", defaultValue = "", required = false) String lastName,
+            @RequestParam(value = "username", defaultValue = "", required=false) String username,
             @RequestHeader HttpHeaders headers) {
         Optional<AuthClaim> claim = tokenAuthorizer.authorize(headers);
 
@@ -369,7 +372,14 @@ public class UserManagementController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Request is not authorized");
         }
 
+        UserProfile searchProfile = UserProfile.newBuilder()
+                .setFirstName(firstName)
+                .setLastName(lastName)
+                .setUsername(username)
+                .build();
+
         UserProfileRequest request = UserProfileRequest.newBuilder()
+                .setUserProfile(searchProfile)
                 .setOffset(offset)
                 .setLimit(limit)
                 .setTenantId(claim.get().getTenantId())

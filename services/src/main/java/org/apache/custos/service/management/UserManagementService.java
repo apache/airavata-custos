@@ -849,7 +849,7 @@ public class UserManagementService {
 
             org.apache.custos.core.user.profile.api.UserProfileRequest userProfileRequest = org.apache.custos.core.user.profile.api.UserProfileRequest
                     .newBuilder()
-//                    .setProfile(request.getUserProfile())
+                    .setProfile(request.getUserProfile())
                     .setTenantId(request.getTenantId())
                     .setOffset(request.getOffset())
                     .setLimit(request.getLimit())

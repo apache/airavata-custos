@@ -410,14 +410,26 @@ public class UserProfileService {
             int offset = request.getOffset();
 
             List<UserProfile> profileList;
+            String firstNameSearch = request.getProfile().getFirstName();
+            String lastNameSearch = request.getProfile().getLastName();
+            String usernameSearch = request.getProfile().getUsername();
+            long length;
 
-            if (limit > 0) {
-                profileList = repository.findByTenantIdWithPagination(tenantId, limit, offset);
+            if (!usernameSearch.isBlank()) {
+                profileList = repository.searchUserProfilesByUsername(tenantId, usernameSearch, limit, offset);
+                length = repository.countByUsername(tenantId, usernameSearch);
+            } else if (!firstNameSearch.isBlank()) {
+                profileList = repository.searchUserProfilesByFirstName(tenantId, firstNameSearch, limit, offset);
+                length = repository.countByFirstName(tenantId, firstNameSearch);
+            } else if (!lastNameSearch.isBlank()) {
+                profileList = repository.searchUserProfilesByLastName(tenantId, lastNameSearch, limit, offset);
+                length = repository.countByLastName(tenantId, lastNameSearch);
             } else {
-                profileList = repository.findByTenantId(tenantId);
+                profileList = repository.findByTenantIdWithPagination(tenantId, limit, offset);
+                length = repository.count();
             }
 
-            List<org.apache.custos.core.user.profile.api.UserProfile> userProfileList = null;
+            List<org.apache.custos.core.user.profile.api.UserProfile> userProfileList = new ArrayList<>();
 
             if (profileList != null && !profileList.isEmpty()) {
                 userProfileList = profileList.stream()
@@ -428,7 +440,7 @@ public class UserProfileService {
             return GetAllUserProfilesResponse
                     .newBuilder()
                     .addAllProfiles(userProfileList)
-                    .setLength((int) repository.count())
+                    .setLength((int) length)
                     .build();
 
         } catch (Exception ex) {

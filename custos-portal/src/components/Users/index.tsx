@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavContainer } from "../NavContainer";
 import {
   Box,
@@ -27,7 +27,6 @@ import { ActionButton } from "../ActionButton";
 import { CiSearch } from "react-icons/ci";
 import { User } from "../../interfaces/Users";
 import { Link } from "react-router-dom";
-import { useApi } from "../../hooks/useApi";
 import { BACKEND_URL } from "../../lib/constants";
 import { timeAgo } from "../../lib/util";
 import { AddUserModal } from "./AddUserModal";
@@ -45,13 +44,23 @@ export const Users = () => {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [users, setUsers] = useState<User[]>([]);
   const [length, setLength] = useState<number>(0);
+  const [search, setSearch] = useState({
+    key: "",
+    value: "",
+  });
   const auth = useAuth();
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     async function fetchUsers() {
       const urlSearchParams = new URLSearchParams();
       urlSearchParams.append("offset", offset.toString());
       urlSearchParams.append("limit", limit.toString());
+
+      if (search.key !== "") {
+        urlSearchParams.append(search.key, search.value);
+      }
+
       const resp = await fetch(
         `${BACKEND_URL}/api/v1/user-management/users?${urlSearchParams.toString()}`,
         {
@@ -64,8 +73,17 @@ export const Users = () => {
       setLength(data.length);
       setUsers(data.profiles);
     }
-    fetchUsers();
-  }, [offset, limit]);
+
+    const delayDebounce = setTimeout(fetchUsers, 500);
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      fetchUsers();
+      return;
+    }
+
+    return () => clearTimeout(delayDebounce); // Cleanup timeout on every change
+  }, [offset, limit, search]);
 
   return (
     <>
@@ -115,13 +133,36 @@ export const Users = () => {
             <option value="50">50 per page</option>
             <option value="100">100 per page</option>
           </Select>
+
+          <Select
+            value={search.key}
+            w="200px"
+            onChange={(e) => {
+              setSearch({ ...search, key: e.target.value });
+            }}
+          >
+            <option value="">All</option>
+            <option value="username">Email</option>
+            <option value="first_name">First Name</option>
+            <option value="last_name">Last Name</option>
+          </Select>
+
           <InputGroup>
             <InputRightElement pointerEvents="none">
               <Icon as={CiSearch} color="black" />
             </InputRightElement>
             <Input
+              value={search.value}
+              onChange={(e) => {
+                setSearch({ ...search, value: e.target.value });
+              }}
+              isDisabled={search.key === ""}
               type="text"
-              placeholder="Search users"
+              placeholder={
+                search.key === ""
+                  ? "Showing all users"
+                  : `Search by ${search.key}`
+              }
               _focus={{
                 borderColor: "black",
               }}
@@ -191,6 +232,7 @@ export const Users = () => {
           <IconButton
             icon={<FcPrevious />}
             bg="transparent"
+            aria-label="previous"
             onClick={() => {
               setOffset(offset - limit);
               setPageNumber(pageNumber - 1);
@@ -203,6 +245,7 @@ export const Users = () => {
           </Text>
           <IconButton
             icon={<FcNext />}
+            aria-label="next"
             bg="transparent"
             isDisabled={offset + limit >= length}
             onClick={() => {
