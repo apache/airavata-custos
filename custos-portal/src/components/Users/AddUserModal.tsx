@@ -56,7 +56,6 @@ export const AddUserModal = ({
   const navigate = useNavigate();
 
   const registerUser = async () => {
-    console.log(registerRequest);
     setLoading(true);
 
     if (!registerRequest.username || !registerRequest.email) {

@@ -23,10 +23,6 @@ export const RolesEditor = ({
   const toast = useToast();
 
   const handleSaveChanges = async () => {
-    console.log("Saving changes...");
-    console.log("Added roles:", roleChanges.added);
-    console.log("Removed roles:", roleChanges.removed);
-
     let req1Status = true;
     let req2Status = true;
 
@@ -96,8 +92,6 @@ export const RolesEditor = ({
 
     setRoleChanges({ added: [], removed: [] });
   };
-
-  console.log("roleChanges", roleChanges);
 
   return (
     <>
