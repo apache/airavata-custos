@@ -354,10 +354,8 @@ public class UserManagementController {
 
     @GetMapping("/users")
     @Operation(
-            summary = "Get All User Profiles In Tenant",
-            description = "This operation retrieves the profiles of all users in the tenant. A UserProfileRequest is used to get user profiles. " +
-                    "Upon successful execution, the system sends back a ResponseEntity containing GetAllUserProfilesResponse, " +
-                    "wrapping all user profiles in the tenant."
+            summary = "Get all user profiles in tenant (with search & pagination)",
+            description = "Can only specify one search term. If more than one is specified, priority is given to username, first name, then last name."
     )
     public ResponseEntity<GetAllUserProfilesResponse> getAllUserProfilesInTenant(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
