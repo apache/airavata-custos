@@ -95,7 +95,7 @@ public class UserRole {
 
     @Override
     public int hashCode() {
-        return Objects.hash(userProfile, type, value);
+        return Objects.hash(userProfile.getUsername(), type, value);
     }
 
 }

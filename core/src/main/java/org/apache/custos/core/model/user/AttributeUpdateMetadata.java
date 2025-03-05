@@ -31,8 +31,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.apache.custos.core.constants.Operation;
 
 import java.util.Date;
 
@@ -62,10 +65,13 @@ public class AttributeUpdateMetadata {
     @Column(nullable = false)
     private String updatedBy;
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Operation operation;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_profile_id")
     private UserProfile userProfile;
-
 
     public Long getId() {
         return id;
@@ -113,5 +119,11 @@ public class AttributeUpdateMetadata {
 
     public void setUserProfile(UserProfile userProfile) {
         this.userProfile = userProfile;
+    }
+
+    public void setOperation(Operation operation) { this.operation = operation; }
+
+    public Operation getOperation() {
+        return this.operation;
     }
 }
