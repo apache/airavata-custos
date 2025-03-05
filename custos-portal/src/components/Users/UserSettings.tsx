@@ -25,7 +25,6 @@ import {
 } from "@chakra-ui/react";
 
 import { PageTitle } from "../PageTitle";
-import { ActionButton } from "../ActionButton";
 import { Link, useParams } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa6";
 import { LeftRightLayout } from "../LeftRightLayout";
@@ -34,14 +33,14 @@ import { StackedBorderBox } from "../StackedBorderBox";
 import { BACKEND_URL, CLIENT_ID } from "../../lib/constants";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { TagsInput } from "react-tag-input-component";
-import { User } from "../../interfaces/Users";
+import { MetadataAttribute, User } from "../../interfaces/Users";
 import { Group } from "../../interfaces/Groups";
 import { IoAdd } from "react-icons/io5";
 import { AttributeValue } from "./AttributeValue";
 import { AddAttributeBox } from "./AddAttributeBox";
 import { RolesEditor } from "./RolesEditor";
 import { DeleteUserModal } from "./DeleteUserModal";
+import { UserTrailsTable } from "./UserTrailsTable";
 
 export const UserSettings = () => {
   const { email } = useParams();
@@ -53,12 +52,33 @@ export const UserSettings = () => {
   const [clientRoles, setClientRoles] = useState<string[]>([]);
   const [realmRoles, setRealmRoles] = useState<string[]>([]);
   const deleteUserModal = useDisclosure();
+  const [userTrails, setUserTrails] = useState<MetadataAttribute[]>([]);
   const [updatedName, setUpdatedName] = useState({
     first_name: "",
     last_name: "",
   });
 
   const toast = useToast();
+
+  useEffect(() => {
+    async function fetchUserTrails(): Promise<void> {
+      const resp = await fetch(
+        `${BACKEND_URL}/api/v1/user-management/users/${email}/metadata-trails`,
+        {
+          headers: {
+            Authorization: `Bearer ${auth.user?.access_token}`,
+          },
+        }
+      );
+
+      if (resp.ok) {
+        const data = await resp.json();
+        setUserTrails(data.attribute_audit);
+      }
+    }
+
+    fetchUserTrails();
+  }, [clientRoles, realmRoles]);
 
   useEffect(() => {
     async function fetchData() {
@@ -378,6 +398,18 @@ export const UserSettings = () => {
                 />
               )}
             </HStack>
+          </Box>
+
+          <Box>
+            <Text fontSize="lg">User Trails</Text>
+
+            {userTrails.length > 0 ? (
+              <UserTrailsTable trails={userTrails} />
+            ) : (
+              <Text color="gray.500" mt={2}>
+                No user trails found
+              </Text>
+            )}
           </Box>
         </StackedBorderBox>
       </NavContainer>

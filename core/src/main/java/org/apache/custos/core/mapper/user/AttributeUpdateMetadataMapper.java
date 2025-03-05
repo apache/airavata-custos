@@ -108,6 +108,7 @@ public class AttributeUpdateMetadataMapper {
                 .setUpdatedBy(metadata.getUpdatedBy())
                 .setUpdatedAttributeValue(metadata.getUpdatedFieldValue())
                 .setUpdatedAttribute(metadata.getUpdatedFieldKey())
+                .setOperation(metadata.getOperation().name())
                 .build();
     }
 }

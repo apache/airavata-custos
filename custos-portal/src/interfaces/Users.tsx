@@ -27,3 +27,10 @@ export interface RegisterRequest {
   lastModifiedAt: number;
   type: string;
 }
+
+export interface MetadataAttribute {
+  operation: string;
+  updated_at: string;
+  updated_attribute: string;
+  updated_attribute_value: string;
+}

@@ -510,7 +510,7 @@ public class UserProfileService {
         String userId = username + "@" + tenantId;
 
         List<StatusUpdateMetadata> statusUpdateMetadata = statusUpdaterRepository.findAllByUserProfileId(userId);
-        List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileId(userId);
+        List<AttributeUpdateMetadata> attributeUpdateMetadata = attributeUpdateMetadataRepository.findAllByUserProfileIdOrderByUpdatedAtDesc(userId);
 
         List<UserProfileStatusUpdateMetadata> userProfileStatusUpdateMetadata = null;
         List<UserProfileAttributeUpdateMetadata> userProfileAttributeUpdateMetadata = null;
