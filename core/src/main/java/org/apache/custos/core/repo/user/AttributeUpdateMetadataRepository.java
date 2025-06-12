@@ -26,5 +26,5 @@ import java.util.List;
 
 public interface AttributeUpdateMetadataRepository extends JpaRepository<AttributeUpdateMetadata, Long> {
 
-    List<AttributeUpdateMetadata> findAllByUserProfileId(String userId);
+    List<AttributeUpdateMetadata> findAllByUserProfileIdOrderByUpdatedAtDesc(String userId);
 }

@@ -57,24 +57,19 @@ public class UserProfileMapper {
             entity.setEmailAddress(userProfile.getEmail());
         }
 
-        userProfile.getFirstName();
         if (!userProfile.getFirstName().trim().isEmpty()) {
             entity.setFirstName(userProfile.getFirstName());
         }
 
-        userProfile.getLastName();
         if (!userProfile.getLastName().trim().isEmpty()) {
             entity.setLastName(userProfile.getLastName());
         }
 
         entity.setType(userProfile.getType().name());
-
         entity.setStatus(userProfile.getStatus().name());
 
         Set<UserAttribute> attributeSet = new HashSet<>();
         if (!userProfile.getAttributesList().isEmpty()) {
-
-
             userProfile.getAttributesList().forEach(atr -> {
                 if (!atr.getValuesList().isEmpty()) {
                     for (String value : atr.getValuesList()) {
@@ -131,8 +126,8 @@ public class UserProfileMapper {
                     }
                 }
             }
-            builder.addAllClientRoles(clientRoles);
-            builder.addAllRealmRoles(realmRoles);
+            builder.addAllInheritedClientRoles(clientRoles);
+            builder.addAllInheritedRealmRoles(realmRoles);
         }
 
         return builder.build();
