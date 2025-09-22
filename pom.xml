@@ -46,6 +46,7 @@
         <module>services</module>
         <module>api</module>
         <module>application</module>
+        <module>signer</module>
     </modules>
 
     <dependencyManagement>
@@ -205,6 +206,7 @@
         <ssh.username>ubuntu</ssh.username>
         <jakarta.ws.version>4.0.0</jakarta.ws.version>
         <custos.dist.name>apache-airavata-custos-${project.version}</custos.dist.name>
+        <signer.dist.name>apache-airavata-custos-signer-${project.version}</signer.dist.name>
     </properties>
 
     <repositories>
