@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package org.apache.custos.amie.internal.events.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "amie_packets.proto";
+
+// Defines the high-level stages in the processing of a single AMIE packet
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+
+  // Ingestion & persistence
+  PACKET_POLLED = 10;  // Fetched from AMIE Client API
+  PACKET_PERSISTED = 11;  // Stored in `packets` table
+
+  // Decode
+  DECODE_STARTED = 20;
+  DECODE_SUCCEEDED = 21;
+  DECODE_FAILED = 22;
+
+  // Provisioning (account, project, groups, home dir, etc.)
+  PROVISIONING_REQUESTED = 30;
+  PROVISIONING_SUCCEEDED = 31;
+  PROVISIONING_FAILED = 32;
+
+  // ACK back to ACCESS (eg, inform_transaction_complete - notify_*)
+  ACK_SCHEDULED = 40;
+  ACK_DISPATCHED = 41;
+  ACK_FAILED = 42;
+}
+
+// Represents the status of a specific processing event (mirrors `processing_events` column)
+enum ProcessingStatus {
+  PROCESSING_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  RUNNING = 2;
+  SUCCEEDED = 3;
+  FAILED = 4;
+  RETRY_SCHEDULED = 5;
+  SKIPPED = 6;
+}
+
+// Standard error payload for failures and retries
+message EventError {
+  string code = 1;       // short code, eg, "AMIE_HTTP_502", "DECODE_JSON", "COMANAGE_API_TIMEOUT"
+  string summary = 2;    // one-line summary
+  string detail = 3;     // full error detail
+  bool retriable = 4;    // indicate whether this can be retried
+}
+
+message PacketPolledPayload {
+  int64 amie_packet_rec_id = 1; // from AMIE header
+  string poll_run_id = 2;
+}
+
+message PacketPersistedPayload {
+  string packet_db_id = 1;      // UUID from `packets.id`
+  int64 amie_packet_rec_id = 2;
+}
+
+message DecodeStartedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+}
+
+message DecodeSucceededPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+
+  amie.v1.Packet packet = 3;  // Fully typed decoded packet (from amie_packet.proto).
+}
+
+message DecodeFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  EventError error = 3;
+}
+
+message ProvisioningRequestedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+
+  string operation = 3;                       // eg, "CREATE_UNIX_ACCOUNT", "ADD_TO_PROJECT", "INACTIVATE_ACCOUNT"
+  string unix_username = 4;                   // if known
+  string project_id = 5;                      // ACCESS ProjectID
+  repeated string resources = 6;              // target resource codes from AMIE
+  google.protobuf.Struct desired_state = 7;   // flexible struct containing the details needed for the operation
+}
+
+message ProvisioningSucceededPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string operation = 3;
+  google.protobuf.Struct result = 4;  // eg, { "uid": 12345, "home": "/home/foo" }
+}
+
+message ProvisioningFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string operation = 3;
+  EventError error = 4;
+}
+
+message AckScheduledPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;  // eg, "inform_transaction_complete"
+}
+
+message AckDispatchedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;
+  int32 http_status = 4;  // response code from the ACCESS API
+}
+
+message AckFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;
+  EventError error = 4;
+}
+
+// This is the main envelope message that will be serialized and stored
+// in the `processing_events.payload` column in the database
+message ProcessingEvent {
+  string id = 1;                       // UUID for the event (`processing_events.id`)
+  string packet_db_id = 2;             // `packets.id`
+  int64 amie_packet_rec_id = 3;        // The original AMIE ID
+  EventType type = 4;
+  ProcessingStatus status = 5;
+  int32 attempts = 6;
+
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp finished_at = 9;
+
+  // Event-specific payloads
+  oneof payload {
+    PacketPolledPayload packet_polled = 20;
+    PacketPersistedPayload packet_persisted = 21;
+
+    DecodeStartedPayload decode_started = 30;
+    DecodeSucceededPayload decode_succeeded = 31;
+    DecodeFailedPayload decode_failed = 32;
+
+    ProvisioningRequestedPayload provisioning_requested = 40;
+    ProvisioningSucceededPayload provisioning_succeeded = 41;
+    ProvisioningFailedPayload provisioning_failed = 42;
+
+    AckScheduledPayload ack_scheduled = 50;
+    AckDispatchedPayload ack_dispatched = 51;
+    AckFailedPayload ack_failed = 52;
+
+    google.protobuf.Struct generic = 90;
+  }
+}
