@@ -22,19 +22,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "packets")
 public class PacketEntity {
 
     @Id
-    @GeneratedValue(generator = "uuid")
     private String id;
 
     @Column(name = "amie_id", nullable = false, unique = true)
@@ -68,6 +67,7 @@ public class PacketEntity {
     private String lastError;
 
     public PacketEntity() {
+        this.id = UUID.randomUUID().toString();
     }
 
     public String getId() {
