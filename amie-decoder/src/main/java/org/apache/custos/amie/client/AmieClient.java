@@ -30,14 +30,15 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A client for Access CI AMIE REST API
@@ -65,20 +66,14 @@ public class AmieClient {
      * @return A list of packets. Returns an empty list if the call fails or no packets are found.
      */
     public List<JsonNode> fetchInProgressPackets() {
-        URI uri = UriComponentsBuilder.fromHttpUrl(properties.getBaseUrl())
-                .path(PACKETS_PATH)
-                .build(properties.getSiteCode());
+        String url = String.format("%s/packets/%s/", properties.getBaseUrl(), properties.getSiteCode());
+        LOGGER.info("Polling for AMIE packets at URL: {}", url);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(HEADER_XA_SITE, properties.getSiteCode());
-        headers.set(HEADER_XA_API_KEY, properties.getApiKey());
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-
+        HttpHeaders headers = createAmieHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
-            LOGGER.debug("Fetching in-progress packets from {}", uri);
-            ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(URI.create(url), HttpMethod.GET, entity, String.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 LOGGER.warn("Received a non-successful response from AMIE API: {} {}", response.getStatusCode(), response.getBody());
@@ -88,9 +83,46 @@ public class AmieClient {
             return parsePacketsFromResponse(response.getBody());
 
         } catch (RestClientException e) {
-            LOGGER.error("Failed to fetch packets from AMIE API at {}", uri, e);
+            LOGGER.error("An unexpected error occurred while fetching packets.", e);
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Sends a reply packet to the AMIE API to continue a transaction.
+     * For example, sending a 'notify_project_create' in response to a 'request_project_create'.
+     *
+     * @param packetRecId The ID of the packet this reply is for.
+     * @param replyBody   A Map representing the JSON body of the reply packet.
+     */
+    public void replyToPacket(long packetRecId, Map<String, Object> replyBody) {
+        String url = String.format("%s/packets/%s/%d/reply", properties.getBaseUrl(), properties.getSiteCode(), packetRecId);
+        LOGGER.info("Sending reply to URL: {}", url);
+
+        HttpHeaders headers = createAmieHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(replyBody, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                LOGGER.info("Successfully sent reply for packet_rec_id [{}].", packetRecId);
+            } else {
+                LOGGER.error("Failed to send reply for packet_rec_id [{}]. Status: {}, Body: {}", packetRecId, response.getStatusCode(), response.getBody());
+            }
+        } catch (HttpClientErrorException e) {
+            LOGGER.error("HTTP error sending reply for packet_rec_id [{}]: {} {}", packetRecId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw e;
+        }
+    }
+
+    private HttpHeaders createAmieHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HEADER_XA_SITE, properties.getSiteCode());
+        headers.set(HEADER_XA_API_KEY, properties.getApiKey());
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        return headers;
     }
 
     private List<JsonNode> parsePacketsFromResponse(String responseBody) {
