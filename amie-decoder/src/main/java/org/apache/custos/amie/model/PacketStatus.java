@@ -7,28 +7,33 @@
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
- *
+ *  specific language governing permissions and limitations
+ *  under the License.
  */
-package org.apache.custos.amie;
+package org.apache.custos.amie.model;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.scheduling.annotation.EnableScheduling;
+public enum PacketStatus {
 
-@SpringBootApplication
-@EnableJpaAuditing
-@EnableScheduling
-public class AmieDecoderApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(AmieDecoderApplication.class, args);
-    }
+    /**
+     * Packet has been received from the AMIE API and persisted but has not yet been processed.
+     */
+    NEW,
+    /**
+     * The packet's raw JSON content has been successfully parsed, and the initial processing event has been created.
+     */
+    DECODED,
+    /**
+     * All required processing events have been completed successfully.
+     */
+    PROCESSED,
+    /**
+     * The processing of this packet failed and will not be automatically retried.
+     */
+    FAILED
 }
