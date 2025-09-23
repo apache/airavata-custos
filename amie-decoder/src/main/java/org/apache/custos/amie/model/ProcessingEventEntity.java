@@ -31,13 +31,13 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "processing_events")
 public class ProcessingEventEntity {
 
     @Id
-    @GeneratedValue(generator = "uuid")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -73,6 +73,7 @@ public class ProcessingEventEntity {
     private String lastError;
 
     public ProcessingEventEntity() {
+        this.id = UUID.randomUUID().toString();
     }
 
     public String getId() {
