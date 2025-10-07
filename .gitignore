@@ -40,3 +40,6 @@ node_modules/
 dist/
 
 database_data
+
+# local application properties
+application.properties

@@ -47,7 +47,7 @@ import java.util.Map;
 public class AmieClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmieClient.class);
-    private static final String PACKETS_PATH = "/packets/{site}/";
+    private static final String PACKETS_PATH = "%s/packets/%s";
     private static final String HEADER_XA_SITE = "XA-SITE";
     private static final String HEADER_XA_API_KEY = "XA-API-KEY";
 
@@ -66,7 +66,7 @@ public class AmieClient {
      * @return A list of packets. Returns an empty list if the call fails or no packets are found.
      */
     public List<JsonNode> fetchInProgressPackets() {
-        String url = String.format("%s/packets/%s/", properties.getBaseUrl(), properties.getSiteCode());
+        String url = String.format(PACKETS_PATH, properties.getBaseUrl(), properties.getSiteCode());
         LOGGER.info("Polling for AMIE packets at URL: {}", url);
 
         HttpHeaders headers = createAmieHeaders();
