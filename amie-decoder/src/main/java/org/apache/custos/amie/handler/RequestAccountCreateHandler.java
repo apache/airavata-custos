@@ -31,11 +31,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Handles the 'request_account_create' AMIE packet.
+ * Handles the 'request_account_create' (RAC) AMIE packet.
  * <p>
  * This transaction asks the local site to create an account for a user on a project.
  * This includes creating a local user account with the specified project (a Unix account) if one does not exist.
- * Upon successful processing sends a 'notify_account_create' reply back to AMIE.
+ * Upon successful processing sends a 'notify_account_create' (NAC) reply back to AMIE.
  */
 @Component
 public class RequestAccountCreateHandler implements PacketHandler {
