@@ -57,7 +57,7 @@ public class AmiePoller {
     }
 
 
-    @Scheduled(fixedDelayString = "${app.amie.scheduler.poll-delay}")
+    @Scheduled(fixedDelayString = "#{T(org.springframework.boot.convert.DurationStyle).detectAndParse('${app.amie.scheduler.poll-delay}').toMillis()}")
     @Transactional
     public void pollForPackets() {
         LOGGER.info("Polling for new AMIE packets...");
