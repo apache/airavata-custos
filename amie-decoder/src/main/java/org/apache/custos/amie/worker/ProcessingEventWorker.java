@@ -66,7 +66,7 @@ public class ProcessingEventWorker {
     /**
      * Runs on a fixed delay, checks for NEW events, and processes them one by one.
      */
-    @Scheduled(fixedDelayString = "${app.amie.scheduler.worker-delay}")
+    @Scheduled(fixedDelayString = "#{T(org.springframework.boot.convert.DurationStyle).detectAndParse('${app.amie.scheduler.worker-delay}').toMillis()}")
     @Transactional
     public void processPendingEvents() {
         try (var eventStream = eventRepo.findTop50ByStatusOrderByCreatedAtAsc(ProcessingStatus.NEW)) {

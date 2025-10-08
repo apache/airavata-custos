@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Handles 'request_project_create' (RPC) by replying with 'notify_project_create' (NPC).
@@ -68,6 +69,10 @@ public class RequestProjectCreateHandler implements PacketHandler {
         String pfosNumber = body.path("PfosNumber").asText("");
         String piGlobalID = body.path("PiGlobalID").asText("");
 
+        // TODO handle for failures
+        String piFirstName = body.path("PiFirstName").asText("");
+        String piLastName = body.path("PiLastName").asText("");
+
         // ResourceList will have only one resource (According to AMIE documentation)
         List<Object> resourceList = new ArrayList<>();
         JsonNode rl = body.path("ResourceList");
@@ -80,6 +85,10 @@ public class RequestProjectCreateHandler implements PacketHandler {
         // TODO - Derive a local project identifier
         String localProjectId = deriveLocalProjectId(grantNumber);
 
+        // TODO - Derive the following two from COmange registry
+        String piPersonID = UUID.randomUUID().toString();
+        String piRemoteSiteLogin = (piFirstName.charAt(0) + piLastName).toLowerCase();
+
         // Build the NPC reply body
         Map<String, Object> replyBody = new HashMap<>();
         Map<String, Object> npc = new HashMap<>();
@@ -89,9 +98,14 @@ public class RequestProjectCreateHandler implements PacketHandler {
         npc.put("EndDate", endDate);
         npc.put("RecordID", recordId);
         npc.put("ProjectID", localProjectId);
-        npc.put("PiOrgCode", piOrgCode);
         npc.put("PfosNumber", pfosNumber);
+
+        npc.put("PiOrgCode", piOrgCode);
         npc.put("PiGlobalID", piGlobalID);
+        npc.put("PiPersonID", piPersonID);
+        npc.put("PiOrgCode", piOrgCode);
+        npc.put("PiRemoteSiteLogin", piRemoteSiteLogin);
+
         if (!resourceList.isEmpty()) {
             npc.put("ResourceList", resourceList);
         }
