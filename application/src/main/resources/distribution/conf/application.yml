@@ -36,15 +36,15 @@ spring:
   application:
     name: custos-playground
   datasource:
-    url: "jdbc:mysql://localhost:3306/custos"
+    url: "jdbc:mariadb://localhost:3306/custos"
     username: admin
     password: admin
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.MariaDBDialect
   cloud:
     vault:
       token: 00000000-0000-0000-0000-000000000000 # Update this with your token
