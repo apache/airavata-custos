@@ -55,7 +55,7 @@ git clone https://github.com/apache/airavata-custos.git
 #### Start Docker Containers (to run a development environment)
 Navigate to `/compose`, and start the following containers:
 - Keycloack (http://localhost:8080)
-- Custos DB (MySQL, http://localhost:3306)
+- Custos DB (MariDB, http://localhost:3306)
 - Vault (http://localhost:8200)
 - Adminer (http://localhost:18080)
 

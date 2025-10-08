@@ -21,17 +21,17 @@ spring:
   application:
     name: amie-decoder-service
   datasource:
-    url: "jdbc:mysql://localhost:3306/amie_decoder"
+    url: "jdbc:mariadb://localhost:3306/amie_decoder"
     username: admin
     password: admin
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate.jdbc.time_zone: UTC
     show-sql: false
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.MariaDBDialect
   flyway:
     locations: classpath:db/migration
 
