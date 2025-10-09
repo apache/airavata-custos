@@ -63,6 +63,7 @@ public class RequestAccountCreateHandler implements PacketHandler {
         String userFirstName = body.path("UserFirstName").asText();
         String userLastName = body.path("UserLastName").asText();
         String userEmail = body.path("UserEmail").asText();
+        String userOrgCode = body.path("UserOrgCode").asText();
 
         Assert.hasText(projectId, "'ProjectID' (the local project ID) must not be empty.");
         Assert.hasText(userFirstName, "'UserFirstName' must not be empty.");
@@ -71,13 +72,14 @@ public class RequestAccountCreateHandler implements PacketHandler {
 
         // TODO invoke actual cluster's user provisioning service. For the time being generating a local user ID and a username
         String localUserPersonId = UUID.randomUUID().toString();
-        String localUsername = (userFirstName.charAt(0) + userLastName).toLowerCase();
+        String localUsername = (userFirstName.trim().charAt(0) + userLastName.trim().replace(" ", "-")).toLowerCase();
 
         LOGGER.info("Created local user account with PersonID [{}] and username [{}]", localUserPersonId, localUsername);
 
         // Build and send the 'notify_account_create' reply
         Map<String, Object> replyBody = new HashMap<>();
         Map<String, Object> bodyContent = new HashMap<>();
+        bodyContent.put("UserOrgCode", userOrgCode);
         bodyContent.put("ProjectID", projectId);
         bodyContent.put("UserPersonID", localUserPersonId);
 
