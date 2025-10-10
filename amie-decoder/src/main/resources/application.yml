@@ -27,12 +27,14 @@ spring:
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
+      hibernate.type.preferred_enum_jdbc_type: VARCHAR
     show-sql: false
     database-platform: org.hibernate.dialect.MariaDBDialect
   flyway:
+    enabled: true
     locations: classpath:db/migration
 
 app:

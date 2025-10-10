@@ -21,12 +21,16 @@ package org.apache.custos.amie.repo;
 import org.apache.custos.amie.model.ProcessingEventEntity;
 import org.apache.custos.amie.model.ProcessingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.stream.Stream;
+import java.util.Collection;
+import java.util.List;
 
 @Repository
 public interface ProcessingEventRepository extends JpaRepository<ProcessingEventEntity, String> {
 
-    Stream<ProcessingEventEntity> findTop50ByStatusOrderByCreatedAtAsc(ProcessingStatus status);
+    @Query("SELECT e FROM ProcessingEventEntity e JOIN FETCH e.packet WHERE e.status IN :statuses ORDER BY e.createdAt ASC")
+    List<ProcessingEventEntity> findTop50EventsToProcess(@Param("statuses")  Collection<ProcessingStatus> statuses);
 }

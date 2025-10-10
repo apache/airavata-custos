@@ -50,11 +50,11 @@ public class ProcessingErrorEntity {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt = Instant.now();
 
-    @Column(name = "summary", nullable = false)
+    @Column(name = "summary", columnDefinition = "TEXT", nullable = false)
     private String summary;
 
     @Lob
-    @Column(name = "detail")
+    @Column(name = "detail", columnDefinition = "TEXT")
     private String detail;
 
     public Long getId() {

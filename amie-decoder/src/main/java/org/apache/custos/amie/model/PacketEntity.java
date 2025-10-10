@@ -43,11 +43,11 @@ public class PacketEntity {
     private String type;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
+    @Column(name = "status", columnDefinition = "VARCHAR", nullable = false, length = 32)
     private PacketStatus status = PacketStatus.NEW;
 
     @Lob
-    @Column(name = "raw_json", columnDefinition = "JSON", nullable = false)
+    @Column(name = "raw_json", columnDefinition = "TEXT", nullable = false)
     private String rawJson;
 
     @Column(name = "received_at", nullable = false)
@@ -63,7 +63,7 @@ public class PacketEntity {
     private int retries = 0;
 
     @Lob
-    @Column(name = "last_error")
+    @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
     public PacketEntity() {
