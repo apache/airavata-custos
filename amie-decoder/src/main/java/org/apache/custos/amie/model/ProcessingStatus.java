@@ -35,5 +35,9 @@ public enum ProcessingStatus {
     /**
      * The event failed processing and will not be automatically retried.
      */
-    FAILED
+    FAILED,
+    /**
+     * The event failed a previous attempt and is waiting to be retried.
+     */
+    RETRY_SCHEDULED
 }

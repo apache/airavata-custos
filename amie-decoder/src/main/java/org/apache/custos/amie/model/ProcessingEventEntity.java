@@ -23,7 +23,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
@@ -45,18 +44,18 @@ public class ProcessingEventEntity {
     private PacketEntity packet;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 64)
+    @Column(name = "type", columnDefinition = "VARCHAR", nullable = false, length = 64)
     private ProcessingEventType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
+    @Column(name = "status", columnDefinition = "VARCHAR", nullable = false, length = 32)
     private ProcessingStatus status = ProcessingStatus.NEW;
 
     @Column(name = "attempts", nullable = false)
     private int attempts = 0;
 
     @Lob
-    @Column(name = "payload", nullable = false)
+    @Column(name = "payload", columnDefinition = "LONGBLOB", nullable = false)
     private byte[] payload;
 
     @Column(name = "created_at", nullable = false)
@@ -69,7 +68,7 @@ public class ProcessingEventEntity {
     private Instant finishedAt;
 
     @Lob
-    @Column(name = "last_error")
+    @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
     public ProcessingEventEntity() {

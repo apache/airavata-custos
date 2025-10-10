@@ -17,7 +17,7 @@ CREATE TABLE packets
     amie_id      BIGINT       NOT NULL, -- packet_rec_id from AMIE
     type         VARCHAR(64)  NOT NULL, -- eg. request_account_create
     status       VARCHAR(32)  NOT NULL, -- NEW, DECODED, PROCESSED, FAILED
-    raw_json     JSON         NOT NULL,
+    raw_json     TEXT         NOT NULL,
     received_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     decoded_at   TIMESTAMP(6) NULL,
     processed_at TIMESTAMP(6) NULL,
@@ -66,14 +66,12 @@ CREATE TABLE processing_errors
     packet_id   VARCHAR(255) NULL,
     event_id    VARCHAR(255) NULL,
     occurred_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    summary     VARCHAR(255) NOT NULL,
+    summary     TEXT         NOT NULL,
     detail      TEXT NULL,
 
     PRIMARY KEY (id),
     CONSTRAINT fk_errors_packet FOREIGN KEY (packet_id) REFERENCES packets (id) ON DELETE SET NULL,
     CONSTRAINT fk_errors_event FOREIGN KEY (event_id) REFERENCES processing_events (id) ON DELETE SET NULL,
-
-    CHECK (packet_id IS NOT NULL OR event_id IS NOT NULL),
 
     KEY         idx_errors_packet_id (packet_id),
     KEY         idx_errors_event_id (event_id),
