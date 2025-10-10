@@ -8,6 +8,63 @@ SET
 time_zone = '+00:00';
 
 -- -----------------------------
+-- TABLE: persons
+-- Stores a unique record for each person received from AMIE.
+-- -----------------------------
+CREATE TABLE persons
+(
+    id               VARCHAR(255) NOT NULL, -- Local user ID - UserPersonID
+    access_global_id VARCHAR(255) NOT NULL, -- UserGlobalID from AMIE
+    first_name       VARCHAR(255) NOT NULL,
+    last_name        VARCHAR(255) NOT NULL,
+    email            VARCHAR(255) NOT NULL,
+    organization     VARCHAR(255) NULL,
+    org_code         VARCHAR(255) NULL,
+    nsf_status_code  VARCHAR(32) NULL,
+    created_at       TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at       TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_persons_amie_global_id (access_global_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -----------------------------
+-- TABLE: person_dns
+-- Stores the list of Distinguished Names (DNs) for a person.
+-- -----------------------------
+CREATE TABLE person_dns
+(
+    id        BIGINT       NOT NULL AUTO_INCREMENT,
+    person_id VARCHAR(255) NOT NULL,
+    dn        VARCHAR(512) NOT NULL,
+
+    PRIMARY KEY (id),
+    CONSTRAINT fk_dns_person FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE,
+    UNIQUE KEY uq_person_dn (person_id, dn)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -----------------------------
+-- TABLE: cluster_accounts
+-- Stores the actual provisioned usernames on the cluster.
+-- -----------------------------
+CREATE TABLE cluster_accounts
+(
+    id         VARCHAR(255) NOT NULL,
+    person_id  VARCHAR(255) NOT NULL,
+    username   VARCHAR(255) NOT NULL,
+    is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_accounts_username (username),
+    CONSTRAINT fk_accounts_person FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- -----------------------------
 -- TABLE: packets
 -- Stores each unique AMIE packet received from the polling endpoint
 -- -----------------------------
@@ -29,6 +86,7 @@ CREATE TABLE packets
     KEY          idx_packets_status (status),
     KEY          idx_packets_received_at (received_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- -----------------------------
 -- TABLE: processing_events
@@ -55,6 +113,7 @@ CREATE TABLE processing_events
     KEY         idx_events_packet_id (packet_id),
     KEY         idx_events_type (type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- -----------------------------
 -- TABLE: processing_errors
