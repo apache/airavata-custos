@@ -21,6 +21,7 @@ package org.apache.custos.amie.handler;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.amie.client.AmieClient;
 import org.apache.custos.amie.model.PacketEntity;
+import org.apache.custos.amie.service.ProjectMembershipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,9 +44,11 @@ public class RequestAccountInactivateHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestAccountInactivateHandler.class);
 
     private final AmieClient amieClient;
+    private final ProjectMembershipService membershipService;
 
-    public RequestAccountInactivateHandler(AmieClient amieClient) {
+    public RequestAccountInactivateHandler(AmieClient amieClient, ProjectMembershipService membershipService) {
         this.amieClient = amieClient;
+        this.membershipService = membershipService;
     }
 
     @Override
@@ -65,18 +68,19 @@ public class RequestAccountInactivateHandler implements PacketHandler {
         Assert.hasText(personId, "'PersonID' must not be empty.");
         LOGGER.info("Packet validated. Inactivating account for user [{}] on project [{}].", personId, projectId);
 
-        // TODO - perform the business logic
-        //  - find the user's project record and mark it as inactive
-        //  - remove the user from project's Slurm account
-        LOGGER.info("Simulating business logic: Removing user [{}] from project [{}]'s allocation.", personId, projectId);
+        membershipService.inactivateMembershipsByPersonAndProject(projectId, personId);
 
+        sendSuccessReply(packetEntity.getAmieId(), body);
 
-        // Send the 'notify_account_inactivate' reply.
-        Map<String, Object> replyBody = new HashMap<>();
+        LOGGER.info("Successfully completed 'request_account_inactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
+    }
+
+    private void sendSuccessReply(long packetRecId, JsonNode body) {
+        Map<String, Object> reply = new HashMap<>();
         Map<String, Object> bodyContent = new HashMap<>();
 
-        bodyContent.put("ProjectID", projectId);
-        bodyContent.put("PersonID", personId);
+        bodyContent.put("ProjectID", body.path("ProjectID").asText());
+        bodyContent.put("PersonID", body.path("PersonID").asText());
 
         List<String> resourceList = new ArrayList<>();
         JsonNode rlNode = body.path("ResourceList");
@@ -85,11 +89,9 @@ public class RequestAccountInactivateHandler implements PacketHandler {
         }
         bodyContent.put("ResourceList", resourceList);
 
-        replyBody.put("type", "notify_account_inactivate");
-        replyBody.put("body", bodyContent);
+        reply.put("type", "notify_account_inactivate");
+        reply.put("body", bodyContent);
 
-        amieClient.replyToPacket(packetEntity.getAmieId(), replyBody);
-
-        LOGGER.info("Successfully completed 'request_account_inactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
+        amieClient.replyToPacket(packetRecId, reply);
     }
 }
