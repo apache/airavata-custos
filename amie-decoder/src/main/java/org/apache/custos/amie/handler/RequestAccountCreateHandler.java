@@ -21,6 +21,7 @@ package org.apache.custos.amie.handler;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.amie.client.AmieClient;
 import org.apache.custos.amie.model.PacketEntity;
+import org.apache.custos.amie.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,9 +44,11 @@ public class RequestAccountCreateHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestAccountCreateHandler.class);
 
     private final AmieClient amieClient;
+    private final PersonService personService;
 
-    public RequestAccountCreateHandler(AmieClient amieClient) {
+    public RequestAccountCreateHandler(AmieClient amieClient, PersonService personService) {
         this.amieClient = amieClient;
+        this.personService = personService;
     }
 
     @Override
@@ -62,7 +65,6 @@ public class RequestAccountCreateHandler implements PacketHandler {
         String grantNumber = body.path("GrantNumber").asText();
         String userFirstName = body.path("UserFirstName").asText();
         String userLastName = body.path("UserLastName").asText();
-        String userEmail = body.path("UserEmail").asText();
         String userOrgCode = body.path("UserOrgCode").asText();
 
         Assert.hasText(projectId, "'ProjectID' (the local project ID) must not be empty.");
@@ -70,11 +72,13 @@ public class RequestAccountCreateHandler implements PacketHandler {
         Assert.hasText(userLastName, "'UserLastName' must not be empty.");
         LOGGER.info("Packet validated successfully for user [{} {}] on project [{}].", userFirstName, userLastName, projectId);
 
-        // TODO invoke actual cluster's user provisioning service. For the time being generating a local user ID and a username
-        String localUserPersonId = UUID.randomUUID().toString();
-        String localUsername = (userFirstName.trim().charAt(0) + userLastName.trim().replace(" ", "-")).toLowerCase();
-
-        LOGGER.info("Created local user account with PersonID [{}] and username [{}]", localUserPersonId, localUsername);
+        // TODO Replace with external source of truth (e.g., COmanage) lookup for PersonID and username
+        String proposedPersonId = UUID.randomUUID().toString();
+        String proposedUsername = (userFirstName.trim().charAt(0) + userLastName.trim().replace(" ", "-")).toLowerCase();
+        var provision = personService.createIfAbsentFromPacket(body, proposedPersonId, proposedUsername);
+        String localUserPersonId = provision.getLocalPersonId();
+        String localUsername = provision.getUsername();
+        LOGGER.info("Ensured local person [{}] and cluster account username [{}] exist.", localUserPersonId, localUsername);
 
         // Build and send the 'notify_account_create' reply
         Map<String, Object> replyBody = new HashMap<>();

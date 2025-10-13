@@ -24,4 +24,10 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PersonDnsRepository extends JpaRepository<PersonDnsEntity, Long> {
+
+    boolean existsByPerson_IdAndDn(String personId, String dn);
+
+    void deleteByPerson_Id(String personId);
+
+    void deleteByPerson_IdAndDnNotIn(String personId, java.util.Collection<String> dnsToKeep);
 }
