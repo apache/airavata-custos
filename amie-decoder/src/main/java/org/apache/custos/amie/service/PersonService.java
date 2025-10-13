@@ -29,13 +29,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Service responsible for managing the lifecycle of Person entities and their associated DNs.
+ */
 @Service
 public class PersonService {
 
@@ -51,100 +56,60 @@ public class PersonService {
         this.clusterAccountRepository = clusterAccountRepository;
     }
 
-    public static class AccountProvisionResult {
-        private final String localPersonId;
-        private final String username;
-
-        public AccountProvisionResult(String localPersonId, String username) {
-            this.localPersonId = localPersonId;
-            this.username = username;
-        }
-
-        public String getLocalPersonId() {
-            return localPersonId;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-    }
-
+    /**
+     * Finds a Person by their AMIE Global ID or creates a new one if not found.
+     *
+     * @param packetBody The "body" of the AMIE packet containing user details.
+     * @return The existing or newly created PersonEntity.
+     */
     @Transactional
-    public AccountProvisionResult createIfAbsentFromPacket(JsonNode packetBody, String localPersonId, String proposedUsername) {
-        String accessGlobalId = packetBody.path("UserGlobalID").asText(null);
-        if (accessGlobalId == null || accessGlobalId.isBlank()) {
-            LOGGER.warn("Missing required 'UserGlobalID' (ACCESS Global ID) in account create packet body");
-            throw new IllegalArgumentException("Missing required 'UserGlobalID' (ACCESS Global ID) in account create packet body");
+    public PersonEntity findOrCreatePersonFromPacket(JsonNode packetBody) {
+        String accessGlobalId = packetBody.path("UserGlobalID").asText();
+        Assert.hasText(accessGlobalId, "Packet body must contain a 'UserGlobalID'.");
+
+        Optional<PersonEntity> existingPerson = personRepository.findByAccessGlobalId(accessGlobalId);
+        if (existingPerson.isPresent()) {
+            LOGGER.info("Found existing person with local ID [{}] for access_global_id [{}]", existingPerson.get().getId(), accessGlobalId);
+            return existingPerson.get();
         }
 
-        Optional<PersonEntity> existingByGlobal = personRepository.findByAccessGlobalId(accessGlobalId);
-        PersonEntity person;
-        if (existingByGlobal.isPresent()) {
-            person = existingByGlobal.get();
-            LOGGER.info("Person already exists for access_global_id [{}] as local id [{}]", accessGlobalId, person.getId());
+        // If not found, create a new person
+        LOGGER.info("No person found for access_global_id [{}]. Creating a new person record.", accessGlobalId);
+        PersonEntity newPerson = new PersonEntity();
+        newPerson.setId(UUID.randomUUID().toString());
+        newPerson.setAccessGlobalId(accessGlobalId);
+        newPerson.setFirstName(packetBody.path("UserFirstName").asText(""));
+        newPerson.setLastName(packetBody.path("UserLastName").asText(""));
+        newPerson.setEmail(packetBody.path("UserEmail").asText(""));
+        newPerson.setOrganization(packetBody.path("UserOrganization").asText(null));
+        newPerson.setOrgCode(packetBody.path("UserOrgCode").asText(null));
+        newPerson.setNsfStatusCode(packetBody.path("NsfStatusCode").asText(null));
+        personRepository.save(newPerson);
 
-        } else {
-            person = new PersonEntity();
-            person.setId(localPersonId);
-            person.setAccessGlobalId(accessGlobalId);
-            person.setFirstName(packetBody.path("UserFirstName").asText(""));
-            person.setLastName(packetBody.path("UserLastName").asText(""));
-            person.setEmail(packetBody.path("UserEmail").asText(""));
-            person.setOrganization(packetBody.path("UserOrganization").asText(null));
-            person.setOrgCode(packetBody.path("UserOrgCode").asText(null));
-            person.setNsfStatusCode(packetBody.path("NsfStatusCode").asText(null));
-            personRepository.save(person);
-
-            JsonNode dnList = packetBody.path("UserDnList");
-            if (dnList.isArray()) {
-                for (JsonNode dnNode : dnList) {
-                    String dn = dnNode.asText(null);
-                    if (dn == null || dn.isBlank()) continue;
-                    if (!personDnsRepository.existsByPerson_IdAndDn(person.getId(), dn)) {
-                        PersonDnsEntity pde = new PersonDnsEntity();
-                        pde.setPerson(person);
-                        pde.setDn(dn);
-                        personDnsRepository.save(pde);
-                    }
+        // Save their associated DNs
+        JsonNode dnList = packetBody.path("UserDnList");
+        if (dnList.isArray()) {
+            for (JsonNode dnNode : dnList) {
+                String dn = dnNode.asText(null);
+                if (dn != null && !dn.isBlank()) {
+                    PersonDnsEntity pde = new PersonDnsEntity();
+                    pde.setPerson(newPerson);
+                    pde.setDn(dn);
+                    personDnsRepository.save(pde);
                 }
             }
         }
-
-        String uniqueUsername = ensureUniqueUsername(proposedUsername);
-        if (clusterAccountRepository.findByUsername(uniqueUsername).isEmpty()) {
-            ClusterAccountEntity clusterAccount = new ClusterAccountEntity();
-            clusterAccount.setPerson(person);
-            clusterAccount.setUsername(uniqueUsername);
-            clusterAccount.setActive(true);
-            clusterAccountRepository.save(clusterAccount);
-        } else {
-            LOGGER.error("Username [{}] is already taken by another account", uniqueUsername);
-            throw new IllegalStateException("Username " + uniqueUsername + " is already taken by another account");
-        }
-
-        return new AccountProvisionResult(person.getId(), uniqueUsername);
+        return newPerson;
     }
 
-    // TODO - this will not be needed when source of truth (e.g., COmanage) is integrated
-    private String ensureUniqueUsername(String base) {
-        String candidate = base;
-        int suffix = 0;
-        while (clusterAccountRepository.findByUsername(candidate).isPresent()) {
-            suffix++;
-            candidate = base + suffix;
-        }
-        return candidate;
-    }
 
     @Transactional
     public void replaceFromModifyPacket(JsonNode body) {
         String personId = body.path("PersonID").asText(null);
-        if (personId == null || personId.isBlank()) {
-            LOGGER.warn("Missing required 'PersonID' in request_user_modify replace body");
-            throw new IllegalArgumentException("Missing required 'PersonID' in request_user_modify replace body");
-        }
+        Assert.hasText(personId, "Missing required 'PersonID' in request_user_modify replace body");
 
-        PersonEntity person = personRepository.findById(personId).orElseThrow(() -> new IllegalArgumentException("Unknown local PersonID: " + personId));
+        PersonEntity person = personRepository.findById(personId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown local PersonID: " + personId));
 
         // Update fields
         if (body.has("FirstName")) person.setFirstName(body.path("FirstName").asText(person.getFirstName()));
@@ -165,13 +130,9 @@ public class PersonService {
         }
 
         if (newDns.isEmpty()) {
-            // If no DnList provided in replace, clear all
             personDnsRepository.deleteByPerson_Id(personId);
         } else {
-
-            // delete all not in new set
             personDnsRepository.deleteByPerson_IdAndDnNotIn(personId, new ArrayList<>(newDns));
-            // insert missing
             for (String dn : newDns) {
                 if (!personDnsRepository.existsByPerson_IdAndDn(personId, dn)) {
                     PersonDnsEntity p = new PersonDnsEntity();
@@ -186,20 +147,12 @@ public class PersonService {
     @Transactional
     public void deleteFromModifyPacket(JsonNode body) {
         String personId = body.path("PersonID").asText(null);
-        if (personId == null || personId.isBlank()) {
-            throw new IllegalArgumentException("Missing required 'PersonID' in request_user_modify delete body");
-        }
+        Assert.hasText(personId, "Missing required 'PersonID' in request_user_modify delete body");
+
         // Cascades will remove DNs and cluster accounts
         personRepository.deleteById(personId);
     }
 
-    /**
-     * Merges two person records. All cluster accounts and unique DNs from the retiring
-     * person are moved to the surviving person. The retiring person record is then deleted.
-     *
-     * @param survivingPersonId The local ID of the person to keep.
-     * @param retiringPersonId  The local ID of the person to merge and delete.
-     */
     @Transactional
     public void mergePersons(String survivingPersonId, String retiringPersonId) {
         LOGGER.info("Merging person {} into {}", retiringPersonId, survivingPersonId);
@@ -228,7 +181,6 @@ public class PersonService {
                 retiringDn.setPerson(survivingPerson);
                 personDnsRepository.save(retiringDn);
             } else {
-                // Remove the already existing DN
                 personDnsRepository.delete(retiringDn);
             }
         }
@@ -238,5 +190,3 @@ public class PersonService {
         LOGGER.info("Successfully merged and deleted retiring person record {}", retiringPersonId);
     }
 }
-
-

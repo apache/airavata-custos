@@ -7,18 +7,17 @@
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied. See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.custos.amie.model;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -27,21 +26,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Maps to the 'cluster_accounts' table. Stores a provisioned username on the cluster.
+ * Maps to the 'project_memberships' table. Links cluster accounts to projects with roles.
  */
 @Entity
-@Table(name = "cluster_accounts")
-public class ClusterAccountEntity {
+@Table(name = "project_memberships", uniqueConstraints = {@UniqueConstraint(columnNames = {"project_id", "cluster_account_id"})})
+public class ProjectMembershipEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -49,14 +46,18 @@ public class ClusterAccountEntity {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "person_id", nullable = false)
-    private PersonEntity person;
+    @JoinColumn(name = "project_id", nullable = false)
+    private ProjectEntity project;
 
-    @Column(name = "username", nullable = false, unique = true)
-    private String username;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "cluster_account_id", nullable = false)
+    private ClusterAccountEntity clusterAccount;
 
-    @OneToMany(mappedBy = "clusterAccount", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ProjectMembershipEntity> projectMemberships = new ArrayList<>();
+    @Column(name = "role", length = 32)
+    private String role;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -74,28 +75,36 @@ public class ClusterAccountEntity {
         this.id = id;
     }
 
-    public PersonEntity getPerson() {
-        return person;
+    public ProjectEntity getProject() {
+        return project;
     }
 
-    public void setPerson(PersonEntity person) {
-        this.person = person;
+    public void setProject(ProjectEntity project) {
+        this.project = project;
     }
 
-    public String getUsername() {
-        return username;
+    public ClusterAccountEntity getClusterAccount() {
+        return clusterAccount;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setClusterAccount(ClusterAccountEntity clusterAccount) {
+        this.clusterAccount = clusterAccount;
     }
 
-    public List<ProjectMembershipEntity> getProjectMemberships() {
-        return projectMemberships;
+    public String getRole() {
+        return role;
     }
 
-    public void setProjectMemberships(List<ProjectMembershipEntity> projectMemberships) {
-        this.projectMemberships = projectMemberships;
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 
     public Instant getCreatedAt() {
@@ -112,20 +121,5 @@ public class ClusterAccountEntity {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ClusterAccountEntity that = (ClusterAccountEntity) o;
-        return id.equals(that.id) && username.equals(that.username);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + username.hashCode();
-        return result;
     }
 }

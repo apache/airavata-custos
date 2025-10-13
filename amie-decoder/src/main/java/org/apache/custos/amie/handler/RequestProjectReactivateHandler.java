@@ -21,14 +21,14 @@ package org.apache.custos.amie.handler;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.amie.client.AmieClient;
 import org.apache.custos.amie.model.PacketEntity;
+import org.apache.custos.amie.service.ProjectMembershipService;
+import org.apache.custos.amie.service.ProjectService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,9 +43,13 @@ public class RequestProjectReactivateHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestProjectReactivateHandler.class);
 
     private final AmieClient amieClient;
+    private final ProjectService projectService;
+    private final ProjectMembershipService membershipService;
 
-    public RequestProjectReactivateHandler(AmieClient amieClient) {
+    public RequestProjectReactivateHandler(AmieClient amieClient, ProjectService projectService, ProjectMembershipService membershipService) {
         this.amieClient = amieClient;
+        this.projectService = projectService;
+        this.membershipService = membershipService;
     }
 
     @Override
@@ -53,42 +57,37 @@ public class RequestProjectReactivateHandler implements PacketHandler {
         return "request_project_reactivate";
     }
 
+
     @Override
     public void handle(JsonNode packetJson, PacketEntity packetEntity) {
         LOGGER.info("Starting 'request_project_reactivate' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
         String projectId = body.path("ProjectID").asText();
-        String personId = body.path("PersonID").asText();
 
         Assert.hasText(projectId, "'ProjectID' must not be empty.");
-        Assert.hasText(personId, "'PersonID' must not be empty.");
         LOGGER.info("Packet validated. ProjectID to reactivate: [{}].", projectId);
 
-        // TODO - perform the business logic
-        //  - find the project by its local ID and activate it
-        //  - find the PI's account (only this account) associated with this project and reactivate it
-        LOGGER.info("Simulating business logic: Marking project [{}] as active and reactivating the PI's ({}) account link.", projectId, personId);
+        projectService.reactivateProject(projectId);
+        membershipService.reactivatePiMembership(projectId);
+        LOGGER.info("Reactivated project [{}] and PI membership(s).", projectId);
 
-        // Send the 'notify_project_reactivate' reply.
-        Map<String, Object> replyBody = new HashMap<>();
-        Map<String, Object> bodyContent = new HashMap<>();
-
-        bodyContent.put("ProjectID", projectId);
-        bodyContent.put("PersonID", personId);
-
-        List<String> resourceList = new ArrayList<>();
-        JsonNode rlNode = body.path("ResourceList");
-        if (rlNode.isArray()) {
-            rlNode.forEach(node -> resourceList.add(node.asText()));
-        }
-        bodyContent.put("ResourceList", resourceList);
-
-        replyBody.put("type", "notify_project_reactivate");
-        replyBody.put("body", bodyContent);
-
-        amieClient.replyToPacket(packetEntity.getAmieId(), replyBody);
+        sendSuccessReply(packetEntity.getAmieId(), body);
 
         LOGGER.info("Successfully completed 'request_project_reactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
+    }
+
+    private void sendSuccessReply(long packetRecId, JsonNode originalBody) {
+        Map<String, Object> reply = new HashMap<>();
+        Map<String, Object> bodyContent = new HashMap<>();
+
+        bodyContent.put("ProjectID", originalBody.path("ProjectID").asText());
+        bodyContent.put("PersonID", originalBody.path("PersonID").asText(null));
+        bodyContent.put("ResourceList", originalBody.path("ResourceList"));
+
+        reply.put("type", "notify_project_reactivate");
+        reply.put("body", bodyContent);
+
+        amieClient.replyToPacket(packetRecId, reply);
     }
 }

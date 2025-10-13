@@ -20,8 +20,13 @@ package org.apache.custos.amie.handler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.amie.client.AmieClient;
+import org.apache.custos.amie.model.ClusterAccountEntity;
 import org.apache.custos.amie.model.PacketEntity;
+import org.apache.custos.amie.model.PersonEntity;
 import org.apache.custos.amie.service.PersonService;
+import org.apache.custos.amie.service.ProjectMembershipService;
+import org.apache.custos.amie.service.ProjectService;
+import org.apache.custos.amie.service.UserAccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,7 +34,6 @@ import org.springframework.util.Assert;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Handles the 'request_account_create' (RAC) AMIE packet.
@@ -45,10 +49,18 @@ public class RequestAccountCreateHandler implements PacketHandler {
 
     private final AmieClient amieClient;
     private final PersonService personService;
+    private final UserAccountService userAccountService;
+    private final ProjectService projectService;
+    private final ProjectMembershipService membershipService;
 
-    public RequestAccountCreateHandler(AmieClient amieClient, PersonService personService) {
+    public RequestAccountCreateHandler(AmieClient amieClient, PersonService personService,
+                                       UserAccountService userAccountService, ProjectService projectService,
+                                       ProjectMembershipService membershipService) {
         this.amieClient = amieClient;
         this.personService = personService;
+        this.userAccountService = userAccountService;
+        this.projectService = projectService;
+        this.membershipService = membershipService;
     }
 
     @Override
@@ -63,40 +75,44 @@ public class RequestAccountCreateHandler implements PacketHandler {
         JsonNode body = packetJson.path("body");
         String projectId = body.path("ProjectID").asText();
         String grantNumber = body.path("GrantNumber").asText();
-        String userFirstName = body.path("UserFirstName").asText();
-        String userLastName = body.path("UserLastName").asText();
-        String userOrgCode = body.path("UserOrgCode").asText();
+        String userGlobalId = body.path("UserGlobalID").asText();
 
         Assert.hasText(projectId, "'ProjectID' (the local project ID) must not be empty.");
-        Assert.hasText(userFirstName, "'UserFirstName' must not be empty.");
-        Assert.hasText(userLastName, "'UserLastName' must not be empty.");
-        LOGGER.info("Packet validated successfully for user [{} {}] on project [{}].", userFirstName, userLastName, projectId);
+        Assert.hasText(grantNumber, "'GrantNumber' must not be empty.");
+        Assert.hasText(userGlobalId, "'UserGlobalID' must not be empty.");
+        LOGGER.info("Packet validated for UserGlobalID [{}] on project [{}].", userGlobalId, projectId);
 
-        // TODO Replace with external source of truth (e.g., COmanage) lookup for PersonID and username
-        String proposedPersonId = UUID.randomUUID().toString();
-        String proposedUsername = (userFirstName.trim().charAt(0) + userLastName.trim().replace(" ", "-")).toLowerCase();
-        var provision = personService.createIfAbsentFromPacket(body, proposedPersonId, proposedUsername);
-        String localUserPersonId = provision.getLocalPersonId();
-        String localUsername = provision.getUsername();
-        LOGGER.info("Ensured local person [{}] and cluster account username [{}] exist.", localUserPersonId, localUsername);
+        PersonEntity person = personService.findOrCreatePersonFromPacket(body);
+        LOGGER.info("Ensured person record exists with local ID [{}].", person.getId());
 
-        // Build and send the 'notify_account_create' reply
-        Map<String, Object> replyBody = new HashMap<>();
+        ClusterAccountEntity clusterAccount = userAccountService.provisionClusterAccount(person);
+        LOGGER.info("Provisioned new cluster account [{}] with username [{}].", clusterAccount.getId(), clusterAccount.getUsername());
+
+        projectService.createOrFindProject(projectId, grantNumber);
+        LOGGER.info("Ensured project [{}] exists.", projectId);
+
+        membershipService.createMembership(projectId, clusterAccount.getId(), "USER");
+        LOGGER.info("Created 'USER' membership for cluster account [{}] on project [{}].", clusterAccount.getId(), projectId);
+
+        sendSuccessReply(packetEntity.getAmieId(), body, person.getId(), clusterAccount.getUsername());
+        LOGGER.info("Successfully completed 'request_account_create' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
+    }
+
+    private void sendSuccessReply(long packetRecId, JsonNode originalBody, String localPersonId, String localUsername) {
+        Map<String, Object> reply = new HashMap<>();
         Map<String, Object> bodyContent = new HashMap<>();
-        bodyContent.put("UserOrgCode", userOrgCode);
-        bodyContent.put("ProjectID", projectId);
-        bodyContent.put("UserPersonID", localUserPersonId);
 
-        // User login name (Unix username) on the actual resource
+        bodyContent.put("ProjectID", originalBody.path("ProjectID").asText());
+        bodyContent.put("GrantNumber", originalBody.path("GrantNumber").asText());
+        bodyContent.put("UserPersonID", localPersonId);
         bodyContent.put("UserRemoteSiteLogin", localUsername);
 
-        bodyContent.put("GrantNumber", grantNumber);
+        bodyContent.put("UserOrgCode", originalBody.path("UserOrgCode").asText(null));
+        bodyContent.put("ResourceList", originalBody.path("ResourceList"));
 
-        replyBody.put("type", "notify_account_create");
-        replyBody.put("body", bodyContent);
+        reply.put("type", "notify_account_create");
+        reply.put("body", bodyContent);
 
-        amieClient.replyToPacket(packetEntity.getAmieId(), replyBody);
-
-        LOGGER.info("Successfully completed 'request_account_create' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
+        amieClient.replyToPacket(packetRecId, reply);
     }
 }

@@ -56,7 +56,7 @@ public class RequestUserModifyHandler implements PacketHandler {
         LOGGER.info("Starting 'request_user_modify' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
-        String actionType = body.path("ActionType").asText("delete");
+        String actionType = body.path("ActionType").asText(null);
         Assert.hasText(actionType, "'ActionType' must not be empty (replace|delete).");
 
         switch (actionType.toLowerCase()) {
