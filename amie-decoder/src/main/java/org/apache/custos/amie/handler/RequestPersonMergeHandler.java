@@ -21,9 +21,11 @@ package org.apache.custos.amie.handler;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.amie.client.AmieClient;
 import org.apache.custos.amie.model.PacketEntity;
+import org.apache.custos.amie.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.HashMap;
@@ -44,9 +46,11 @@ public class RequestPersonMergeHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestPersonMergeHandler.class);
 
     private final AmieClient amieClient;
+    private final PersonService personService;
 
-    public RequestPersonMergeHandler(AmieClient amieClient) {
+    public RequestPersonMergeHandler(AmieClient amieClient, PersonService personService) {
         this.amieClient = amieClient;
+        this.personService = personService;
     }
 
     @Override
@@ -55,25 +59,23 @@ public class RequestPersonMergeHandler implements PacketHandler {
     }
 
     @Override
+    @Transactional
     public void handle(JsonNode packetJson, PacketEntity packetEntity) {
         LOGGER.info("Starting 'request_person_merge' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
-        String survivingPersonId = body.path("PrimaryPersonID").asText();
-        String retiringPersonId = body.path("PersonID").asText();
+        String survivingPersonLocalId = body.path("KeepPersonID").asText();
+        String survivingPersonGlobalId = body.path("KeepGlobalID").asText();
+        String retiringPersonLocalId = body.path("DeletePersonID").asText();
+        String retiringPersonGlobalId = body.path("DeleteGlobalID").asText();
 
-        Assert.hasText(survivingPersonId, "'PrimaryPersonID' (the surviving user) must not be empty.");
-        Assert.hasText(retiringPersonId, "'PersonID' (the retiring user) must not be empty.");
-        LOGGER.info("Packet validated. Merging user [{}] into user [{}].", retiringPersonId, survivingPersonId);
+        Assert.hasText(survivingPersonLocalId, "'KeepPersonID' (the surviving user's local ID) must not be empty.");
+        Assert.hasText(retiringPersonLocalId, "'DeletePersonID' (the retiring user's local ID) must not be empty.");
+        LOGGER.info("Packet validated. Merging user with local ID [{}], global ID [{}] into user with local ID [{}], global ID [{}].",
+                retiringPersonLocalId, retiringPersonGlobalId, survivingPersonLocalId, survivingPersonGlobalId);
 
-        // TODO - perform the business logic
-        //  - find the local user accounts for both the surviving and retiring IDs
-        //  - re-associate all project memberships and allocations from the retiring user to the surviving user
-        //  - handle the unix system changes
-        //  - lock or disable the retiring user's local login account
-        LOGGER.info("Simulating business logic: Re-associating resources from [{}] to [{}] and disabling the retiring account.", retiringPersonId, survivingPersonId);
+        personService.mergePersons(survivingPersonLocalId, retiringPersonLocalId);
 
-        // Send the 'inform_transaction_complete' reply
         sendSuccessReply(packetEntity.getAmieId());
     }
 

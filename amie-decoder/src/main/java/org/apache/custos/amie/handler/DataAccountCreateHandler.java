@@ -37,7 +37,7 @@ import java.util.Map;
 @Component
 public class DataAccountCreateHandler implements PacketHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(DataAccountCreateHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataAccountCreateHandler.class);
 
     private final AmieClient amieClient;
 
@@ -52,7 +52,7 @@ public class DataAccountCreateHandler implements PacketHandler {
 
     @Override
     public void handle(JsonNode packetJson, PacketEntity packetEntity) {
-        log.info("Starting 'data_account_create' handler for packet amie_id [{}].", packetEntity.getAmieId());
+        LOGGER.info("Starting 'data_account_create' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
         String projectId = body.path("ProjectID").asText();
@@ -61,13 +61,13 @@ public class DataAccountCreateHandler implements PacketHandler {
 
         Assert.hasText(projectId, "'ProjectID' must not be empty.");
         Assert.hasText(personId, "'PersonID' must not be empty.");
-        log.info("Packet validated. ProjectID: [{}], PersonID: [{}].", projectId, personId);
+        LOGGER.info("Packet validated. ProjectID: [{}], PersonID: [{}].", projectId, personId);
 
 
         // TODO - perform the business logic
         //  - find the user's record by 'personId' (localID) and update the distinguished names (dnList)
         if (dnList.isArray() && !dnList.isEmpty()) {
-            log.info("Received DnList for user [{}]. In a real implementation, this would be saved to the user's profile.", personId);
+            LOGGER.info("Received DnList for user [{}]. In a real implementation, this would be saved to the user's profile.", personId);
             // TODO userService.updateUserDnList(personId, dnList);
         }
 
@@ -88,6 +88,6 @@ public class DataAccountCreateHandler implements PacketHandler {
 
         amieClient.replyToPacket(packetRecId, reply);
 
-        log.info("Successfully sent 'inform_transaction_complete' for data_account_create packet_rec_id [{}].", packetRecId);
+        LOGGER.info("Successfully sent 'inform_transaction_complete' for data_account_create packet_rec_id [{}].", packetRecId);
     }
 }
