@@ -1,0 +1,25 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "inform_transaction_complete",
+  "header": {
+    "expected_reply_list": [],
+    "packet_id": 1,
+    "trans_rec_id": 116827016,
+    "transaction_id": 237,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 0,
+    "packet_rec_id": 233497920,
+    "packet_timestamp": "2025-10-15T18:06:30.000Z",
+    "client_state": "in-progress",
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "completed"
+  },
+  "body": {
+    "StatusCode": "Success",
+    "DetailCode": 1,
+    "Message": "Person merge transaction completed successfully."
+  }
+}

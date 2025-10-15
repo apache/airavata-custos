@@ -1,0 +1,44 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "request_account_create",
+  "header": {
+    "expected_reply_list": [
+      {
+        "type": "notify_account_create",
+        "timeout": 30240
+      }
+    ],
+    "packet_id": 1,
+    "trans_rec_id": 116827014,
+    "transaction_id": 235,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 1,
+    "packet_rec_id": 233497917,
+    "packet_timestamp": "2025-10-15T18:05:30.000Z",
+    "client_state": null,
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "ProjectID": "test-project-456",
+    "GrantNumber": "TEST123",
+    "UserPersonID": "test-user-person-123",
+    "UserGlobalID": "12345",
+    "UserFirstName": "Test",
+    "UserLastName": "User",
+    "UserEmail": "testuser@example.com",
+    "UserOrganization": "Test University",
+    "UserOrgCode": "TEST123",
+    "NsfStatusCode": "ACTIVE",
+    "UserDnList": [
+      "/C=US/O=Test University/CN=Test User"
+    ],
+    "ResourceList": [
+      "test-resource1.gatech.xsede"
+    ],
+    "Comment": "Account create for testing"
+  }
+}

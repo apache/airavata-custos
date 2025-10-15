@@ -1,0 +1,33 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "notify_project_reactivate",
+  "header": {
+    "expected_reply_list": [
+      {
+        "type": "inform_transaction_complete",
+        "timeout": 30240
+      }
+    ],
+    "packet_id": 1,
+    "trans_rec_id": 116827013,
+    "transaction_id": 234,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 0,
+    "packet_rec_id": 233497915,
+    "packet_timestamp": "2025-10-15T18:07:52.420Z",
+    "client_state": "in-progress",
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "ProjectID": "test-project-123",
+    "PersonID": "test-person-456",
+    "ResourceList": [
+      "test-resource1.gatech.xsede"
+    ],
+    "Comment": "amie_test"
+  }
+}

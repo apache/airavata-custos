@@ -1,0 +1,78 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "notify_project_create",
+  "header": {
+    "expected_reply_list": [
+      {
+        "type": "data_project_create",
+        "timeout": 30240
+      }
+    ],
+    "packet_id": 1,
+    "trans_rec_id": 116827011,
+    "transaction_id": 232,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 0,
+    "packet_rec_id": 233497908,
+    "packet_timestamp": "2025-10-15T18:03:52.643Z",
+    "client_state": "in-progress",
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "ProjectID": "test-project-123",
+    "GrantNumber": "NNT259276",
+    "PiPersonID": "test-person-456",
+    "PiRemoteSiteLogin": "hwan",
+    "PiGlobalID": "54806",
+    "ProjectTitle": "Lorem Ipsum",
+    "ResourceList": [
+      "test-resource1.gatech.xsede"
+    ],
+    "Abstract": "Lorem ipsum dolor est...",
+    "AcademicDegree": [
+      {
+        "Degree": "PhD",
+        "Field": ""
+      }
+    ],
+    "AllocationType": "new",
+    "EndDate": "2026-10-15",
+    "NsfStatusCode": "F",
+    "PfosNumber": "21000",
+    "PiBusinessPhoneNumber": "7192553135",
+    "PiCity": "Colorado Springs",
+    "PiCountry": "9US",
+    "PiDepartment": "Mechanical and Aerospace Engineering",
+    "PiDnList": [
+      "/C=US/O=National Center for Supercomputing Applications/CN=Hui Wan",
+      "/C=US/O=Pittsburgh Supercomputing Center/CN=Hui Wan",
+      "/DC=EDU/DC=UTEXAS/DC=TACC/O=MYPROXY/CN=hwan"
+    ],
+    "PiEmail": "hwan@uccs.edu",
+    "PiFirstName": "Hui",
+    "PiLastName": "Wan",
+    "PiOrgCode": "0045096",
+    "PiOrganization": "University of Colorado, Colorado Springs",
+    "PiRequestedLoginList": [
+      "",
+      "hwan"
+    ],
+    "PiState": "CO",
+    "PiStreetAddress": "Osborne A-430",
+    "PiStreetAddress2": "1420 Austin Bluffs Pkwy",
+    "PiZip": "80918",
+    "ProposalNumber": "NNT259276",
+    "RecordID": "XRAS-112690-test-resource1.gatech.xsede",
+    "ServiceUnitsAllocated": "1",
+    "Sfos": [
+      {
+        "Number": "0"
+      }
+    ],
+    "StartDate": "2025-10-15"
+  }
+}
