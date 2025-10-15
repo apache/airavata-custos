@@ -136,4 +136,24 @@ public class ProjectMembershipService {
         LOGGER.info("Reactivated {} PI memberships for project [{}]", piMemberships.size(), projectId);
     }
 
+    /**
+     * Reactivates memberships for a specific person on a project.
+     *
+     * @param projectId The project ID.
+     * @param personId  Person ID
+     */
+    @Transactional
+    public void reactivateMembershipsByPersonAndProject(String projectId, String personId) {
+        List<ProjectMembershipEntity> memberships = membershipRepository.findByProjectIdAndClusterAccount_Person_Id(projectId, personId);
+
+        if (memberships.isEmpty()) {
+            LOGGER.warn("No memberships found for person [{}] on project [{}]. No action taken.", personId, projectId);
+            return;
+        }
+
+        memberships.forEach(membership -> membership.setActive(true));
+        membershipRepository.saveAll(memberships);
+        LOGGER.info("Reactivated {} membership(s) for person [{}] on project [{}]", memberships.size(), personId, projectId);
+    }
+
 }
