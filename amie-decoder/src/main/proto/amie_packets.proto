@@ -14,8 +14,9 @@ enum PacketType {
   REQUEST_PROJECT_REACTIVATE = 3;
   REQUEST_ACCOUNT_CREATE = 4;
   REQUEST_ACCOUNT_INACTIVATE = 5;
-  REQUEST_USER_MODIFY = 6;
-  REQUEST_PERSON_MERGE = 7;
+  REQUEST_ACCOUNT_REACTIVATE = 6;
+  REQUEST_USER_MODIFY = 7;
+  REQUEST_PERSON_MERGE = 8;
 }
 
 // Expected reply descriptor from the AMIE header
@@ -114,6 +115,16 @@ message RequestAccountInactivate {
   google.protobuf.Struct extra_fields = 99;
 }
 
+// request_account_reactivate
+message RequestAccountReactivate {
+  string project_id = 1;                // "ProjectID"
+  string person_id = 2;                 // "PersonID"
+  repeated string resource_list = 3;    // "ResourceList"
+  string allocated_resource = 4;
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
 // request_user_modify
 message RequestUserModify {
   string action_type = 1;             // "ActionType" (e.g., "replace" or "delete")
@@ -158,8 +169,9 @@ message Packet {
     RequestProjectReactivate request_project_reactivate = 12;
     RequestAccountCreate request_account_create = 13;
     RequestAccountInactivate request_account_inactivate = 14;
-    RequestUserModify request_user_modify = 15;
-    RequestPersonMerge request_person_merge = 16;
+    RequestAccountReactivate request_account_reactivate = 15;
+    RequestUserModify request_user_modify = 16;
+    RequestPersonMerge request_person_merge = 17;
 
     // A fallback for any packet types this schema doesn't support
     google.protobuf.Struct unknown_body = 50;
