@@ -1,0 +1,35 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "request_person_merge",
+  "header": {
+    "expected_reply_list": [
+      {
+        "type": "inform_transaction_complete",
+        "timeout": 30240
+      }
+    ],
+    "packet_id": 1,
+    "trans_rec_id": 116827016,
+    "transaction_id": 237,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 1,
+    "packet_rec_id": 233497920,
+    "packet_timestamp": "2025-10-15T18:06:30.000Z",
+    "client_state": null,
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "KeepPersonID": "test-person-primary-123",
+    "DeletePersonID": "test-person-secondary-456",
+    "PrimaryGlobalID": "12345",
+    "SecondaryGlobalID": "67890",
+    "PrimarySitePersonID": "primary-user",
+    "SecondarySitePersonID": "secondary-user",
+    "MergeReason": "Duplicate person records",
+    "Comment": "Person merge for testing"
+  }
+}

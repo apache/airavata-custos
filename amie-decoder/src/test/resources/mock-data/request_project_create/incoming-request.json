@@ -1,0 +1,103 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "request_project_create",
+  "header": {
+    "expected_reply_list": [
+      {
+        "type": "notify_project_create",
+        "timeout": 30240
+      }
+    ],
+    "packet_id": 1,
+    "trans_rec_id": 116827011,
+    "transaction_id": 232,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 1,
+    "packet_rec_id": 233497907,
+    "packet_timestamp": "2025-10-15T18:02:18.180Z",
+    "client_state": null,
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "AllocationType": "new",
+    "BoardType": "Startup",
+    "RequestType": "new",
+    "Abstract": "Lorem ipsum dolor est...",
+    "ChargeNumber": "TG-NNT259276",
+    "GrantNumber": "NNT259276",
+    "ProposalNumber": "NNT259276",
+    "PfosNumber": "21000",
+    "PiGlobalID": "54806",
+    "PiBusinessPhoneNumber": "7192553135",
+    "PiEmail": "hwan@uccs.edu",
+    "PiCity": "Colorado Springs",
+    "PiStreetAddress": "Osborne A-430",
+    "PiStreetAddress2": "1420 Austin Bluffs Pkwy",
+    "PiZip": "80918",
+    "PiState": "CO",
+    "PiCountry": "9US",
+    "PiFirstName": "Hui",
+    "PiMiddleName": "",
+    "PiLastName": "Wan",
+    "PiDepartment": "Mechanical and Aerospace Engineering",
+    "PiTitle": "",
+    "PiOrganization": "University of Colorado, Colorado Springs",
+    "PiOrgCode": "0045096",
+    "NsfStatusCode": "F",
+    "PiDnList": [
+      "/C=US/O=National Center for Supercomputing Applications/CN=Hui Wan",
+      "/C=US/O=Pittsburgh Supercomputing Center/CN=Hui Wan",
+      "/DC=EDU/DC=UTEXAS/DC=TACC/O=MYPROXY/CN=hwan"
+    ],
+    "SitePersonId": [
+      {
+        "Site": "XD-ALLOCATIONS",
+        "PersonID": "hwan"
+      },
+      {
+        "Site": "TACC",
+        "PersonID": "845365"
+      },
+      {
+        "Site": "PSC",
+        "PersonID": "WANH123AP"
+      },
+      {
+        "Site": "OSG",
+        "PersonID": "54806"
+      },
+      {
+        "Site": "X-PORTAL",
+        "PersonID": "hwan"
+      }
+    ],
+    "AcademicDegree": [
+      {
+        "Degree": "PhD",
+        "Field": ""
+      }
+    ],
+    "ProjectTitle": "Lorem Ipsum",
+    "RecordID": "XRAS-112690-test-resource1.gatech.xsede",
+    "Sfos": [
+      {
+        "Number": "0"
+      }
+    ],
+    "StartDate": "2025-10-15",
+    "EndDate": "2026-10-15",
+    "ServiceUnitsAllocated": "1",
+    "ResourceList": [
+      "test-resource1.gatech.xsede"
+    ],
+    "PiRequestedLoginList": [
+      "",
+      "hwan"
+    ],
+    "AllocatedResource": "test-resource1.gatech.xsede"
+  }
+}
