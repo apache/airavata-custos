@@ -30,7 +30,7 @@
     "PiGlobalID": "54806",
     "ProjectTitle": "Lorem Ipsum",
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
     "Abstract": "Lorem ipsum dolor est...",
     "AcademicDegree": [
@@ -66,7 +66,7 @@
     "PiStreetAddress2": "1420 Austin Bluffs Pkwy",
     "PiZip": "80918",
     "ProposalNumber": "NNT259276",
-    "RecordID": "XRAS-112690-test-resource1.gatech.xsede",
+    "RecordID": "XRAS-112690-test-resource1.testsite.testorg",
     "ServiceUnitsAllocated": "1",
     "Sfos": [
       {

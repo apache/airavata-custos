@@ -37,7 +37,7 @@
       "/C=US/O=Test University/CN=Test User"
     ],
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
     "Comment": "Account create for testing"
   }

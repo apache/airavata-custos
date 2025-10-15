@@ -82,7 +82,7 @@
       }
     ],
     "ProjectTitle": "Lorem Ipsum",
-    "RecordID": "XRAS-112690-test-resource1.gatech.xsede",
+    "RecordID": "XRAS-112690-test-resource1.testsite.testorg",
     "Sfos": [
       {
         "Number": "0"
@@ -92,12 +92,12 @@
     "EndDate": "2026-10-15",
     "ServiceUnitsAllocated": "1",
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
     "PiRequestedLoginList": [
       "",
       "hwan"
     ],
-    "AllocatedResource": "test-resource1.gatech.xsede"
+    "AllocatedResource": "test-resource1.testsite.testorg"
   }
 }

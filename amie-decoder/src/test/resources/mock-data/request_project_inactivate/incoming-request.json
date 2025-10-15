@@ -26,9 +26,9 @@
     "ProjectID": "test-project-123",
     "PersonID": "test-person-456",
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
-    "AllocatedResource": "test-resource1.gatech.xsede",
+    "AllocatedResource": "test-resource1.testsite.testorg",
     "Comment": "amie_test",
     "GrantNumber": "NNT259276",
     "StartDate": "2025-10-15",
