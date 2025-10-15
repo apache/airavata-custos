@@ -38,7 +38,7 @@
       "/C=US/O=Test University/CN=Jane Smith"
     ],
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
     "Comment": "User modify delete for testing"
   }

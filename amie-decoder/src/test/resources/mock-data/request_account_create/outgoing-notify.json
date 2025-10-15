@@ -29,7 +29,7 @@
     "UserRemoteSiteLogin": "testuser",
     "UserOrgCode": "0045096",
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ]
   }
 }

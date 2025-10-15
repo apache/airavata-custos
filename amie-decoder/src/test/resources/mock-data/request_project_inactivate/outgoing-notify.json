@@ -26,7 +26,7 @@
     "ProjectID": "test-project-123",
     "PersonID": "test-person-456",
     "ResourceList": [
-      "test-resource1.gatech.xsede"
+      "test-resource1.testsite.testorg"
     ],
     "Comment": "amie_test"
   }
