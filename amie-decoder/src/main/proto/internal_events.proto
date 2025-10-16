@@ -69,7 +69,7 @@ message DecodeSucceededPayload {
   string packet_db_id = 1;
   int64 amie_packet_rec_id = 2;
 
-  amie.v1.Packet packet = 3;  // Fully typed decoded packet (from amie_packet.proto).
+  org.apache.custos.amie.v1.Packet packet = 3;
 }
 
 message DecodeFailedPayload {
