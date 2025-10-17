@@ -1,0 +1,183 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+package org.apache.custos.access.ci.service.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// AMIE packet types that the service must handle from the Client API
+enum PacketType {
+  PACKET_TYPE_UNSPECIFIED = 0;
+  REQUEST_PROJECT_CREATE = 1;
+  REQUEST_PROJECT_INACTIVATE = 2;
+  REQUEST_PROJECT_REACTIVATE = 3;
+  REQUEST_ACCOUNT_CREATE = 4;
+  REQUEST_ACCOUNT_INACTIVATE = 5;
+  REQUEST_ACCOUNT_REACTIVATE = 6;
+  REQUEST_USER_MODIFY = 7;
+  REQUEST_PERSON_MERGE = 8;
+}
+
+// Expected reply descriptor from the AMIE header
+message ExpectedReply {
+  string type = 1;    // The type of the expected reply packet, eg, "notify_project_create"
+  int64 timeout = 2;  // Timeout value as provided by AMIE
+}
+
+// Packet header as returned by the Client API
+message PacketHeader {
+  repeated ExpectedReply expected_reply_list = 1;
+  int64 packet_id = 2;
+  int64 trans_rec_id = 3;
+  int64 transaction_id = 4;
+  string remote_site_name = 5;
+  string local_site_name = 6;
+  string originating_site_name = 7;
+  bool outgoing_flag = 8;
+  string transaction_state = 9;
+  int64 packet_rec_id = 10;   // Stable, unique per packet
+  string client_state = 11;   // Site-defined state
+  string packet_state = 12;   // AMIE-side packet state
+  google.protobuf.Timestamp packet_timestamp = 13;
+  google.protobuf.Struct client_json = 14;
+}
+
+
+// request_project_create
+message RequestProjectCreate {
+  string allocated_resource = 1;                // "AllocatedResource"
+  repeated string pi_requested_login_list = 2;  // "PiRequestedLoginList"
+  repeated string resource_list = 3;            // "ResourceList"
+
+  string service_units_allocated = 4;           // "ServiceUnitsAllocated"
+  string start_date = 5;                        // "StartDate" (YYYY-MM-DD as string)
+  string end_date = 6;                          // "EndDate"
+
+  // Often present in NPC replies, sometimes seen in requests:
+  string project_id = 7;              // "ProjectID"
+  string pi_person_id = 8;            // "PersonID" or "PiPersonID"
+  string pi_global_id = 9;            // "PiGlobalID"
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_project_inactivate
+message RequestProjectInactivate {
+  string project_id = 1;              // "ProjectID"
+  string person_id = 2;               // "PersonID" (PI)
+  repeated string resource_list = 3;  // "ResourceList"
+  string allocated_resource = 4;      // "AllocatedResource"
+  string comment = 5;                 // "Comment" if provided
+  string start_date = 6;
+  string end_date = 7;
+  string service_units_allocated = 8;
+  string service_units_remaining = 9;
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_project_reactivate
+message RequestProjectReactivate {
+  string project_id = 1;
+  string person_id = 2;               // PI only should be reactivated
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  string start_date = 5;
+  string end_date = 6;
+  string service_units_allocated = 7;
+  string service_units_remaining = 8;
+  string grant_number = 9;
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_account_create
+message RequestAccountCreate {
+  string project_id = 1;
+  string person_id = 2;               // Target user
+  repeated string resource_list = 3;  // "ResourceList"
+  string allocated_resource = 4;
+
+  // Some sites provide preferred login(s) here
+  repeated string user_requested_login_list = 5;  // "UserRequestedLoginList"
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_account_inactivate
+message RequestAccountInactivate {
+  string project_id = 1;                // "ProjectID"
+  string person_id = 2;                 // "PersonID"
+  repeated string resource_list = 3;    // "ResourceList"
+  string allocated_resource = 4;
+  string comment = 5;
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_account_reactivate
+message RequestAccountReactivate {
+  string project_id = 1;                // "ProjectID"
+  string person_id = 2;                 // "PersonID"
+  repeated string resource_list = 3;    // "ResourceList"
+  string allocated_resource = 4;
+
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_user_modify
+message RequestUserModify {
+  string action_type = 1;             // "ActionType" (e.g., "replace" or "delete")
+  string person_id = 2;               // "PersonID"
+
+  string first_name = 3;
+  string middle_name = 4;
+  string last_name = 5;
+  string title = 6;
+  string email = 7;
+  string organization = 8;
+  string org_code = 9;
+  string business_phone_number = 10;
+  string street_address = 11;
+  string street_address2 = 12;
+  string city = 13;
+  string state = 14;
+  string zip = 15;
+  string country = 16;
+
+  repeated string dn_list = 17;       // "DnList"
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// request_person_merge
+message RequestPersonMerge {
+  // AMIE sends identifiers to merge duplicate people
+  string surviving_person_id = 1;
+  string retiring_person_id = 2;
+  // Keep flexible to capture the resto of the fields
+  google.protobuf.Struct extra_fields = 99;
+}
+
+// Wrapper for any AMIE packet received by the service
+message Packet {
+  PacketType type = 1;
+  PacketHeader header = 2;
+
+  oneof body {
+    RequestProjectCreate request_project_create = 10;
+    RequestProjectInactivate request_project_inactivate = 11;
+    RequestProjectReactivate request_project_reactivate = 12;
+    RequestAccountCreate request_account_create = 13;
+    RequestAccountInactivate request_account_inactivate = 14;
+    RequestAccountReactivate request_account_reactivate = 15;
+    RequestUserModify request_user_modify = 16;
+    RequestPersonMerge request_person_merge = 17;
+
+    // A fallback for any packet types this schema doesn't support
+    google.protobuf.Struct unknown_body = 50;
+  }
+
+  // Complete unmodified raw JSON of the packet (header + body) as a string
+  // For auditing, debugging, and reprocessing
+  string raw_json_payload = 98;
+}

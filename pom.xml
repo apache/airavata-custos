@@ -46,7 +46,7 @@
         <module>services</module>
         <module>api</module>
         <module>application</module>
-        <module>amie-decoder</module>
+        <module>access-ci-service</module>
     </modules>
 
     <dependencyManagement>
@@ -208,7 +208,7 @@
         <ssh.username>ubuntu</ssh.username>
         <jakarta.ws.version>4.0.0</jakarta.ws.version>
         <custos.dist.name>apache-airavata-custos-${project.version}</custos.dist.name>
-        <amie.service.dist.name>apache-airavata-custos-amie-decoder-${project.version}</amie.service.dist.name>
+        <access.service.dist.name>apache-airavata-custos-access-ci-service-${project.version}</access.service.dist.name>
     </properties>
 
     <repositories>
