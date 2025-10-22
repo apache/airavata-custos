@@ -1,0 +1,104 @@
+---
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+- name: Create CA keys directory
+  file:
+    path: /etc/ssh/ca_keys
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Install CA public key
+  copy:
+    content: "{{ ca_public_key }}"
+    dest: "/etc/ssh/ca_keys/{{ tenant_id }}_{{ client_id }}.pub"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: reload sshd
+
+- name: Configure TrustedUserCAKeys in sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^TrustedUserCAKeys'
+    line: 'TrustedUserCAKeys /etc/ssh/ca_keys/*.pub'
+    state: present
+    backup: yes
+  notify: reload sshd
+
+- name: Configure RevokedKeys in sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^RevokedKeys'
+    line: 'RevokedKeys /etc/ssh/revoked.krl'
+    state: present
+    backup: yes
+  notify: reload sshd
+
+- name: Create KRL directory
+  file:
+    path: /etc/ssh
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create initial empty KRL file
+  file:
+    path: /etc/ssh/revoked.krl
+    state: touch
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Deploy KRL fetch script
+  template:
+    src: fetch_krl.sh.j2
+    dest: /usr/local/bin/custos-fetch-krl.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Schedule KRL fetch cron job
+  cron:
+    name: "Fetch Custos SSH KRL"
+    minute: "*/5"
+    job: "/usr/local/bin/custos-fetch-krl.sh >> /var/log/custos-krl-fetch.log 2>&1"
+    user: root
+
+- name: Validate sshd configuration
+  command: sshd -t
+  changed_when: false
+  register: sshd_config_test
+  failed_when: sshd_config_test.rc != 0
+
+- name: Initial KRL fetch
+  command: /usr/local/bin/custos-fetch-krl.sh
+  changed_when: false
+  register: initial_krl_fetch
+  failed_when: initial_krl_fetch.rc != 0
+
+- name: Display configuration summary
+  debug:
+    msg:
+      - "Custos SSH CA configuration completed"
+      - "CA public key installed: /etc/ssh/ca_keys/{{ tenant_id }}_{{ client_id }}.pub"
+      - "KRL fetch script: /usr/local/bin/custos-fetch-krl.sh"
+      - "KRL cron job: every 5 minutes"
+      - "SSH daemon will be reloaded to apply changes"

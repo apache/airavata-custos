@@ -47,6 +47,7 @@
         <module>api</module>
         <module>application</module>
         <module>access-ci-service</module>
+        <module>signer</module>
     </modules>
 
     <dependencyManagement>
@@ -66,6 +67,16 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-protobuf</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-services</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
                 <version>${io.grpc.version}</version>
             </dependency>
             <dependency>
@@ -144,6 +155,71 @@
                 <artifactId>jakarta.ws.rs-api</artifactId>
                 <version>${jakarta.ws.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbusds.jwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mariadb</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-mysql</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.hierynomus</groupId>
+                <artifactId>sshj</artifactId>
+                <version>${sshj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-crypto</artifactId>
+                <version>${spring.security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.devh</groupId>
+                <artifactId>grpc-server-spring-boot-starter</artifactId>
+                <version>${grpc.spring.boot.starter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${javax.annotation.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -182,6 +258,7 @@
         <os.maven.plugin>1.5.0.Final</os.maven.plugin>
 
         <javax.version>2.0.1.Final</javax.version>
+        <javax.annotation.version>1.3.2</javax.annotation.version>
         <jackson.version>2.14.2</jackson.version>
 
         <!-- Spring dependencies -->
@@ -203,6 +280,12 @@
         <testng.version>6.8</testng.version>
         <org.json.version>20240303</org.json.version>
         <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
+        <bouncycastle.version>1.78</bouncycastle.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+        <sshj.version>0.38.0</sshj.version>
+        <mockito.version>5.8.0</mockito.version>
+        <spring.security.version>6.2.1</spring.security.version>
+        <grpc.spring.boot.starter.version>2.15.0.RELEASE</grpc.spring.boot.starter.version>
         <apache.commons.lang3.version>3.14.0</apache.commons.lang3.version>
 
         <ssh.username>ubuntu</ssh.username>

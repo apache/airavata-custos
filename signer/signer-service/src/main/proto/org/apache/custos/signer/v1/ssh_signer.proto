@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package org.apache.custos.signer.v1;
+
+option java_multiple_files = true;
+option java_package = "org.apache.custos.signer.v1";
+option java_outer_classname = "SshSignerProto";
+
+// SSH Signer Service for issuing short-lived SSH certificates
+service SshSignerService {
+  // Sign an SSH public key and return a certificate
+  rpc Sign(SignRequest) returns (SignResponse);
+
+  // Revoke certificates by serial number, key ID, or CA fingerprint
+  rpc Revoke(RevokeRequest) returns (RevokeResponse);
+
+  // Get JWKS (JSON Web Key Set) containing current and next CA public keys
+  rpc GetJWKS(GetJWKSRequest) returns (GetJWKSResponse);
+}
+
+// Request to sign an SSH public key
+message SignRequest {
+  string tenant_id = 1;
+  string client_id = 2;          // Identifies the client/target system
+  string principal = 3;          // SSH username (from OIDC or specified)
+  int32 ttl_seconds = 4;         // Requested certificate lifetime
+  bytes public_key = 5;          // SSH public key to sign
+  string user_access_token = 6;   // OIDC token for user authentication
+}
+
+// Response containing the signed SSH certificate and target connection info
+message SignResponse {
+  bytes certificate = 1;          // Signed SSH certificate in OpenSSH format
+  int64 serial_number = 2;        // Unique certificate serial
+  int64 valid_after = 3;          // Unix timestamp
+  int64 valid_before = 4;         // Unix timestamp
+  string ca_fingerprint = 5;      // SHA256 fingerprint of signing CA
+  string target_host = 6;         // Target SSH host to connect to
+  int32 target_port = 7;          // Target SSH port
+  string target_username = 8;     // Username for SSH connection (typically = principal)
+}
+
+// Request to revoke certificates
+message RevokeRequest {
+  string tenant_id = 1;
+  string client_id = 2;
+  int64 serial_number = 3;       // Revoke by serial (optional)
+  string key_id = 4;             // Revoke by key ID (optional)
+  string ca_fingerprint = 5;     // Revoke all certs from this CA (optional)
+  string reason = 6;             // Revocation reason
+}
+
+// Response to revocation request
+message RevokeResponse {
+  bool success = 1;              // Whether revocation succeeded
+  string message = 2;
+  int32 revoked_count = 3;       // Number of certificates revoked
+}
+
+// Request to get JWKS (CA public keys)
+message GetJWKSRequest {
+  string tenant_id = 1;
+  string client_id = 2;
+}
+
+// Response containing JWKS with current and next CA public keys
+message GetJWKSResponse {
+  string current_key = 1;        // Current CA public key as JWK JSON
+  string next_key = 2;           // Next rotation CA public key as JWK JSON
+  string current_fingerprint = 3; // SHA256 fingerprint of current key
+  string next_fingerprint = 4;    // SHA256 fingerprint of next key
+  int64 rotation_scheduled_at = 5; // Unix timestamp for next rotation
+}

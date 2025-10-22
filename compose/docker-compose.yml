@@ -83,3 +83,35 @@ services:
                    vault secrets enable -version=1 -path=secret kv &&
                    vault secrets enable -version=1 -path=resourcesecret kv"
       interval: 5s
+
+  signer-service:
+    build:
+      context: ../signer/signer-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"  # HTTP for health checks/metrics
+      - "9095:9095"  # gRPC
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/custos_signer
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin
+      VAULT_ADDRESS: http://vault:8200
+      VAULT_TOKEN: root-token
+    depends_on:
+      - db
+      - vault
+    volumes:
+      - ./signer-keys:/etc/custos/keys
+      - ./krl:/var/lib/custos/krl
+    restart: unless-stopped
+
+  test-ssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    environment:
+      PUBLIC_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyForTesting custos-test"
+      TRUSTED_USER_CA_KEYS: /config/ca.pub
+    ports:
+      - "2222:2222"
+    volumes:
+      - ./test-ca.pub:/config/ca.pub:ro
+    restart: unless-stopped
