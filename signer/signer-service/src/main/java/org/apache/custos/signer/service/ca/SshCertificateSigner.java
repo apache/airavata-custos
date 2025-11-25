@@ -175,7 +175,8 @@ public class SshCertificateSigner {
         cert.setReserved("");
 
         // CA public key
-        cert.setCaKeyType(SSH_KEY_TYPE_ED25519); // Assuming CA is Ed25519
+        // TODO: Support multiple CA key types (RSA, ECDSA)
+        cert.setCaKeyType(SSH_KEY_TYPE_ED25519); // Currently Ed25519 supported
         cert.setCaPublicKey(extractPublicKeyBytes(caKeyPair.getPublic()));
 
         return cert;
@@ -188,6 +189,7 @@ public class SshCertificateSigner {
         // Serialize certificate for signing
         byte[] certificateData = serializeCertificate(certificate);
 
+        // TODO: Add support for RSA and ECDSA signing algorithms
         // Sign using Ed25519
         if (caPrivateKey.getAlgorithm().equals("Ed25519")) {
             Ed25519Signer signer = new Ed25519Signer();
@@ -207,6 +209,7 @@ public class SshCertificateSigner {
     private byte[] createFinalCertificate(SshCertificate certificate, byte[] signature) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
+        // TODO: Select certificate format based on client key type (ssh-rsa-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, etc.)
         // Write certificate type
         writeString(out, "ssh-ed25519-cert-v01@openssh.com");
 
@@ -246,6 +249,7 @@ public class SshCertificateSigner {
         writeString(out, certificate.getCaKeyType());
         writeBytes(out, certificate.getCaPublicKey());
 
+        // TODO: Support signature types for RSA and ECDSA
         // Write signature
         writeString(out, "ssh-ed25519");
         writeBytes(out, signature);
@@ -259,6 +263,7 @@ public class SshCertificateSigner {
     private byte[] serializeCertificate(SshCertificate certificate) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
+        // TODO: Select certificate format based on client key type (currently hardcoded to Ed25519)
         // Write certificate type
         writeString(out, "ssh-ed25519-cert-v01@openssh.com");
 

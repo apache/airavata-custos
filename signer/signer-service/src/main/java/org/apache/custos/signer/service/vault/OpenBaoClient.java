@@ -171,8 +171,9 @@ public class OpenBaoClient {
                 vaultOperations.write(currentPath, currentData);
             }
 
+            // TODO: Support RSA and ECDSA CA key types
             // Generate new next key
-            KeyPair newNextKey = generateKeyPair("ed25519"); // Default to ed25519
+            KeyPair newNextKey = generateKeyPair("ed25519");
             String nextPrivateKeyPem = toPemString(newNextKey.getPrivate());
             String nextPublicKeyPem = toPemString(newNextKey.getPublic());
 
@@ -292,7 +293,7 @@ public class OpenBaoClient {
     }
 
     private KeyPair generateKeyPair(String algorithm) throws Exception {
-        // For now, only support ed25519. Can be extended to support RSA, ECDSA
+        // TODO: Add support for RSA and ECDSA key generation
         if ("ed25519".equalsIgnoreCase(algorithm)) {
             return generateEd25519KeyPair();
         } else {

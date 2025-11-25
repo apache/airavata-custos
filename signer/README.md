@@ -210,6 +210,37 @@ download("/remote/output.txt","/local/output.txt");
 }
 ```
 
+### Request Certificate Materials
+
+Get all SSH connection materials (private key, public key, certificate, and metadata) to use with your preferred SSH client or library:
+
+```java
+// Request certificate materials
+CertificateMaterials materials = sshClient.requestCertificateMaterials(
+    "hpcA", "user", 3600, oidcToken
+);
+
+// Use materials with OpenSSH command-line or other SSH libraries
+java.nio.file.Path keyFile = java.nio.file.Files.createTempFile("ssh-key", "");
+java.nio.file.Path certFile = java.nio.file.Files.createTempFile("ssh-cert", "");
+
+java.nio.file.Files.write(keyFile, materials.getPrivateKeyPem().getBytes());
+java.nio.file.Files.write(certFile, materials.getOpensshCert().getBytes());
+
+// Use with OpenSSH
+// ssh -i keyFile -o CertificateFile=certFile user@host
+
+// Or use KeyPair object directly with other SSH libraries
+KeyPair keyPair = materials.getKeyPair();
+byte[] certBytes = materials.getCertBytes();
+```
+
+**OpenSSH Certificate Format**: The `opensshCert` field contains the certificate in OpenSSH string format:
+```
+ssh-ed25519-cert-v01@openssh.com <base64-encoded-certificate> <comment>
+```
+This format can be written directly to a file and used with OpenSSH command-line tools using the `-o CertificateFile=` option.
+
 ### Configuration File
 
 Create `custos-sdk.yml`:
