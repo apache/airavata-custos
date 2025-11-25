@@ -263,9 +263,9 @@
 
         <!-- Spring dependencies -->
         <spring.boot.version>3.2.2</spring.boot.version>
-        <spring.cloud.version>2022.0.2</spring.cloud.version>
+        <spring.cloud.version>2023.0.0</spring.cloud.version>
         <spring.vault.version>3.0.2</spring.vault.version>
-        <spring.cloud.vault.version>4.0.1</spring.cloud.vault.version>
+        <spring.cloud.vault.version>4.1.0</spring.cloud.vault.version>
         <springdoc.version>2.5.0</springdoc.version>
 
         <protobuf.maven.plugin>0.6.1</protobuf.maven.plugin>
