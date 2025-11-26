@@ -18,8 +18,12 @@
  */
 package org.apache.custos.signer.sdk.util;
 
+import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
+import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.StringWriter;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -50,10 +54,19 @@ public final class SshKeyUtils {
     }
 
     /**
-     * Convert a private key to PEM format using Bouncy Castle.
+     * Convert a private key to OpenSSH format (for Ed25519).
+     * <p>
+     * OpenSSH format for Ed25519 private keys uses a specific binary format:
+     * - Magic string: "openssh-key-v1\0"
+     * - Cipher name: "none" (for unencrypted keys)
+     * - KDF name: "none"
+     * - Public key (SSH wire format)
+     * - Private key (32 bytes for Ed25519)
+     * <p>
+     * This format is required for SSH to accept Ed25519 keys.
      *
      * @param keyPair KeyPair containing the private key
-     * @return PEM-formatted private key string
+     * @return OpenSSH-formatted private key string (PEM encoded)
      * @throws Exception if conversion fails
      */
     public static String keyPairToPem(KeyPair keyPair) throws Exception {
@@ -61,11 +74,147 @@ public final class SshKeyUtils {
             throw new IllegalArgumentException("KeyPair or private key is null");
         }
 
+        // For Ed25519, generate OpenSSH format
+        String algorithm = keyPair.getPrivate().getAlgorithm();
+        if ("EdDSA".equals(algorithm) || "Ed25519".equals(algorithm)) {
+            return keyPairToOpenSshPrivateKey(keyPair);
+        }
+
+        // For other key types, use standard PKCS#8 format
         StringWriter writer = new StringWriter();
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(writer)) {
             pemWriter.writeObject(keyPair.getPrivate());
         }
         return writer.toString();
+    }
+
+    /**
+     * Convert Ed25519 key pair to OpenSSH private key format.
+     * <p>
+     * OpenSSH private key format structure:
+     * - Magic: "openssh-key-v1\0" (15 bytes + null terminator)
+     * - Cipher name length (4 bytes) + cipher name ("none" for unencrypted)
+     * - KDF name length (4 bytes) + KDF name ("none")
+     * - KDF options (4 bytes length + data)
+     * - Number of keys (4 bytes)
+     * - Public key
+     * - Private key
+     * <p>
+     * All encoded in base64 and wrapped in PEM headers.
+     *
+     * @param keyPair Ed25519 KeyPair
+     * @return OpenSSH private key in PEM format
+     * @throws Exception if conversion fails
+     */
+    private static String keyPairToOpenSshPrivateKey(KeyPair keyPair) throws Exception {
+        // Extract Ed25519 private key bytes (32 bytes)
+        Ed25519PrivateKeyParameters privateKeyParams = (Ed25519PrivateKeyParameters) PrivateKeyFactory.createKey(keyPair.getPrivate().getEncoded());
+        byte[] privateKeyBytes = privateKeyParams.getEncoded();
+
+        // Extract Ed25519 public key bytes (32 bytes)
+        byte[] encoded = keyPair.getPublic().getEncoded();
+        byte[] publicKeyBytes = new byte[32];
+        System.arraycopy(encoded, encoded.length - 32, publicKeyBytes, 0, 32);
+
+        // Build SSH wire format for public key
+        ByteArrayOutputStream publicKeyBlob = new ByteArrayOutputStream();
+        DataOutputStream publicKeyOut = new DataOutputStream(publicKeyBlob);
+        byte[] keyTypeBytes = SSH_KEY_TYPE_ED25519.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        publicKeyOut.writeInt(keyTypeBytes.length);
+        publicKeyOut.write(keyTypeBytes);
+        publicKeyOut.writeInt(publicKeyBytes.length);
+        publicKeyOut.write(publicKeyBytes);
+        publicKeyOut.flush();
+        byte[] publicKeyBlobBytes = publicKeyBlob.toByteArray();
+
+        // Build unencrypted private section as defined by PROTOCOL.key:
+        // uint32 checkint1, uint32 checkint2 (same value)
+        // string keytype
+        // string public key (same blob as above)
+        // string private key (for ed25519: 32-byte priv + 32-byte pub)
+        // string comment
+        // padding 1,2,3.. to block boundary
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        int checkInt = random.nextInt();
+
+        ByteArrayOutputStream privateBuf = new ByteArrayOutputStream();
+        DataOutputStream privOut = new DataOutputStream(privateBuf);
+
+        privOut.writeInt(checkInt);
+        privOut.writeInt(checkInt);
+
+        writeString(privOut, SSH_KEY_TYPE_ED25519.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        // public key (raw 32-byte Ed25519 public key)
+        writeString(privOut, publicKeyBytes);
+
+        // private key (64 bytes: private + public)
+        byte[] fullPrivate = new byte[privateKeyBytes.length + publicKeyBytes.length];
+        System.arraycopy(privateKeyBytes, 0, fullPrivate, 0, privateKeyBytes.length);
+        System.arraycopy(publicKeyBytes, 0, fullPrivate, privateKeyBytes.length, publicKeyBytes.length);
+        writeString(privOut, fullPrivate);
+
+        // comment
+        writeString(privOut, "custos-generated".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        // padding with 1..n bytes
+        int paddingNeeded = (8 - (privateBuf.size() % 8)) % 8;
+        for (int i = 1; i <= paddingNeeded; i++) {
+            privOut.write(i);
+        }
+        privOut.flush();
+        byte[] privateKeyBlobBytes = privateBuf.toByteArray();
+
+        // Build OpenSSH key format
+        ByteArrayOutputStream opensshKey = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(opensshKey);
+
+        // Magic string: "openssh-key-v1\0"
+        out.write("openssh-key-v1\0".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        // Cipher name: "none" (unencrypted)
+        byte[] cipherName = "none".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        out.writeInt(cipherName.length);
+        out.write(cipherName);
+
+        // KDF name: "none"
+        byte[] kdfName = "none".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        out.writeInt(kdfName.length);
+        out.write(kdfName);
+
+        // KDF options: empty (4 bytes for length = 0)
+        out.writeInt(0);
+
+        // Number of keys: 1
+        out.writeInt(1);
+
+        // Public key (with length prefix)
+        writeString(out, publicKeyBlobBytes);
+
+        // Private key (with length prefix)
+        writeString(out, privateKeyBlobBytes);
+
+        out.flush();
+
+        String base64Key = Base64.getEncoder().encodeToString(opensshKey.toByteArray());
+
+        // Format as PEM
+        StringBuilder pem = new StringBuilder();
+        pem.append("-----BEGIN OPENSSH PRIVATE KEY-----\n");
+        // Split base64 into 70-character lines
+        for (int i = 0; i < base64Key.length(); i += 70) {
+            int end = Math.min(i + 70, base64Key.length());
+            pem.append(base64Key, i, end);
+            pem.append("\n");
+        }
+        pem.append("-----END OPENSSH PRIVATE KEY-----\n");
+
+        return pem.toString();
+    }
+
+    private static void writeString(DataOutputStream out, byte[] data) throws Exception {
+        out.writeInt(data.length);
+        out.write(data);
     }
 
     /**
@@ -163,4 +312,3 @@ public final class SshKeyUtils {
         return certString;
     }
 }
-

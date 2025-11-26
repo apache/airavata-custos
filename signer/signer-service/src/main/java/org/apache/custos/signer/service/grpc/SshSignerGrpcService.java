@@ -19,6 +19,7 @@
 package org.apache.custos.signer.service.grpc;
 
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 import org.apache.custos.signer.service.audit.AuditLogger;
 import org.apache.custos.signer.service.auth.ClientAuthInterceptor;
 import org.apache.custos.signer.service.auth.OidcTokenValidator;
@@ -38,7 +39,6 @@ import org.apache.custos.signer.v1.SshSignerServiceGrpc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -52,7 +52,7 @@ import java.util.Map;
  * gRPC service implementation for SSH certificate signing operations.
  * Handles Sign, Revoke, and GetJWKS requests.
  */
-@Service
+@GrpcService
 public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceImplBase {
 
     private static final Logger logger = LoggerFactory.getLogger(SshSignerGrpcService.class);

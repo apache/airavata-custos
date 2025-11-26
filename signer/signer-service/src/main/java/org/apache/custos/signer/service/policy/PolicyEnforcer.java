@@ -179,7 +179,12 @@ public class PolicyEnforcer {
             String[] parts = publicKeyString.split("\\s+");
 
             if (parts.length >= 1) {
-                return parts[0];
+                String keyType = parts[0];
+                // Normalize key type: remove "ssh-" prefix if present (e.g., "ssh-ed25519" -> "ed25519")
+                if (keyType.startsWith("ssh-")) {
+                    keyType = keyType.substring(4);
+                }
+                return keyType;
             }
 
             throw new IllegalArgumentException("Invalid SSH public key format");

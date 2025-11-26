@@ -25,6 +25,7 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
 import org.apache.custos.signer.service.model.ClientSshConfigEntity;
 import org.apache.custos.signer.service.repo.ClientSshConfigRepository;
 import org.slf4j.Logger;
@@ -43,24 +44,21 @@ import java.util.Optional;
  * Extracts client credentials from gRPC metadata and validates them against stored secrets.
  */
 @Component
+@GrpcGlobalServerInterceptor
 public class ClientAuthInterceptor implements ServerInterceptor {
 
-    private static final Logger logger = LoggerFactory.getLogger(ClientAuthInterceptor.class);
-
-    // gRPC metadata keys for client authentication
-    private static final Metadata.Key<String> CLIENT_ID_KEY =
-            Metadata.Key.of("client-id", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> CLIENT_SECRET_KEY =
-            Metadata.Key.of("client-secret", Metadata.ASCII_STRING_MARSHALLER);
-
     // Context key for storing authenticated client config
-    public static final Context.Key<ClientSshConfigEntity> AUTHENTICATED_CLIENT_KEY =
-            Context.key("authenticated-client");
+    public static final Context.Key<ClientSshConfigEntity> AUTHENTICATED_CLIENT_KEY = Context.key("authenticated-client");
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientAuthInterceptor.class);
+    // gRPC metadata keys for client authentication
+    private static final Metadata.Key<String> CLIENT_ID_KEY = Metadata.Key.of("client-id", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> CLIENT_SECRET_KEY = Metadata.Key.of("client-secret", Metadata.ASCII_STRING_MARSHALLER);
+
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Autowired
     private ClientSshConfigRepository clientConfigRepository;
-
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
@@ -74,7 +72,7 @@ public class ClientAuthInterceptor implements ServerInterceptor {
             if (clientId == null || clientSecret == null) {
                 logger.warn("Missing client credentials in gRPC metadata");
                 call.close(Status.UNAUTHENTICATED.withDescription("Missing client credentials"), headers);
-                return new ServerCall.Listener<ReqT>() {
+                return new ServerCall.Listener<>() {
                 };
             }
 
@@ -83,7 +81,7 @@ public class ClientAuthInterceptor implements ServerInterceptor {
             if (clientIdParts.length != 2) {
                 logger.warn("Invalid client ID format: {}", clientId);
                 call.close(Status.UNAUTHENTICATED.withDescription("Invalid client ID format"), headers);
-                return new ServerCall.Listener<ReqT>() {
+                return new ServerCall.Listener<>() {
                 };
             }
 
@@ -91,8 +89,7 @@ public class ClientAuthInterceptor implements ServerInterceptor {
             String actualClientId = clientIdParts[1];
 
             // Lookup client configuration
-            Optional<ClientSshConfigEntity> clientConfigOpt =
-                    clientConfigRepository.findByTenantIdAndClientId(tenantId, actualClientId);
+            Optional<ClientSshConfigEntity> clientConfigOpt = clientConfigRepository.findByTenantIdAndClientId(tenantId, actualClientId);
 
             if (clientConfigOpt.isEmpty()) {
                 logger.warn("Client not found: tenant={}, client={}", tenantId, actualClientId);
@@ -122,8 +119,7 @@ public class ClientAuthInterceptor implements ServerInterceptor {
             logger.debug("Client authenticated successfully: tenant={}, client={}", tenantId, actualClientId);
 
             // Create authenticated context
-            Context authenticatedContext = Context.current()
-                    .withValue(AUTHENTICATED_CLIENT_KEY, clientConfig);
+            Context authenticatedContext = Context.current().withValue(AUTHENTICATED_CLIENT_KEY, clientConfig);
 
             // Continue with authenticated context
             return Contexts.interceptCall(authenticatedContext, call, headers, next);
@@ -131,7 +127,7 @@ public class ClientAuthInterceptor implements ServerInterceptor {
         } catch (Exception e) {
             logger.error("Authentication error", e);
             call.close(Status.UNAUTHENTICATED.withDescription("Authentication error"), headers);
-            return new ServerCall.Listener<ReqT>() {
+            return new ServerCall.Listener<>() {
             };
         }
     }

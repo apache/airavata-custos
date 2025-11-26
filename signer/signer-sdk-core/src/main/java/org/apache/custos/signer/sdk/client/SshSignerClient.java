@@ -104,8 +104,9 @@ public class SshSignerClient implements AutoCloseable {
                     .build();
 
             // Add authentication metadata
+            // Client ID must be in format: tenantId:clientId for the interceptor
             Metadata metadata = new Metadata();
-            metadata.put(CLIENT_ID_KEY, clientId);
+            metadata.put(CLIENT_ID_KEY, tenantId + ":" + clientId);
             metadata.put(CLIENT_SECRET_KEY, clientSecret);
 
             // Make gRPC call with metadata
@@ -162,8 +163,9 @@ public class SshSignerClient implements AutoCloseable {
             RevokeRequest request = requestBuilder.build();
 
             // Add authentication metadata
+            // Client ID must be in format: tenantId:clientId for the interceptor
             Metadata metadata = new Metadata();
-            metadata.put(CLIENT_ID_KEY, clientId);
+            metadata.put(CLIENT_ID_KEY, tenantId + ":" + clientId);
             metadata.put(CLIENT_SECRET_KEY, clientSecret);
 
             // Make gRPC call
@@ -198,8 +200,9 @@ public class SshSignerClient implements AutoCloseable {
                     .build();
 
             // Add authentication metadata
+            // Client ID must be in format: tenantId:clientId for the interceptor
             Metadata metadata = new Metadata();
-            metadata.put(CLIENT_ID_KEY, clientId);
+            metadata.put(CLIENT_ID_KEY, tenantId + ":" + clientId);
             metadata.put(CLIENT_SECRET_KEY, clientSecret);
 
             // Make gRPC call

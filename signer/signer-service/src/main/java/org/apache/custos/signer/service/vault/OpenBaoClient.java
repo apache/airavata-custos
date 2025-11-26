@@ -24,17 +24,19 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.vault.core.VaultOperations;
 import org.springframework.vault.support.VaultResponse;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -53,15 +55,28 @@ public class OpenBaoClient {
     private static final String NEXT_KEY_PATH = "next";
     private static final String METADATA_PATH = "metadata";
 
-    @Autowired
-    private VaultOperations vaultOperations;
+    private final VaultOperations vaultOperations;
+
+    public OpenBaoClient(VaultOperations vaultOperations) {
+        this.vaultOperations = vaultOperations;
+    }
+
+    /**
+     * Build path for KV v2 secrets engine
+     * KV v2 uses "{mount}/data/{path}" format
+     */
+    private String buildKv2Path(String tenantId, String clientId, String suffix) {
+        // For KV v2, full path format is: {mount}/data/{tenant}/{client}/{suffix}
+        return String.format("%s/data/%s/%s/%s", CA_PATH_PREFIX, tenantId, clientId, suffix);
+    }
 
     /**
      * Retrieve the current active CA private key
      */
     public Optional<KeyPair> getCurrentCAKey(String tenantId, String clientId) {
         try {
-            String path = buildPath(tenantId, clientId, CURRENT_KEY_PATH);
+            // KV v2 uses "data/{path}" format
+            String path = buildKv2Path(tenantId, clientId, CURRENT_KEY_PATH);
             VaultResponse response = vaultOperations.read(path);
 
             if (response == null || response.getData() == null) {
@@ -69,7 +84,13 @@ public class OpenBaoClient {
                 return Optional.empty();
             }
 
-            Map<String, Object> data = response.getData();
+            // KV v2 wraps data in a "data" key
+            Map<String, Object> responseData = response.getData();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseData.get("data");
+            if (data == null) {
+                data = responseData;
+            }
             String privateKeyPem = (String) data.get("private_key");
             String publicKeyPem = (String) data.get("public_key");
 
@@ -93,7 +114,8 @@ public class OpenBaoClient {
      */
     public Optional<KeyPair> getNextCAKey(String tenantId, String clientId) {
         try {
-            String path = buildPath(tenantId, clientId, NEXT_KEY_PATH);
+            // KV v2 uses "data/{path}" format
+            String path = buildKv2Path(tenantId, clientId, NEXT_KEY_PATH);
             VaultResponse response = vaultOperations.read(path);
 
             if (response == null || response.getData() == null) {
@@ -101,7 +123,13 @@ public class OpenBaoClient {
                 return Optional.empty();
             }
 
-            Map<String, Object> data = response.getData();
+            // KV v2 wraps data in a "data" key
+            Map<String, Object> responseData = response.getData();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseData.get("data");
+            if (data == null) {
+                data = responseData;
+            }
             String privateKeyPem = (String) data.get("private_key");
             String publicKeyPem = (String) data.get("public_key");
 
@@ -129,17 +157,20 @@ public class OpenBaoClient {
             String privateKeyPem = toPemString(keyPair.getPrivate());
             String publicKeyPem = toPemString(keyPair.getPublic());
 
-            Map<String, Object> data = new HashMap<>();
-            data.put("private_key", privateKeyPem);
-            data.put("public_key", publicKeyPem);
-            data.put("algorithm", algorithm);
-            data.put("created_at", Instant.now().getEpochSecond());
+            // For KV v2, data must be wrapped in a "data" key
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("private_key", privateKeyPem);
+            dataMap.put("public_key", publicKeyPem);
+            dataMap.put("algorithm", algorithm);
+            dataMap.put("created_at", Instant.now().getEpochSecond());
 
-            String path = buildPath(tenantId, clientId, CURRENT_KEY_PATH);
+            Map<String, Object> data = new HashMap<>();
+            data.put("data", dataMap);
+
+            String path = buildKv2Path(tenantId, clientId, CURRENT_KEY_PATH);
             vaultOperations.write(path, data);
 
-            logger.info("Created new CA keypair for tenant: {}, client: {}, algorithm: {}",
-                    tenantId, clientId, algorithm);
+            logger.info("Created new CA keypair for tenant: {}, client: {}, algorithm: {}", tenantId, clientId, algorithm);
             return keyPair;
 
         } catch (Exception e) {
@@ -162,12 +193,16 @@ public class OpenBaoClient {
                 String privateKeyPem = toPemString(nextKey.get().getPrivate());
                 String publicKeyPem = toPemString(nextKey.get().getPublic());
 
-                Map<String, Object> currentData = new HashMap<>();
-                currentData.put("private_key", privateKeyPem);
-                currentData.put("public_key", publicKeyPem);
-                currentData.put("rotated_at", Instant.now().getEpochSecond());
+                Map<String, Object> currentDataMap = new HashMap<>();
+                currentDataMap.put("private_key", privateKeyPem);
+                currentDataMap.put("public_key", publicKeyPem);
+                currentDataMap.put("rotated_at", Instant.now().getEpochSecond());
 
-                String currentPath = buildPath(tenantId, clientId, CURRENT_KEY_PATH);
+                Map<String, Object> currentData = new HashMap<>();
+                currentData.put("data", currentDataMap);
+
+                // KV v2 uses "{mount}/data/{path}" format for write operations
+                String currentPath = buildKv2Path(tenantId, clientId, CURRENT_KEY_PATH);
                 vaultOperations.write(currentPath, currentData);
             }
 
@@ -177,12 +212,15 @@ public class OpenBaoClient {
             String nextPrivateKeyPem = toPemString(newNextKey.getPrivate());
             String nextPublicKeyPem = toPemString(newNextKey.getPublic());
 
-            Map<String, Object> nextData = new HashMap<>();
-            nextData.put("private_key", nextPrivateKeyPem);
-            nextData.put("public_key", nextPublicKeyPem);
-            nextData.put("created_at", Instant.now().getEpochSecond());
+            Map<String, Object> nextDataMap = new HashMap<>();
+            nextDataMap.put("private_key", nextPrivateKeyPem);
+            nextDataMap.put("public_key", nextPublicKeyPem);
+            nextDataMap.put("created_at", Instant.now().getEpochSecond());
 
-            String nextPath = buildPath(tenantId, clientId, NEXT_KEY_PATH);
+            Map<String, Object> nextData = new HashMap<>();
+            nextData.put("data", nextDataMap);
+
+            String nextPath = buildKv2Path(tenantId, clientId, NEXT_KEY_PATH);
             vaultOperations.write(nextPath, nextData);
 
             // Update metadata with new rotation timestamp
@@ -203,7 +241,7 @@ public class OpenBaoClient {
      */
     public Optional<CAMetadata> getCAMetadata(String tenantId, String clientId) {
         try {
-            String path = buildPath(tenantId, clientId, METADATA_PATH);
+            String path = buildKv2Path(tenantId, clientId, METADATA_PATH);
             VaultResponse response = vaultOperations.read(path);
 
             if (response == null || response.getData() == null) {
@@ -211,7 +249,12 @@ public class OpenBaoClient {
                 return Optional.empty();
             }
 
-            Map<String, Object> data = response.getData();
+            Map<String, Object> responseData = response.getData();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseData.get("data");
+            if (data == null) {
+                data = responseData;
+            }
             CAMetadata metadata = new CAMetadata();
             metadata.setSerialCounter(getLongValue(data, "serial_counter", 1L));
             metadata.setLastRotationAt(getLongValue(data, "last_rotation_at", Instant.now().getEpochSecond()));
@@ -233,15 +276,18 @@ public class OpenBaoClient {
      */
     public void saveCAMetadata(String tenantId, String clientId, CAMetadata metadata) {
         try {
-            Map<String, Object> data = new HashMap<>();
-            data.put("serial_counter", metadata.getSerialCounter());
-            data.put("last_rotation_at", metadata.getLastRotationAt());
-            data.put("next_rotation_at", metadata.getNextRotationAt());
-            data.put("rotation_period_hours", metadata.getRotationPeriodHours());
-            data.put("overlap_hours", metadata.getOverlapHours());
-            data.put("updated_at", Instant.now().getEpochSecond());
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("serial_counter", metadata.getSerialCounter());
+            dataMap.put("last_rotation_at", metadata.getLastRotationAt());
+            dataMap.put("next_rotation_at", metadata.getNextRotationAt());
+            dataMap.put("rotation_period_hours", metadata.getRotationPeriodHours());
+            dataMap.put("overlap_hours", metadata.getOverlapHours());
+            dataMap.put("updated_at", Instant.now().getEpochSecond());
 
-            String path = buildPath(tenantId, clientId, METADATA_PATH);
+            Map<String, Object> data = new HashMap<>();
+            data.put("data", dataMap);
+
+            String path = buildKv2Path(tenantId, clientId, METADATA_PATH);
             vaultOperations.write(path, data);
 
             logger.debug("Saved CA metadata for tenant: {}, client: {}", tenantId, clientId);
@@ -288,8 +334,61 @@ public class OpenBaoClient {
         }
     }
 
-    private String buildPath(String tenantId, String clientId, String suffix) {
-        return String.format("%s/%s/%s/%s", CA_PATH_PREFIX, tenantId, clientId, suffix);
+    /**
+     * Get CA public key in OpenSSH format (for TrustedUserCAKeys configuration).
+     * <p>
+     * Format: "ssh-ed25519 &lt;base64-encoded-ssh-wire-blob&gt; &lt;comment&gt;"
+     * <p>
+     * This is the format required by SSH's TrustedUserCAKeys directive.
+     *
+     * @param tenantId Tenant ID
+     * @param clientId Client ID
+     * @return OpenSSH-formatted public key string, or empty if not found
+     */
+    public Optional<String> getCAPublicKeyOpenSsh(String tenantId, String clientId) {
+        try {
+            Optional<KeyPair> keyPairOpt = getCurrentCAKey(tenantId, clientId);
+            if (keyPairOpt.isPresent()) {
+                KeyPair keyPair = keyPairOpt.get();
+                // Extract Ed25519 public key bytes (32 bytes)
+                byte[] encoded = keyPair.getPublic().getEncoded();
+                if (encoded.length < 44) {
+                    logger.warn("Invalid Ed25519 public key encoding for tenant: {}, client: {}", tenantId, clientId);
+                    return Optional.empty();
+                }
+
+                // Extract the 32-byte public key (last 32 bytes)
+                byte[] publicKeyBytes = new byte[32];
+                System.arraycopy(encoded, encoded.length - 32, publicKeyBytes, 0, 32);
+
+                // SSH wire format: [4-byte length][key-type-string][4-byte length][32-byte public key]
+                ByteArrayOutputStream blobStream = new ByteArrayOutputStream();
+                DataOutputStream blob = new DataOutputStream(blobStream);
+
+                try {
+                    // Write key type string length (4 bytes, big-endian)
+                    byte[] keyTypeBytes = "ssh-ed25519".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    blob.writeInt(keyTypeBytes.length);
+                    blob.write(keyTypeBytes);
+                    blob.writeInt(publicKeyBytes.length);
+                    blob.write(publicKeyBytes);
+                    blob.flush();
+                } finally {
+                    blob.close();
+                }
+
+                // Encode entire blob to base64
+                String base64Key = Base64.getEncoder().encodeToString(blobStream.toByteArray());
+
+                // Format: "ssh-ed25519 <base64-ssh-wire-blob> <comment>"
+                String opensshKey = "ssh-ed25519 " + base64Key + " custos-ca-" + tenantId + "-" + clientId;
+                return Optional.of(opensshKey);
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            logger.error("Error converting CA public key to OpenSSH format for tenant: {}, client: {}", tenantId, clientId, e);
+            return Optional.empty();
+        }
     }
 
     private KeyPair generateKeyPair(String algorithm) throws Exception {
@@ -314,11 +413,12 @@ public class OpenBaoClient {
         privateKeyParser.close();
 
         PrivateKey privateKey;
-        if (privateKeyObj instanceof PEMKeyPair) {
-            PEMKeyPair keyPair = (PEMKeyPair) privateKeyObj;
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+        if (privateKeyObj instanceof PEMKeyPair keyPair) {
             // Convert Bouncy Castle private key to Java PrivateKey
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
             privateKey = converter.getPrivateKey(keyPair.getPrivateKeyInfo());
+        } else if (privateKeyObj instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo) {
+            privateKey = converter.getPrivateKey((org.bouncycastle.asn1.pkcs.PrivateKeyInfo) privateKeyObj);
         } else {
             privateKey = (PrivateKey) privateKeyObj;
         }
@@ -328,7 +428,12 @@ public class OpenBaoClient {
         Object publicKeyObj = publicKeyParser.readObject();
         publicKeyParser.close();
 
-        PublicKey publicKey = (PublicKey) publicKeyObj;
+        PublicKey publicKey;
+        if (publicKeyObj instanceof org.bouncycastle.asn1.x509.SubjectPublicKeyInfo) {
+            publicKey = converter.getPublicKey((org.bouncycastle.asn1.x509.SubjectPublicKeyInfo) publicKeyObj);
+        } else {
+            publicKey = (PublicKey) publicKeyObj;
+        }
 
         return new KeyPair(publicKey, privateKey);
     }
