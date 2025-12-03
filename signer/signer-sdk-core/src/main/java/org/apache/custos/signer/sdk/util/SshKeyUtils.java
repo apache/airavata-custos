@@ -18,6 +18,7 @@
  */
 package org.apache.custos.signer.sdk.util;
 
+import org.apache.custos.signer.service.policy.KeyType;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -25,32 +26,44 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.StringWriter;
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
 import java.util.Base64;
 
 /**
  * Utility class for SSH key generation and format conversion.
- * TODO: Add support for RSA and ECDSA key types.
  */
 public final class SshKeyUtils {
 
-    // TODO: Support multiple key types (RSA, ECDSA) in addition to Ed25519
     private static final String SSH_KEY_TYPE_ED25519 = "ssh-ed25519";
     private static final String SSH_CERT_TYPE_ED25519 = "ssh-ed25519-cert-v01@openssh.com";
 
     private SshKeyUtils() {
     }
 
-    /**
-     * Generate a new Ed25519 keypair.
-     *
-     * @return Generated Ed25519 KeyPair
-     * @throws Exception if key generation fails
-     */
-    public static KeyPair generateEd25519KeyPair() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519");
-        return keyGen.generateKeyPair();
+    public static KeyPair generateKeyPair(String keyType) throws Exception {
+        KeyType normalized = KeyType.from(keyType);
+        switch (normalized) {
+            case ED25519:
+                return KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+            case RSA:
+                KeyPairGenerator rsaGen = KeyPairGenerator.getInstance("RSA");
+                rsaGen.initialize(2048);
+                return rsaGen.generateKeyPair();
+            case ECDSA:
+                KeyPairGenerator ecGen = KeyPairGenerator.getInstance("EC");
+                ecGen.initialize(new ECGenParameterSpec("secp256r1"));
+                return ecGen.generateKeyPair();
+            default:
+                throw new IllegalArgumentException("Unsupported key type: " + keyType);
+        }
     }
 
     /**
@@ -217,66 +230,65 @@ public final class SshKeyUtils {
         out.write(data);
     }
 
-    /**
-     * Convert a public key to OpenSSH format.
-     * <p>
-     * Format: "ssh-ed25519 &lt;base64-encoded-ssh-wire-blob&gt; &lt;comment&gt;"
-     * <p>
-     * The SSH wire format blob contains:
-     * - 4 bytes: length of key type string ("ssh-ed25519" = 11 bytes)
-     * - key type string bytes ("ssh-ed25519")
-     * - 4 bytes: length of public key (32 bytes)
-     * - 32 bytes: public key
-     * <p>
-     * This entire blob is then base64-encoded to produce the OpenSSH public key format.
-     * <p>
-     * TODO: Support RSA and ECDSA key types (detect key type and format accordingly).
-     *
-     * @param keyPair KeyPair containing the public key
-     * @return OpenSSH-formatted public key string
-     * @throws Exception if conversion fails
-     */
     public static String keyPairToOpenSshPublicKey(KeyPair keyPair) throws Exception {
         if (keyPair == null || keyPair.getPublic() == null) {
             throw new IllegalArgumentException("KeyPair or public key is null");
         }
 
-        // Extract Ed25519 public key bytes (32 bytes)
-        // The encoded format for Ed25519 is: OID (12 bytes) + public key (32 bytes) = 44 bytes
-        byte[] encoded = keyPair.getPublic().getEncoded();
-        if (encoded.length < 44) {
-            throw new IllegalArgumentException("Invalid Ed25519 public key encoding");
+        PublicKey publicKey = keyPair.getPublic();
+        String algorithm = publicKey.getAlgorithm();
+
+        if ("EdDSA".equals(algorithm) || "Ed25519".equals(algorithm)) {
+            byte[] encoded = publicKey.getEncoded();
+            if (encoded.length < 44) {
+                throw new IllegalArgumentException("Invalid Ed25519 public key encoding");
+            }
+            byte[] publicKeyBytes = new byte[32];
+            System.arraycopy(encoded, encoded.length - 32, publicKeyBytes, 0, 32);
+
+            ByteArrayOutputStream blobStream = new ByteArrayOutputStream();
+            try (DataOutputStream blob = new DataOutputStream(blobStream)) {
+                writeString(blob, SSH_KEY_TYPE_ED25519.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                blob.writeInt(publicKeyBytes.length);
+                blob.write(publicKeyBytes);
+                blob.flush();
+            }
+
+            String base64Key = Base64.getEncoder().encodeToString(blobStream.toByteArray());
+            return SSH_KEY_TYPE_ED25519 + " " + base64Key + " custos-generated";
+
+        } else if ("RSA".equalsIgnoreCase(algorithm)) {
+            RSAPublicKey rsa = (RSAPublicKey) publicKey;
+            ByteArrayOutputStream blobStream = new ByteArrayOutputStream();
+            try (DataOutputStream blob = new DataOutputStream(blobStream)) {
+                writeString(blob, "ssh-rsa".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                writeMpInt(blob, rsa.getPublicExponent());
+                writeMpInt(blob, rsa.getModulus());
+                blob.flush();
+            }
+
+            String base64Key = Base64.getEncoder().encodeToString(blobStream.toByteArray());
+            return "ssh-rsa " + base64Key + " custos-generated";
+
+        } else if ("EC".equalsIgnoreCase(algorithm)) {
+            ECPublicKey ecKey = (ECPublicKey) publicKey;
+            String curveName = "nistp256";
+            ECPoint w = ecKey.getW();
+            byte[] q = encodeEcPointUncompressed(w, ecKey.getParams());
+
+            ByteArrayOutputStream blobStream = new ByteArrayOutputStream();
+            try (DataOutputStream blob = new DataOutputStream(blobStream)) {
+                writeString(blob, "ecdsa-sha2-" + curveName);
+                writeString(blob, curveName);
+                writeString(blob, q);
+                blob.flush();
+            }
+
+            String base64Key = Base64.getEncoder().encodeToString(blobStream.toByteArray());
+            return "ecdsa-sha2-" + curveName + " " + base64Key + " custos-generated";
+        } else {
+            throw new IllegalArgumentException("Unsupported public key algorithm: " + algorithm);
         }
-
-        // Extract the 32-byte public key (last 32 bytes)
-        byte[] publicKeyBytes = new byte[32];
-        System.arraycopy(encoded, encoded.length - 32, publicKeyBytes, 0, 32);
-
-        // SSH wire format: [4-byte length][key-type-string][4-byte length][32-byte public key]
-        java.io.ByteArrayOutputStream blobStream = new java.io.ByteArrayOutputStream();
-        java.io.DataOutputStream blob = new java.io.DataOutputStream(blobStream);
-
-        try {
-            // Write key type string length (4 bytes, big-endian)
-            byte[] keyTypeBytes = SSH_KEY_TYPE_ED25519.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            blob.writeInt(keyTypeBytes.length);
-
-            blob.write(keyTypeBytes);
-
-            blob.writeInt(publicKeyBytes.length);
-
-            blob.write(publicKeyBytes);
-
-            blob.flush();
-        } finally {
-            blob.close();
-        }
-
-        // Encode entire blob to base64
-        String base64Key = Base64.getEncoder().encodeToString(blobStream.toByteArray());
-
-        // Format: "ssh-ed25519 <base64-ssh-wire-blob> <comment>"
-        return SSH_KEY_TYPE_ED25519 + " " + base64Key + " custos-generated";
     }
 
     /**
@@ -288,27 +300,69 @@ public final class SshKeyUtils {
      * certificate type identifier. The comment typically contains the principal
      * or client alias for identification.
      * <p>
-     * TODO: Detect certificate type from bytes and use appropriate format (ssh-rsa-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, etc.).
      *
      * @param certBytes Certificate bytes (raw binary certificate data)
      * @param comment   Comment to append (typically principal or clientAlias)
      * @return OpenSSH certificate string format
      * @throws Exception if conversion fails
      */
-    public static String certBytesToOpenSshCertString(byte[] certBytes, String comment) throws Exception {
+    public static String certBytesToOpenSshCertString(byte[] certBytes, String keyType, String comment) throws Exception {
         if (certBytes == null || certBytes.length == 0) {
             throw new IllegalArgumentException("Certificate bytes cannot be null or empty");
         }
 
-        // Encode certificate bytes to base64
-        String base64Cert = Base64.getEncoder().encodeToString(certBytes);
+        KeyType normalized = KeyType.from(keyType);
+        String certType = normalized == KeyType.RSA
+                ? "ssh-rsa-cert-v01@openssh.com"
+                : normalized == KeyType.ECDSA
+                ? "ecdsa-sha2-nistp256-cert-v01@openssh.com"
+                : SSH_CERT_TYPE_ED25519;
 
-        // Format: "ssh-ed25519-cert-v01@openssh.com <base64> <comment>"
-        String certString = SSH_CERT_TYPE_ED25519 + " " + base64Cert;
+        String base64Cert = Base64.getEncoder().encodeToString(certBytes);
+        String certString = certType + " " + base64Cert;
         if (comment != null && !comment.isEmpty()) {
             certString += " " + comment;
         }
 
         return certString;
+    }
+
+    public static String certBytesToOpenSshCertString(byte[] certBytes, String comment) throws Exception {
+        return certBytesToOpenSshCertString(certBytes, "ed25519", comment);
+    }
+
+    private static void writeMpInt(DataOutputStream out, BigInteger value) throws Exception {
+        byte[] bytes = value.toByteArray();
+        writeString(out, bytes);
+    }
+
+    private static byte[] encodeEcPointUncompressed(ECPoint point, ECParameterSpec params) {
+        int fieldSize = (params.getCurve().getField().getFieldSize() + 7) / 8;
+        byte[] x = toFixedLength(point.getAffineX(), fieldSize);
+        byte[] y = toFixedLength(point.getAffineY(), fieldSize);
+        byte[] q = new byte[1 + x.length + y.length];
+        q[0] = 0x04;
+        System.arraycopy(x, 0, q, 1, x.length);
+        System.arraycopy(y, 0, q, 1 + x.length, y.length);
+        return q;
+    }
+
+    private static byte[] toFixedLength(BigInteger value, int length) {
+        byte[] bytes = value.toByteArray();
+        if (bytes.length == length) {
+            return bytes;
+        }
+        byte[] out = new byte[length];
+        if (bytes.length > length) {
+            System.arraycopy(bytes, bytes.length - length, out, 0, length);
+        } else {
+            System.arraycopy(bytes, 0, out, length - bytes.length, bytes.length);
+        }
+        return out;
+    }
+
+    private static void writeString(DataOutputStream out, String str) throws Exception {
+        byte[] data = str.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        writeString(out, data);
     }
 }

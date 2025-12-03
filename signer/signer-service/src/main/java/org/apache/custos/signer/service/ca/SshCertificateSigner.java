@@ -35,6 +35,7 @@ import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
@@ -60,6 +61,7 @@ public class SshCertificateSigner {
     private static final String SSH_KEY_TYPE_ED25519 = "ssh-ed25519";
     private static final String SSH_KEY_TYPE_RSA = "ssh-rsa";
     private static final String SSH_KEY_TYPE_ECDSA = "ecdsa-sha2-nistp256";
+    private static final String SSH_SIG_ALG_RSA_SHA256 = "rsa-sha2-256";
 
     @Autowired
     private OpenBaoClient openBaoClient;
@@ -153,8 +155,17 @@ public class SshCertificateSigner {
             rawKeyBytes = new byte[pkLen];
             buf.get(rawKeyBytes);
         } else {
-            // For future RSA/ECDSA support, fall back to full decoded blob
-            rawKeyBytes = decoded;
+            ByteBuffer buf = ByteBuffer.wrap(decoded);
+            int typeLen = buf.getInt();
+            byte[] typeBytes = new byte[typeLen];
+            buf.get(typeBytes);
+            String embeddedType = new String(typeBytes, StandardCharsets.UTF_8);
+            if (!embeddedType.equals(keyType)) {
+                throw new IllegalArgumentException("Mismatched key type inside public key blob: " + embeddedType);
+            }
+            byte[] remaining = new byte[buf.remaining()];
+            buf.get(remaining);
+            rawKeyBytes = remaining;
         }
 
         // Calculate fingerprint (SHA256 hash)
@@ -200,8 +211,8 @@ public class SshCertificateSigner {
         cert.setReserved("");
 
         // CA public key
-        // TODO: Support multiple CA key types (RSA, ECDSA)
-        cert.setCaKeyType(SSH_KEY_TYPE_ED25519); // Currently Ed25519 supported
+        String caKeyType = normalizeKeyType(caKeyPair.getPublic().getAlgorithm());
+        cert.setCaKeyType(caKeyType);
         try {
             cert.setCaPublicKey(toSshPublicKeyBlob(caKeyPair.getPublic()));
         } catch (Exception e) {
@@ -218,7 +229,6 @@ public class SshCertificateSigner {
         // Serialize certificate for signing
         byte[] certificateData = serializeCertificate(certificate);
 
-        // TODO: Add support for RSA and ECDSA signing algorithms
         // Sign using Ed25519
         // Note: Java reports Ed25519 keys as "EdDSA" algorithm
         String algorithm = caPrivateKey.getAlgorithm();
@@ -229,6 +239,16 @@ public class SshCertificateSigner {
             signer.init(true, privateKeyParams);
             signer.update(certificateData, 0, certificateData.length);
             return signer.generateSignature();
+        } else if ("RSA".equalsIgnoreCase(algorithm)) {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(caPrivateKey);
+            signature.update(certificateData);
+            return signature.sign();
+        } else if ("EC".equalsIgnoreCase(algorithm)) {
+            Signature signature = Signature.getInstance("SHA256withECDSA");
+            signature.initSign(caPrivateKey);
+            signature.update(certificateData);
+            return signature.sign();
         } else {
             throw new IllegalArgumentException("Unsupported CA key algorithm: " + caPrivateKey.getAlgorithm());
         }
@@ -240,14 +260,12 @@ public class SshCertificateSigner {
     private byte[] createFinalCertificate(SshCertificate certificate, byte[] signature) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        // TODO: Select certificate format based on client key type (ssh-rsa-cert-v01@openssh.com, ecdsa-sha2-nistp256-cert-v01@openssh.com, etc.)
-        // Certificate type
-        writeString(out, "ssh-ed25519-cert-v01@openssh.com");
+        writeString(out, getCertificateType(certificate.getKeyType()));
 
         // Nonce
         writeBytes(out, certificate.getNonce());
 
-        // Subject public key (as SSH wire public key)
+        // Subject public key (SSH wire public key blob)
         writeBytes(out, certificate.getPublicKey());
 
         // Serial
@@ -280,10 +298,9 @@ public class SshCertificateSigner {
         // CA public key (as SSH wire public key)
         writeBytes(out, certificate.getCaPublicKey());
 
-        // TODO: Support signature types for RSA and ECDSA
         // Signature (wrapped as SSH signature blob)
         ByteArrayOutputStream sigBuf = new ByteArrayOutputStream();
-        writeString(sigBuf, "ssh-ed25519");
+        writeString(sigBuf, getSignatureAlgorithm(certificate.getCaKeyType()));
         writeBytes(sigBuf, signature);
         writeBytes(out, sigBuf.toByteArray());
 
@@ -296,14 +313,12 @@ public class SshCertificateSigner {
     private byte[] serializeCertificate(SshCertificate certificate) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        // TODO: Select certificate format based on client key type (currently hardcoded to Ed25519)
-        // Certificate type
-        writeString(out, "ssh-ed25519-cert-v01@openssh.com");
+        writeString(out, getCertificateType(certificate.getKeyType()));
 
         // Nonce
         writeBytes(out, certificate.getNonce());
 
-        // Subject public key (as SSH wire public key)
+        // Subject public key (SSH wire public key blob)
         writeBytes(out, certificate.getPublicKey());
 
         // Serial
@@ -366,18 +381,106 @@ public class SshCertificateSigner {
 
     private byte[] toSshPublicKeyBlob(PublicKey publicKey) throws Exception {
         String algorithm = publicKey.getAlgorithm();
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
         if ("EdDSA".equals(algorithm) || "Ed25519".equals(algorithm) || SSH_KEY_TYPE_ED25519.equals(algorithm)) {
             Ed25519PublicKeyParameters publicKeyParams = (Ed25519PublicKeyParameters)
                     org.bouncycastle.crypto.util.PublicKeyFactory.createKey(publicKey.getEncoded());
             byte[] publicKeyBytes = publicKeyParams.getEncoded();
-
-            ByteArrayOutputStream buf = new ByteArrayOutputStream();
             writeString(buf, SSH_KEY_TYPE_ED25519);
             writeBytes(buf, publicKeyBytes);
+            return buf.toByteArray();
+
+        } else if ("RSA".equalsIgnoreCase(algorithm)) {
+            java.security.interfaces.RSAPublicKey rsa = (java.security.interfaces.RSAPublicKey) publicKey;
+            writeString(buf, SSH_KEY_TYPE_RSA);
+            writeMpInt(buf, rsa.getPublicExponent());
+            writeMpInt(buf, rsa.getModulus());
+            return buf.toByteArray();
+
+        } else if ("EC".equalsIgnoreCase(algorithm)) {
+            java.security.interfaces.ECPublicKey ec = (java.security.interfaces.ECPublicKey) publicKey;
+            String curve = "nistp256";
+            byte[] q = encodeEcPoint(ec.getW(), ec.getParams());
+            writeString(buf, SSH_KEY_TYPE_ECDSA);
+            writeString(buf, curve);
+            writeBytes(buf, q);
             return buf.toByteArray();
         }
 
         throw new IllegalArgumentException("Unsupported CA public key type: " + algorithm);
+    }
+
+    private String getCertificateType(String keyType) {
+        if (keyType == null) {
+            return SSH_KEY_TYPE_ED25519 + "-cert-v01@openssh.com";
+        }
+        if (keyType.startsWith(SSH_KEY_TYPE_RSA)) {
+            return SSH_KEY_TYPE_RSA + "-cert-v01@openssh.com";
+        }
+        if (keyType.startsWith(SSH_KEY_TYPE_ECDSA)) {
+            return SSH_KEY_TYPE_ECDSA + "-cert-v01@openssh.com";
+        }
+        return SSH_KEY_TYPE_ED25519 + "-cert-v01@openssh.com";
+    }
+
+    private String getSignatureAlgorithm(String caKeyType) {
+        if (caKeyType == null) {
+            return SSH_KEY_TYPE_ED25519;
+        }
+        if (caKeyType.startsWith(SSH_KEY_TYPE_RSA)) {
+            return SSH_SIG_ALG_RSA_SHA256;
+        }
+        if (caKeyType.startsWith(SSH_KEY_TYPE_ECDSA)) {
+            return SSH_KEY_TYPE_ECDSA;
+        }
+        return SSH_KEY_TYPE_ED25519;
+    }
+
+    private String normalizeKeyType(String algorithm) {
+        if (algorithm == null) {
+            return SSH_KEY_TYPE_ED25519;
+        }
+        if ("RSA".equalsIgnoreCase(algorithm)) {
+            return SSH_KEY_TYPE_RSA;
+        }
+        if ("EC".equalsIgnoreCase(algorithm)) {
+            return SSH_KEY_TYPE_ECDSA;
+        }
+        if ("Ed25519".equalsIgnoreCase(algorithm) || "EdDSA".equalsIgnoreCase(algorithm)) {
+            return SSH_KEY_TYPE_ED25519;
+        }
+        return algorithm;
+    }
+
+    private static byte[] encodeEcPoint(java.security.spec.ECPoint point, java.security.spec.ECParameterSpec params) {
+        int fieldSize = (params.getCurve().getField().getFieldSize() + 7) / 8;
+        byte[] x = toFixedLength(point.getAffineX(), fieldSize);
+        byte[] y = toFixedLength(point.getAffineY(), fieldSize);
+        byte[] q = new byte[1 + x.length + y.length];
+        q[0] = 0x04;
+        System.arraycopy(x, 0, q, 1, x.length);
+        System.arraycopy(y, 0, q, 1 + x.length, y.length);
+        return q;
+    }
+
+    private static byte[] toFixedLength(java.math.BigInteger value, int length) {
+        byte[] bytes = value.toByteArray();
+        if (bytes.length == length) {
+            return bytes;
+        }
+        byte[] out = new byte[length];
+        if (bytes.length > length) {
+            System.arraycopy(bytes, bytes.length - length, out, 0, length);
+        } else {
+            System.arraycopy(bytes, 0, out, length - bytes.length, bytes.length);
+        }
+        return out;
+    }
+
+    private void writeMpInt(ByteArrayOutputStream out, java.math.BigInteger value) throws Exception {
+        byte[] bytes = value.toByteArray();
+        writeUint32(out, bytes.length);
+        out.write(bytes);
     }
 
     private void writeString(ByteArrayOutputStream out, String str) throws Exception {

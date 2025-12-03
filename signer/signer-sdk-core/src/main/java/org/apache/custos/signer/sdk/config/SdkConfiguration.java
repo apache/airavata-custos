@@ -19,6 +19,7 @@
 package org.apache.custos.signer.sdk.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.custos.signer.service.policy.KeyType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,6 +328,9 @@ public class SdkConfiguration {
         @JsonProperty("client-secret")
         private String clientSecret;
 
+        @JsonProperty("key-type")
+        private String keyType = KeyType.ED25519.id();
+
         public ClientConfig() {
         }
 
@@ -334,6 +338,15 @@ public class SdkConfiguration {
             this.alias = alias;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
+        }
+
+        public ClientConfig(String alias, String clientId, String clientSecret, String keyType) {
+            this.alias = alias;
+            this.clientId = clientId;
+            this.clientSecret = clientSecret;
+            if (keyType != null && !keyType.isEmpty()) {
+                this.keyType = keyType.toLowerCase();
+            }
         }
 
         public String getAlias() {
@@ -358,6 +371,14 @@ public class SdkConfiguration {
 
         public void setClientSecret(String clientSecret) {
             this.clientSecret = clientSecret;
+        }
+
+        public String getKeyType() {
+            return keyType;
+        }
+
+        public void setKeyType(String keyType) {
+            this.keyType = keyType;
         }
     }
 
@@ -422,6 +443,11 @@ public class SdkConfiguration {
 
         public Builder addClient(String alias, String clientId, String clientSecret) {
             clients.put(alias, new ClientConfig(alias, clientId, clientSecret));
+            return this;
+        }
+
+        public Builder addClient(String alias, String clientId, String clientSecret, String keyType) {
+            clients.put(alias, new ClientConfig(alias, clientId, clientSecret, keyType));
             return this;
         }
 

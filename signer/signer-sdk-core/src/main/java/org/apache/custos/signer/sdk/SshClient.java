@@ -71,18 +71,31 @@ public class SshClient implements AutoCloseable {
      * @throws SshClientException if certificate request fails
      */
     public CertificateMaterials requestCertificateMaterials(String clientAlias, String principal, int ttlSeconds, String userToken) {
+        return requestCertificateMaterials(clientAlias, principal, ttlSeconds, userToken, null);
+    }
+
+    /**
+     * Request certificate materials specifying key type.
+     *
+     * @param clientAlias Alias configured in SDK configuration
+     * @param principal   SSH username
+     * @param ttlSeconds  TTL in seconds
+     * @param userToken   OIDC user access token
+     * @param keyType     Key type ("ed25519", "rsa", "ecdsa")
+     * @return CertificateMaterials
+     */
+    public CertificateMaterials requestCertificateMaterials(String clientAlias, String principal, int ttlSeconds, String userToken, String keyType) {
         try {
-            logger.debug("Requesting certificate materials for client: {}, principal: {}, ttl: {}s", clientAlias, principal, ttlSeconds);
+            logger.debug("Requesting certificate materials for client: {}, principal: {}, ttl: {}s, keyType: {}", clientAlias, principal, ttlSeconds, keyType);
 
             // Resolve client alias to configuration
             SdkConfiguration.ClientConfig clientConfig = configuration.getClientConfig(clientAlias)
                     .orElseThrow(() -> new IllegalArgumentException("Client alias not found: " + clientAlias));
 
-            // TODO: Support RSA and ECDSA key types in addition to Ed25519
-            // Generate ephemeral Ed25519 keypair
-            KeyPair keyPair = SshKeyUtils.generateEd25519KeyPair();
+            String defaultKeyType = clientConfig.getKeyType() == null ? "ed25519" : clientConfig.getKeyType();
+            String normalizedKeyType = keyType == null ? defaultKeyType.toLowerCase() : keyType.toLowerCase();
+            KeyPair keyPair = SshKeyUtils.generateKeyPair(normalizedKeyType);
 
-            // Convert public key to OpenSSH format
             String publicKeyOpenSsh = SshKeyUtils.keyPairToOpenSshPublicKey(keyPair);
             byte[] publicKeyBytes = publicKeyOpenSsh.getBytes(StandardCharsets.UTF_8);
 
@@ -104,7 +117,7 @@ public class SshClient implements AutoCloseable {
             // Convert certificate bytes to OpenSSH cert string format
             // Use principal as comment
             String opensshCert = SshKeyUtils.certBytesToOpenSshCertString(
-                    certResponse.getCertificate(), principal);
+                    certResponse.getCertificate(), normalizedKeyType, principal);
 
             // Create defensive copy of certBytes
             byte[] certBytesCopy = certResponse.getCertificate().clone();
