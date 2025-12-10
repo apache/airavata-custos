@@ -163,7 +163,7 @@
                 <executions>
                     <execution>
                         <id>add-generated-sources</id>
-                        <phase>generate-sources</phase>
+                        <phase>process-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
