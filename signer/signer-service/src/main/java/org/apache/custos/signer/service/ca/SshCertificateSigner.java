@@ -119,7 +119,7 @@ public class SshCertificateSigner {
         } catch (Exception e) {
             logger.error("Failed to sign SSH certificate for tenant: {}, client: {}, principal: {}",
                     tenantId, clientId, principal, e);
-            throw new RuntimeException("Failed to sign SSH certificate", e);
+            throw new RuntimeException("Failed to sign SSH certificate: " + e.getMessage(), e);
         }
     }
 

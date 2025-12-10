@@ -20,6 +20,7 @@ package org.apache.custos.signer.sdk;
 import org.apache.custos.signer.sdk.config.SdkConfiguration;
 import org.apache.custos.signer.sdk.keystore.InMemoryKeyStore;
 import org.apache.custos.signer.sdk.keystore.KeyStoreProvider;
+import org.apache.custos.signer.sdk.util.TestJwtTokenGenerator;
 import org.apache.custos.signer.service.policy.KeyType;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -58,11 +59,14 @@ public class SshClientIntegrationTest {
         try {
             System.out.println("Requesting certificate materials (this will auto-generate CA key if first time) using keyType=" + keyType);
 
+            // Generate a valid JWT token for testing
+            String userToken = TestJwtTokenGenerator.generateTestToken("exouser");
+
             CertificateMaterials materials = client.requestCertificateMaterials(
                     "test-client",  // client alias
                     "exouser",    // principal (SSH username)
                     3600,          // TTL: 1 hour
-                    "test-token",  // user token (for now, just a placeholder TODO)
+                    userToken,     // user token (valid JWT for testing)
                     keyType
             );
 
@@ -74,7 +78,7 @@ public class SshClientIntegrationTest {
             assertNotNull(materials.certBytes(), "Certificate bytes should not be null");
             assertTrue(Objects.requireNonNull(materials.certBytes()).length > 0, "Certificate bytes should not be empty");
 
-            System.out.println("✓ Certificate materials received successfully!");
+            System.out.println("Certificate materials received successfully!");
             System.out.println("  Serial Number: " + materials.serial());
             System.out.println("  CA Fingerprint: " + materials.caFingerprint());
             System.out.println("  Target: " + materials.targetHost() + ":" + materials.targetPort());
@@ -87,8 +91,8 @@ public class SshClientIntegrationTest {
             String certContent = materials.opensshCert().trim();
             Files.write(Paths.get(certFile), certContent.getBytes());
 
-            System.out.println("✓ Saved private key to: " + keyFile);
-            System.out.println("✓ Saved certificate to: " + certFile);
+            System.out.println("Saved private key to: " + keyFile);
+            System.out.println("Saved certificate to: " + certFile);
             System.out.println("\nNext steps:");
             System.out.println("1. Extract CA public key from Vault:");
             System.out.println("   vault kv get -field=public_key ssh-ca/nexus/test-client/current > /tmp/ca.pub");
