@@ -69,9 +69,7 @@ public class SshCertificateSigner {
     /**
      * Sign an SSH public key and return the certificate
      */
-    public SshCertificateResult signCertificate(String tenantId, String clientId,
-                                                String principal, int ttlSeconds,
-                                                byte[] publicKeyBytes, String caFingerprint) {
+    public SshCertificateResult signCertificate(String tenantId, String clientId, String principal, int ttlSeconds, byte[] publicKeyBytes, String caFingerprint) {
         try {
             // Parse the public key
             SshPublicKey publicKey = parseSshPublicKey(publicKeyBytes);
@@ -139,6 +137,7 @@ public class SshCertificateSigner {
         byte[] decoded = Base64.getDecoder().decode(parts[1]);
 
         byte[] rawKeyBytes;
+        byte[] keyDataForCert;
         if (SSH_KEY_TYPE_ED25519.equals(keyType)) {
             ByteBuffer buf = ByteBuffer.wrap(decoded);
             int typeLen = buf.getInt();
@@ -154,6 +153,12 @@ public class SshCertificateSigner {
             }
             rawKeyBytes = new byte[pkLen];
             buf.get(rawKeyBytes);
+            // For certificates, include the length prefix for the raw 32-byte key
+            ByteBuffer keyBuf = ByteBuffer.allocate(4 + pkLen);
+            keyBuf.putInt(pkLen);
+            keyBuf.put(rawKeyBytes);
+            keyDataForCert = keyBuf.array();
+
         } else {
             ByteBuffer buf = ByteBuffer.wrap(decoded);
             int typeLen = buf.getInt();
@@ -166,6 +171,8 @@ public class SshCertificateSigner {
             byte[] remaining = new byte[buf.remaining()];
             buf.get(remaining);
             rawKeyBytes = remaining;
+            // For RSA/ECDSA the certificate needs the full SSH wire-format public key blob
+            keyDataForCert = rawKeyBytes;
         }
 
         // Calculate fingerprint (SHA256 hash)
@@ -173,7 +180,7 @@ public class SshCertificateSigner {
         byte[] hash = digest.digest(rawKeyBytes);
         String fingerprint = Base64.getEncoder().encodeToString(hash);
 
-        return new SshPublicKey(keyType, rawKeyBytes, fingerprint);
+        return new SshPublicKey(keyType, keyDataForCert, fingerprint);
     }
 
     /**
@@ -266,7 +273,7 @@ public class SshCertificateSigner {
         writeBytes(out, certificate.getNonce());
 
         // Subject public key (SSH wire public key blob)
-        writeBytes(out, certificate.getPublicKey());
+        out.write(certificate.getPublicKey());
 
         // Serial
         writeUint64(out, certificate.getSerial());
@@ -319,7 +326,7 @@ public class SshCertificateSigner {
         writeBytes(out, certificate.getNonce());
 
         // Subject public key (SSH wire public key blob)
-        writeBytes(out, certificate.getPublicKey());
+        out.write(certificate.getPublicKey());
 
         // Serial
         writeUint64(out, certificate.getSerial());
