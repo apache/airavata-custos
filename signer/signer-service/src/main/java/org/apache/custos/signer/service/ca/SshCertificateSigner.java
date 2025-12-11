@@ -95,10 +95,7 @@ public class SshCertificateSigner {
             String keyId = String.format("%s@%s-%d", principal, clientId, now.getEpochSecond());
 
             // Build certificate
-            SshCertificate certificate = buildSshCertificate(
-                    publicKey, caKeyPair, serialNumber, keyId, principal,
-                    validAfter, validBefore, caFingerprint
-            );
+            SshCertificate certificate = buildSshCertificate(publicKey, caKeyPair, serialNumber, keyId, principal, validAfter, validBefore);
 
             // Sign the certificate
             byte[] signature = signCertificate(certificate, caKeyPair.getPrivate());
@@ -186,10 +183,7 @@ public class SshCertificateSigner {
     /**
      * Build SSH certificate structure
      */
-    private SshCertificate buildSshCertificate(SshPublicKey publicKey, KeyPair caKeyPair,
-                                               long serialNumber, String keyId, String principal,
-                                               Instant validAfter, Instant validBefore,
-                                               String caFingerprint) {
+    private SshCertificate buildSshCertificate(SshPublicKey publicKey, KeyPair caKeyPair, long serialNumber, String keyId, String principal, Instant validAfter, Instant validBefore) {
         SshCertificate cert = new SshCertificate();
 
         // Certificate header
@@ -199,6 +193,7 @@ public class SshCertificateSigner {
         cert.setPublicKey(publicKey.getKeyData()); // For Ed25519, raw 32-byte public key
         cert.setSerial(serialNumber);
         cert.setKeyId(keyId);
+        cert.setPrincipal(principal);
 
         // Validity period
         cert.setValidAfter(validAfter.getEpochSecond());
@@ -285,7 +280,7 @@ public class SshCertificateSigner {
         writeString(out, certificate.getKeyId());
 
         // Principals (list encoded inside a single string)
-        writeBytes(out, encodePrincipals(Collections.singletonList(certificate.getKeyId().split("@")[0])));
+        writeBytes(out, encodePrincipals(Collections.singletonList(resolvePrincipal(certificate))));
 
         // Validity
         writeUint64(out, certificate.getValidAfter());
@@ -338,7 +333,7 @@ public class SshCertificateSigner {
         writeString(out, certificate.getKeyId());
 
         // Principals
-        writeBytes(out, encodePrincipals(Collections.singletonList(certificate.getKeyId().split("@")[0])));
+        writeBytes(out, encodePrincipals(Collections.singletonList(resolvePrincipal(certificate))));
 
         // Validity period
         writeUint64(out, certificate.getValidAfter());
@@ -384,6 +379,21 @@ public class SshCertificateSigner {
                     });
         }
         return optionsBuf.toByteArray();
+    }
+
+    private String resolvePrincipal(SshCertificate certificate) {
+        String principal = certificate.getPrincipal();
+        if (principal != null && !principal.isEmpty()) {
+            return principal;
+        }
+
+        String keyId = certificate.getKeyId();
+        if (keyId == null || keyId.isEmpty()) {
+            return "";
+        }
+
+        int at = keyId.indexOf('@');
+        return at > 0 ? keyId.substring(0, at) : keyId;
     }
 
     private byte[] toSshPublicKeyBlob(PublicKey publicKey) throws Exception {
@@ -577,6 +587,7 @@ public class SshCertificateSigner {
         private long serial;
         private int certType;
         private String keyId;
+        private String principal;
         private long validAfter;
         private long validBefore;
         private Map<String, String> criticalOptions;
@@ -632,6 +643,14 @@ public class SshCertificateSigner {
 
         public void setKeyId(String keyId) {
             this.keyId = keyId;
+        }
+
+        public String getPrincipal() {
+            return principal;
+        }
+
+        public void setPrincipal(String principal) {
+            this.principal = principal;
         }
 
         public long getValidAfter() {
