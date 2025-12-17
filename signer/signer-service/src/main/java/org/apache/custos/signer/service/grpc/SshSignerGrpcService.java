@@ -88,7 +88,7 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
             }
 
             // Validate user access token
-            OidcTokenValidator.UserIdentity userIdentity = tokenValidator.validateToken(request.getUserAccessToken());
+            OidcTokenValidator.UserIdentity userIdentity = tokenValidator.validateAccessToken(request.getUserAccessToken());
 
             // Enforce policy
             policyEnforcer.enforcePolicy(request, clientConfig);

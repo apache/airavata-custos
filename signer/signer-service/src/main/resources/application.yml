@@ -69,7 +69,7 @@ signer:
       overlap-hours: 2
   krl:
     publish-path: /var/lib/custos/krl
-    refresh-interval-seconds: 300=
+    refresh-interval-seconds: 300
   policy:
     defaults:
       max-ttl-seconds: 86400
@@ -78,6 +78,13 @@ signer:
     allowed-issuers: ${ALLOWED_ISSUERS:}
     token-validation:
       enabled: true
+    oidc:
+      provider:
+        issuer: https://auth.dev.cybershuttle.org/realms/default
+        jwks-uri: https://auth.dev.cybershuttle.org/realms/default/protocol/openid-connect/certs
+        client-id: custos
+        timeout-seconds: 10
+        verify-ssl: true
 
 management:
   endpoints:

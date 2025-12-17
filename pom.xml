@@ -161,6 +161,11 @@
                 <version>${nimbusds.jwt.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
@@ -280,6 +285,7 @@
         <testng.version>6.8</testng.version>
         <org.json.version>20240303</org.json.version>
         <nimbusds.jwt.version>9.40</nimbusds.jwt.version>
+        <okhttp.version>4.12.0</okhttp.version>
         <bouncycastle.version>1.78</bouncycastle.version>
         <testcontainers.version>1.19.3</testcontainers.version>
         <sshj.version>0.38.0</sshj.version>

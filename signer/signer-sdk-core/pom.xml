@@ -99,6 +99,12 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- HTTP Client for OIDC token fetching -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

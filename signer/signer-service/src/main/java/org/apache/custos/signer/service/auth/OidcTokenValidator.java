@@ -18,90 +18,194 @@
  */
 package org.apache.custos.signer.service.auth;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 
 /**
- * Service for validating OIDC tokens (basic implementation for v1).
- * TODO: Integrate with Custos identity service for full validation.
+ * Service for validating OIDC tokens with full JWKS signature verification.
  */
 @Service
 public class OidcTokenValidator {
 
-    private static final Logger logger = LoggerFactory.getLogger(OidcTokenValidator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OidcTokenValidator.class);
 
-    @Value("${signer.auth.allowed-issuers:}")
-    private String allowedIssuers;
+    @Autowired
+    private JwksResolver jwksResolver;
+
+    @Autowired
+    private OidcProviderConfigResolver providerConfigResolver;
 
     @Value("${signer.auth.token-validation.enabled:true}")
     private boolean tokenValidationEnabled;
 
     /**
-     * Validate OIDC token and extract user identity
+     * Validate access token with signature verification.
      */
-    public UserIdentity validateToken(String token) {
+    public UserIdentity validateAccessToken(String accessToken) {
+        return validateToken(accessToken, false);
+    }
+
+    /**
+     * Internal method to validate token with optional ID token specific checks.
+     */
+    private UserIdentity validateToken(String token, boolean isIdToken) {
         if (!tokenValidationEnabled) {
-            logger.debug("Token validation is disabled, returning default identity");
+            LOGGER.debug("Token validation is disabled, returning default identity");
             return new UserIdentity("default-user", Map.of("sub", "default-user"));
         }
 
         try {
-            // Parse JWT token
             JWT jwt = JWTParser.parse(token);
 
-            if (!(jwt instanceof SignedJWT)) {
+            if (!(jwt instanceof SignedJWT signedJWT)) {
                 throw new TokenValidationException("Token is not a signed JWT");
             }
 
-            SignedJWT signedJWT = (SignedJWT) jwt;
+            JWTClaimsSet claimsSet = signedJWT.getJWTClaimsSet();
 
-            // Extract claims
-            Map<String, Object> claims = signedJWT.getJWTClaimsSet().getClaims();
+            String issuer = claimsSet.getIssuer();
+            if (issuer == null || issuer.trim().isEmpty()) {
+                throw new TokenValidationException("Token missing issuer claim");
+            }
+
+            // Find provider config for this issuer
+            OidcProviderConfig providerConfig = providerConfigResolver.resolveProviderConfig(issuer);
+            if (providerConfig == null) {
+                throw new TokenValidationException("No OIDC provider configured for issuer: " + issuer);
+            }
+
+            // Validate token signature using JWKS
+            validateTokenSignature(signedJWT, providerConfig);
 
             // Validate expiry
-            Date exp = signedJWT.getJWTClaimsSet().getExpirationTime();
+            Date exp = claimsSet.getExpirationTime();
             if (exp != null && exp.before(Date.from(Instant.now()))) {
                 throw new TokenValidationException("Token has expired");
             }
 
-            // Validate issuer (if configured)
-            if (allowedIssuers != null && !allowedIssuers.trim().isEmpty()) {
-                String iss = signedJWT.getJWTClaimsSet().getIssuer();
-                if (iss == null || !isAllowedIssuer(iss)) {
-                    throw new TokenValidationException("Token issuer not allowed: " + iss);
-                }
+            // Validate not-before (if present)
+            Date nbf = claimsSet.getNotBeforeTime();
+            if (nbf != null && nbf.after(Date.from(Instant.now()))) {
+                throw new TokenValidationException("Token not yet valid (nbf claim)");
             }
 
-            // Extract principal from claims (prefer sub, then preferred_username, then email)
+            // ID token specific validations
+            if (isIdToken) {
+                validateIdTokenClaims(claimsSet, providerConfig);
+            }
+
+            Map<String, Object> claims = claimsSet.getClaims();
+
+            // Extract principal from claims
             String principal = extractPrincipal(claims);
             if (principal == null || principal.trim().isEmpty()) {
                 throw new TokenValidationException("No valid principal found in token claims");
             }
 
-            logger.debug("Token validation successful for principal: {}", principal);
+            LOGGER.debug("Token validation successful for principal: {}, issuer: {}", principal, issuer);
             return new UserIdentity(principal, claims);
 
         } catch (ParseException e) {
-            logger.error("Failed to parse JWT token", e);
-            throw new TokenValidationException("Invalid JWT token format");
+            LOGGER.error("Failed to parse JWT token", e);
+            throw new TokenValidationException("Invalid JWT token format: " + e.getMessage());
+
+        } catch (JOSEException | BadJOSEException e) {
+            LOGGER.error("JWT signature validation failed", e);
+            throw new TokenValidationException("Token signature validation failed: " + e.getMessage());
+
         } catch (Exception e) {
-            logger.error("Token validation failed", e);
+            LOGGER.error("Token validation failed", e);
             throw new TokenValidationException("Token validation failed: " + e.getMessage());
         }
     }
 
     /**
-     * Extract principal from token claims
+     * Validate token signature using JWKS.
+     */
+    private void validateTokenSignature(SignedJWT signedJWT, OidcProviderConfig providerConfig)
+            throws JOSEException, BadJOSEException {
+        try {
+            // Get JWKSource for this provider
+            JWKSource<SecurityContext> jwkSource = jwksResolver.getJwkSource(providerConfig);
+
+            // Create JWT processor
+            ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+
+            // Set JWS key selector with supported algorithms
+            // Use JWSVerificationKeySelector with common JWS algorithms
+            Set<JWSAlgorithm> expectedJWSAlgs = new HashSet<>();
+            expectedJWSAlgs.add(JWSAlgorithm.RS256);
+            expectedJWSAlgs.add(JWSAlgorithm.RS384);
+            expectedJWSAlgs.add(JWSAlgorithm.RS512);
+            expectedJWSAlgs.add(JWSAlgorithm.ES256);
+            expectedJWSAlgs.add(JWSAlgorithm.ES384);
+            expectedJWSAlgs.add(JWSAlgorithm.ES512);
+            expectedJWSAlgs.add(JWSAlgorithm.EdDSA);
+            expectedJWSAlgs.add(JWSAlgorithm.PS256);
+            expectedJWSAlgs.add(JWSAlgorithm.PS384);
+            expectedJWSAlgs.add(JWSAlgorithm.PS512);
+
+            JWSVerificationKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>(expectedJWSAlgs, jwkSource);
+            jwtProcessor.setJWSKeySelector(keySelector);
+
+            // Process and validate the token
+            jwtProcessor.process(signedJWT, null);
+
+            LOGGER.debug("Token signature validated successfully for issuer: {}", providerConfig.getIssuer());
+
+        } catch (JOSEException | BadJOSEException e) {
+            LOGGER.error("Token signature validation failed for issuer: {}", providerConfig.getIssuer(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Validate ID token specific claims (aud, azp, etc.)
+     */
+    private void validateIdTokenClaims(JWTClaimsSet claimsSet, OidcProviderConfig providerConfig) {
+        // Validate audience if client ID is configured
+        if (providerConfig.getClientId() != null && !providerConfig.getClientId().trim().isEmpty()) {
+            List<String> audiences = claimsSet.getAudience();
+            if (audiences == null || audiences.isEmpty()) {
+                throw new TokenValidationException("ID token missing audience claim");
+            }
+            if (!audiences.contains(providerConfig.getClientId())) {
+                throw new TokenValidationException("ID token audience does not match configured client ID. Expected: " + providerConfig.getClientId() + ", Found: " + audiences);
+            }
+        }
+
+        // Validate that token is an ID token (has 'sub' claim)
+        if (claimsSet.getSubject() == null || claimsSet.getSubject().trim().isEmpty()) {
+            throw new TokenValidationException("ID token missing subject (sub) claim");
+        }
+    }
+
+    /**
+     * Extract principal from token claims.
      */
     private String extractPrincipal(Map<String, Object> claims) {
         // Try 'sub' first (standard OIDC subject identifier)
@@ -132,24 +236,6 @@ public class OidcTokenValidator {
     }
 
     /**
-     * Check if issuer is in allowed list
-     */
-    private boolean isAllowedIssuer(String issuer) {
-        if (allowedIssuers == null || allowedIssuers.trim().isEmpty()) {
-            return true; // No restriction configured
-        }
-
-        String[] allowedList = allowedIssuers.split(",");
-        for (String allowed : allowedList) {
-            if (issuer.trim().equals(allowed.trim())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Hash token for audit logging (privacy protection)
      */
     public String hashTokenForAudit(String token) {
@@ -158,8 +244,9 @@ public class OidcTokenValidator {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return java.util.Base64.getEncoder().encodeToString(hash);
+
         } catch (Exception e) {
-            logger.warn("Failed to hash token for audit", e);
+            LOGGER.warn("Failed to hash token for audit", e);
             return "hash-failed";
         }
     }
