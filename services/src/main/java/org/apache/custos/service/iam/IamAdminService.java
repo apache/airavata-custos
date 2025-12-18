@@ -454,34 +454,6 @@ public class IamAdminService {
         }
     }
 
-    public org.apache.custos.core.iam.api.OperationStatus resetPassword(ResetUserPassword request) {
-        String userId = request.getUsername() + "@" + request.getTenantId();
-        try {
-            LOGGER.debug("Request received to resetPassword for " + request.getUsername());
-
-            boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUsername(), request.getAccessToken());
-
-            if (!status) {
-                statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(), OperationStatus.FAILED, request.getTenantId(), userId);
-                String msg = "User not valid, user name: " + request.getUsername();
-                LOGGER.error(msg);
-                throw new RuntimeException(msg);
-            }
-
-            boolean isChanged = keycloakClient.resetUserPassword(request.getAccessToken(),
-                    String.valueOf(request.getTenantId()), request.getUsername(), request.getPassword());
-            statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(), OperationStatus.SUCCESS, request.getTenantId(), userId);
-
-            return org.apache.custos.core.iam.api.OperationStatus.newBuilder().setStatus(isChanged).build();
-
-        } catch (Exception ex) {
-            String msg = "Error occurred during resetPassword" + ex;
-            LOGGER.error(msg, ex);
-            statusUpdater.updateStatus(IAMOperations.RESET_PASSWORD.name(), OperationStatus.FAILED, request.getTenantId(), userId);
-            throw new RuntimeException(msg, ex);
-        }
-    }
-
     public org.apache.custos.core.iam.api.OperationStatus deleteExternalIDPLinksOfUsers(DeleteExternalIDPsRequest request) {
         try {
             long tenantId = request.getTenantId();
@@ -577,10 +549,9 @@ public class IamAdminService {
             boolean status = keycloakClient.isValidEndUser(String.valueOf(request.getTenantId()), request.getUser().getUsername(), request.getAccessToken());
 
             if (!status) {
-                statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(), OperationStatus.FAILED, request.getTenantId(), request.getPerformedBy());
-                String msg = "User not valid, user Id: " + request.getUser().getId();
-                LOGGER.error(msg);
-                throw new RuntimeException(msg);
+//                statusUpdater.updateStatus(IAMOperations.DELETE_USER.name(), OperationStatus.FAILED, request.getTenantId(), request.getPerformedBy());
+//                String msg = "User not valid, user Id: " + request.getUser().getId();
+                return org.apache.custos.core.iam.api.OperationStatus.newBuilder().setStatus(false).build();
             }
 
             boolean isUpdated = keycloakClient.deleteUser(request.getAccessToken(), String.valueOf(request.getTenantId()), request.getUser().getUsername());

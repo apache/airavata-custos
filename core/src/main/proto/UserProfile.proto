@@ -62,9 +62,11 @@ message UserProfile {
   repeated UserAttribute attributes = 7;
   repeated string client_roles = 8;
   repeated string realm_roles = 9;
-  int64 last_modified_at = 10;
-  UserTypes type = 11;
-  string membership_type = 12;
+  repeated string inherited_client_roles = 10;
+  repeated string inherited_realm_roles = 11;
+  int64 last_modified_at = 12;
+  UserTypes type = 13;
+  string membership_type = 14;
 }
 
 message UserProfileRequest {
@@ -76,6 +78,11 @@ message UserProfileRequest {
   int32 limit=6;
 }
 
+message UpdateUserProfileRequest {
+  string first_name = 1;
+  string last_name = 2;
+}
+
 message UserAttribute {
   int64 id = 1;
   string key = 2;
@@ -84,6 +91,7 @@ message UserAttribute {
 
 message GetAllUserProfilesResponse {
   repeated UserProfile profiles = 1;
+  int32 length = 2;
 }
 
 message GetUpdateAuditTrailRequest {
@@ -96,6 +104,7 @@ message UserProfileAttributeUpdateMetadata {
   string updated_attribute_value = 2;
   string updated_by = 3;
   string updated_at = 4;
+  string operation = 5;
 }
 
 message UserProfileStatusUpdateMetadata {
@@ -106,7 +115,6 @@ message UserProfileStatusUpdateMetadata {
 
 message GetUpdateAuditTrailResponse {
   repeated UserProfileAttributeUpdateMetadata attribute_audit = 1;
-  repeated UserProfileStatusUpdateMetadata status_audit = 2;
 }
 
 message UsersRolesRequest {
@@ -121,13 +129,13 @@ message UsersRolesFullRequest {
 }
 
 message UserAttributeRequest {
-  string username = 1;
   repeated UserAttribute attributes = 2;
 }
 
 message UserAttributeFullRequest {
   int64 tenant_id = 1;
-  UserAttributeRequest userAttributeRequest = 2;
+  string username = 2;
+  UserAttributeRequest userAttributeRequest = 3;
 }
 
 message GroupRequest {
