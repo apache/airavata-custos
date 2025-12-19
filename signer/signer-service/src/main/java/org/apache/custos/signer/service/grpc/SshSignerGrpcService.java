@@ -18,6 +18,7 @@
  */
 package org.apache.custos.signer.service.grpc;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.apache.custos.signer.service.audit.AuditLogger;
@@ -28,6 +29,10 @@ import org.apache.custos.signer.service.model.ClientSshConfigEntity;
 import org.apache.custos.signer.service.model.RevocationEvent;
 import org.apache.custos.signer.service.policy.PolicyEnforcer;
 import org.apache.custos.signer.service.repo.RevocationEventRepository;
+import org.apache.custos.signer.service.validation.InvalidPrincipalException;
+import org.apache.custos.signer.service.validation.PrincipalNotAllowedException;
+import org.apache.custos.signer.service.validation.PrincipalValidationResult;
+import org.apache.custos.signer.service.validation.PrincipalValidator;
 import org.apache.custos.signer.service.vault.OpenBaoClient;
 import org.apache.custos.signer.v1.GetJWKSRequest;
 import org.apache.custos.signer.v1.GetJWKSResponse;
@@ -47,6 +52,7 @@ import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * gRPC service implementation for SSH certificate signing operations.
@@ -56,6 +62,7 @@ import java.util.Map;
 public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceImplBase {
 
     private static final Logger logger = LoggerFactory.getLogger(SshSignerGrpcService.class);
+    private static final Pattern UNIX_PRINCIPAL_PATTERN = Pattern.compile("^[a-z_][a-z0-9_-]{0,31}$");
 
     @Autowired
     private SshCertificateSigner certificateSigner;
@@ -65,6 +72,9 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
 
     @Autowired
     private OidcTokenValidator tokenValidator;
+
+    @Autowired
+    private PrincipalValidator principalValidator;
 
     @Autowired
     private AuditLogger auditLogger;
@@ -81,6 +91,9 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
             logger.debug("Received sign request for tenant: {}, client: {}, principal: {}",
                     request.getTenantId(), request.getClientId(), request.getPrincipal());
 
+            String requestedPrincipal = request.getPrincipal();
+            validateRequestedPrincipal(requestedPrincipal);
+
             // Get authenticated client config from context
             ClientSshConfigEntity clientConfig = ClientAuthInterceptor.AUTHENTICATED_CLIENT_KEY.get();
             if (clientConfig == null) {
@@ -90,13 +103,29 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
             // Validate user access token
             OidcTokenValidator.UserIdentity userIdentity = tokenValidator.validateAccessToken(request.getUserAccessToken());
 
-            // Enforce policy
             policyEnforcer.enforcePolicy(request, clientConfig);
+
+            // Principal authorization
+            PrincipalValidationResult validationResult = principalValidator.validate(
+                    request.getTenantId(),
+                    request.getClientId(),
+                    requestedPrincipal,
+                    userIdentity,
+                    clientConfig
+            );
+            if (validationResult == null || !validationResult.allowed()) {
+                String reason = validationResult != null ? validationResult.reasonCode() : PrincipalValidationResult.REASON_NOT_ALLOWED;
+                throw new PrincipalNotAllowedException("Requested principal is not allowed", reason);
+            }
+            String validatedPrincipal = validationResult.validatedPrincipal();
+            if (validatedPrincipal == null || validatedPrincipal.isBlank()) {
+                throw new IllegalStateException("Principal validator returned an empty validated principal");
+            }
 
             // Generate certificate
             String caFingerprint = calculateCaFingerprint(clientConfig.getTenantId(), clientConfig.getClientId());
             SshCertificateSigner.SshCertificateResult result = certificateSigner.signCertificate(
-                    request.getTenantId(), request.getClientId(), request.getPrincipal(),
+                    request.getTenantId(), request.getClientId(), validatedPrincipal,
                     request.getTtlSeconds(), request.getPublicKey().toByteArray(), caFingerprint
             );
 
@@ -104,14 +133,20 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
             String publicKeyFingerprint = calculatePublicKeyFingerprint(request.getPublicKey().toByteArray());
 
             // Log certificate issuance
+            Map<String, Object> metadata = createRequestMetadata(request);
+            metadata.put("requested_principal", requestedPrincipal);
+            metadata.put("validated_principal", validatedPrincipal);
+            metadata.put("token_issuer", userIdentity.getIssuer());
+            metadata.put("token_subject", userIdentity.getSubject());
+
             auditLogger.logCertificateIssuance(
                     request.getTenantId(), request.getClientId(), result.getSerialNumber(),
-                    calculateKeyId(request.getPublicKey().toByteArray()), request.getPrincipal(),
+                    calculateKeyId(request.getPublicKey().toByteArray()), validatedPrincipal,
                     publicKeyFingerprint, caFingerprint,
                     LocalDateTime.ofInstant(result.getValidAfter(), ZoneOffset.UTC),
                     LocalDateTime.ofInstant(result.getValidBefore(), ZoneOffset.UTC),
                     getSourceIp(), tokenValidator.hashTokenForAudit(request.getUserAccessToken()),
-                    createRequestMetadata(request)
+                    metadata
             );
 
             SignResponse response = SignResponse.newBuilder()
@@ -122,19 +157,49 @@ public class SshSignerGrpcService extends SshSignerServiceGrpc.SshSignerServiceI
                     .setCaFingerprint(caFingerprint)
                     .setTargetHost(clientConfig.getTargetHost())
                     .setTargetPort(clientConfig.getTargetPort())
-                    .setTargetUsername(request.getPrincipal()) // SSH username = principal
+                    .setTargetUsername(validatedPrincipal) // SSH username = validated principal
                     .build();
 
             responseObserver.onNext(response);
             responseObserver.onCompleted();
 
-            logger.info("Successfully signed certificate: serial={}, principal={}, ttl={}s",
-                    result.getSerialNumber(), request.getPrincipal(), request.getTtlSeconds());
+            logger.info("Successfully signed certificate: serial={}, requestedPrincipal={}, validatedPrincipal={}, ttl={}s",
+                    result.getSerialNumber(), requestedPrincipal, validatedPrincipal, request.getTtlSeconds());
+
+        } catch (OidcTokenValidator.TokenValidationException e) {
+            logger.warn("Token validation failed for tenant: {}, client: {}", request.getTenantId(), request.getClientId(), e);
+            responseObserver.onError(Status.UNAUTHENTICATED.withDescription(e.getMessage()).asRuntimeException());
+
+        } catch (InvalidPrincipalException e) {
+            logger.warn("Invalid principal in sign request for tenant: {}, client: {}", request.getTenantId(), request.getClientId(), e);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
+
+        } catch (PolicyEnforcer.PolicyViolationException e) {
+            logger.warn("Policy violation for tenant: {}, client: {}", request.getTenantId(), request.getClientId(), e);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
+
+        } catch (PrincipalNotAllowedException e) {
+            logger.warn("Principal authorization denied for tenant: {}, client: {}, reasonCode={}",
+                    request.getTenantId(), request.getClientId(), e.getReasonCode());
+            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(e.getMessage()).asRuntimeException());
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid argument for tenant: {}, client: {}", request.getTenantId(), request.getClientId(), e);
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
 
         } catch (Exception e) {
             logger.error("Failed to sign certificate for tenant: {}, client: {}, principal: {}",
                     request.getTenantId(), request.getClientId(), request.getPrincipal(), e);
-            responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    private void validateRequestedPrincipal(String requestedPrincipal) {
+        if (requestedPrincipal == null || requestedPrincipal.isBlank()) {
+            throw new InvalidPrincipalException("Principal must not be empty");
+        }
+        if (!UNIX_PRINCIPAL_PATTERN.matcher(requestedPrincipal).matches()) {
+            throw new InvalidPrincipalException("Principal contains illegal characters");
         }
     }
 

@@ -75,7 +75,7 @@ public class OidcTokenValidator {
     private UserIdentity validateToken(String token, boolean isIdToken) {
         if (!tokenValidationEnabled) {
             LOGGER.debug("Token validation is disabled, returning default identity");
-            return new UserIdentity("default-user", Map.of("sub", "default-user"));
+            return new UserIdentity("unknown", "default-user", "default-user", Map.of("sub", "default-user"));
         }
 
         try {
@@ -120,14 +120,24 @@ public class OidcTokenValidator {
 
             Map<String, Object> claims = claimsSet.getClaims();
 
-            // Extract principal from claims
+            // Token identity (issuer + subject, Not the Unix principal)
+            String subject = claimsSet.getSubject();
+            if (subject == null || subject.isBlank()) {
+                Object sub = claims.get("sub");
+                subject = sub != null ? sub.toString() : null;
+            }
+            if (subject == null || subject.isBlank()) {
+                throw new TokenValidationException("Token missing sub claim");
+            }
+
+            // Extract a human-friendly identity label for audit
             String principal = extractPrincipal(claims);
             if (principal == null || principal.trim().isEmpty()) {
                 throw new TokenValidationException("No valid principal found in token claims");
             }
 
             LOGGER.debug("Token validation successful for principal: {}, issuer: {}", principal, issuer);
-            return new UserIdentity(principal, claims);
+            return new UserIdentity(issuer, subject, principal, claims);
 
         } catch (ParseException e) {
             LOGGER.error("Failed to parse JWT token", e);
@@ -255,12 +265,24 @@ public class OidcTokenValidator {
      * User identity container
      */
     public static class UserIdentity {
+        private final String issuer;
+        private final String subject;
         private final String principal;
         private final Map<String, Object> claims;
 
-        public UserIdentity(String principal, Map<String, Object> claims) {
+        public UserIdentity(String issuer, String subject, String principal, Map<String, Object> claims) {
+            this.issuer = issuer;
+            this.subject = subject;
             this.principal = principal;
             this.claims = claims;
+        }
+
+        public String getIssuer() {
+            return issuer;
+        }
+
+        public String getSubject() {
+            return subject;
         }
 
         public String getPrincipal() {
@@ -279,6 +301,8 @@ public class OidcTokenValidator {
         @Override
         public String toString() {
             return "UserIdentity{" +
+                    "issuer='" + issuer + '\'' +
+                    ", subject='" + subject + '\'' +
                     "principal='" + principal + '\'' +
                     ", claims=" + claims.keySet() +
                     '}';

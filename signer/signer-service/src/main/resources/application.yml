@@ -80,11 +80,19 @@ signer:
       enabled: true
     oidc:
       provider:
-        issuer: https://auth.dev.cybershuttle.org/realms/default
-        jwks-uri: https://auth.dev.cybershuttle.org/realms/default/protocol/openid-connect/certs
-        client-id: custos
+        issuer: https://CHANGE_ME
+        jwks-uri: https://CHANGE_ME/protocol/openid-connect/certs
+        client-id: CHANGE_ME
         timeout-seconds: 10
         verify-ssl: true
+  # TODO - bring this as a tenant-level configuration which can be overridden by target clients
+  validation:
+    principal-validator: comanage
+    comanage:
+      registry-url: https://CHANGE_ME/
+      api-path: /registry/co_people.json
+      timeout-seconds: 10
+      verify-ssl: true
 
 management:
   endpoints:
