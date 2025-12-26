@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SshClient implements AutoCloseable {
 
-    private static final Logger logger = LoggerFactory.getLogger(SshClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SshClient.class);
 
     private final SdkConfiguration configuration;
     private final SshSignerClient signerClient;
@@ -55,7 +55,7 @@ public class SshClient implements AutoCloseable {
         );
         this.keyStore = builder.keyStore;
 
-        logger.debug("SshClient initialized with tenant: {}, signer: {}, keystore: {}",
+        LOGGER.debug("SshClient initialized with tenant: {}, signer: {}, keystore: {}",
                 configuration.getTenantId(), builder.signerServiceAddress, builder.keyStore.getClass().getSimpleName());
     }
 
@@ -86,7 +86,7 @@ public class SshClient implements AutoCloseable {
      */
     public CertificateMaterials requestCertificateMaterials(String clientAlias, String principal, int ttlSeconds, String userToken, String keyType) {
         try {
-            logger.debug("Requesting certificate materials for client: {}, principal: {}, ttl: {}s, keyType: {}", clientAlias, principal, ttlSeconds, keyType);
+            LOGGER.debug("Requesting certificate materials for client: {}, principal: {}, ttl: {}s, keyType: {}", clientAlias, principal, ttlSeconds, keyType);
 
             // Resolve client alias to configuration
             SdkConfiguration.ClientConfig clientConfig = configuration.getClientConfig(clientAlias)
@@ -109,7 +109,7 @@ public class SshClient implements AutoCloseable {
                     userToken
             );
 
-            logger.debug("Received certificate: serial={}, target={}:{}", certResponse.getSerialNumber(), certResponse.getTargetHost(), certResponse.getTargetPort());
+            LOGGER.debug("Received certificate: serial={}, target={}:{}", certResponse.getSerialNumber(), certResponse.getTargetHost(), certResponse.getTargetPort());
 
             // Convert private key to PEM format
             String privateKeyPem = SshKeyUtils.keyPairToPem(keyPair);
@@ -138,12 +138,12 @@ public class SshClient implements AutoCloseable {
                     certResponse.getTargetUsername()
             );
 
-            logger.info("Certificate materials prepared: client={}, principal={}, serial={}", clientAlias, principal, certResponse.getSerialNumber());
+            LOGGER.info("Certificate materials prepared: client={}, principal={}, serial={}", clientAlias, principal, certResponse.getSerialNumber());
 
             return materials;
 
         } catch (Exception e) {
-            logger.error("Failed to request certificate materials for client: {}, principal: {}", clientAlias, principal, e);
+            LOGGER.error("Failed to request certificate materials for client: {}, principal: {}", clientAlias, principal, e);
             throw new SshClientException("Failed to request certificate materials", e);
         }
     }
@@ -155,23 +155,37 @@ public class SshClient implements AutoCloseable {
      * internally and then manages the session lifecycle with keystore tracking.
      *
      * @param clientAlias Alias configured in SDK configuration
-     * @param principal   SSH username (typically from OIDC token)
+     * @param principal   SSH username
      * @param ttlSeconds  Certificate TTL in seconds
      * @param userToken   OIDC user access token
      * @return SSH session for remote operations
      */
     public SshSession openSession(String clientAlias, String principal, int ttlSeconds, String userToken) {
-        try {
-            logger.debug("Opening SSH session for client: {}, principal: {}, ttl: {}s", clientAlias, principal, ttlSeconds);
+        return openSession(clientAlias, principal, ttlSeconds, userToken, null);
+    }
 
-            // Request certificate materials (shared flow)
-            CertificateMaterials materials = requestCertificateMaterials(clientAlias, principal, ttlSeconds, userToken);
+    /**
+     * Open an SSH session specifying a key type.
+     *
+     * @param clientAlias Alias configured in SDK configuration
+     * @param principal   SSH username
+     * @param ttlSeconds  Certificate TTL in seconds
+     * @param userToken   OIDC user access token
+     * @param keyType     Key type ("ed25519", "rsa", "ecdsa")
+     * @return SSH session for remote operations
+     */
+    public SshSession openSession(String clientAlias, String principal, int ttlSeconds, String userToken, String keyType) {
+        try {
+            LOGGER.debug("Opening SSH session for client: {}, principal: {}, ttl: {}s", clientAlias, principal, ttlSeconds);
+
+            // Request certificate materials
+            CertificateMaterials materials = requestCertificateMaterials(clientAlias, principal, ttlSeconds, userToken, keyType);
 
             // Store keypair in keystore for session tracking
             String contextId = generateContextId(clientAlias, principal);
             keyStore.store(principal, contextId, materials.keyPair(), Duration.ofSeconds(ttlSeconds));
 
-            // Create SSH session from materials
+            // Create an SSH session from materials
             SshSession session = new SshSession(
                     materials.targetHost(),
                     materials.targetPort(),
@@ -186,12 +200,12 @@ public class SshClient implements AutoCloseable {
             String sessionId = generateSessionId(clientAlias, principal);
             activeSessions.put(sessionId, session);
 
-            logger.info("SSH session opened: client={}, principal={}, target={}:{}", clientAlias, principal, materials.targetHost(), materials.targetPort());
+            LOGGER.info("SSH session opened: client={}, principal={}, target={}:{}", clientAlias, principal, materials.targetHost(), materials.targetPort());
 
             return session;
 
         } catch (Exception e) {
-            logger.error("Failed to open SSH session for client: {}, principal: {}",
+            LOGGER.error("Failed to open SSH session for client: {}, principal: {}",
                     clientAlias, principal, e);
             throw new SshClientException("Failed to open SSH session", e);
         }
@@ -215,7 +229,7 @@ public class SshClient implements AutoCloseable {
             );
 
         } catch (Exception e) {
-            logger.error("Failed to revoke certificate for client: {}", clientAlias, e);
+            LOGGER.error("Failed to revoke certificate for client: {}", clientAlias, e);
             throw new SshClientException("Failed to revoke certificate", e);
         }
     }
@@ -234,21 +248,21 @@ public class SshClient implements AutoCloseable {
             );
 
         } catch (Exception e) {
-            logger.error("Failed to get JWKS for client: {}", clientAlias, e);
+            LOGGER.error("Failed to get JWKS for client: {}", clientAlias, e);
             throw new SshClientException("Failed to get JWKS", e);
         }
     }
 
     @Override
     public void close() {
-        logger.debug("Closing SshClient and cleaning up resources");
+        LOGGER.debug("Closing SshClient and cleaning up resources");
 
         // Close all active sessions
         activeSessions.values().forEach(session -> {
             try {
                 session.close();
             } catch (Exception e) {
-                logger.warn("Error closing SSH session", e);
+                LOGGER.warn("Error closing SSH session", e);
             }
         });
         activeSessions.clear();
@@ -263,7 +277,7 @@ public class SshClient implements AutoCloseable {
             keyStore.clear();
         }
 
-        logger.debug("SshClient closed successfully");
+        LOGGER.debug("SshClient closed successfully");
     }
 
     private String generateContextId(String clientAlias, String principal) {

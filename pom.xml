@@ -290,6 +290,7 @@
         <testcontainers.version>1.19.3</testcontainers.version>
         <sshj.version>0.38.0</sshj.version>
         <mockito.version>5.8.0</mockito.version>
+        <eddsa.version>0.3.0</eddsa.version>
         <spring.security.version>6.2.1</spring.security.version>
         <grpc.spring.boot.starter.version>2.15.0.RELEASE</grpc.spring.boot.starter.version>
         <apache.commons.lang3.version>3.14.0</apache.commons.lang3.version>
