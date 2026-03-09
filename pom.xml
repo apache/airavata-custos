@@ -42,11 +42,8 @@
     </scm>
 
     <modules>
-        <module>core</module>
-        <module>services</module>
-        <module>api</module>
-        <module>application</module>
-        <module>access-ci-service</module>
+        <module>identity</module>
+        <module>allocations/access-ci-service</module>
     </modules>
 
     <dependencyManagement>
