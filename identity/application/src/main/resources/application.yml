@@ -101,6 +101,7 @@ iam:
       jwksUri: https://cilogon.org/oauth2/certs
 
 ciLogon:
+  enabled: true
   admin:
     client:
       id: abc

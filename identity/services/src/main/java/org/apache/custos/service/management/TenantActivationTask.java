@@ -63,8 +63,8 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
     private final TenantProfileService tenantProfileService;
 
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
+    @Value("${ciLogon.enabled:false}")
+    private boolean ciLogonEnabled;
 
 
     public TenantActivationTask(IamAdminService iamAdminService, FederatedAuthenticationService federatedAuthentication, CredentialStoreService credentialStoreService, TenantProfileService tenantProfileService) {
@@ -212,32 +212,29 @@ public class TenantActivationTask<T, U> extends ServiceTaskImpl<T, U> {
 
         clientMetadataBuilder.setClientId(creMeta.getId());
 
-        if (!update) {
-            // skip CILOGON client creation for local development
-            if (!activeProfile.equalsIgnoreCase("local")) {
-                RegisterClientResponse registerClientResponse = federatedAuthentication.addClient(clientMetadataBuilder.build());
+        if (!update && ciLogonEnabled && tenant.getParentTenantId() != 0) {
+            RegisterClientResponse registerClientResponse = federatedAuthentication.addClient(clientMetadataBuilder.build());
 
-                CredentialMetadata credentialMetadataCILogon = CredentialMetadata
-                        .newBuilder()
-                        .setId(registerClientResponse.getClientId())
-                        .setSecret(registerClientResponse.getClientSecret())
-                        .setOwnerId(tenant.getTenantId())
-                        .setType(Type.CILOGON)
-                        .build();
+            CredentialMetadata credentialMetadataCILogon = CredentialMetadata
+                    .newBuilder()
+                    .setId(registerClientResponse.getClientId())
+                    .setSecret(registerClientResponse.getClientSecret())
+                    .setOwnerId(tenant.getTenantId())
+                    .setType(Type.CILOGON)
+                    .build();
 
-                credentialStoreService.putCredential(credentialMetadataCILogon);
+            credentialStoreService.putCredential(credentialMetadataCILogon);
 
-                ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
-                        .newBuilder()
-                        .setTenantId(tenant.getTenantId())
-                        .setClientID(registerClientResponse.getClientId())
-                        .setClientSec(registerClientResponse.getClientSecret())
-                        .setScope(tenant.getScope())
-                        .setRequesterEmail(tenant.getRequesterEmail())
-                        .setType(FederatedIDPs.CILOGON)
-                        .build();
-                iamAdminService.configureFederatedIDP(request);
-            }
+            ConfigureFederateIDPRequest request = ConfigureFederateIDPRequest
+                    .newBuilder()
+                    .setTenantId(tenant.getTenantId())
+                    .setClientID(registerClientResponse.getClientId())
+                    .setClientSec(registerClientResponse.getClientSecret())
+                    .setScope(tenant.getScope())
+                    .setRequesterEmail(tenant.getRequesterEmail())
+                    .setType(FederatedIDPs.CILOGON)
+                    .build();
+            iamAdminService.configureFederatedIDP(request);
         }
 
         org.apache.custos.core.tenant.profile.api.UpdateStatusRequest updateTenantRequest = org.apache.custos.core.tenant.profile.api.UpdateStatusRequest.newBuilder()

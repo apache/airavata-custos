@@ -29,9 +29,11 @@ import org.apache.custos.core.tenant.profile.api.TenantType;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusRequest;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusResponse;
 import org.apache.custos.service.federated.client.keycloak.KeycloakClient;
+import org.apache.custos.service.federated.client.keycloak.KeycloakClientSecret;
 import org.apache.custos.service.profile.TenantProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -45,7 +47,7 @@ import java.util.List;
  * super-tenant at application startup when {@code custos.bootstrap.enabled=true}.
  *
  * <p>If an ACTIVE super-tenant (parentId == 0) already exists,
- *  the bootstrap is skipped and the application starts normally.</p>
+ * the bootstrap is skipped and the application starts normally.</p>
  *
  * <p>All admin credentials are sourced from Spring configuration properties, which in production
  * resolve from environment variables.</p>
@@ -63,6 +65,15 @@ public class SuperTenantBootstrapper implements ApplicationRunner {
     private final TenantProfileService tenantProfileService;
     private final KeycloakClient keycloakClient;
     private final SuperTenantProperties properties;
+
+    @Value("${ciLogon.enabled:false}")
+    private boolean ciLogonEnabled;
+
+    @Value("${ciLogon.admin.client.id:}")
+    private String ciLogonClientId;
+
+    @Value("${ciLogon.admin.client.secret:}")
+    private String ciLogonClientSecret;
 
     public SuperTenantBootstrapper(TenantManagementService tenantManagementService,
                                    TenantProfileService tenantProfileService,
@@ -122,6 +133,8 @@ public class SuperTenantBootstrapper implements ApplicationRunner {
                         + "Secret stored in Vault at /secret/{}/CUSTOS",
                 createResponse.getClientId(),
                 statusResponse.getTenantId());
+
+        configureCILogonIfEnabled(statusResponse.getTenantId());
     }
 
     private void waitForKeycloak() {
@@ -158,6 +171,30 @@ public class SuperTenantBootstrapper implements ApplicationRunner {
 
         GetAllTenantsResponse response = tenantProfileService.getAllTenants(request);
         return response != null && response.getTenantList() != null && !response.getTenantList().isEmpty();
+    }
+
+    private void configureCILogonIfEnabled(long tenantId) {
+        if (!ciLogonEnabled) {
+            LOGGER.info("SuperTenantBootstrapper: CILogon disabled, skipping IDP configuration");
+            return;
+        }
+        if (ciLogonClientId.isBlank() || ciLogonClientSecret.isBlank()) {
+            LOGGER.warn("SuperTenantBootstrapper: CILogon enabled but admin credentials not configured, skipping");
+            return;
+        }
+
+        LOGGER.info("SuperTenantBootstrapper: configuring CILogon IDP for super-tenant realm {}", tenantId);
+
+        KeycloakClientSecret secret = new KeycloakClientSecret(ciLogonClientId, ciLogonClientSecret);
+        keycloakClient.configureOIDCFederatedIDP(
+                String.valueOf(tenantId),
+                "CILogon",
+                "openid profile email org.cilogon.userinfo",
+                secret,
+                null
+        );
+
+        LOGGER.info("SuperTenantBootstrapper: CILogon IDP configured successfully");
     }
 
     /**

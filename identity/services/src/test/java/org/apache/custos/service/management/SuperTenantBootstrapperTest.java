@@ -29,6 +29,7 @@ import org.apache.custos.core.tenant.profile.api.TenantType;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusRequest;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusResponse;
 import org.apache.custos.service.federated.client.keycloak.KeycloakClient;
+import org.apache.custos.service.federated.client.keycloak.KeycloakClientSecret;
 import org.apache.custos.service.profile.TenantProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -38,10 +39,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -51,26 +56,25 @@ import static org.mockito.Mockito.when;
 @Tag("unit")
 class SuperTenantBootstrapperTest {
 
-    @Mock
-    private TenantManagementService tenantManagementService;
-
-    @Mock
-    private TenantProfileService tenantProfileService;
-
-    @Mock
-    private KeycloakClient keycloakClient;
-
-    @Mock
-    private ApplicationArguments applicationArguments;
-
-    private SuperTenantProperties properties;
-    private SuperTenantBootstrapper bootstrapper;
-
     private static final String TEST_USERNAME = "custosadmin";
     private static final String TEST_PASSWORD = "testpass123";
     private static final String TEST_EMAIL = "admin@test.local";
     private static final String TEST_CLIENT_ID = "custos-abc123";
     private static final long TEST_TENANT_ID = 10000001L;
+
+    private static final String CILOGON_CLIENT_ID = "cilogon:/client_id/test123";
+    private static final String CILOGON_CLIENT_SECRET = "test-cilogon-secret";
+
+    @Mock
+    private TenantManagementService tenantManagementService;
+    @Mock
+    private TenantProfileService tenantProfileService;
+    @Mock
+    private KeycloakClient keycloakClient;
+    @Mock
+    private ApplicationArguments applicationArguments;
+    private SuperTenantProperties properties;
+    private SuperTenantBootstrapper bootstrapper;
 
     @BeforeEach
     void setUp() {
@@ -315,5 +319,92 @@ class SuperTenantBootstrapperTest {
         verify(tenantManagementService).createTenant(tenantCaptor.capture());
 
         assertThat(tenantCaptor.getValue().getRedirectUrisList()).isEmpty();
+    }
+
+    private void stubFullBootstrap() {
+        GetAllTenantsResponse emptyResponse = GetAllTenantsResponse.newBuilder().build();
+        when(tenantProfileService.getAllTenants(any(GetTenantsRequest.class))).thenReturn(emptyResponse);
+
+        CreateTenantResponse createResponse = CreateTenantResponse.newBuilder()
+                .setClientId(TEST_CLIENT_ID)
+                .build();
+        when(tenantManagementService.createTenant(any(Tenant.class))).thenReturn(createResponse);
+
+        UpdateStatusResponse statusResponse = UpdateStatusResponse.newBuilder()
+                .setTenantId(TEST_TENANT_ID)
+                .setStatus(TenantStatus.ACTIVE)
+                .build();
+        when(tenantManagementService.updateTenantStatus(any(UpdateStatusRequest.class))).thenReturn(statusResponse);
+    }
+
+    @Test
+    void configureCILogonIDP_whenEnabled_callsKeycloakClient() {
+        stubFullBootstrap();
+        when(keycloakClient.configureOIDCFederatedIDP(anyString(), anyString(), anyString(), any(KeycloakClientSecret.class), isNull()))
+                .thenReturn(true);
+
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonEnabled", true);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientId", CILOGON_CLIENT_ID);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientSecret", CILOGON_CLIENT_SECRET);
+
+        bootstrapper.run(applicationArguments);
+
+        ArgumentCaptor<KeycloakClientSecret> secretCaptor = ArgumentCaptor.forClass(KeycloakClientSecret.class);
+        verify(keycloakClient).configureOIDCFederatedIDP(
+                eq(String.valueOf(TEST_TENANT_ID)),
+                eq("CILogon"),
+                eq("openid profile email org.cilogon.userinfo"),
+                secretCaptor.capture(),
+                isNull()
+        );
+
+        KeycloakClientSecret capturedSecret = secretCaptor.getValue();
+        assertThat(capturedSecret.clientId()).isEqualTo(CILOGON_CLIENT_ID);
+        assertThat(capturedSecret.clientSecret()).isEqualTo(CILOGON_CLIENT_SECRET);
+    }
+
+    @Test
+    void configureCILogonIDP_whenDisabled_skipsConfiguration() throws Exception {
+        stubFullBootstrap();
+
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonEnabled", false);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientId", CILOGON_CLIENT_ID);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientSecret", CILOGON_CLIENT_SECRET);
+
+        bootstrapper.run(applicationArguments);
+
+        verify(keycloakClient, never()).configureOIDCFederatedIDP(anyString(), anyString(), anyString(), any(KeycloakClientSecret.class), any());
+    }
+
+    @Test
+    void configureCILogonIDP_whenEnabledButCredentialsMissing_skipsWithWarning() {
+        stubFullBootstrap();
+
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonEnabled", true);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientId", "");
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientSecret", "");
+
+        bootstrapper.run(applicationArguments);
+
+        verify(keycloakClient, never()).configureOIDCFederatedIDP(anyString(), anyString(), anyString(), any(KeycloakClientSecret.class), any());
+    }
+
+    @Test
+    void fullBootstrap_whenCILogonEnabled_configuresIDPAfterTenantCreation() {
+        stubFullBootstrap();
+        when(keycloakClient.configureOIDCFederatedIDP(anyString(), anyString(), anyString(), any(KeycloakClientSecret.class), isNull()))
+                .thenReturn(true);
+
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonEnabled", true);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientId", CILOGON_CLIENT_ID);
+        ReflectionTestUtils.setField(bootstrapper, "ciLogonClientSecret", CILOGON_CLIENT_SECRET);
+
+        bootstrapper.run(applicationArguments);
+
+        // Verify full sequence: create tenant -> activate -> configure CILogon IDP
+        var inOrder = org.mockito.Mockito.inOrder(tenantManagementService, keycloakClient);
+        inOrder.verify(tenantManagementService).createTenant(any(Tenant.class));
+        inOrder.verify(tenantManagementService).updateTenantStatus(any(UpdateStatusRequest.class));
+        inOrder.verify(keycloakClient).configureOIDCFederatedIDP(anyString(), anyString(), anyString(), any(KeycloakClientSecret.class), isNull());
     }
 }

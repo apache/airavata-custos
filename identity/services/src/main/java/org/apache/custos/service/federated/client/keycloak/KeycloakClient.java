@@ -854,6 +854,7 @@ public class KeycloakClient {
             idp.getConfig().put("issuer", ciLogonIssuerUri);
             idp.getConfig().put("jwksUri", jwksUri);
             idp.getConfig().put("forwardParameters", "idphint");
+            idp.getConfig().put("clientAuthMethod", "client_secret_post");
 
             realmResource.identityProviders().create(idp);
 
