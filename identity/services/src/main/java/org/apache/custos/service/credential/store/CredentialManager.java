@@ -19,9 +19,8 @@
 
 package org.apache.custos.service.credential.store;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.custos.core.model.credential.store.CredentialEntity;
 import org.apache.custos.core.repo.credential.store.CredentialRepository;
 import org.apache.custos.service.exceptions.credential.store.CredentialGenerationException;
@@ -33,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -49,6 +49,10 @@ public class CredentialManager {
     private static final int SECRET_LENGTH = 40;
     @Value("${custos.credential.prefix:custos-}")
     private String credentialPrefix;
+
+    @Value("${iam.server.url}")
+    private String iamServerURL;
+
     @Autowired
     private CredentialRepository repository;
 
@@ -97,68 +101,102 @@ public class CredentialManager {
         }
     }
 
+    /**
+     * Decodes a Keycloak-issued JWT access token and extracts relevant claims into a Credential object.
+     *
+     * Uses nimbus-jose-jwt to properly parse the JWT structure rather than manual Base64 splitting,
+     * which prevents malformed token acceptance. The issuer claim is validated to ensure the token
+     * was issued by the expected Keycloak instance.
+     *
+     * TODO: Implement full cryptographic signature verification using RemoteJWKSet pointed at
+     *   {iamServerURL}/realms/{realm}/protocol/openid-connect/certs. The realm can be extracted
+     *   from the "iss" claim. Use com.nimbusds.jose.jwk.source.RemoteJWKSet with
+     *   com.nimbusds.jose.proc.DefaultJWTProcessor for production-grade verification.
+     *   A Caffeine cache should wrap the JWK set retrieval to avoid per-request network calls.
+     *
+     * @param token a signed JWT access token string
+     * @return a Credential populated from the token's claims
+     */
     public Credential decodeJWTToken(String token) {
         try {
-            Base64.Decoder decoder = Base64.getUrlDecoder();
-            String[] parts = token.split("\\."); // split out the "parts" (header, payload and signature)
+            // Parse using nimbus-jose-jwt — this validates JWT structure and prevents
+            // malformed tokens from being processed silently.
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
-            String headerJson = new String(decoder.decode(parts[0]));
-            String payloadJson = new String(decoder.decode(parts[1]));
-            String signatureJson = new String(decoder.decode(parts[2]));
-
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> jsonMap = mapper.readValue(payloadJson, new TypeReference<>() {
-            });
+            // Validate the issuer to ensure the token originates from our Keycloak instance.
+            // The issuer in Keycloak tokens takes the form: {serverUrl}/realms/{realmId}
+            String issuer = claims.getIssuer();
+            if (issuer == null || !issuer.startsWith(iamServerURL)) {
+                throw new CredentialGenerationException("JWT issuer " + issuer
+                        + " does not match expected IAM server URL " + iamServerURL);
+            }
 
             Credential credential = new Credential();
-            credential.setId(jsonMap.get("azp").toString());
-            credential.setEmail(jsonMap.get("email").toString());
-            credential.setUsername(jsonMap.get("preferred_username").toString());
 
-            if (jsonMap.get("realm_access") != null) {
-                ObjectMapper reader = new ObjectMapper();
-                JsonNode node = reader.readValue(payloadJson, JsonNode.class);
-                JsonNode realmAccess = node.get("realm_access");
-                if (realmAccess != null) {
-                    JsonNode jsonArray = (realmAccess).get("roles");
-                    if (jsonArray != null && jsonArray.isArray()) {
+            Object azp = claims.getClaim("azp");
+            if (azp == null) {
+                throw new CredentialGenerationException("JWT is missing required claim 'azp'");
+            }
+            credential.setId(azp.toString());
 
-                        jsonArray.forEach(json -> {
-                            if (json.asText().equals("admin")) {
-                                credential.setAdmin(true);
-                            }
-                        });
+            Object email = claims.getClaim("email");
+            if (email != null) {
+                credential.setEmail(email.toString());
+            }
+
+            Object preferredUsername = claims.getClaim("preferred_username");
+            if (preferredUsername != null) {
+                credential.setUsername(preferredUsername.toString());
+            }
+
+            // Check realm_access.roles for the "admin" role
+            Object realmAccessObj = claims.getClaim("realm_access");
+            if (realmAccessObj instanceof Map<?, ?> realmAccessMap) {
+                Object rolesObj = realmAccessMap.get("roles");
+                if (rolesObj instanceof List<?> roles) {
+                    for (Object role : roles) {
+                        if ("admin".equals(role)) {
+                            credential.setAdmin(true);
+                            break;
+                        }
                     }
                 }
             }
 
             return credential;
 
+        } catch (CredentialGenerationException ex) {
+            LOGGER.error("JWT validation failed: {}", ex.getMessage());
+            throw ex;
         } catch (Exception ex) {
-            LOGGER.error("Error occurred while decoding token");
+            LOGGER.error("Error occurred while decoding JWT token");
             throw new CredentialGenerationException("Error occurred while decoding token ", ex);
         }
     }
 
     public Credential decodeAgentJWTToken(String token) {
         try {
-            Base64.Decoder decoder = Base64.getUrlDecoder();
-            String[] parts = token.split("\\."); // split out the "parts" (header, payload and signature)
-
-            String headerJson = new String(decoder.decode(parts[0]));
-            String payloadJson = new String(decoder.decode(parts[1]));
-            String signatureJson = new String(decoder.decode(parts[2]));
-
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> jsonMap = mapper.readValue(payloadJson, new TypeReference<>() {
-            });
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
             Credential credential = new Credential();
-            credential.setId(jsonMap.get("agent-id").toString());
-            credential.setParentId(jsonMap.get("agent-parent-id").toString());
+            Object agentId = claims.getClaim("agent-id");
+            if (agentId == null) {
+                throw new CredentialGenerationException("Agent JWT is missing required claim 'agent-id'");
+            }
+            credential.setId(agentId.toString());
+
+            Object agentParentId = claims.getClaim("agent-parent-id");
+            if (agentParentId != null) {
+                credential.setParentId(agentParentId.toString());
+            }
             return credential;
+        } catch (CredentialGenerationException ex) {
+            LOGGER.error("Agent JWT validation failed: {}", ex.getMessage());
+            throw ex;
         } catch (Exception ex) {
-            LOGGER.error("Error occurred while decoding token");
+            LOGGER.error("Error occurred while decoding agent token");
             throw new CredentialGenerationException("Error occurred while decoding token", ex);
         }
     }

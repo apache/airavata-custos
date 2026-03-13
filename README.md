@@ -17,114 +17,89 @@
     under the License.
 -->
 
-# Apache Airavata Custos Security
+# Apache Airavata Custos
 
 [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat)](https://apache.org/licenses/LICENSE-2.0)
 [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/apache/airavata-custos)](https://github.com/apache/airavata-custos/pulls?q=is%3Apr+is%3Aclosed)
 [![Build Status](https://travis-ci.org/apache/airavata-custos.png?branch=develop)](https://travis-ci.org/github/apache/airavata-custos)
 
-Science gateways represent potential targets for cybersecurity threats to users, scientific research, and scientific resources. Custos is a software framework that provides common security operations for science gateways, including user identity and access management, gateway tenant profile management, resource secrets management, and groups and sharing management. The goals of the Custos project are to provide these services to a wide range of science gateway frameworks, providing the community with an open-source, transparent, and reviewed code base for common security operations; and to operate trustworthy security services for the science gateway community using this software base. To accomplish these goals, we implement Custos using a scalable microservice architecture that can provide highly available, fault-tolerant operations. Custos exposes these services through a language-independent Application Programming Interface that encapsulates science gateway usage scenarios.
+Custos is a multi-tenant security middleware for science gateways, developed under the [Apache Airavata](https://airavata.apache.org/) umbrella. It provides identity and access management, credential storage, federated authentication, and resource allocation services to science gateway frameworks through a language-independent API. Custos is designed as a set of composable product components that can be deployed independently or together, built on a scalable architecture to deliver highly available, fault-tolerant operations.
 
+**[Project website](https://airavata.apache.org/custos/)**
 
-Following diagram illustrate the architecture of the Custos Software.
+## Components
 
+### Identity Server (`identity/`)
 
-![Custos_Diagram](Custos_Diagram.png)
+The Identity Server is the core IAM component of Custos. It handles user identity and access management, tenant profile management, resource secrets management, and groups and sharing management. Built with Java 17 and Spring Boot, it integrates with Keycloak for federated authentication, HashiCorp Vault for secrets management, and MariaDB for persistence.
 
-**To find out more, please check out the [Custos website](https://airavata.apache.org/custos/).**
+| Module | Description |
+|--------|-------------|
+| `identity/core` | Domain entities, repositories, protobuf definitions, mappers |
+| `identity/services` | Business logic, Keycloak and Vault integrations |
+| `identity/api` | REST API controllers |
+| `identity/application` | Spring Boot entry point |
 
-## Quickstart
+See [`identity/README.md`](identity/README.md) for setup and development instructions.
 
-## Installation Instructions
+### Allocations (`allocations/`)
 
-### Setup Custos for local development
+The Allocations component provides meta-allocation authority services for HPC and cloud resources. It acts as a bridge between Custos-managed tenants and external resource allocation providers.
 
-#### Prerequisites
+| Module | Description |
+|--------|-------------|
+| `allocations/access-ci-service` | ACCESS CI AMIE packet adapter |
 
-* Java 17
+Additional allocation adapters for other resource providers are planned. See `allocations/README.md` for details as they become available.
 
-* Docker installed on local environment 
+## Repository Layout
 
-* Maven 3.6.x
-
-#### Clone the repository
-```sh
-git clone https://github.com/apache/airavata-custos.git
+```
+airavata-custos/
+├── identity/          # Identity Server
+├── allocations/       # Allocation management and usage
+├── compose/           # Docker Compose for local development
+├── deployment/        # Terraform configurations (AWS)
+├── legacy/            # Archived modules (not actively maintained)
+└── pom.xml            # Root Maven reactor
 ```
 
-#### Start Docker Containers (to run a development environment)
-Navigate to `/compose`, and start the following containers:
-- Keycloack (http://localhost:8080)
-- Custos DB (MariDB, http://localhost:3306)
-- Vault (http://localhost:8200)
-- Adminer (http://localhost:18080)
+## Prerequisites
+
+* Java 17
+* Maven 3.6+
+* Docker and Docker Compose
+
+## Quick Start
+
+Clone the repository:
 
 ```sh
+git clone https://github.com/apache/airavata-custos.git
+cd airavata-custos
+```
+
+Start the backing services (Keycloak, MariaDB, Vault, Adminer):
+
+```sh
+cd compose
 docker compose up -d
 ```
 
-#### Configure Vault
-1. Go to the Vault's exposed port (http://localhost:8200) and walk through the configuration process. 
-   2. You'll need to save your initial root token and unsealed key.
-2. Place your root token in `/application/src/main/resources/application.yml`, under `spring.cloud.vault.token`
+Build all components:
 
-3. Install all dependencies through maven.
-   4. `mvn clean install`
-4. Run the CustosApplication class to bring up the backend.
-   5. `mvn spring-boot:run`
-5. Make a POST request to http://127.0.0.1:8081/api/v1/tenant-management/initialize (no headers, no body)
-6. Grab the client id and client secret from output on the backend.
-
-#### You're all set!
-You can now make requests to Custos.
-
-## Custos Integration With External Applications
-Custos can be integrated with external applications using Custos REST Endpoints, Python SDK, or Java SDK.
-
-### Integrate Using Java SDK
-In order to perform this operation you need to have a already activated tenant in either Custos Managed Services or Your own deployment.
-Following instructions are given for locally deployed custos setup which can be extended to any deployment,
-
-#### Initializing Custos Java SDK
-
-* Add maven dependency to your project
-```
-<dependency>
-   <groupId>org.apache.custos</groupId>
-   <artifactId>custos-java-sdk</artifactId>
-   <version>1.1-SNAPSHOT</version>
-</dependency>
+```sh
+mvn clean install
 ```
 
-* Initialize Custos Client Provider in your application
-```
- CustosClientProvider custosClientProvider = new CustosClientProvider.Builder().setServerHost("localhost")
-                    .setServerPort(7000)
-                    .setClientId(CUSTOS CLIENT ID) // client Id generated from above step or any active tenant id
-                    .setClientSec(CUSTOS CLIENT SECRET)  
-                    .usePlainText(true) // Don't use this in production setup
-                    .build();
-```
-Once above step is done, you can use custos available methods for  authentication and authorization purposes
-* Sample client code to register and enable a User
+Refer to each component's README for detailed configuration and run instructions.
 
-```
- UserManagementClient userManagementClient =  custosClientProvider.getUserManagementClient();
- userManagementClient.registerUser("jhon","Smith","testpassword","smith@1",
-                    "jhon@email.com",false);
- userManagementClient.enableUser("jhon");
- OperationStatus status =  userManagementClient.isUserEnabled("Jhon");
-```
-##### 
-### Deploy Custos on remote server
+## Questions or Need Help?
 
-Follow the Ansible based deployed instructions. see documentation [here](ansible/README.md)
+* Open a [GitHub issue](https://github.com/apache/airavata-custos/issues)
+* Subscribe to the Custos mailing list: `custos-subscribe@airavata.apache.org`
 
-
-### Questions or need help?
-Please create a github issue or subscribe to custos mailing list ```custos-subscribe@airavata.apache.org``` and send us an email.
-
-### Publications
+## Publications
 
 ```
 @inproceedings{10.1145/3311790.3396635,
@@ -162,10 +137,8 @@ series = {PEARC '22}
 }
 ```
 
-### Acknowledgment
+## Acknowledgment
 
-We are thankfull to National Science Foundation(NSF) for funding this project.
+This project is funded by the National Science Foundation (NSF).
 
-We are thankfull to  Trusted CI (https://www.trustedci.org/) for conducting the
-First Principles Vulnerability Assesment(FPVA) (https://dl.acm.org/doi/10.1145/1866835.1866852) for this software and providing the above architecture diagram and security improvements. 
-`
+We are grateful to [Trusted CI](https://www.trustedci.org/) for conducting the [First Principles Vulnerability Assessment (FPVA)](https://dl.acm.org/doi/10.1145/1866835.1866852) for this software and providing security architecture guidance and improvements.

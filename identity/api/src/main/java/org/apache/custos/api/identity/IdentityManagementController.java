@@ -55,6 +55,8 @@ import org.apache.custos.service.credential.store.Credential;
 import org.apache.custos.service.credential.store.CredentialManager;
 import org.apache.custos.service.management.IdentityManagementService;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -81,6 +83,8 @@ import java.util.Optional;
 @RequestMapping("/api/v1/identity-management")
 @Tag(name = "Identity Management")
 public class IdentityManagementController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityManagementController.class);
 
     private final IdentityManagementService identityManagementService;
     private final TokenAuthorizer tokenAuthorizer;
@@ -460,8 +464,7 @@ public class IdentityManagementController {
                 .setClientSecret(credential.getSecret()).build();
 
         TokenResponse response = identityManagementService.token(request);
-        System.out.println("customized token \n");
-        System.out.println(response.getAccessToken());
+        LOGGER.debug("Token issued for grant_type={}", params.get("grant_type"));
         return ResponseEntity.ok(response);
     }
 

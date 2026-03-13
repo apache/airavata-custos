@@ -43,3 +43,4 @@ database_data
 
 # local application properties
 application.properties
+application-local.yml

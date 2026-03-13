@@ -75,6 +75,7 @@ import org.apache.custos.core.model.commons.StatusEntity;
 import org.apache.custos.service.auth.TokenService;
 import org.apache.custos.service.federated.client.keycloak.KeycloakClient;
 import org.apache.custos.service.federated.client.keycloak.KeycloakClientSecret;
+import org.apache.custos.service.management.ClientConfigurationOptions;
 import org.keycloak.representations.idm.EventRepresentation;
 import org.keycloak.representations.idm.FederatedIdentityRepresentation;
 import org.keycloak.representations.idm.ProtocolMapperRepresentation;
@@ -115,19 +116,27 @@ public class IamAdminService {
 
     public SetUpTenantResponse setUPTenant(SetUpTenantRequest request) {
         try {
-            LOGGER.debug("Request received to setUPTenant  " + request.getTenantId());
+            LOGGER.debug("Request received to setUPTenant  {}", request.getTenantId());
 
-            keycloakClient.deleteRealm(String.valueOf(request.getTenantId()));
-            keycloakClient.createRealm(String.valueOf(request.getTenantId()), request.getTenantName());
-            keycloakClient.createRealmAdminAccount(String.valueOf(request.getTenantId()), request.getAdminUsername(),
-                    request.getAdminFirstname(), request.getAdminLastname(), request.getAdminEmail(), request.getAdminPassword());
-
-            KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(request.getTenantId()),
-                    request.getCustosClientId(), request.getTenantURL(), request.getRedirectURIsList());
+            String realmId = String.valueOf(request.getTenantId());
+            KeycloakClientSecret clientSecret;
+            if (keycloakClient.realmExists(realmId)) {
+                LOGGER.warn("Keycloak realm {} already exists, updating admin and client instead of creating", realmId);
+                keycloakClient.updateRealmAdminAccount(realmId, request.getAdminUsername(),
+                        request.getAdminFirstname(), request.getAdminLastname(), request.getAdminEmail(), request.getAdminPassword());
+                clientSecret = keycloakClient.updateClient(realmId,
+                        request.getCustosClientId(), request.getTenantURL(), request.getRedirectURIsList());
+            } else {
+                keycloakClient.createRealm(realmId, request.getTenantName());
+                keycloakClient.createRealmAdminAccount(realmId, request.getAdminUsername(),
+                        request.getAdminFirstname(), request.getAdminLastname(), request.getAdminEmail(), request.getAdminPassword());
+                clientSecret = keycloakClient.configureClient(realmId,
+                        request.getCustosClientId(), request.getTenantURL(), request.getRedirectURIsList());
+            }
 
             SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
-                    .setClientId(clientSecret.getClientId())
-                    .setClientSecret(clientSecret.getClientSecret())
+                    .setClientId(clientSecret.clientId())
+                    .setClientSecret(clientSecret.clientSecret())
                     .build();
 
             statusUpdater.updateStatus(IAMOperations.SET_UP_TENANT.name(), OperationStatus.SUCCESS, request.getTenantId(), request.getRequesterEmail());
@@ -153,8 +162,8 @@ public class IamAdminService {
                     request.getCustosClientId(), request.getTenantURL(), request.getRedirectURIsList());
 
             SetUpTenantResponse response = SetUpTenantResponse.newBuilder()
-                    .setClientId(clientSecret.getClientId())
-                    .setClientSecret(clientSecret.getClientSecret())
+                    .setClientId(clientSecret.clientId())
+                    .setClientSecret(clientSecret.clientSecret())
                     .build();
 
             statusUpdater.updateStatus(IAMOperations.UPDATE_TENANT.name(), OperationStatus.SUCCESS, request.getTenantId(), request.getRequesterEmail());
@@ -1305,8 +1314,8 @@ public class IamAdminService {
                         request.getTenantId(), request.getPerformedBy());
 
                 return SetUpTenantResponse.newBuilder()
-                        .setClientId(secret.getClientId())
-                        .setClientSecret(secret.getClientSecret())
+                        .setClientId(secret.clientId())
+                        .setClientSecret(secret.clientSecret())
                         .build();
             } else {
                 String msg = " Configure agent client  failed for " + request.getTenantId();
@@ -1767,7 +1776,13 @@ public class IamAdminService {
     public Map<String, String> configureClient(long tenantId, String clientId, String tenantUrl, List<String> redirectUris) {
         KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(tenantId),
                 clientId, tenantUrl, redirectUris);
-        return Map.of("clientId", clientSecret.getClientId(), "clientSecret", clientSecret.getClientSecret());
+        return Map.of("clientId", clientSecret.clientId(), "clientSecret", clientSecret.clientSecret());
+    }
+
+    public Map<String, String> configureClient(long tenantId, String clientId,
+            String tenantUrl, List<String> redirectUris, ClientConfigurationOptions options) {
+        KeycloakClientSecret clientSecret = keycloakClient.configureClient(String.valueOf(tenantId), clientId, tenantUrl, redirectUris, options);
+        return Map.of("clientId", clientSecret.clientId(), "clientSecret", clientSecret.clientSecret());
     }
 
     private org.apache.custos.core.iam.api.UserRepresentation getUser(UserRepresentation representation, String clientId) {

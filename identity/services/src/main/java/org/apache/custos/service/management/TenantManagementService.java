@@ -190,6 +190,22 @@ public class TenantManagementService {
         return iamAdminService.configureClient(tenantId, resp.getId(), tenantUrl, redirectUris);
     }
 
+    public Map<String, String> addClient(long tenantId, ClientConfigurationOptions options) {
+        options.validate();
+
+        GetTenantResponse tenant = tenantProfileService.getTenant(
+                org.apache.custos.core.tenant.profile.api.GetTenantRequest.newBuilder()
+                        .setTenantId(tenantId).build());
+
+        GetNewCustosCredentialRequest req = GetNewCustosCredentialRequest.newBuilder()
+                .setOwnerId(tenant.getTenant().getTenantId())
+                .build();
+
+        CredentialMetadata resp = credentialStoreService.getNewCustosCredential(req);
+        return iamAdminService.configureClient(tenantId, resp.getId(),
+                options.getTenantUrl(), options.getRedirectUris(), options);
+    }
+
     public Tenant getTenant(GetTenantRequest request) {
         try {
 
@@ -408,10 +424,8 @@ public class TenantManagementService {
 
             if (metadata != null) {
 
-                if (request.getSuperTenant()) {
-                    metadata = metadata.toBuilder().setSuperTenant(true).build();
-                    credentialStoreService.putCredential(metadata);
-                }
+                // Super-tenant status is now derived from the tenant hierarchy (parentId == 0)
+                // rather than stored as a flag in Vault credentials.
 
                 request = request.toBuilder().setTenantId(metadata.getOwnerId()).build();
                 UpdateStatusResponse response = tenantProfileService.updateTenantStatus(request);
@@ -469,12 +483,16 @@ public class TenantManagementService {
                                             .setTenantId(finalRequest.getTenantId())
                                             .build();
 
-                                    UserProfile userProfile = userProfileService.getUserProfile(userProfileRequest);
-
-                                    if (userProfile == null || StringUtils.isBlank(userProfile.getUsername())) {
+                                    try {
+                                        UserProfile userProfile = userProfileService.getUserProfile(userProfileRequest);
+                                        if (userProfile != null && StringUtils.isNotBlank(userProfile.getUsername())) {
+                                            userProfileService.updateUserProfile(userProfileRequest);
+                                        } else {
+                                            userProfileService.createUserProfile(userProfileRequest);
+                                        }
+                                    } catch (Exception ex) {
+                                        // Profile does not exist yet —> create it
                                         userProfileService.createUserProfile(userProfileRequest);
-                                    } else {
-                                        userProfileService.updateUserProfile(userProfileRequest);
                                     }
 
                                 } else {

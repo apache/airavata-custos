@@ -88,7 +88,6 @@ public class CredentialStoreService {
 
             String path = BASE_PATH + request.getOwnerId() + "/" + request.getType().name();
             Credential credential = new Credential(request.getId(), request.getSecret());
-            credential.setSuperTenant(request.getSuperTenant());
             vaultTemplate.write(path, credential);
             VaultResponseSupport<Credential> response = vaultTemplate.read(path, Credential.class);
 
@@ -392,7 +391,6 @@ public class CredentialStoreService {
                     .setOwnerId(entity.getOwnerId())
                     .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
                     .setClientIdIssuedAt(entity.getIssuedAt().getTime())
-                    .setSuperTenant(response.getData().isSuperTenant())
                     .setType(Type.CUSTOS).build();
 
         } catch (Exception ex) {
@@ -544,7 +542,6 @@ public class CredentialStoreService {
                                     .setClientIdIssuedAt(entity.getIssuedAt().getTime())
                                     .setClientSecretExpiredAt(entity.getClientSecretExpiredAt())
                                     .setSuperAdmin(credential.isAdmin())
-                                    .setSuperTenant(crRe.getData().isSuperTenant())
                                     .build();
                         }
                         credentialMetadata.add(metadata);
@@ -625,7 +622,6 @@ public class CredentialStoreService {
                 .setOwnerId(ownerId)
                 .setType(Type.valueOf(type))
                 .setId(credential.getId())
-                .setSuperTenant(credential.isSuperTenant())
                 .setSecret(credential.getSecret())
                 .build();
     }

@@ -31,6 +31,18 @@ custos:
       uri: http://localhost/api/v1/tenant-management/oauth2/tenant
   api:
     domain: "http://localhost:8081"
+  bootstrap:
+    # Idempotent — safe to leave enabled across restarts
+    enabled: false
+  super-tenant:
+    admin:
+      username: ${CUSTOS_ADMIN_USERNAME:custosadmin}
+      password: ${CUSTOS_ADMIN_PASSWORD:admin}
+      email: ${CUSTOS_ADMIN_EMAIL:admin@custos.local}
+    redirect-uris: ${CUSTOS_REDIRECT_URIS:http://localhost:8081}
+    client-uri: ${CUSTOS_CLIENT_URI:http://localhost:8081}
+    scope: openid email profile cilogon
+    domain: localhost
 
 spring:
   application:

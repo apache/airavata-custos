@@ -19,11 +19,11 @@
 
 package org.apache.custos.api.tenant;
 
-import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.credential.store.api.CredentialMetadata;
 import org.apache.custos.core.exception.UnauthorizedException;
 import org.apache.custos.core.federated.authentication.api.CacheManipulationRequest;
@@ -50,11 +50,11 @@ import org.apache.custos.core.tenant.profile.api.GetAuditTrailRequest;
 import org.apache.custos.core.tenant.profile.api.GetStatusUpdateAuditTrailResponse;
 import org.apache.custos.core.tenant.profile.api.GetTenantsRequest;
 import org.apache.custos.core.tenant.profile.api.Tenant;
-import org.apache.custos.core.tenant.profile.api.TenantStatus;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusRequest;
 import org.apache.custos.core.tenant.profile.api.UpdateStatusResponse;
 import org.apache.custos.service.auth.AuthClaim;
 import org.apache.custos.service.auth.TokenAuthorizer;
+import org.apache.custos.service.management.ClientConfigurationOptions;
 import org.apache.custos.service.management.TenantManagementService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -70,7 +70,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -299,13 +298,23 @@ public class TenantManagementController {
 
 
     @PostMapping("/status")
-    public ResponseEntity<UpdateStatusResponse> updateTenantStatus(@Valid @RequestBody UpdateStatusRequest request) {
+    public ResponseEntity<UpdateStatusResponse> updateTenantStatus(@Valid @RequestBody UpdateStatusRequest request,
+                                                                   @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+        if (claim.isEmpty() || !claim.get().isSuperTenant()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Super-tenant credentials required");
+        }
         UpdateStatusResponse response = tenantManagementService.updateTenantStatus(request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/tenants")
-    public ResponseEntity<GetAllTenantsResponse> getAllTenants(@Valid @RequestBody GetTenantsRequest request) {
+    public ResponseEntity<GetAllTenantsResponse> getAllTenants(@Valid @RequestBody GetTenantsRequest request,
+                                                               @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+        if (claim.isEmpty() || !claim.get().isSuperTenant()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Super-tenant credentials required");
+        }
         GetAllTenantsResponse response = tenantManagementService.getAllTenants(request);
         return ResponseEntity.ok(response);
     }
@@ -345,7 +354,12 @@ public class TenantManagementController {
     }
 
     @GetMapping("/audit/status/{tenantId}")
-    public ResponseEntity<GetStatusUpdateAuditTrailResponse> getTenantStatusUpdateAuditTrail(@PathVariable("tenantId") long tenantId) {
+    public ResponseEntity<GetStatusUpdateAuditTrailResponse> getTenantStatusUpdateAuditTrail(@PathVariable("tenantId") long tenantId,
+                                                                                             @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+        if (claim.isEmpty() || (!claim.get().isSuperTenant() && claim.get().getTenantId() != tenantId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Super-tenant credentials or tenant ownership required");
+        }
         GetStatusUpdateAuditTrailResponse response = tenantManagementService.getTenantStatusUpdateAuditTrail(GetAuditTrailRequest.newBuilder().setTenantId(tenantId).build());
         return ResponseEntity.ok(response);
     }
@@ -389,60 +403,43 @@ public class TenantManagementController {
     }
 
     @GetMapping("/audit/attributes/{tenantId}")
-    public ResponseEntity<GetAttributeUpdateAuditTrailResponse> getTenantAttributeUpdateAuditTrail(@PathVariable("tenantId") int tenantId) {
+    public ResponseEntity<GetAttributeUpdateAuditTrailResponse> getTenantAttributeUpdateAuditTrail(@PathVariable("tenantId") int tenantId,
+                                                                                                   @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+        if (claim.isEmpty() || (!claim.get().isSuperTenant() && claim.get().getTenantId() != tenantId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Super-tenant credentials or tenant ownership required");
+        }
         GetAttributeUpdateAuditTrailResponse response = tenantManagementService.getTenantAttributeUpdateAuditTrail(GetAuditTrailRequest.newBuilder()
                 .setTenantId(tenantId).build());
         return ResponseEntity.ok(response);
     }
 
-    @Hidden
+    @Operation(summary = "Create an OAuth2 client for a tenant",
+            description = "Creates a new Keycloak client with configurable OAuth2 grant types, PKCE support, and public/confidential client type.")
+    @ApiResponse(responseCode = "200", description = "Client created successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid configuration options")
+    @ApiResponse(responseCode = "401", description = "Valid credentials required")
+    @ApiResponse(responseCode = "403", description = "Admin privileges required")
     @PostMapping("/oauth2/tenant/{tenantId}/client")
-    public ResponseEntity<?> configureClient(@PathVariable("tenantId") int tenantId, @RequestBody Map<String, Object> body, @RequestHeader HttpHeaders headers) {
-//        tokenAuthorizer.authorize(headers);
-        Map<String, String> response = tenantManagementService.addClient(tenantId, (String) body.get("tenantUrl"), (List<String>) body.get("redirectUris"));
+    public ResponseEntity<Map<String, String>> configureClient(@PathVariable("tenantId") long tenantId,
+                                                               @RequestBody ClientConfigurationOptions options, @RequestHeader HttpHeaders headers) {
+        Optional<AuthClaim> claim = tokenAuthorizer.authorizeUsingUserToken(headers);
+        if (claim.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Valid credentials required");
+        }
+        AuthClaim auth = claim.get();
+        if (!auth.isSuperTenant() && !auth.isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin privileges required");
+        }
+        if (!auth.isSuperTenant() && auth.getTenantId() != tenantId) {
+            if (!tokenAuthorizer.validateParentChildTenantRelationShip(auth.getTenantId(), tenantId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this tenant");
+            }
+        }
+
+        Map<String, String> response = tenantManagementService.addClient(tenantId, options);
         return ResponseEntity.ok(response);
     }
-
-    @PostMapping("/initialize")
-    @Hidden
-    public ResponseEntity<CreateTenantResponse> initSuperTenant() {
-        // TODO - add validation for exactly one execution for (to deprecate)
-        // Will streamline this -- this function will be run at most once on application start
-        Tenant tenant = Tenant.newBuilder()
-                .setClientName("Custos Super Tenant")
-                .setRequesterEmail("xxxx@custos.com")
-                .setAdminFirstName("CUSTOS")
-                .setAdminLastName("ADMIN")
-                .setAdminEmail("xxxx@custos.com")
-                .setAdminUsername("custosadmin")
-                .setAdminPassword("custos@887")
-                .addAllContacts(List.of("xxxx@custos.com"))
-                .addAllRedirectUris(List.of("http://localhost:8080/", "http://localhost:5173/callback/",
-                        "http://127.0.0.1:5173/callback/", "http://127.0.0.1:8081/swagger-ui/oauth2-redirect.html",
-                        "http://localhost:8081/swagger-ui/oauth2-redirect.html",
-                        "http://localhost:3000/login/generic_oauth", "http://localhost:8000/hub/oauth_callback"))
-                .setClientUri("http://localhost:8080/")
-                .setScope("openid email profile cilogon")
-                .setDomain("localhost")
-                .setLogoUri("http://localhost:8080/")
-                .setComment("Custos bootstrapping Tenant")
-                .setApplicationType("web")
-                .build();
-
-        CreateTenantResponse response = tenantManagementService.createTenant(tenant);
-        UpdateStatusRequest request = UpdateStatusRequest
-                .newBuilder()
-                .setClientId(response.getClientId())
-                .setStatus(TenantStatus.ACTIVE)
-                .setSuperTenant(true)
-                .setUpdatedBy(Constants.SYSTEM)
-                .build();
-        UpdateStatusResponse updateStatusResponse = tenantManagementService.updateTenantStatus(request);
-        System.out.println("Client Id :" + response.getClientId() + " Client Secret :" + response.getClientSecret());
-        System.out.println(updateStatusResponse);
-        return ResponseEntity.ok().build();
-    }
-
 
     private Credentials getCredentials(AuthClaim claim) {
         return Credentials.newBuilder()

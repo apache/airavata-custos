@@ -31,9 +31,9 @@ import org.apache.custos.core.identity.api.AuthToken;
 import org.apache.custos.core.identity.api.Claim;
 import org.apache.custos.core.identity.api.GetUserManagementSATokenRequest;
 import org.apache.custos.core.identity.api.IsAuthenticatedResponse;
+import org.apache.custos.core.model.tenant.Tenant;
 import org.apache.custos.core.tenant.profile.api.GetTenantRequest;
 import org.apache.custos.core.tenant.profile.api.GetTenantResponse;
-import org.apache.custos.core.tenant.profile.api.Tenant;
 import org.apache.custos.core.tenant.profile.api.TenantStatus;
 import org.apache.custos.service.credential.store.CredentialStoreService;
 import org.apache.custos.service.identity.IdentityService;
@@ -118,7 +118,6 @@ public class TokenAuthorizer {
                         authClaim.setCustosIdIssuedAt(metadata.getClientIdIssuedAt());
                         authClaim.setCustosSecretExpiredAt(metadata.getClientSecretExpiredAt());
                         authClaim.setAdmin(metadata.getSuperAdmin());
-                        authClaim.setSuperTenant(metadata.getSuperTenant());
 
                     } else if (metadata.getType() == Type.IAM) {
                         authClaim.setIamAuthId(metadata.getId());
@@ -138,6 +137,11 @@ public class TokenAuthorizer {
                     }
                 }
         );
+
+        // Derive super-tenant status from tenant hierarchy: parentId == 0 means root/super-tenant.
+        // This replaces the previous approach of reading a superTenant flag from Vault,
+        Tenant tenantEntity = tenantProfileService.getTenantEntityByTenantId(authClaim.getTenantId());
+        authClaim.setSuperTenant(tenantEntity != null && tenantEntity.getParentId() == 0);
 
         GetTenantRequest tenantRequest = GetTenantRequest.newBuilder()
                 .setTenantId(authClaim.getTenantId())
@@ -269,7 +273,7 @@ public class TokenAuthorizer {
     public boolean validateParentChildTenantRelationShip(long parentId, long childTenantId) {
         GetTenantRequest childTenantReq = GetTenantRequest.newBuilder().setTenantId(childTenantId).build();
         GetTenantResponse childTenantRes = tenantProfileService.getTenant(childTenantReq);
-        Tenant childTenant = childTenantRes.getTenant();
+        org.apache.custos.core.tenant.profile.api.Tenant childTenant = childTenantRes.getTenant();
 
         // referring to same tenant
         if (childTenant.getTenantId() == parentId) {
@@ -396,7 +400,10 @@ public class TokenAuthorizer {
             authClaim.setCustosIdIssuedAt(metadata.getClientIdIssuedAt());
             authClaim.setCustosSecretExpiredAt(metadata.getClientSecretExpiredAt());
             authClaim.setAdmin(metadata.getSuperAdmin());
-            authClaim.setSuperTenant(metadata.getSuperTenant());
+
+            // Derive super-tenant status from tenant hierarchy (parentId == 0 means root/super-tenant).
+            Tenant tenantEntity = tenantProfileService.getTenantEntityByTenantId(metadata.getOwnerId());
+            authClaim.setSuperTenant(tenantEntity != null && tenantEntity.getParentId() == 0);
 
         } else if (metadata.getType() == Type.IAM) {
             authClaim.setIamAuthId(metadata.getId());

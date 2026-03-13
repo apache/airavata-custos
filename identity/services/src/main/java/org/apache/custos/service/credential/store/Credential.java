@@ -27,7 +27,6 @@ public class Credential {
     private String id;
     private String secret;
     private String email;
-    private boolean superTenant;
     private boolean isAdmin;
     private String username;
     private String password;
@@ -63,14 +62,6 @@ public class Credential {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public boolean isSuperTenant() {
-        return superTenant;
-    }
-
-    public void setSuperTenant(boolean superTenant) {
-        this.superTenant = superTenant;
     }
 
     public boolean isAdmin() {

@@ -326,6 +326,14 @@ public class TenantProfileService {
         }
     }
 
+    /**
+     * Returns the JPA Tenant entity for the given tenant ID, or null if not found.
+     * Used to derive super-tenant status from the parentId field without relying on Vault metadata.
+     */
+    public Tenant getTenantEntityByTenantId(long tenantId) {
+        return tenantRepository.findById(tenantId).orElse(null);
+    }
+
     private boolean isUpdatable(Long tenantId) {
         Optional<Tenant> opt = tenantRepository.findById(tenantId);
         return opt.isPresent();

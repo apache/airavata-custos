@@ -24,6 +24,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import org.apache.custos.core.constants.Constants;
 import org.apache.custos.core.exception.UnauthorizedException;
+import org.apache.custos.service.management.ClientConfigurationOptions;
 import org.apache.http.HttpStatus;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.GroupResource;
@@ -349,6 +350,88 @@ public class KeycloakClient {
         }
     }
 
+
+    public KeycloakClientSecret configureClient(String realmId, String clientName,
+                                                @NotNull String tenantURL, List<String> redirectUris, ClientConfigurationOptions options) {
+
+        try (Keycloak client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword)) {
+            ClientRepresentation pgaClient = new ClientRepresentation();
+            pgaClient.setName(clientName);
+            pgaClient.setClientId(clientName);
+            pgaClient.setProtocol("openid-connect");
+            pgaClient.setEnabled(true);
+            pgaClient.setFullScopeAllowed(true);
+            pgaClient.setClientAuthenticatorType("client-secret");
+
+            pgaClient.setStandardFlowEnabled(options.isAuthorizationCodeEnabled());
+            pgaClient.setServiceAccountsEnabled(options.isClientCredentialsEnabled());
+            pgaClient.setImplicitFlowEnabled(options.isImplicitEnabled());
+            pgaClient.setDirectAccessGrantsEnabled(options.isPasswordEnabled());
+
+            Map<String, String> attributes = new HashMap<>();
+            if (options.isDeviceCodeEnabled()) {
+                attributes.put("oauth2.device.authorization.grant.enabled", "true");
+            }
+            if (options.isPkceEnabled()) {
+                attributes.put("pkce.code.challenge.method", "S256");
+            }
+            if (!attributes.isEmpty()) {
+                pgaClient.setAttributes(attributes);
+            }
+
+            pgaClient.setPublicClient(options.isPublicClient());
+            if (!options.isPublicClient()) {
+                pgaClient.setAuthorizationServicesEnabled(true);
+            }
+
+            pgaClient.setBaseUrl(tenantURL);
+
+            String normalizedUrl = tenantURL;
+            if (normalizedUrl.endsWith("/")) {
+                normalizedUrl = normalizedUrl.substring(0, normalizedUrl.length() - 1);
+            }
+
+            List<String> newList = new ArrayList<>(redirectUris != null ? redirectUris : List.of());
+            newList.add(normalizedUrl);
+            pgaClient.setRedirectUris(newList);
+
+            List<String> webOrigins = new ArrayList<>();
+            webOrigins.add("+");
+            pgaClient.setWebOrigins(webOrigins);
+
+            try (Response httpResponse = client.realms().realm(realmId).clients().create(pgaClient)) {
+                LOGGER.debug("Realm client configuration exited with code : {} : {}", httpResponse.getStatus(), httpResponse.getStatusInfo());
+
+                if (options.isClientCredentialsEnabled()) {
+                    UserRepresentation serviceAccountUserRepresentation = getUserByUsername(client, realmId, "service-account-" + pgaClient.getClientId());
+                    UserResource serviceAccountUser = client.realms().realm(realmId).users().get(serviceAccountUserRepresentation.getId());
+                    String realmManagementClientId = getRealmManagementClientId(client, realmId);
+                    List<RoleRepresentation> manageUsersRole =
+                            serviceAccountUser.roles().clientLevel(realmManagementClientId).listAvailable()
+                                    .stream()
+                                    .filter(r -> r.getName().equals("manage-users"))
+                                    .collect(Collectors.toList());
+                    serviceAccountUser.roles().clientLevel(realmManagementClientId).add(manageUsersRole);
+                }
+
+                if (httpResponse.getStatus() == HttpStatus.SC_CREATED) {
+                    String clientUUID = client.realms().realm(realmId).clients()
+                            .findByClientId(pgaClient.getClientId()).get(0).getId();
+                    CredentialRepresentation clientSecret = client.realms().realm(realmId).clients()
+                            .get(clientUUID).getSecret();
+                    return new KeycloakClientSecret(pgaClient.getClientId(), clientSecret.getValue());
+                } else {
+                    LOGGER.error("Request for realm client creation failed with HTTP code : {} ", httpResponse.getStatus());
+                    LOGGER.error("Reason for realm client creation failure : {}", httpResponse.getStatusInfo());
+                    throw new RuntimeException("Reason for realm client creation failure :" + httpResponse.getStatusInfo(), null);
+                }
+            }
+        } catch (Exception ex) {
+            String msg = "Error configuring client with options, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+    }
 
     public KeycloakClientSecret updateClient(String realmId, String clientName, @NotNull String tenantURL, List<String> redirectUris) {
         try (Keycloak client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword)) {
@@ -701,6 +784,27 @@ public class KeycloakClient {
     }
 
 
+    /**
+     * Checks whether a Keycloak realm with the given ID already exists.
+     * Uses a lightweight toRepresentation() call. A NotFoundException from the Keycloak admin
+     * client indicates the realm does not exist.
+     *
+     * @param realmId the realm identifier to check
+     * @return true if the realm exists, false otherwise
+     */
+    public boolean realmExists(String realmId) {
+        try (Keycloak client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword)) {
+            client.realm(realmId).toRepresentation();
+            return true;
+        } catch (NotFoundException ex) {
+            return false;
+        } catch (Exception ex) {
+            String msg = "Error checking realm existence in Keycloak Server for realm " + realmId + ", reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
     public boolean deleteRealm(String realmId) {
         try (Keycloak client = getClient(iamServerURL, superAdminRealmID, superAdminUserName, superAdminPassword)) {
             RealmResource realmResource = client.realm(realmId);
@@ -741,8 +845,8 @@ public class KeycloakClient {
                 idp.setConfig(configs);
             }
 
-            idp.getConfig().put("clientId", secret.getClientId());
-            idp.getConfig().put("clientSecret", secret.getClientSecret());
+            idp.getConfig().put("clientId", secret.clientId());
+            idp.getConfig().put("clientSecret", secret.clientSecret());
             idp.getConfig().put("authorizationUrl", ciLogonAuthorizationEndpoint);
             idp.getConfig().put("tokenUrl", ciLogonTokenEndpoint);
             idp.getConfig().put("userInfoUrl", ciLogonUserInfoEndpoint);

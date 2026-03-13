@@ -20,12 +20,15 @@
 
 package org.apache.custos;
 
+import org.apache.custos.service.management.SuperTenantProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
 @EnableJpaAuditing
+@EnableConfigurationProperties(SuperTenantProperties.class)
 public class CustosApplication {
     public static void main(String[] args) {
         SpringApplication.run(CustosApplication.class, args);
