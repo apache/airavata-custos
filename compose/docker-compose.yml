@@ -68,7 +68,7 @@ services:
       VAULT_ADDR: http://0.0.0.0:8201
       VAULT_API_ADDR: http://127.0.0.1:8200
       VAULT_CLUSTER_ADDR: http://127.0.0.1:8201
-      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h"}, "ui": true}'
+      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}'
     cap_add:
       - IPC_LOCK
     volumes:
