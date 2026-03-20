@@ -1,0 +1,137 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+---
+# =============================================================================
+# Account Provisioning — Verification Playbook
+# =============================================================================
+#
+# Safe to run at any time. Makes no changes to the system.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml verify.yml
+
+- name: Verify node enrollment
+  hosts: target_nodes
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: "[verify] getent passwd {{ test_username }}"
+      command: "getent passwd {{ test_username }}"
+      register: verify_getent
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] getent result"
+      debug:
+        msg: "{{ verify_getent.stdout | default('FAILED — user not found') }}"
+
+    - name: "[verify] id {{ test_username }}"
+      command: "id {{ test_username }}"
+      register: verify_id
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] id result"
+      debug:
+        msg: "{{ verify_id.stdout | default('FAILED — user not found') }}"
+
+    - name: "[verify] SSSD service status"
+      command: systemctl is-active sssd
+      register: verify_sssd
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] SSSD status"
+      debug:
+        msg: "sssd is {{ verify_sssd.stdout | default('unknown') }}"
+
+    - name: "[verify] oddjobd service status"
+      command: systemctl is-active oddjobd
+      register: verify_oddjobd
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] oddjobd status"
+      debug:
+        msg: "oddjobd is {{ verify_oddjobd.stdout | default('unknown') }}"
+
+    - name: "[verify] sshd service status"
+      command: systemctl is-active sshd
+      register: verify_sshd
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] sshd status"
+      debug:
+        msg: "sshd is {{ verify_sshd.stdout | default('unknown') }}"
+
+    - name: "[verify] Effective sshd auth settings"
+      shell: >
+        sshd -T | grep -iE
+        'usepam|kbdinteractiveauthentication|passwordauthentication|challengeresponseauthentication|authenticationmethods'
+      register: verify_sshd_config
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] sshd effective config"
+      debug:
+        msg: "{{ verify_sshd_config.stdout_lines | default(['unable to read']) }}"
+
+    - name: "[verify] pam_oauth2_device.so installed"
+      stat:
+        path: /usr/lib64/security/pam_oauth2_device.so
+      register: verify_pam_so
+
+    - name: "[verify] pam_oauth2_device.so"
+      debug:
+        msg: "{{ 'INSTALLED' if verify_pam_so.stat.exists else 'MISSING' }}"
+
+    - name: "[verify] pam_oauth2_device config.json exists"
+      stat:
+        path: /etc/pam_oauth2_device/config.json
+      register: verify_pam_config
+
+    - name: "[verify] config.json"
+      debug:
+        msg: "{{ 'EXISTS' if verify_pam_config.stat.exists else 'MISSING' }}"
+
+    - name: "[verify] Recent SSSD logs"
+      shell: 'journalctl -u sssd --since "5 minutes ago" --no-pager -l 2>/dev/null | tail -20'
+      register: verify_sssd_logs
+      changed_when: false
+      failed_when: false
+
+    - name: "[verify] SSSD journal (last 5 min)"
+      debug:
+        msg: "{{ verify_sssd_logs.stdout_lines | default(['no recent logs']) }}"
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: "[verify] Enrollment summary"
+      debug:
+        msg:
+          - "=== Enrollment Verification Summary ==="
+          - "getent passwd {{ test_username }}: {{ 'PASS' if verify_getent.rc == 0 else 'FAIL' }}"
+          - "id {{ test_username }}:             {{ 'PASS' if verify_id.rc == 0 else 'FAIL' }}"
+          - "sssd service:                       {{ verify_sssd.stdout | default('UNKNOWN') }}"
+          - "oddjobd service:                    {{ verify_oddjobd.stdout | default('UNKNOWN') }}"
+          - "sshd service:                       {{ verify_sshd.stdout | default('UNKNOWN') }}"
+          - "pam_oauth2_device.so:               {{ 'INSTALLED' if verify_pam_so.stat.exists else 'MISSING' }}"
+          - "pam_oauth2_device config.json:      {{ 'EXISTS' if verify_pam_config.stat.exists else 'MISSING' }}"

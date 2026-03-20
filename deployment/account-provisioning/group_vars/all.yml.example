@@ -1,0 +1,90 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+---
+# =============================================================================
+# Account Provisioning — Configuration Variables
+# =============================================================================
+# Copy this file to group_vars/all.yml and fill in your values.
+# Secrets should use Ansible Vault: ansible-vault encrypt_string 'secret'
+
+# -----------------------------------------------------------------------------
+# LDAP — COmanage-provisioned LDAP server
+# -----------------------------------------------------------------------------
+
+# LDAPS URI (must be ldaps:// for TLS)
+ldap_uri: "ldaps://xxx.xxx"
+
+# Base DN where posixAccount entries live
+ldap_search_base: "ou=people,o=xxx,o=CO,dc=xxx,dc=xxx,dc=xxx"
+
+# Bind DN for SSSD to authenticate to LDAP
+ldap_bind_dn: "uid=registry_user,ou=system,o=xxx,o=CO,dc=xxx,dc=xxx,dc=xxx"
+
+# Bind password — use ansible-vault to encrypt this value
+# Example: ansible-vault encrypt_string 'your-password' --name 'ldap_bind_password'
+ldap_bind_password: "{{ vault_ldap_bind_password }}"
+
+# TLS CA certificate bundle on the target node
+ldap_tls_cacert: "/etc/pki/tls/certs/ca-bundle.crt"
+
+# -----------------------------------------------------------------------------
+# CILogon OAuth2 — Device authorization flow
+# -----------------------------------------------------------------------------
+
+# OIDC client credentials (must be a confidential client, not public)
+cilogon_client_id: "cilogon:/client_id/..."
+cilogon_client_secret: "{{ vault_cilogon_client_secret }}"
+
+# OAuth2 scopes — must include userinfo for username_attribute lookup
+cilogon_scope: "openid profile email org.cilogon.userinfo"
+
+# -----------------------------------------------------------------------------
+# SSSD
+# -----------------------------------------------------------------------------
+
+# Domain name used in sssd.conf [domain/<name>]
+sssd_domain_name: "xxx"
+
+# -----------------------------------------------------------------------------
+# pam_oauth2_device
+# -----------------------------------------------------------------------------
+
+# Git repo to clone for building pam_oauth2_device
+pam_oauth2_device_repo: "https://github.com/cyber-shuttle/pam_oauth2_device.git"
+
+# Where to clone the source on the target
+pam_oauth2_device_src_dir: "/usr/local/src/pam_oauth2_device"
+
+# LDAP settings for pam_oauth2_device user lookup
+# This lets the PAM module verify the SSH username exists in LDAP
+pam_oauth2_ldap_host: "{{ ldap_uri }}:636"
+pam_oauth2_ldap_basedn: "{{ ldap_search_base }}"
+pam_oauth2_ldap_user: "{{ ldap_bind_dn }}"
+pam_oauth2_ldap_passwd: "{{ ldap_bind_password }}"
+pam_oauth2_ldap_filter: "(&(objectClass=posixAccount)(voPersonExternalID=%s))"
+pam_oauth2_ldap_attr: "uid"
+
+# Enable debug logging in pam_oauth2_device (set false for production)
+pam_oauth2_debug: false
+
+# -----------------------------------------------------------------------------
+# Validation
+# -----------------------------------------------------------------------------
+
+# A known LDAP username to verify SSSD resolution works
+test_username: "{{ test_username }}"

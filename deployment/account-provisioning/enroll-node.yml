@@ -1,0 +1,334 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+---
+# =============================================================================
+# Account Provisioning — Node Enrollment Playbook
+# =============================================================================
+#
+# Enrolls Linux nodes for COmanage-provisioned LDAP user resolution (SSSD)
+# and CILogon device-flow SSH authentication (pam_oauth2_device).
+#
+# Tested on: RHEL/Rocky 9, RHEL/Rocky 10
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml enroll-node.yml                  # full run
+#   ansible-playbook -i inventory/hosts.yml enroll-node.yml --tags prereqs   # LDAP check only
+#   ansible-playbook -i inventory/hosts.yml enroll-node.yml --tags sssd      # SSSD only
+#   ansible-playbook -i inventory/hosts.yml enroll-node.yml --tags pam       # PAM module only
+#   ansible-playbook -i inventory/hosts.yml enroll-node.yml --tags sshd      # SSHD config only
+#
+# Requires: Ansible 2.14+, LDAP server with posixAccount entries
+
+- name: Enroll node for COmanage LDAP + CILogon SSH authentication
+  hosts: target_nodes
+  become: true
+  gather_facts: true
+
+  # =========================================================================
+  # prereqs — Verify LDAP connectivity (fail-fast, read-only)
+  # =========================================================================
+  tasks:
+    - name: "[prereqs] Install openldap-clients for LDAP checks"
+      dnf:
+        name: openldap-clients
+        state: present
+      tags: [prereqs]
+
+    - name: "[prereqs] Check LDAP TLS connectivity"
+      shell: >
+        echo "" | openssl s_client
+        -connect {{ ldap_uri | regex_replace('^ldaps://', '') }}:636
+        -servername {{ ldap_uri | regex_replace('^ldaps://', '') }}
+        2>/dev/null | openssl x509 -noout -subject -dates
+      register: ldap_tls_check
+      changed_when: false
+      failed_when: ldap_tls_check.rc != 0
+      tags: [prereqs]
+
+    - name: "[prereqs] TLS certificate info"
+      debug:
+        msg: "{{ ldap_tls_check.stdout_lines }}"
+      tags: [prereqs]
+
+    - name: "[prereqs] Verify LDAP bind credentials"
+      command: >
+        ldapwhoami -x
+        -H {{ ldap_uri }}:636
+        -D "{{ ldap_bind_dn }}"
+        -w "{{ ldap_bind_password }}"
+      register: ldap_bind_check
+      changed_when: false
+      failed_when: ldap_bind_check.rc != 0
+      no_log: true
+      tags: [prereqs]
+
+    - name: "[prereqs] Verify LDAP search base is reachable"
+      command: >
+        ldapsearch -LLL -x
+        -H {{ ldap_uri }}:636
+        -D "{{ ldap_bind_dn }}"
+        -w "{{ ldap_bind_password }}"
+        -b "{{ ldap_search_base }}"
+        -s base "(objectClass=*)" dn
+      register: ldap_base_check
+      changed_when: false
+      failed_when: ldap_base_check.rc != 0
+      no_log: true
+      tags: [prereqs]
+
+    - name: "[prereqs] LDAP connectivity verified"
+      debug:
+        msg: >-
+          LDAP server {{ ldap_uri }} is reachable, bind succeeded, search base exists.
+          Target OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      tags: [prereqs]
+
+    # =========================================================================
+    # sssd — Install and configure SSSD for LDAP user resolution
+    # =========================================================================
+
+    - name: "[sssd] Install SSSD and LDAP client packages"
+      dnf:
+        name:
+          - sssd
+          - sssd-ldap
+          - oddjob
+          - oddjob-mkhomedir
+          - openldap-clients
+        state: present
+      tags: [sssd]
+
+    - name: "[sssd] Template /etc/sssd/sssd.conf"
+      template:
+        src: templates/sssd.conf.j2
+        dest: /etc/sssd/sssd.conf
+        owner: root
+        group: root
+        mode: "0600"
+      notify: restart sssd
+      tags: [sssd]
+
+    - name: "[sssd] Configure authselect for SSSD with mkhomedir"
+      command: authselect select sssd with-mkhomedir --force
+      register: authselect_result
+      changed_when: "'already' not in authselect_result.stdout | default('')"
+      tags: [sssd]
+
+    - name: "[sssd] authselect result"
+      debug:
+        msg: "{{ authselect_result.stdout_lines | default(['done']) }}"
+      tags: [sssd]
+
+    - name: "[sssd] Set SELinux boolean for LDAP NSS lookups"
+      seboolean:
+        name: authlogin_nsswitch_use_ldap
+        state: true
+        persistent: true
+      tags: [sssd]
+
+    - name: "[sssd] Enable and start oddjobd"
+      systemd:
+        name: oddjobd
+        enabled: true
+        state: started
+      tags: [sssd]
+
+    - name: "[sssd] Enable and start sssd"
+      systemd:
+        name: sssd
+        enabled: true
+        state: started
+      tags: [sssd]
+
+    - name: "[sssd] Flush SSSD cache to force fresh LDAP lookup"
+      command: sss_cache -E
+      changed_when: false
+      tags: [sssd]
+
+    - name: "[sssd] Validate — getent passwd {{ test_username }}"
+      command: "getent passwd {{ test_username }}"
+      register: sssd_validate
+      changed_when: false
+      failed_when: sssd_validate.rc != 0
+      tags: [sssd]
+
+    - name: "[sssd] Validation result"
+      debug:
+        msg: "{{ sssd_validate.stdout }}"
+      tags: [sssd]
+
+    # =========================================================================
+    # pam — Build and install pam_oauth2_device
+    # =========================================================================
+
+    - name: "[pam] Install build dependencies"
+      dnf:
+        name:
+          - "@Development Tools"
+          - pam-devel
+          - libcurl-devel
+          - openldap-devel
+          - pkgconfig
+          - git
+        state: present
+      tags: [pam]
+
+    - name: "[pam] Clone pam_oauth2_device repository"
+      git:
+        repo: "{{ pam_oauth2_device_repo }}"
+        dest: "{{ pam_oauth2_device_src_dir }}"
+        force: true
+      tags: [pam]
+
+    - name: "[pam] Build pam_oauth2_device"
+      make:
+        chdir: "{{ pam_oauth2_device_src_dir }}"
+      tags: [pam]
+
+    - name: "[pam] Install pam_oauth2_device.so"
+      copy:
+        src: "{{ pam_oauth2_device_src_dir }}/pam_oauth2_device.so"
+        dest: /usr/lib64/security/pam_oauth2_device.so
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [pam]
+
+    - name: "[pam] Create /etc/pam_oauth2_device directory"
+      file:
+        path: /etc/pam_oauth2_device
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [pam]
+
+    - name: "[pam] Template pam_oauth2_device config.json"
+      template:
+        src: templates/pam-oauth2-config.json.j2
+        dest: /etc/pam_oauth2_device/config.json
+        owner: root
+        group: root
+        mode: "0600"
+      tags: [pam]
+
+    - name: "[pam] Configure PAM stack for sshd"
+      copy:
+        dest: /etc/pam.d/sshd
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          #%PAM-1.0
+          auth       required     pam_sepermit.so
+          auth       sufficient   pam_oauth2_device.so /etc/pam_oauth2_device/config.json
+          auth       substack     password-auth
+          auth       include      postlogin
+          account    required     pam_sepermit.so
+          account    required     pam_nologin.so
+          account    include      password-auth
+          password   include      password-auth
+          # pam_selinux.so close should be the first session rule
+          session    required     pam_selinux.so close
+          session    required     pam_loginuid.so
+          # pam_selinux.so open should only be followed by sessions to be executed in the user context
+          session    required     pam_selinux.so open env_params
+          session    required     pam_namespace.so
+          session    optional     pam_keyinit.so force revoke
+          session    optional     pam_motd.so
+          session    include      password-auth
+          session    include      postlogin
+      notify: restart sshd
+      tags: [pam]
+
+    - name: "[pam] Install SELinux policy development tools"
+      dnf:
+        name:
+          - checkpolicy
+          - policycoreutils
+        state: present
+      tags: [pam]
+
+    - name: "[pam] Copy SELinux type enforcement policy for sshd HTTPS"
+      copy:
+        src: files/pam_oauth2_sshd.te
+        dest: /tmp/pam_oauth2_sshd.te
+        mode: "0644"
+      tags: [pam]
+
+    - name: "[pam] Check if pam_oauth2_sshd SELinux module is already loaded"
+      shell: semodule -l | grep -q pam_oauth2_sshd
+      register: selinux_module_check
+      changed_when: false
+      failed_when: false
+      tags: [pam]
+
+    - name: "[pam] Compile and install SELinux policy for sshd HTTPS (CILogon)"
+      shell: |
+        checkmodule -M -m -o /tmp/pam_oauth2_sshd.mod /tmp/pam_oauth2_sshd.te
+        semodule_package -o /tmp/pam_oauth2_sshd.pp -m /tmp/pam_oauth2_sshd.mod
+        semodule -i /tmp/pam_oauth2_sshd.pp
+      when: selinux_module_check.rc != 0
+      tags: [pam]
+
+    # =========================================================================
+    # sshd — Configure SSHD for keyboard-interactive auth
+    # =========================================================================
+
+    - name: "[sshd] Template sshd_config.d override"
+      template:
+        src: templates/99-pam-oauth2-device.conf.j2
+        dest: /etc/ssh/sshd_config.d/99-pam-oauth2-device.conf
+        owner: root
+        group: root
+        mode: "0600"
+      notify: restart sshd
+      tags: [sshd]
+
+    - name: "[sshd] Validate sshd configuration"
+      command: /usr/sbin/sshd -t
+      changed_when: false
+      tags: [sshd]
+
+    - name: "[sshd] Verify effective sshd settings"
+      shell: >
+        sshd -T | grep -iE
+        'usepam|kbdinteractiveauthentication|passwordauthentication|challengeresponseauthentication'
+      register: sshd_effective
+      changed_when: false
+      tags: [sshd]
+
+    - name: "[sshd] Effective sshd configuration"
+      debug:
+        msg: "{{ sshd_effective.stdout_lines }}"
+      tags: [sshd]
+
+  # ===========================================================================
+  # Handlers
+  # ===========================================================================
+  handlers:
+    - name: restart sssd
+      systemd:
+        name: sssd
+        state: restarted
+
+    - name: restart sshd
+      systemd:
+        name: sshd
+        state: restarted

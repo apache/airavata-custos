@@ -1,0 +1,45 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# SELinux type enforcement policy: allow sshd to make HTTPS connections
+#
+# Problem: pam_oauth2_device runs inside sshd (sshd_t context) and uses
+# libcurl to contact CILogon over HTTPS (port 443). SELinux's default
+# policy for sshd_t does not permit outbound TCP connections to http_port_t.
+# Without this module, auth silently falls through to password-auth.
+#
+# Discovered from AVC denial:
+#   avc: denied { name_connect } for comm="sshd" dest=443
+#   scontext=system_u:system_r:sshd_t:s0
+#   tcontext=system_u:object_r:http_port_t:s0
+#   tclass=tcp_socket
+#
+# Build:
+#   checkmodule -M -m -o pam_oauth2_sshd.mod pam_oauth2_sshd.te
+#   semodule_package -o pam_oauth2_sshd.pp -m pam_oauth2_sshd.mod
+#   semodule -i pam_oauth2_sshd.pp
+
+module pam_oauth2_sshd 1.0;
+
+require {
+    type sshd_t;
+    type http_port_t;
+    class tcp_socket name_connect;
+}
+
+#============= sshd_t ==============
+allow sshd_t http_port_t:tcp_socket name_connect;
