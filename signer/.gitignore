@@ -1,0 +1,5 @@
+# Local configuration (contains secrets)
+config.yaml
+
+# Build output
+custos-signer
