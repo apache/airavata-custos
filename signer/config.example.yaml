@@ -1,0 +1,66 @@
+server:
+  port: 8084                           # HTTP listen port
+  read_timeout_seconds: 30             # HTTP read timeout
+  write_timeout_seconds: 30            # HTTP write timeout
+  shutdown_timeout_seconds: 30         # Graceful shutdown drain
+
+database:
+  host: localhost                      # env: DB_HOST
+  port: 3306                           # env: DB_PORT
+  name: custos_signer                  # env: DB_NAME
+  username: admin                      # env: DB_USERNAME
+  password: admin                      # env: DB_PASSWORD
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime_seconds: 300
+
+vault:
+  address: http://localhost:8200       # env: VAULT_ADDRESS
+  token: root-token                    # env: VAULT_TOKEN
+  mount_path: ssh-ca                   # KV v2 mount path
+  timeout_seconds: 10
+
+signer:
+  ca:
+    rotation:
+      period_hours: 2160              # 90 days
+      overlap_hours: 2
+  policy:
+    defaults:
+      max_ttl_seconds: 86400          # 24 hours
+      allowed_key_types:
+        - ed25519
+        - rsa
+        - ecdsa
+  auth:
+    allowed_issuers:                   # env: ALLOWED_ISSUERS (comma-separated)
+      - https://cilogon.org
+    oidc:
+      jwks_cache_ttl_seconds: 300     # 5 minutes
+      jwks_max_providers: 10
+      timeout_seconds: 10
+  validation:
+    principal_validator: noop          # "noop" or "comanage"
+    comanage:
+      registry_url: ""
+      api_path: /registry/co_people.json
+      timeout_seconds: 10
+      verify_ssl: true
+
+dev_mode:
+  enabled: false                       # env: DEV_MODE (disables OIDC validation)
+  default_email: dev@localhost           # env: DEV_DEFAULT_EMAIL
+
+cors:
+  enabled: false                         # Enable CORS for cross-origin requests
+  allowed_origins:                       # Origins allowed for cross-origin requests
+    - http://localhost:5173
+
+logging:
+  level: info                          # debug, info, warn, error
+  format: json                         # json or text
+  audit_level: info
+
+metrics:
+  enabled: true
+  path: /metrics

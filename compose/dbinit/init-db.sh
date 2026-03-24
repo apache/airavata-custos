@@ -23,10 +23,12 @@ mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" <<-EOSQL
     CREATE DATABASE IF NOT EXISTS custos;
     CREATE DATABASE IF NOT EXISTS keycloak;
     CREATE DATABASE IF NOT EXISTS access_ci;
+    CREATE DATABASE IF NOT EXISTS custos_signer;
     CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY 'admin';
     GRANT ALL PRIVILEGES ON custos.* TO 'admin'@'%';
     GRANT ALL PRIVILEGES ON keycloak.* TO 'admin'@'%';
     GRANT ALL PRIVILEGES ON access_ci.* TO 'admin'@'%';
+    GRANT ALL PRIVILEGES ON custos_signer.* TO 'admin'@'%';
     FLUSH PRIVILEGES;
 EOSQL
 
