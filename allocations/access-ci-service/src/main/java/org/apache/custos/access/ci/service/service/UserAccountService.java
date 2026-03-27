@@ -23,9 +23,11 @@ import org.apache.custos.access.ci.service.model.PersonEntity;
 import org.apache.custos.access.ci.service.repo.ClusterAccountRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -52,6 +54,14 @@ public class UserAccountService {
     public ClusterAccountEntity provisionClusterAccount(PersonEntity person) {
         // TODO Replace with external source of truth (e.g., COmanage) lookup for PersonID and username
 
+        List<ClusterAccountEntity> existing = clusterAccountRepository.findByPerson(person);
+        if (!existing.isEmpty()) {
+            ClusterAccountEntity account = existing.get(0);
+            LOGGER.info("Cluster account already exists for person [{}], returning existing account with username [{}]",
+                    person.getId(), account.getUsername());
+            return account;
+        }
+
         String proposedUsername = (person.getFirstName().trim().charAt(0) + person.getLastName().trim().replace(" ", "-")).toLowerCase();
         String uniqueUsername = ensureUniqueUsername(proposedUsername);
 
@@ -61,9 +71,20 @@ public class UserAccountService {
         newClusterAccount.setId(UUID.randomUUID().toString());
         newClusterAccount.setPerson(person);
         newClusterAccount.setUsername(uniqueUsername);
-        clusterAccountRepository.save(newClusterAccount);
 
-        return newClusterAccount;
+        ClusterAccountEntity account;
+        try {
+            account = clusterAccountRepository.save(newClusterAccount);
+        } catch (DataIntegrityViolationException e) {
+            List<ClusterAccountEntity> retryLookup = clusterAccountRepository.findByPerson(person);
+            if (!retryLookup.isEmpty()) {
+                LOGGER.warn("Concurrent account creation detected for person [{}]; returning existing account.", person.getId());
+                return retryLookup.get(0);
+            }
+            throw e; // Re-throw if it was a different constraint violation
+        }
+
+        return account;
     }
 
     private String ensureUniqueUsername(String baseUsername) {
@@ -79,4 +100,3 @@ public class UserAccountService {
         return candidate;
     }
 }
-

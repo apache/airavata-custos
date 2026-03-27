@@ -25,12 +25,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface ProcessingEventRepository extends JpaRepository<ProcessingEventEntity, String> {
 
-    @Query("SELECT e FROM ProcessingEventEntity e JOIN FETCH e.packet WHERE e.status IN :statuses ORDER BY e.createdAt ASC")
-    List<ProcessingEventEntity> findTop50EventsToProcess(@Param("statuses") Collection<ProcessingStatus> statuses);
+    @Query("""
+            SELECT e FROM ProcessingEventEntity e JOIN FETCH e.packet
+            WHERE e.status IN :statuses
+              AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= :now)
+            ORDER BY e.createdAt ASC
+            LIMIT 50
+            """)
+    List<ProcessingEventEntity> findTop50EventsToProcess(
+            @Param("statuses") Collection<ProcessingStatus> statuses,
+            @Param("now") Instant now);
 }

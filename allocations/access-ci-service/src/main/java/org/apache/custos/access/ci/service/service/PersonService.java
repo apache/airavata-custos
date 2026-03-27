@@ -27,6 +27,7 @@ import org.apache.custos.access.ci.service.repo.PersonDnsRepository;
 import org.apache.custos.access.ci.service.repo.PersonRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -111,17 +112,16 @@ public class PersonService {
         PersonEntity person = personRepository.findById(personId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown local PersonID: " + personId));
 
-        // Update fields
-        if (body.has("FirstName")) person.setFirstName(body.path("FirstName").asText(person.getFirstName()));
-        if (body.has("LastName")) person.setLastName(body.path("LastName").asText(person.getLastName()));
-        if (body.has("Email")) person.setEmail(body.path("Email").asText(person.getEmail()));
-        person.setOrganization(body.has("Organization") ? body.path("Organization").asText(null) : null);
-        person.setOrgCode(body.has("OrgCode") ? body.path("OrgCode").asText(null) : null);
-        person.setNsfStatusCode(body.has("NsfStatusCode") ? body.path("NsfStatusCode").asText(null) : null);
+        if (body.has("UserFirstName")) person.setFirstName(body.path("UserFirstName").asText(person.getFirstName()));
+        if (body.has("UserLastName")) person.setLastName(body.path("UserLastName").asText(person.getLastName()));
+        if (body.has("UserEmail")) person.setEmail(body.path("UserEmail").asText(person.getEmail()));
+        if (body.has("UserOrganization")) person.setOrganization(body.path("UserOrganization").asText(null));
+        if (body.has("UserOrgCode")) person.setOrgCode(body.path("UserOrgCode").asText(null));
+        if (body.has("NsfStatusCode")) person.setNsfStatusCode(body.path("NsfStatusCode").asText(null));
         personRepository.save(person);
 
         Set<String> newDns = new HashSet<>();
-        JsonNode dnList = body.path("DnList");
+        JsonNode dnList = body.path("UserDnList");
         if (dnList != null && dnList.isArray()) {
             for (JsonNode dnNode : dnList) {
                 String dn = dnNode.asText(null);
@@ -130,7 +130,9 @@ public class PersonService {
         }
 
         if (newDns.isEmpty()) {
-            personDnsRepository.deleteByPerson_Id(personId);
+            if (body.has("UserDnList")) {
+                personDnsRepository.deleteByPerson_Id(personId);
+            }
         } else {
             personDnsRepository.deleteByPerson_IdAndDnNotIn(personId, new ArrayList<>(newDns));
             for (String dn : newDns) {
@@ -140,6 +142,47 @@ public class PersonService {
                     p.setDn(dn);
                     personDnsRepository.save(p);
                 }
+            }
+        }
+    }
+
+    @Transactional
+    public void persistDnsForPerson(String personId, JsonNode dnList) {
+        Assert.hasText(personId, "personId must not be blank");
+
+        if (dnList == null || !dnList.isArray() || dnList.isEmpty()) {
+            return;
+        }
+
+        PersonEntity person = personRepository.findById(personId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown local PersonID: " + personId));
+
+        Set<String> incomingDns = new HashSet<>();
+        for (JsonNode dnNode : dnList) {
+            String dn = dnNode.asText(null);
+            if (dn != null && !dn.isBlank()) {
+                incomingDns.add(dn);
+            }
+        }
+
+        if (incomingDns.isEmpty()) {
+            return;
+        }
+
+        for (String dn : incomingDns) {
+            if (!personDnsRepository.existsByPerson_IdAndDn(personId, dn)) {
+                PersonDnsEntity pde = new PersonDnsEntity();
+                pde.setPerson(person);
+                pde.setDn(dn);
+                try {
+                    personDnsRepository.save(pde);
+                    LOGGER.info("Persisted new DN for person [{}].", personId);
+                    LOGGER.debug("Persisted DN [{}] for person [{}].", dn, personId);
+                } catch (DataIntegrityViolationException ex) {
+                    LOGGER.debug("DN already exists for person [{}] (concurrent insert), skipping.", personId);
+                }
+            } else {
+                LOGGER.debug("DN [{}] already exists for person [{}], skipping.", dn, personId);
             }
         }
     }

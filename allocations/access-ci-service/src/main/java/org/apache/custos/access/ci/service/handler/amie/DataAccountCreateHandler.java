@@ -21,6 +21,7 @@ package org.apache.custos.access.ci.service.handler.amie;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,9 +41,11 @@ public class DataAccountCreateHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataAccountCreateHandler.class);
 
     private final AmieClient amieClient;
+    private final PersonService personService;
 
-    public DataAccountCreateHandler(AmieClient amieClient) {
+    public DataAccountCreateHandler(AmieClient amieClient, PersonService personService) {
         this.amieClient = amieClient;
+        this.personService = personService;
     }
 
     @Override
@@ -63,12 +66,9 @@ public class DataAccountCreateHandler implements PacketHandler {
         Assert.hasText(personId, "'PersonID' must not be empty.");
         LOGGER.info("Packet validated. ProjectID: [{}], PersonID: [{}].", projectId, personId);
 
-
-        // TODO - perform the business logic
-        //  - find the user's record by 'personId' (localID) and update the distinguished names (dnList)
         if (dnList.isArray() && !dnList.isEmpty()) {
-            LOGGER.info("Received DnList for user [{}]. In a real implementation, this would be saved to the user's profile.", personId);
-            // TODO userService.updateUserDnList(personId, dnList);
+            LOGGER.info("Persisting DnList for person [{}] from data_account_create.", personId);
+            personService.persistDnsForPerson(personId, dnList);
         }
 
         // Send the 'inform_transaction_complete' reply to close the transaction.
