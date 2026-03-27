@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +53,15 @@ class DataProjectCreateHandlerTest {
     @Mock
     private PersonService personService;
 
+    @Mock
+    private AuditService auditService;
+
     private DataProjectCreateHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new DataProjectCreateHandler(amieClient, personService);
+        handler = new DataProjectCreateHandler(amieClient, personService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -75,7 +79,7 @@ class DataProjectCreateHandlerTest {
         packetEntity.setAmieId(233497909L);
         packetEntity.setType("data_project_create");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> replyCaptor = ArgumentCaptor.forClass(Map.class);
@@ -104,7 +108,7 @@ class DataProjectCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("ProjectID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'ProjectID' must not be empty");
     }
@@ -114,7 +118,7 @@ class DataProjectCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("PersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'PersonID' must not be empty");
     }
@@ -124,7 +128,7 @@ class DataProjectCreateHandlerTest {
         JsonNode packetJson = createValidPacketJson();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         verify(personService, never()).persistDnsForPerson(any(), any());
         //noinspection unchecked
@@ -136,7 +140,7 @@ class DataProjectCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithDnList();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         ArgumentCaptor<String> personIdCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<JsonNode> dnListCaptor = ArgumentCaptor.forClass(JsonNode.class);
@@ -158,7 +162,7 @@ class DataProjectCreateHandlerTest {
         packetEntity.setAmieId(233497909L);
         packetEntity.setType("data_project_create");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         ArgumentCaptor<JsonNode> dnListCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(personService).persistDnsForPerson(eq("test-person-456"), dnListCaptor.capture());

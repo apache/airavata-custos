@@ -28,9 +28,10 @@ public interface PacketHandler {
      *
      * @param packetJson   The raw packet content
      * @param packetEntity The entity for the packet
+     * @param eventId      The processing event ID for audit logging
      * @throws Exception if processing fails
      */
-    void handle(JsonNode packetJson, PacketEntity packetEntity) throws Exception;
+    void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) throws Exception;
 
     /**
      * Define which packet type this handler is responsible for.

@@ -24,6 +24,7 @@ import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.ClusterAccountEntity;
 import org.apache.custos.access.ci.service.model.PersonEntity;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
@@ -65,12 +66,15 @@ class RequestAccountCreateHandlerTest {
     @Mock
     private ProjectMembershipService membershipService;
 
+    @Mock
+    private AuditService auditService;
+
     private RequestAccountCreateHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new RequestAccountCreateHandler(amieClient, personService, userAccountService, projectService, membershipService);
+        handler = new RequestAccountCreateHandler(amieClient, personService, userAccountService, projectService, membershipService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -93,7 +97,7 @@ class RequestAccountCreateHandlerTest {
         when(personService.findOrCreatePersonFromPacket(any(JsonNode.class))).thenReturn(personEntity);
         when(userAccountService.provisionClusterAccount(personEntity)).thenReturn(createClusterAccount());
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         verify(personService).findOrCreatePersonFromPacket(any(JsonNode.class));
         verify(userAccountService).provisionClusterAccount(personEntity);
@@ -130,7 +134,7 @@ class RequestAccountCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("ProjectID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'ProjectID' (the local project ID) must not be empty");
     }
@@ -140,7 +144,7 @@ class RequestAccountCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("GrantNumber");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'GrantNumber' must not be empty");
     }
@@ -150,7 +154,7 @@ class RequestAccountCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("UserGlobalID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'UserGlobalID' must not be empty");
     }

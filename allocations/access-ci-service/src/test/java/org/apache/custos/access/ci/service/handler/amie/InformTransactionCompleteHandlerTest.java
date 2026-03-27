@@ -21,11 +21,13 @@ package org.apache.custos.access.ci.service.handler.amie;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,12 +37,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Tag("unit")
 class InformTransactionCompleteHandlerTest {
 
+    @Mock
+    private AuditService auditService;
+
     private InformTransactionCompleteHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new InformTransactionCompleteHandler();
+        handler = new InformTransactionCompleteHandler(auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -57,7 +62,7 @@ class InformTransactionCompleteHandlerTest {
         packetEntity.setAmieId(233497913L);
         packetEntity.setType("inform_transaction_complete");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
     }
 
     @Test
@@ -65,7 +70,7 @@ class InformTransactionCompleteHandlerTest {
         JsonNode packetJson = createMinimalPacketJson();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
     }
 
     @Test
@@ -73,7 +78,7 @@ class InformTransactionCompleteHandlerTest {
         PacketEntity packetEntity = createPacketEntity();
 
         //noinspection DataFlowIssue
-        assertThatThrownBy(() -> handler.handle(null, packetEntity)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> handler.handle(null, packetEntity, null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -81,7 +86,7 @@ class InformTransactionCompleteHandlerTest {
         JsonNode packetJson = createValidPacketJson();
 
         //noinspection DataFlowIssue
-        assertThatThrownBy(() -> handler.handle(packetJson, null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> handler.handle(packetJson, null, null)).isInstanceOf(NullPointerException.class);
     }
 
     private JsonNode createValidPacketJson() {

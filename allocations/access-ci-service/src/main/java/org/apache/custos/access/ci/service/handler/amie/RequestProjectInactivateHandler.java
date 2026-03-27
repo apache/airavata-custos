@@ -20,7 +20,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
 import org.slf4j.Logger;
@@ -42,11 +44,14 @@ public class RequestProjectInactivateHandler implements PacketHandler {
     private final AmieClient amieClient;
     private final ProjectService projectService;
     private final ProjectMembershipService membershipService;
+    private final AuditService auditService;
 
-    public RequestProjectInactivateHandler(AmieClient amieClient, ProjectService projectService, ProjectMembershipService membershipService) {
+    public RequestProjectInactivateHandler(AmieClient amieClient, ProjectService projectService,
+                                           ProjectMembershipService membershipService, AuditService auditService) {
         this.amieClient = amieClient;
         this.projectService = projectService;
         this.membershipService = membershipService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -55,7 +60,7 @@ public class RequestProjectInactivateHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("Starting 'request_project_inactivate' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -65,10 +70,21 @@ public class RequestProjectInactivateHandler implements PacketHandler {
         LOGGER.info("Packet validated. ProjectID to inactivate: [{}].", projectId);
 
         projectService.inactivateProject(projectId);
+        LOGGER.info("Inactivated project [{}].", projectId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.INACTIVATE_PROJECT,
+                "project", projectId,
+                "Inactivated project " + projectId);
+
         membershipService.inactivateAllMembershipsForProject(projectId);
-        LOGGER.info("Inactivated project [{}] and all associated memberships.", projectId);
+        LOGGER.info("Inactivated all memberships for project [{}].", projectId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.INACTIVATE_MEMBERSHIP,
+                "project", projectId,
+                "Inactivated all memberships for project " + projectId);
 
         sendSuccessReply(packetEntity.getAmieId(), body);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent notify_project_inactivate reply for project " + projectId);
 
         LOGGER.info("Successfully completed 'request_project_inactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
     }

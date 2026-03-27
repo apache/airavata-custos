@@ -63,10 +63,10 @@ class PacketRouterTest {
         PacketEntity packetEntity = new PacketEntity();
         packetEntity.setType("request_project_create");
 
-        router.route(packetJson, packetEntity);
+        router.route(packetJson, packetEntity, null);
 
-        verify(mockHandler1).handle(packetJson, packetEntity);
-        verify(mockHandler2, never()).handle(any(), any());
+        verify(mockHandler1).handle(packetJson, packetEntity, null);
+        verify(mockHandler2, never()).handle(any(), any(), any());
     }
 
     @Test
@@ -75,10 +75,10 @@ class PacketRouterTest {
         PacketEntity packetEntity = new PacketEntity();
         packetEntity.setType("request_account_create");
 
-        router.route(packetJson, packetEntity);
+        router.route(packetJson, packetEntity, null);
 
-        verify(mockHandler2).handle(packetJson, packetEntity);
-        verify(mockHandler1, never()).handle(any(), any());
+        verify(mockHandler2).handle(packetJson, packetEntity, null);
+        verify(mockHandler1, never()).handle(any(), any(), any());
     }
 
     @Test
@@ -87,10 +87,10 @@ class PacketRouterTest {
         PacketEntity packetEntity = new PacketEntity();
         packetEntity.setType("unknown_packet_type");
 
-        router.route(packetJson, packetEntity);
+        router.route(packetJson, packetEntity, null);
 
-        verify(mockHandler1, never()).handle(any(), any());
-        verify(mockHandler2, never()).handle(any(), any());
+        verify(mockHandler1, never()).handle(any(), any(), any());
+        verify(mockHandler2, never()).handle(any(), any(), any());
     }
 
     @Test
@@ -100,9 +100,9 @@ class PacketRouterTest {
         PacketEntity packetEntity = new PacketEntity();
         packetEntity.setType("REQUEST_PROJECT_CREATE");
 
-        router.route(packetJson, packetEntity);
+        router.route(packetJson, packetEntity, null);
 
-        verify(mockHandler1).handle(packetJson, packetEntity);
-        verify(mockHandler2, never()).handle(any(), any());
+        verify(mockHandler1).handle(packetJson, packetEntity, null);
+        verify(mockHandler2, never()).handle(any(), any(), any());
     }
 }

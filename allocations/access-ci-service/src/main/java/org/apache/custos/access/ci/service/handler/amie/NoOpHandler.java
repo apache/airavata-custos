@@ -33,7 +33,7 @@ public class NoOpHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(NoOpHandler.class);
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("NoOpHandler executed for packet with amie_packet_rec_id [{}] and type [{}]. No action taken.", packetEntity.getAmieId(), packetEntity.getType());
         // No operations
     }

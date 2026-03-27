@@ -20,7 +20,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
 import org.slf4j.Logger;
@@ -45,11 +47,14 @@ public class RequestProjectReactivateHandler implements PacketHandler {
     private final AmieClient amieClient;
     private final ProjectService projectService;
     private final ProjectMembershipService membershipService;
+    private final AuditService auditService;
 
-    public RequestProjectReactivateHandler(AmieClient amieClient, ProjectService projectService, ProjectMembershipService membershipService) {
+    public RequestProjectReactivateHandler(AmieClient amieClient, ProjectService projectService,
+                                           ProjectMembershipService membershipService, AuditService auditService) {
         this.amieClient = amieClient;
         this.projectService = projectService;
         this.membershipService = membershipService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -59,7 +64,7 @@ public class RequestProjectReactivateHandler implements PacketHandler {
 
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("Starting 'request_project_reactivate' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -69,10 +74,21 @@ public class RequestProjectReactivateHandler implements PacketHandler {
         LOGGER.info("Packet validated. ProjectID to reactivate: [{}].", projectId);
 
         projectService.reactivateProject(projectId);
+        LOGGER.info("Reactivated project [{}].", projectId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REACTIVATE_PROJECT,
+                "project", projectId,
+                "Reactivated project " + projectId);
+
         membershipService.reactivatePiMembership(projectId);
-        LOGGER.info("Reactivated project [{}] and PI membership(s).", projectId);
+        LOGGER.info("Reactivated PI membership(s) for project [{}].", projectId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REACTIVATE_MEMBERSHIP,
+                "project", projectId,
+                "Reactivated PI membership(s) for project " + projectId);
 
         sendSuccessReply(packetEntity.getAmieId(), body);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent notify_project_reactivate reply for project " + projectId);
 
         LOGGER.info("Successfully completed 'request_project_reactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
     }

@@ -19,7 +19,9 @@
 package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -34,13 +36,19 @@ public class InformTransactionCompleteHandler implements PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InformTransactionCompleteHandler.class);
 
+    private final AuditService auditService;
+
+    public InformTransactionCompleteHandler(AuditService auditService) {
+        this.auditService = auditService;
+    }
+
     @Override
     public String supportsType() {
         return "inform_transaction_complete";
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         // This packet is purely informational and completes the transaction
         JsonNode body = packetJson.path("body");
         String statusCode = body.path("StatusCode").asText("Unknown");
@@ -48,5 +56,9 @@ public class InformTransactionCompleteHandler implements PacketHandler {
 
         LOGGER.info("Received 'inform_transaction_complete' for packet amie_id [{}]. Status: [{}], Message: [{}]. Transaction is now closed.",
                 packetEntity.getAmieId(), statusCode, message);
+
+        auditService.log(packetEntity.getId(), eventId, AuditAction.TRANSACTION_COMPLETE,
+                "packet", packetEntity.getId(),
+                "Transaction complete received. Status: " + statusCode);
     }
 }

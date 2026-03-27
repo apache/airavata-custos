@@ -19,7 +19,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +46,13 @@ public class RequestAccountReactivateHandler implements PacketHandler {
 
     private final AmieClient amieClient;
     private final ProjectMembershipService membershipService;
+    private final AuditService auditService;
 
-    public RequestAccountReactivateHandler(AmieClient amieClient, ProjectMembershipService membershipService) {
+    public RequestAccountReactivateHandler(AmieClient amieClient, ProjectMembershipService membershipService,
+                                           AuditService auditService) {
         this.amieClient = amieClient;
         this.membershipService = membershipService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -56,7 +61,7 @@ public class RequestAccountReactivateHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("Starting 'request_account_reactivate' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -68,8 +73,14 @@ public class RequestAccountReactivateHandler implements PacketHandler {
         LOGGER.info("Packet validated. Reactivating account for user [{}] on project [{}].", personId, projectId);
 
         membershipService.reactivateMembershipsByPersonAndProject(projectId, personId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REACTIVATE_MEMBERSHIP,
+                "person", personId,
+                "Reactivated membership for person " + personId + " on project " + projectId);
 
         sendSuccessReply(packetEntity.getAmieId(), body);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent notify_account_reactivate reply for person " + personId + " on project " + projectId);
 
         LOGGER.info("Successfully completed 'request_account_reactivate' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
     }
