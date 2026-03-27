@@ -23,33 +23,77 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
     <springProperty scope="context" name="appName" source="spring.application.name"/>
-    <!-- Rolling File Appender -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/custos-amie-decoder.log</file>
-        <encoder>
-            <pattern>%date{YYYY-MM-dd HH:mm:ss.SSS} app=${appName}, host=${HOSTNAME}, traceID=%X{traceId:-NONE},
-                level=%-5level, [%thread] %logger{36} - %msg%n
-            </pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>logs/%d{yyyy-MM}/custos-amie-decoder-%d{MM-dd-yyyy}-%i.log.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-    </appender>
 
-    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="FILE"/>
-        <queueSize>500</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>true</includeCallerData>
-    </appender>
+    <!-- ================================================================ -->
+    <!-- DEV / DEFAULT PROFILE — human-readable text format with MDC      -->
+    <!-- ================================================================ -->
+    <springProfile name="default,dev">
 
-    <logger name="org.hibernate" level="ERROR"/>
-    <logger name="org.springframework" level="INFO"/>
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/custos-amie-decoder.log</file>
+            <encoder>
+                <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} app=${appName}, host=${HOSTNAME}, traceId=%X{traceId:-}, packetId=%X{packetId:-}, amieId=%X{amieId:-}, packetType=%X{packetType:-}, handler=%X{handler:-}, level=%-5level, [%thread] %logger{36} - %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/%d{yyyy-MM}/custos-amie-decoder-%d{MM-dd-yyyy}-%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
 
-    <root level="INFO">
-        <appender-ref ref="ASYNC_FILE"/>
-    </root>
+        <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="FILE"/>
+            <queueSize>500</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>true</includeCallerData>
+        </appender>
+
+        <logger name="org.hibernate" level="ERROR"/>
+        <logger name="org.springframework" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+
+    </springProfile>
+
+    <!-- ================================================================ -->
+    <!-- PROD PROFILE — structured JSON format for log aggregation        -->
+    <!-- ================================================================ -->
+    <springProfile name="prod">
+
+        <appender name="FILE_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/custos-amie-decoder.log</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>packetId</includeMdcKeyName>
+                <includeMdcKeyName>amieId</includeMdcKeyName>
+                <includeMdcKeyName>packetType</includeMdcKeyName>
+                <includeMdcKeyName>handler</includeMdcKeyName>
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/%d{yyyy-MM}/custos-amie-decoder-%d{MM-dd-yyyy}-%i.log.gz</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="FILE_JSON"/>
+            <queueSize>500</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>true</includeCallerData>
+        </appender>
+
+        <logger name="org.hibernate" level="ERROR"/>
+        <logger name="org.springframework" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+
+    </springProfile>
+
 </configuration>

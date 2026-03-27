@@ -19,7 +19,9 @@
 package org.apache.custos.access.ci.service.worker.amie;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
 import org.apache.custos.access.ci.service.handler.amie.PacketRouter;
+import org.apache.custos.access.ci.service.metrics.AmieMetrics;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
 import org.apache.custos.access.ci.service.model.amie.PacketStatus;
 import org.apache.custos.access.ci.service.model.amie.ProcessingErrorEntity;
@@ -31,6 +33,7 @@ import org.apache.custos.access.ci.service.repo.amie.ProcessingErrorRepository;
 import org.apache.custos.access.ci.service.repo.amie.ProcessingEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -76,6 +79,7 @@ public class ProcessingEventWorker {
     private final PacketRepository packetRepo;
     private final ProcessingErrorRepository errorRepo;
     private final PacketRouter router;
+    private final AmieMetrics amieMetrics;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessingEventWorker self;
 
@@ -83,11 +87,13 @@ public class ProcessingEventWorker {
                                  PacketRepository packetRepo,
                                  ProcessingErrorRepository errorRepo,
                                  PacketRouter router,
+                                 AmieMetrics amieMetrics,
                                  @Lazy ProcessingEventWorker self) {
         this.eventRepo = eventRepo;
         this.packetRepo = packetRepo;
         this.errorRepo = errorRepo;
         this.router = router;
+        this.amieMetrics = amieMetrics;
         this.self = self;
     }
 
@@ -109,18 +115,33 @@ public class ProcessingEventWorker {
 
         for (ProcessingEventEntity event : eventsToProcess) {
             String eventId = event.getId();
+            PacketEntity packet = event.getPacket();
+
+            MDC.put("packetId", packet.getId());
+            MDC.put("amieId", String.valueOf(packet.getAmieId()));
+            MDC.put("packetType", packet.getType());
+
+            Timer.Sample timerSample = amieMetrics.startProcessingTimer();
             try {
                 self.executeEventInTransaction(event);
             } catch (Exception e) {
                 LOGGER.error("Transaction failed for eventId [{}]. Opening recovery transaction to record failure.",
                         eventId, e);
+                amieMetrics.stopProcessingTimer(timerSample, packet.getType());
                 try {
                     self.recordFailureInNewTransaction(eventId, e);
                 } catch (Exception recoveryEx) {
                     LOGGER.error("CRITICAL: Recovery transaction also failed for eventId [{}]. " +
                             "Event may remain stuck until the next worker cycle.", eventId, recoveryEx);
                 }
+                continue;
+            } finally {
+                MDC.remove("packetId");
+                MDC.remove("amieId");
+                MDC.remove("packetType");
+                MDC.remove("handler");
             }
+            amieMetrics.stopProcessingTimer(timerSample, packet.getType());
         }
     }
 
@@ -136,7 +157,7 @@ public class ProcessingEventWorker {
         eventRepo.saveAndFlush(event);
 
         var packetJson = objectMapper.readTree(packet.getRawJson());
-        router.route(packetJson, packet);
+        router.route(packetJson, packet, event.getId());
 
         handleSuccess(event, packet);
     }
@@ -166,10 +187,13 @@ public class ProcessingEventWorker {
         if (isRetryable) {
             Instant nextRetryAt = computeNextRetryAt(effectiveAttempts);
             event.setNextRetryAt(nextRetryAt);
+            amieMetrics.recordRetry();
+            amieMetrics.recordPacketProcessed(packet.getType(), "retry_scheduled");
             LOGGER.warn("Event [{}] for packet amie_id [{}] failed on attempt {}/{}. Scheduled for retry after [{}].",
                     eventId, packet.getAmieId(), effectiveAttempts, MAX_ATTEMPTS, nextRetryAt);
         } else {
             event.setNextRetryAt(null);
+            amieMetrics.recordPacketProcessed(packet.getType(), "permanently_failed");
             LOGGER.error("Event [{}] for packet amie_id [{}] is PERMANENTLY_FAILED after {} attempt(s). Manual intervention required.",
                     eventId, packet.getAmieId(), effectiveAttempts);
             packet.setStatus(PacketStatus.FAILED);
@@ -202,6 +226,8 @@ public class ProcessingEventWorker {
             packet.setDecodedAt(Instant.now());
             packetRepo.save(packet);
         }
+
+        amieMetrics.recordPacketProcessed(packet.getType(), "succeeded");
 
         LOGGER.info("Successfully processed event [{}] for packet amie_id [{}].",
                 event.getType(), packet.getAmieId());

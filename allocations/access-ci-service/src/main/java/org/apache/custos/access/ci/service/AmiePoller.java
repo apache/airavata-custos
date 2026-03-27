@@ -20,6 +20,7 @@ package org.apache.custos.access.ci.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.metrics.AmieMetrics;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
 import org.apache.custos.access.ci.service.model.amie.PacketStatus;
 import org.apache.custos.access.ci.service.model.amie.ProcessingEventEntity;
@@ -30,6 +31,7 @@ import org.apache.custos.access.ci.service.repo.amie.ProcessingEventRepository;
 import org.apache.custos.access.ci.service.util.ProtoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -51,11 +53,14 @@ public class AmiePoller {
     private final AmieClient client;
     private final PacketRepository packetRepo;
     private final ProcessingEventRepository eventRepo;
+    private final AmieMetrics amieMetrics;
 
-    public AmiePoller(AmieClient client, PacketRepository packetRepo, ProcessingEventRepository eventRepo) {
+    public AmiePoller(AmieClient client, PacketRepository packetRepo, ProcessingEventRepository eventRepo,
+                      AmieMetrics amieMetrics) {
         this.client = client;
         this.packetRepo = packetRepo;
         this.eventRepo = eventRepo;
+        this.amieMetrics = amieMetrics;
     }
 
 
@@ -71,12 +76,24 @@ public class AmiePoller {
         }
 
         LOGGER.info("Found {} packets to process.", packets.size());
+        amieMetrics.recordPollerFetch(packets.size());
+
         for (JsonNode packetNode : packets) {
+            String packetType = packetNode.path("type").asText(null);
+            long amiePacketRecId = packetNode.at("/header/packet_rec_id").asLong(-1);
+
+            MDC.put("amieId", String.valueOf(amiePacketRecId));
+            if (packetType != null) {
+                MDC.put("packetType", packetType);
+            }
             try {
                 processIndividualPacket(packetNode);
             } catch (Exception e) {
                 // If a malformed packet is found
                 LOGGER.error("An unexpected error occurred while processing a packet. Raw packet: {}", packetNode.toString(), e);
+            } finally {
+                MDC.remove("amieId");
+                MDC.remove("packetType");
             }
         }
     }
@@ -108,6 +125,8 @@ public class AmiePoller {
                     newPacket.setRawJson(packetNode.toString());
                     newPacket.setReceivedAt(Instant.now());
                     packetRepo.save(newPacket);
+
+                    amieMetrics.recordPacketReceived(packetType);
 
                     ProcessingEventEntity decodeEvent = new ProcessingEventEntity();
                     decodeEvent.setPacket(newPacket);

@@ -141,6 +141,11 @@
                 <artifactId>jakarta.ws.rs-api</artifactId>
                 <version>${jakarta.ws.version}</version>
             </dependency>
+            <dependency>
+                <groupId>net.logstash.logback</groupId>
+                <artifactId>logstash-logback-encoder</artifactId>
+                <version>${logstash.logback.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -204,6 +209,7 @@
 
         <ssh.username>ubuntu</ssh.username>
         <jakarta.ws.version>4.0.0</jakarta.ws.version>
+        <logstash.logback.version>7.4</logstash.logback.version>
         <custos.dist.name>apache-airavata-custos-${project.version}</custos.dist.name>
         <access.service.dist.name>apache-airavata-custos-access-ci-service-${project.version}</access.service.dist.name>
     </properties>
