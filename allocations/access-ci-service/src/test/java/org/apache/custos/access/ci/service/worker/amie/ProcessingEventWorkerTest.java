@@ -19,6 +19,7 @@
 package org.apache.custos.access.ci.service.worker.amie;
 
 import org.apache.custos.access.ci.service.handler.amie.PacketRouter;
+import org.apache.custos.access.ci.service.metrics.AmieMetrics;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
 import org.apache.custos.access.ci.service.model.amie.PacketStatus;
 import org.apache.custos.access.ci.service.model.amie.ProcessingErrorEntity;
@@ -43,7 +44,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,13 +71,17 @@ class ProcessingEventWorkerTest {
     private PacketRouter router;
 
     @Mock
+    private AmieMetrics amieMetrics;
+
+    @Mock
     private ProcessingEventWorker self;
 
     private ProcessingEventWorker worker;
 
     @BeforeEach
     void setUp() {
-        worker = new ProcessingEventWorker(eventRepo, packetRepo, errorRepo, router, self);
+        lenient().when(amieMetrics.startProcessingTimer()).thenReturn(null);
+        worker = new ProcessingEventWorker(eventRepo, packetRepo, errorRepo, router, amieMetrics, self);
     }
 
     // ------------------------------------------------------------------
@@ -103,6 +110,8 @@ class ProcessingEventWorkerTest {
         verify(self).executeEventInTransaction(event1);
         verify(self).executeEventInTransaction(event2);
         verify(self, never()).recordFailureInNewTransaction(any(), any());
+        verify(amieMetrics, org.mockito.Mockito.times(2)).startProcessingTimer();
+        verify(amieMetrics, org.mockito.Mockito.times(2)).stopProcessingTimer(any(), anyString());
     }
 
     @Test
@@ -164,6 +173,8 @@ class ProcessingEventWorkerTest {
 
         verify(eventRepo).save(event);
         verify(packetRepo, never()).save(any());
+        verify(amieMetrics).recordRetry();
+        verify(amieMetrics).recordPacketProcessed("request_account_create", "retry_scheduled");
 
         ArgumentCaptor<ProcessingErrorEntity> errorCaptor = ArgumentCaptor.forClass(ProcessingErrorEntity.class);
         verify(errorRepo).save(errorCaptor.capture());
@@ -218,6 +229,9 @@ class ProcessingEventWorkerTest {
         verify(packetRepo).save(packet);
         assertThat(packet.getStatus()).isEqualTo(PacketStatus.FAILED);
         assertThat(packet.getLastError()).isEqualTo("final failure");
+
+        verify(amieMetrics).recordPacketProcessed("request_account_create", "permanently_failed");
+        verify(amieMetrics, never()).recordRetry();
 
         verify(eventRepo).save(event);
         verify(errorRepo).save(any(ProcessingErrorEntity.class));

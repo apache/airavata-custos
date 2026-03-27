@@ -18,6 +18,8 @@ server:
   port: 8083
 
 spring:
+  profiles:
+    active: dev
   application:
     name: access-ci-service
   datasource:
@@ -54,6 +56,19 @@ logging:
     level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
   level:
     root: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, info
+  endpoint:
+    health:
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 springdoc:
   swagger-ui:
