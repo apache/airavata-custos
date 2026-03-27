@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,12 +52,15 @@ class RequestUserModifyHandlerTest {
     @Mock
     private PersonService personService;
 
+    @Mock
+    private AuditService auditService;
+
     private RequestUserModifyHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new RequestUserModifyHandler(amieClient, personService);
+        handler = new RequestUserModifyHandler(amieClient, personService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -74,7 +78,7 @@ class RequestUserModifyHandlerTest {
         packetEntity.setAmieId(233497921L);
         packetEntity.setType("request_user_modify");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         verify(personService).replaceFromModifyPacket(any(JsonNode.class));
 
@@ -109,7 +113,7 @@ class RequestUserModifyHandlerTest {
         packetEntity.setAmieId(233497922L);
         packetEntity.setType("request_user_modify");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         verify(personService).deleteFromModifyPacket(any(JsonNode.class));
 
@@ -140,7 +144,7 @@ class RequestUserModifyHandlerTest {
         JsonNode packetJson = createValidPacketJson("REPLACE");
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         verify(personService).replaceFromModifyPacket(any(JsonNode.class));
         //noinspection unchecked
@@ -152,7 +156,7 @@ class RequestUserModifyHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("ActionType");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'ActionType' must not be empty (replace|delete)");
     }
@@ -162,7 +166,7 @@ class RequestUserModifyHandlerTest {
         JsonNode packetJson = createPacketJsonWithEmptyField("ActionType");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'ActionType' must not be empty (replace|delete)");
     }
@@ -172,7 +176,7 @@ class RequestUserModifyHandlerTest {
         JsonNode packetJson = createValidPacketJson("unsupported");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unsupported ActionType: unsupported");
     }

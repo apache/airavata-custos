@@ -20,6 +20,7 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -43,11 +44,13 @@ public class PacketRouter {
      *
      * @param packetJson   The raw packet content
      * @param packetEntity The Packet entity
+     * @param eventId      The processing event ID for audit logging
      * @throws Exception if the handler logic fails
      */
-    public void route(JsonNode packetJson, PacketEntity packetEntity) throws Exception {
+    public void route(JsonNode packetJson, PacketEntity packetEntity, String eventId) throws Exception {
         PacketHandler handler = findHandlerFor(packetEntity.getType());
-        handler.handle(packetJson, packetEntity);
+        MDC.put("handler", handler.getClass().getSimpleName());
+        handler.handle(packetJson, packetEntity, eventId);
     }
 
     private PacketHandler findHandlerFor(String packetType) {

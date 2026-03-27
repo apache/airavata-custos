@@ -26,6 +26,7 @@ import org.apache.custos.access.ci.service.model.ClusterAccountEntity;
 import org.apache.custos.access.ci.service.model.PersonEntity;
 import org.apache.custos.access.ci.service.model.ProjectEntity;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
@@ -68,12 +69,15 @@ class RequestProjectCreateHandlerTest {
     @Mock
     private ProjectMembershipService membershipService;
 
+    @Mock
+    private AuditService auditService;
+
     private RequestProjectCreateHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new RequestProjectCreateHandler(amieClient, personService, userAccountService, projectService, membershipService);
+        handler = new RequestProjectCreateHandler(amieClient, personService, userAccountService, projectService, membershipService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -98,7 +102,7 @@ class RequestProjectCreateHandlerTest {
         when(userAccountService.provisionClusterAccount(personEntity)).thenReturn(createClusterAccount());
         when(projectService.createOrFindProject(anyString(), anyString())).thenReturn(projectEntity);
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
         verify(personService).findOrCreatePersonFromPacket(any(JsonNode.class));
         verify(userAccountService).provisionClusterAccount(personEntity);
         verify(projectService).createOrFindProject(anyString(), anyString());
@@ -134,7 +138,7 @@ class RequestProjectCreateHandlerTest {
     void handle_withNullPacketJson_shouldThrowException() {
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(null, packetEntity))
+        assertThatThrownBy(() -> handler.handle(null, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("packetJson is null");
     }
@@ -144,7 +148,7 @@ class RequestProjectCreateHandlerTest {
         JsonNode packetJson = objectMapper.createObjectNode();
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("packetJson.body is missing");
     }
@@ -154,7 +158,7 @@ class RequestProjectCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("GrantNumber");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'GrantNumber' must not be empty");
     }
@@ -164,7 +168,7 @@ class RequestProjectCreateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("PiGlobalID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'PiGlobalID' must not be empty");
     }

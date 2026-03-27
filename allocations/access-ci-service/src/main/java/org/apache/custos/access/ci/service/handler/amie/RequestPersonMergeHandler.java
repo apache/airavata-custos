@@ -20,7 +20,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +49,12 @@ public class RequestPersonMergeHandler implements PacketHandler {
 
     private final AmieClient amieClient;
     private final PersonService personService;
+    private final AuditService auditService;
 
-    public RequestPersonMergeHandler(AmieClient amieClient, PersonService personService) {
+    public RequestPersonMergeHandler(AmieClient amieClient, PersonService personService, AuditService auditService) {
         this.amieClient = amieClient;
         this.personService = personService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -60,7 +64,7 @@ public class RequestPersonMergeHandler implements PacketHandler {
 
     @Override
     @Transactional
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("Starting 'request_person_merge' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -75,8 +79,14 @@ public class RequestPersonMergeHandler implements PacketHandler {
                 retiringPersonLocalId, retiringPersonGlobalId, survivingPersonLocalId, survivingPersonGlobalId);
 
         personService.mergePersons(survivingPersonLocalId, retiringPersonLocalId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.MERGE_PERSONS,
+                "person", survivingPersonLocalId,
+                "Merged person " + retiringPersonLocalId + " into " + survivingPersonLocalId);
 
         sendSuccessReply(packetEntity.getAmieId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent inform_transaction_complete reply for person merge");
     }
 
     private void sendSuccessReply(long packetRecId) {

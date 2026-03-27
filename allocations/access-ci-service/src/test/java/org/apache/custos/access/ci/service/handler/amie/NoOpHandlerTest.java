@@ -55,7 +55,7 @@ class NoOpHandlerTest {
         packetEntity.setAmieId(12345L);
         packetEntity.setType("unknown_type");
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
     }
 
     @Test
@@ -64,7 +64,7 @@ class NoOpHandlerTest {
         packetEntity.setAmieId(12345L);
         packetEntity.setType("unknown_type");
 
-        handler.handle(null, packetEntity);
+        handler.handle(null, packetEntity, null);
     }
 
     @Test
@@ -72,6 +72,6 @@ class NoOpHandlerTest {
         JsonNode packetJson = objectMapper.createObjectNode();
 
         //noinspection DataFlowIssue
-        assertThatThrownBy(() -> handler.handle(packetJson, null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> handler.handle(packetJson, null, null)).isInstanceOf(NullPointerException.class);
     }
 }

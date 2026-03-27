@@ -22,7 +22,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.ClusterAccountEntity;
 import org.apache.custos.access.ci.service.model.PersonEntity;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
@@ -52,15 +54,17 @@ public class RequestAccountCreateHandler implements PacketHandler {
     private final UserAccountService userAccountService;
     private final ProjectService projectService;
     private final ProjectMembershipService membershipService;
+    private final AuditService auditService;
 
     public RequestAccountCreateHandler(AmieClient amieClient, PersonService personService,
                                        UserAccountService userAccountService, ProjectService projectService,
-                                       ProjectMembershipService membershipService) {
+                                       ProjectMembershipService membershipService, AuditService auditService) {
         this.amieClient = amieClient;
         this.personService = personService;
         this.userAccountService = userAccountService;
         this.projectService = projectService;
         this.membershipService = membershipService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -69,7 +73,7 @@ public class RequestAccountCreateHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) throws Exception {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) throws Exception {
         LOGGER.info("Starting 'request_account_create' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -84,17 +88,30 @@ public class RequestAccountCreateHandler implements PacketHandler {
 
         PersonEntity person = personService.findOrCreatePersonFromPacket(body);
         LOGGER.info("Ensured person record exists with local ID [{}].", person.getId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_PERSON,
+                "person", person.getId(),
+                "Created person '" + person.getFirstName() + " " + person.getLastName() + "'");
 
         ClusterAccountEntity clusterAccount = userAccountService.provisionClusterAccount(person);
         LOGGER.info("Provisioned new cluster account [{}] with username [{}].", clusterAccount.getId(), clusterAccount.getUsername());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_ACCOUNT,
+                "account", clusterAccount.getId(),
+                "Created cluster account '" + clusterAccount.getUsername() + "' for person " + person.getId());
 
         projectService.createOrFindProject(projectId, grantNumber);
         LOGGER.info("Ensured project [{}] exists.", projectId);
 
         membershipService.createMembership(projectId, clusterAccount.getId(), "USER");
         LOGGER.info("Created 'USER' membership for cluster account [{}] on project [{}].", clusterAccount.getId(), projectId);
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_MEMBERSHIP,
+                "membership", clusterAccount.getId(),
+                "Created USER membership for account " + clusterAccount.getId() + " on project " + projectId);
 
         sendSuccessReply(packetEntity.getAmieId(), body, person.getId(), clusterAccount.getUsername());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent notify_account_create reply for project " + projectId);
+
         LOGGER.info("Successfully completed 'request_account_create' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
     }
 

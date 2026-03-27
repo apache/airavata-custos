@@ -20,7 +20,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +42,12 @@ public class DataProjectCreateHandler implements PacketHandler {
 
     private final AmieClient amieClient;
     private final PersonService personService;
+    private final AuditService auditService;
 
-    public DataProjectCreateHandler(AmieClient amieClient, PersonService personService) {
+    public DataProjectCreateHandler(AmieClient amieClient, PersonService personService, AuditService auditService) {
         this.amieClient = amieClient;
         this.personService = personService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class DataProjectCreateHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) {
         LOGGER.info("Starting 'data_project_create' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -67,9 +71,15 @@ public class DataProjectCreateHandler implements PacketHandler {
         if (dnList.isArray() && !dnList.isEmpty()) {
             LOGGER.info("Persisting DnList for person [{}] from data_project_create.", personId);
             personService.persistDnsForPerson(personId, dnList);
+            auditService.log(packetEntity.getId(), eventId, AuditAction.PERSIST_DNS,
+                    "person", personId,
+                    "Persisted " + dnList.size() + " DN(s) for person " + personId + " from data_project_create");
         }
 
         sendSuccessReply(packetEntity.getAmieId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent inform_transaction_complete reply for data_project_create");
     }
 
     private void sendSuccessReply(long packetRecId) {

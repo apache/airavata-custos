@@ -24,7 +24,9 @@ import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.ClusterAccountEntity;
 import org.apache.custos.access.ci.service.model.PersonEntity;
 import org.apache.custos.access.ci.service.model.ProjectEntity;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.service.ProjectService;
@@ -50,14 +52,17 @@ public class RequestProjectCreateHandler implements PacketHandler {
     private final UserAccountService userAccountService;
     private final ProjectService projectService;
     private final ProjectMembershipService membershipService;
+    private final AuditService auditService;
 
     public RequestProjectCreateHandler(AmieClient amieClient, PersonService personService, UserAccountService userAccountService,
-                                       ProjectService projectService, ProjectMembershipService membershipService) {
+                                       ProjectService projectService, ProjectMembershipService membershipService,
+                                       AuditService auditService) {
         this.amieClient = amieClient;
         this.personService = personService;
         this.userAccountService = userAccountService;
         this.projectService = projectService;
         this.membershipService = membershipService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -66,7 +71,7 @@ public class RequestProjectCreateHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) throws Exception {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) throws Exception {
         LOGGER.info("Starting 'request_project_create' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         // TODO - refactor the sanity checks into Packet Router (if all the packets follow the same style)
@@ -96,18 +101,34 @@ public class RequestProjectCreateHandler implements PacketHandler {
         ObjectNode piAsUserNode = createPiAsUserNode(body);
         PersonEntity piPerson = personService.findOrCreatePersonFromPacket(piAsUserNode);
         LOGGER.info("PI person record exists with local ID [{}].", piPerson.getId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_PERSON,
+                "person", piPerson.getId(),
+                "Created person '" + piPerson.getFirstName() + " " + piPerson.getLastName() + "'");
 
         ClusterAccountEntity piClusterAccount = userAccountService.provisionClusterAccount(piPerson);
         LOGGER.info("Provisioned cluster account for PI [{}] with username [{}].", piPerson.getId(), piClusterAccount.getUsername());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_ACCOUNT,
+                "account", piClusterAccount.getId(),
+                "Created cluster account '" + piClusterAccount.getUsername() + "' for person " + piPerson.getId());
 
         String localProjectId = "PRJ-" + grantNumber;
         ProjectEntity project = projectService.createOrFindProject(localProjectId, grantNumber);
         LOGGER.info("Project [{}] exists.", project.getId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_PROJECT,
+                "project", project.getId(),
+                "Created project '" + project.getId() + "' for grant " + grantNumber);
 
         membershipService.createMembership(project.getId(), piClusterAccount.getId(), "PI");
         LOGGER.info("Created 'PI' membership for cluster account [{}] on project [{}].", piClusterAccount.getId(), project.getId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.CREATE_MEMBERSHIP,
+                "membership", piClusterAccount.getId(),
+                "Created PI membership for account " + piClusterAccount.getId() + " on project " + project.getId());
 
         sendSuccessReply(packetEntity.getAmieId(), body, project.getId(), piPerson.getId(), piClusterAccount.getUsername());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent notify_project_create reply for grant " + grantNumber);
+
         LOGGER.info("Successfully completed 'request_project_create' handler and sent reply for packet amie_id [{}].", packetEntity.getAmieId());
     }
 

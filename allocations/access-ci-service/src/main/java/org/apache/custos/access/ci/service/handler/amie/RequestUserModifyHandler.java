@@ -20,7 +20,9 @@ package org.apache.custos.access.ci.service.handler.amie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
+import org.apache.custos.access.ci.service.model.amie.AuditAction;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +42,12 @@ public class RequestUserModifyHandler implements PacketHandler {
 
     private final AmieClient amieClient;
     private final PersonService personService;
+    private final AuditService auditService;
 
-    public RequestUserModifyHandler(AmieClient amieClient, PersonService personService) {
+    public RequestUserModifyHandler(AmieClient amieClient, PersonService personService, AuditService auditService) {
         this.amieClient = amieClient;
         this.personService = personService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class RequestUserModifyHandler implements PacketHandler {
     }
 
     @Override
-    public void handle(JsonNode packetJson, PacketEntity packetEntity) throws Exception {
+    public void handle(JsonNode packetJson, PacketEntity packetEntity, String eventId) throws Exception {
         LOGGER.info("Starting 'request_user_modify' handler for packet amie_id [{}].", packetEntity.getAmieId());
 
         JsonNode body = packetJson.path("body");
@@ -62,15 +66,24 @@ public class RequestUserModifyHandler implements PacketHandler {
         switch (actionType.toLowerCase()) {
             case "replace":
                 personService.replaceFromModifyPacket(body);
+                auditService.log(packetEntity.getId(), eventId, AuditAction.UPDATE_PERSON,
+                        "person", body.path("UserGlobalID").asText(null),
+                        "Updated person via request_user_modify (replace)");
                 break;
             case "delete":
                 personService.deleteFromModifyPacket(body);
+                auditService.log(packetEntity.getId(), eventId, AuditAction.DELETE_PERSON,
+                        "person", body.path("UserGlobalID").asText(null),
+                        "Deleted person via request_user_modify (delete)");
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported ActionType: " + actionType);
         }
 
         sendSuccessReply(packetEntity.getAmieId());
+        auditService.log(packetEntity.getId(), eventId, AuditAction.REPLY_SENT,
+                "packet", packetEntity.getId(),
+                "Sent inform_transaction_complete reply for request_user_modify (" + actionType + ")");
     }
 
     private void sendSuccessReply(long packetRecId) {

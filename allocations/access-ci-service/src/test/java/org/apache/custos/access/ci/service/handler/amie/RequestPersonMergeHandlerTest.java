@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,12 +52,15 @@ class RequestPersonMergeHandlerTest {
     @Mock
     private PersonService personService;
 
+    @Mock
+    private AuditService auditService;
+
     private RequestPersonMergeHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new RequestPersonMergeHandler(amieClient, personService);
+        handler = new RequestPersonMergeHandler(amieClient, personService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -74,7 +78,7 @@ class RequestPersonMergeHandlerTest {
         packetEntity.setAmieId(233497920L);
         packetEntity.setType("request_person_merge");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         verify(personService).mergePersons("test-person-primary-123", "test-person-secondary-456");
 
@@ -105,7 +109,7 @@ class RequestPersonMergeHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("KeepPersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'KeepPersonID' (the surviving user's local ID) must not be empty");
     }
@@ -115,7 +119,7 @@ class RequestPersonMergeHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("DeletePersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'DeletePersonID' (the retiring user's local ID) must not be empty");
     }
@@ -125,7 +129,7 @@ class RequestPersonMergeHandlerTest {
         JsonNode packetJson = createPacketJsonWithEmptyField("KeepPersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'KeepPersonID' (the surviving user's local ID) must not be empty");
     }
@@ -135,7 +139,7 @@ class RequestPersonMergeHandlerTest {
         JsonNode packetJson = createPacketJsonWithEmptyField("DeletePersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'DeletePersonID' (the retiring user's local ID) must not be empty");
     }
@@ -145,7 +149,7 @@ class RequestPersonMergeHandlerTest {
         JsonNode packetJson = createPacketJsonWithGlobalIds();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         verify(personService).mergePersons("person-surviving", "person-retiring");
         //noinspection unchecked

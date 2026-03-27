@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.AuditService;
 import org.apache.custos.access.ci.service.service.ProjectMembershipService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,12 +51,15 @@ class RequestAccountReactivateHandlerTest {
     @Mock
     private ProjectMembershipService membershipService;
 
+    @Mock
+    private AuditService auditService;
+
     private RequestAccountReactivateHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new RequestAccountReactivateHandler(amieClient, membershipService);
+        handler = new RequestAccountReactivateHandler(amieClient, membershipService, auditService);
         objectMapper = new ObjectMapper();
     }
 
@@ -73,7 +77,7 @@ class RequestAccountReactivateHandlerTest {
         packetEntity.setAmieId(233497923L);
         packetEntity.setType("request_account_reactivate");
 
-        handler.handle(incomingPacket, packetEntity);
+        handler.handle(incomingPacket, packetEntity, null);
 
         verify(membershipService).reactivateMembershipsByPersonAndProject("test-project-456", "test-user-person-123");
 
@@ -103,7 +107,7 @@ class RequestAccountReactivateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("ProjectID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'ProjectID' must not be empty");
     }
@@ -113,7 +117,7 @@ class RequestAccountReactivateHandlerTest {
         JsonNode packetJson = createPacketJsonWithMissingField("PersonID");
         PacketEntity packetEntity = createPacketEntity();
 
-        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity))
+        assertThatThrownBy(() -> handler.handle(packetJson, packetEntity, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("'PersonID' must not be empty");
     }
@@ -123,7 +127,7 @@ class RequestAccountReactivateHandlerTest {
         JsonNode packetJson = createValidPacketJson();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         verify(membershipService).reactivateMembershipsByPersonAndProject("test-project-456", "test-user-person-123");
         verify(amieClient).replyToPacket(eq(12345L), any(Map.class));
@@ -134,7 +138,7 @@ class RequestAccountReactivateHandlerTest {
         JsonNode packetJson = createPacketJsonWithResourceList();
         PacketEntity packetEntity = createPacketEntity();
 
-        handler.handle(packetJson, packetEntity);
+        handler.handle(packetJson, packetEntity, null);
 
         verify(membershipService).reactivateMembershipsByPersonAndProject("test-project-456", "test-user-person-123");
         verify(amieClient).replyToPacket(eq(12345L), any(Map.class));
