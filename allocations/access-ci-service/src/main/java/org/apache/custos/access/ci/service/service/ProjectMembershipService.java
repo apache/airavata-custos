@@ -58,9 +58,20 @@ public class ProjectMembershipService {
     @Transactional
     public ProjectMembershipEntity createMembership(String projectId, String clusterAccountId, String role) {
         Optional<ProjectMembershipEntity> existing = membershipRepository.findByProjectIdAndClusterAccountId(projectId, clusterAccountId);
+
         if (existing.isPresent()) {
-            LOGGER.info("Membership already exists for project [{}] and cluster account [{}]", projectId, clusterAccountId);
-            return existing.get();
+            ProjectMembershipEntity membership = existing.get();
+            if (membership.isActive()) {
+                LOGGER.info("Active membership already exists for project [{}] and cluster account [{}], returning existing record",
+                        projectId, clusterAccountId);
+                return membership;
+            }
+            LOGGER.info("Reactivating inactive membership for project [{}] and cluster account [{}] with role [{}]",
+                    projectId, clusterAccountId, role);
+            membership.setActive(true);
+            membership.setRole(role);
+            membershipRepository.save(membership);
+            return membership;
         }
 
         ProjectEntity project = projectRepository.findById(projectId)
@@ -88,19 +99,20 @@ public class ProjectMembershipService {
      * @param personId  Person ID
      */
     @Transactional
-    public void inactivateMembershipsByPersonAndProject(String projectId, String personId) {
+    public int inactivateMembershipsByPersonAndProject(String projectId, String personId) {
         // TODO - If the user is a PI of a project?
         //  - right now only the membership is turned inactive, no changes to the project
         List<ProjectMembershipEntity> memberships = membershipRepository.findByProjectIdAndClusterAccount_Person_Id(projectId, personId);
 
         if (memberships.isEmpty()) {
-            LOGGER.warn("No memberships found for person [{}] on project [{}]. No action taken.", personId, projectId);
-            return;
+            LOGGER.warn("No memberships found for person [{}] on project [{}]. Inactivation had no effect.", personId, projectId);
+            return 0;
         }
 
         memberships.forEach(membership -> membership.setActive(false));
         membershipRepository.saveAll(memberships);
         LOGGER.info("Inactivated {} membership(s) for person [{}] on project [{}]", memberships.size(), personId, projectId);
+        return memberships.size();
     }
 
     /**
@@ -143,17 +155,18 @@ public class ProjectMembershipService {
      * @param personId  Person ID
      */
     @Transactional
-    public void reactivateMembershipsByPersonAndProject(String projectId, String personId) {
+    public int reactivateMembershipsByPersonAndProject(String projectId, String personId) {
         List<ProjectMembershipEntity> memberships = membershipRepository.findByProjectIdAndClusterAccount_Person_Id(projectId, personId);
 
         if (memberships.isEmpty()) {
-            LOGGER.warn("No memberships found for person [{}] on project [{}]. No action taken.", personId, projectId);
-            return;
+            LOGGER.warn("No memberships found for person [{}] on project [{}]. Reactivation had no effect.", personId, projectId);
+            return 0;
         }
 
         memberships.forEach(membership -> membership.setActive(true));
         membershipRepository.saveAll(memberships);
         LOGGER.info("Reactivated {} membership(s) for person [{}] on project [{}]", memberships.size(), personId, projectId);
+        return memberships.size();
     }
 
 }

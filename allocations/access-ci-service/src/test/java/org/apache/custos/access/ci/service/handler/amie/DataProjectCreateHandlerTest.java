@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.PersonService;
 import org.apache.custos.access.ci.service.util.JsonTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -38,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,12 +49,15 @@ class DataProjectCreateHandlerTest {
     @Mock
     private AmieClient amieClient;
 
+    @Mock
+    private PersonService personService;
+
     private DataProjectCreateHandler handler;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        handler = new DataProjectCreateHandler(amieClient);
+        handler = new DataProjectCreateHandler(amieClient, personService);
         objectMapper = new ObjectMapper();
     }
 
@@ -115,25 +120,49 @@ class DataProjectCreateHandlerTest {
     }
 
     @Test
-    void handle_withEmptyDnList_shouldProcessSuccessfully() {
+    void handle_withEmptyDnList_shouldNotCallPersonServiceAndSendReply() {
         JsonNode packetJson = createValidPacketJson();
         PacketEntity packetEntity = createPacketEntity();
 
         handler.handle(packetJson, packetEntity);
+
+        verify(personService, never()).persistDnsForPerson(any(), any());
+        //noinspection unchecked
+        verify(amieClient).replyToPacket(eq(12345L), any(Map.class));
+    }
+
+    @Test
+    void handle_withNonEmptyDnList_shouldPersistDnsAndSendReply() {
+        JsonNode packetJson = createPacketJsonWithDnList();
+        PacketEntity packetEntity = createPacketEntity();
+
+        handler.handle(packetJson, packetEntity);
+
+        ArgumentCaptor<String> personIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<JsonNode> dnListCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(personService).persistDnsForPerson(personIdCaptor.capture(), dnListCaptor.capture());
+
+        assertThat(personIdCaptor.getValue()).isEqualTo("person-123");
+        assertThat(dnListCaptor.getValue().isArray()).isTrue();
+        assertThat(dnListCaptor.getValue().size()).isEqualTo(2);
 
         //noinspection unchecked
         verify(amieClient).replyToPacket(eq(12345L), any(Map.class));
     }
 
     @Test
-    void handle_withNonEmptyDnList_shouldProcessSuccessfully() {
-        JsonNode packetJson = createPacketJsonWithDnList();
-        PacketEntity packetEntity = createPacketEntity();
+    void handle_withValidPacketContainingDnList_shouldPersistAllDns() {
+        JsonNode incomingPacket = JsonTestUtils.loadMockPacket("data_project_create", "incoming-data.json");
 
-        handler.handle(packetJson, packetEntity);
+        PacketEntity packetEntity = new PacketEntity();
+        packetEntity.setAmieId(233497909L);
+        packetEntity.setType("data_project_create");
 
-        //noinspection unchecked
-        verify(amieClient).replyToPacket(eq(12345L), any(Map.class));
+        handler.handle(incomingPacket, packetEntity);
+
+        ArgumentCaptor<JsonNode> dnListCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(personService).persistDnsForPerson(eq("test-person-456"), dnListCaptor.capture());
+        assertThat(dnListCaptor.getValue().size()).isEqualTo(3);
     }
 
     private JsonNode createValidPacketJson() {

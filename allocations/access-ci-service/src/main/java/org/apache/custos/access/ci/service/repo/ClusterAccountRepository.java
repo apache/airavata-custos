@@ -19,14 +19,18 @@
 package org.apache.custos.access.ci.service.repo;
 
 import org.apache.custos.access.ci.service.model.ClusterAccountEntity;
+import org.apache.custos.access.ci.service.model.PersonEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ClusterAccountRepository extends JpaRepository<ClusterAccountEntity, String> {
 
     Optional<ClusterAccountEntity> findByUsername(String username);
+
+    List<ClusterAccountEntity> findByPerson(PersonEntity person);
 
 }

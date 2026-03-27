@@ -39,5 +39,10 @@ public enum ProcessingStatus {
     /**
      * The event failed a previous attempt and is waiting to be retried.
      */
-    RETRY_SCHEDULED
+    RETRY_SCHEDULED,
+    /**
+     * The event has exhausted all retry attempts and will never be retried automatically.
+     * Manual intervention is required.
+     */
+    PERMANENTLY_FAILED
 }

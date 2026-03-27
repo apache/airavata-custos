@@ -71,6 +71,9 @@ public class ProcessingEventEntity {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
     public ProcessingEventEntity() {
         this.id = UUID.randomUUID().toString();
     }
@@ -153,5 +156,13 @@ public class ProcessingEventEntity {
 
     public void setLastError(String lastError) {
         this.lastError = lastError;
+    }
+
+    public Instant getNextRetryAt() {
+        return nextRetryAt;
+    }
+
+    public void setNextRetryAt(Instant nextRetryAt) {
+        this.nextRetryAt = nextRetryAt;
     }
 }

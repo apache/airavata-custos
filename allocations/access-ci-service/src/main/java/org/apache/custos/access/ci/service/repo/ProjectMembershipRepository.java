@@ -36,4 +36,6 @@ public interface ProjectMembershipRepository extends JpaRepository<ProjectMember
 
     List<ProjectMembershipEntity> findByProjectIdAndClusterAccount_Person_Id(String projectId, String personId);
 
+    List<ProjectMembershipEntity> findByClusterAccount_Person_IdAndProjectIdAndRole(String personId, String projectId, String role);
+
 }

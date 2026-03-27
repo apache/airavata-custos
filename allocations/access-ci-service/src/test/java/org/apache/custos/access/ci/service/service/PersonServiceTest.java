@@ -120,6 +120,10 @@ class PersonServiceTest {
                 .hasMessageContaining("Packet body must contain a 'UserGlobalID'");
     }
 
+    // -------------------------------------------------------------------------
+    // replaceFromModifyPacket
+    // -------------------------------------------------------------------------
+
     @Test
     void replaceFromModifyPacket_shouldUpdatePersonFields() {
         JsonNode body = createModifyPacketBody();
@@ -138,6 +142,95 @@ class PersonServiceTest {
     }
 
     @Test
+    void replaceFromModifyPacket_shouldUseCorrectAmieFieldNames() {
+        // Verify that the correct AMIE field names are used (UserFirstName not FirstName, etc.)
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("PersonID", "person-123")
+                .put("UserFirstName", "Updated")
+                .put("UserLastName", "Name")
+                .put("UserEmail", "updated@example.com")
+                .put("UserOrganization", "Updated Org")
+                .put("UserOrgCode", "UPD")
+                .put("NsfStatusCode", "INACTIVE");
+
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+
+        personService.replaceFromModifyPacket(body);
+
+        assertThat(existingPerson.getFirstName()).isEqualTo("Updated");
+        assertThat(existingPerson.getLastName()).isEqualTo("Name");
+        assertThat(existingPerson.getEmail()).isEqualTo("updated@example.com");
+        assertThat(existingPerson.getOrganization()).isEqualTo("Updated Org");
+        assertThat(existingPerson.getOrgCode()).isEqualTo("UPD");
+        assertThat(existingPerson.getNsfStatusCode()).isEqualTo("INACTIVE");
+    }
+
+    @Test
+    void replaceFromModifyPacket_shouldNotWipeFieldsAbsentFromPacket() {
+        // Packet only contains PersonID and UserFirstName — other fields must remain unchanged
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("PersonID", "person-123")
+                .put("UserFirstName", "OnlyFirstUpdated");
+
+        PersonEntity existingPerson = createPersonEntity();
+        // Pre-existing values that must survive
+        existingPerson.setLastName("OriginalLast");
+        existingPerson.setEmail("original@example.com");
+        existingPerson.setOrganization("Original Org");
+        existingPerson.setOrgCode("ORIG");
+        existingPerson.setNsfStatusCode("ACTIVE");
+
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+
+        personService.replaceFromModifyPacket(body);
+
+        assertThat(existingPerson.getFirstName()).isEqualTo("OnlyFirstUpdated");
+        assertThat(existingPerson.getLastName()).isEqualTo("OriginalLast");
+        assertThat(existingPerson.getEmail()).isEqualTo("original@example.com");
+        assertThat(existingPerson.getOrganization()).isEqualTo("Original Org");
+        assertThat(existingPerson.getOrgCode()).isEqualTo("ORIG");
+        assertThat(existingPerson.getNsfStatusCode()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void replaceFromModifyPacket_shouldNotWipeOrganizationWhenAbsent() {
+        // Regression test: old code unconditionally wiped organization/orgCode to null when field absent
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("PersonID", "person-123")
+                .put("UserFirstName", "Jane");
+        // No UserOrganization, UserOrgCode in packet
+
+        PersonEntity existingPerson = createPersonEntity();
+        existingPerson.setOrganization("Keep This Org");
+        existingPerson.setOrgCode("KEEP");
+
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+
+        personService.replaceFromModifyPacket(body);
+
+        assertThat(existingPerson.getOrganization()).isEqualTo("Keep This Org");
+        assertThat(existingPerson.getOrgCode()).isEqualTo("KEEP");
+    }
+
+    @Test
+    void replaceFromModifyPacket_shouldNotClearDnsWhenUserDnListAbsent() {
+        // When UserDnList is not present in the packet, existing DNs must not be touched
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("PersonID", "person-123")
+                .put("UserFirstName", "Jane");
+        // No UserDnList field
+
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+
+        personService.replaceFromModifyPacket(body);
+
+        // deleteByPerson_Id should NOT have been called since UserDnList was absent
+        verify(personDnsRepository, never()).deleteByPerson_Id("person-123");
+    }
+
+    @Test
     void replaceFromModifyPacket_shouldUpdateDnList() {
         JsonNode body = createModifyPacketBodyWithDns();
         PersonEntity existingPerson = createPersonEntity();
@@ -152,8 +245,23 @@ class PersonServiceTest {
     }
 
     @Test
+    void replaceFromModifyPacket_shouldClearDnsWhenEmptyUserDnListPresent() {
+        // When UserDnList is present but empty, existing DNs should be cleared
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("PersonID", "person-123");
+        body.set("UserDnList", objectMapper.createArrayNode()); // explicitly empty array
+
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+
+        personService.replaceFromModifyPacket(body);
+
+        verify(personDnsRepository).deleteByPerson_Id("person-123");
+    }
+
+    @Test
     void replaceFromModifyPacket_shouldThrowExceptionForMissingPersonId() {
-        ObjectNode body = objectMapper.createObjectNode().put("FirstName", "Jane");
+        ObjectNode body = objectMapper.createObjectNode().put("UserFirstName", "Jane");
 
         assertThatThrownBy(() -> personService.replaceFromModifyPacket(body))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -170,6 +278,84 @@ class PersonServiceTest {
                 .hasMessageContaining("Unknown local PersonID: person-123");
     }
 
+    // -------------------------------------------------------------------------
+    // persistDnsForPerson tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void persistDnsForPerson_shouldPersistNewDns() {
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+        when(personDnsRepository.existsByPerson_IdAndDn("person-123", "/C=US/O=Test/CN=John Doe")).thenReturn(false);
+
+        JsonNode dnList = objectMapper.createArrayNode().add("/C=US/O=Test/CN=John Doe");
+        personService.persistDnsForPerson("person-123", dnList);
+
+        ArgumentCaptor<PersonDnsEntity> captor = ArgumentCaptor.forClass(PersonDnsEntity.class);
+        verify(personDnsRepository).save(captor.capture());
+        assertThat(captor.getValue().getDn()).isEqualTo("/C=US/O=Test/CN=John Doe");
+    }
+
+    @Test
+    void persistDnsForPerson_shouldBeIdempotentWhenDnAlreadyExists() {
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+        when(personDnsRepository.existsByPerson_IdAndDn("person-123", "/C=US/O=Test/CN=John Doe")).thenReturn(true);
+
+        JsonNode dnList = objectMapper.createArrayNode().add("/C=US/O=Test/CN=John Doe");
+        personService.persistDnsForPerson("person-123", dnList);
+
+        verify(personDnsRepository, never()).save(any(PersonDnsEntity.class));
+    }
+
+    @Test
+    void persistDnsForPerson_shouldPersistOnlyNewDnsWhenSomeDnsAlreadyExist() {
+        PersonEntity existingPerson = createPersonEntity();
+        when(personRepository.findById("person-123")).thenReturn(Optional.of(existingPerson));
+        when(personDnsRepository.existsByPerson_IdAndDn("person-123", "/C=US/O=Existing/CN=John")).thenReturn(true);
+        when(personDnsRepository.existsByPerson_IdAndDn("person-123", "/C=US/O=New/CN=John")).thenReturn(false);
+
+        JsonNode dnList = objectMapper.createArrayNode()
+                .add("/C=US/O=Existing/CN=John")
+                .add("/C=US/O=New/CN=John");
+        personService.persistDnsForPerson("person-123", dnList);
+
+        ArgumentCaptor<PersonDnsEntity> captor = ArgumentCaptor.forClass(PersonDnsEntity.class);
+        verify(personDnsRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getDn()).isEqualTo("/C=US/O=New/CN=John");
+    }
+
+    @Test
+    void persistDnsForPerson_shouldDoNothingForNullDnList() {
+        personService.persistDnsForPerson("person-123", null);
+
+        verify(personRepository, never()).findById(any());
+        verify(personDnsRepository, never()).save(any());
+    }
+
+    @Test
+    void persistDnsForPerson_shouldDoNothingForEmptyDnList() {
+        JsonNode emptyDnList = objectMapper.createArrayNode();
+        personService.persistDnsForPerson("person-123", emptyDnList);
+
+        verify(personRepository, never()).findById(any());
+        verify(personDnsRepository, never()).save(any());
+    }
+
+    @Test
+    void persistDnsForPerson_shouldThrowForUnknownPersonId() {
+        when(personRepository.findById("unknown-id")).thenReturn(Optional.empty());
+        JsonNode dnList = objectMapper.createArrayNode().add("/C=US/O=Test/CN=John");
+
+        assertThatThrownBy(() -> personService.persistDnsForPerson("unknown-id", dnList))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown local PersonID: unknown-id");
+    }
+
+    // -------------------------------------------------------------------------
+    // deleteFromModifyPacket tests
+    // -------------------------------------------------------------------------
+
     @Test
     void deleteFromModifyPacket_shouldDeletePerson() {
         JsonNode body = createModifyPacketBody();
@@ -179,12 +365,16 @@ class PersonServiceTest {
 
     @Test
     void deleteFromModifyPacket_shouldThrowExceptionForMissingPersonId() {
-        ObjectNode body = objectMapper.createObjectNode().put("FirstName", "Jane");
+        ObjectNode body = objectMapper.createObjectNode().put("UserFirstName", "Jane");
 
         assertThatThrownBy(() -> personService.deleteFromModifyPacket(body))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Missing required 'PersonID'");
     }
+
+    // -------------------------------------------------------------------------
+    // mergePersons tests
+    // -------------------------------------------------------------------------
 
     @Test
     void mergePersons_shouldMergeSuccessfully() {
@@ -228,6 +418,10 @@ class PersonServiceTest {
                 .hasMessageContaining("Could not find retiring person with local ID: retiring-person-123");
     }
 
+    // -------------------------------------------------------------------------
+    // Test data helpers
+    // -------------------------------------------------------------------------
+
     private JsonNode createValidPacketBody() {
         return objectMapper.createObjectNode()
                 .put("UserGlobalID", "USER-GLOBAL-123")
@@ -249,20 +443,20 @@ class PersonServiceTest {
     private JsonNode createModifyPacketBody() {
         return objectMapper.createObjectNode()
                 .put("PersonID", "person-123")
-                .put("FirstName", "Jane")
-                .put("LastName", "Smith")
-                .put("Email", "jane.smith@example.com")
-                .put("Organization", "New Org")
-                .put("OrgCode", "NEW")
+                .put("UserFirstName", "Jane")
+                .put("UserLastName", "Smith")
+                .put("UserEmail", "jane.smith@example.com")
+                .put("UserOrganization", "New Org")
+                .put("UserOrgCode", "NEW")
                 .put("NsfStatusCode", "INACTIVE");
     }
 
     private JsonNode createModifyPacketBodyWithDns() {
         return objectMapper.createObjectNode()
                 .put("PersonID", "person-123")
-                .put("FirstName", "Jane")
-                .put("LastName", "Smith")
-                .set("DnList", objectMapper.createArrayNode().add("CN=Jane Smith,OU=Users,DC=example,DC=com"));
+                .put("UserFirstName", "Jane")
+                .put("UserLastName", "Smith")
+                .set("UserDnList", objectMapper.createArrayNode().add("CN=Jane Smith,OU=Users,DC=example,DC=com"));
     }
 
     private PersonEntity createPersonEntity() {

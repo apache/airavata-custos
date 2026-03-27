@@ -43,14 +43,34 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * A scheduled worker that fetches for new/ processing events and executes them.
- * State of an event (NEW -> RUNNING -> SUCCEEDED/FAILED)
+ * Scheduled worker that polls for pending AMIE processing events and executes them.
+ * Failures are recorded in a separate transaction to prevent infinite retry loops.
+ *
+ * <pre>
+ * NEW → RUNNING → SUCCEEDED
+ *                → RETRY_SCHEDULED → (backoff) → RUNNING → ...
+ *                → PERMANENTLY_FAILED (after MAX_ATTEMPTS)
+ * </pre>
  */
 @Component
 public class ProcessingEventWorker {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingEventWorker.class);
-    private static final int MAX_ATTEMPTS = 3;
+
+    /**
+     * Maximum number of execution attempts before an event is permanently failed.
+     */
+    static final int MAX_ATTEMPTS = 3;
+
+    /**
+     * Base delay in seconds for exponential backoff between retry attempts.
+     */
+    private static final long BASE_BACKOFF_SECONDS = 30L;
+
+    /**
+     * Upper bound on the computed backoff delay (10 minutes).
+     */
+    private static final long MAX_BACKOFF_SECONDS = 600L;
 
     private final ProcessingEventRepository eventRepo;
     private final PacketRepository packetRepo;
@@ -59,8 +79,11 @@ public class ProcessingEventWorker {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessingEventWorker self;
 
-    public ProcessingEventWorker(ProcessingEventRepository eventRepo, PacketRepository packetRepo,
-                                 ProcessingErrorRepository errorRepo, PacketRouter router, @Lazy ProcessingEventWorker self) {
+    public ProcessingEventWorker(ProcessingEventRepository eventRepo,
+                                 PacketRepository packetRepo,
+                                 ProcessingErrorRepository errorRepo,
+                                 PacketRouter router,
+                                 @Lazy ProcessingEventWorker self) {
         this.eventRepo = eventRepo;
         this.packetRepo = packetRepo;
         this.errorRepo = errorRepo;
@@ -69,49 +92,109 @@ public class ProcessingEventWorker {
     }
 
     /**
-     * Runs on a fixed delay, checks for NEW/RETRY_SCHEDULED events, and processes them one by one on a separate transaction.
+     * Polls for due events and processes each in its own transaction.
      */
     @Scheduled(fixedDelayString = "#{T(org.springframework.boot.convert.DurationStyle).detectAndParse('${access.amie.scheduler.worker-delay}').toMillis()}")
     public void processPendingEvents() {
-        List<ProcessingEventEntity> eventsToProcess = eventRepo.findTop50EventsToProcess(List.of(ProcessingStatus.NEW, ProcessingStatus.RETRY_SCHEDULED));
+        List<ProcessingEventEntity> eventsToProcess =
+                eventRepo.findTop50EventsToProcess(
+                        List.of(ProcessingStatus.NEW, ProcessingStatus.RETRY_SCHEDULED),
+                        Instant.now());
 
-        if (!eventsToProcess.isEmpty()) {
-            LOGGER.info("Found {} event(s) to process.", eventsToProcess.size());
-            eventsToProcess.forEach(event -> {
+        if (eventsToProcess.isEmpty()) {
+            return;
+        }
+
+        LOGGER.info("Found {} event(s) to process.", eventsToProcess.size());
+
+        for (ProcessingEventEntity event : eventsToProcess) {
+            String eventId = event.getId();
+            try {
+                self.executeEventInTransaction(event);
+            } catch (Exception e) {
+                LOGGER.error("Transaction failed for eventId [{}]. Opening recovery transaction to record failure.",
+                        eventId, e);
                 try {
-                    self.executeEventInTransaction(event);
-                } catch (Exception e) {
-                    LOGGER.error("An unexpected error occurred while processing of eventId [{}].", event.getId(), e);
+                    self.recordFailureInNewTransaction(eventId, e);
+                } catch (Exception recoveryEx) {
+                    LOGGER.error("CRITICAL: Recovery transaction also failed for eventId [{}]. " +
+                            "Event may remain stuck until the next worker cycle.", eventId, recoveryEx);
                 }
-            });
+            }
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void executeEventInTransaction(ProcessingEventEntity event) {
+    public void executeEventInTransaction(ProcessingEventEntity event) throws Exception {
         PacketEntity packet = event.getPacket();
-        LOGGER.info("Processing event [{}] for packet amie_id [{}]. Attempt: {}", event.getType(), packet.getAmieId(), event.getAttempts() + 1);
+        LOGGER.info("Processing event [{}] for packet amie_id [{}]. Attempt: {}",
+                event.getType(), packet.getAmieId(), event.getAttempts() + 1);
 
         event.setStatus(ProcessingStatus.RUNNING);
         event.setStartedAt(Instant.now());
         event.setAttempts(event.getAttempts() + 1);
         eventRepo.saveAndFlush(event);
 
-        try {
-            var packetJson = objectMapper.readTree(packet.getRawJson());
-            router.route(packetJson, packet);
+        var packetJson = objectMapper.readTree(packet.getRawJson());
+        router.route(packetJson, packet);
 
-            handleSuccess(event, packet);
+        handleSuccess(event, packet);
+    }
 
-        } catch (Exception e) {
-            LOGGER.error("Event processing failed for packet amie_id [{}]. Attempt {} of {}.", packet.getAmieId(), event.getAttempts(), MAX_ATTEMPTS, e);
-            handleFailure(event, packet, e);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordFailureInNewTransaction(String eventId, Exception cause) {
+        ProcessingEventEntity event = eventRepo.findById(eventId).orElse(null);
+        if (event == null) {
+            LOGGER.error("Cannot record failure: event [{}] not found in the database.", eventId);
+            return;
         }
+
+        PacketEntity packet = event.getPacket();
+
+        int effectiveAttempts = event.getAttempts() + 1;
+        event.setAttempts(effectiveAttempts);
+
+        boolean isRetryable = effectiveAttempts < MAX_ATTEMPTS;
+        ProcessingStatus newStatus = isRetryable
+                ? ProcessingStatus.RETRY_SCHEDULED
+                : ProcessingStatus.PERMANENTLY_FAILED;
+
+        event.setStatus(newStatus);
+        event.setLastError(cause.getMessage());
+        event.setFinishedAt(Instant.now());
+
+        if (isRetryable) {
+            Instant nextRetryAt = computeNextRetryAt(effectiveAttempts);
+            event.setNextRetryAt(nextRetryAt);
+            LOGGER.warn("Event [{}] for packet amie_id [{}] failed on attempt {}/{}. Scheduled for retry after [{}].",
+                    eventId, packet.getAmieId(), effectiveAttempts, MAX_ATTEMPTS, nextRetryAt);
+        } else {
+            event.setNextRetryAt(null);
+            LOGGER.error("Event [{}] for packet amie_id [{}] is PERMANENTLY_FAILED after {} attempt(s). Manual intervention required.",
+                    eventId, packet.getAmieId(), effectiveAttempts);
+            packet.setStatus(PacketStatus.FAILED);
+            packet.setLastError(cause.getMessage());
+            packetRepo.save(packet);
+        }
+
+        eventRepo.save(event);
+
+        ProcessingErrorEntity error = new ProcessingErrorEntity();
+        error.setPacket(packet);
+        error.setEvent(event);
+        error.setSummary(cause.getClass().getSimpleName() + ": " + cause.getMessage());
+        String stackTrace = getStackTraceAsString(cause);
+        if (stackTrace.length() > 8000) {
+            stackTrace = stackTrace.substring(0, 8000) + "\n... [truncated]";
+        }
+        error.setDetail(stackTrace);
+        errorRepo.save(error);
     }
 
     private void handleSuccess(ProcessingEventEntity event, PacketEntity packet) {
         event.setStatus(ProcessingStatus.SUCCEEDED);
         event.setFinishedAt(Instant.now());
+        event.setNextRetryAt(null);
         eventRepo.save(event);
 
         if (event.getType() == ProcessingEventType.DECODE_PACKET) {
@@ -120,35 +203,16 @@ public class ProcessingEventWorker {
             packetRepo.save(packet);
         }
 
-        LOGGER.info("Successfully processed event [{}] for packet amie_id [{}].", event.getType(), packet.getAmieId());
+        LOGGER.info("Successfully processed event [{}] for packet amie_id [{}].",
+                event.getType(), packet.getAmieId());
     }
 
-    private void handleFailure(ProcessingEventEntity event, PacketEntity packet, Exception e) {
-        // Check if the event should be retried or marked as failed
-        boolean isRetryable = event.getAttempts() < MAX_ATTEMPTS;
-        ProcessingStatus newStatus = isRetryable ? ProcessingStatus.RETRY_SCHEDULED : ProcessingStatus.FAILED;
-
-        event.setStatus(newStatus);
-        event.setLastError(e.getMessage());
-        event.setFinishedAt(Instant.now());
-        eventRepo.save(event);
-
-        if (!isRetryable) {
-            LOGGER.error("Event for packet amie_id [{}] has failed permanently after {} attempts.", packet.getAmieId(), event.getAttempts());
-            packet.setStatus(PacketStatus.FAILED);
-            packet.setLastError(e.getMessage());
-            packetRepo.save(packet);
-
-        } else {
-            LOGGER.warn("Event for packet amie_id [{}] will be retried. Status set to {}.", packet.getAmieId(), newStatus);
-        }
-
-        ProcessingErrorEntity error = new ProcessingErrorEntity();
-        error.setPacket(packet);
-        error.setEvent(event);
-        error.setSummary(e.getClass().getSimpleName() + ": " + e.getMessage());
-        error.setDetail(getStackTraceAsString(e));
-        errorRepo.save(error);
+    // Exponential backoff: BASE * 2^(attempt-1), capped at MAX_BACKOFF_SECONDS.
+    static Instant computeNextRetryAt(int attemptNumber) {
+        long exponent = Math.max(0, attemptNumber - 1);
+        long delaySec = BASE_BACKOFF_SECONDS * (1L << exponent);
+        delaySec = Math.min(delaySec, MAX_BACKOFF_SECONDS);
+        return Instant.now().plusSeconds(delaySec);
     }
 
     private String getStackTraceAsString(Exception e) {

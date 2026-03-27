@@ -21,6 +21,7 @@ package org.apache.custos.access.ci.service.handler.amie;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.custos.access.ci.service.client.amie.AmieClient;
 import org.apache.custos.access.ci.service.model.amie.PacketEntity;
+import org.apache.custos.access.ci.service.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,9 +39,11 @@ public class DataProjectCreateHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataProjectCreateHandler.class);
 
     private final AmieClient amieClient;
+    private final PersonService personService;
 
-    public DataProjectCreateHandler(AmieClient amieClient) {
+    public DataProjectCreateHandler(AmieClient amieClient, PersonService personService) {
         this.amieClient = amieClient;
+        this.personService = personService;
     }
 
     @Override
@@ -61,11 +64,11 @@ public class DataProjectCreateHandler implements PacketHandler {
         Assert.hasText(personId, "'PersonID' must not be empty.");
         LOGGER.info("Packet validated. ProjectID: [{}], PersonID: [{}].", projectId, personId);
 
-        // TODO update the local DB with the dnList against to the user's profile
         if (dnList.isArray() && !dnList.isEmpty()) {
-            LOGGER.info("Received DnList for user [{}].", personId);
-            // TODO - userService.updateUserDnList(personId, dnList);
+            LOGGER.info("Persisting DnList for person [{}] from data_project_create.", personId);
+            personService.persistDnsForPerson(personId, dnList);
         }
+
         sendSuccessReply(packetEntity.getAmieId());
     }
 
