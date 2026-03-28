@@ -9,7 +9,7 @@
       "type": "stat",
       "title": "Total Packets Received",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "targets": [{ "expr": "sum(amie_packets_received_total)", "legendFormat": "Total" }],
+      "targets": [{ "expr": "round(sum(increase(amie_packets_received_total[$__range])))", "legendFormat": "Total" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
@@ -18,7 +18,7 @@
       "type": "stat",
       "title": "Packets Succeeded",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "targets": [{ "expr": "sum(amie_packets_processed_total{outcome=\"succeeded\"})", "legendFormat": "Succeeded" }],
+      "targets": [{ "expr": "round(sum(increase(amie_packets_processed_total{outcome=\"succeeded\"}[$__range])))", "legendFormat": "Succeeded" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
@@ -27,7 +27,7 @@
       "type": "stat",
       "title": "Packets Failed",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "targets": [{ "expr": "sum(amie_packets_processed_total{outcome=~\"permanently_failed|failed\"})", "legendFormat": "Failed" }],
+      "targets": [{ "expr": "round(sum(increase(amie_packets_processed_total{outcome=~\"permanently_failed|failed\"}[$__range])))", "legendFormat": "Failed" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
@@ -36,7 +36,7 @@
       "type": "stat",
       "title": "Retries",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
-      "targets": [{ "expr": "sum(amie_events_retry_total) or vector(0)", "legendFormat": "Retries" }],
+      "targets": [{ "expr": "round(sum(increase(amie_events_retry_total[$__range]))) or vector(0)", "legendFormat": "Retries" }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
@@ -69,7 +69,7 @@
       "title": "Packets by Type",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
       "targets": [
-        { "expr": "sum by (type) (amie_packets_received_total)", "legendFormat": "{{type}}" }
+        { "expr": "round(sum by (type) (increase(amie_packets_received_total[$__range])))", "legendFormat": "{{type}}" }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
@@ -79,7 +79,7 @@
       "title": "Processing Outcomes",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
       "targets": [
-        { "expr": "sum by (outcome) (amie_packets_processed_total)", "legendFormat": "{{outcome}}" }
+        { "expr": "round(sum by (outcome) (increase(amie_packets_processed_total[$__range])))", "legendFormat": "{{outcome}}" }
       ],
       "fieldConfig": { "overrides": [
         { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
@@ -94,7 +94,7 @@
       "title": "Packets Received by Type",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
       "targets": [
-        { "expr": "sum by (type) (amie_packets_received_total)", "legendFormat": "{{type}}" }
+        { "expr": "round(sum by (type) (increase(amie_packets_received_total[$__range])))", "legendFormat": "{{type}}" }
       ],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true },
@@ -128,7 +128,7 @@
       "title": "Processed Count by Type & Outcome",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
       "targets": [
-        { "expr": "sum by (type, outcome) (amie_packets_processed_total)", "legendFormat": "{{type}} — {{outcome}}", "format": "table", "instant": true }
+        { "expr": "round(sum by (type, outcome) (increase(amie_packets_processed_total[$__range])))", "legendFormat": "{{type}} — {{outcome}}", "format": "table", "instant": true }
       ],
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "type": "Packet Type", "outcome": "Outcome", "Value": "Count" } } }
