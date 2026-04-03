@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS client_ssh_configs
     max_ttl_seconds            INT          NOT NULL DEFAULT 86400,
     allowed_key_types          JSON         NOT NULL,
     source_address_restriction VARCHAR(255) NULL,
-    critical_options           JSON         NULL,
-    extensions                 JSON         NULL,
+    denied_extensions          JSON         NULL,
     enabled                    BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at                 TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at                 TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
@@ -40,6 +39,8 @@ CREATE TABLE IF NOT EXISTS certificate_issuance_logs
     valid_before           TIMESTAMP(6) NOT NULL,
     issued_at              TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     source_ip              VARCHAR(45)  NULL,
+    granted_extensions     JSON         NOT NULL,
+    force_command          TEXT         NULL,
     user_access_token_hash VARCHAR(255) NULL,
     request_metadata       JSON         NULL,
 

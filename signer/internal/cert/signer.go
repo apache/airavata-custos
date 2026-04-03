@@ -63,11 +63,7 @@ func SignCertificate(req *SignRequest) (*SignResult, error) {
 
 	extensions := req.Extensions
 	if extensions == nil {
-		extensions = map[string]string{
-			"permit-pty":             "",
-			"permit-port-forwarding": "",
-			"permit-user-rc":         "",
-		}
+		extensions = make(map[string]string)
 	}
 
 	cert := &ssh.Certificate{

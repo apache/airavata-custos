@@ -17,6 +17,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -35,6 +37,8 @@ type CertificateWithStatus struct {
 	ValidBefore          time.Time
 	IssuedAt             time.Time
 	SourceIP             string
+	GrantedExtensions    []string
+	ForceCommand         *string
 	Revoked              bool
 	RevokedAt            *time.Time
 	RevocationReason     string
@@ -74,6 +78,7 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 			c.id, c.tenant_id, c.client_id, c.serial_number, c.key_id,
 			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
+			c.granted_extensions, c.force_command,
 			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
 			r.revoked_at,
 			COALESCE(r.reason, '') AS revocation_reason
@@ -93,16 +98,27 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 	for rows.Next() {
 		var cert CertificateWithStatus
 		var revokedAt *time.Time
+		var grantedExtensionsJSON []byte
+		var forceCommand sql.NullString
 
 		if err := rows.Scan(
 			&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
 			&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 			&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
+			&grantedExtensionsJSON, &forceCommand,
 			&cert.Revoked, &revokedAt, &cert.RevocationReason,
 		); err != nil {
 			return nil, fmt.Errorf("scanning certificate row: %w", err)
 		}
 
+		if grantedExtensionsJSON != nil {
+			if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
+				return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
+			}
+		}
+		if forceCommand.Valid {
+			cert.ForceCommand = &forceCommand.String
+		}
 		cert.RevokedAt = revokedAt
 		certs = append(certs, cert)
 	}
@@ -120,12 +136,15 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*CertificateWithStatus, error) {
 	var cert CertificateWithStatus
 	var revokedAt *time.Time
+	var grantedExtensionsJSON []byte
+	var forceCommand sql.NullString
 
 	err := d.QueryRowContext(ctx,
 		`SELECT
 			c.id, c.tenant_id, c.client_id, c.serial_number, c.key_id,
 			c.principal, COALESCE(c.user_email, ''), c.public_key_fingerprint, c.ca_fingerprint,
 			c.valid_after, c.valid_before, c.issued_at, COALESCE(c.source_ip, ''),
+			c.granted_extensions, c.force_command,
 			CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS revoked,
 			r.revoked_at,
 			COALESCE(r.reason, '') AS revocation_reason
@@ -137,12 +156,21 @@ func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*Certifi
 		&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,
 		&cert.Principal, &cert.UserEmail, &cert.PublicKeyFingerprint, &cert.CAFingerprint,
 		&cert.ValidAfter, &cert.ValidBefore, &cert.IssuedAt, &cert.SourceIP,
+		&grantedExtensionsJSON, &forceCommand,
 		&cert.Revoked, &revokedAt, &cert.RevocationReason,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("querying certificate: %w", err)
 	}
 
+	if grantedExtensionsJSON != nil {
+		if err := json.Unmarshal(grantedExtensionsJSON, &cert.GrantedExtensions); err != nil {
+			return nil, fmt.Errorf("unmarshaling granted_extensions: %w", err)
+		}
+	}
+	if forceCommand.Valid {
+		cert.ForceCommand = &forceCommand.String
+	}
 	cert.RevokedAt = revokedAt
 	return &cert, nil
 }

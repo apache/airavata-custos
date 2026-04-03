@@ -31,8 +31,7 @@ type ClientConfig struct {
 	MaxTTLSeconds            int
 	AllowedKeyTypes          []string
 	SourceAddressRestriction *string
-	CriticalOptions          map[string]string
-	Extensions               map[string]string
+	DeniedExtensions         []string
 	Enabled                  bool
 }
 
@@ -41,21 +40,20 @@ func (d *DB) GetClientConfig(ctx context.Context, tenantID, clientID string) (*C
 		cc                       ClientConfig
 		allowedKeyTypesJSON      []byte
 		sourceAddressRestriction sql.NullString
-		criticalOptionsJSON      sql.NullString
-		extensionsJSON           sql.NullString
+		deniedExtensionsJSON     sql.NullString
 	)
 
 	err := d.QueryRowContext(ctx,
 		`SELECT tenant_id, client_id, client_secret, target_host, target_port,
 		        max_ttl_seconds, allowed_key_types, source_address_restriction,
-		        critical_options, extensions, enabled
+		        denied_extensions, enabled
 		 FROM client_ssh_configs
 		 WHERE tenant_id = ? AND client_id = ?`,
 		tenantID, clientID,
 	).Scan(
 		&cc.TenantID, &cc.ClientID, &cc.ClientSecret, &cc.TargetHost, &cc.TargetPort,
 		&cc.MaxTTLSeconds, &allowedKeyTypesJSON, &sourceAddressRestriction,
-		&criticalOptionsJSON, &extensionsJSON, &cc.Enabled,
+		&deniedExtensionsJSON, &cc.Enabled,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -72,15 +70,9 @@ func (d *DB) GetClientConfig(ctx context.Context, tenantID, clientID string) (*C
 		cc.SourceAddressRestriction = &sourceAddressRestriction.String
 	}
 
-	if criticalOptionsJSON.Valid && criticalOptionsJSON.String != "" {
-		if err := json.Unmarshal([]byte(criticalOptionsJSON.String), &cc.CriticalOptions); err != nil {
-			return nil, fmt.Errorf("unmarshaling critical_options: %w", err)
-		}
-	}
-
-	if extensionsJSON.Valid && extensionsJSON.String != "" {
-		if err := json.Unmarshal([]byte(extensionsJSON.String), &cc.Extensions); err != nil {
-			return nil, fmt.Errorf("unmarshaling extensions: %w", err)
+	if deniedExtensionsJSON.Valid && deniedExtensionsJSON.String != "" {
+		if err := json.Unmarshal([]byte(deniedExtensionsJSON.String), &cc.DeniedExtensions); err != nil {
+			return nil, fmt.Errorf("unmarshaling denied_extensions: %w", err)
 		}
 	}
 

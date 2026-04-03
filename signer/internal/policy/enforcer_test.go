@@ -21,12 +21,11 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/store"
 )
 
-func clientCfg(maxTTL int, keyTypes []string, sourceRestriction *string, critOpts map[string]string) *store.ClientConfig {
+func clientCfg(maxTTL int, keyTypes []string, sourceRestriction *string) *store.ClientConfig {
 	return &store.ClientConfig{
 		MaxTTLSeconds:            maxTTL,
 		AllowedKeyTypes:          keyTypes,
 		SourceAddressRestriction: sourceRestriction,
-		CriticalOptions:          critOpts,
 	}
 }
 
@@ -36,7 +35,7 @@ func strPtr(s string) *string {
 
 func TestEnforce_TTLWithinLimit(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519", "rsa", "ecdsa"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, nil)
 	err := e.Enforce(3600, "ssh-ed25519", "10.0.0.1", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -45,7 +44,7 @@ func TestEnforce_TTLWithinLimit(t *testing.T) {
 
 func TestEnforce_TTLExceedsLimit(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(3600, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(3600, []string{"ed25519"}, nil)
 	err := e.Enforce(7200, "ssh-ed25519", "10.0.0.1", cfg)
 	if err == nil {
 		t.Fatal("expected error for TTL exceeding limit")
@@ -61,7 +60,7 @@ func TestEnforce_TTLExceedsLimit(t *testing.T) {
 
 func TestEnforce_TTLAtExactLimit(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(3600, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(3600, []string{"ed25519"}, nil)
 	err := e.Enforce(3600, "ssh-ed25519", "10.0.0.1", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -70,7 +69,7 @@ func TestEnforce_TTLAtExactLimit(t *testing.T) {
 
 func TestEnforce_NullMaxTTLUsesDefault(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(0, []string{"ed25519"}, nil, nil) // 0 = null equivalent
+	cfg := clientCfg(0, []string{"ed25519"}, nil) // 0 = null equivalent
 	err := e.Enforce(86400, "ssh-ed25519", "10.0.0.1", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -79,7 +78,7 @@ func TestEnforce_NullMaxTTLUsesDefault(t *testing.T) {
 
 func TestEnforce_TTLZero(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, nil)
 	err := e.Enforce(0, "ssh-ed25519", "10.0.0.1", cfg)
 	if err == nil {
 		t.Fatal("expected error for TTL 0")
@@ -88,7 +87,7 @@ func TestEnforce_TTLZero(t *testing.T) {
 
 func TestEnforce_NegativeTTL(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, nil)
 	err := e.Enforce(-100, "ssh-ed25519", "10.0.0.1", cfg)
 	if err == nil {
 		t.Fatal("expected error for negative TTL")
@@ -97,7 +96,7 @@ func TestEnforce_NegativeTTL(t *testing.T) {
 
 func TestEnforce_DisallowedKeyType(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, nil)
 	err := e.Enforce(3600, "ssh-rsa", "10.0.0.1", cfg)
 	if err == nil {
 		t.Fatal("expected error for disallowed key type")
@@ -110,7 +109,7 @@ func TestEnforce_DisallowedKeyType(t *testing.T) {
 
 func TestEnforce_AllowedKeyType(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519", "rsa"})
-	cfg := clientCfg(86400, []string{"ed25519", "rsa"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519", "rsa"}, nil)
 	err := e.Enforce(3600, "ssh-rsa", "10.0.0.1", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -120,7 +119,7 @@ func TestEnforce_AllowedKeyType(t *testing.T) {
 func TestEnforce_SourceAddressRejected(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
 	cidr := "10.0.0.0/8"
-	cfg := clientCfg(86400, []string{"ed25519"}, &cidr, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, &cidr)
 	err := e.Enforce(3600, "ssh-ed25519", "192.168.1.1", cfg)
 	if err == nil {
 		t.Fatal("expected error for source address outside CIDR")
@@ -130,7 +129,7 @@ func TestEnforce_SourceAddressRejected(t *testing.T) {
 func TestEnforce_SourceAddressAccepted(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
 	cidr := "10.0.0.0/8"
-	cfg := clientCfg(86400, []string{"ed25519"}, &cidr, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, &cidr)
 	err := e.Enforce(3600, "ssh-ed25519", "10.1.2.3", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -139,28 +138,44 @@ func TestEnforce_SourceAddressAccepted(t *testing.T) {
 
 func TestEnforce_NoSourceRestriction(t *testing.T) {
 	e := NewEnforcer(86400, []string{"ed25519"})
-	cfg := clientCfg(86400, []string{"ed25519"}, nil, nil)
+	cfg := clientCfg(86400, []string{"ed25519"}, nil)
 	err := e.Enforce(3600, "ssh-ed25519", "192.168.1.1", cfg)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
 }
 
-func TestGetCriticalOptions(t *testing.T) {
-	opts := map[string]string{"source-address": "10.0.0.0/8"}
-	cfg := clientCfg(86400, nil, nil, opts)
-	result := GetCriticalOptions(cfg)
+func TestBuildCriticalOptions_SourceAddress(t *testing.T) {
+	addr := "10.0.0.0/8"
+	result := BuildCriticalOptions(&addr, "")
 	if result == nil {
 		t.Fatal("expected non-nil critical options")
 	}
 	if result["source-address"] != "10.0.0.0/8" {
-		t.Errorf("expected source-address, got %v", result)
+		t.Errorf("expected source-address=10.0.0.0/8, got %v", result)
 	}
 }
 
-func TestGetCriticalOptions_Nil(t *testing.T) {
-	cfg := clientCfg(86400, nil, nil, nil)
-	result := GetCriticalOptions(cfg)
+func TestBuildCriticalOptions_ForceCommand(t *testing.T) {
+	result := BuildCriticalOptions(nil, "sbatch /path/to/job.sh")
+	if result == nil {
+		t.Fatal("expected non-nil critical options")
+	}
+	if result["force-command"] != "sbatch /path/to/job.sh" {
+		t.Errorf("expected force-command, got %v", result)
+	}
+}
+
+func TestBuildCriticalOptions_Both(t *testing.T) {
+	addr := "10.0.0.0/8"
+	result := BuildCriticalOptions(&addr, "sbatch /job.sh")
+	if len(result) != 2 {
+		t.Errorf("expected 2 critical options, got %d", len(result))
+	}
+}
+
+func TestBuildCriticalOptions_Empty(t *testing.T) {
+	result := BuildCriticalOptions(nil, "")
 	if result != nil {
 		t.Errorf("expected nil critical options, got %v", result)
 	}

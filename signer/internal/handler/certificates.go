@@ -28,18 +28,20 @@ import (
 )
 
 type CertificateResponse struct {
-	SerialNumber         int64  `json:"serial_number"`
-	KeyID                string `json:"key_id"`
-	Principal            string `json:"principal"`
-	PublicKeyFingerprint string `json:"public_key_fingerprint"`
-	CAFingerprint        string `json:"ca_fingerprint"`
-	ValidAfter           int64  `json:"valid_after"`
-	ValidBefore          int64  `json:"valid_before"`
-	IssuedAt             int64  `json:"issued_at"`
-	SourceIP             string `json:"source_ip,omitempty"`
-	Revoked              bool   `json:"revoked"`
-	RevokedAt            *int64 `json:"revoked_at,omitempty"`
-	RevocationReason     string `json:"revocation_reason,omitempty"`
+	SerialNumber         int64    `json:"serial_number"`
+	KeyID                string   `json:"key_id"`
+	Principal            string   `json:"principal"`
+	PublicKeyFingerprint string   `json:"public_key_fingerprint"`
+	CAFingerprint        string   `json:"ca_fingerprint"`
+	ValidAfter           int64    `json:"valid_after"`
+	ValidBefore          int64    `json:"valid_before"`
+	IssuedAt             int64    `json:"issued_at"`
+	SourceIP             string   `json:"source_ip,omitempty"`
+	GrantedExtensions    []string `json:"granted_extensions,omitempty"`
+	ForceCommand         *string  `json:"force_command,omitempty"`
+	Revoked              bool     `json:"revoked"`
+	RevokedAt            *int64   `json:"revoked_at,omitempty"`
+	RevocationReason     string   `json:"revocation_reason,omitempty"`
 }
 
 type CertificateListResponse struct {
@@ -94,6 +96,8 @@ func (h *CertificatesHandler) HandleList(w http.ResponseWriter, r *http.Request)
 			ValidBefore:          c.ValidBefore.Unix(),
 			IssuedAt:             c.IssuedAt.Unix(),
 			SourceIP:             c.SourceIP,
+			GrantedExtensions:    c.GrantedExtensions,
+			ForceCommand:         c.ForceCommand,
 			Revoked:              c.Revoked,
 			RevocationReason:     c.RevocationReason,
 		}
@@ -168,6 +172,8 @@ func toCertificateResponse(c *store.CertificateWithStatus) CertificateResponse {
 		ValidBefore:          c.ValidBefore.Unix(),
 		IssuedAt:             c.IssuedAt.Unix(),
 		SourceIP:             c.SourceIP,
+		GrantedExtensions:    c.GrantedExtensions,
+		ForceCommand:         c.ForceCommand,
 		Revoked:              c.Revoked,
 		RevocationReason:     c.RevocationReason,
 	}

@@ -37,21 +37,25 @@ import (
 var principalRegex = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
 
 type SignRequest struct {
-	Principal       string `json:"principal"`
-	TTLSeconds      int    `json:"ttl_seconds"`
-	PublicKey       string `json:"public_key"`
-	UserAccessToken string `json:"user_access_token"`
+	Principal         string   `json:"principal"`
+	TTLSeconds        int      `json:"ttl_seconds"`
+	PublicKey         string   `json:"public_key"`
+	UserAccessToken   string   `json:"user_access_token"`
+	ForceCommand      string   `json:"force_command,omitempty"`
+	ExcludeExtensions []string `json:"exclude_extensions,omitempty"`
 }
 
 type SignResponse struct {
-	Certificate    string `json:"certificate"`
-	SerialNumber   int64  `json:"serial_number"`
-	ValidAfter     int64  `json:"valid_after"`
-	ValidBefore    int64  `json:"valid_before"`
-	CAFingerprint  string `json:"ca_fingerprint"`
-	TargetHost     string `json:"target_host"`
-	TargetPort     int    `json:"target_port"`
-	TargetUsername string `json:"target_username"`
+	Certificate       string   `json:"certificate"`
+	SerialNumber      int64    `json:"serial_number"`
+	ValidAfter        int64    `json:"valid_after"`
+	ValidBefore       int64    `json:"valid_before"`
+	CAFingerprint     string   `json:"ca_fingerprint"`
+	TargetHost        string   `json:"target_host"`
+	TargetPort        int      `json:"target_port"`
+	TargetUsername    string   `json:"target_username"`
+	ForceCommand      string   `json:"force_command,omitempty"`
+	GrantedExtensions []string `json:"granted_extensions"`
 }
 
 type SignHandler struct {
@@ -155,6 +159,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve extensions: all standard - client denied - request excluded
+	grantedExts, err := cert.ResolveExtensions(clientCfg.DeniedExtensions, req.ExcludeExtensions)
+	if err != nil {
+		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	extensionsMap := cert.ExtensionsToMap(grantedExts)
+	grantedExtNames := cert.ExtensionNames(grantedExts)
+
 	valResult, err := h.principalValidator.Validate(tenantID, clientID, req.Principal, identity.Subject)
 	if err != nil {
 		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
@@ -190,7 +204,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
 
-	criticalOpts := policy.GetCriticalOptions(clientCfg)
+	criticalOpts := policy.BuildCriticalOptions(clientCfg.SourceAddressRestriction, req.ForceCommand)
 
 	signReq := &cert.SignRequest{
 		PublicKey:       sshPubKey,
@@ -200,6 +214,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ClientID:        clientID,
 		TTLSeconds:      uint64(req.TTLSeconds),
 		CriticalOptions: criticalOpts,
+		Extensions:      extensionsMap,
 	}
 
 	signResult, err := cert.SignCertificate(signReq)
@@ -226,6 +241,8 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ValidBefore:          time.Unix(int64(signResult.ValidBefore), 0).UTC(),
 		SourceIP:             sourceIP,
 		UserAccessTokenHash:  tokenHash,
+		GrantedExtensions:    grantedExtNames,
+		ForceCommand:         stringPtrIfNonEmpty(req.ForceCommand),
 	}
 
 	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
@@ -277,14 +294,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	metrics.SignRequestsTotal.WithLabelValues(tenantID, "success").Inc()
 
 	resp := SignResponse{
-		Certificate:    base64.StdEncoding.EncodeToString(signResult.CertBytes),
-		SerialNumber:   serial,
-		ValidAfter:     int64(signResult.ValidAfter),
-		ValidBefore:    int64(signResult.ValidBefore),
-		CAFingerprint:  signResult.CAFingerprint,
-		TargetHost:     clientCfg.TargetHost,
-		TargetPort:     clientCfg.TargetPort,
-		TargetUsername: validatedPrincipal,
+		Certificate:       base64.StdEncoding.EncodeToString(signResult.CertBytes),
+		SerialNumber:      serial,
+		ValidAfter:        int64(signResult.ValidAfter),
+		ValidBefore:       int64(signResult.ValidBefore),
+		CAFingerprint:     signResult.CAFingerprint,
+		TargetHost:        clientCfg.TargetHost,
+		TargetPort:        clientCfg.TargetPort,
+		TargetUsername:    validatedPrincipal,
+		ForceCommand:      req.ForceCommand,
+		GrantedExtensions: grantedExtNames,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -295,4 +314,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 // isDuplicateKeyError detects MySQL error 1062 (duplicate key constraint).
 func isDuplicateKeyError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Duplicate entry")
+}
+
+func stringPtrIfNonEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
