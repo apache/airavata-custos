@@ -49,6 +49,8 @@ type IssuanceEntry struct {
 	ValidAfter           time.Time
 	ValidBefore          time.Time
 	SourceIP             string
+	GrantedExtensions    []string
+	ForceCommand         *string
 	UserAccessTokenHash  string
 	CorrelationID        string
 }
@@ -66,6 +68,8 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 		ValidAfter:           entry.ValidAfter,
 		ValidBefore:          entry.ValidBefore,
 		SourceIP:             entry.SourceIP,
+		GrantedExtensions:    entry.GrantedExtensions,
+		ForceCommand:         entry.ForceCommand,
 		UserAccessTokenHash:  entry.UserAccessTokenHash,
 	}
 
@@ -87,6 +91,8 @@ func (l *Logger) LogIssuance(ctx context.Context, entry *IssuanceEntry) error {
 		"valid_after", entry.ValidAfter.Unix(),
 		"valid_before", entry.ValidBefore.Unix(),
 		"source_ip", entry.SourceIP,
+		"granted_extensions", entry.GrantedExtensions,
+		"force_command", entry.ForceCommand,
 		"user_token_hash", entry.UserAccessTokenHash,
 		"correlation_id", entry.CorrelationID,
 	)

@@ -34,29 +34,40 @@ type IssuanceLog struct {
 	ValidAfter           time.Time
 	ValidBefore          time.Time
 	SourceIP             string
+	GrantedExtensions    []string
+	ForceCommand         *string
 	UserAccessTokenHash  string
 	RequestMetadata      map[string]interface{}
 }
 
 // InsertIssuanceLog writes a certificate issuance entry. Fails on duplicate serial_number.
 func (d *DB) InsertIssuanceLog(ctx context.Context, log *IssuanceLog) error {
+	grantedExtensions := log.GrantedExtensions
+	if grantedExtensions == nil {
+		grantedExtensions = []string{}
+	}
+	grantedExtensionsJSON, err := json.Marshal(grantedExtensions)
+	if err != nil {
+		return fmt.Errorf("marshaling granted_extensions: %w", err)
+	}
+
 	var metadataJSON []byte
 	if log.RequestMetadata != nil {
-		var err error
 		metadataJSON, err = json.Marshal(log.RequestMetadata)
 		if err != nil {
 			return fmt.Errorf("marshaling request_metadata: %w", err)
 		}
 	}
 
-	_, err := d.ExecContext(ctx,
+	_, err = d.ExecContext(ctx,
 		`INSERT INTO certificate_issuance_logs
 		 (tenant_id, client_id, serial_number, key_id, principal, user_email, public_key_fingerprint,
-		  ca_fingerprint, valid_after, valid_before, source_ip, user_access_token_hash, request_metadata)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		  ca_fingerprint, valid_after, valid_before, source_ip, granted_extensions, force_command,
+		  user_access_token_hash, request_metadata)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		log.TenantID, log.ClientID, log.SerialNumber, log.KeyID, log.Principal,
 		log.UserEmail, log.PublicKeyFingerprint, log.CAFingerprint, log.ValidAfter, log.ValidBefore,
-		log.SourceIP, log.UserAccessTokenHash, metadataJSON,
+		log.SourceIP, grantedExtensionsJSON, log.ForceCommand, log.UserAccessTokenHash, metadataJSON,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting issuance log: %w", err)
