@@ -64,6 +64,7 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 	userKey := generateTestEd25519UserKey(t)
 
 	before := time.Now().UTC()
+	exts := ExtensionsToMap(AllStandardExtensions())
 	result, err := SignCertificate(&SignRequest{
 		PublicKey:       userKey,
 		CAPrivateKeyPEM: caPrivPEM,
@@ -71,6 +72,7 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 		Principal:       "testuser",
 		ClientID:        "webapp",
 		TTLSeconds:      7200,
+		Extensions:      exts,
 	})
 	after := time.Now().UTC()
 
@@ -120,8 +122,8 @@ func TestSignCertificate_Ed25519(t *testing.T) {
 		t.Errorf("expected UserCert type, got %d", cert.CertType)
 	}
 
-	for _, ext := range []string{"permit-pty", "permit-port-forwarding", "permit-user-rc"} {
-		if _, ok := cert.Extensions[ext]; !ok {
+	for _, ext := range AllStandardExtensions() {
+		if _, ok := cert.Extensions[string(ext)]; !ok {
 			t.Errorf("expected extension %s", ext)
 		}
 	}

@@ -89,9 +89,18 @@ func (e *Enforcer) Enforce(ttlSeconds int, sshKeyType string, sourceIP string, c
 	return nil
 }
 
-func GetCriticalOptions(clientCfg *store.ClientConfig) map[string]string {
-	if clientCfg.CriticalOptions != nil && len(clientCfg.CriticalOptions) > 0 {
-		return clientCfg.CriticalOptions
+// BuildCriticalOptions constructs the SSH certificate critical options map from
+// the client config's source address restriction and the per-request force command.
+func BuildCriticalOptions(sourceAddr *string, forceCommand string) map[string]string {
+	opts := make(map[string]string)
+	if sourceAddr != nil && *sourceAddr != "" {
+		opts["source-address"] = *sourceAddr
 	}
-	return nil
+	if forceCommand != "" {
+		opts["force-command"] = forceCommand
+	}
+	if len(opts) == 0 {
+		return nil
+	}
+	return opts
 }
