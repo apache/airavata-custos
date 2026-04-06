@@ -41,6 +41,7 @@ type UserIdentity struct {
 type OIDCValidator struct {
 	enabled        bool
 	defaultEmail   string
+	defaultSubject string
 	allowedIssuers []string
 	cacheTTL       time.Duration
 	maxProviders   int
@@ -65,10 +66,15 @@ func NewOIDCValidator(cfg config.AuthConfig, devMode config.DevModeConfig) *OIDC
 	if defaultEmail == "" {
 		defaultEmail = "dev@localhost"
 	}
+	defaultSubject := devMode.DefaultSubject
+	if defaultSubject == "" {
+		defaultSubject = "dev-user"
+	}
 
 	v := &OIDCValidator{
 		enabled:        enabled,
 		defaultEmail:   defaultEmail,
+		defaultSubject: defaultSubject,
 		allowedIssuers: cfg.AllowedIssuers,
 		cacheTTL:       time.Duration(cfg.OIDC.JWKSCacheTTLSeconds) * time.Second,
 		maxProviders:   cfg.OIDC.JWKSMaxProviders,
@@ -94,9 +100,9 @@ func (v *OIDCValidator) ValidateAccessToken(ctx context.Context, tokenString str
 	if !v.enabled {
 		return &UserIdentity{
 			Issuer:    "dev-mode",
-			Subject:   "dev-user",
+			Subject:   v.defaultSubject,
 			Email:     v.defaultEmail,
-			Principal: "dev-user",
+			Principal: v.defaultSubject,
 		}, nil
 	}
 

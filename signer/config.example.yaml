@@ -40,12 +40,8 @@ signer:
       jwks_max_providers: 10
       timeout_seconds: 10
   validation:
-    principal_validator: noop          # "noop" or "comanage"
-    comanage:
-      registry_url: ""
-      api_path: /registry/co_people.json
-      timeout_seconds: 10
-      verify_ssl: true
+    principal_validator: noop          # fallback: "noop", "ldap", or "comanage"
+    cache_ttl_seconds: 300            # Vault credential cache TTL for validators
 
 dev_mode:
   enabled: false                       # env: DEV_MODE (disables OIDC validation)
