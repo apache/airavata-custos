@@ -61,7 +61,7 @@ type SignResponse struct {
 type SignHandler struct {
 	oidcValidator      *auth.OIDCValidator
 	policyEnforcer     *policy.Enforcer
-	principalValidator validation.PrincipalValidator
+	principalValidator *validation.ValidatorDispatcher
 	vaultClient        *vaultpkg.Client
 	auditLogger        *audit.Logger
 	logger             *slog.Logger
@@ -70,7 +70,7 @@ type SignHandler struct {
 func NewSignHandler(
 	oidcValidator *auth.OIDCValidator,
 	policyEnforcer *policy.Enforcer,
-	principalValidator validation.PrincipalValidator,
+	principalValidator *validation.ValidatorDispatcher,
 	vaultClient *vaultpkg.Client,
 	auditLogger *audit.Logger,
 	logger *slog.Logger,
@@ -169,7 +169,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	extensionsMap := cert.ExtensionsToMap(grantedExts)
 	grantedExtNames := cert.ExtensionNames(grantedExts)
 
-	valResult, err := h.principalValidator.Validate(tenantID, clientID, req.Principal, identity.Subject)
+	valResult, err := h.principalValidator.ValidateForClient(r.Context(), tenantID, clientID, req.Principal, identity.Subject, clientCfg.PrincipalSource)
 	if err != nil {
 		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
 		if valErr, ok := err.(*validation.ValidationError); ok {
