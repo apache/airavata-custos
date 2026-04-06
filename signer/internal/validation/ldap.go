@@ -18,6 +18,7 @@ package validation
 import (
 	"crypto/tls"
 	"fmt"
+	"sync"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -69,9 +70,13 @@ type LDAPConfig struct {
 }
 
 // LDAPValidator resolves an OIDC subject to a POSIX username via LDAP directory lookup.
+// It maintains a persistent LDAP connection that is reused across requests and
+// automatically reconnects on failure.
 type LDAPValidator struct {
 	config    LDAPConfig
 	connector LDAPConnector
+	mu        sync.Mutex
+	conn      LDAPConnection
 }
 
 func NewLDAPValidator(config LDAPConfig, connector LDAPConnector) *LDAPValidator {
@@ -87,51 +92,30 @@ func NewLDAPValidator(config LDAPConfig, connector LDAPConnector) *LDAPValidator
 }
 
 func (v *LDAPValidator) Validate(tenantID, clientID, principal, identitySubject string) (*ValidationResult, error) {
-	conn, err := v.connector.Connect(v.config.URL, v.config.VerifySSL)
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	result, err := v.searchLDAP(identitySubject)
 	if err != nil {
-		return nil, &ValidationError{
-			Message:    "Principal validation unavailable: LDAP connection failed",
-			ReasonCode: "LDAP_UNAVAILABLE",
-		}
-	}
-	defer conn.Close()
-
-	if err := conn.Bind(v.config.BindDN, v.config.BindPassword); err != nil {
-		return nil, &ValidationError{
-			Message:    "Principal validation unavailable: LDAP bind failed",
-			ReasonCode: "LDAP_UNAVAILABLE",
-		}
-	}
-
-	// Search using the OIDC subject, not the requested principal
-	filter := fmt.Sprintf(v.config.SearchFilter, ldap.EscapeFilter(identitySubject))
-
-	result, err := conn.Search(ldap.NewSearchRequest(
-		v.config.BaseDN,
-		ldap.ScopeWholeSubtree,
-		ldap.NeverDerefAliases,
-		1,  // SizeLimit
-		10, // TimeLimit (seconds)
-		false,
-		filter,
-		[]string{v.config.UsernameAttribute},
-		nil,
-	))
-	if err != nil {
-		return nil, &ValidationError{
-			Message:    "Principal validation unavailable: LDAP search failed",
-			ReasonCode: "LDAP_UNAVAILABLE",
+		// Connection may be stale — close, reconnect, and retry once
+		v.closeConn()
+		result, err = v.searchLDAP(identitySubject)
+		if err != nil {
+			v.closeConn()
+			return nil, &ValidationError{
+				Message:    "Principal validation unavailable: " + err.Error(),
+				ReasonCode: "LDAP_UNAVAILABLE",
+			}
 		}
 	}
 
 	if len(result.Entries) == 0 {
 		return nil, &ValidationError{
-			Message:    fmt.Sprintf("No POSIX account found for identity subject in directory"),
+			Message:    "No POSIX account found for identity subject in directory",
 			ReasonCode: "LDAP_IDENTITY_NOT_FOUND",
 		}
 	}
 
-	// Extract the POSIX username from the directory entry
 	resolvedUsername := result.Entries[0].GetAttributeValue(v.config.UsernameAttribute)
 	if resolvedUsername == "" {
 		return nil, &ValidationError{
@@ -140,7 +124,6 @@ func (v *LDAPValidator) Validate(tenantID, clientID, principal, identitySubject 
 		}
 	}
 
-	// Verify the requested principal matches the directory-resolved username
 	if resolvedUsername != principal {
 		return nil, &ValidationError{
 			Message:    fmt.Sprintf("Requested principal %q does not match directory account %q", principal, resolvedUsername),
@@ -152,4 +135,60 @@ func (v *LDAPValidator) Validate(tenantID, clientID, principal, identitySubject 
 		Allowed:            true,
 		ValidatedPrincipal: resolvedUsername,
 	}, nil
+}
+
+// ensureConn returns the existing connection or creates a new one with bind.
+func (v *LDAPValidator) ensureConn() (LDAPConnection, error) {
+	if v.conn != nil {
+		return v.conn, nil
+	}
+
+	conn, err := v.connector.Connect(v.config.URL, v.config.VerifySSL)
+	if err != nil {
+		return nil, fmt.Errorf("LDAP connection failed")
+	}
+
+	if err := conn.Bind(v.config.BindDN, v.config.BindPassword); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("LDAP bind failed")
+	}
+
+	v.conn = conn
+	return conn, nil
+}
+
+// searchLDAP executes the principal lookup on the current or newly established connection.
+func (v *LDAPValidator) searchLDAP(identitySubject string) (*ldap.SearchResult, error) {
+	conn, err := v.ensureConn()
+	if err != nil {
+		return nil, err
+	}
+
+	filter := fmt.Sprintf(v.config.SearchFilter, ldap.EscapeFilter(identitySubject))
+
+	return conn.Search(ldap.NewSearchRequest(
+		v.config.BaseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		1,  // SizeLimit
+		10, // TimeLimit (seconds)
+		false,
+		filter,
+		[]string{v.config.UsernameAttribute},
+		nil,
+	))
+}
+
+func (v *LDAPValidator) closeConn() {
+	if v.conn != nil {
+		v.conn.Close()
+		v.conn = nil
+	}
+}
+
+// Close releases the persistent LDAP connection.
+func (v *LDAPValidator) Close() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.closeConn()
 }
