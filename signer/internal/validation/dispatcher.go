@@ -44,6 +44,7 @@ type ValidatorDispatcher struct {
 	cacheTTL       time.Duration
 	negativeTTL    time.Duration
 	cache          map[string]*cachedCreds
+	validators     map[string]*LDAPValidator
 	mu             sync.RWMutex
 	logger         *slog.Logger
 }
@@ -65,6 +66,7 @@ func NewValidatorDispatcher(
 		cacheTTL:       cacheTTL,
 		negativeTTL:    30 * time.Second,
 		cache:          make(map[string]*cachedCreds),
+		validators:     make(map[string]*LDAPValidator),
 		logger:         logger,
 	}
 }
@@ -124,6 +126,20 @@ func (d *ValidatorDispatcher) validateLDAP(
 		}
 	}
 
+	validator := d.getOrCreateValidator(tenantID, clientID, creds)
+	return validator.Validate(tenantID, clientID, principal, identitySubject)
+}
+
+func (d *ValidatorDispatcher) getOrCreateValidator(tenantID, clientID string, creds *vault.ValidationCredentials) *LDAPValidator {
+	key := tenantID + ":" + clientID
+
+	d.mu.RLock()
+	if v, ok := d.validators[key]; ok {
+		d.mu.RUnlock()
+		return v
+	}
+	d.mu.RUnlock()
+
 	verifySSL := true
 	if creds.VerifySSL != nil {
 		verifySSL = *creds.VerifySSL
@@ -139,7 +155,16 @@ func (d *ValidatorDispatcher) validateLDAP(
 		VerifySSL:         verifySSL,
 	}, d.ldapConnector)
 
-	return validator.Validate(tenantID, clientID, principal, identitySubject)
+	d.mu.Lock()
+	// Double-check after acquiring write lock
+	if v, ok := d.validators[key]; ok {
+		d.mu.Unlock()
+		return v
+	}
+	d.validators[key] = validator
+	d.mu.Unlock()
+
+	return validator
 }
 
 func (d *ValidatorDispatcher) fetchCredentials(ctx context.Context, tenantID, clientID string) (*vault.ValidationCredentials, error) {

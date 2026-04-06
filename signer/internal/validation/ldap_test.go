@@ -37,11 +37,13 @@ func (m *mockLDAPConn) Close() error { return nil }
 
 // mockLDAPConnector implements LDAPConnector for testing.
 type mockLDAPConnector struct {
-	conn    LDAPConnection
-	connErr error
+	conn      LDAPConnection
+	connErr   error
+	callCount int
 }
 
 func (m *mockLDAPConnector) Connect(url string, verifySSL bool) (LDAPConnection, error) {
+	m.callCount++
 	return m.conn, m.connErr
 }
 
@@ -227,6 +229,73 @@ func TestLDAPValidator_DefaultUsernameAttribute(t *testing.T) {
 	if result.ValidatedPrincipal != "jdoe" {
 		t.Errorf("expected jdoe, got %s", result.ValidatedPrincipal)
 	}
+}
+
+func TestLDAPValidator_ConnectionReuse(t *testing.T) {
+	conn := &mockLDAPConn{
+		searchRes: &ldap.SearchResult{
+			Entries: []*ldap.Entry{ldapEntry("uid=jdoe,ou=people,dc=test", "jdoe")},
+		},
+	}
+	connector := &mockLDAPConnector{conn: conn}
+	v := NewLDAPValidator(baseLDAPConfig(), connector)
+
+	// Two calls should reuse the same connection
+	v.Validate("t1", "c1", "jdoe", "sub123")
+	v.Validate("t1", "c1", "jdoe", "sub123")
+
+	if connector.callCount != 1 {
+		t.Errorf("expected 1 connect call (reuse), got %d", connector.callCount)
+	}
+}
+
+func TestLDAPValidator_ReconnectOnSearchError(t *testing.T) {
+	callCount := 0
+	// First connection fails on search, second succeeds
+	failConn := &mockLDAPConn{searchErr: errors.New("connection reset")}
+	goodConn := &mockLDAPConn{
+		searchRes: &ldap.SearchResult{
+			Entries: []*ldap.Entry{ldapEntry("uid=jdoe,ou=people,dc=test", "jdoe")},
+		},
+	}
+	connector := &mockLDAPConnector{}
+	// Return fail conn first, then good conn
+	connector.conn = failConn
+	origConnect := connector.Connect
+	_ = origConnect // suppress unused
+	// Override with a function that switches behavior
+	switchingConnector := &switchConnector{
+		conns:     []LDAPConnection{failConn, goodConn},
+		callCount: &callCount,
+	}
+	v := NewLDAPValidator(baseLDAPConfig(), switchingConnector)
+
+	result, err := v.Validate("t1", "c1", "jdoe", "sub123")
+	if err != nil {
+		t.Fatalf("expected success after reconnect, got: %v", err)
+	}
+	if !result.Allowed {
+		t.Error("expected Allowed=true")
+	}
+	// Should have connected twice: once failed, once reconnected
+	if callCount != 2 {
+		t.Errorf("expected 2 connect calls (reconnect), got %d", callCount)
+	}
+}
+
+// switchConnector returns different connections on successive calls.
+type switchConnector struct {
+	conns     []LDAPConnection
+	callCount *int
+}
+
+func (c *switchConnector) Connect(url string, verifySSL bool) (LDAPConnection, error) {
+	idx := *c.callCount
+	*c.callCount++
+	if idx < len(c.conns) {
+		return c.conns[idx], nil
+	}
+	return c.conns[len(c.conns)-1], nil
 }
 
 // filterCapturingConn wraps LDAPConnection to capture the search filter.
