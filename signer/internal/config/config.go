@@ -38,8 +38,9 @@ type Config struct {
 // DevModeConfig disables OIDC token validation and returns a default identity
 // for all requests when enabled.
 type DevModeConfig struct {
-	Enabled      bool   `yaml:"enabled"`
-	DefaultEmail string `yaml:"default_email"`
+	Enabled        bool   `yaml:"enabled"`
+	DefaultEmail   string `yaml:"default_email"`
+	DefaultSubject string `yaml:"default_subject"`
 }
 
 type CORSConfig struct {
