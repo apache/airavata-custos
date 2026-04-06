@@ -109,15 +109,8 @@ type OIDCConfig struct {
 }
 
 type ValidationConfig struct {
-	PrincipalValidator string         `yaml:"principal_validator"`
-	COmanage           COmanageConfig `yaml:"comanage"`
-}
-
-type COmanageConfig struct {
-	RegistryURL    string `yaml:"registry_url"`
-	APIPath        string `yaml:"api_path"`
-	TimeoutSeconds int    `yaml:"timeout_seconds"`
-	VerifySSL      bool   `yaml:"verify_ssl"`
+	PrincipalValidator string `yaml:"principal_validator"`
+	CacheTTLSeconds    int    `yaml:"cache_ttl_seconds"`
 }
 
 type LoggingConfig struct {
@@ -178,11 +171,7 @@ func DefaultConfig() *Config {
 			},
 			Validation: ValidationConfig{
 				PrincipalValidator: "noop",
-				COmanage: COmanageConfig{
-					APIPath:        "/registry/co_people.json",
-					TimeoutSeconds: 10,
-					VerifySSL:      true,
-				},
+				CacheTTLSeconds:    300, // 5 minutes cache
 			},
 		},
 		Logging: LoggingConfig{

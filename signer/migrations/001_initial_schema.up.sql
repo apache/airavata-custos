@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS client_ssh_configs
     allowed_key_types          JSON         NOT NULL,
     source_address_restriction VARCHAR(255) NULL,
     denied_extensions          JSON         NULL,
+    principal_source           VARCHAR(20)  NOT NULL DEFAULT 'noop',
     enabled                    BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at                 TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at                 TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)

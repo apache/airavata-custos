@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/apache/airavata-custos/signer/internal/audit"
 	"github.com/apache/airavata-custos/signer/internal/auth"
@@ -152,15 +153,19 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 	policyEnforcer := policy.NewEnforcer(cfg.Signer.Policy.Defaults.MaxTTLSeconds, cfg.Signer.Policy.Defaults.AllowedKeyTypes)
 	auditLogger := audit.NewLogger(db, logger)
 
-	var principalValidator validation.PrincipalValidator
-	switch strings.ToLower(cfg.Signer.Validation.PrincipalValidator) {
-	case "comanage":
-		principalValidator = validation.NewCOmanageValidator()
-		logger.Info("using COmanage principal validator (stub)")
-	default:
-		principalValidator = validation.NewNoOpValidator()
-		logger.Info("using NoOp principal validator")
+	cacheTTL := time.Duration(cfg.Signer.Validation.CacheTTLSeconds) * time.Second
+	if cacheTTL <= 0 {
+		cacheTTL = 5 * time.Minute
 	}
+	ldapConnector := validation.NewDefaultLDAPConnector()
+	principalValidator := validation.NewValidatorDispatcher(
+		vaultClient, ldapConnector,
+		cfg.Signer.Validation.PrincipalValidator,
+		cacheTTL, logger,
+	)
+	logger.Info("principal validation dispatcher initialized",
+		"fallback_source", cfg.Signer.Validation.PrincipalValidator,
+		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
 	signHandler := handler.NewSignHandler(oidcValidator, policyEnforcer, principalValidator, vaultClient, auditLogger, logger)
 	revokeHandler := handler.NewRevokeHandler(auditLogger, logger)
