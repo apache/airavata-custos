@@ -388,3 +388,54 @@ func generateEd25519CAKey() (*CAKeyPair, error) {
 		CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
+
+// ValidationCredentials holds per-client - principal validation.
+// Stored in Vault at ssh-ca/{tenant_id}/{client_id}/validation.
+type ValidationCredentials struct {
+	Type              string `json:"type"`                         // "ldap" or "comanage"
+	LDAPUrl           string `json:"ldap_url,omitempty"`           // LDAP
+	BindDN            string `json:"bind_dn,omitempty"`            // LDAP
+	BindPassword      string `json:"bind_password,omitempty"`      // LDAP
+	BaseDN            string `json:"base_dn,omitempty"`            // LDAP
+	SearchFilter      string `json:"search_filter,omitempty"`      // LDAP — %s is the OIDC subject
+	UsernameAttribute string `json:"username_attribute,omitempty"` // LDAP — attribute for POSIX username (default: "uid")
+	VerifySSL         *bool  `json:"verify_ssl,omitempty"`         // LDAP / COmanage
+	RegistryURL       string `json:"registry_url,omitempty"`       // COmanage
+	APIUser           string `json:"api_user,omitempty"`           // COmanage
+	APIKey            string `json:"api_key,omitempty"`            // COmanage
+	APIPath           string `json:"api_path,omitempty"`           // COmanage
+}
+
+// GetValidationCredentials reads per-client validation credentials from Vault.
+// Returns (nil, nil) if no credentials exist at the path.
+func (c *Client) GetValidationCredentials(ctx context.Context, tenantID, clientID string) (*ValidationCredentials, error) {
+	path := c.kvPath(tenantID, clientID, "validation")
+	secret, err := c.client.Logical().ReadWithContext(ctx, path)
+	if err != nil {
+		return nil, fmt.Errorf("reading validation credentials at %s: %w", path, err)
+	}
+	if secret == nil || secret.Data == nil {
+		return nil, nil
+	}
+
+	data, ok := secret.Data["data"].(map[string]interface{})
+	if !ok || data == nil {
+		return nil, nil
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling validation data: %w", err)
+	}
+
+	var creds ValidationCredentials
+	if err := json.Unmarshal(raw, &creds); err != nil {
+		return nil, fmt.Errorf("unmarshaling validation credentials: %w", err)
+	}
+
+	if creds.Type == "" {
+		return nil, nil
+	}
+
+	return &creds, nil
+}
