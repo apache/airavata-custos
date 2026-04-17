@@ -1,0 +1,24 @@
+server:
+  port: 8083
+
+database:
+  dsn: "admin:admin@tcp(localhost:3306)/access_ci?parseTime=true&loc=UTC&multiStatements=true"
+  max_open_conns: 25
+  max_idle_conns: 5
+
+amie:
+  base_url: "https://a3mdev.xsede.org/amie-api-test"
+  site_code: ""       # or set AMIE_SITE_CODE env var
+  api_key: ""         # or set AMIE_API_KEY env var
+  poll_interval: 30s
+  worker_interval: 5s
+  connect_timeout: 5s
+  read_timeout: 20s
+  poller_enabled: true
+
+log:
+  level: "info"
+  format: "text"
+
+provisioner:
+  type: "noop"

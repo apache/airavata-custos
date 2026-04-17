@@ -1,0 +1,25 @@
+{
+  "DATA_TYPE": "Packet",
+  "type": "inform_transaction_complete",
+  "header": {
+    "expected_reply_list": [],
+    "packet_id": 2,
+    "trans_rec_id": 116827012,
+    "transaction_id": 233,
+    "remote_site_name": "TestSite",
+    "local_site_name": "TGCDB",
+    "originating_site_name": "TGCDB",
+    "outgoing_flag": 1,
+    "packet_rec_id": 233497913,
+    "packet_timestamp": "2025-10-15T18:04:58.535Z",
+    "client_state": null,
+    "packet_state": "in-progress",
+    "client_json": null,
+    "transaction_state": "in-progress"
+  },
+  "body": {
+    "Message": "OK",
+    "StatusCode": "Success",
+    "DetailCode": "1"
+  }
+}

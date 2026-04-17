@@ -1,0 +1,19 @@
+{
+  "type": "request_account_reactivate",
+  "header": {
+    "packet_rec_id": 233497923,
+    "packet_id": "233497923",
+    "site_code": "TestSite",
+    "remote_site_name": "TestSite",
+    "timestamp": "2025-10-15T21:30:00Z",
+    "version": "1.0"
+  },
+  "body": {
+    "ProjectID": "test-project-456",
+    "PersonID": "test-user-person-123",
+    "ResourceList": [
+      "test-resource1.testsite.testorg"
+    ],
+    "AllocatedResource": "test-resource1.testsite.testorg"
+  }
+}

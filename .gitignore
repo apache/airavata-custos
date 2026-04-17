@@ -44,3 +44,7 @@ database_data
 # local application properties
 application.properties
 application-local.yml
+
+# Go
+allocations/access-amie/config.yaml
+allocations/access-amie/bin/
