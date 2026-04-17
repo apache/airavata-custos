@@ -19,13 +19,21 @@ package model
 
 import "time"
 
-// ProjectMembership links a cluster account to a project with an optional role.
-type ProjectMembership struct {
-	ID               string    `db:"id" json:"id"`
-	ProjectID        string    `db:"project_id" json:"project_id"`
-	ClusterAccountID string    `db:"cluster_account_id" json:"cluster_account_id"`
-	Role             *string   `db:"role" json:"role,omitempty"`
-	IsActive         bool      `db:"is_active" json:"is_active"`
-	CreatedAt        time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
+type Person struct {
+	ID             string    `db:"id" json:"id"`
+	AccessGlobalID string    `db:"access_global_id" json:"access_global_id"`
+	FirstName      string    `db:"first_name" json:"first_name"`
+	LastName       string    `db:"last_name" json:"last_name"`
+	Email          string    `db:"email" json:"email"`
+	Organization   *string   `db:"organization" json:"organization,omitempty"`
+	OrgCode        *string   `db:"org_code" json:"org_code,omitempty"`
+	NsfStatusCode  *string   `db:"nsf_status_code" json:"nsf_status_code,omitempty"`
+	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type PersonDN struct {
+	ID       int64  `db:"id" json:"id"`
+	PersonID string `db:"person_id" json:"person_id"`
+	DN       string `db:"dn" json:"dn"`
 }

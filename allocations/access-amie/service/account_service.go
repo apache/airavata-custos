@@ -24,7 +24,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/google/uuid"
 )
 

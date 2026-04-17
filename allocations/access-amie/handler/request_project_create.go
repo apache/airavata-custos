@@ -23,22 +23,23 @@ import (
 	"fmt"
 
 	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	dmodel "github.com/apache/airavata-custos/allocations/domain/model"
 )
 
 type requestProjectCreatePersonService interface {
-	FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*model.Person, error)
+	FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*dmodel.Person, error)
 }
 
 type requestProjectCreateAccountService interface {
-	ProvisionClusterAccount(ctx context.Context, tx *sql.Tx, person *model.Person) (*model.ClusterAccount, error)
+	ProvisionClusterAccount(ctx context.Context, tx *sql.Tx, person *dmodel.Person) (*dmodel.ClusterAccount, error)
 }
 
 type requestProjectCreateProjectService interface {
-	CreateOrFindProject(ctx context.Context, tx *sql.Tx, projectID, grantNumber string) (*model.Project, error)
+	CreateOrFindProject(ctx context.Context, tx *sql.Tx, projectID, grantNumber string) (*dmodel.Project, error)
 }
 
 type requestProjectCreateMembershipService interface {
-	CreateMembership(ctx context.Context, tx *sql.Tx, projectID, clusterAccountID, role string) (*model.ProjectMembership, error)
+	CreateMembership(ctx context.Context, tx *sql.Tx, projectID, clusterAccountID, role string) (*dmodel.ProjectMembership, error)
 }
 
 type requestProjectCreateAmieClient interface {

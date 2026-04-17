@@ -19,7 +19,6 @@ package model
 
 import "time"
 
-// ClusterAccount maps a person to their username on a target HPC cluster.
 type ClusterAccount struct {
 	ID        string    `db:"id" json:"id"`
 	PersonID  string    `db:"person_id" json:"person_id"`

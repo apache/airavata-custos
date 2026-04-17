@@ -22,15 +22,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/jmoiron/sqlx"
 )
-
-type ProjectStore interface {
-	FindByID(ctx context.Context, id string) (*model.Project, error)
-	Save(ctx context.Context, tx *sql.Tx, p *model.Project) error
-	Update(ctx context.Context, tx *sql.Tx, p *model.Project) error
-}
 
 type mariaDBProjectStore struct {
 	db *sqlx.DB

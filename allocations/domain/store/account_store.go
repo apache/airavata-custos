@@ -22,16 +22,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/jmoiron/sqlx"
 )
-
-type ClusterAccountStore interface {
-	FindByUsername(ctx context.Context, username string) (*model.ClusterAccount, error)
-	FindByPerson(ctx context.Context, personID string) ([]model.ClusterAccount, error)
-	Save(ctx context.Context, tx *sql.Tx, a *model.ClusterAccount) error
-	UpdatePersonID(ctx context.Context, tx *sql.Tx, accountID, newPersonID string) error
-}
 
 type mariaDBClusterAccountStore struct {
 	db *sqlx.DB
