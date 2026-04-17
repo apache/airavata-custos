@@ -33,6 +33,7 @@ import (
 	"github.com/apache/airavata-custos/allocations/access-amie/service"
 	"github.com/apache/airavata-custos/allocations/access-amie/store"
 	"github.com/apache/airavata-custos/allocations/access-amie/worker"
+	domainstore "github.com/apache/airavata-custos/allocations/domain/store"
 )
 
 func main() {
@@ -58,11 +59,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	personStore := store.NewPersonStore(database)
-	personDNStore := store.NewPersonDNStore(database)
-	accountStore := store.NewClusterAccountStore(database)
-	projectStore := store.NewProjectStore(database)
-	membershipStore := store.NewMembershipStore(database)
+	personStore := domainstore.NewPersonStore(database)
+	personDNStore := domainstore.NewPersonDNStore(database)
+	accountStore := domainstore.NewClusterAccountStore(database)
+	projectStore := domainstore.NewProjectStore(database)
+	membershipStore := domainstore.NewMembershipStore(database)
 	packetStore := store.NewPacketStore(database)
 	eventStore := store.NewEventStore(database)
 	errorStore := store.NewProcessingErrorStore(database)

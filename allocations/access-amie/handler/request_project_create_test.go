@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	dmodel "github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -34,42 +35,42 @@ import (
 
 type mockRPCPersonService struct{ mock.Mock }
 
-func (m *mockRPCPersonService) FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*model.Person, error) {
+func (m *mockRPCPersonService) FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*dmodel.Person, error) {
 	args := m.Called(ctx, tx, body)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.Person), args.Error(1)
+	return args.Get(0).(*dmodel.Person), args.Error(1)
 }
 
 type mockRPCAccountService struct{ mock.Mock }
 
-func (m *mockRPCAccountService) ProvisionClusterAccount(ctx context.Context, tx *sql.Tx, person *model.Person) (*model.ClusterAccount, error) {
+func (m *mockRPCAccountService) ProvisionClusterAccount(ctx context.Context, tx *sql.Tx, person *dmodel.Person) (*dmodel.ClusterAccount, error) {
 	args := m.Called(ctx, tx, person)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.ClusterAccount), args.Error(1)
+	return args.Get(0).(*dmodel.ClusterAccount), args.Error(1)
 }
 
 type mockRPCProjectService struct{ mock.Mock }
 
-func (m *mockRPCProjectService) CreateOrFindProject(ctx context.Context, tx *sql.Tx, projectID, grantNumber string) (*model.Project, error) {
+func (m *mockRPCProjectService) CreateOrFindProject(ctx context.Context, tx *sql.Tx, projectID, grantNumber string) (*dmodel.Project, error) {
 	args := m.Called(ctx, tx, projectID, grantNumber)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.Project), args.Error(1)
+	return args.Get(0).(*dmodel.Project), args.Error(1)
 }
 
 type mockRPCMembershipService struct{ mock.Mock }
 
-func (m *mockRPCMembershipService) CreateMembership(ctx context.Context, tx *sql.Tx, projectID, clusterAccountID, role string) (*model.ProjectMembership, error) {
+func (m *mockRPCMembershipService) CreateMembership(ctx context.Context, tx *sql.Tx, projectID, clusterAccountID, role string) (*dmodel.ProjectMembership, error) {
 	args := m.Called(ctx, tx, projectID, clusterAccountID, role)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.ProjectMembership), args.Error(1)
+	return args.Get(0).(*dmodel.ProjectMembership), args.Error(1)
 }
 
 type mockRPCAmieClient struct{ mock.Mock }
@@ -125,9 +126,9 @@ func TestRequestProjectCreateHandler(t *testing.T) {
 			name:  "valid packet processes successfully",
 			input: validFixture,
 			setupMocks: func(ps *mockRPCPersonService, as *mockRPCAccountService, prj *mockRPCProjectService, ms *mockRPCMembershipService, ac *mockRPCAmieClient, aud *mockRPCAuditService) {
-				person := &model.Person{ID: "person-123"}
-				account := &model.ClusterAccount{ID: "account-123", Username: "hwan"}
-				project := &model.Project{ID: "project-123", GrantNumber: "NNT259276"}
+				person := &dmodel.Person{ID: "person-123"}
+				account := &dmodel.ClusterAccount{ID: "account-123", Username: "hwan"}
+				project := &dmodel.Project{ID: "project-123", GrantNumber: "NNT259276"}
 
 				ps.On("FindOrCreateFromPacket", mock.Anything, mock.Anything, mock.Anything).Return(person, nil)
 				aud.On("Log", mock.Anything, mock.Anything, mock.Anything, mock.Anything, model.AuditCreatePerson, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -138,7 +139,7 @@ func TestRequestProjectCreateHandler(t *testing.T) {
 				prj.On("CreateOrFindProject", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(project, nil)
 				aud.On("Log", mock.Anything, mock.Anything, mock.Anything, mock.Anything, model.AuditCreateProject, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-				ms.On("CreateMembership", mock.Anything, mock.Anything, project.ID, account.ID, "PI").Return(&model.ProjectMembership{}, nil)
+				ms.On("CreateMembership", mock.Anything, mock.Anything, project.ID, account.ID, "PI").Return(&dmodel.ProjectMembership{}, nil)
 				aud.On("Log", mock.Anything, mock.Anything, mock.Anything, mock.Anything, model.AuditCreateMembership, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 				ac.On("ReplyToPacket", mock.Anything, int64(233497907), mock.Anything).Return(nil)

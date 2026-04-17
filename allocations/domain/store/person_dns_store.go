@@ -21,17 +21,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/jmoiron/sqlx"
 )
-
-type PersonDNStore interface {
-	ExistsByPersonAndDN(ctx context.Context, personID, dn string) (bool, error)
-	Save(ctx context.Context, tx *sql.Tx, d *model.PersonDN) error
-	DeleteByPersonID(ctx context.Context, tx *sql.Tx, personID string) error
-	DeleteByPersonIDNotIn(ctx context.Context, tx *sql.Tx, personID string, dnsToKeep []string) error
-	FindByPersonID(ctx context.Context, personID string) ([]model.PersonDN, error)
-}
 
 type mariaDBPersonDNStore struct {
 	db *sqlx.DB
@@ -66,7 +58,6 @@ func (s *mariaDBPersonDNStore) DeleteByPersonID(ctx context.Context, tx *sql.Tx,
 
 func (s *mariaDBPersonDNStore) DeleteByPersonIDNotIn(ctx context.Context, tx *sql.Tx, personID string, dnsToKeep []string) error {
 	if len(dnsToKeep) == 0 {
-		// Nothing to keep means delete all for this person.
 		return s.DeleteByPersonID(ctx, tx, personID)
 	}
 	query, args, err := sqlx.In(

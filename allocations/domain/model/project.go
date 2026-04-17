@@ -19,7 +19,6 @@ package model
 
 import "time"
 
-// Project represents an allocation grant tracked by the AMIE system.
 type Project struct {
 	ID          string    `db:"id" json:"id"`
 	GrantNumber string    `db:"grant_number" json:"grant_number"`

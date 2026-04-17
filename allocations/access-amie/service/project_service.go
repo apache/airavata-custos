@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 )
 
 type projectStore interface {

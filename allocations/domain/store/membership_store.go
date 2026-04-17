@@ -22,18 +22,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/jmoiron/sqlx"
 )
-
-type MembershipStore interface {
-	FindByProjectAndAccount(ctx context.Context, projectID, accountID string) (*model.ProjectMembership, error)
-	FindByProject(ctx context.Context, projectID string) ([]model.ProjectMembership, error)
-	FindByProjectAndRole(ctx context.Context, projectID, role string) ([]model.ProjectMembership, error)
-	FindByProjectAndPerson(ctx context.Context, projectID, personID string) ([]model.ProjectMembership, error)
-	Save(ctx context.Context, tx *sql.Tx, m *model.ProjectMembership) error
-	Update(ctx context.Context, tx *sql.Tx, m *model.ProjectMembership) error
-}
 
 type mariaDBMembershipStore struct {
 	db *sqlx.DB

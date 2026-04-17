@@ -22,16 +22,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/jmoiron/sqlx"
 )
-
-type PersonStore interface {
-	FindByID(ctx context.Context, id string) (*model.Person, error)
-	FindByAccessGlobalID(ctx context.Context, globalID string) (*model.Person, error)
-	Save(ctx context.Context, tx *sql.Tx, p *model.Person) error
-	Delete(ctx context.Context, tx *sql.Tx, id string) error
-}
 
 type mariaDBPersonStore struct {
 	db *sqlx.DB
