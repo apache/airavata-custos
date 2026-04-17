@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"time"
 
-	vaultapi "github.com/hashicorp/vault/api"
+	vaultapi "github.com/openbao/openbao/api/v2"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
