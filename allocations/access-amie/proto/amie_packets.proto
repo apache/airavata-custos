@@ -1,0 +1,171 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/apache/airavata-custos/allocations/access-amie/proto/gen";
+
+package org.apache.custos.access.ci.service.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// AMIE packet types that the service must handle from the Client API
+enum PacketType {
+  PACKET_TYPE_UNSPECIFIED = 0;
+  REQUEST_PROJECT_CREATE = 1;
+  REQUEST_PROJECT_INACTIVATE = 2;
+  REQUEST_PROJECT_REACTIVATE = 3;
+  REQUEST_ACCOUNT_CREATE = 4;
+  REQUEST_ACCOUNT_INACTIVATE = 5;
+  REQUEST_ACCOUNT_REACTIVATE = 6;
+  REQUEST_USER_MODIFY = 7;
+  REQUEST_PERSON_MERGE = 8;
+}
+
+// Expected reply descriptor from the AMIE header
+message ExpectedReply {
+  string type = 1;
+  int64 timeout = 2;
+}
+
+// Packet header as returned by the Client API
+message PacketHeader {
+  repeated ExpectedReply expected_reply_list = 1;
+  int64 packet_id = 2;
+  int64 trans_rec_id = 3;
+  int64 transaction_id = 4;
+  string remote_site_name = 5;
+  string local_site_name = 6;
+  string originating_site_name = 7;
+  bool outgoing_flag = 8;
+  string transaction_state = 9;
+  int64 packet_rec_id = 10;
+  string client_state = 11;
+  string packet_state = 12;
+  google.protobuf.Timestamp packet_timestamp = 13;
+  google.protobuf.Struct client_json = 14;
+}
+
+message RequestProjectCreate {
+  string allocated_resource = 1;
+  repeated string pi_requested_login_list = 2;
+  repeated string resource_list = 3;
+  string service_units_allocated = 4;
+  string start_date = 5;
+  string end_date = 6;
+  string project_id = 7;
+  string pi_person_id = 8;
+  string pi_global_id = 9;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestProjectInactivate {
+  string project_id = 1;
+  string person_id = 2;
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  string comment = 5;
+  string start_date = 6;
+  string end_date = 7;
+  string service_units_allocated = 8;
+  string service_units_remaining = 9;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestProjectReactivate {
+  string project_id = 1;
+  string person_id = 2;
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  string start_date = 5;
+  string end_date = 6;
+  string service_units_allocated = 7;
+  string service_units_remaining = 8;
+  string grant_number = 9;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestAccountCreate {
+  string project_id = 1;
+  string person_id = 2;
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  repeated string user_requested_login_list = 5;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestAccountInactivate {
+  string project_id = 1;
+  string person_id = 2;
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  string comment = 5;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestAccountReactivate {
+  string project_id = 1;
+  string person_id = 2;
+  repeated string resource_list = 3;
+  string allocated_resource = 4;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestUserModify {
+  string action_type = 1;
+  string person_id = 2;
+  string first_name = 3;
+  string middle_name = 4;
+  string last_name = 5;
+  string title = 6;
+  string email = 7;
+  string organization = 8;
+  string org_code = 9;
+  string business_phone_number = 10;
+  string street_address = 11;
+  string street_address2 = 12;
+  string city = 13;
+  string state = 14;
+  string zip = 15;
+  string country = 16;
+  repeated string dn_list = 17;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message RequestPersonMerge {
+  string surviving_person_id = 1;
+  string retiring_person_id = 2;
+  google.protobuf.Struct extra_fields = 99;
+}
+
+message Packet {
+  PacketType type = 1;
+  PacketHeader header = 2;
+  oneof body {
+    RequestProjectCreate request_project_create = 10;
+    RequestProjectInactivate request_project_inactivate = 11;
+    RequestProjectReactivate request_project_reactivate = 12;
+    RequestAccountCreate request_account_create = 13;
+    RequestAccountInactivate request_account_inactivate = 14;
+    RequestAccountReactivate request_account_reactivate = 15;
+    RequestUserModify request_user_modify = 16;
+    RequestPersonMerge request_person_merge = 17;
+    google.protobuf.Struct unknown_body = 50;
+  }
+  string raw_json_payload = 98;
+}

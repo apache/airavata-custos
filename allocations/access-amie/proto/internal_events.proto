@@ -1,0 +1,155 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/apache/airavata-custos/allocations/access-amie/proto/gen";
+
+package org.apache.custos.access.ci.service.internal.events.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "amie_packets.proto";
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  PACKET_POLLED = 10;
+  PACKET_PERSISTED = 11;
+  DECODE_STARTED = 20;
+  DECODE_SUCCEEDED = 21;
+  DECODE_FAILED = 22;
+  PROVISIONING_REQUESTED = 30;
+  PROVISIONING_SUCCEEDED = 31;
+  PROVISIONING_FAILED = 32;
+  ACK_SCHEDULED = 40;
+  ACK_DISPATCHED = 41;
+  ACK_FAILED = 42;
+}
+
+enum ProcessingStatus {
+  PROCESSING_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  RUNNING = 2;
+  SUCCEEDED = 3;
+  FAILED = 4;
+  RETRY_SCHEDULED = 5;
+  SKIPPED = 6;
+}
+
+message EventError {
+  string code = 1;
+  string summary = 2;
+  string detail = 3;
+  bool retriable = 4;
+}
+
+message PacketPolledPayload {
+  int64 amie_packet_rec_id = 1;
+  string poll_run_id = 2;
+}
+
+message PacketPersistedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+}
+
+message DecodeStartedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+}
+
+message DecodeSucceededPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  org.apache.custos.access.ci.service.v1.Packet packet = 3;
+}
+
+message DecodeFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  EventError error = 3;
+}
+
+message ProvisioningRequestedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string operation = 3;
+  string unix_username = 4;
+  string project_id = 5;
+  repeated string resources = 6;
+  google.protobuf.Struct desired_state = 7;
+}
+
+message ProvisioningSucceededPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string operation = 3;
+  google.protobuf.Struct result = 4;
+}
+
+message ProvisioningFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string operation = 3;
+  EventError error = 4;
+}
+
+message AckScheduledPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;
+}
+
+message AckDispatchedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;
+  int32 http_status = 4;
+}
+
+message AckFailedPayload {
+  string packet_db_id = 1;
+  int64 amie_packet_rec_id = 2;
+  string reply_type = 3;
+  EventError error = 4;
+}
+
+message ProcessingEvent {
+  string id = 1;
+  string packet_db_id = 2;
+  int64 amie_packet_rec_id = 3;
+  EventType type = 4;
+  ProcessingStatus status = 5;
+  int32 attempts = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp finished_at = 9;
+  oneof payload {
+    PacketPolledPayload packet_polled = 20;
+    PacketPersistedPayload packet_persisted = 21;
+    DecodeStartedPayload decode_started = 30;
+    DecodeSucceededPayload decode_succeeded = 31;
+    DecodeFailedPayload decode_failed = 32;
+    ProvisioningRequestedPayload provisioning_requested = 40;
+    ProvisioningSucceededPayload provisioning_succeeded = 41;
+    ProvisioningFailedPayload provisioning_failed = 42;
+    AckScheduledPayload ack_scheduled = 50;
+    AckDispatchedPayload ack_dispatched = 51;
+    AckFailedPayload ack_failed = 52;
+    google.protobuf.Struct generic = 90;
+  }
+}
