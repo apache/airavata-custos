@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/apache/airavata-custos/allocations/domain/model"
 )
@@ -51,10 +52,13 @@ func (s *ProjectService) CreateOrFindProject(ctx context.Context, tx *sql.Tx, pr
 		return existing, nil
 	}
 
+	now := time.Now().UTC()
 	p := &model.Project{
 		ID:          projectID,
 		GrantNumber: grantNumber,
 		IsActive:    true,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := s.projects.Save(ctx, tx, p); err != nil {

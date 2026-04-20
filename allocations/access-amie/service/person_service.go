@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/google/uuid"
@@ -30,7 +31,10 @@ import (
 type personStore interface {
 	FindByID(ctx context.Context, id string) (*model.Person, error)
 	FindByAccessGlobalID(ctx context.Context, globalID string) (*model.Person, error)
+	FindActiveByEmail(ctx context.Context, email string) (*model.Person, error)
 	Save(ctx context.Context, tx *sql.Tx, p *model.Person) error
+	Update(ctx context.Context, tx *sql.Tx, p *model.Person) error
+	Deactivate(ctx context.Context, tx *sql.Tx, id string) error
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
@@ -47,29 +51,39 @@ type personAccountStore interface {
 	UpdatePersonID(ctx context.Context, tx *sql.Tx, accountID, newPersonID string) error
 }
 
-type PersonService struct {
-	persons  personStore
-	dns      personDNStore
-	accounts personAccountStore
+type personGlobalIDStore interface {
+	FindPersonByGlobalID(ctx context.Context, globalID string) (*model.Person, error)
+	Save(ctx context.Context, tx *sql.Tx, g *model.PersonGlobalID) error
+	UpdatePersonID(ctx context.Context, tx *sql.Tx, oldPersonID, newPersonID string) error
 }
 
-func NewPersonService(persons personStore, dns personDNStore, accounts personAccountStore) *PersonService {
+type PersonService struct {
+	persons   personStore
+	dns       personDNStore
+	accounts  personAccountStore
+	globalIDs personGlobalIDStore
+}
+
+func NewPersonService(persons personStore, dns personDNStore, accounts personAccountStore, globalIDs personGlobalIDStore) *PersonService {
 	return &PersonService{
-		persons:  persons,
-		dns:      dns,
-		accounts: accounts,
+		persons:   persons,
+		dns:       dns,
+		accounts:  accounts,
+		globalIDs: globalIDs,
 	}
 }
 
-// FindOrCreateFromPacket looks up a person by their ACCESS Global ID or
-// creates a new person record from the supplied AMIE packet body.
+// FindOrCreateFromPacket looks up a person by their ACCESS Global ID (via the
+// mapping table), then by email. Creates a new person only if neither lookup
+// finds an existing active person. This deduplicates persons who share the same
+// email but arrive with different ACCESS Global IDs.
 func (s *PersonService) FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*model.Person, error) {
 	globalID, _ := body["UserGlobalID"].(string)
 	if globalID == "" {
 		return nil, fmt.Errorf("person_service: UserGlobalID is required")
 	}
 
-	existing, err := s.persons.FindByAccessGlobalID(ctx, globalID)
+	existing, err := s.globalIDs.FindPersonByGlobalID(ctx, globalID)
 	if err != nil {
 		return nil, fmt.Errorf("person_service: finding person by global ID %s: %w", globalID, err)
 	}
@@ -77,10 +91,31 @@ func (s *PersonService) FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, 
 		return existing, nil
 	}
 
+	email, _ := body["UserEmail"].(string)
+	if email != "" {
+		byEmail, err := s.persons.FindActiveByEmail(ctx, email)
+		if err != nil {
+			return nil, fmt.Errorf("person_service: finding person by email %s: %w", email, err)
+		}
+		if byEmail != nil {
+			slog.InfoContext(ctx, "deduplicating person by email", "person_id", byEmail.ID, "email", email, "new_global_id", globalID)
+
+			byEmail.AccessGlobalID = globalID
+			if err := s.persons.Update(ctx, tx, byEmail); err != nil {
+				return nil, fmt.Errorf("person_service: updating person %s with new global ID: %w", byEmail.ID, err)
+			}
+			g := &model.PersonGlobalID{PersonID: byEmail.ID, GlobalID: globalID}
+			if err := s.globalIDs.Save(ctx, tx, g); err != nil {
+				return nil, fmt.Errorf("person_service: saving global ID mapping for person %s: %w", byEmail.ID, err)
+			}
+			return byEmail, nil
+		}
+	}
+
 	firstName, _ := body["UserFirstName"].(string)
 	lastName, _ := body["UserLastName"].(string)
-	email, _ := body["UserEmail"].(string)
 
+	now := time.Now().UTC()
 	p := &model.Person{
 		ID:             uuid.NewString(),
 		AccessGlobalID: globalID,
@@ -90,15 +125,22 @@ func (s *PersonService) FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, 
 		Organization:   optionalString(body, "UserOrganization"),
 		OrgCode:        optionalString(body, "UserOrgCode"),
 		NsfStatusCode:  optionalString(body, "NsfStatusCode"),
+		IsActive:       true,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	if err := s.persons.Save(ctx, tx, p); err != nil {
 		return nil, fmt.Errorf("person_service: saving new person %s: %w", p.ID, err)
 	}
 
+	g := &model.PersonGlobalID{PersonID: p.ID, GlobalID: globalID}
+	if err := s.globalIDs.Save(ctx, tx, g); err != nil {
+		return nil, fmt.Errorf("person_service: saving global ID mapping for new person %s: %w", p.ID, err)
+	}
+
 	slog.DebugContext(ctx, "created person from packet", "person_id", p.ID, "global_id", globalID)
 
-	// Persist DN list if present.
 	if dnList, ok := body["UserDnList"].([]any); ok {
 		for _, raw := range dnList {
 			dn, _ := raw.(string)
@@ -131,7 +173,6 @@ func (s *PersonService) ReplaceFromModifyPacket(ctx context.Context, tx *sql.Tx,
 		return fmt.Errorf("person_service: person %s not found", personID)
 	}
 
-	// Update only fields present in the body.
 	if v, ok := body["UserFirstName"]; ok {
 		p.FirstName, _ = v.(string)
 	}
@@ -151,7 +192,6 @@ func (s *PersonService) ReplaceFromModifyPacket(ctx context.Context, tx *sql.Tx,
 		p.NsfStatusCode = optionalString(body, "NsfStatusCode")
 	}
 
-	// Handle DN list updates.
 	if rawDNs, ok := body["UserDnList"]; ok {
 		dnList, isList := rawDNs.([]any)
 		if isList && len(dnList) > 0 {
@@ -184,8 +224,8 @@ func (s *PersonService) ReplaceFromModifyPacket(ctx context.Context, tx *sql.Tx,
 		}
 	}
 
-	if err := s.persons.Save(ctx, tx, p); err != nil {
-		return fmt.Errorf("person_service: saving updated person %s: %w", personID, err)
+	if err := s.persons.Update(ctx, tx, p); err != nil {
+		return fmt.Errorf("person_service: updating person %s: %w", personID, err)
 	}
 
 	slog.DebugContext(ctx, "updated person from modify packet", "person_id", personID)
@@ -208,8 +248,10 @@ func (s *PersonService) DeleteFromModifyPacket(ctx context.Context, tx *sql.Tx, 
 	return nil
 }
 
-// MergePersons transfers all accounts and DNs from the retiring person to the
-// surviving person, then deletes the retiring person.
+// MergePersons transfers all accounts, DNs, and GlobalID mappings from the
+// retiring person to the surviving person, then deactivates the retiring person.
+// If the retiring person is not found or already inactive (e.g., email dedup
+// already consolidated them), the merge is treated as a no-op.
 func (s *PersonService) MergePersons(ctx context.Context, tx *sql.Tx, survivingID, retiringID string) error {
 	surviving, err := s.persons.FindByID(ctx, survivingID)
 	if err != nil {
@@ -224,10 +266,14 @@ func (s *PersonService) MergePersons(ctx context.Context, tx *sql.Tx, survivingI
 		return fmt.Errorf("person_service: finding retiring person %s: %w", retiringID, err)
 	}
 	if retiring == nil {
-		return fmt.Errorf("person_service: retiring person %s not found", retiringID)
+		slog.WarnContext(ctx, "retiring person not found, merge is a no-op (may have been deduplicated)", "retiring_id", retiringID, "surviving_id", survivingID)
+		return nil
+	}
+	if !retiring.IsActive {
+		slog.WarnContext(ctx, "retiring person already inactive, merge is a no-op", "retiring_id", retiringID, "surviving_id", survivingID)
+		return nil
 	}
 
-	// Move cluster accounts from the retiring person to the surviving person.
 	retiringAccounts, err := s.accounts.FindByPerson(ctx, retiringID)
 	if err != nil {
 		return fmt.Errorf("person_service: finding accounts for retiring person %s: %w", retiringID, err)
@@ -257,18 +303,34 @@ func (s *PersonService) MergePersons(ctx context.Context, tx *sql.Tx, survivingI
 		}
 	}
 
-	// Delete the retiring person; cascade rules handle related records.
-	if err := s.persons.Delete(ctx, tx, retiringID); err != nil {
-		return fmt.Errorf("person_service: deleting retiring person %s: %w", retiringID, err)
+	if err := s.globalIDs.UpdatePersonID(ctx, tx, retiringID, survivingID); err != nil {
+		return fmt.Errorf("person_service: reassigning global IDs from %s to %s: %w", retiringID, survivingID, err)
 	}
 
-	slog.DebugContext(ctx, "merged persons", "surviving_id", survivingID, "retiring_id", retiringID)
+	if err := s.persons.Deactivate(ctx, tx, retiringID); err != nil {
+		return fmt.Errorf("person_service: deactivating retiring person %s: %w", retiringID, err)
+	}
+
+	slog.InfoContext(ctx, "merged persons", "surviving_id", survivingID, "retiring_id", retiringID)
 	return nil
 }
 
 // PersistDNsForPerson saves any distinguished names that the person does not
-// already have.
+// already have. Skips gracefully if person is not found or inactive.
 func (s *PersonService) PersistDNsForPerson(ctx context.Context, tx *sql.Tx, personID string, dnList []string) error {
+	p, err := s.persons.FindByID(ctx, personID)
+	if err != nil {
+		return fmt.Errorf("person_service: finding person %s: %w", personID, err)
+	}
+	if p == nil {
+		slog.WarnContext(ctx, "skipping DN persistence for unknown person (may have been merged/deleted)", "person_id", personID)
+		return nil
+	}
+	if !p.IsActive {
+		slog.WarnContext(ctx, "skipping DN persistence for inactive person (merged)", "person_id", personID)
+		return nil
+	}
+
 	for _, dn := range dnList {
 		exists, err := s.dns.ExistsByPersonAndDN(ctx, personID, dn)
 		if err != nil {

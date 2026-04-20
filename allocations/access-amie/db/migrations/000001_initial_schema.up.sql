@@ -28,10 +28,23 @@ CREATE TABLE IF NOT EXISTS persons
     organization     VARCHAR(255) NULL,
     org_code         VARCHAR(255) NULL,
     nsf_status_code  VARCHAR(32)  NULL,
+    is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at       TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at       TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uq_persons_amie_global_id (access_global_id)
+    UNIQUE KEY uq_persons_amie_global_id (access_global_id),
+    KEY idx_persons_active (is_active),
+    KEY idx_persons_email (email)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS person_global_ids
+(
+    id        BIGINT       NOT NULL AUTO_INCREMENT,
+    person_id VARCHAR(255) NOT NULL,
+    global_id VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_global_ids_person FOREIGN KEY (person_id) REFERENCES persons (id) ON DELETE CASCADE,
+    UNIQUE KEY uq_person_global_id (global_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS person_dns
@@ -142,7 +155,7 @@ CREATE TABLE IF NOT EXISTS amie_processing_errors
     KEY idx_errors_amie_occurred_at (occurred_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS amie_audit_logs
+CREATE TABLE IF NOT EXISTS amie_audit_log
 (
     id          BIGINT       NOT NULL AUTO_INCREMENT,
     packet_id   VARCHAR(255) NOT NULL,

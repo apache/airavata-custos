@@ -28,8 +28,15 @@ type Person struct {
 	Organization   *string   `db:"organization" json:"organization,omitempty"`
 	OrgCode        *string   `db:"org_code" json:"org_code,omitempty"`
 	NsfStatusCode  *string   `db:"nsf_status_code" json:"nsf_status_code,omitempty"`
+	IsActive       bool      `db:"is_active" json:"is_active"`
 	CreatedAt      time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type PersonGlobalID struct {
+	ID       int64  `db:"id" json:"id"`
+	PersonID string `db:"person_id" json:"person_id"`
+	GlobalID string `db:"global_id" json:"global_id"`
 }
 
 type PersonDN struct {

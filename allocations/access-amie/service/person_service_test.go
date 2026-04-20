@@ -58,6 +58,24 @@ func (m *mockPersonStore) Save(ctx context.Context, tx *sql.Tx, p *model.Person)
 	return args.Error(0)
 }
 
+func (m *mockPersonStore) Update(ctx context.Context, tx *sql.Tx, p *model.Person) error {
+	args := m.Called(ctx, tx, p)
+	return args.Error(0)
+}
+
+func (m *mockPersonStore) FindActiveByEmail(ctx context.Context, email string) (*model.Person, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Person), args.Error(1)
+}
+
+func (m *mockPersonStore) Deactivate(ctx context.Context, tx *sql.Tx, id string) error {
+	args := m.Called(ctx, tx, id)
+	return args.Error(0)
+}
+
 func (m *mockPersonStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	args := m.Called(ctx, tx, id)
 	return args.Error(0)
@@ -112,6 +130,28 @@ func (m *mockPersonAccountStore) UpdatePersonID(ctx context.Context, tx *sql.Tx,
 	return args.Error(0)
 }
 
+type mockPersonGlobalIDStore struct {
+	mock.Mock
+}
+
+func (m *mockPersonGlobalIDStore) FindPersonByGlobalID(ctx context.Context, globalID string) (*model.Person, error) {
+	args := m.Called(ctx, globalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Person), args.Error(1)
+}
+
+func (m *mockPersonGlobalIDStore) Save(ctx context.Context, tx *sql.Tx, g *model.PersonGlobalID) error {
+	args := m.Called(ctx, tx, g)
+	return args.Error(0)
+}
+
+func (m *mockPersonGlobalIDStore) UpdatePersonID(ctx context.Context, tx *sql.Tx, oldPersonID, newPersonID string) error {
+	args := m.Called(ctx, tx, oldPersonID, newPersonID)
+	return args.Error(0)
+}
+
 // ---------------------------------------------------------------------------
 // FindOrCreateFromPacket tests
 // ---------------------------------------------------------------------------
@@ -121,17 +161,18 @@ func TestFindOrCreateFromPacket_FindExistingByGlobalID(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	globalIDs := new(mockPersonGlobalIDStore)
+	svc := NewPersonService(persons, dns, accounts, globalIDs)
 
 	existing := &model.Person{ID: "p1", AccessGlobalID: "global-123"}
-	persons.On("FindByAccessGlobalID", ctx, "global-123").Return(existing, nil)
+	globalIDs.On("FindPersonByGlobalID", ctx, "global-123").Return(existing, nil)
 
 	body := map[string]any{"UserGlobalID": "global-123"}
 	got, err := svc.FindOrCreateFromPacket(ctx, nil, body)
 
 	require.NoError(t, err)
 	assert.Equal(t, existing, got)
-	persons.AssertExpectations(t)
+	globalIDs.AssertExpectations(t)
 }
 
 func TestFindOrCreateFromPacket_CreateNewWithAllFields(t *testing.T) {
@@ -139,10 +180,13 @@ func TestFindOrCreateFromPacket_CreateNewWithAllFields(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	globalIDs := new(mockPersonGlobalIDStore)
+	svc := NewPersonService(persons, dns, accounts, globalIDs)
 
-	persons.On("FindByAccessGlobalID", ctx, "global-456").Return(nil, nil)
+	globalIDs.On("FindPersonByGlobalID", ctx, "global-456").Return(nil, nil)
+	persons.On("FindActiveByEmail", ctx, "jane@example.com").Return(nil, nil)
 	persons.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.Person")).Return(nil)
+	globalIDs.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonGlobalID")).Return(nil)
 
 	body := map[string]any{
 		"UserGlobalID":     "global-456",
@@ -164,6 +208,7 @@ func TestFindOrCreateFromPacket_CreateNewWithAllFields(t *testing.T) {
 	require.NotNil(t, got.Organization)
 	assert.Equal(t, "Test Org", *got.Organization)
 	persons.AssertExpectations(t)
+	globalIDs.AssertExpectations(t)
 }
 
 func TestFindOrCreateFromPacket_CreateWithDNList(t *testing.T) {
@@ -171,10 +216,13 @@ func TestFindOrCreateFromPacket_CreateWithDNList(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	globalIDs := new(mockPersonGlobalIDStore)
+	svc := NewPersonService(persons, dns, accounts, globalIDs)
 
-	persons.On("FindByAccessGlobalID", ctx, "global-789").Return(nil, nil)
+	globalIDs.On("FindPersonByGlobalID", ctx, "global-789").Return(nil, nil)
+	persons.On("FindActiveByEmail", ctx, "bob@example.com").Return(nil, nil)
 	persons.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.Person")).Return(nil)
+	globalIDs.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonGlobalID")).Return(nil)
 	dns.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonDN")).Return(nil).Times(2)
 
 	body := map[string]any{
@@ -190,11 +238,12 @@ func TestFindOrCreateFromPacket_CreateWithDNList(t *testing.T) {
 	require.NotNil(t, got)
 	persons.AssertExpectations(t)
 	dns.AssertExpectations(t)
+	globalIDs.AssertExpectations(t)
 }
 
 func TestFindOrCreateFromPacket_ErrorOnMissingUserGlobalID(t *testing.T) {
 	ctx := context.Background()
-	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	body := map[string]any{"UserFirstName": "No", "UserLastName": "ID"}
 	_, err := svc.FindOrCreateFromPacket(ctx, nil, body)
@@ -212,11 +261,11 @@ func TestReplaceFromModifyPacket_UpdateAllFields(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
 	p := &model.Person{ID: "p1", FirstName: "Old", LastName: "Name", Email: "old@example.com"}
 	persons.On("FindByID", ctx, "p1").Return(p, nil)
-	persons.On("Save", ctx, mock.Anything, p).Return(nil)
+	persons.On("Update", ctx, mock.Anything, p).Return(nil)
 
 	body := map[string]any{
 		"PersonID":      "p1",
@@ -238,11 +287,11 @@ func TestReplaceFromModifyPacket_PartialUpdate(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
 	p := &model.Person{ID: "p1", FirstName: "Keep", LastName: "This", Email: "keep@example.com"}
 	persons.On("FindByID", ctx, "p1").Return(p, nil)
-	persons.On("Save", ctx, mock.Anything, p).Return(nil)
+	persons.On("Update", ctx, mock.Anything, p).Return(nil)
 
 	body := map[string]any{
 		"PersonID":      "p1",
@@ -261,12 +310,12 @@ func TestReplaceFromModifyPacket_PreserveOrgWhenAbsent(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
 	org := "Original Org"
 	p := &model.Person{ID: "p1", FirstName: "F", Organization: &org}
 	persons.On("FindByID", ctx, "p1").Return(p, nil)
-	persons.On("Save", ctx, mock.Anything, p).Return(nil)
+	persons.On("Update", ctx, mock.Anything, p).Return(nil)
 
 	// No UserOrganization key in body - org should be preserved
 	body := map[string]any{
@@ -285,12 +334,12 @@ func TestReplaceFromModifyPacket_ClearDNsWhenEmpty(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
 	p := &model.Person{ID: "p1"}
 	persons.On("FindByID", ctx, "p1").Return(p, nil)
 	dns.On("DeleteByPersonID", ctx, mock.Anything, "p1").Return(nil)
-	persons.On("Save", ctx, mock.Anything, p).Return(nil)
+	persons.On("Update", ctx, mock.Anything, p).Return(nil)
 
 	body := map[string]any{
 		"PersonID":   "p1",
@@ -307,14 +356,14 @@ func TestReplaceFromModifyPacket_UpdateDNList(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
 	p := &model.Person{ID: "p1"}
 	persons.On("FindByID", ctx, "p1").Return(p, nil)
 	dns.On("DeleteByPersonIDNotIn", ctx, mock.Anything, "p1", []string{"/CN=new"}).Return(nil)
 	dns.On("ExistsByPersonAndDN", ctx, "p1", "/CN=new").Return(false, nil)
 	dns.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonDN")).Return(nil)
-	persons.On("Save", ctx, mock.Anything, p).Return(nil)
+	persons.On("Update", ctx, mock.Anything, p).Return(nil)
 
 	body := map[string]any{
 		"PersonID":   "p1",
@@ -329,7 +378,7 @@ func TestReplaceFromModifyPacket_UpdateDNList(t *testing.T) {
 
 func TestReplaceFromModifyPacket_ErrorOnMissingPersonID(t *testing.T) {
 	ctx := context.Background()
-	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	body := map[string]any{"UserFirstName": "No", "UserLastName": "ID"}
 	err := svc.ReplaceFromModifyPacket(ctx, nil, body)
@@ -341,7 +390,7 @@ func TestReplaceFromModifyPacket_ErrorOnMissingPersonID(t *testing.T) {
 func TestReplaceFromModifyPacket_ErrorOnUnknownPersonID(t *testing.T) {
 	ctx := context.Background()
 	persons := new(mockPersonStore)
-	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	persons.On("FindByID", ctx, "unknown").Return(nil, nil)
 
@@ -362,8 +411,9 @@ func TestPersistDNsForPerson_PersistNewDN(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
+	persons.On("FindByID", ctx, "p1").Return(&model.Person{ID: "p1", IsActive: true}, nil)
 	dns.On("ExistsByPersonAndDN", ctx, "p1", "/CN=new").Return(false, nil)
 	dns.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonDN")).Return(nil)
 
@@ -378,8 +428,9 @@ func TestPersistDNsForPerson_SkipExistingDN(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	svc := NewPersonService(persons, dns, accounts, new(mockPersonGlobalIDStore))
 
+	persons.On("FindByID", ctx, "p1").Return(&model.Person{ID: "p1", IsActive: true}, nil)
 	dns.On("ExistsByPersonAndDN", ctx, "p1", "/CN=existing").Return(true, nil)
 	// Save should NOT be called for existing DNs
 
@@ -399,10 +450,11 @@ func TestMergePersons_MoveAccountsAndDNs(t *testing.T) {
 	persons := new(mockPersonStore)
 	dns := new(mockPersonDNStore)
 	accounts := new(mockPersonAccountStore)
-	svc := NewPersonService(persons, dns, accounts)
+	globalIDs := new(mockPersonGlobalIDStore)
+	svc := NewPersonService(persons, dns, accounts, globalIDs)
 
 	surviving := &model.Person{ID: "survivor"}
-	retiring := &model.Person{ID: "retiring"}
+	retiring := &model.Person{ID: "retiring", IsActive: true}
 
 	persons.On("FindByID", ctx, "survivor").Return(surviving, nil)
 	persons.On("FindByID", ctx, "retiring").Return(retiring, nil)
@@ -411,7 +463,8 @@ func TestMergePersons_MoveAccountsAndDNs(t *testing.T) {
 	dns.On("FindByPersonID", ctx, "retiring").Return([]model.PersonDN{{PersonID: "retiring", DN: "/CN=retiring"}}, nil)
 	dns.On("ExistsByPersonAndDN", ctx, "survivor", "/CN=retiring").Return(false, nil)
 	dns.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.PersonDN")).Return(nil)
-	persons.On("Delete", ctx, mock.Anything, "retiring").Return(nil)
+	globalIDs.On("UpdatePersonID", ctx, mock.Anything, "retiring", "survivor").Return(nil)
+	persons.On("Deactivate", ctx, mock.Anything, "retiring").Return(nil)
 
 	err := svc.MergePersons(ctx, nil, "survivor", "retiring")
 
@@ -419,12 +472,13 @@ func TestMergePersons_MoveAccountsAndDNs(t *testing.T) {
 	persons.AssertExpectations(t)
 	accounts.AssertExpectations(t)
 	dns.AssertExpectations(t)
+	globalIDs.AssertExpectations(t)
 }
 
 func TestMergePersons_ErrorOnUnknownSurvivingPerson(t *testing.T) {
 	ctx := context.Background()
 	persons := new(mockPersonStore)
-	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	persons.On("FindByID", ctx, "missing").Return(nil, nil)
 
@@ -438,7 +492,7 @@ func TestMergePersons_ErrorOnUnknownSurvivingPerson(t *testing.T) {
 func TestMergePersons_ErrorOnUnknownRetiringPerson(t *testing.T) {
 	ctx := context.Background()
 	persons := new(mockPersonStore)
-	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	surviving := &model.Person{ID: "survivor"}
 	persons.On("FindByID", ctx, "survivor").Return(surviving, nil)
@@ -446,8 +500,7 @@ func TestMergePersons_ErrorOnUnknownRetiringPerson(t *testing.T) {
 
 	err := svc.MergePersons(ctx, nil, "survivor", "missing-retiring")
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "retiring person")
+	require.NoError(t, err)
 	persons.AssertExpectations(t)
 }
 
@@ -458,7 +511,7 @@ func TestMergePersons_ErrorOnUnknownRetiringPerson(t *testing.T) {
 func TestDeleteFromModifyPacket_DeleteByID(t *testing.T) {
 	ctx := context.Background()
 	persons := new(mockPersonStore)
-	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	persons.On("Delete", ctx, mock.Anything, "p1").Return(nil)
 
@@ -471,7 +524,7 @@ func TestDeleteFromModifyPacket_DeleteByID(t *testing.T) {
 
 func TestDeleteFromModifyPacket_ErrorOnMissingPersonID(t *testing.T) {
 	ctx := context.Background()
-	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(new(mockPersonStore), new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	body := map[string]any{}
 	err := svc.DeleteFromModifyPacket(ctx, nil, body)
@@ -483,7 +536,7 @@ func TestDeleteFromModifyPacket_ErrorOnMissingPersonID(t *testing.T) {
 func TestDeleteFromModifyPacket_PropagatesStoreError(t *testing.T) {
 	ctx := context.Background()
 	persons := new(mockPersonStore)
-	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore))
+	svc := NewPersonService(persons, new(mockPersonDNStore), new(mockPersonAccountStore), new(mockPersonGlobalIDStore))
 
 	persons.On("Delete", ctx, mock.Anything, "p1").Return(errors.New("db error"))
 

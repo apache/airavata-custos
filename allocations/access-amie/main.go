@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/apache/airavata-custos/allocations/access-amie/amieclient"
@@ -61,6 +62,7 @@ func main() {
 
 	personStore := domainstore.NewPersonStore(database)
 	personDNStore := domainstore.NewPersonDNStore(database)
+	personGlobalIDStore := domainstore.NewPersonGlobalIDStore(database)
 	accountStore := domainstore.NewClusterAccountStore(database)
 	projectStore := domainstore.NewProjectStore(database)
 	membershipStore := domainstore.NewMembershipStore(database)
@@ -69,7 +71,7 @@ func main() {
 	errorStore := store.NewProcessingErrorStore(database)
 	auditStore := store.NewAuditStore(database)
 
-	personSvc := service.NewPersonService(personStore, personDNStore, accountStore)
+	personSvc := service.NewPersonService(personStore, personDNStore, accountStore, personGlobalIDStore)
 	accountSvc := service.NewUserAccountService(accountStore)
 	projectSvc := service.NewProjectService(projectStore)
 	membershipSvc := service.NewProjectMembershipService(membershipStore, projectStore, accountStore)
@@ -108,13 +110,22 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	go poller.Run(ctx)
-	go processor.Run(ctx)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		poller.Run(ctx)
+	}()
+	go func() {
+		defer wg.Done()
+		processor.Run(ctx)
+	}()
 
 	slog.Info("access-amie service started successfully")
 	<-ctx.Done()
 
-	slog.Info("shutting down...")
+	slog.Info("shutting down, waiting for workers to finish...")
+	wg.Wait()
 	if err := srv.Shutdown(context.Background()); err != nil {
 		slog.Error("HTTP server shutdown error", "error", err)
 	}

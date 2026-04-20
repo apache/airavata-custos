@@ -27,8 +27,17 @@ import (
 type PersonStore interface {
 	FindByID(ctx context.Context, id string) (*model.Person, error)
 	FindByAccessGlobalID(ctx context.Context, globalID string) (*model.Person, error)
+	FindActiveByEmail(ctx context.Context, email string) (*model.Person, error)
 	Save(ctx context.Context, tx *sql.Tx, p *model.Person) error
+	Update(ctx context.Context, tx *sql.Tx, p *model.Person) error
+	Deactivate(ctx context.Context, tx *sql.Tx, id string) error
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+type PersonGlobalIDStore interface {
+	FindPersonByGlobalID(ctx context.Context, globalID string) (*model.Person, error)
+	Save(ctx context.Context, tx *sql.Tx, g *model.PersonGlobalID) error
+	UpdatePersonID(ctx context.Context, tx *sql.Tx, oldPersonID, newPersonID string) error
 }
 
 type PersonDNStore interface {

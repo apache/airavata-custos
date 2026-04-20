@@ -97,7 +97,6 @@ func (p *Processor) Run(ctx context.Context) {
 	ticker := time.NewTicker(p.workerInterval)
 	defer ticker.Stop()
 
-	// Process immediately on start, then on ticker.
 	p.processPendingEvents(ctx)
 	for {
 		select {
@@ -159,7 +158,6 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			"attempt", ewp.Attempts+1,
 		)
 
-		// Mark the event as RUNNING and increment the attempt counter.
 		now := time.Now().UTC()
 		ewp.Status = model.ProcessingStatusRunning
 		ewp.StartedAt = &now
@@ -168,26 +166,21 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("update event to RUNNING: %w", err)
 		}
 
-		// Parse the packet's raw JSON.
 		var packetJSON map[string]any
 		if err := json.Unmarshal([]byte(ewp.PacketRawJSON), &packetJSON); err != nil {
 			return fmt.Errorf("unmarshal packet raw JSON: %w", err)
 		}
 
-		// Build a Packet from the EventWithPacket projection fields.
-		packet := &model.Packet{
-			ID:      ewp.PacketID,
-			AmieID:  ewp.PacketAmieID,
-			Type:    ewp.PacketType,
-			RawJSON: ewp.PacketRawJSON,
+		// Load the full packet from DB to preserve all fields (e.g. retries).
+		packet, err := p.packetStore.FindByID(ctx, ewp.PacketID)
+		if err != nil {
+			return fmt.Errorf("load packet %s: %w", ewp.PacketID, err)
 		}
 
-		// Route the packet to its handler.
 		if err := p.router.Route(ctx, tx, packetJSON, packet, ewp.ID); err != nil {
 			return fmt.Errorf("route packet: %w", err)
 		}
 
-		// Mark the event as SUCCEEDED.
 		finishedAt := time.Now().UTC()
 		ewp.Status = model.ProcessingStatusSucceeded
 		ewp.FinishedAt = &finishedAt
@@ -196,7 +189,6 @@ func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWit
 			return fmt.Errorf("update event to SUCCEEDED: %w", err)
 		}
 
-		// Mark the packet as DECODED.
 		decodedAt := time.Now().UTC()
 		packet.Status = model.PacketStatusDecoded
 		packet.DecodedAt = &decodedAt
@@ -227,7 +219,6 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			return nil
 		}
 
-		// Load the associated packet.
 		packet, err := p.packetStore.FindByID(ctx, event.PacketID)
 		if err != nil {
 			return fmt.Errorf("find packet for failure recording: %w", err)
@@ -248,6 +239,13 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			event.Status = model.ProcessingStatusRetryScheduled
 			nextRetry := ComputeNextRetryAt(effectiveAttempts)
 			event.NextRetryAt = &nextRetry
+
+			packet.Retries = effectiveAttempts
+			packet.LastError = &errMsg
+			if err := p.packetStore.Update(ctx, tx, packet); err != nil {
+				return fmt.Errorf("update packet retries: %w", err)
+			}
+
 			p.metrics.RecordRetry()
 			p.metrics.RecordPacketProcessed(packet.Type, "retry_scheduled")
 			slog.Warn("event failed, scheduling retry",
@@ -261,8 +259,8 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			p.metrics.RecordPacketProcessed(packet.Type, "permanently_failed")
 			slog.Error("event permanently failed after max attempts", "eventId", eventID)
 
-			// Mark the packet as FAILED.
 			packet.Status = model.PacketStatusFailed
+			packet.Retries = effectiveAttempts
 			packet.LastError = &errMsg
 			if err := p.packetStore.Update(ctx, tx, packet); err != nil {
 				return fmt.Errorf("update packet status: %w", err)
@@ -273,7 +271,6 @@ func (p *Processor) recordFailureInNewTransaction(ctx context.Context, eventID s
 			return fmt.Errorf("update event: %w", err)
 		}
 
-		// Create a processing error record.
 		detail := cause.Error()
 		if len(detail) > 8000 {
 			detail = detail[:8000]

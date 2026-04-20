@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/google/uuid"
@@ -81,12 +82,15 @@ func (s *ProjectMembershipService) CreateMembership(ctx context.Context, tx *sql
 		return existing, nil
 	}
 
+	now := time.Now().UTC()
 	m := &model.ProjectMembership{
 		ID:               uuid.NewString(),
 		ProjectID:        projectID,
 		ClusterAccountID: clusterAccountID,
 		Role:             &role,
 		IsActive:         true,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 
 	if err := s.memberships.Save(ctx, tx, m); err != nil {
