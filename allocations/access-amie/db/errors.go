@@ -15,32 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package store
+package db
 
 import (
-	"context"
-	"database/sql"
+	"errors"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-sql-driver/mysql"
 )
 
-type AuditStore interface {
-	Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error
-}
-
-type mariaDBauditStore struct {
-	db *sqlx.DB
-}
-
-func NewAuditStore(db *sqlx.DB) AuditStore {
-	return &mariaDBauditStore{db: db}
-}
-
-func (s *mariaDBauditStore) Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error {
-	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_audit_log (packet_id, event_id, action, entity_type, entity_id, summary, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		a.PacketID, a.EventID, a.Action, a.EntityType, a.EntityID, a.Summary, a.CreatedAt)
-	return err
+// IsDuplicateKeyError returns true if the error is a MariaDB/MySQL duplicate
+// key violation (error code 1062).
+func IsDuplicateKeyError(err error) bool {
+	var dbErr *mysql.MySQLError
+	return errors.As(err, &dbErr) && dbErr.Number == 1062
 }

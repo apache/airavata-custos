@@ -15,7 +15,7 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-DROP TABLE IF EXISTS amie_audit_logs;
+DROP TABLE IF EXISTS amie_audit_log;
 DROP TABLE IF EXISTS amie_processing_errors;
 DROP TABLE IF EXISTS amie_processing_events;
 DROP TABLE IF EXISTS amie_packets;
@@ -23,4 +23,5 @@ DROP TABLE IF EXISTS project_memberships;
 DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS cluster_accounts;
 DROP TABLE IF EXISTS person_dns;
+DROP TABLE IF EXISTS person_global_ids;
 DROP TABLE IF EXISTS persons;

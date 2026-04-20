@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
+	"github.com/apache/airavata-custos/allocations/access-amie/db"
 	"github.com/apache/airavata-custos/allocations/domain/model"
 	"github.com/google/uuid"
 )
@@ -59,16 +61,19 @@ func (s *UserAccountService) ProvisionClusterAccount(ctx context.Context, tx *sq
 		return nil, fmt.Errorf("account_service: ensuring unique username for person %s: %w", person.ID, err)
 	}
 
+	now := time.Now().UTC()
 	acct := &model.ClusterAccount{
-		ID:       uuid.NewString(),
-		PersonID: person.ID,
-		Username: uniqueUsername,
+		ID:        uuid.NewString(),
+		PersonID:  person.ID,
+		Username:  uniqueUsername,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	if err := s.accounts.Save(ctx, tx, acct); err != nil {
-		// Handle MySQL duplicate key race condition: another transaction
-		// may have inserted a record between our check and insert.
-		if strings.Contains(err.Error(), "Duplicate entry") {
+		// Handle MariaDB duplicate key race condition:
+		// another transaction may have inserted a record between our check and insert.
+		if db.IsDuplicateKeyError(err) {
 			retryExisting, retryErr := s.accounts.FindByPerson(ctx, person.ID)
 			if retryErr != nil {
 				return nil, fmt.Errorf("account_service: retry finding accounts for person %s: %w", person.ID, retryErr)
