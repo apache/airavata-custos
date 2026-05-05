@@ -23,7 +23,7 @@ import {Counter} from 'k6/metrics';
 import {randomIntBetween} from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const BASE_URL = __ENV.AMIE_BASE_URL || 'https://a3mdev.xsede.org/amie-api-test';
-const SITE = __ENV.AMIE_SITE || 'GaTech';
+const SITE = __ENV.AMIE_SITE;
 const API_KEY = __ENV.AMIE_API_KEY;
 
 if (!API_KEY) {

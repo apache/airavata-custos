@@ -9,77 +9,113 @@
       "type": "stat",
       "title": "Total Packets Received",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "targets": [{ "expr": "round(sum(increase(amie_packets_received_total[$__range])))", "legendFormat": "Total" }],
+      "targets": [{
+        "rawSql": "SELECT COUNT(*) AS Total FROM amie_packets WHERE $__timeFilter(received_at)",
+        "format": "table",
+        "refId": "A"
+      }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "stat",
       "title": "Packets Succeeded",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "targets": [{ "expr": "round(sum(increase(amie_packets_processed_total{outcome=\"succeeded\"}[$__range])))", "legendFormat": "Succeeded" }],
+      "targets": [{
+        "rawSql": "SELECT COUNT(*) AS Succeeded FROM amie_processing_events WHERE status = 'SUCCEEDED' AND $__timeFilter(finished_at)",
+        "format": "table",
+        "refId": "A"
+      }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "stat",
       "title": "Packets Failed",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "targets": [{ "expr": "round(sum(increase(amie_packets_processed_total{outcome=~\"permanently_failed|failed\"}[$__range])))", "legendFormat": "Failed" }],
+      "targets": [{
+        "rawSql": "SELECT COUNT(*) AS Failed FROM amie_processing_events WHERE status = 'PERMANENTLY_FAILED' AND $__timeFilter(finished_at)",
+        "format": "table",
+        "refId": "A"
+      }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "stat",
       "title": "Retries",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
-      "targets": [{ "expr": "round(sum(increase(amie_events_retry_total[$__range]))) or vector(0)", "legendFormat": "Retries" }],
+      "targets": [{
+        "rawSql": "SELECT COALESCE(SUM(GREATEST(attempts - 1, 0)), 0) AS Retries FROM amie_processing_events WHERE $__timeFilter(created_at)",
+        "format": "table",
+        "refId": "A"
+      }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "timeseries",
       "title": "Packets Processed Over Time",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-      "targets": [
-        { "expr": "sum by (type) (rate(amie_packets_processed_total{outcome=\"succeeded\"}[5m]))", "legendFormat": "{{type}}" }
-      ],
+      "targets": [{
+        "rawSql": "SELECT $__timeGroupAlias(e.finished_at, $__interval, 0), p.type AS metric, COUNT(*) AS value FROM amie_processing_events e JOIN amie_packets p ON p.id = e.packet_id WHERE e.status = 'SUCCEEDED' AND $__timeFilter(e.finished_at) GROUP BY 1, p.type ORDER BY 1",
+        "format": "time_series",
+        "refId": "A"
+      }],
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "auto" } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] } },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "timeseries",
       "title": "Failures & Retries Over Time",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
-        { "expr": "sum(rate(amie_packets_processed_total{outcome=~\"permanently_failed|retry_scheduled\"}[5m]))", "legendFormat": "Failures" },
-        { "expr": "sum(rate(amie_events_retry_total[5m]))", "legendFormat": "Retries" }
+        {
+          "rawSql": "SELECT $__timeGroupAlias(occurred_at, $__interval, 0), COUNT(*) AS \"Failed Attempts\" FROM amie_processing_errors WHERE $__timeFilter(occurred_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "rawSql": "SELECT $__timeGroupAlias(finished_at, $__interval, 0), COUNT(*) AS \"Permanent Failures\" FROM amie_processing_events WHERE status = 'PERMANENTLY_FAILED' AND $__timeFilter(finished_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "refId": "B"
+        }
       ],
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15 }, "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] } },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "piechart",
       "title": "Packets by Type",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
-      "targets": [
-        { "expr": "round(sum by (type) (increase(amie_packets_received_total[$__range])))", "legendFormat": "{{type}}" }
+      "targets": [{
+        "rawSql": "SELECT type AS metric, COUNT(*) AS value FROM amie_packets WHERE $__timeFilter(received_at) GROUP BY type",
+        "format": "table",
+        "refId": "A"
+      }],
+      "transformations": [
+        { "id": "rowsToFields", "options": {} }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "piechart",
       "title": "Processing Outcomes",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
-      "targets": [
-        { "expr": "round(sum by (outcome) (increase(amie_packets_processed_total[$__range])))", "legendFormat": "{{outcome}}" }
+      "targets": [{
+        "rawSql": "SELECT CASE status WHEN 'SUCCEEDED' THEN 'succeeded' WHEN 'PERMANENTLY_FAILED' THEN 'permanently_failed' WHEN 'RETRY_SCHEDULED' THEN 'retry_scheduled' END AS metric, COUNT(*) AS value FROM amie_processing_events WHERE status IN ('SUCCEEDED','PERMANENTLY_FAILED','RETRY_SCHEDULED') AND $__timeFilter(created_at) GROUP BY status",
+        "format": "table",
+        "refId": "A"
+      }],
+      "transformations": [
+        { "id": "rowsToFields", "options": {} }
       ],
       "fieldConfig": { "overrides": [
         { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
@@ -87,18 +123,23 @@
         { "matcher": { "id": "byName", "options": "retry_scheduled" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
       ] },
       "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "bargauge",
       "title": "Packets Received by Type",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
-      "targets": [
-        { "expr": "round(sum by (type) (increase(amie_packets_received_total[$__range])))", "legendFormat": "{{type}}" }
+      "targets": [{
+        "rawSql": "SELECT type AS metric, COUNT(*) AS value FROM amie_packets WHERE $__timeFilter(received_at) GROUP BY type",
+        "format": "table",
+        "refId": "A"
+      }],
+      "transformations": [
+        { "id": "rowsToFields", "options": {} }
       ],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     },
     {
       "type": "timeseries",
@@ -127,16 +168,18 @@
       "type": "table",
       "title": "Processed Count by Type & Outcome",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
-      "targets": [
-        { "expr": "round(sum by (type, outcome) (increase(amie_packets_processed_total[$__range])))", "legendFormat": "{{type}} — {{outcome}}", "format": "table", "instant": true }
-      ],
+      "targets": [{
+        "rawSql": "SELECT p.type AS type, CASE e.status WHEN 'SUCCEEDED' THEN 'succeeded' WHEN 'PERMANENTLY_FAILED' THEN 'permanently_failed' WHEN 'RETRY_SCHEDULED' THEN 'retry_scheduled' END AS outcome, COUNT(*) AS count FROM amie_processing_events e JOIN amie_packets p ON p.id = e.packet_id WHERE e.status IN ('SUCCEEDED','PERMANENTLY_FAILED','RETRY_SCHEDULED') AND $__timeFilter(e.created_at) GROUP BY p.type, e.status",
+        "format": "table",
+        "refId": "A"
+      }],
       "transformations": [
-        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "type": "Packet Type", "outcome": "Outcome", "Value": "Count" } } }
+        { "id": "organize", "options": { "excludeByName": {}, "renameByName": { "type": "Packet Type", "outcome": "Outcome", "count": "Count" } } }
       ],
       "fieldConfig": { "overrides": [
         { "matcher": { "id": "byName", "options": "Outcome" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "succeeded": { "color": "green", "text": "Succeeded" }, "permanently_failed": { "color": "red", "text": "Failed" }, "retry_scheduled": { "color": "orange", "text": "Retried" } } }] }] }
       ] },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" }
+      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
     }
   ],
   "refresh": "10s",
