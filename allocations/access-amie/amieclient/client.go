@@ -125,12 +125,12 @@ func parsePacketsFromResponse(body []byte) ([]map[string]any, error) {
 		return packets, nil
 	}
 
-	// "result" is a single value -- wrap it if it is a map.
+	// "result" is a single value - wrap it if it is a map.
 	if m, ok := result.(map[string]any); ok {
 		return []map[string]any{m}, nil
 	}
 
-	// Scalar or unrecognised "result" -- return the envelope itself.
+	// Scalar or unrecognized "result" - return the envelope itself.
 	return []map[string]any{obj}, nil
 }
 
