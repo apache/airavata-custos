@@ -124,9 +124,9 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: creating/finding project: %w", err)
 	}
 
-	// Create USER membership.
-	if _, err := h.membershipSvc.CreateMembership(ctx, tx, projectID, account.ID, "USER"); err != nil {
-		return fmt.Errorf("request_account_create: creating USER membership: %w", err)
+	role := normalizeRole(getString(body, "UserRole"))
+	if _, err := h.membershipSvc.CreateMembership(ctx, tx, projectID, account.ID, role); err != nil {
+		return fmt.Errorf("request_account_create: creating %s membership: %w", role, err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "membership", "", ""); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_MEMBERSHIP: %w", err)

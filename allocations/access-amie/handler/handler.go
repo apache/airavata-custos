@@ -59,6 +59,21 @@ func getBody(packetJSON map[string]any) (map[string]any, error) {
 	return body, nil
 }
 
+var roleNormalizer = strings.NewReplacer(" ", "", "-", "", "_", "")
+
+func normalizeRole(raw string) string {
+	switch strings.ToUpper(roleNormalizer.Replace(raw)) {
+	case "PI":
+		return "PI"
+	case "COPI":
+		return "CO_PI"
+	case "ALLOCATIONMANAGER":
+		return "ALLOCATION_MANAGER"
+	default:
+		return "USER"
+	}
+}
+
 func getResourceList(body map[string]any) []string {
 	v, ok := body["ResourceList"]
 	if !ok {

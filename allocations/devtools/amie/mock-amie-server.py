@@ -27,6 +27,7 @@
 # Then point the service at: access.amie.base-url=http://localhost:8180
 
 import json
+import os
 import random
 import time
 import uuid
@@ -41,6 +42,8 @@ packet_counter = 900000  # starting ID
 stats = {"created": 0, "fetched": 0, "replied": 0}
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
+
+DEV_EMAIL = os.getenv("DEV_EMAIL", "").strip()
 
 
 def next_id():
@@ -208,6 +211,76 @@ def gen_empty_body():
     return make_packet("request_project_create", {})
 
 
+DEV_USER_GID = "100001"
+
+DEV_MEMBER_PROJECTS = [
+    ("DEV-PROJ-002", "Climate Modeling Group", "Alice", "Smith", "alice.smith@bogus.example.edu", "100002", "CoPI"),
+    ("DEV-PROJ-003", "Particle Physics Sim",   "Bob",   "Johnson", "bob.johnson@bogus.example.edu", "100003", "Allocation Manager"),
+    ("DEV-PROJ-004", "Genomics Pipeline",      "Carol", "Williams", "carol.williams@bogus.example.edu", "100004", "User"),
+]
+
+
+def gen_dev_email_scenario():
+    if not DEV_EMAIL:
+        app.logger.warning("DEV_EMAIL is not set; dev_email scenario emits no packets")
+        return []
+
+    packets = []
+
+    packets.append(make_packet("request_project_create", {
+        "GrantNumber": "DEV-PROJ-001",
+        "PfosNumber": "PFOS-DEV-PROJ-001",
+        "ProjectTitle": "Dev's Own Project",
+        "PiGlobalID": DEV_USER_GID,
+        "PiFirstName": "Dev",
+        "PiLastName": "User",
+        "PiEmail": DEV_EMAIL,
+        "PiOrganization": "Dev Lab",
+        "PiOrgCode": "DEV",
+        "NsfStatusCode": "AC",
+        "PiDnList": ["/C=US/O=Dev Lab/CN=Dev User"],
+        "ServiceUnitsAllocated": "100000",
+        "StartDate": "2026-01-01",
+        "EndDate": "2026-12-31",
+        "ResourceList": "mock-cluster.example.edu",
+    }))
+
+    for grant, title, pi_first, pi_last, pi_email, pi_gid, dev_role in DEV_MEMBER_PROJECTS:
+        packets.append(make_packet("request_project_create", {
+            "GrantNumber": grant,
+            "PfosNumber": f"PFOS-{grant}",
+            "ProjectTitle": title,
+            "PiGlobalID": pi_gid,
+            "PiFirstName": pi_first,
+            "PiLastName": pi_last,
+            "PiEmail": pi_email,
+            "PiOrganization": "Bogus Lab",
+            "PiOrgCode": "BOGUS",
+            "NsfStatusCode": "AC",
+            "PiDnList": [f"/C=US/O=Bogus Lab/CN={pi_first} {pi_last}"],
+            "ServiceUnitsAllocated": "50000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": "mock-cluster.example.edu",
+        }))
+        packets.append(make_packet("request_account_create", {
+            "ProjectID": f"PRJ-{grant}",
+            "GrantNumber": grant,
+            "UserGlobalID": DEV_USER_GID,
+            "UserFirstName": "Dev",
+            "UserLastName": "User",
+            "UserEmail": DEV_EMAIL,
+            "UserOrganization": "Dev Lab",
+            "UserOrgCode": "DEV",
+            "NsfStatusCode": "AC",
+            "UserDnList": ["/C=US/O=Dev Lab/CN=Dev User"],
+            "UserRole": dev_role,
+            "ResourceList": "mock-cluster.example.edu",
+        }))
+
+    return packets
+
+
 # Scenario mix
 
 SUCCESS_GENERATORS = [
@@ -303,6 +376,8 @@ def create_scenario(site):
         packets = generate_batch(success_count=8, failure_count=0)
     elif scenario_type == "heavy":
         packets = generate_batch(success_count=15, failure_count=10)
+    elif scenario_type == "dev_email":
+        packets = gen_dev_email_scenario()
     else:
         packets = generate_batch(success_count=3, failure_count=2)
 
@@ -332,5 +407,11 @@ if __name__ == "__main__":
     print("  POST /test/{site}/scenarios?type=failures_only  — 8 failures")
     print("  POST /test/{site}/scenarios?type=success_only   — 8 successes")
     print("  POST /test/{site}/scenarios?type=heavy          — 15 success + 10 failure")
+    print("  POST /test/{site}/scenarios?type=dev_email      — scripted set placing DEV_EMAIL across projects")
+    print("")
+    if DEV_EMAIL:
+        print(f"DEV_EMAIL injection enabled: {DEV_EMAIL}")
+    else:
+        print("DEV_EMAIL is unset — set it (e.g. DEV_EMAIL=you@example.edu) to use the dev_email scenario")
     print("")
     app.run(host="0.0.0.0", port=8180, debug=False)

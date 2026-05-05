@@ -25,9 +25,23 @@ curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=failures_only'
 
 # heavy batch
 curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=heavy'
+
+# dev email across multiple projects with different roles (requires DEV_EMAIL)
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'
 ```
 
 Point `access-amie` at it with `AMIE_BASE_URL=http://localhost:8180`.
+
+### `dev_email` scenario
+
+Run the `dev_email` scenario to generate AMIE packets placing DEV_EMAIL in multiple projects with different roles.
+
+```bash
+DEV_EMAIL=jdoe@etest.org python3 mock-amie-server.py
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'
+```
+
+Today the access-amie handlers persist PI and USER memberships only; Co-PI and Allocation Manager positions require handler enhancement to read a role field from the AMIE packet.
 
 ## Load test (k6)
 

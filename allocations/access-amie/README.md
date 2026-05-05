@@ -28,6 +28,14 @@ export AMIE_API_KEY="your-api-key"
 
 The default `config.yaml` works for local development with the Docker Compose MariaDB defaults.
 
+For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [`devtools/amie/`](../devtools/amie/README.md)
+
+```bash
+export AMIE_BASE_URL="http://localhost:8180"
+export AMIE_SITE_CODE="TESTSITE"
+export AMIE_API_KEY="dev"
+```
+
 ### 3. Build
 
 ```bash
