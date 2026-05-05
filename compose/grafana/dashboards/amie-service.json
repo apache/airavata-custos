@@ -23,7 +23,7 @@
       "title": "Packets Succeeded",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "targets": [{
-        "rawSql": "SELECT COUNT(*) AS Succeeded FROM amie_processing_events WHERE status = 'SUCCEEDED' AND $__timeFilter(finished_at)",
+        "rawSql": "SELECT COUNT(*) AS Succeeded FROM amie_processing_events WHERE status = 'SUCCEEDED' AND $__timeFilter(created_at)",
         "format": "table",
         "refId": "A"
       }],
@@ -36,7 +36,7 @@
       "title": "Packets Failed",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [{
-        "rawSql": "SELECT COUNT(*) AS Failed FROM amie_processing_events WHERE status = 'PERMANENTLY_FAILED' AND $__timeFilter(finished_at)",
+        "rawSql": "SELECT COUNT(*) AS Failed FROM amie_processing_events WHERE status = 'PERMANENTLY_FAILED' AND $__timeFilter(created_at)",
         "format": "table",
         "refId": "A"
       }],
@@ -49,7 +49,7 @@
       "title": "Retries",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [{
-        "rawSql": "SELECT COALESCE(SUM(GREATEST(attempts - 1, 0)), 0) AS Retries FROM amie_processing_events WHERE $__timeFilter(created_at)",
+        "rawSql": "SELECT COALESCE(SUM(attempts - 1), 0) AS Retries FROM amie_processing_events WHERE status IN ('SUCCEEDED','PERMANENTLY_FAILED') AND $__timeFilter(finished_at)",
         "format": "table",
         "refId": "A"
       }],
