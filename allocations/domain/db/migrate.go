@@ -18,29 +18,36 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 )
 
-func Migrate(db *sqlx.DB, migrationsPath string) error {
-	driver, err := mysql.WithInstance(db.DB, &mysql.Config{})
+// MigrateEmbedded applies all pending migrations from the embedded
+// migrations/ directory against the supplied database.
+// returns nil when there is nothing to apply.
+func MigrateEmbedded(database *sqlx.DB) error {
+	driver, err := mysql.WithInstance(database.DB, &mysql.Config{})
 	if err != nil {
 		return fmt.Errorf("create migration driver: %w", err)
 	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+migrationsPath,
-		"mysql",
-		driver,
-	)
+
+	source, err := iofs.New(migrationFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("create migration source: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", source, "mysql", driver)
 	if err != nil {
 		return fmt.Errorf("create migrator: %w", err)
 	}
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	slog.Info("database migrations applied successfully")
