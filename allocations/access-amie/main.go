@@ -34,6 +34,7 @@ import (
 	"github.com/apache/airavata-custos/allocations/access-amie/service"
 	"github.com/apache/airavata-custos/allocations/access-amie/store"
 	"github.com/apache/airavata-custos/allocations/access-amie/worker"
+	domaindb "github.com/apache/airavata-custos/allocations/domain/db"
 	domainstore "github.com/apache/airavata-custos/allocations/domain/store"
 )
 
@@ -55,7 +56,7 @@ func main() {
 	defer database.Close()
 	slog.Info("connected to database")
 
-	if err := db.Migrate(database, "db/migrations"); err != nil {
+	if err := domaindb.MigrateEmbedded(database); err != nil {
 		slog.Error("failed to run migrations", "error", err)
 		os.Exit(1)
 	}

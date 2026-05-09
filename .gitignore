@@ -48,3 +48,12 @@ application-local.yml
 # Go
 allocations/access-amie/config.yaml
 allocations/access-amie/bin/
+
+
+# Virtual envs
+venv/
+.venv/
+
+# Vault
+vault.db
+raft.db
