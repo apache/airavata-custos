@@ -21,26 +21,14 @@
 
 [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat)](https://apache.org/licenses/LICENSE-2.0)
 [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/apache/airavata-custos)](https://github.com/apache/airavata-custos/pulls?q=is%3Apr+is%3Aclosed)
-[![Build Status](https://travis-ci.org/apache/airavata-custos.png?branch=develop)](https://travis-ci.org/github/apache/airavata-custos)
 
-Custos is a multi-tenant security middleware for science gateways, developed under the [Apache Airavata](https://airavata.apache.org/) umbrella. It provides identity and access management, credential storage, federated authentication, and resource allocation services to science gateway frameworks through a language-independent API. Custos is designed as a set of composable product components that can be deployed independently or together, built on a scalable architecture to deliver highly available, fault-tolerant operations.
+Custos is a security middleware for science gateways and HPC research computing, developed under the [Apache Airavata](https://airavata.apache.org/) umbrella. It provides identity and access management, credential storage, federated authentication, and resource allocation services through a language-independent API.
+
+The project is currently being rebuilt around an HPC allocation management focus.
 
 **[Project website](https://airavata.apache.org/custos/)**
 
 ## Components
-
-### Identity Server (`identity/`)
-
-The Identity Server is the core IAM component of Custos. It handles user identity and access management, tenant profile management, resource secrets management, and groups and sharing management. Built with Java 17 and Spring Boot, it integrates with Keycloak for federated authentication, HashiCorp Vault for secrets management, and MariaDB for persistence.
-
-| Module | Description |
-|--------|-------------|
-| `identity/core` | Domain entities, repositories, protobuf definitions, mappers |
-| `identity/services` | Business logic, Keycloak and Vault integrations |
-| `identity/api` | REST API controllers |
-| `identity/application` | Spring Boot entry point |
-
-See [`identity/README.md`](identity/README.md) for setup and development instructions.
 
 ### Allocations (`allocations/`)
 
@@ -48,27 +36,25 @@ The Allocations component provides meta-allocation authority services for HPC an
 
 | Module | Description |
 |--------|-------------|
-| `allocations/access-ci-service` | ACCESS CI AMIE packet adapter |
-
-Additional allocation adapters for other resource providers are planned. See `allocations/README.md` for details as they become available.
+| `allocations/access-amie/` | ACCESS-CI AMIE packet processing adapter |
+| `allocations/domain/` | Shared domain models, sqlx stores, and DB migrations |
+| `allocations/provisioner/` | Shared `Provisioner` interface for HPC cluster provisioning |
+| `allocations/devtools/amie/` | Local mock AMIE server and k6 load test |
 
 ## Repository Layout
 
 ```
 airavata-custos/
-├── identity/          # Identity Server
-├── allocations/       # Allocation management and usage
+├── allocations/       # Allocation management platform
 ├── compose/           # Docker Compose for local development
-├── deployment/        # Terraform configurations (AWS)
-├── legacy/            # Archived modules (not actively maintained)
-└── pom.xml            # Root Maven reactor
+└── deployment/        # Terraform configurations
 ```
 
 ## Prerequisites
 
-* Java 17
-* Maven 3.6+
+* Go 1.24+
 * Docker and Docker Compose
+* MariaDB (run via the Compose stack)
 
 ## Quick Start
 
@@ -79,20 +65,22 @@ git clone https://github.com/apache/airavata-custos.git
 cd airavata-custos
 ```
 
-Start the backing services (Keycloak, MariaDB, Vault, Adminer):
+Start the backing services (MariaDB, Prometheus, Grafana, Vault):
 
 ```sh
 cd compose
 docker compose up -d
 ```
 
-Build all components:
+Build and test the Go modules:
 
 ```sh
-mvn clean install
+cd allocations/access-amie
+go build ./...
+go test ./...
 ```
 
-Refer to each component's README for detailed configuration and run instructions.
+See [`allocations/README.md`](allocations/README.md) and [`allocations/access-amie/README.md`](allocations/access-amie/README.md) for run and configuration instructions.
 
 ## Questions or Need Help?
 
