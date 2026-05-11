@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/db"
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/google/uuid"
 )
 

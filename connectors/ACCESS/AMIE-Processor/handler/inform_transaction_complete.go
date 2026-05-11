@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 )
 
 type informTransactionCompleteAuditService interface {

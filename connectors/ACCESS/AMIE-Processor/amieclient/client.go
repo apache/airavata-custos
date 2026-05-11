@@ -27,7 +27,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 )
 
 type Client struct {

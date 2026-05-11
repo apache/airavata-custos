@@ -20,7 +20,7 @@ package worker
 import (
 	"time"
 
-	pb "github.com/apache/airavata-custos/allocations/access-amie/proto/gen"
+	pb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/proto/gen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

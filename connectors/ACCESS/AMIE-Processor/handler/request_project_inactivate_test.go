@@ -22,7 +22,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

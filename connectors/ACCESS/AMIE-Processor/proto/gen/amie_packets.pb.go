@@ -1502,7 +1502,7 @@ const file_amie_packets_proto_rawDesc = "" +
 	"\x1aREQUEST_ACCOUNT_INACTIVATE\x10\x05\x12\x1e\n" +
 	"\x1aREQUEST_ACCOUNT_REACTIVATE\x10\x06\x12\x17\n" +
 	"\x13REQUEST_USER_MODIFY\x10\a\x12\x18\n" +
-	"\x14REQUEST_PERSON_MERGE\x10\bBEZCgithub.com/apache/airavata-custos/allocations/access-amie/proto/genb\x06proto3"
+	"\x14REQUEST_PERSON_MERGE\x10\bBNZLgithub.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/proto/genb\x06proto3"
 
 var (
 	file_amie_packets_proto_rawDescOnce sync.Once

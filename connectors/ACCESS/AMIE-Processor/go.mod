@@ -1,4 +1,4 @@
-module github.com/apache/airavata-custos/integrations/ACCESS/AMIE-Processor
+module github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor
 
 go 1.24.0
 

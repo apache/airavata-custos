@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/metrics"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"

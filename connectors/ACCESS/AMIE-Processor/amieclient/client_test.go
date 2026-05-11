@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/amieclient"
-	"github.com/apache/airavata-custos/allocations/access-amie/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -17,7 +17,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/apache/airavata-custos/allocations/access-amie/proto/gen";
+option go_package = "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/proto/gen";
 
 package org.apache.custos.access.ci.service.v1;
 

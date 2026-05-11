@@ -27,9 +27,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/config"
-	custosdb "github.com/apache/airavata-custos/allocations/access-amie/db"
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 )
 
 const (

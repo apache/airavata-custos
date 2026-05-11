@@ -1385,7 +1385,7 @@ const file_internal_events_proto_rawDesc = "" +
 	"\n" +
 	"\x06FAILED\x10\x04\x12\x13\n" +
 	"\x0fRETRY_SCHEDULED\x10\x05\x12\v\n" +
-	"\aSKIPPED\x10\x06BEZCgithub.com/apache/airavata-custos/allocations/access-amie/proto/genb\x06proto3"
+	"\aSKIPPED\x10\x06BNZLgithub.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/proto/genb\x06proto3"
 
 var (
 	file_internal_events_proto_rawDescOnce sync.Once

@@ -39,8 +39,8 @@ tidy:
 	go mod tidy
 
 proto:
-	protoc --go_out=proto/gen --go_opt=paths=source_relative \
-	       proto/amie_packets.proto proto/internal_events.proto
+	protoc -Iproto --go_out=proto/gen --go_opt=paths=source_relative \
+	       amie_packets.proto internal_events.proto
 
 migrate-up:
 	migrate -path db/migrations -database "$(DB_DSN)" up

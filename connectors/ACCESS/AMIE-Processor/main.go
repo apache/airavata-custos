@@ -25,15 +25,15 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/amieclient"
-	"github.com/apache/airavata-custos/allocations/access-amie/config"
-	"github.com/apache/airavata-custos/allocations/access-amie/db"
-	"github.com/apache/airavata-custos/allocations/access-amie/handler"
-	"github.com/apache/airavata-custos/allocations/access-amie/metrics"
-	"github.com/apache/airavata-custos/allocations/access-amie/server"
-	"github.com/apache/airavata-custos/allocations/access-amie/service"
-	"github.com/apache/airavata-custos/allocations/access-amie/store"
-	"github.com/apache/airavata-custos/allocations/access-amie/worker"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/handler"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/metrics"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/server"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 )
 
 func main() {

@@ -23,7 +23,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 )
 
 func Open(cfg config.DatabaseConfig) (*sqlx.DB, error) {

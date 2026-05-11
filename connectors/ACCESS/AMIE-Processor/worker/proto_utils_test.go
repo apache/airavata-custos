@@ -20,7 +20,7 @@ package worker
 import (
 	"testing"
 
-	pb "github.com/apache/airavata-custos/allocations/access-amie/proto/gen"
+	pb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/proto/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"

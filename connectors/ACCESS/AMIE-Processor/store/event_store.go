@@ -23,7 +23,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/apache/airavata-custos/allocations/access-amie/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/jmoiron/sqlx"
 )
 
