@@ -28,33 +28,30 @@ The project is currently being rebuilt around an HPC allocation management focus
 
 **[Project website](https://airavata.apache.org/custos/)**
 
-## Components
-
-### Allocations (`allocations/`)
-
-The Allocations component provides meta-allocation authority services for HPC and cloud resources. It acts as a bridge between Custos-managed tenants and external resource allocation providers.
-
-| Module | Description |
-|--------|-------------|
-| `allocations/access-amie/` | ACCESS-CI AMIE packet processing adapter |
-| `allocations/domain/` | Shared domain models, sqlx stores, and DB migrations |
-| `allocations/provisioner/` | Shared `Provisioner` interface for HPC cluster provisioning |
-| `allocations/devtools/amie/` | Local mock AMIE server and k6 load test |
-
 ## Repository Layout
+
+Custos is composed of pluggable pieces a deployment site mixes and matches.
 
 ```
 airavata-custos/
-├── allocations/       # Allocation management platform
-├── compose/           # Docker Compose for local development
-└── deployment/        # Terraform configurations
+├── core/          # Shared contracts and domain models
+├── connectors/    # Adapters to external allocation systems (ACCESS-CI, SLURM, ...)
+├── extensions/    # Node-side components a site may opt into (PAM, SSH cert signer)
+└── dev-ops/       # Local compose stack, Terraform, Ansible
 ```
+
+| Area | Purpose | Examples |
+|------|---------|----------|
+| `core/` | Go interfaces and shared domain types that connectors and extensions depend on | `accountprovisioning.Provisioner` |
+| `connectors/` | Protocol adapters that bring external state into Custos | `ACCESS/AMIE-Processor`, `SLURM/Association-Mapper` |
+| `extensions/` | Independent services that run alongside Custos to extend HPC node behavior | `CILogon-SSH-PAM`, `SSH-Certificate-Signer` |
+| `dev-ops/` | Local dev stack and deployment automation | `compose/`, `terraform/`, `account-provisioning/` |
 
 ## Prerequisites
 
 * Go 1.24+
 * Docker and Docker Compose
-* MariaDB (run via the Compose stack)
+* `protoc` and `protoc-gen-go` (only needed when regenerating proto sources)
 
 ## Quick Start
 
@@ -68,19 +65,19 @@ cd airavata-custos
 Start the backing services (MariaDB, Prometheus, Grafana, Vault):
 
 ```sh
-cd compose
+cd dev-ops/compose
 docker compose up -d
 ```
 
-Build and test the Go modules:
+Build and test a connector, e.g. ACCESS-CI AMIE:
 
 ```sh
-cd allocations/access-amie
+cd connectors/ACCESS/AMIE-Processor
 go build ./...
 go test ./...
 ```
 
-See [`allocations/README.md`](allocations/README.md) and [`allocations/access-amie/README.md`](allocations/access-amie/README.md) for run and configuration instructions.
+See each connector's and extension's README for run and configuration details.
 
 ## Questions or Need Help?
 
