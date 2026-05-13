@@ -1,0 +1,180 @@
+// cli/internal/client/types.go
+package operations
+
+import "encoding/json"
+
+type ErrorResponse struct {
+	Errors []struct {
+		Description string `json:"description"`
+		ErrorNumber int    `json:"error_number"`
+		Error       string `json:"error"`
+		Source      string `json:"source"`
+	} `json:"errors"`
+	Warnings []struct {
+		Description string `json:"description"`
+		Source      string `json:"source"`
+	} `json:"warnings"`
+}
+
+type TRES struct {
+	Type  string `json:"type"`
+	Name  string `json:"name,omitempty"`
+	Count int64  `json:"count"`
+}
+
+type Account struct {
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	Organization string `json:"organization,omitempty"`
+}
+
+type AssocLimits struct {
+	GrpJobs     *int64 `json:"grp_jobs,omitempty"`
+	GrpTRES     []TRES `json:"grp_tres,omitempty"`
+	GrpTRESMins []TRES `json:"grp_tres_mins,omitempty"`
+	MaxWallPM   *int64 `json:"max_wall_pj,omitempty"`
+}
+
+type Association struct {
+	Account       string `json:"account"`
+	Cluster       string `json:"cluster"`
+	User          string `json:"user"`
+	Partition     string `json:"partition,omitempty"`
+	ParentAccount string `json:"parent_account,omitempty"`
+	IsDefault     *bool  `json:"is_default,omitempty"`
+	ID            int64  `json:"id_association,omitempty"`
+	// Limits is a logical grouping — slurmrestd v0.0.41 actually encodes limits
+	// in a nested `max` object per-association. We translate between the two
+	// shapes in Marshal/UnmarshalJSON below.
+	Limits AssocLimits `json:"-"`
+}
+
+// slurmNumber matches slurmrestd's {set, infinite, number} triple used for
+// all scalar limit values in the v0.0.41 accounting schema.
+type slurmNumber struct {
+	Set      bool  `json:"set"`
+	Infinite bool  `json:"infinite"`
+	Number   int64 `json:"number"`
+}
+
+func numPtr(n *int64) *slurmNumber {
+	if n == nil {
+		return nil
+	}
+	return &slurmNumber{Set: true, Number: *n}
+}
+
+func ptrNum(n *slurmNumber) *int64 {
+	if n == nil || !n.Set || n.Infinite {
+		return nil
+	}
+	v := n.Number
+	return &v
+}
+
+// assocMax is the v0.0.41 "max" sub-object inside each association. We only
+// populate the fields we actually manage; slurmrestd ignores unset sub-objects.
+type assocMax struct {
+	Jobs *assocMaxJobs `json:"jobs,omitempty"`
+	TRES *assocMaxTRES `json:"tres,omitempty"`
+}
+
+type assocMaxJobs struct {
+	Per *assocMaxJobsPer `json:"per,omitempty"`
+}
+
+type assocMaxJobsPer struct {
+	Count     *slurmNumber `json:"count,omitempty"`      // GrpJobs
+	WallClock *slurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
+}
+
+type assocMaxTRES struct {
+	Total []TRES          `json:"total,omitempty"` // GrpTRES
+	Group *assocMaxTRESGp `json:"group,omitempty"`
+}
+
+type assocMaxTRESGp struct {
+	Minutes []TRES `json:"minutes,omitempty"` // GrpTRESMins
+}
+
+// assocWire is the on-the-wire association record used for both request
+// marshaling and response unmarshaling. `user` is emitted even when empty
+// because slurmrestd rejects payloads without it (error 9200).
+type assocWire struct {
+	Account       string    `json:"account"`
+	Cluster       string    `json:"cluster"`
+	User          string    `json:"user"`
+	Partition     string    `json:"partition,omitempty"`
+	ParentAccount string    `json:"parent_account,omitempty"`
+	IsDefault     *bool     `json:"is_default,omitempty"`
+	ID            int64     `json:"id_association,omitempty"`
+	Max           *assocMax `json:"max,omitempty"`
+}
+
+func (a Association) MarshalJSON() ([]byte, error) {
+	w := assocWire{
+		Account:       a.Account,
+		Cluster:       a.Cluster,
+		User:          a.User,
+		Partition:     a.Partition,
+		ParentAccount: a.ParentAccount,
+		IsDefault:     a.IsDefault,
+		ID:            a.ID,
+	}
+	m := &assocMax{}
+	touched := false
+	if a.Limits.GrpJobs != nil || a.Limits.MaxWallPM != nil {
+		per := &assocMaxJobsPer{}
+		if a.Limits.GrpJobs != nil {
+			per.Count = numPtr(a.Limits.GrpJobs)
+		}
+		if a.Limits.MaxWallPM != nil {
+			per.WallClock = numPtr(a.Limits.MaxWallPM)
+		}
+		m.Jobs = &assocMaxJobs{Per: per}
+		touched = true
+	}
+	if len(a.Limits.GrpTRES) > 0 || len(a.Limits.GrpTRESMins) > 0 {
+		t := &assocMaxTRES{}
+		if len(a.Limits.GrpTRES) > 0 {
+			t.Total = a.Limits.GrpTRES
+		}
+		if len(a.Limits.GrpTRESMins) > 0 {
+			t.Group = &assocMaxTRESGp{Minutes: a.Limits.GrpTRESMins}
+		}
+		m.TRES = t
+		touched = true
+	}
+	if touched {
+		w.Max = m
+	}
+	return json.Marshal(w)
+}
+
+func (a *Association) UnmarshalJSON(data []byte) error {
+	var w assocWire
+	if err := json.Unmarshal(data, &w); err != nil {
+		return err
+	}
+	a.Account = w.Account
+	a.Cluster = w.Cluster
+	a.User = w.User
+	a.Partition = w.Partition
+	a.ParentAccount = w.ParentAccount
+	a.IsDefault = w.IsDefault
+	a.ID = w.ID
+	a.Limits = AssocLimits{}
+	if w.Max != nil {
+		if w.Max.Jobs != nil && w.Max.Jobs.Per != nil {
+			a.Limits.GrpJobs = ptrNum(w.Max.Jobs.Per.Count)
+			a.Limits.MaxWallPM = ptrNum(w.Max.Jobs.Per.WallClock)
+		}
+		if w.Max.TRES != nil {
+			a.Limits.GrpTRES = w.Max.TRES.Total
+			if w.Max.TRES.Group != nil {
+				a.Limits.GrpTRESMins = w.Max.TRES.Group.Minutes
+			}
+		}
+	}
+	return nil
+}
