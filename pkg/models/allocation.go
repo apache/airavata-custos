@@ -58,23 +58,23 @@ type ComputeAllocationDiff struct { // Diff will occur either through a change r
 }
 
 type ComputeAllocationChangeRequest struct { // Represents a request to change the allocation, e.g., requesting more SUs, requesting a reduction in SUs, etc from users or admins.
-	ID                  string           `json:"id"`
-	ComputeAllocationID string           `json:"compute_allocation_id"`
-	RequestedSUAmount   int64            `json:"requested_su_amount"`   // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
-	RequestedStatus     AllocationStatus `json:"requested_status"`      // ACTIVE, INACTIVE, DELETED, etc.
-	Reason              string           `json:"reason"`                // The reason for the change request, e.g., "Need more SUs for upcoming jobs", "Requesting reduction in SUs due to project completion", etc.
-	ChangeStatus        string           `json:"change_status"`         // "PENDING", "APPROVED", "REJECTED", etc.
-	RequesterID         string           `json:"requester_id"`          // The ID of the user who made the change request.
-	ApproverID          string           `json:"approver_id,omitempty"` // The ID of the user who approved/rejected the change request, if applicable.
-	Timestamp           time.Time        `json:"timestamp"`             // The time when the change request was made.
+	ID                  string           `json:"id"                    db:"id"`
+	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
+	RequestedSUAmount   int64            `json:"requested_su_amount"   db:"requested_su_amount"` // The requested allocation amount in SUs, e.g., 1200 SUs, etc.
+	RequestedStatus     AllocationStatus `json:"requested_status"      db:"requested_status"`    // ACTIVE, INACTIVE, DELETED, etc.
+	Reason              string           `json:"reason"                db:"reason"`              // The reason for the change request, e.g., "Need more SUs for upcoming jobs", "Requesting reduction in SUs due to project completion", etc.
+	ChangeStatus        string           `json:"change_status"         db:"change_status"`       // "PENDING", "APPROVED", "REJECTED", etc.
+	RequesterID         string           `json:"requester_id"          db:"requester_id"`        // The ID of the user who made the change request.
+	ApproverID          string           `json:"approver_id,omitempty" db:"approver_id"`         // The ID of the user who approved/rejected the change request, if applicable.
+	Timestamp           time.Time        `json:"timestamp"             db:"timestamp"`           // The time when the change request was made.
 }
 
 type ComputeAllocationChangeRequestEvent struct {
-	ID                               string    `json:"id"`
-	ComputeAllocationChangeRequestID string    `json:"compute_allocation_change_request_id"`
-	EventType                        string    `json:"event_type"`            // "CREATED", "APPROVED", "REJECTED", etc.
-	Description                      string    `json:"description,omitempty"` // Optional description of the event, e.g., "Change request created by user", "Change request approved by admin", etc.
-	Timestamp                        time.Time `json:"timestamp"`             // The time when the event occurred.
+	ID                               string    `json:"id"                                   db:"id"`
+	ComputeAllocationChangeRequestID string    `json:"compute_allocation_change_request_id" db:"compute_allocation_change_request_id"`
+	EventType                        string    `json:"event_type"                           db:"event_type"`  // "CREATED", "APPROVED", "REJECTED", etc.
+	Description                      string    `json:"description,omitempty"                db:"description"` // Optional description of the event, e.g., "Change request created by user", "Change request approved by admin", etc.
+	Timestamp                        time.Time `json:"timestamp"                            db:"timestamp"`   // The time when the event occurred.
 }
 
 type ComputeAllocationUsage struct { // Represents the usage of a compute allocation, e.g., when a job consumes some of the allocated SUs, etc.

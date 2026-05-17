@@ -767,6 +767,192 @@ Return the most recent diff (highest `timestamp`) for the given allocation.
 
 ---
 
+## Compute Allocation Change Requests
+
+A change request represents a user- or admin-initiated proposal to mutate a
+compute allocation — e.g. asking for additional Service Units or to change
+its status. Each request carries a lifecycle (`change_status`: `PENDING`,
+`APPROVED`, `REJECTED`, etc.). Change requests are cascade-deleted when their
+parent allocation is deleted. Every create, update, and delete of a change
+request transactionally appends an entry to its event log (see below); the
+event log is intentionally **not** cascade-deleted so the audit trail
+survives the deletion of the parent change request.
+
+### `POST /compute-allocation-change-requests`
+
+Submit a new change request.
+
+**Required fields:** `compute_allocation_id`, `requester_id`
+**Optional fields:** `id`, `requested_su_amount`, `requested_status`, `reason`, `change_status` (defaults to `PENDING`), `approver_id`, `timestamp` (defaults to the server's current UTC time)
+
+**Request**
+
+```json
+{
+  "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+  "requested_su_amount": 120000,
+  "requested_status": "ACTIVE",
+  "reason": "Need more SUs for upcoming HPC runs",
+  "requester_id": "11112222-3333-4444-5555-666677778888"
+}
+```
+
+**Response 201**
+
+```json
+{
+  "id": "9988aabb-ccdd-eeff-0011-223344556677",
+  "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+  "requested_su_amount": 120000,
+  "requested_status": "ACTIVE",
+  "reason": "Need more SUs for upcoming HPC runs",
+  "change_status": "PENDING",
+  "requester_id": "11112222-3333-4444-5555-666677778888",
+  "timestamp": "2026-05-16T17:42:11.918Z"
+}
+```
+
+**Errors**
+
+- `400` — required field missing, or `compute_allocation_id` does not exist.
+
+---
+
+### `GET /compute-allocation-change-requests/{id}`
+
+Retrieve a single change request by its ID.
+
+**Errors**
+
+- `404` — no change request matches the supplied ID.
+
+---
+
+### `PUT /compute-allocation-change-requests/{id}`
+
+Replace mutable fields of a change request. Typically used by an approver to
+transition `change_status` (e.g. to `APPROVED` or `REJECTED`) and stamp
+`approver_id`. Omitted fields are preserved from the existing record.
+
+**Request**
+
+```json
+{
+  "change_status": "APPROVED",
+  "approver_id": "aaaa-bbbb-cccc-dddd-eeee"
+}
+```
+
+**Errors**
+
+- `400` — request id missing.
+- `404` — no change request matches the supplied ID.
+
+---
+
+### `DELETE /compute-allocation-change-requests/{id}`
+
+Remove a change request and (cascading) its event log.
+
+**Response 204** — empty body on success.
+
+---
+
+### `GET /compute-allocations/{id}/change-requests`
+
+List every change request ever submitted against the given allocation,
+ordered by `timestamp` ascending.
+
+---
+
+### `GET /users/{id}/change-requests`
+
+List every change request submitted by the given user, ordered by
+`timestamp` ascending.
+
+---
+
+## Compute Allocation Change Request Events
+
+Events are an append-only audit trail of state transitions applied to a
+change request — typically `CREATED`, `APPROVED`, `REJECTED`, `UPDATED`,
+`DELETED`, or arbitrary workflow markers. Create / update / delete of a
+change request each emit an event automatically; clients may also append
+custom events via the endpoint below. Events are **not** cascade-deleted
+when their parent change request is removed, so the audit trail is
+preserved indefinitely.
+
+### `POST /compute-allocation-change-request-events`
+
+Append a new event to a change request.
+
+**Required fields:** `compute_allocation_change_request_id`, `event_type`
+**Optional fields:** `id`, `description`, `timestamp` (defaults to the server's current UTC time)
+
+**Request**
+
+```json
+{
+  "compute_allocation_change_request_id": "9988aabb-ccdd-eeff-0011-223344556677",
+  "event_type": "APPROVED",
+  "description": "Change request approved by admin"
+}
+```
+
+**Response 201**
+
+```json
+{
+  "id": "ee11ff22-3344-5566-7788-99aabbccddee",
+  "compute_allocation_change_request_id": "9988aabb-ccdd-eeff-0011-223344556677",
+  "event_type": "APPROVED",
+  "description": "Change request approved by admin",
+  "timestamp": "2026-05-16T18:00:00.000Z"
+}
+```
+
+**Errors**
+
+- `400` — required field missing, or `compute_allocation_change_request_id` does not exist.
+
+---
+
+### `GET /compute-allocation-change-request-events/{id}`
+
+Retrieve a single event by its ID.
+
+**Errors**
+
+- `404` — no event matches the supplied ID.
+
+---
+
+### `DELETE /compute-allocation-change-request-events/{id}`
+
+Remove an event record. Intended for administrative cleanup; events are
+otherwise append-only.
+
+**Response 204** — empty body on success.
+
+---
+
+### `GET /compute-allocation-change-requests/{id}/events`
+
+List every event recorded against the given change request, ordered by
+`timestamp` ascending.
+
+---
+
+### `GET /compute-allocation-change-requests/{id}/events/latest`
+
+Return the most recent event for the given change request.
+
+**Errors**
+
+- `404` — the change request has no events recorded.
+
+---
+
 ## End-to-end example
 
 ```bash

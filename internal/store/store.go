@@ -170,3 +170,41 @@ type ComputeAllocationDiffStore interface {
 	// Delete removes a diff by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
+
+// ComputeAllocationChangeRequestStore defines persistence operations for
+// user/admin requests to change a compute allocation (e.g. asking for more
+// SUs or to change its status).
+type ComputeAllocationChangeRequestStore interface {
+	// FindByID returns the change request with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequest, error)
+	// FindByAllocation returns every change request ever recorded against the
+	// given allocation, ordered by timestamp ascending.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error)
+	// FindByRequester returns every change request made by the given user,
+	// ordered by timestamp ascending.
+	FindByRequester(ctx context.Context, requesterID string) ([]models.ComputeAllocationChangeRequest, error)
+	// Create inserts a new change request within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error
+	// Update replaces mutable fields of an existing change request within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error
+	// Delete removes a change request by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// ComputeAllocationChangeRequestEventStore defines persistence operations
+// for the append-only audit trail of state transitions applied to a
+// ComputeAllocationChangeRequest.
+type ComputeAllocationChangeRequestEventStore interface {
+	// FindByID returns the event with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequestEvent, error)
+	// FindByChangeRequest returns every event recorded against the given
+	// change request, ordered by timestamp ascending.
+	FindByChangeRequest(ctx context.Context, changeRequestID string) ([]models.ComputeAllocationChangeRequestEvent, error)
+	// FindLatestByChangeRequest returns the most recent event for the given
+	// change request, or nil if none exist.
+	FindLatestByChangeRequest(ctx context.Context, changeRequestID string) (*models.ComputeAllocationChangeRequestEvent, error)
+	// Create inserts a new event within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.ComputeAllocationChangeRequestEvent) error
+	// Delete removes an event by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
