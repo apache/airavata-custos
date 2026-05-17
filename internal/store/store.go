@@ -230,3 +230,27 @@ type ComputeAllocationMembershipStore interface {
 	// Delete removes a membership by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
+
+// ComputeAllocationUsageStore defines persistence operations for the
+// append-only log of resource consumption events charged against a compute
+// allocation.
+type ComputeAllocationUsageStore interface {
+	// FindByID returns the usage with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
+	// FindByAllocation returns every usage event recorded against the given
+	// allocation, ordered by calculated_time ascending.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
+	// FindByUser returns every usage event attributed to the given user,
+	// ordered by calculated_time ascending.
+	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
+	// SumSUForAllocation returns the total SUs consumed against the given
+	// allocation across all usage events.
+	SumSUForAllocation(ctx context.Context, allocationID string) (int64, error)
+	// SumSUForUserInAllocation returns the total SUs consumed by the given
+	// user against the given allocation.
+	SumSUForUserInAllocation(ctx context.Context, allocationID, userID string) (int64, error)
+	// Create inserts a new usage event within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, u *models.ComputeAllocationUsage) error
+	// Delete removes a usage event by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}

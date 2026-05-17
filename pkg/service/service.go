@@ -46,6 +46,7 @@ type Service struct {
 	changeRequests   store.ComputeAllocationChangeRequestStore
 	changeEvents     store.ComputeAllocationChangeRequestEventStore
 	memberships      store.ComputeAllocationMembershipStore
+	usages           store.ComputeAllocationUsageStore
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -65,6 +66,7 @@ func New(database *sqlx.DB) *Service {
 		changeRequests:   store.NewComputeAllocationChangeRequestStore(database),
 		changeEvents:     store.NewComputeAllocationChangeRequestEventStore(database),
 		memberships:      store.NewComputeAllocationMembershipStore(database),
+		usages:           store.NewComputeAllocationUsageStore(database),
 	}
 }
 
@@ -85,6 +87,7 @@ func NewWithStores(
 	changeRequests store.ComputeAllocationChangeRequestStore,
 	changeEvents store.ComputeAllocationChangeRequestEventStore,
 	memberships store.ComputeAllocationMembershipStore,
+	usages store.ComputeAllocationUsageStore,
 ) *Service {
 	return &Service{
 		db:               database,
@@ -100,6 +103,7 @@ func NewWithStores(
 		changeRequests:   changeRequests,
 		changeEvents:     changeEvents,
 		memberships:      memberships,
+		usages:           usages,
 	}
 }
 
