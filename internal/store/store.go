@@ -20,6 +20,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -130,4 +131,24 @@ type ComputeAllocationResourceMappingStore interface {
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error
 	// DeleteByPair removes the mapping for a (allocation, resource) pair within the provided transaction.
 	DeleteByPair(ctx context.Context, tx *sql.Tx, allocationID, resourceID string) error
+}
+
+// ComputeAllocationResourceRateStore defines persistence operations for
+// the time-windowed rate at which a compute allocation resource is charged
+// in Service Units.
+type ComputeAllocationResourceRateStore interface {
+	// FindByID returns the rate with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceRate, error)
+	// FindByResource returns every rate ever defined for the given resource,
+	// ordered by start_time ascending.
+	FindByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error)
+	// FindEffective returns the rate effective for the given resource at the
+	// supplied instant (start_time <= at < end_time), or nil if none applies.
+	FindEffective(ctx context.Context, resourceID string, at time.Time) (*models.ComputeAllocationResourceRate, error)
+	// Create inserts a new rate within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error
+	// Update replaces mutable fields of an existing rate within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error
+	// Delete removes a rate by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }

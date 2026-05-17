@@ -75,6 +75,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /compute-allocations/{id}/resources", s.attachResourceToAllocation)
 	s.mux.HandleFunc("DELETE /compute-allocations/{id}/resources/{resourceId}", s.detachResourceFromAllocation)
 	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/allocations", s.listAllocationsForResource)
+
+	s.mux.HandleFunc("POST /compute-allocation-resource-rates", s.createComputeAllocationResourceRate)
+	s.mux.HandleFunc("GET /compute-allocation-resource-rates/{id}", s.getComputeAllocationResourceRate)
+	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/rates", s.listRatesForResource)
+	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/rates/effective", s.getEffectiveRateForResource)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -279,6 +284,56 @@ func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusOK, allocs)
+}
+
+func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
+	var rate models.ComputeAllocationResourceRate
+	if err := decodeJSON(r, &rate); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationResourceRate(r.Context(), &rate)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
+	rate, err := s.svc.GetComputeAllocationResourceRate(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rate)
+}
+
+func (s *Server) listRatesForResource(w http.ResponseWriter, r *http.Request) {
+	rates, err := s.svc.ListRatesForResource(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rates)
+}
+
+func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Request) {
+	var at time.Time
+	if raw := r.URL.Query().Get("at"); raw != "" {
+		parsed, err := time.Parse(time.RFC3339Nano, raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, errors.New("invalid 'at' query parameter; expected RFC 3339"))
+			return
+		}
+		at = parsed
+	}
+	rate, err := s.svc.GetEffectiveRateForResource(r.Context(), r.PathValue("id"), at)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rate)
 }
 
 // LoggingMiddleware logs every request once it completes.

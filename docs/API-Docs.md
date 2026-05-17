@@ -549,6 +549,123 @@ List every compute allocation that has the given resource attached.
 
 ---
 
+## Compute Allocation Resource Rates
+
+A rate captures how many Service Units (SUs) are charged per unit of a
+compute allocation resource over a bounded time window. Multiple rates can
+exist for the same resource; usage at any instant is charged using the rate
+whose `[start_time, end_time)` window contains that instant.
+
+Rates are cascade-deleted when their parent resource is deleted.
+
+### `POST /compute-allocation-resource-rates`
+
+Create a new rate for a compute allocation resource.
+
+**Required fields:** `compute_allocation_resource_id`, `rate`, `start_time`, `end_time`
+**Optional fields:** `id`
+
+Validation:
+
+- `compute_allocation_resource_id` must reference an existing resource.
+- `rate` must be ≥ 0.
+- `start_time` must be strictly before `end_time`.
+
+**Request**
+
+```json
+{
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "rate": 2.0,
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time":   "2026-12-31T23:59:59Z"
+}
+```
+
+**Response 201**
+
+```json
+{
+  "id": "55aa66bb-77cc-88dd-99ee-001122334455",
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "rate": 2.0,
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time":   "2026-12-31T23:59:59Z"
+}
+```
+
+**Errors**
+
+- `400` — required field missing, invalid time window, negative `rate`, or unknown `compute_allocation_resource_id`.
+
+---
+
+### `GET /compute-allocation-resource-rates/{id}`
+
+Retrieve a rate by its ID.
+
+**Errors**
+
+- `404` — no rate matches the supplied ID.
+
+---
+
+### `GET /compute-allocation-resources/{id}/rates`
+
+List every rate ever defined for the given compute allocation resource,
+ordered by `start_time` ascending.
+
+**Response 200**
+
+```json
+[
+  {
+    "id": "55aa66bb-77cc-88dd-99ee-001122334455",
+    "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+    "rate": 2.0,
+    "start_time": "2026-01-01T00:00:00Z",
+    "end_time":   "2026-12-31T23:59:59Z"
+  }
+]
+```
+
+---
+
+### `GET /compute-allocation-resources/{id}/rates/effective`
+
+Return the rate currently in effect for the given resource. By default the
+server uses the current time; supply `?at=<RFC 3339 timestamp>` to query an
+arbitrary instant.
+
+A rate is "effective" at instant *t* when `start_time <= t < end_time`. If
+multiple rates overlap *t*, the one with the most recent `start_time` wins.
+
+**Examples**
+
+```http
+GET /compute-allocation-resources/c0a1.../rates/effective
+GET /compute-allocation-resources/c0a1.../rates/effective?at=2026-05-16T12:00:00Z
+```
+
+**Response 200**
+
+```json
+{
+  "id": "55aa66bb-77cc-88dd-99ee-001122334455",
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "rate": 2.0,
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time":   "2026-12-31T23:59:59Z"
+}
+```
+
+**Errors**
+
+- `400` — `at` query parameter is not a valid RFC 3339 timestamp.
+- `404` — no rate is effective for the resource at the supplied instant.
+
+---
+
 ## End-to-end example
 
 ```bash
@@ -586,6 +703,19 @@ RES_ID=$(curl -s -X POST $BASE/compute-allocation-resources \
 curl -s -X POST $BASE/compute-allocations/$ALLOC_ID/resources \
   -H 'Content-Type: application/json' \
   -d "{\"compute_allocation_resource_id\":\"$RES_ID\"}" | jq
+
+# Define a rate for the resource.
+curl -s -X POST $BASE/compute-allocation-resource-rates \
+  -H 'Content-Type: application/json' \
+  -d "{
+        \"compute_allocation_resource_id\":\"$RES_ID\",
+        \"rate\":2.0,
+        \"start_time\":\"2026-01-01T00:00:00Z\",
+        \"end_time\":\"2026-12-31T23:59:59Z\"
+      }" | jq
+
+# Look up the currently-effective rate.
+curl -s $BASE/compute-allocation-resources/$RES_ID/rates/effective | jq
 
 # Bidirectional lookups.
 curl -s $BASE/compute-allocations/$ALLOC_ID/resources | jq
