@@ -59,6 +59,10 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("POST /projects", s.createProject)
 	s.mux.HandleFunc("GET /projects/{id}", s.getProject)
+
+	s.mux.HandleFunc("POST /compute-clusters", s.createComputeCluster)
+	s.mux.HandleFunc("GET /compute-clusters", s.listComputeClusters)
+	s.mux.HandleFunc("GET /compute-clusters/{id}", s.getComputeCluster)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -132,6 +136,38 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, p)
+}
+
+func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
+	var c models.ComputeCluster
+	if err := decodeJSON(r, &c); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeCluster(r.Context(), &c)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
+	c, err := s.svc.GetComputeCluster(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, c)
+}
+
+func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
+	clusters, err := s.svc.ListComputeClusters(r.Context())
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, clusters)
 }
 
 // LoggingMiddleware logs every request once it completes.

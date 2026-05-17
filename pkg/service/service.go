@@ -33,28 +33,30 @@ import (
 // mutating operation in a transaction so callers do not need to manage
 // *sql.Tx themselves.
 type Service struct {
-	db    *sqlx.DB
-	orgs  store.OrganizationStore
-	users store.UserStore
-	projs store.ProjectStore
+	db       *sqlx.DB
+	orgs     store.OrganizationStore
+	users    store.UserStore
+	projs    store.ProjectStore
+	clusters store.ComputeClusterStore
 }
 
 // New constructs a Service backed by the supplied database handle.
 // Stores are instantiated internally using the default MySQL implementations.
 func New(database *sqlx.DB) *Service {
 	return &Service{
-		db:    database,
-		orgs:  store.NewOrganizationStore(database),
-		users: store.NewUserStore(database),
-		projs: store.NewProjectStore(database),
+		db:       database,
+		orgs:     store.NewOrganizationStore(database),
+		users:    store.NewUserStore(database),
+		projs:    store.NewProjectStore(database),
+		clusters: store.NewComputeClusterStore(database),
 	}
 }
 
 // NewWithStores constructs a Service from explicit stores. Useful for tests
 // within this module — stores are an internal type and cannot be supplied by
 // external callers.
-func NewWithStores(database *sqlx.DB, orgs store.OrganizationStore, users store.UserStore, projs store.ProjectStore) *Service {
-	return &Service{db: database, orgs: orgs, users: users, projs: projs}
+func NewWithStores(database *sqlx.DB, orgs store.OrganizationStore, users store.UserStore, projs store.ProjectStore, clusters store.ComputeClusterStore) *Service {
+	return &Service{db: database, orgs: orgs, users: users, projs: projs, clusters: clusters}
 }
 
 // inTx runs fn inside a database transaction managed by the Service.
