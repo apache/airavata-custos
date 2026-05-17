@@ -208,3 +208,25 @@ type ComputeAllocationChangeRequestEventStore interface {
 	// Delete removes an event by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
+
+// ComputeAllocationMembershipStore defines persistence operations for the
+// per-user membership of a compute allocation, including the SU sub-allocation
+// granted to that user and the membership lifecycle.
+type ComputeAllocationMembershipStore interface {
+	// FindByID returns the membership with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
+	// FindByPair returns the membership for a (allocation, user) pair, or nil if absent.
+	FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error)
+	// FindByAllocation returns every membership recorded against the given
+	// allocation, ordered by start_time ascending.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
+	// FindByUser returns every membership held by the given user, ordered by
+	// start_time ascending.
+	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+	// Create inserts a new membership within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
+	// Update replaces mutable fields of an existing membership within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
+	// Delete removes a membership by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}

@@ -99,6 +99,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /compute-allocation-change-request-events/{id}", s.deleteComputeAllocationChangeRequestEvent)
 	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}/events", s.listEventsForChangeRequest)
 	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}/events/latest", s.getLatestEventForChangeRequest)
+
+	s.mux.HandleFunc("POST /compute-allocation-memberships", s.createComputeAllocationMembership)
+	s.mux.HandleFunc("GET /compute-allocation-memberships/{id}", s.getComputeAllocationMembership)
+	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}", s.updateComputeAllocationMembership)
+	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}/allocation-amount", s.updateMembershipAllocationAmount)
+	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}/status", s.updateMembershipStatus)
+	s.mux.HandleFunc("DELETE /compute-allocation-memberships/{id}", s.deleteComputeAllocationMembership)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/memberships", s.listMembersForAllocation)
+	s.mux.HandleFunc("GET /users/{id}/compute-allocation-memberships", s.listAllocationsForUser)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -515,6 +524,102 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 		return
 	}
 	writeJSON(w, http.StatusOK, evt)
+}
+
+func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
+	var m models.ComputeAllocationMembership
+	if err := decodeJSON(r, &m); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationMembership(r.Context(), &m)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
+	m, err := s.svc.GetComputeAllocationMembership(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, m)
+}
+
+func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
+	var m models.ComputeAllocationMembership
+	if err := decodeJSON(r, &m); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	m.ID = r.PathValue("id")
+	updated, err := s.svc.UpdateComputeAllocationMembership(r.Context(), &m)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) updateMembershipAllocationAmount(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		AllocationAmount int64 `json:"allocation_amount"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	updated, err := s.svc.UpdateMembershipAllocationAmount(r.Context(), r.PathValue("id"), body.AllocationAmount)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		MembershipStatus models.AllocationStatus `json:"membership_status"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	updated, err := s.svc.UpdateMembershipStatus(r.Context(), r.PathValue("id"), body.MembershipStatus)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationMembership(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListMembersForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListAllocationsForUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
 }
 
 // LoggingMiddleware logs every request once it completes.

@@ -953,6 +953,98 @@ Return the most recent event for the given change request.
 
 ---
 
+## Compute Allocation Memberships
+
+A `ComputeAllocationMembership` records a user's sub-allocation against a
+parent `ComputeAllocation` — i.e. how many SUs of the parent allocation the
+user is entitled to consume, and the time window plus lifecycle status of
+that grant. At most one membership can exist per `(compute_allocation_id,
+user_id)` pair (enforced by a unique key). Memberships are cascade-deleted
+when their parent allocation is removed.
+
+### POST `/compute-allocation-memberships`
+
+Create a new membership.
+
+**Request body**
+
+```json
+{
+  "compute_allocation_id": "alloc-123",
+  "user_id":               "user-456",
+  "allocation_amount":     50000,
+  "start_time":            "2026-01-01T00:00:00Z",
+  "end_time":              "2026-12-31T23:59:59Z",
+  "membership_status":     "ACTIVE"
+}
+```
+
+- `compute_allocation_id` and `user_id` are required and must reference
+  existing rows.
+- `membership_status` defaults to `ACTIVE` when omitted.
+- `id` is generated server-side when omitted.
+
+**Errors**
+
+- `400` — missing required fields, or referenced allocation/user not found.
+- `409` — a membership already exists for this `(allocation, user)` pair.
+
+### GET `/compute-allocation-memberships/{id}`
+
+Retrieve a membership by ID.
+
+### PUT `/compute-allocation-memberships/{id}`
+
+Replace mutable fields of a membership. Fields left blank/zero in the request
+body fall back to the stored value (partial updates).
+
+### PUT `/compute-allocation-memberships/{id}/allocation-amount`
+
+Update only the SU sub-allocation granted to the user.
+
+**Request body**
+
+```json
+{ "allocation_amount": 75000 }
+```
+
+**Errors**
+
+- `400` — negative `allocation_amount`.
+- `404` — no membership with the given ID.
+
+### PUT `/compute-allocation-memberships/{id}/status`
+
+Update only the lifecycle status of the membership (`ACTIVE`, `INACTIVE`,
+`DELETED`, etc.).
+
+**Request body**
+
+```json
+{ "membership_status": "INACTIVE" }
+```
+
+**Errors**
+
+- `400` — empty `membership_status`.
+- `404` — no membership with the given ID.
+
+### DELETE `/compute-allocation-memberships/{id}`
+
+Remove a membership.
+
+### GET `/compute-allocations/{id}/memberships`
+
+List every membership recorded against the given allocation, ordered by
+`start_time` ascending.
+
+### GET `/users/{id}/compute-allocation-memberships`
+
+List every allocation membership held by the given user, ordered by
+`start_time` ascending.
+
+---
+
 ## End-to-end example
 
 ```bash
