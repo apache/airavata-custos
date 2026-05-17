@@ -80,6 +80,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-allocation-resource-rates/{id}", s.getComputeAllocationResourceRate)
 	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/rates", s.listRatesForResource)
 	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/rates/effective", s.getEffectiveRateForResource)
+
+	s.mux.HandleFunc("POST /compute-allocation-diffs", s.createComputeAllocationDiff)
+	s.mux.HandleFunc("GET /compute-allocation-diffs/{id}", s.getComputeAllocationDiff)
+	s.mux.HandleFunc("DELETE /compute-allocation-diffs/{id}", s.deleteComputeAllocationDiff)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs", s.listDiffsForAllocation)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs/latest", s.getLatestDiffForAllocation)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -334,6 +340,55 @@ func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeJSON(w, http.StatusOK, rate)
+}
+
+func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
+	var diff models.ComputeAllocationDiff
+	if err := decodeJSON(r, &diff); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationDiff(r.Context(), &diff)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
+	diff, err := s.svc.GetComputeAllocationDiff(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, diff)
+}
+
+func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationDiff(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) {
+	diffs, err := s.svc.ListDiffsForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, diffs)
+}
+
+func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Request) {
+	diff, err := s.svc.GetLatestDiffForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, diff)
 }
 
 // LoggingMiddleware logs every request once it completes.
