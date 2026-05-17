@@ -1,0 +1,97 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package store
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+
+	"github.com/jmoiron/sqlx"
+
+	"github.com/apache/airavata-custos/pkg/models"
+)
+
+type mysqlProjectStore struct {
+	db *sqlx.DB
+}
+
+// NewProjectStore returns a MySQL-backed ProjectStore.
+func NewProjectStore(db *sqlx.DB) ProjectStore {
+	return &mysqlProjectStore{db: db}
+}
+
+func (s *mysqlProjectStore) FindByID(ctx context.Context, id string) (*models.Project, error) {
+	var p models.Project
+	err := s.db.GetContext(ctx, &p,
+		`SELECT id, originated_id, title, origination, project_pi_id, created_time
+		 FROM projects WHERE id = ?`, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (s *mysqlProjectStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error) {
+	var p models.Project
+	err := s.db.GetContext(ctx, &p,
+		`SELECT id, originated_id, title, origination, project_pi_id, created_time
+		 FROM projects WHERE originated_id = ?`, originatedID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (s *mysqlProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
+	var projects []models.Project
+	err := s.db.SelectContext(ctx, &projects,
+		`SELECT id, originated_id, title, origination, project_pi_id, created_time
+		 FROM projects WHERE project_pi_id = ?`, piUserID)
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
+}
+
+func (s *mysqlProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
+	_, err := tx.ExecContext(ctx,
+		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, created_time)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		p.ID, p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.CreatedTime)
+	return err
+}
+
+func (s *mysqlProjectStore) Update(ctx context.Context, tx *sql.Tx, p *models.Project) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE projects SET originated_id = ?, title = ?, origination = ?, project_pi_id = ?
+		 WHERE id = ?`,
+		p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.ID)
+	return err
+}
+
+func (s *mysqlProjectStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
+	return err
+}
