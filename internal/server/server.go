@@ -63,6 +63,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /compute-clusters", s.createComputeCluster)
 	s.mux.HandleFunc("GET /compute-clusters", s.listComputeClusters)
 	s.mux.HandleFunc("GET /compute-clusters/{id}", s.getComputeCluster)
+
+	s.mux.HandleFunc("POST /compute-allocations", s.createComputeAllocation)
+	s.mux.HandleFunc("GET /compute-allocations/{id}", s.getComputeAllocation)
+
+	s.mux.HandleFunc("POST /compute-allocation-resources", s.createComputeAllocationResource)
+	s.mux.HandleFunc("GET /compute-allocation-resources", s.listComputeAllocationResources)
+	s.mux.HandleFunc("GET /compute-allocation-resources/{id}", s.getComputeAllocationResource)
+
+	s.mux.HandleFunc("GET /compute-allocations/{id}/resources", s.listResourcesForAllocation)
+	s.mux.HandleFunc("POST /compute-allocations/{id}/resources", s.attachResourceToAllocation)
+	s.mux.HandleFunc("DELETE /compute-allocations/{id}/resources/{resourceId}", s.detachResourceFromAllocation)
+	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/allocations", s.listAllocationsForResource)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -168,6 +180,105 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, clusters)
+}
+
+func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request) {
+	var a models.ComputeAllocation
+	if err := decodeJSON(r, &a); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocation(r.Context(), &a)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
+	a, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, a)
+}
+
+func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
+	var res models.ComputeAllocationResource
+	if err := decodeJSON(r, &res); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationResource(r.Context(), &res)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
+	res, err := s.svc.GetComputeAllocationResource(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) listComputeAllocationResources(w http.ResponseWriter, r *http.Request) {
+	resources, err := s.svc.ListComputeAllocationResources(r.Context())
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resources)
+}
+
+type attachResourceRequest struct {
+	ComputeAllocationResourceID string `json:"compute_allocation_resource_id"`
+}
+
+func (s *Server) attachResourceToAllocation(w http.ResponseWriter, r *http.Request) {
+	var body attachResourceRequest
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	mapping, err := s.svc.AttachResourceToAllocation(r.Context(), r.PathValue("id"), body.ComputeAllocationResourceID)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, mapping)
+}
+
+func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DetachResourceFromAllocation(r.Context(), r.PathValue("id"), r.PathValue("resourceId")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Request) {
+	resources, err := s.svc.ListResourcesForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resources)
+}
+
+func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Request) {
+	allocs, err := s.svc.ListAllocationsForResource(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, allocs)
 }
 
 // LoggingMiddleware logs every request once it completes.

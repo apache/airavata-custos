@@ -16,27 +16,27 @@ type ComputeCluster struct {
 }
 
 type ComputeAllocation struct {
-	ID               string           `json:"id"`
-	ProjectID        string           `json:"project_id"`
-	Name             string           `json:"name"`
-	Status           AllocationStatus `json:"status"`             // ACTIVE, INACTIVE, DELETED, etc.
-	ComputeClusterID string           `json:"compute_cluster_id"` // The ID of the compute cluster where the allocation is provisioned.
-	InitialSUAmount  int64            `json:"initial_su_amount"`  // SUs allocated at the time of allocation creation.
-	StartTime        time.Time        `json:"start_time"`
-	EndTime          time.Time        `json:"end_time"`
+	ID               string           `json:"id"                 db:"id"`
+	ProjectID        string           `json:"project_id"         db:"project_id"`
+	Name             string           `json:"name"               db:"name"`
+	Status           AllocationStatus `json:"status"             db:"status"`             // ACTIVE, INACTIVE, DELETED, etc.
+	ComputeClusterID string           `json:"compute_cluster_id" db:"compute_cluster_id"` // The ID of the compute cluster where the allocation is provisioned.
+	InitialSUAmount  int64            `json:"initial_su_amount"  db:"initial_su_amount"`  // SUs allocated at the time of allocation creation.
+	StartTime        time.Time        `json:"start_time"         db:"start_time"`
+	EndTime          time.Time        `json:"end_time"           db:"end_time"`
 }
 
 type ComputeAllocationResource struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`            // A human-readable name for the resource, e.g., "GPU B200", "CPU", "GPU RTX6000", etc.
-	ResourceType   string `json:"resource_type"`   // CPU, GPU, etc.
-	ResourceAmount int64  `json:"resource_amount"` // Number of CPUs, GPUs, etc. allocated.
+	ID             string `json:"id"              db:"id"`
+	Name           string `json:"name"            db:"name"`            // A human-readable name for the resource, e.g., "GPU B200", "CPU", "GPU RTX6000", etc.
+	ResourceType   string `json:"resource_type"   db:"resource_type"`   // CPU, GPU, etc.
+	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs, etc. allocated.
 }
 
 type ComputeAllocationResourceMapping struct {
-	ID                          string `json:"id"`
-	ComputeAllocationID         string `json:"compute_allocation_id"`
-	ComputeAllocationResourceID string `json:"compute_allocation_resource_id"`
+	ID                          string `json:"id"                             db:"id"`
+	ComputeAllocationID         string `json:"compute_allocation_id"          db:"compute_allocation_id"`
+	ComputeAllocationResourceID string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
 }
 
 type ComputeAllocationResourceRate struct {

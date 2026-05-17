@@ -85,3 +85,49 @@ type ProjectStore interface {
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
+
+// ComputeAllocationStore defines persistence operations for compute allocations.
+type ComputeAllocationStore interface {
+	// FindByID returns the allocation with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error)
+	// FindByProject returns all allocations attached to the given project.
+	FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
+	// FindByCluster returns all allocations attached to the given compute cluster.
+	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error)
+	// Create inserts a new allocation within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
+	// Update replaces mutable fields of an existing allocation within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
+	// Delete removes an allocation by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// ComputeAllocationResourceStore defines persistence operations for compute
+// allocation resources (CPU, GPU, etc.).
+type ComputeAllocationResourceStore interface {
+	// FindByID returns the resource with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+	// List returns all compute allocation resources.
+	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
+	// Create inserts a new resource within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error
+	// Update replaces mutable fields of an existing resource within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error
+	// Delete removes a resource by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// ComputeAllocationResourceMappingStore defines persistence operations for
+// the join table linking compute allocations and compute allocation resources.
+type ComputeAllocationResourceMappingStore interface {
+	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
+	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
+	// FindResourcesByAllocation returns every resource attached to the given allocation.
+	FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error)
+	// FindAllocationsByResource returns every allocation that has the given resource attached.
+	FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error)
+	// Create inserts a new mapping within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error
+	// DeleteByPair removes the mapping for a (allocation, resource) pair within the provided transaction.
+	DeleteByPair(ctx context.Context, tx *sql.Tx, allocationID, resourceID string) error
+}

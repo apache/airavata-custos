@@ -33,30 +33,54 @@ import (
 // mutating operation in a transaction so callers do not need to manage
 // *sql.Tx themselves.
 type Service struct {
-	db       *sqlx.DB
-	orgs     store.OrganizationStore
-	users    store.UserStore
-	projs    store.ProjectStore
-	clusters store.ComputeClusterStore
+	db               *sqlx.DB
+	orgs             store.OrganizationStore
+	users            store.UserStore
+	projs            store.ProjectStore
+	clusters         store.ComputeClusterStore
+	allocs           store.ComputeAllocationStore
+	resources        store.ComputeAllocationResourceStore
+	resourceMappings store.ComputeAllocationResourceMappingStore
 }
 
 // New constructs a Service backed by the supplied database handle.
 // Stores are instantiated internally using the default MySQL implementations.
 func New(database *sqlx.DB) *Service {
 	return &Service{
-		db:       database,
-		orgs:     store.NewOrganizationStore(database),
-		users:    store.NewUserStore(database),
-		projs:    store.NewProjectStore(database),
-		clusters: store.NewComputeClusterStore(database),
+		db:               database,
+		orgs:             store.NewOrganizationStore(database),
+		users:            store.NewUserStore(database),
+		projs:            store.NewProjectStore(database),
+		clusters:         store.NewComputeClusterStore(database),
+		allocs:           store.NewComputeAllocationStore(database),
+		resources:        store.NewComputeAllocationResourceStore(database),
+		resourceMappings: store.NewComputeAllocationResourceMappingStore(database),
 	}
 }
 
 // NewWithStores constructs a Service from explicit stores. Useful for tests
 // within this module — stores are an internal type and cannot be supplied by
 // external callers.
-func NewWithStores(database *sqlx.DB, orgs store.OrganizationStore, users store.UserStore, projs store.ProjectStore, clusters store.ComputeClusterStore) *Service {
-	return &Service{db: database, orgs: orgs, users: users, projs: projs, clusters: clusters}
+func NewWithStores(
+	database *sqlx.DB,
+	orgs store.OrganizationStore,
+	users store.UserStore,
+	projs store.ProjectStore,
+	clusters store.ComputeClusterStore,
+	allocs store.ComputeAllocationStore,
+	resources store.ComputeAllocationResourceStore,
+	resourceMappings store.ComputeAllocationResourceMappingStore,
+) *Service {
+	return &Service{
+		db:               database,
+		orgs:             orgs,
+		users:            users,
+		projs:            projs,
+		clusters:         clusters,
+		allocs:           allocs,
+		resources:        resources,
+		resourceMappings: resourceMappings,
+	}
 }
 
 // inTx runs fn inside a database transaction managed by the Service.
