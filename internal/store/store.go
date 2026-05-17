@@ -54,6 +54,22 @@ type OrganizationStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ComputeClusterStore defines persistence operations for compute clusters.
+type ComputeClusterStore interface {
+	// FindByID returns the cluster with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.ComputeCluster, error)
+	// FindByName returns the cluster with the given name, or nil if not found.
+	FindByName(ctx context.Context, name string) (*models.ComputeCluster, error)
+	// List returns all compute clusters.
+	List(ctx context.Context) ([]models.ComputeCluster, error)
+	// Create inserts a new cluster within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error
+	// Update replaces mutable fields of an existing cluster within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error
+	// Delete removes a cluster by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
 // ProjectStore defines persistence operations for projects.
 type ProjectStore interface {
 	// FindByID returns the project with the given ID, or nil if not found.

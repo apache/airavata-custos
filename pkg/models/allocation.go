@@ -11,8 +11,8 @@ const (
 )
 
 type ComputeCluster struct {
-	ID   string `json:"id"`
-	Name string `json:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
+	ID   string `json:"id"   db:"id"`
+	Name string `json:"name" db:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
 }
 
 type ComputeAllocation struct {
