@@ -86,6 +86,19 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /compute-allocation-diffs/{id}", s.deleteComputeAllocationDiff)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs", s.listDiffsForAllocation)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs/latest", s.getLatestDiffForAllocation)
+
+	s.mux.HandleFunc("POST /compute-allocation-change-requests", s.createComputeAllocationChangeRequest)
+	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}", s.getComputeAllocationChangeRequest)
+	s.mux.HandleFunc("PUT /compute-allocation-change-requests/{id}", s.updateComputeAllocationChangeRequest)
+	s.mux.HandleFunc("DELETE /compute-allocation-change-requests/{id}", s.deleteComputeAllocationChangeRequest)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/change-requests", s.listChangeRequestsForAllocation)
+	s.mux.HandleFunc("GET /users/{id}/change-requests", s.listChangeRequestsByRequester)
+
+	s.mux.HandleFunc("POST /compute-allocation-change-request-events", s.createComputeAllocationChangeRequestEvent)
+	s.mux.HandleFunc("GET /compute-allocation-change-request-events/{id}", s.getComputeAllocationChangeRequestEvent)
+	s.mux.HandleFunc("DELETE /compute-allocation-change-request-events/{id}", s.deleteComputeAllocationChangeRequestEvent)
+	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}/events", s.listEventsForChangeRequest)
+	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}/events/latest", s.getLatestEventForChangeRequest)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -389,6 +402,119 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusOK, diff)
+}
+
+func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
+	var req models.ComputeAllocationChangeRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationChangeRequest(r.Context(), &req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
+	req, err := s.svc.GetComputeAllocationChangeRequest(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, req)
+}
+
+func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
+	var req models.ComputeAllocationChangeRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	req.ID = r.PathValue("id")
+	updated, err := s.svc.UpdateComputeAllocationChangeRequest(r.Context(), &req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationChangeRequest(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListChangeRequestsForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListChangeRequestsByRequester(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
+	var evt models.ComputeAllocationChangeRequestEvent
+	if err := decodeJSON(r, &evt); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationChangeRequestEvent(r.Context(), &evt)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
+	evt, err := s.svc.GetComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, evt)
+}
+
+func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListEventsForChangeRequest(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.Request) {
+	evt, err := s.svc.GetLatestEventForChangeRequest(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, evt)
 }
 
 // LoggingMiddleware logs every request once it completes.
