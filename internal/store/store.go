@@ -152,3 +152,21 @@ type ComputeAllocationResourceRateStore interface {
 	// Delete removes a rate by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
+
+// ComputeAllocationDiffStore defines persistence operations for the
+// append-only log of changes (SU updates, status changes, etc.) applied to a
+// compute allocation.
+type ComputeAllocationDiffStore interface {
+	// FindByID returns the diff with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationDiff, error)
+	// FindByAllocation returns every diff ever recorded for the given allocation,
+	// ordered by timestamp ascending.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationDiff, error)
+	// FindLatestByAllocation returns the most recent diff for the given
+	// allocation (highest timestamp), or nil if none exist.
+	FindLatestByAllocation(ctx context.Context, allocationID string) (*models.ComputeAllocationDiff, error)
+	// Create inserts a new diff within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, d *models.ComputeAllocationDiff) error
+	// Delete removes a diff by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}

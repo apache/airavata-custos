@@ -48,13 +48,13 @@ type ComputeAllocationResourceRate struct {
 }
 
 type ComputeAllocationDiff struct { // Diff will occur either through a change reqest or automated workflow like ACCESS AIME
-	ID                  string           `json:"id"`
-	ComputeAllocationID string           `json:"compute_allocation_id"`
-	DiffType            string           `json:"diff_type"`             // "USAGE_UPDATE", "ALLOCATION_STATUS_CHANGE", etc.
-	NewSUAmount         int64            `json:"new_su_amount"`         // New allocation amount in SUs, e.g., 900 SUs, etc.
-	Status              AllocationStatus `json:"status"`                // ACTIVE, INACTIVE, DELETED, etc.
-	Timestamp           time.Time        `json:"timestamp"`             // The time when the diff was generated.
-	Description         string           `json:"description,omitempty"` // Optional description of the diff, e.g., "SU usage updated based on job completion", "Allocation marked as INACTIVE due to end time reached", etc.
+	ID                  string           `json:"id"                    db:"id"`
+	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
+	DiffType            string           `json:"diff_type"             db:"diff_type"`     // "USAGE_UPDATE", "ALLOCATION_STATUS_CHANGE", etc.
+	NewSUAmount         int64            `json:"new_su_amount"         db:"new_su_amount"` // New allocation amount in SUs, e.g., 900 SUs, etc.
+	Status              AllocationStatus `json:"status"                db:"status"`        // ACTIVE, INACTIVE, DELETED, etc.
+	Timestamp           time.Time        `json:"timestamp"             db:"timestamp"`     // The time when the diff was generated.
+	Description         string           `json:"description,omitempty" db:"description"`   // Optional description of the diff, e.g., "SU usage updated based on job completion", "Allocation marked as INACTIVE due to end time reached", etc.
 }
 
 type ComputeAllocationChangeRequest struct { // Represents a request to change the allocation, e.g., requesting more SUs, requesting a reduction in SUs, etc from users or admins.

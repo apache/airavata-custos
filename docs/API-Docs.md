@@ -666,6 +666,107 @@ GET /compute-allocation-resources/c0a1.../rates/effective?at=2026-05-16T12:00:00
 
 ---
 
+## Compute Allocation Diffs
+
+A diff is an append-only audit record of a change applied to a compute
+allocation — for example a usage update or a status transition. Diffs are
+cascade-deleted when their parent allocation is deleted.
+
+### `POST /compute-allocation-diffs`
+
+Record a new diff against a compute allocation.
+
+**Required fields:** `compute_allocation_id`, `diff_type`, `status`
+**Optional fields:** `id`, `new_su_amount` (defaults to `0`), `timestamp` (defaults to the server's current UTC time), `description`
+
+`diff_type` is a free-form short code such as `USAGE_UPDATE` or
+`ALLOCATION_STATUS_CHANGE`. `status` must be one of `ACTIVE`, `INACTIVE`,
+`DELETED`.
+
+**Request**
+
+```json
+{
+  "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+  "diff_type": "USAGE_UPDATE",
+  "new_su_amount": 90000,
+  "status": "ACTIVE",
+  "description": "Charged 10000 SUs for completed jobs"
+}
+```
+
+**Response 201**
+
+```json
+{
+  "id": "44bb55cc-66dd-77ee-88ff-aabbccddeeff",
+  "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+  "diff_type": "USAGE_UPDATE",
+  "new_su_amount": 90000,
+  "status": "ACTIVE",
+  "timestamp": "2026-05-16T17:42:11.918Z",
+  "description": "Charged 10000 SUs for completed jobs"
+}
+```
+
+**Errors**
+
+- `400` — required field missing, or `compute_allocation_id` does not exist.
+
+---
+
+### `GET /compute-allocation-diffs/{id}`
+
+Retrieve a single diff by its ID.
+
+**Errors**
+
+- `404` — no diff matches the supplied ID.
+
+---
+
+### `DELETE /compute-allocation-diffs/{id}`
+
+Remove a diff record. Intended for administrative cleanup; diffs are
+otherwise append-only.
+
+**Response 204** — empty body on success.
+
+---
+
+### `GET /compute-allocations/{id}/diffs`
+
+List every diff ever recorded against the given compute allocation, ordered
+by `timestamp` ascending.
+
+**Response 200**
+
+```json
+[
+  {
+    "id": "44bb55cc-66dd-77ee-88ff-aabbccddeeff",
+    "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+    "diff_type": "USAGE_UPDATE",
+    "new_su_amount": 90000,
+    "status": "ACTIVE",
+    "timestamp": "2026-05-16T17:42:11.918Z",
+    "description": "Charged 10000 SUs for completed jobs"
+  }
+]
+```
+
+---
+
+### `GET /compute-allocations/{id}/diffs/latest`
+
+Return the most recent diff (highest `timestamp`) for the given allocation.
+
+**Errors**
+
+- `404` — the allocation has no diffs recorded.
+
+---
+
 ## End-to-end example
 
 ```bash
@@ -716,6 +817,21 @@ curl -s -X POST $BASE/compute-allocation-resource-rates \
 
 # Look up the currently-effective rate.
 curl -s $BASE/compute-allocation-resources/$RES_ID/rates/effective | jq
+
+# Record a usage diff against the allocation.
+curl -s -X POST $BASE/compute-allocation-diffs \
+  -H 'Content-Type: application/json' \
+  -d "{
+        \"compute_allocation_id\":\"$ALLOC_ID\",
+        \"diff_type\":\"USAGE_UPDATE\",
+        \"new_su_amount\":90000,
+        \"status\":\"ACTIVE\",
+        \"description\":\"Charged 10000 SUs for completed jobs\"
+      }" | jq
+
+# Inspect the diff history.
+curl -s $BASE/compute-allocations/$ALLOC_ID/diffs | jq
+curl -s $BASE/compute-allocations/$ALLOC_ID/diffs/latest | jq
 
 # Bidirectional lookups.
 curl -s $BASE/compute-allocations/$ALLOC_ID/resources | jq
