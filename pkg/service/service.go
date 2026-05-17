@@ -41,6 +41,7 @@ type Service struct {
 	allocs           store.ComputeAllocationStore
 	resources        store.ComputeAllocationResourceStore
 	resourceMappings store.ComputeAllocationResourceMappingStore
+	resourceRates    store.ComputeAllocationResourceRateStore
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -55,6 +56,7 @@ func New(database *sqlx.DB) *Service {
 		allocs:           store.NewComputeAllocationStore(database),
 		resources:        store.NewComputeAllocationResourceStore(database),
 		resourceMappings: store.NewComputeAllocationResourceMappingStore(database),
+		resourceRates:    store.NewComputeAllocationResourceRateStore(database),
 	}
 }
 
@@ -70,6 +72,7 @@ func NewWithStores(
 	allocs store.ComputeAllocationStore,
 	resources store.ComputeAllocationResourceStore,
 	resourceMappings store.ComputeAllocationResourceMappingStore,
+	resourceRates store.ComputeAllocationResourceRateStore,
 ) *Service {
 	return &Service{
 		db:               database,
@@ -80,6 +83,7 @@ func NewWithStores(
 		allocs:           allocs,
 		resources:        resources,
 		resourceMappings: resourceMappings,
+		resourceRates:    resourceRates,
 	}
 }
 

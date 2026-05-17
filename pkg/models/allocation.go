@@ -40,11 +40,11 @@ type ComputeAllocationResourceMapping struct {
 }
 
 type ComputeAllocationResourceRate struct {
-	ID                          string    `json:"id"`
-	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id"`
-	Rate                        float64   `json:"rate"`       // The rate for the resource in SUs per unit, e.g., 0.5 SU per CPU hour, 2 SU per GPU hour, etc.
-	StartTime                   time.Time `json:"start_time"` // The time when this rate becomes effective.
-	EndTime                     time.Time `json:"end_time"`   // The time when this rate expires.
+	ID                          string    `json:"id"                             db:"id"`
+	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
+	Rate                        float64   `json:"rate"                           db:"rate"`       // The rate for the resource in SUs per unit, e.g., 0.5 SU per CPU hour, 2 SU per GPU hour, etc.
+	StartTime                   time.Time `json:"start_time"                     db:"start_time"` // The time when this rate becomes effective.
+	EndTime                     time.Time `json:"end_time"                       db:"end_time"`   // The time when this rate expires.
 }
 
 type ComputeAllocationDiff struct { // Diff will occur either through a change reqest or automated workflow like ACCESS AIME
