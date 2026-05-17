@@ -89,11 +89,11 @@ type ComputeAllocationUsage struct { // Represents the usage of a compute alloca
 }
 
 type ComputeAllocationMembership struct {
-	ID                  string           `json:"id"`
-	ComputeAllocationID string           `json:"compute_allocation_id"`
-	UserID              string           `json:"user_id"`
-	AllocationAmount    int64            `json:"allocation_amount"` // SUs allocated to the user, e.g., 100 CPU hours, 50 GPU hours, etc.
-	StartTime           time.Time        `json:"start_time"`
-	EndTime             time.Time        `json:"end_time"`
-	MembershipStatus    AllocationStatus `json:"membership_status"` // ACTIVE, INACTIVE, etc.
+	ID                  string           `json:"id"                    db:"id"`
+	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
+	UserID              string           `json:"user_id"               db:"user_id"`
+	AllocationAmount    int64            `json:"allocation_amount"     db:"allocation_amount"` // SUs allocated to the user, e.g., 100 CPU hours, 50 GPU hours, etc.
+	StartTime           time.Time        `json:"start_time"            db:"start_time"`
+	EndTime             time.Time        `json:"end_time"              db:"end_time"`
+	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
 }

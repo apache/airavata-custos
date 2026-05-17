@@ -45,6 +45,7 @@ type Service struct {
 	allocDiffs       store.ComputeAllocationDiffStore
 	changeRequests   store.ComputeAllocationChangeRequestStore
 	changeEvents     store.ComputeAllocationChangeRequestEventStore
+	memberships      store.ComputeAllocationMembershipStore
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -63,6 +64,7 @@ func New(database *sqlx.DB) *Service {
 		allocDiffs:       store.NewComputeAllocationDiffStore(database),
 		changeRequests:   store.NewComputeAllocationChangeRequestStore(database),
 		changeEvents:     store.NewComputeAllocationChangeRequestEventStore(database),
+		memberships:      store.NewComputeAllocationMembershipStore(database),
 	}
 }
 
@@ -82,6 +84,7 @@ func NewWithStores(
 	allocDiffs store.ComputeAllocationDiffStore,
 	changeRequests store.ComputeAllocationChangeRequestStore,
 	changeEvents store.ComputeAllocationChangeRequestEventStore,
+	memberships store.ComputeAllocationMembershipStore,
 ) *Service {
 	return &Service{
 		db:               database,
@@ -96,6 +99,7 @@ func NewWithStores(
 		allocDiffs:       allocDiffs,
 		changeRequests:   changeRequests,
 		changeEvents:     changeEvents,
+		memberships:      memberships,
 	}
 }
 
