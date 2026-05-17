@@ -78,14 +78,14 @@ type ComputeAllocationChangeRequestEvent struct {
 }
 
 type ComputeAllocationUsage struct { // Represents the usage of a compute allocation, e.g., when a job consumes some of the allocated SUs, etc.
-	ID                          string    `json:"id"`
-	ComputeAllocationID         string    `json:"compute_allocation_id"`
-	UsedRawAmount               int64     `json:"used_raw_amount"`                // The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours, etc.
-	UsedSUAmount                int64     `json:"used_su_amount"`                 // SUs used by the allocation, e.g., 200 SUs, etc.
-	CalculatedTime              time.Time `json:"last_updated"`                   // The last time the usage was updated. SU should be calculated up to this point in time and charge rates should be applied based on the rates effective at this time.
-	UserID                      string    `json:"user_id"`                        // The ID of the user who used the allocation.
-	JobID                       string    `json:"job_id"`                         // The ID of the job that consumed the allocation.
-	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id"` // The specific resource consumed, e.g., 20 CPU hours, 10 GPU hours, etc.
+	ID                          string    `json:"id"                             db:"id"`
+	ComputeAllocationID         string    `json:"compute_allocation_id"          db:"compute_allocation_id"`
+	UsedRawAmount               int64     `json:"used_raw_amount"                db:"used_raw_amount"`                // The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours, etc.
+	UsedSUAmount                int64     `json:"used_su_amount"                 db:"used_su_amount"`                 // SUs used by the allocation, e.g., 200 SUs, etc.
+	CalculatedTime              time.Time `json:"last_updated"                   db:"calculated_time"`                // The last time the usage was updated. SU should be calculated up to this point in time and charge rates should be applied based on the rates effective at this time.
+	UserID                      string    `json:"user_id"                        db:"user_id"`                        // The ID of the user who used the allocation.
+	JobID                       string    `json:"job_id"                         db:"job_id"`                         // The ID of the job that consumed the allocation.
+	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"` // The specific resource consumed, e.g., 20 CPU hours, 10 GPU hours, etc.
 }
 
 type ComputeAllocationMembership struct {

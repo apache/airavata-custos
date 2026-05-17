@@ -108,6 +108,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /compute-allocation-memberships/{id}", s.deleteComputeAllocationMembership)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/memberships", s.listMembersForAllocation)
 	s.mux.HandleFunc("GET /users/{id}/compute-allocation-memberships", s.listAllocationsForUser)
+
+	s.mux.HandleFunc("POST /compute-allocation-usages", s.createComputeAllocationUsage)
+	s.mux.HandleFunc("GET /compute-allocation-usages/{id}", s.getComputeAllocationUsage)
+	s.mux.HandleFunc("DELETE /compute-allocation-usages/{id}", s.deleteComputeAllocationUsage)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/usages", s.listUsagesForAllocation)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/usages/total", s.getTotalSUUsageForAllocation)
+	s.mux.HandleFunc("GET /compute-allocations/{id}/users/{userId}/usages/total", s.getTotalSUUsageForUserInAllocation)
+	s.mux.HandleFunc("GET /users/{id}/compute-allocation-usages", s.listUsagesByUser)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -620,6 +628,82 @@ func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
+	var u models.ComputeAllocationUsage
+	if err := decodeJSON(r, &u); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationUsage(r.Context(), &u)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
+	u, err := s.svc.GetComputeAllocationUsage(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
+func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationUsage(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListUsagesForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListUsagesByUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Request) {
+	total, err := s.svc.GetTotalSUUsageForAllocation(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"compute_allocation_id": r.PathValue("id"),
+		"total_su_amount":       total,
+	})
+}
+
+func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *http.Request) {
+	allocationID := r.PathValue("id")
+	userID := r.PathValue("userId")
+	total, err := s.svc.GetTotalSUUsageForUserInAllocation(r.Context(), allocationID, userID)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"compute_allocation_id": allocationID,
+		"user_id":               userID,
+		"total_su_amount":       total,
+	})
 }
 
 // LoggingMiddleware logs every request once it completes.
