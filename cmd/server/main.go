@@ -29,6 +29,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -71,6 +72,10 @@ func run() error {
 
 	// Create a new event bus instance to async messaging between service and connectors
 	eventBus := events.New()
+
+	if err := connectors.LoadConnectors(eventBus); err != nil {
+		return err
+	}
 
 	svc := service.New(database, eventBus)
 	handler := server.LoggingMiddleware(server.New(svc))
