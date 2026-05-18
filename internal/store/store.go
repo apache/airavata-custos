@@ -231,6 +231,47 @@ type ComputeAllocationMembershipStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ExternalIdentityStore defines persistence operations for the mapping
+// between users and their identifiers in external systems.
+// UNIQUE (source, external_id) is enforced at the schema level.
+type ExternalIdentityStore interface {
+	// FindByID returns the external identity with the given ID, or nil if absent.
+	FindByID(ctx context.Context, id string) (*models.ExternalIdentity, error)
+	// FindBySourceAndExternalID returns the external identity for a (source,
+	// external_id) pair, or nil if absent.
+	FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.ExternalIdentity, error)
+	// FindByOIDCSub returns the external identity matching an OIDC subject, or
+	// nil if absent. oidc_sub is not unique; first match wins.
+	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.ExternalIdentity, error)
+	// FindByUser returns every external identity belonging to the given user,
+	// ordered by created_at ascending.
+	FindByUser(ctx context.Context, userID string) ([]models.ExternalIdentity, error)
+	// Create inserts a new external identity within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
+	// Update replaces mutable fields of an existing external identity within
+	// the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
+	// Delete removes an external identity by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// UserDNStore defines persistence operations for the X.509 distinguished
+// names bound to a user. Append-only: edits are Delete + Create.
+type UserDNStore interface {
+	// FindByID returns the DN binding with the given ID, or nil if absent.
+	FindByID(ctx context.Context, id string) (*models.UserDN, error)
+	// FindByDN returns the DN binding matching the given distinguished name,
+	// or nil if absent.
+	FindByDN(ctx context.Context, dn string) (*models.UserDN, error)
+	// FindByUser returns every DN bound to the given user, ordered by
+	// created_at ascending.
+	FindByUser(ctx context.Context, userID string) ([]models.UserDN, error)
+	// Create inserts a new DN binding within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, d *models.UserDN) error
+	// Delete removes a DN binding by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.
