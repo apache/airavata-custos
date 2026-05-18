@@ -4,6 +4,16 @@ import type React from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Certificate, CertificateStatus } from "./types";
 import {
   formatCertificateStatus,
@@ -77,7 +87,7 @@ export function CertificateListPage() {
     setPage(1);
   }
 
-  if (loading && !data) return <p>Loading certificates...</p>;
+  if (loading && !data) return <CertificateListSkeleton />;
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (
@@ -173,27 +183,25 @@ export function CertificateListPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-left text-sm">
-            <thead className="bg-[#f1f1f1] text-neutral-950">
-              <tr>
-                <TableHead>Serial</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Allocation</TableHead>
-                <TableHead>Issued Date</TableHead>
-                <TableHead>Issued Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right"> </TableHead>
-              </tr>
-            </thead>
+        <Table className="min-w-[1000px] text-left">
+          <TableHeader className="bg-[#f1f1f1] text-neutral-950">
+            <TableRow>
+              <TableHead className="px-5 py-4 text-sm font-bold">Serial</TableHead>
+              <TableHead className="px-5 py-4 text-sm font-bold">Username</TableHead>
+              <TableHead className="px-5 py-4 text-sm font-bold">Allocation</TableHead>
+              <TableHead className="px-5 py-4 text-sm font-bold">Issued Date</TableHead>
+              <TableHead className="px-5 py-4 text-sm font-bold">Issued Time</TableHead>
+              <TableHead className="px-5 py-4 text-sm font-bold">Status</TableHead>
+              <TableHead className="px-5 py-4 text-right text-sm font-bold"> </TableHead>
+            </TableRow>
+          </TableHeader>
 
-            <tbody>
-              {visibleCertificates.map((cert) => (
-                <CertificateRow key={cert.serial_number} cert={cert} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <TableBody>
+            {visibleCertificates.map((cert) => (
+              <CertificateRow key={cert.serial_number} cert={cert} />
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {visibleCertificates.length === 0 && (
@@ -269,31 +277,31 @@ function CertificateRow({ cert }: { cert: Certificate }) {
   const remaining = formatRemainingTime(getRemainingSeconds(cert));
 
   return (
-    <tr className="border-t border-neutral-200">
-      <td className="px-5 py-3">{cert.serial_number}</td>
-      <td className="px-5 py-3">{cert.principal}</td>
-      <td className="max-w-[360px] truncate px-5 py-3">
+    <TableRow className="border-t border-neutral-200 hover:bg-transparent">
+      <TableCell className="px-5 py-3">{cert.serial_number}</TableCell>
+      <TableCell className="px-5 py-3">{cert.principal}</TableCell>
+      <TableCell className="max-w-[360px] truncate px-5 py-3">
         {getCertificateAllocation(cert)}
-      </td>
-      <td className="px-5 py-3">{formatUnixDate(cert.issued_at)}</td>
-      <td className="px-5 py-3">{formatUnixClock(cert.issued_at)}</td>
-      <td className="px-5 py-3">
+      </TableCell>
+      <TableCell className="px-5 py-3">{formatUnixDate(cert.issued_at)}</TableCell>
+      <TableCell className="px-5 py-3">{formatUnixClock(cert.issued_at)}</TableCell>
+      <TableCell className="px-5 py-3">
         <div className="flex items-center gap-3">
           <StatusBadge status={status} />
           {status === "active" && (
             <span className="tabular-nums text-neutral-600">{remaining}</span>
           )}
         </div>
-      </td>
-      <td className="px-5 py-3 text-right">
+      </TableCell>
+      <TableCell className="px-5 py-3 text-right">
         <Link
           href={`/signer/certificates/${cert.serial_number}`}
           className="inline-flex h-7 min-w-16 items-center justify-center rounded-md border border-neutral-300 px-3 text-xs font-semibold text-neutral-600 hover:bg-neutral-50"
         >
           More
         </Link>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -328,39 +336,42 @@ function FilterSelect({
   );
 }
 
-function TableHead({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <th className={`px-5 py-4 text-sm font-bold ${className}`}>{children}</th>
-  );
-}
-
 function StatusBadge({ status }: { status: CertificateStatus }) {
   if (status === "active") {
     return (
-      <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 text-xs font-medium text-emerald-700">
+      <Badge className="h-7 gap-1.5 rounded-full bg-emerald-50 px-2.5 text-emerald-700">
         <span className="h-2 w-2 rounded-full bg-emerald-500" />
         {formatCertificateStatus(status)}
-      </span>
+      </Badge>
     );
   }
 
   if (status === "revoked") {
     return (
-      <span className="inline-flex h-7 items-center rounded-full bg-rose-50 px-2.5 text-xs font-medium text-rose-700">
+      <Badge className="h-7 rounded-full bg-rose-50 px-2.5 text-rose-700">
         {formatCertificateStatus(status)}
-      </span>
+      </Badge>
     );
   }
 
   return (
-    <span className="inline-flex h-7 items-center rounded-full bg-neutral-100 px-2.5 text-xs font-medium text-neutral-600">
+    <Badge className="h-7 rounded-full bg-neutral-100 px-2.5 text-neutral-600">
       {formatCertificateStatus(status)}
-    </span>
+    </Badge>
+  );
+}
+
+function CertificateListSkeleton() {
+  return (
+    <section className="mx-auto max-w-[1440px] space-y-6">
+      <Skeleton className="h-10 w-72" />
+      <Skeleton className="h-6 w-full max-w-3xl" />
+      <div className="h-px bg-neutral-300" />
+      <div className="space-y-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    </section>
   );
 }

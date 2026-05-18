@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "../../../../../auth";
 import {
   API_BASE_URL,
   CLIENT_ID,
   CLIENT_SECRET,
-  DEV_BEARER_TOKEN,
 } from "../../../../lib/serverConfig";
 
 type Context = {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: Context) {
 async function proxySignerRequest(
   request: NextRequest,
   context: Context,
-  auth: "bearer" | "client"
+  authScheme: "bearer" | "client"
 ) {
   // Mirror the browser-facing /api/v1 route onto the local Signer backend while
   // injecting the auth scheme expected by each endpoint family.
@@ -38,8 +38,17 @@ async function proxySignerRequest(
     headers.set("Content-Type", contentType);
   }
 
-  if (auth === "bearer") {
-    headers.set("Authorization", `Bearer ${DEV_BEARER_TOKEN}`);
+  if (authScheme === "bearer") {
+    const session = await auth();
+
+    if (!session?.accessToken) {
+      return NextResponse.json(
+        { message: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    headers.set("Authorization", `Bearer ${session.accessToken}`);
   } else {
     headers.set("X-Client-Id", CLIENT_ID);
     headers.set("X-Client-Secret", CLIENT_SECRET);

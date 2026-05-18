@@ -10,7 +10,3 @@ export const SUPPORT_EMAIL =
 
 export const ALLOCATION_LABEL =
   process.env.NEXT_PUBLIC_ALLOCATION_LABEL ?? "Allocation";
-
-export const SIGN_IN_URL = process.env.NEXT_PUBLIC_SIGN_IN_URL ?? "";
-
-export const SIGN_OUT_URL = process.env.NEXT_PUBLIC_SIGN_OUT_URL ?? "";

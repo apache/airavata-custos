@@ -2,6 +2,7 @@
 
 import type React from "react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   formatCertificateLifetime,
   formatCertificateStatus,
@@ -17,7 +18,16 @@ import { CertificateListPage } from "./CertificateListPage";
 export function CertificateDetailPage({ serial }: { serial: string }) {
   const { data: cert, loading, error, reload } = useCertificate(serial);
 
-  if (loading && !cert) return <p>Loading certificate...</p>;
+  if (loading && !cert) {
+    return (
+      <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[690px] flex-col gap-4 overflow-hidden rounded-l-2xl bg-white p-12 shadow-[-10px_0_30px_rgba(0,0,0,0.14)]">
+        <Skeleton className="h-10 w-3/4" />
+        <Skeleton className="h-6 w-1/2" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </aside>
+    );
+  }
   if (error) return <p className="text-red-600">{error}</p>;
   if (!cert) return <p>Certificate not found.</p>;
 
@@ -102,15 +112,7 @@ export function CertificateDetailPage({ serial }: { serial: string }) {
             Cancel
           </Link>
 
-          {isActive && (
-            <RevokeDialog
-              cert={cert}
-              onRevoked={reload}
-              triggerClassName="inline-flex h-12 min-w-32 items-center justify-center rounded-lg bg-red-600 px-6 text-base font-semibold text-white hover:bg-red-700 disabled:bg-red-300"
-              confirmClassName="inline-flex h-12 items-center justify-center rounded-lg bg-red-600 px-5 text-base font-semibold text-white hover:bg-red-700 disabled:bg-red-300"
-              cancelClassName="inline-flex h-12 items-center justify-center rounded-lg border border-neutral-300 bg-white px-5 text-base font-semibold text-neutral-700 hover:bg-neutral-50"
-            />
-          )}
+          {isActive && <RevokeDialog cert={cert} onRevoked={reload} />}
         </footer>
       </aside>
     </section>

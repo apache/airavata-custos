@@ -1,31 +1,36 @@
 "use client";
 
 import type React from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signIn, signOut, useSession } from "next-auth/react";
 import {
   Bell,
   ChevronLeft,
   ChevronRight,
   Headphones,
-  LogIn,
   LogOut,
 } from "lucide-react";
 import { navItems } from "../nav";
-import { useUserInfo } from "../signer/hooks";
-import {
-  PORTAL_NAME,
-  SIGN_IN_URL,
-  SIGN_OUT_URL,
-  SUPPORT_EMAIL,
-} from "../../lib/config";
+import { PORTAL_NAME, SUPPORT_EMAIL } from "../../lib/config";
 
 export function PortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: user, loading, error } = useUserInfo();
-  const displayName = user?.principal ?? user?.username ?? "Local user";
-  const displayEmail = user?.email ?? "local session";
+  const { data: session, status } = useSession();
+  const loading = status === "loading";
+  const user = session?.user;
+  const displayName = user?.name ?? user?.email ?? "Signed out";
+  const displayEmail = user?.email ?? "no session";
   const avatarInitial = (user?.email ?? displayName).slice(0, 1).toUpperCase();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      // No provider id: NextAuth picks the registered provider (OIDC in prod,
+      // dev Credentials fallback when OIDC_ISSUER_URL is unset).
+      signIn();
+    }
+  }, [status]);
 
   return (
     <div className="flex min-h-screen bg-white text-neutral-950">
@@ -117,64 +122,26 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
               <div className="font-medium">
                 {loading ? "Loading user..." : displayName}
               </div>
-              <div className="text-neutral-500">
-                {error ? "User info unavailable" : displayEmail}
-              </div>
+              <div className="text-neutral-500">{displayEmail}</div>
             </div>
 
             <div className="flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-blue-700 bg-neutral-200 text-sm font-semibold text-neutral-700">
               {avatarInitial}
             </div>
 
-            {user || !SIGN_IN_URL ? (
-              <AuthLink
-                href={SIGN_OUT_URL}
-                label={SIGN_OUT_URL ? "Sign out" : "Local session"}
-                icon={<LogOut className="h-4 w-4" />}
-              />
-            ) : (
-              <AuthLink
-                href={SIGN_IN_URL}
-                label="Sign in"
-                icon={<LogIn className="h-4 w-4" />}
-              />
-            )}
+            <button
+              className="hidden items-center gap-2 rounded-lg border px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 xl:inline-flex"
+              onClick={() => signOut()}
+              type="button"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
           </div>
         </header>
 
-        <main className="flex-1 px-12 py-8">
-          {children}
-        </main>
+        <main className="flex-1 px-12 py-8">{children}</main>
       </div>
     </div>
-  );
-}
-
-function AuthLink({
-  href,
-  icon,
-  label,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  const classes =
-    "hidden items-center gap-2 rounded-lg border px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 xl:inline-flex";
-
-  if (!href) {
-    return (
-      <span className={`${classes} cursor-default text-slate-500`}>
-        {icon}
-        {label}
-      </span>
-    );
-  }
-
-  return (
-    <a className={classes} href={href}>
-      {icon}
-      {label}
-    </a>
   );
 }

@@ -1,3 +1,11 @@
 .next/
 node_modules/
 tsconfig.tsbuildinfo
+debug.log
+*.log
+test-results/
+playwright-report/
+.playwright/
+.env
+.env.local
+.env.*.local
