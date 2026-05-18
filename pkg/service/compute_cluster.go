@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -49,6 +50,8 @@ func (s *Service) CreateComputeCluster(ctx context.Context, cluster *models.Comp
 	}); err != nil {
 		return nil, fmt.Errorf("create compute cluster: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationCreateEvent, cluster)
 	return cluster, nil
 }
 
@@ -99,6 +102,8 @@ func (s *Service) UpdateComputeCluster(ctx context.Context, cluster *models.Comp
 	}); err != nil {
 		return fmt.Errorf("update compute cluster: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationUpdateEvent, cluster)
 	return nil
 }
 
@@ -107,10 +112,19 @@ func (s *Service) DeleteComputeCluster(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: compute cluster id is required", ErrInvalidInput)
 	}
+	cluster, err := s.clusters.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("lookup compute cluster: %w", err)
+	}
+	if cluster == nil {
+		return ErrNotFound
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.clusters.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute cluster: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationDeleteEvent, cluster)
 	return nil
 }

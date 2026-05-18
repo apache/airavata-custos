@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -51,6 +52,8 @@ func (s *Service) CreateOrganization(ctx context.Context, org *models.Organizati
 	}); err != nil {
 		return nil, fmt.Errorf("create organization: %w", err)
 	}
+
+	s.eventBus.Publish(events.OrganizationCreateEvent, org)
 	return org, nil
 }
 
@@ -89,6 +92,8 @@ func (s *Service) UpdateOrganization(ctx context.Context, org *models.Organizati
 	}); err != nil {
 		return fmt.Errorf("update organization: %w", err)
 	}
+
+	s.eventBus.Publish(events.OrganizationUpdateEvent, org)
 	return nil
 }
 
@@ -97,10 +102,19 @@ func (s *Service) DeleteOrganization(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: organization id is required", ErrInvalidInput)
 	}
+	org, err := s.orgs.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("lookup organization: %w", err)
+	}
+	if org == nil {
+		return ErrNotFound
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.orgs.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete organization: %w", err)
 	}
+
+	s.eventBus.Publish(events.OrganizationDeleteEvent, org)
 	return nil
 }

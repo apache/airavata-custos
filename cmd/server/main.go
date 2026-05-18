@@ -31,6 +31,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -68,7 +69,10 @@ func run() error {
 		return err
 	}
 
-	svc := service.New(database)
+	// Create a new event bus instance to async messaging between service and connectors
+	eventBus := events.New()
+
+	svc := service.New(database, eventBus)
 	handler := server.LoggingMiddleware(server.New(svc))
 
 	httpServer := &http.Server{
