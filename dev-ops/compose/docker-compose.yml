@@ -18,24 +18,6 @@
 
 version: "3.8"
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:24.0.0
-    environment:
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
-      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
-      KC_DB: mariadb
-      KC_DB_URL: jdbc:mariadb://db:3306/keycloak?characterEncoding=UTF-8
-      KC_DB_USERNAME: admin
-      KC_DB_PASSWORD: admin
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    ports:
-      - "8080:8080"
-    command:
-      - start-dev
-    restart: unless-stopped
-
   db:
     container_name: custos_db
     image: mariadb:11.2
@@ -56,55 +38,3 @@ services:
     restart: always
     ports:
       - 18080:8080
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/amie-service.json
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
-
-  vault:
-    image: vault:1.11.0
-    container_name: vault
-    restart: unless-stopped
-    ports:
-      - "8201:8201"
-      - "8200:8200"
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8201
-      VAULT_API_ADDR: http://127.0.0.1:8200
-      VAULT_CLUSTER_ADDR: http://127.0.0.1:8201
-      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}'
-    cap_add:
-      - IPC_LOCK
-    volumes:
-      - ./vault/data:/vault/data
-      - ./vault/config:/vault/config
-    entrypoint: vault server
-    command: -config=/vault/config/vault-config.hcl
-    healthcheck:
-      test: "vault login 00000000-0000-0000-0000-000000000000 &&
-                   vault kv get secret &&
-                   vault secrets disable secret &&
-                   vault secrets enable -version=1 -path=secret kv &&
-                   vault secrets enable -version=1 -path=resourcesecret kv"
-      interval: 5s
