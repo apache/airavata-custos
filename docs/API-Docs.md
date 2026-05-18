@@ -1052,7 +1052,7 @@ BASE=http://localhost:8080
 
 ORG_ID=$(curl -s -X POST $BASE/organizations \
   -H 'Content-Type: application/json' \
-  -d '{"name":"University of Example","originated_id":"ACCESS-ORG-001"}' \
+  -d '{"name":"Georgia Institute of Technology","originated_id":"ACCESS-ORG-001"}' \
   | jq -r .id)
 
 USER_ID=$(curl -s -X POST $BASE/users \
@@ -1067,7 +1067,7 @@ PROJ_ID=$(curl -s -X POST $BASE/projects \
 
 CLUSTER_ID=$(curl -s -X POST $BASE/compute-clusters \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Delta"}' | jq -r .id)
+  -d '{"name":"nexus-dev"}' | jq -r .id)
 
 ALLOC_ID=$(curl -s -X POST $BASE/compute-allocations \
   -H 'Content-Type: application/json' \
