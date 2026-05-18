@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -46,6 +47,8 @@ func (s *Service) CreateComputeAllocationResource(ctx context.Context, resource 
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation resource: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceCreateEvent, resource)
 	return resource, nil
 }
 
@@ -81,6 +84,8 @@ func (s *Service) UpdateComputeAllocationResource(ctx context.Context, resource 
 	}); err != nil {
 		return fmt.Errorf("update compute allocation resource: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceUpdateEvent, resource)
 	return nil
 }
 
@@ -89,10 +94,19 @@ func (s *Service) DeleteComputeAllocationResource(ctx context.Context, id string
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation resource id is required", ErrInvalidInput)
 	}
+	resource, err := s.resources.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("lookup compute allocation resource: %w", err)
+	}
+	if resource == nil {
+		return ErrNotFound
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.resources.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation resource: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceDeleteEvent, resource)
 	return nil
 }

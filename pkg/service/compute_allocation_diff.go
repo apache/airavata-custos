@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -61,6 +62,8 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 	}); err != nil {
 		return nil, fmt.Errorf("create compute allocation diff: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationDiffCreateEvent, diff)
 	return diff, nil
 }
 
@@ -113,10 +116,19 @@ func (s *Service) DeleteComputeAllocationDiff(ctx context.Context, id string) er
 	if id == "" {
 		return fmt.Errorf("%w: compute allocation diff id is required", ErrInvalidInput)
 	}
+	diff, err := s.allocDiffs.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("lookup compute allocation diff: %w", err)
+	}
+	if diff == nil {
+		return ErrNotFound
+	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.allocDiffs.Delete(ctx, tx, id)
 	}); err != nil {
 		return fmt.Errorf("delete compute allocation diff: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationDiffDeleteEvent, diff)
 	return nil
 }

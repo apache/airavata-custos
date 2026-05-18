@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -65,6 +66,8 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 	}); err != nil {
 		return nil, fmt.Errorf("attach resource to allocation: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	return mapping, nil
 }
 
@@ -89,6 +92,8 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 	}); err != nil {
 		return fmt.Errorf("detach resource from allocation: %w", err)
 	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	return nil
 }
 

@@ -27,6 +27,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/events"
 )
 
 // Service is a high-level façade over the underlying stores. It wraps each
@@ -34,6 +35,7 @@ import (
 // *sql.Tx themselves.
 type Service struct {
 	db               *sqlx.DB
+	eventBus         *events.Bus
 	orgs             store.OrganizationStore
 	users            store.UserStore
 	projs            store.ProjectStore
@@ -51,9 +53,10 @@ type Service struct {
 
 // New constructs a Service backed by the supplied database handle.
 // Stores are instantiated internally using the default MySQL implementations.
-func New(database *sqlx.DB) *Service {
+func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 	return &Service{
 		db:               database,
+		eventBus:         eventBus,
 		orgs:             store.NewOrganizationStore(database),
 		users:            store.NewUserStore(database),
 		projs:            store.NewProjectStore(database),
@@ -75,6 +78,7 @@ func New(database *sqlx.DB) *Service {
 // external callers.
 func NewWithStores(
 	database *sqlx.DB,
+	eventBus *events.Bus,
 	orgs store.OrganizationStore,
 	users store.UserStore,
 	projs store.ProjectStore,
@@ -91,6 +95,7 @@ func NewWithStores(
 ) *Service {
 	return &Service{
 		db:               database,
+		eventBus:         eventBus,
 		orgs:             orgs,
 		users:            users,
 		projs:            projs,
