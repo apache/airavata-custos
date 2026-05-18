@@ -12,18 +12,20 @@ import (
 )
 
 type Client struct {
-	baseURL string
-	user    string
-	token   string
-	http    *http.Client
+	baseURL    string
+	user       string
+	token      string
+	apiVersion string
+	http       *http.Client
 }
 
-func New(baseURL, user, token string) *Client {
+func New(baseURL, user, token, apiVersion string) *Client {
 	return &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		user:    user,
-		token:   token,
-		http:    &http.Client{Timeout: 30 * time.Second},
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		user:       user,
+		token:      token,
+		apiVersion: apiVersion,
+		http:       &http.Client{Timeout: 30 * time.Second},
 	}
 }
 

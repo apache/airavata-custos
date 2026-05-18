@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-
 func TestListAssociationsByAccount(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/slurmdb/v0.0.41/associations" {
@@ -22,7 +21,7 @@ func TestListAssociationsByAccount(t *testing.T) {
 		_, _ = w.Write([]byte(`{"associations":[{"account":"eng","cluster":"artisan","user":"alice","id_association":5}]}`))
 	}))
 	defer srv.Close()
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	assocs, err := c.ListAssociations(AssocFilter{Account: "eng"})
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +48,7 @@ func TestCreateAssociation(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	err := c.UpsertAssociation(Association{Account: "eng", Cluster: "artisan", User: "alice"})
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +66,7 @@ func TestDeleteAssociation(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	}))
 	defer srv.Close()
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	if err := c.DeleteAssociation(AssocFilter{Account: "eng", User: "alice"}); err != nil {
 		t.Fatal(err)
 	}

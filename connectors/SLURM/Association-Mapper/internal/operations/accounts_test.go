@@ -18,7 +18,7 @@ func TestListAccounts(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	accts, err := c.ListAccounts()
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func TestCreateAccount(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	if err := c.CreateAccount(Account{Name: "eng", Description: "engineering"}, "artisan"); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestDeleteAccount(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	if err := c.DeleteAccount("eng"); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestGetAccount(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "root", "t")
+	c := New(srv.URL, "root", "t", "41")
 	a, err := c.GetAccount("eng")
 	if err != nil {
 		t.Fatal(err)

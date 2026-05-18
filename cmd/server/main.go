@@ -72,12 +72,12 @@ func run() error {
 
 	// Create a new event bus instance to async messaging between service and connectors
 	eventBus := events.New()
+	svc := service.New(database, eventBus)
 
-	if err := connectors.LoadConnectors(eventBus); err != nil {
+	if err := connectors.LoadConnectors(eventBus, svc); err != nil {
 		return err
 	}
 
-	svc := service.New(database, eventBus)
 	handler := server.LoggingMiddleware(server.New(svc))
 
 	httpServer := &http.Server{

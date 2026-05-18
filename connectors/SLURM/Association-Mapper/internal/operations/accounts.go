@@ -9,7 +9,7 @@ type accountsResponse struct {
 
 func (c *Client) ListAccounts() ([]Account, error) {
 	var out accountsResponse
-	if _, err := c.do("GET", "/slurmdb/v0.0.41/accounts", nil, &out); err != nil {
+	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/accounts", nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Accounts, nil
@@ -17,7 +17,7 @@ func (c *Client) ListAccounts() ([]Account, error) {
 
 func (c *Client) GetAccount(name string) (*Account, error) {
 	var out accountsResponse
-	if _, err := c.do("GET", "/slurmdb/v0.0.41/account/"+name, nil, &out); err != nil {
+	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/account/"+name, nil, &out); err != nil {
 		return nil, err
 	}
 	if len(out.Accounts) == 0 {
@@ -43,11 +43,11 @@ func (c *Client) CreateAccount(a Account, cluster string) error {
 			"organization": a.Organization,
 		},
 	}
-	_, err := c.do("POST", "/slurmdb/v0.0.41/accounts_association/", body, nil)
+	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/accounts_association/", body, nil)
 	return err
 }
 
 func (c *Client) DeleteAccount(name string) error {
-	_, err := c.do("DELETE", "/slurmdb/v0.0.41/account/"+name, nil, nil)
+	_, err := c.do("DELETE", "/slurmdb/v0.0."+c.apiVersion+"/account/"+name, nil, nil)
 	return err
 }

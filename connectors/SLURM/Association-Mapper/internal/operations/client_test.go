@@ -18,7 +18,7 @@ func TestDoSetsHeaders(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "root", "tok123")
+	c := New(srv.URL, "root", "tok123", "41")
 	if _, err := c.do("GET", "/slurm/v0.0.41/ping", nil, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestDoUnwrapsErrors(t *testing.T) {
 		_, _ = w.Write([]byte(`{"errors":[{"description":"nope","error_number":42,"error":"Bad","source":"test"}]}`))
 	}))
 	defer srv.Close()
-	c := New(srv.URL, "root", "tok")
+	c := New(srv.URL, "root", "tok", "41")
 	_, err := c.do("GET", "/x", nil, nil)
 	if err == nil {
 		t.Fatal("expected error")

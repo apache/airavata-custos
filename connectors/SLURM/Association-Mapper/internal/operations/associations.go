@@ -32,7 +32,7 @@ type associationsResponse struct {
 }
 
 func (c *Client) ListAssociations(f AssocFilter) ([]Association, error) {
-	path := "/slurmdb/v0.0.41/associations"
+	path := "/slurmdb/v0.0." + c.apiVersion + "/associations"
 	if q := f.query(); q != "" {
 		path += "?" + q
 	}
@@ -48,12 +48,12 @@ func (c *Client) ListAssociations(f AssocFilter) ([]Association, error) {
 // triple exists, it's updated; otherwise created.
 func (c *Client) UpsertAssociation(a Association) error {
 	body := map[string]any{"associations": []Association{a}}
-	_, err := c.do("POST", "/slurmdb/v0.0.41/associations", body, nil)
+	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/associations", body, nil)
 	return err
 }
 
 func (c *Client) DeleteAssociation(f AssocFilter) error {
-	path := "/slurmdb/v0.0.41/association"
+	path := "/slurmdb/v0.0." + c.apiVersion + "/association"
 	if q := f.query(); q != "" {
 		path += "?" + q
 	}

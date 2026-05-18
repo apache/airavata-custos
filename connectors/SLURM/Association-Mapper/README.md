@@ -19,6 +19,36 @@ This package is part of the root `github.com/apache/airavata-custos` module.
 
 Import path: `github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations`.
 
+## Configuration
+
+The connector reads its `slurmrestd` connection details from the following environment variables:
+
+| Variable      | Description                                                                 |
+|---------------|-----------------------------------------------------------------------------|
+| `SLURM_API`   | Base URL of the `slurmrestd` endpoint, e.g. `https://slurm.example.org:6820` |
+| `SLURM_USER`  | SLURM user name to authenticate as (sent in the `X-SLURM-USER-NAME` header)  |
+| `SLURM_TOKEN` | JWT token for that user (sent in the `X-SLURM-USER-TOKEN` header)            |
+| `SLURM_API_VERSION` | API version of `slurmrestd`. You can check it from `slurmrestd -d list` | 
+
+Example:
+
+```bash
+export SLURM_API='https://slurm.example.org:6820'
+export SLURM_USER='slurm'
+export SLURM_TOKEN="$(scontrol token lifespan=3600 | awk -F= '{print $2}')"
+export SLURM_API_VERSION='40'
+```
+
+All three are required for any live `slurmrestd` interaction. Tests do not need them.
+
+You can check the functionality of the SLURM REST API through 
+```bash
+curl -sS \
+  -H "X-SLURM-USER-NAME: $SLURM_USER" \
+  -H "X-SLURM-USER-TOKEN: $SLURM_TOKEN" \
+  "$SLURM_API/slurm/v0.0.$SLURM_API_VERSION/ping" | jq
+```
+
 ## Test
 
 ```bash
