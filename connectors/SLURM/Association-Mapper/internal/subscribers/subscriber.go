@@ -19,7 +19,7 @@ func NewAssociationSubscriber(slurmClient *client.Client, eventBus *events.Bus, 
 }
 
 func (a *AssociationSubscriber) RegisterSubscribers() {
-	a.eventBus.SubscribeComputeAllocationCreated(a.SubscribeToComputeAccountCreation)
-	a.eventBus.SubscribeComputeAllocationDeleted(a.SubscribeToComputeAccountDeletion)
-	a.eventBus.SubscribeComputeAllocationUpdated(a.SubscribeToComputeAccountUpdate)
+	a.eventBus.SubscribeComputeAllocationCreated(a.SubscribeToComputeAllocationCreation)
+	a.eventBus.SubscribeComputeAllocationDeleted(a.SubscribeToComputeAllocationDeletion)
+	a.eventBus.SubscribeComputeAllocationUpdated(a.SubscribeToComputeAllocationUpdate)
 }
