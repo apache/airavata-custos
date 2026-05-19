@@ -53,6 +53,9 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.ID == "" {
 		user.ID = newID()
 	}
+	if user.Status == "" {
+		user.Status = models.UserActive
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.users.Create(ctx, tx, user)
@@ -67,6 +70,27 @@ func (s *Service) GetUser(ctx context.Context, id string) (*models.User, error) 
 	u, err := s.users.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("get user: %w", err)
+	}
+	if u == nil {
+		return nil, ErrNotFound
+	}
+	return u, nil
+}
+
+// GetUserByExternalIdentity resolves a user via their (source, external_id)
+// entry. Returns ErrNotFound when either the external identity does not
+// exist or the user it points to has been deleted.
+func (s *Service) GetUserByExternalIdentity(ctx context.Context, source, externalID string) (*models.User, error) {
+	ext, err := s.extIDs.FindBySourceAndExternalID(ctx, source, externalID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup external identity: %w", err)
+	}
+	if ext == nil {
+		return nil, ErrNotFound
+	}
+	u, err := s.users.FindByID(ctx, ext.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup user: %w", err)
 	}
 	if u == nil {
 		return nil, ErrNotFound
