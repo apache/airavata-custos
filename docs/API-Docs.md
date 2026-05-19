@@ -330,6 +330,159 @@ Retrieve a single compute cluster by its ID.
 
 ---
 
+## Compute Cluster Users
+
+A compute-cluster user maps a Custos user to their local account
+(`local_username`) on a specific compute cluster. Each `(compute_cluster_id,
+user_id)` pair is unique. The mapping is removed automatically when either
+the referenced compute cluster or user is deleted.
+
+### `POST /compute-cluster-users`
+
+Create a new compute-cluster user mapping.
+
+**Required fields:** `compute_cluster_id`, `user_id`, `local_username`
+**Optional fields:** `id` (auto-generated if omitted)
+
+Both `compute_cluster_id` and `user_id` must reference existing records.
+
+**Request**
+
+```json
+{
+  "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+  "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+  "local_username":     "jdoe"
+}
+```
+
+**Response 201**
+
+```json
+{
+  "id":                 "0d72d3b1-6f1a-4a92-9c4e-1d7a4b5f9c2d",
+  "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+  "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+  "local_username":     "jdoe"
+}
+```
+
+**Errors**
+
+- `400` — `compute_cluster_id`, `user_id`, or `local_username` is missing,
+  or the referenced cluster/user does not exist.
+- `409` — this user is already mapped on the given compute cluster.
+
+---
+
+### `GET /compute-cluster-users/{id}`
+
+Retrieve a single compute-cluster user mapping by its ID.
+
+**Errors**
+
+- `404` — no mapping matches the supplied ID.
+
+---
+
+### `PUT /compute-cluster-users/{id}`
+
+Replace mutable fields of an existing compute-cluster user mapping. The
+path `{id}` overrides any `id` in the request body.
+
+**Required fields:** `compute_cluster_id`, `user_id`, `local_username`
+
+**Request**
+
+```json
+{
+  "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+  "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+  "local_username":     "jane.doe"
+}
+```
+
+**Errors**
+
+- `400` — required fields missing.
+
+---
+
+### `DELETE /compute-cluster-users/{id}`
+
+Remove a compute-cluster user mapping.
+
+**Response 204** — empty body.
+
+**Errors**
+
+- `404` — no mapping matches the supplied ID.
+
+---
+
+### `GET /compute-clusters/{id}/users`
+
+List every user mapping for the given compute cluster, ordered by
+`local_username`.
+
+**Response 200**
+
+```json
+[
+  {
+    "id":                 "0d72d3b1-6f1a-4a92-9c4e-1d7a4b5f9c2d",
+    "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+    "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+    "local_username":     "jdoe"
+  }
+]
+```
+
+---
+
+### `GET /compute-clusters/{id}/users/{userId}`
+
+Look up the single compute-cluster user mapping for the given
+`(compute_cluster_id, user_id)` pair.
+
+**Response 200**
+
+```json
+{
+  "id":                 "0d72d3b1-6f1a-4a92-9c4e-1d7a4b5f9c2d",
+  "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+  "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+  "local_username":     "jdoe"
+}
+```
+
+**Errors**
+
+- `400` — `compute_cluster_id` or `user_id` is missing.
+- `404` — no mapping exists for the given pair.
+
+---
+
+### `GET /users/{id}/compute-cluster-users`
+
+List every cluster mapping held by the given Custos user, ordered by
+`compute_cluster_id`.
+
+**Response 200**
+
+```json
+[
+  {
+    "id":                 "0d72d3b1-6f1a-4a92-9c4e-1d7a4b5f9c2d",
+    "compute_cluster_id": "9b0a7f1c-2c5d-4e1b-9a0f-22e8a5c2dcb1",
+    "user_id":            "5e2c7b3a-1d8f-4d2c-bf09-83a7c4d6e210",
+    "local_username":     "jdoe"
+  }
+]
+```
+
+---
+
 ## Compute Allocations
 
 A compute allocation grants a project a budget of Service Units (SUs) on a
@@ -1076,7 +1229,7 @@ ALLOC_ID=$(curl -s -X POST $BASE/compute-allocations \
 
 RES_ID=$(curl -s -X POST $BASE/compute-allocation-resources \
   -H 'Content-Type: application/json' \
-  -d '{"name":"GPU B200","resource_type":"GPU","resource_amount":8}' | jq -r .id)
+  -d '{"name":"debug","resource_type":"CPU","resource_amount":24}' | jq -r .id)
 
 # Attach the resource to the allocation.
 curl -s -X POST $BASE/compute-allocations/$ALLOC_ID/resources \
@@ -1095,6 +1248,46 @@ curl -s -X POST $BASE/compute-allocation-resource-rates \
 
 # Look up the currently-effective rate.
 curl -s $BASE/compute-allocation-resources/$RES_ID/rates/effective | jq
+
+# Create a Custos user that will be granted access on the cluster.
+CLUSTER_USER_ACCT_ID=$(curl -s -X POST $BASE/users \
+  -H 'Content-Type: application/json' \
+  -d "{\"organization_id\":\"$ORG_ID\",\"first_name\":\"Dimuthu\",\"last_name\":\"Wannipurage\",\"email\":\"dimuthu@example.edu\"}" \
+  | jq -r .id)
+
+# Map the Custos user to a local UNIX account on the cluster.
+CLUSTER_USER_ID=$(curl -s -X POST $BASE/compute-cluster-users \
+  -H 'Content-Type: application/json' \
+  -d "{\"compute_cluster_id\":\"$CLUSTER_ID\",\"user_id\":\"$CLUSTER_USER_ACCT_ID\",\"local_username\":\"dimuthu\"}" \
+  | jq -r .id)
+
+# List all user mappings on the cluster.
+curl -s $BASE/compute-clusters/$CLUSTER_ID/users | jq
+
+# Grant the user a sub-allocation (membership) on the compute allocation.
+MEMBERSHIP_ID=$(curl -s -X POST $BASE/compute-allocation-memberships \
+  -H 'Content-Type: application/json' \
+  -d "{
+        \"compute_allocation_id\":\"$ALLOC_ID\",
+        \"user_id\":\"$CLUSTER_USER_ACCT_ID\",
+        \"allocation_amount\":50000,
+        \"start_time\":\"2026-04-01T00:00:00Z\",
+        \"end_time\":\"2026-06-30T23:59:59Z\",
+        \"membership_status\":\"ACTIVE\"
+      }" | jq -r .id)
+
+# List every member of the allocation.
+curl -s $BASE/compute-allocations/$ALLOC_ID/memberships | jq
+
+# List every allocation this user is a member of.
+curl -s $BASE/users/$CLUSTER_USER_ACCT_ID/compute-allocation-memberships | jq
+
+# Bump the user's SU sub-allocation.
+curl -s -X PUT $BASE/compute-allocation-memberships/$MEMBERSHIP_ID/allocation-amount \
+  -H 'Content-Type: application/json' \
+  -d '{"allocation_amount":75000}' | jq
+
+
 
 # Record a usage diff against the allocation.
 curl -s -X POST $BASE/compute-allocation-diffs \

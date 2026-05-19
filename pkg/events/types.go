@@ -54,6 +54,13 @@ const (
 	ComputeClusterDeleteEvent EventType = "compute_cluster::delete"
 )
 
+// ComputeClusterUser lifecycle message types.
+const (
+	ComputeClusterUserCreateEvent EventType = "compute_cluster_user::create"
+	ComputeClusterUserUpdateEvent EventType = "compute_cluster_user::update"
+	ComputeClusterUserDeleteEvent EventType = "compute_cluster_user::delete"
+)
+
 // ClusterAccount lifecycle message types.
 const (
 	ClusterAccountCreateEvent EventType = "cluster_account::create"

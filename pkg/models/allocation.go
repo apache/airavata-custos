@@ -15,6 +15,13 @@ type ComputeCluster struct {
 	Name string `json:"name" db:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
 }
 
+type ComputeClusterUser struct {
+	ID               string `json:"id"                db:"id"`
+	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string `json:"user_id"            db:"user_id"`
+	LocalUsername    string `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+}
+
 type ComputeAllocation struct {
 	ID               string           `json:"id"                 db:"id"`
 	ProjectID        string           `json:"project_id"         db:"project_id"`

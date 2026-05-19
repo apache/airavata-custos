@@ -64,6 +64,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-clusters", s.listComputeClusters)
 	s.mux.HandleFunc("GET /compute-clusters/{id}", s.getComputeCluster)
 
+	s.mux.HandleFunc("POST /compute-cluster-users", s.createComputeClusterUser)
+	s.mux.HandleFunc("GET /compute-cluster-users/{id}", s.getComputeClusterUser)
+	s.mux.HandleFunc("PUT /compute-cluster-users/{id}", s.updateComputeClusterUser)
+	s.mux.HandleFunc("DELETE /compute-cluster-users/{id}", s.deleteComputeClusterUser)
+	s.mux.HandleFunc("GET /compute-clusters/{id}/users", s.listComputeClusterUsersByCluster)
+	s.mux.HandleFunc("GET /compute-clusters/{id}/users/{userId}", s.getComputeClusterUserByPair)
+	s.mux.HandleFunc("GET /users/{id}/compute-cluster-users", s.listComputeClusterUsersByUser)
+
 	s.mux.HandleFunc("POST /compute-allocations", s.createComputeAllocation)
 	s.mux.HandleFunc("GET /compute-allocations/{id}", s.getComputeAllocation)
 
@@ -221,6 +229,78 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, clusters)
+}
+
+func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	var cu models.ComputeClusterUser
+	if err := decodeJSON(r, &cu); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeClusterUser(r.Context(), &cu)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	cu, err := s.svc.GetComputeClusterUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, cu)
+}
+
+func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	var cu models.ComputeClusterUser
+	if err := decodeJSON(r, &cu); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	cu.ID = r.PathValue("id")
+	if err := s.svc.UpdateComputeClusterUser(r.Context(), &cu); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, &cu)
+}
+
+func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http.Request) {
+	users, err := s.svc.ListComputeClusterUsersByCluster(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, users)
+}
+
+func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Request) {
+	cu, err := s.svc.GetComputeClusterUserByPair(r.Context(), r.PathValue("id"), r.PathValue("userId"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, cu)
+}
+
+func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Request) {
+	users, err := s.svc.ListComputeClusterUsersByUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, users)
 }
 
 func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request) {

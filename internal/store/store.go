@@ -71,6 +71,25 @@ type ComputeClusterStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ComputeClusterUserStore defines persistence operations for the mapping of
+// a Custos user to their local account on a compute cluster.
+type ComputeClusterUserStore interface {
+	// FindByID returns the mapping with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
+	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
+	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
+	// FindByCluster returns every user mapping for the given compute cluster.
+	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
+	// FindByUser returns every cluster mapping held by the given Custos user.
+	FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
+	// Create inserts a new mapping within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Update replaces mutable fields of an existing mapping within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// Delete removes a mapping by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
 // ProjectStore defines persistence operations for projects.
 type ProjectStore interface {
 	// FindByID returns the project with the given ID, or nil if not found.
