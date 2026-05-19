@@ -57,3 +57,5 @@ venv/
 # Vault
 vault.db
 raft.db
+
+.env
