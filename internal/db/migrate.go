@@ -20,6 +20,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -51,5 +52,34 @@ func MigrateEmbedded(database *sqlx.DB) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	slog.Info("database migrations applied successfully")
+	return nil
+}
+
+// MigrateConnectorFS applies migrations from the supplied embed.FS to the
+// supplied database, tracking version state in a per-connector table named
+// schema_migrations_<name>. Connectors invoke this via the host so version
+// sequences never collide across connectors or with core.
+func MigrateConnectorFS(database *sqlx.DB, src fs.FS, dir, name string) error {
+	driver, err := mysql.WithInstance(database.DB, &mysql.Config{
+		MigrationsTable: "schema_migrations_" + name,
+	})
+	if err != nil {
+		return fmt.Errorf("create migration driver for %s: %w", name, err)
+	}
+
+	source, err := iofs.New(src, dir)
+	if err != nil {
+		return fmt.Errorf("create migration source for %s: %w", name, err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", source, "mysql", driver)
+	if err != nil {
+		return fmt.Errorf("create migrator for %s: %w", name, err)
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("run migrations for %s: %w", name, err)
+	}
+	slog.Info("connector migrations applied", "connector", name)
 	return nil
 }
