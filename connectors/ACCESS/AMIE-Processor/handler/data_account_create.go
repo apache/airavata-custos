@@ -20,82 +20,65 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type dataAccountCreatePersonService interface {
-	PersistDNsForPerson(ctx context.Context, tx *sql.Tx, personID string, dnList []string) error
-}
-
-type dataAccountCreateAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type dataAccountCreateAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type DataAccountCreateHandler struct {
-	personSvc  dataAccountCreatePersonService
-	amieClient dataAccountCreateAmieClient
-	auditSvc   dataAccountCreateAuditService
+	svc        *service.Service
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewDataAccountCreateHandler(
-	personSvc dataAccountCreatePersonService,
-	amieClient dataAccountCreateAmieClient,
-	auditSvc dataAccountCreateAuditService,
-) *DataAccountCreateHandler {
-	return &DataAccountCreateHandler{
-		personSvc:  personSvc,
-		amieClient: amieClient,
-		auditSvc:   auditSvc,
-	}
+func NewDataAccountCreateHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *DataAccountCreateHandler {
+	return &DataAccountCreateHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *DataAccountCreateHandler) SupportsType() string {
-	return "data_account_create"
-}
+func (h *DataAccountCreateHandler) SupportsType() string { return "data_account_create" }
 
 func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Validate required fields.
 	if err := requireText(getString(body, "ProjectID"), "ProjectID"); err != nil {
 		return err
 	}
-	personID := getString(body, "PersonID")
-	if err := requireText(personID, "PersonID"); err != nil {
+	personGlobalID := getString(body, "GlobalID")
+	if err := requireText(personGlobalID, "GlobalID"); err != nil {
 		return err
 	}
 
-	// Persist DNs if present.
-	if rawDNs, ok := body["DnList"]; ok {
-		if arr, ok := rawDNs.([]any); ok && len(arr) > 0 {
-			var dnStrings []string
-			for _, item := range arr {
-				if s, ok := item.(string); ok {
-					dnStrings = append(dnStrings, s)
+	dns := getDNList(body)
+	if len(dns) > 0 {
+		user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, personGlobalID)
+		if err != nil {
+			if errors.Is(err, service.ErrNotFound) {
+				slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence",
+					"personGlobalID", personGlobalID)
+			} else {
+				return fmt.Errorf("data_account_create: resolve user: %w", err)
+			}
+		} else {
+			for _, dn := range dns {
+				if _, err := h.svc.AddUserDN(ctx, &models.UserDN{UserID: user.ID, DN: dn}); err != nil {
+					if errors.Is(err, service.ErrAlreadyExists) {
+						continue
+					}
+					return fmt.Errorf("data_account_create: add DN %q: %w", dn, err)
 				}
 			}
-			if len(dnStrings) > 0 {
-				if err := h.personSvc.PersistDNsForPerson(ctx, tx, personID, dnStrings); err != nil {
-					return fmt.Errorf("data_account_create: persisting DNs: %w", err)
-				}
-				summary := fmt.Sprintf("Persisted %d DNs", len(dnStrings))
-				if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditPersistDNs, "person", personID, summary); err != nil {
-					return fmt.Errorf("data_account_create: audit PERSIST_DNS: %w", err)
-				}
+			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditPersistDNs, "user", user.ID, fmt.Sprintf("Persisted %d DNs", len(dns))); err != nil {
+				return fmt.Errorf("data_account_create: audit PERSIST_DNS: %w", err)
 			}
 		}
 	}
 
-	// Build and send the reply.
 	reply := map[string]any{
 		"type": "inform_transaction_complete",
 		"body": map[string]any{
@@ -104,13 +87,11 @@ func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 			"Message":    "Transaction completed successfully by handler.",
 		},
 	}
-
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("data_account_create: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("data_account_create: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
 }

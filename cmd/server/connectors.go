@@ -15,14 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package model
+// This file is the build-time selector for which connectors are bundled into
+// the binary. Each blank import below registers a connector via its init()
+// function. To exclude a connector from a deployment, comment out its line.
+// To add a new connector, drop in a new blank import.
 
-import "time"
+package main
 
-type ClusterAccount struct {
-	ID        string    `db:"id" json:"id"`
-	PersonID  string    `db:"person_id" json:"person_id"`
-	Username  string    `db:"username" json:"username"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-}
+import (
+	_ "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor"
+)

@@ -20,78 +20,80 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type requestUserModifyPersonService interface {
-	ReplaceFromModifyPacket(ctx context.Context, tx *sql.Tx, body map[string]any) error
-	DeleteFromModifyPacket(ctx context.Context, tx *sql.Tx, body map[string]any) error
-}
-
-type requestUserModifyAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type requestUserModifyAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type RequestUserModifyHandler struct {
-	personSvc  requestUserModifyPersonService
-	amieClient requestUserModifyAmieClient
-	auditSvc   requestUserModifyAuditService
+	svc        *service.Service
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestUserModifyHandler(
-	personSvc requestUserModifyPersonService,
-	amieClient requestUserModifyAmieClient,
-	auditSvc requestUserModifyAuditService,
-) *RequestUserModifyHandler {
-	return &RequestUserModifyHandler{
-		personSvc:  personSvc,
-		amieClient: amieClient,
-		auditSvc:   auditSvc,
-	}
+func NewRequestUserModifyHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *RequestUserModifyHandler {
+	return &RequestUserModifyHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *RequestUserModifyHandler) SupportsType() string {
-	return "request_user_modify"
-}
+func (h *RequestUserModifyHandler) SupportsType() string { return "request_user_modify" }
 
 func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Extract and validate ActionType.
 	actionType := getString(body, "ActionType")
 	if err := requireText(actionType, "ActionType"); err != nil {
 		return err
 	}
+	userGlobalID := getString(body, "UserGlobalID")
+	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
+		return err
+	}
 
-	if strings.EqualFold(actionType, "replace") {
-		if err := h.personSvc.ReplaceFromModifyPacket(ctx, tx, body); err != nil {
-			return fmt.Errorf("request_user_modify: replacing person fields: %w", err)
+	user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, userGlobalID)
+	if err != nil && !errors.Is(err, service.ErrNotFound) {
+		return fmt.Errorf("request_user_modify: resolve user: %w", err)
+	}
+	if errors.Is(err, service.ErrNotFound) {
+		user = nil
+	}
+
+	switch {
+	case strings.EqualFold(actionType, "replace"):
+		if user != nil {
+			if v := getString(body, "UserFirstName"); v != "" {
+				user.FirstName = v
+			}
+			if v := getString(body, "UserLastName"); v != "" {
+				user.LastName = v
+			}
+			if v := getString(body, "UserEmail"); v != "" {
+				user.Email = v
+			}
+			if err := h.svc.UpdateUser(ctx, user); err != nil {
+				return fmt.Errorf("request_user_modify: update user: %w", err)
+			}
+			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditUpdatePerson, "user", user.ID, ""); err != nil {
+				return fmt.Errorf("request_user_modify: audit UPDATE_PERSON: %w", err)
+			}
 		}
-		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditUpdatePerson, "person", "", ""); err != nil {
-			return fmt.Errorf("request_user_modify: audit UPDATE_PERSON: %w", err)
+	case strings.EqualFold(actionType, "delete"):
+		if user != nil {
+			if err := h.svc.DeleteUser(ctx, user.ID); err != nil {
+				return fmt.Errorf("request_user_modify: delete user: %w", err)
+			}
+			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditDeletePerson, "user", user.ID, ""); err != nil {
+				return fmt.Errorf("request_user_modify: audit DELETE_PERSON: %w", err)
+			}
 		}
-	} else if strings.EqualFold(actionType, "delete") {
-		if err := h.personSvc.DeleteFromModifyPacket(ctx, tx, body); err != nil {
-			return fmt.Errorf("request_user_modify: deleting person: %w", err)
-		}
-		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditDeletePerson, "person", "", ""); err != nil {
-			return fmt.Errorf("request_user_modify: audit DELETE_PERSON: %w", err)
-		}
-	} else {
+	default:
 		return fmt.Errorf("unsupported ActionType: %s", actionType)
 	}
 
-	// Build and send the reply.
 	reply := map[string]any{
 		"type": "inform_transaction_complete",
 		"body": map[string]any{
@@ -100,13 +102,11 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 			"Message":    "Transaction completed successfully",
 		},
 	}
-
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_user_modify: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("request_user_modify: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
 }

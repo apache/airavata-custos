@@ -31,6 +31,18 @@ type PacketHandler interface {
 	SupportsType() string
 }
 
+// AmieClient sends replies back to the AMIE server.
+type AmieClient interface {
+	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
+}
+
+// AuditService writes to amie_audit_log. The audit log is AMIE-local.
+type AuditService interface {
+	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
+}
+
+const amieIdentitySource = "access"
+
 func requireText(val, fieldName string) error {
 	if strings.TrimSpace(val) == "" {
 		return fmt.Errorf("'%s' must not be empty", fieldName)
@@ -90,4 +102,22 @@ func getResourceList(body map[string]any) []string {
 		}
 	}
 	return result
+}
+
+func getDNList(body map[string]any) []string {
+	v, ok := body["DnList"]
+	if !ok {
+		return nil
+	}
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, item := range arr {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
 }

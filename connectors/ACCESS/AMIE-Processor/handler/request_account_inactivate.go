@@ -23,49 +23,26 @@ import (
 	"fmt"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type requestAccountInactivateMembershipService interface {
-	InactivateMembershipsByPersonAndProject(ctx context.Context, tx *sql.Tx, projectID, personID string) (int, error)
-}
-
-type requestAccountInactivateAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type requestAccountInactivateAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type RequestAccountInactivateHandler struct {
-	membershipSvc requestAccountInactivateMembershipService
-	amieClient    requestAccountInactivateAmieClient
-	auditSvc      requestAccountInactivateAuditService
+	svc        *service.Service
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestAccountInactivateHandler(
-	membershipSvc requestAccountInactivateMembershipService,
-	amieClient requestAccountInactivateAmieClient,
-	auditSvc requestAccountInactivateAuditService,
-) *RequestAccountInactivateHandler {
-	return &RequestAccountInactivateHandler{
-		membershipSvc: membershipSvc,
-		amieClient:    amieClient,
-		auditSvc:      auditSvc,
-	}
+func NewRequestAccountInactivateHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *RequestAccountInactivateHandler {
+	return &RequestAccountInactivateHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *RequestAccountInactivateHandler) SupportsType() string {
-	return "request_account_inactivate"
-}
+func (h *RequestAccountInactivateHandler) SupportsType() string { return "request_account_inactivate" }
 
 func (h *RequestAccountInactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Validate required fields.
 	projectID := getString(body, "ProjectID")
 	if err := requireText(projectID, "ProjectID"); err != nil {
 		return err
@@ -75,30 +52,19 @@ func (h *RequestAccountInactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return err
 	}
 
-	// Inactivate memberships.
-	if _, err := h.membershipSvc.InactivateMembershipsByPersonAndProject(ctx, tx, projectID, personID); err != nil {
-		return fmt.Errorf("request_account_inactivate: inactivating memberships: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "membership", "", ""); err != nil {
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "membership_request", personID, fmt.Sprintf("project=%s person=%s (membership persistence pending allocation mapping)", projectID, personID)); err != nil {
 		return fmt.Errorf("request_account_inactivate: audit INACTIVATE_MEMBERSHIP: %w", err)
 	}
 
-	// Build and send the reply.
 	reply := map[string]any{
 		"type": "notify_account_inactivate",
-		"body": map[string]any{
-			"ProjectID":    projectID,
-			"PersonID":     personID,
-			"ResourceList": getResourceList(body),
-		},
+		"body": map[string]any{"ProjectID": projectID, "PersonID": personID},
 	}
-
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_account_inactivate: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("request_account_inactivate: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
 }

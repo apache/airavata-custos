@@ -26,20 +26,12 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 )
 
-type informTransactionCompleteAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type InformTransactionCompleteHandler struct {
-	auditSvc informTransactionCompleteAuditService
+	auditSvc AuditService
 }
 
-func NewInformTransactionCompleteHandler(
-	auditSvc informTransactionCompleteAuditService,
-) *InformTransactionCompleteHandler {
-	return &InformTransactionCompleteHandler{
-		auditSvc: auditSvc,
-	}
+func NewInformTransactionCompleteHandler(auditSvc AuditService) *InformTransactionCompleteHandler {
+	return &InformTransactionCompleteHandler{auditSvc: auditSvc}
 }
 
 func (h *InformTransactionCompleteHandler) SupportsType() string {
@@ -58,16 +50,11 @@ func (h *InformTransactionCompleteHandler) Handle(ctx context.Context, tx *sql.T
 	}
 	message := getString(body, "Message")
 
-	slog.InfoContext(ctx, "transaction complete",
-		"packetID", packet.ID,
-		"statusCode", statusCode,
-		"message", message,
-	)
+	slog.InfoContext(ctx, "transaction complete", "packetID", packet.ID, "statusCode", statusCode, "message", message)
 
 	summary := fmt.Sprintf("Transaction complete: statusCode=%s, message=%s", statusCode, message)
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditTransactionComplete, "transaction", "", summary); err != nil {
 		return fmt.Errorf("inform_transaction_complete: audit TRANSACTION_COMPLETE: %w", err)
 	}
-
 	return nil
 }
