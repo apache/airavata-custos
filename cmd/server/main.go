@@ -31,6 +31,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
+	"github.com/apache/airavata-custos/pkg/connectors"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -73,6 +74,21 @@ func run() error {
 	eventBus := events.New()
 
 	svc := service.New(database, eventBus)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	for _, c := range connectors.All() {
+		if migFS, dir := c.Migrations(); migFS != nil {
+			if err := db.MigrateConnectorFS(database, migFS, dir, c.Name()); err != nil {
+				return err
+			}
+		}
+		if err := c.Start(ctx, connectors.Deps{DB: database, Service: svc, Bus: eventBus}); err != nil {
+			return err
+		}
+	}
+
 	handler := server.LoggingMiddleware(server.New(svc))
 
 	httpServer := &http.Server{
@@ -83,9 +99,6 @@ func run() error {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	serverErr := make(chan error, 1)
 	go func() {
