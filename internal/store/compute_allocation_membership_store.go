@@ -116,6 +116,26 @@ func (s *mysqlComputeAllocationMembershipStore) Update(ctx context.Context, tx *
 	return err
 }
 
+func (s *mysqlComputeAllocationMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	// Drop fromUserID's memberships in allocations the survivor already belongs
+	// to, then move the rest.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM compute_allocation_memberships
+		 WHERE user_id = ?
+		   AND compute_allocation_id IN (
+		       SELECT compute_allocation_id FROM (
+		           SELECT compute_allocation_id FROM compute_allocation_memberships WHERE user_id = ?
+		       ) AS s
+		   )`,
+		fromUserID, toUserID); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_allocation_memberships SET user_id = ? WHERE user_id = ?`,
+		toUserID, fromUserID)
+	return err
+}
+
 func (s *mysqlComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_memberships WHERE id = ?`, id)
 	return err

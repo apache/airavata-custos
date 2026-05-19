@@ -106,6 +106,13 @@ func (s *mysqlExternalIdentityStore) Update(ctx context.Context, tx *sql.Tx, e *
 	return err
 }
 
+func (s *mysqlExternalIdentityStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE external_identities SET user_id = ? WHERE user_id = ?`,
+		toUserID, fromUserID)
+	return err
+}
+
 func (s *mysqlExternalIdentityStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM external_identities WHERE id = ?`, id)
 	return err

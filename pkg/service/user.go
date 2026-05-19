@@ -74,6 +74,27 @@ func (s *Service) GetUser(ctx context.Context, id string) (*models.User, error) 
 	return u, nil
 }
 
+// GetUserByExternalIdentity resolves a user via their (source, external_id)
+// entry. Returns ErrNotFound when either the external identity does not
+// exist or the user it points to has been deleted.
+func (s *Service) GetUserByExternalIdentity(ctx context.Context, source, externalID string) (*models.User, error) {
+	ext, err := s.extIDs.FindBySourceAndExternalID(ctx, source, externalID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup external identity: %w", err)
+	}
+	if ext == nil {
+		return nil, ErrNotFound
+	}
+	u, err := s.users.FindByID(ctx, ext.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup user: %w", err)
+	}
+	if u == nil {
+		return nil, ErrNotFound
+	}
+	return u, nil
+}
+
 // GetUserByEmail retrieves a user by email.
 func (s *Service) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	u, err := s.users.FindByEmail(ctx, email)

@@ -82,6 +82,21 @@ func (s *mysqlUserDNStore) Create(ctx context.Context, tx *sql.Tx, d *models.Use
 	return err
 }
 
+func (s *mysqlUserDNStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	// Drop fromUserID's rows whose dn the survivor already holds, then move the rest.
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM user_dns
+		 WHERE user_id = ?
+		   AND dn IN (SELECT dn FROM (SELECT dn FROM user_dns WHERE user_id = ?) AS s)`,
+		fromUserID, toUserID); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx,
+		`UPDATE user_dns SET user_id = ? WHERE user_id = ?`,
+		toUserID, fromUserID)
+	return err
+}
+
 func (s *mysqlUserDNStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM user_dns WHERE id = ?`, id)
 	return err
