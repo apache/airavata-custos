@@ -1125,7 +1125,6 @@ Create a new membership.
 {
   "compute_allocation_id": "alloc-123",
   "user_id":               "user-456",
-  "allocation_amount":     50000,
   "start_time":            "2026-01-01T00:00:00Z",
   "end_time":              "2026-12-31T23:59:59Z",
   "membership_status":     "ACTIVE"
@@ -1136,6 +1135,8 @@ Create a new membership.
   existing rows.
 - `membership_status` defaults to `ACTIVE` when omitted.
 - `id` is generated server-side when omitted.
+- Per-resource SU caps for this membership are stored separately as
+  `ComputeAllocationMembershipResourceOverride` rows; see below.
 
 **Errors**
 
@@ -1150,21 +1151,6 @@ Retrieve a membership by ID.
 
 Replace mutable fields of a membership. Fields left blank/zero in the request
 body fall back to the stored value (partial updates).
-
-### PUT `/compute-allocation-memberships/{id}/allocation-amount`
-
-Update only the SU sub-allocation granted to the user.
-
-**Request body**
-
-```json
-{ "allocation_amount": 75000 }
-```
-
-**Errors**
-
-- `400` — negative `allocation_amount`.
-- `404` — no membership with the given ID.
 
 ### PUT `/compute-allocation-memberships/{id}/status`
 
@@ -1195,6 +1181,62 @@ List every membership recorded against the given allocation, ordered by
 
 List every allocation membership held by the given user, ordered by
 `start_time` ascending.
+
+### GET `/compute-allocation-memberships/{id}/resource-overrides`
+
+List every per-resource override recorded against the given membership.
+
+---
+
+## Compute Allocation Membership Resource Overrides
+
+A `ComputeAllocationMembershipResourceOverride` records the SU amount of a
+specific resource (`ComputeAllocationResource`) that has been granted to a
+specific membership. There can be at most one override per
+`(compute_allocation_membership_id, compute_allocation_resource_id)` pair
+(enforced by a unique key). Overrides are cascade-deleted when either the
+parent membership or the parent resource is removed.
+
+### POST `/compute-allocation-membership-resource-overrides`
+
+Create a new override.
+
+**Request body**
+
+```json
+{
+  "compute_allocation_membership_id": "membership-123",
+  "compute_allocation_resource_id":   "resource-456",
+  "overridden_resource_amount":       10000
+}
+```
+
+- All three fields are required.
+- `overridden_resource_amount` must be non-negative.
+- `id` is generated server-side when omitted.
+
+**Errors**
+
+- `400` — missing required fields, referenced membership/resource not found,
+  or negative `overridden_resource_amount`.
+- `409` — an override already exists for this `(membership, resource)` pair.
+
+### GET `/compute-allocation-membership-resource-overrides/{id}`
+
+Retrieve an override by ID.
+
+### PUT `/compute-allocation-membership-resource-overrides/{id}`
+
+Replace mutable fields of an override. Fields left blank/zero in the request
+body fall back to the stored value (partial updates).
+
+### DELETE `/compute-allocation-membership-resource-overrides/{id}`
+
+Remove an override.
+
+### GET `/compute-allocation-resources/{id}/membership-overrides`
+
+List every membership override referencing the given resource.
 
 ---
 
@@ -1229,7 +1271,7 @@ ALLOC_ID=$(curl -s -X POST $BASE/compute-allocations \
 
 RES_ID=$(curl -s -X POST $BASE/compute-allocation-resources \
   -H 'Content-Type: application/json' \
-  -d '{"name":"debug","resource_type":"CPU","resource_amount":24}' | jq -r .id)
+  -d '{"name":"debug","resource_type":"GrpTRES","resource_amount":24}' | jq -r .id)
 
 # Attach the resource to the allocation.
 curl -s -X POST $BASE/compute-allocations/$ALLOC_ID/resources \
@@ -1270,7 +1312,6 @@ MEMBERSHIP_ID=$(curl -s -X POST $BASE/compute-allocation-memberships \
   -d "{
         \"compute_allocation_id\":\"$ALLOC_ID\",
         \"user_id\":\"$CLUSTER_USER_ACCT_ID\",
-        \"allocation_amount\":50000,
         \"start_time\":\"2026-04-01T00:00:00Z\",
         \"end_time\":\"2026-06-30T23:59:59Z\",
         \"membership_status\":\"ACTIVE\"
@@ -1282,11 +1323,22 @@ curl -s $BASE/compute-allocations/$ALLOC_ID/memberships | jq
 # List every allocation this user is a member of.
 curl -s $BASE/users/$CLUSTER_USER_ACCT_ID/compute-allocation-memberships | jq
 
-# Bump the user's SU sub-allocation.
-curl -s -X PUT $BASE/compute-allocation-memberships/$MEMBERSHIP_ID/allocation-amount \
+# Grant the membership a per-resource SU override on the debug resource.
+OVERRIDE_ID=$(curl -s -X POST $BASE/compute-allocation-membership-resource-overrides \
   -H 'Content-Type: application/json' \
-  -d '{"allocation_amount":75000}' | jq
+  -d "{
+        \"compute_allocation_membership_id\":\"$MEMBERSHIP_ID\",
+        \"compute_allocation_resource_id\":\"$RES_ID\",
+        \"overridden_resource_amount\":10000
+      }" | jq -r .id)
 
+# Bump the override amount.
+curl -s -X PUT $BASE/compute-allocation-membership-resource-overrides/$OVERRIDE_ID \
+  -H 'Content-Type: application/json' \
+  -d '{"overridden_resource_amount":15000}' | jq
+
+# List every resource override for the membership.
+curl -s $BASE/compute-allocation-memberships/$MEMBERSHIP_ID/resource-overrides | jq
 
 
 # Record a usage diff against the allocation.

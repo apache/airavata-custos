@@ -250,6 +250,26 @@ type ComputeAllocationMembershipStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ComputeAllocationMembershipResourceOverrideStore defines persistence
+// operations for per-resource overrides of the SU amount granted to a
+// compute allocation membership.
+type ComputeAllocationMembershipResourceOverrideStore interface {
+	// FindByID returns the override with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembershipResourceOverride, error)
+	// FindByPair returns the override for a (membership, resource) pair, or nil if absent.
+	FindByPair(ctx context.Context, membershipID, resourceID string) (*models.ComputeAllocationMembershipResourceOverride, error)
+	// FindByMembership returns every override recorded against the given membership.
+	FindByMembership(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
+	// FindByResource returns every override referencing the given resource.
+	FindByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
+	// Create inserts a new override within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, o *models.ComputeAllocationMembershipResourceOverride) error
+	// Update replaces mutable fields of an existing override within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, o *models.ComputeAllocationMembershipResourceOverride) error
+	// Delete removes an override by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.

@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, allocation_amount, start_time, end_time, membership_status"
+const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
 
 type mysqlComputeAllocationMembershipStore struct {
 	db *sqlx.DB
@@ -96,9 +96,9 @@ func (s *mysqlComputeAllocationMembershipStore) FindByUser(ctx context.Context, 
 func (s *mysqlComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships
-		     (id, compute_allocation_id, user_id, allocation_amount, start_time, end_time, membership_status)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		m.ID, m.ComputeAllocationID, m.UserID, m.AllocationAmount, m.StartTime, m.EndTime, string(m.MembershipStatus))
+		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		m.ID, m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus))
 	return err
 }
 
@@ -107,12 +107,11 @@ func (s *mysqlComputeAllocationMembershipStore) Update(ctx context.Context, tx *
 		`UPDATE compute_allocation_memberships
 		    SET compute_allocation_id = ?,
 		        user_id               = ?,
-		        allocation_amount     = ?,
 		        start_time            = ?,
 		        end_time              = ?,
 		        membership_status     = ?
 		  WHERE id = ?`,
-		m.ComputeAllocationID, m.UserID, m.AllocationAmount, m.StartTime, m.EndTime, string(m.MembershipStatus), m.ID)
+		m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus), m.ID)
 	return err
 }
 

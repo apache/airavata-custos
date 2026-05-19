@@ -49,6 +49,7 @@ type Service struct {
 	changeRequests   store.ComputeAllocationChangeRequestStore
 	changeEvents     store.ComputeAllocationChangeRequestEventStore
 	memberships      store.ComputeAllocationMembershipStore
+	membershipOverrides store.ComputeAllocationMembershipResourceOverrideStore
 	usages           store.ComputeAllocationUsageStore
 }
 
@@ -71,6 +72,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		changeRequests:   store.NewComputeAllocationChangeRequestStore(database),
 		changeEvents:     store.NewComputeAllocationChangeRequestEventStore(database),
 		memberships:      store.NewComputeAllocationMembershipStore(database),
+		membershipOverrides: store.NewComputeAllocationMembershipResourceOverrideStore(database),
 		usages:           store.NewComputeAllocationUsageStore(database),
 	}
 }
@@ -93,6 +95,7 @@ func NewWithStores(
 	allocDiffs store.ComputeAllocationDiffStore,
 	changeRequests store.ComputeAllocationChangeRequestStore,
 	changeEvents store.ComputeAllocationChangeRequestEventStore,
+	membershipOverrides store.ComputeAllocationMembershipResourceOverrideStore,
 	memberships store.ComputeAllocationMembershipStore,
 	usages store.ComputeAllocationUsageStore,
 ) *Service {
@@ -111,6 +114,7 @@ func NewWithStores(
 		allocDiffs:       allocDiffs,
 		changeRequests:   changeRequests,
 		changeEvents:     changeEvents,
+		membershipOverrides: membershipOverrides,
 		memberships:      memberships,
 		usages:           usages,
 	}
