@@ -40,6 +40,7 @@ type Service struct {
 	users            store.UserStore
 	projs            store.ProjectStore
 	clusters         store.ComputeClusterStore
+	clusterUsers     store.ComputeClusterUserStore
 	allocs           store.ComputeAllocationStore
 	resources        store.ComputeAllocationResourceStore
 	resourceMappings store.ComputeAllocationResourceMappingStore
@@ -61,6 +62,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		users:            store.NewUserStore(database),
 		projs:            store.NewProjectStore(database),
 		clusters:         store.NewComputeClusterStore(database),
+		clusterUsers:     store.NewComputeClusterUserStore(database),
 		allocs:           store.NewComputeAllocationStore(database),
 		resources:        store.NewComputeAllocationResourceStore(database),
 		resourceMappings: store.NewComputeAllocationResourceMappingStore(database),
@@ -83,6 +85,7 @@ func NewWithStores(
 	users store.UserStore,
 	projs store.ProjectStore,
 	clusters store.ComputeClusterStore,
+	clusterUsers store.ComputeClusterUserStore,
 	allocs store.ComputeAllocationStore,
 	resources store.ComputeAllocationResourceStore,
 	resourceMappings store.ComputeAllocationResourceMappingStore,
@@ -100,6 +103,7 @@ func NewWithStores(
 		users:            users,
 		projs:            projs,
 		clusters:         clusters,
+		clusterUsers:     clusterUsers,
 		allocs:           allocs,
 		resources:        resources,
 		resourceMappings: resourceMappings,

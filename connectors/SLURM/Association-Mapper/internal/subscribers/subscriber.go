@@ -22,4 +22,5 @@ func (a *AssociationSubscriber) RegisterSubscribers() {
 	a.eventBus.SubscribeComputeAllocationCreated(a.SubscribeToComputeAllocationCreation)
 	a.eventBus.SubscribeComputeAllocationDeleted(a.SubscribeToComputeAllocationDeletion)
 	a.eventBus.SubscribeComputeAllocationUpdated(a.SubscribeToComputeAllocationUpdate)
+	a.eventBus.SubscribeComputeAllocationMembershipCreated(a.SubscribeToComputeAllocationMembershipCreation)
 }
