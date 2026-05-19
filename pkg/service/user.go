@@ -53,6 +53,9 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.ID == "" {
 		user.ID = newID()
 	}
+	if user.Status == "" {
+		user.Status = models.UserActive
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.users.Create(ctx, tx, user)

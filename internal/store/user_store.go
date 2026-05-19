@@ -90,6 +90,13 @@ func (s *mysqlUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User)
 	return err
 }
 
+func (s *mysqlUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE users SET status = ? WHERE id = ?`,
+		status, id)
+	return err
+}
+
 func (s *mysqlUserStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
 	return err

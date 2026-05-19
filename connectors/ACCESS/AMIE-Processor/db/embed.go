@@ -21,3 +21,6 @@ import "embed"
 
 //go:embed migrations/*.sql
 var migrationFS embed.FS
+
+// MigrationFS exposes the embedded migrations to the host's migration runner.
+func MigrationFS() embed.FS { return migrationFS }

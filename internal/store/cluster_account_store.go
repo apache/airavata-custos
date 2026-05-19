@@ -36,7 +36,7 @@ func NewClusterAccountStore(db *sqlx.DB) ClusterAccountStore {
 	return &mysqlClusterAccountStore{db: db}
 }
 
-const clusterAccountColumns = `id, user_id, compute_cluster_id, username, status`
+const clusterAccountColumns = `id, user_id, username, status`
 
 func (s *mysqlClusterAccountStore) FindByID(ctx context.Context, id string) (*models.ClusterAccount, error) {
 	var a models.ClusterAccount
@@ -51,11 +51,10 @@ func (s *mysqlClusterAccountStore) FindByID(ctx context.Context, id string) (*mo
 	return &a, nil
 }
 
-func (s *mysqlClusterAccountStore) FindByClusterAndUsername(ctx context.Context, clusterID, username string) (*models.ClusterAccount, error) {
+func (s *mysqlClusterAccountStore) FindByUsername(ctx context.Context, username string) (*models.ClusterAccount, error) {
 	var a models.ClusterAccount
 	err := s.db.GetContext(ctx, &a,
-		`SELECT `+clusterAccountColumns+` FROM cluster_accounts WHERE compute_cluster_id = ? AND username = ?`,
-		clusterID, username)
+		`SELECT `+clusterAccountColumns+` FROM cluster_accounts WHERE username = ?`, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -76,22 +75,11 @@ func (s *mysqlClusterAccountStore) FindByUser(ctx context.Context, userID string
 	return out, nil
 }
 
-func (s *mysqlClusterAccountStore) FindByCluster(ctx context.Context, clusterID string) ([]models.ClusterAccount, error) {
-	var out []models.ClusterAccount
-	err := s.db.SelectContext(ctx, &out,
-		`SELECT `+clusterAccountColumns+` FROM cluster_accounts WHERE compute_cluster_id = ? ORDER BY created_at ASC`,
-		clusterID)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (s *mysqlClusterAccountStore) Create(ctx context.Context, tx *sql.Tx, a *models.ClusterAccount) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO cluster_accounts (id, user_id, compute_cluster_id, username, status)
-		 VALUES (?, ?, ?, ?, ?)`,
-		a.ID, a.UserID, a.ComputeClusterID, a.Username, a.Status)
+		`INSERT INTO cluster_accounts (id, user_id, username, status)
+		 VALUES (?, ?, ?, ?)`,
+		a.ID, a.UserID, a.Username, a.Status)
 	return err
 }
 
@@ -103,16 +91,12 @@ func (s *mysqlClusterAccountStore) UpdateStatus(ctx context.Context, tx *sql.Tx,
 }
 
 func (s *mysqlClusterAccountStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
-	// Drop fromUserID's accounts whose (cluster, username) the survivor already
-	// owns, then move the rest.
+	// Drop fromUserID's accounts whose username the survivor already owns,
+	// then move the rest. Username is globally unique on the deployment.
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM cluster_accounts
 		 WHERE user_id = ?
-		   AND (compute_cluster_id, username) IN (
-		       SELECT compute_cluster_id, username FROM (
-		           SELECT compute_cluster_id, username FROM cluster_accounts WHERE user_id = ?
-		       ) AS s
-		   )`,
+		   AND username IN (SELECT username FROM (SELECT username FROM cluster_accounts WHERE user_id = ?) AS s)`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}

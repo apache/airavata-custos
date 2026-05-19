@@ -17,18 +17,15 @@
 
 CREATE TABLE IF NOT EXISTS cluster_accounts
 (
-    id                 VARCHAR(255) NOT NULL,
-    user_id            VARCHAR(255) NOT NULL,
-    compute_cluster_id VARCHAR(255) NOT NULL,
-    username           VARCHAR(255) NOT NULL,
-    status             VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
-    created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    id         VARCHAR(255) NOT NULL,
+    user_id    VARCHAR(255) NOT NULL,
+    username   VARCHAR(255) NOT NULL,
+    status     VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uq_cluster_accounts_cluster_username (compute_cluster_id, username),
+    UNIQUE KEY uq_cluster_accounts_username (username),
     KEY idx_cluster_accounts_user (user_id),
-    KEY idx_cluster_accounts_cluster (compute_cluster_id),
     KEY idx_cluster_accounts_status (status),
-    CONSTRAINT fk_cluster_accounts_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_cluster_accounts_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE CASCADE
+    CONSTRAINT fk_cluster_accounts_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

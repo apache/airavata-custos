@@ -37,7 +37,11 @@ type UserStore interface {
 	Create(ctx context.Context, tx *sql.Tx, u *models.User) error
 	// Update replaces mutable fields of an existing user within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, u *models.User) error
-	// Delete removes a user by ID within the provided transaction.
+	// UpdateStatus flips only the lifecycle status (ACTIVE / INACTIVE / MERGED).
+	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error
+	// Delete removes a user by ID within the provided transaction. This is the
+	// explicit hard-delete; the user-merge flow uses UpdateStatus(MERGED) and a
+	// row in user_merges instead.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
@@ -252,24 +256,22 @@ type ComputeAllocationMembershipStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
-// ClusterAccountStore defines persistence operations for posix-style
-// accounts provisioned for a user on a specific compute cluster.
-// (compute_cluster_id, username) is unique.
+// ClusterAccountStore defines persistence operations for posix-style accounts
+// provisioned for users on the deployment's cluster. Username is globally
+// unique within the deployment.
 type ClusterAccountStore interface {
 	// FindByID returns the cluster account with the given ID, or nil if absent.
 	FindByID(ctx context.Context, id string) (*models.ClusterAccount, error)
-	// FindByClusterAndUsername returns the account for a (cluster, username)
-	// pair, or nil if absent.
-	FindByClusterAndUsername(ctx context.Context, clusterID, username string) (*models.ClusterAccount, error)
+	// FindByUsername returns the account with the given username, or nil if absent.
+	FindByUsername(ctx context.Context, username string) (*models.ClusterAccount, error)
 	// FindByUser returns every cluster account belonging to the given user.
 	FindByUser(ctx context.Context, userID string) ([]models.ClusterAccount, error)
-	// FindByCluster returns every cluster account on the given cluster.
-	FindByCluster(ctx context.Context, clusterID string) ([]models.ClusterAccount, error)
 	// Create inserts a new cluster account within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, a *models.ClusterAccount) error
 	// UpdateStatus updates only the status field.
 	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error
-	// ReassignUser re-points every account from fromUserID to toUserID.
+	// ReassignUser re-points every account from fromUserID to toUserID,
+	// dropping rows that would conflict with the survivor's existing usernames.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a cluster account by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error

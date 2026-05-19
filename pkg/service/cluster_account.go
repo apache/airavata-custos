@@ -26,18 +26,15 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// CreateClusterAccount persists a new cluster account for a user on a cluster.
-// If account.ID is empty, a new UUID is generated. The referenced user and
-// cluster must exist; (compute_cluster_id, username) is unique.
+// CreateClusterAccount persists a new cluster account for a user. If
+// account.ID is empty, a new UUID is generated. The referenced user must
+// exist; username is globally unique within the deployment.
 func (s *Service) CreateClusterAccount(ctx context.Context, account *models.ClusterAccount) (*models.ClusterAccount, error) {
 	if account == nil {
 		return nil, fmt.Errorf("%w: cluster account is nil", ErrInvalidInput)
 	}
 	if account.UserID == "" {
 		return nil, fmt.Errorf("%w: cluster account user_id is required", ErrInvalidInput)
-	}
-	if account.ComputeClusterID == "" {
-		return nil, fmt.Errorf("%w: cluster account compute_cluster_id is required", ErrInvalidInput)
 	}
 	if account.Username == "" {
 		return nil, fmt.Errorf("%w: cluster account username is required", ErrInvalidInput)
@@ -48,16 +45,11 @@ func (s *Service) CreateClusterAccount(ctx context.Context, account *models.Clus
 	} else if user == nil {
 		return nil, fmt.Errorf("%w: user %q does not exist", ErrInvalidInput, account.UserID)
 	}
-	if cluster, err := s.clusters.FindByID(ctx, account.ComputeClusterID); err != nil {
-		return nil, fmt.Errorf("verify compute cluster: %w", err)
-	} else if cluster == nil {
-		return nil, fmt.Errorf("%w: compute cluster %q does not exist", ErrInvalidInput, account.ComputeClusterID)
-	}
 
-	if existing, err := s.clusterAccounts.FindByClusterAndUsername(ctx, account.ComputeClusterID, account.Username); err != nil {
+	if existing, err := s.clusterAccounts.FindByUsername(ctx, account.Username); err != nil {
 		return nil, fmt.Errorf("lookup cluster account: %w", err)
 	} else if existing != nil {
-		return nil, fmt.Errorf("%w: cluster account %q on cluster %q", ErrAlreadyExists, account.Username, account.ComputeClusterID)
+		return nil, fmt.Errorf("%w: cluster account %q", ErrAlreadyExists, account.Username)
 	}
 
 	if account.ID == "" {
@@ -89,12 +81,11 @@ func (s *Service) GetClusterAccount(ctx context.Context, id string) (*models.Clu
 	return a, nil
 }
 
-// GetClusterAccountByClusterAndUsername resolves a cluster account by its
-// natural key.
-func (s *Service) GetClusterAccountByClusterAndUsername(ctx context.Context, clusterID, username string) (*models.ClusterAccount, error) {
-	a, err := s.clusterAccounts.FindByClusterAndUsername(ctx, clusterID, username)
+// GetClusterAccountByUsername resolves a cluster account by its username.
+func (s *Service) GetClusterAccountByUsername(ctx context.Context, username string) (*models.ClusterAccount, error) {
+	a, err := s.clusterAccounts.FindByUsername(ctx, username)
 	if err != nil {
-		return nil, fmt.Errorf("get cluster account by cluster/username: %w", err)
+		return nil, fmt.Errorf("get cluster account by username: %w", err)
 	}
 	if a == nil {
 		return nil, ErrNotFound
@@ -107,15 +98,6 @@ func (s *Service) ListClusterAccountsForUser(ctx context.Context, userID string)
 	out, err := s.clusterAccounts.FindByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list cluster accounts by user: %w", err)
-	}
-	return out, nil
-}
-
-// ListClusterAccountsForCluster returns every cluster account on a cluster.
-func (s *Service) ListClusterAccountsForCluster(ctx context.Context, clusterID string) ([]models.ClusterAccount, error) {
-	out, err := s.clusterAccounts.FindByCluster(ctx, clusterID)
-	if err != nil {
-		return nil, fmt.Errorf("list cluster accounts by cluster: %w", err)
 	}
 	return out, nil
 }

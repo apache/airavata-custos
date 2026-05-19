@@ -124,8 +124,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /cluster-accounts/{id}", s.getClusterAccount)
 	s.mux.HandleFunc("PUT /cluster-accounts/{id}/status", s.updateClusterAccountStatus)
 	s.mux.HandleFunc("DELETE /cluster-accounts/{id}", s.deleteClusterAccount)
-	s.mux.HandleFunc("GET /compute-clusters/{id}/accounts", s.listClusterAccountsForCluster)
-	s.mux.HandleFunc("GET /compute-clusters/{id}/accounts/{username}", s.getClusterAccountByClusterAndUsername)
+	s.mux.HandleFunc("GET /cluster-accounts/username/{username}", s.getClusterAccountByUsername)
 	s.mux.HandleFunc("GET /users/{id}/cluster-accounts", s.listClusterAccountsForUser)
 
 	s.mux.HandleFunc("POST /external-identities", s.createExternalIdentity)
@@ -821,17 +820,8 @@ func (s *Server) deleteClusterAccount(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusNoContent, nil)
 }
 
-func (s *Server) listClusterAccountsForCluster(w http.ResponseWriter, r *http.Request) {
-	out, err := s.svc.ListClusterAccountsForCluster(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-func (s *Server) getClusterAccountByClusterAndUsername(w http.ResponseWriter, r *http.Request) {
-	a, err := s.svc.GetClusterAccountByClusterAndUsername(r.Context(), r.PathValue("id"), r.PathValue("username"))
+func (s *Server) getClusterAccountByUsername(w http.ResponseWriter, r *http.Request) {
+	a, err := s.svc.GetClusterAccountByUsername(r.Context(), r.PathValue("username"))
 	if err != nil {
 		writeServiceError(w, err)
 		return

@@ -15,15 +15,15 @@ type ComputeCluster struct {
 	Name string `json:"name" db:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
 }
 
-// ClusterAccount represents the provisioned posix account a user holds on a
-// specific compute cluster (e.g. username "alice123" on cluster "abc").
-// The (compute_cluster_id, username) pair is unique.
+// ClusterAccount represents the provisioned posix account a user holds on the
+// deployment's compute cluster (e.g. username "alice123"). Each Custos
+// deployment is wired to a single downstream cluster, so the cluster scope is
+// implicit. Username is globally unique within the deployment.
 type ClusterAccount struct {
-	ID               string           `json:"id"                 db:"id"`
-	UserID           string           `json:"user_id"            db:"user_id"`
-	ComputeClusterID string           `json:"compute_cluster_id" db:"compute_cluster_id"`
-	Username         string           `json:"username"           db:"username"`
-	Status           AllocationStatus `json:"status"             db:"status"` // ACTIVE, INACTIVE, DELETED
+	ID       string           `json:"id"       db:"id"`
+	UserID   string           `json:"user_id"  db:"user_id"`
+	Username string           `json:"username" db:"username"`
+	Status   AllocationStatus `json:"status"   db:"status"` // ACTIVE, INACTIVE, DELETED
 }
 
 type ComputeAllocation struct {
