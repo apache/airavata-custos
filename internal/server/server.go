@@ -111,11 +111,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /compute-allocation-memberships", s.createComputeAllocationMembership)
 	s.mux.HandleFunc("GET /compute-allocation-memberships/{id}", s.getComputeAllocationMembership)
 	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}", s.updateComputeAllocationMembership)
-	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}/allocation-amount", s.updateMembershipAllocationAmount)
 	s.mux.HandleFunc("PUT /compute-allocation-memberships/{id}/status", s.updateMembershipStatus)
 	s.mux.HandleFunc("DELETE /compute-allocation-memberships/{id}", s.deleteComputeAllocationMembership)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/memberships", s.listMembersForAllocation)
 	s.mux.HandleFunc("GET /users/{id}/compute-allocation-memberships", s.listAllocationsForUser)
+	s.mux.HandleFunc("GET /compute-allocation-memberships/{id}/resource-overrides", s.listOverridesForMembership)
+
+	s.mux.HandleFunc("POST /compute-allocation-membership-resource-overrides", s.createComputeAllocationMembershipResourceOverride)
+	s.mux.HandleFunc("GET /compute-allocation-membership-resource-overrides/{id}", s.getComputeAllocationMembershipResourceOverride)
+	s.mux.HandleFunc("PUT /compute-allocation-membership-resource-overrides/{id}", s.updateComputeAllocationMembershipResourceOverride)
+	s.mux.HandleFunc("DELETE /compute-allocation-membership-resource-overrides/{id}", s.deleteComputeAllocationMembershipResourceOverride)
+	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/membership-overrides", s.listOverridesForResource)
 
 	s.mux.HandleFunc("POST /compute-allocation-usages", s.createComputeAllocationUsage)
 	s.mux.HandleFunc("GET /compute-allocation-usages/{id}", s.getComputeAllocationUsage)
@@ -652,22 +658,6 @@ func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, updated)
 }
 
-func (s *Server) updateMembershipAllocationAmount(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		AllocationAmount int64 `json:"allocation_amount"`
-	}
-	if err := decodeJSON(r, &body); err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	updated, err := s.svc.UpdateMembershipAllocationAmount(r.Context(), r.PathValue("id"), body.AllocationAmount)
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, updated)
-}
-
 func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		MembershipStatus models.AllocationStatus `json:"membership_status"`
@@ -752,6 +742,70 @@ func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request)
 
 func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListUsagesByUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) createComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
+	var o models.ComputeAllocationMembershipResourceOverride
+	if err := decodeJSON(r, &o); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateComputeAllocationMembershipResourceOverride(r.Context(), &o)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
+	o, err := s.svc.GetComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, o)
+}
+
+func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
+	var o models.ComputeAllocationMembershipResourceOverride
+	if err := decodeJSON(r, &o); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	o.ID = r.PathValue("id")
+	updated, err := s.svc.UpdateComputeAllocationMembershipResourceOverride(r.Context(), &o)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListOverridesForMembership(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, rows)
+}
+
+func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListOverridesForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeServiceError(w, err)
 		return

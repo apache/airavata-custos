@@ -96,6 +96,13 @@ const (
 	ComputeAllocationMembershipDeleteEvent EventType = "compute_allocation_membership::delete"
 )
 
+// ComputeAllocationMembershipResourceOverride lifecycle message types.
+const (
+	ComputeAllocationMembershipResourceOverrideCreateEvent EventType = "compute_allocation_membership_resource_override::create"
+	ComputeAllocationMembershipResourceOverrideUpdateEvent EventType = "compute_allocation_membership_resource_override::update"
+	ComputeAllocationMembershipResourceOverrideDeleteEvent EventType = "compute_allocation_membership_resource_override::delete"
+)
+
 // ComputeAllocationResourceMapping lifecycle message types.
 const (
 	ComputeAllocationResourceMappingCreateEvent EventType = "compute_allocation_resource_mapping::create"

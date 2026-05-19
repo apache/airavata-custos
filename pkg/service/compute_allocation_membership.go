@@ -154,33 +154,6 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 	return m, nil
 }
 
-// UpdateMembershipAllocationAmount sets the SU sub-allocation granted to the
-// user identified by the given membership ID. Other fields are preserved.
-func (s *Service) UpdateMembershipAllocationAmount(ctx context.Context, id string, amount int64) (*models.ComputeAllocationMembership, error) {
-	if id == "" {
-		return nil, fmt.Errorf("%w: compute allocation membership id is required", ErrInvalidInput)
-	}
-	if amount < 0 {
-		return nil, fmt.Errorf("%w: allocation_amount must be non-negative", ErrInvalidInput)
-	}
-	existing, err := s.memberships.FindByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("lookup compute allocation membership: %w", err)
-	}
-	if existing == nil {
-		return nil, ErrNotFound
-	}
-	existing.AllocationAmount = amount
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.memberships.Update(ctx, tx, existing)
-	}); err != nil {
-		return nil, fmt.Errorf("update compute allocation membership amount: %w", err)
-	}
-
-	s.eventBus.Publish(events.ComputeAllocationMembershipUpdateEvent, existing)
-	return existing, nil
-}
-
 // UpdateMembershipStatus sets the lifecycle status (ACTIVE, INACTIVE, etc.)
 // of the membership identified by the given ID. Other fields are preserved.
 func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error) {

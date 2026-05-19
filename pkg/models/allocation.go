@@ -35,9 +35,9 @@ type ComputeAllocation struct {
 
 type ComputeAllocationResource struct {
 	ID             string `json:"id"              db:"id"`
-	Name           string `json:"name"            db:"name"`            // A human-readable name for the resource, e.g., "GPU B200", "CPU", "GPU RTX6000", etc.
-	ResourceType   string `json:"resource_type"   db:"resource_type"`   // CPU, GPU, etc.
-	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs, etc. allocated.
+	Name           string `json:"name"            db:"name"`            // resource / partition name, e.g., "cpu", "gpu", etc.
+	ResourceType   string `json:"resource_type"   db:"resource_type"`   // GrpTRES, GrpTRESMins
+	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs, time in minutes, or other unit depending on the resource type.
 }
 
 type ComputeAllocationResourceMapping struct {
@@ -95,11 +95,17 @@ type ComputeAllocationUsage struct { // Represents the usage of a compute alloca
 	ComputeAllocationResourceID string    `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"` // The specific resource consumed, e.g., 20 CPU hours, 10 GPU hours, etc.
 }
 
+type ComputeAllocationMembershipResourceOverride struct {
+	ID                            string `json:"id"                             db:"id"`
+	ComputeAllocationMembershipID string `json:"compute_allocation_membership_id" db:"compute_allocation_membership_id"`
+	ComputeAllocationResourceID   string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
+	OverriddenResourceAmount      int64  `json:"overridden_resource_amount"       db:"overridden_resource_amount"` // The overridden SU amount for the user for this specific resource, e.g., 150 SUs for GPU hours, etc.
+}
+
 type ComputeAllocationMembership struct {
 	ID                  string           `json:"id"                    db:"id"`
 	ComputeAllocationID string           `json:"compute_allocation_id" db:"compute_allocation_id"`
 	UserID              string           `json:"user_id"               db:"user_id"`
-	AllocationAmount    int64            `json:"allocation_amount"     db:"allocation_amount"` // SUs allocated to the user, e.g., 100 CPU hours, 50 GPU hours, etc.
 	StartTime           time.Time        `json:"start_time"            db:"start_time"`
 	EndTime             time.Time        `json:"end_time"              db:"end_time"`
 	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
