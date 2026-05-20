@@ -27,8 +27,6 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status`
-
 type mysqlUserStore struct {
 	db *sqlx.DB
 }
@@ -41,7 +39,8 @@ func NewUserStore(db *sqlx.DB) UserStore {
 func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+userColumns+` FROM users WHERE id = ?`, id)
+		`SELECT id, organization_id, first_name, last_name, middle_name, email
+		 FROM users WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -54,7 +53,8 @@ func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User,
 func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var u models.User
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+userColumns+` FROM users WHERE email = ?`, email)
+		`SELECT id, organization_id, first_name, last_name, middle_name, email
+		 FROM users WHERE email = ?`, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -67,7 +67,8 @@ func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models
 func (s *mysqlUserStore) FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
 	var users []models.User
 	err := s.db.SelectContext(ctx, &users,
-		`SELECT `+userColumns+` FROM users WHERE organization_id = ?`, organizationID)
+		`SELECT id, organization_id, first_name, last_name, middle_name, email
+		 FROM users WHERE organization_id = ?`, organizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +77,9 @@ func (s *mysqlUserStore) FindByOrganization(ctx context.Context, organizationID 
 
 func (s *mysqlUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status)
+		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email)
 	return err
 }
 
@@ -87,13 +88,6 @@ func (s *mysqlUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User)
 		`UPDATE users SET organization_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?
 		 WHERE id = ?`,
 		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.ID)
-	return err
-}
-
-func (s *mysqlUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error {
-	_, err := tx.ExecContext(ctx,
-		`UPDATE users SET status = ? WHERE id = ?`,
-		status, id)
 	return err
 }
 

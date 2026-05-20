@@ -56,9 +56,6 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	if project.ID == "" {
 		project.ID = newID()
 	}
-	if project.Status == "" {
-		project.Status = models.ACTIVE
-	}
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = nowUTC()
 	}
@@ -119,39 +116,6 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 
 	s.eventBus.Publish(events.ProjectUpdateEvent, project)
 	return nil
-}
-
-// UpdateProjectStatus flips only the project's lifecycle status.
-func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.Project, error) {
-	if id == "" {
-		return nil, fmt.Errorf("%w: project id is required", ErrInvalidInput)
-	}
-	switch status {
-	case models.ACTIVE, models.INACTIVE, models.DELETED:
-	default:
-		return nil, fmt.Errorf("%w: invalid project status %q", ErrInvalidInput, status)
-	}
-
-	project, err := s.projs.FindByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("lookup project: %w", err)
-	}
-	if project == nil {
-		return nil, ErrNotFound
-	}
-	if project.Status == status {
-		return project, nil
-	}
-
-	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		return s.projs.UpdateStatus(ctx, tx, id, status)
-	}); err != nil {
-		return nil, fmt.Errorf("update project status: %w", err)
-	}
-	project.Status = status
-
-	s.eventBus.Publish(events.ProjectUpdateEvent, project)
-	return project, nil
 }
 
 // DeleteProject removes a project by ID.
