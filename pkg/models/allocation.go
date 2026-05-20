@@ -33,17 +33,21 @@ type ComputeAllocation struct {
 	EndTime          time.Time        `json:"end_time"           db:"end_time"`
 }
 
+// Typically store the a paritition information
 type ComputeAllocationResource struct {
 	ID             string `json:"id"              db:"id"`
-	Name           string `json:"name"            db:"name"`            // resource / partition name, e.g., "cpu", "gpu", etc.
-	ResourceType   string `json:"resource_type"   db:"resource_type"`   // GrpTRES, GrpTRESMins
-	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs, time in minutes, or other unit depending on the resource type.
+	Name           string `json:"name"            db:"name"`            // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+	ResourceType   string `json:"resource_type"   db:"resource_type"`   // cpu, gpu
+	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs.
 }
 
+// Store the association amount for a parition and allocation
 type ComputeAllocationResourceMapping struct {
 	ID                          string `json:"id"                             db:"id"`
 	ComputeAllocationID         string `json:"compute_allocation_id"          db:"compute_allocation_id"`
 	ComputeAllocationResourceID string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
+	ResourceAmount              int64  `json:"resource_amount"                db:"resource_amount"` // Amount of the resource allocated to this allocation (e.g., number of CPUs, GPUs).
+	ResourceTime                int64  `json:"resource_time"                  db:"resource_time"`   // Wall-clock time in minutes that the allocated amount is granted for.
 }
 
 type ComputeAllocationResourceRate struct {

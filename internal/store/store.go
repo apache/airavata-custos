@@ -140,6 +140,8 @@ type ComputeAllocationResourceStore interface {
 // ComputeAllocationResourceMappingStore defines persistence operations for
 // the join table linking compute allocations and compute allocation resources.
 type ComputeAllocationResourceMappingStore interface {
+	// FindByID returns the mapping with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error)
 	// FindByPair returns the mapping for a (allocation, resource) pair, or nil if absent.
 	FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error)
 	// FindResourcesByAllocation returns every resource attached to the given allocation.
@@ -148,6 +150,8 @@ type ComputeAllocationResourceMappingStore interface {
 	FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error)
 	// Create inserts a new mapping within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error
+	// Update replaces mutable fields of an existing mapping within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error
 	// DeleteByPair removes the mapping for a (allocation, resource) pair within the provided transaction.
 	DeleteByPair(ctx context.Context, tx *sql.Tx, allocationID, resourceID string) error
 }

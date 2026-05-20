@@ -81,6 +81,7 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /compute-allocations/{id}/resources", s.listResourcesForAllocation)
 	s.mux.HandleFunc("POST /compute-allocations/{id}/resources", s.attachResourceToAllocation)
+	s.mux.HandleFunc("PUT /compute-allocations/{id}/resources/{resourceId}", s.updateAllocationResourceMapping)
 	s.mux.HandleFunc("DELETE /compute-allocations/{id}/resources/{resourceId}", s.detachResourceFromAllocation)
 	s.mux.HandleFunc("GET /compute-allocation-resources/{id}/allocations", s.listAllocationsForResource)
 
@@ -366,6 +367,8 @@ func (s *Server) listComputeAllocationResources(w http.ResponseWriter, r *http.R
 
 type attachResourceRequest struct {
 	ComputeAllocationResourceID string `json:"compute_allocation_resource_id"`
+	ResourceAmount              int64  `json:"resource_amount"`
+	ResourceTime                int64  `json:"resource_time"`
 }
 
 func (s *Server) attachResourceToAllocation(w http.ResponseWriter, r *http.Request) {
@@ -374,12 +377,31 @@ func (s *Server) attachResourceToAllocation(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	mapping, err := s.svc.AttachResourceToAllocation(r.Context(), r.PathValue("id"), body.ComputeAllocationResourceID)
+	mapping, err := s.svc.AttachResourceToAllocation(r.Context(), r.PathValue("id"), body.ComputeAllocationResourceID, body.ResourceAmount, body.ResourceTime)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, mapping)
+}
+
+type updateAllocationResourceMappingRequest struct {
+	ResourceAmount int64 `json:"resource_amount"`
+	ResourceTime   int64 `json:"resource_time"`
+}
+
+func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.Request) {
+	var body updateAllocationResourceMappingRequest
+	if err := decodeJSON(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	mapping, err := s.svc.UpdateAllocationResourceMapping(r.Context(), r.PathValue("id"), r.PathValue("resourceId"), body.ResourceAmount, body.ResourceTime)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, mapping)
 }
 
 func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Request) {
