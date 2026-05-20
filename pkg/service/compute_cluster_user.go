@@ -45,6 +45,9 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	if cu.ID == "" {
 		cu.ID = newID()
 	}
+	if cu.Status == "" {
+		cu.Status = models.ACTIVE
+	}
 
 	if cluster, err := s.clusters.FindByID(ctx, cu.ComputeClusterID); err != nil {
 		return nil, fmt.Errorf("lookup compute cluster: %w", err)
@@ -132,19 +135,30 @@ func (s *Service) ListComputeClusterUsersByUser(ctx context.Context, userID stri
 }
 
 // UpdateComputeClusterUser persists changes to an existing compute-cluster
-// user mapping.
+// user mapping. Fields left blank/zero on the supplied record fall back to
+// the stored value.
 func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) error {
 	if cu == nil || cu.ID == "" {
 		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
 	}
+	existing, err := s.clusterUsers.FindByID(ctx, cu.ID)
+	if err != nil {
+		return fmt.Errorf("lookup compute cluster user: %w", err)
+	}
+	if existing == nil {
+		return ErrNotFound
+	}
 	if cu.ComputeClusterID == "" {
-		return fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+		cu.ComputeClusterID = existing.ComputeClusterID
 	}
 	if cu.UserID == "" {
-		return fmt.Errorf("%w: user_id is required", ErrInvalidInput)
+		cu.UserID = existing.UserID
 	}
 	if cu.LocalUsername == "" {
-		return fmt.Errorf("%w: local_username is required", ErrInvalidInput)
+		cu.LocalUsername = existing.LocalUsername
+	}
+	if cu.Status == "" {
+		cu.Status = existing.Status
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.clusterUsers.Update(ctx, tx, cu)
@@ -154,6 +168,33 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 
 	s.eventBus.Publish(events.ComputeClusterUserUpdateEvent, cu)
 	return nil
+}
+
+// UpdateComputeClusterUserStatus sets the lifecycle status of the mapping
+// identified by id. Other fields are preserved.
+func (s *Service) UpdateComputeClusterUserStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeClusterUser, error) {
+	if id == "" {
+		return nil, fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
+	}
+	if status == "" {
+		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
+	}
+	existing, err := s.clusterUsers.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
+	}
+	if existing == nil {
+		return nil, ErrNotFound
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.clusterUsers.UpdateStatus(ctx, tx, id, status)
+	}); err != nil {
+		return nil, fmt.Errorf("update compute cluster user status: %w", err)
+	}
+	existing.Status = status
+
+	s.eventBus.Publish(events.ComputeClusterUserUpdateEvent, existing)
+	return existing, nil
 }
 
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.

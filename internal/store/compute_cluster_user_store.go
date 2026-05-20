@@ -36,10 +36,12 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &mysqlComputeClusterUserStore{db: db}
 }
 
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, status`
+
 func (s *mysqlComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, compute_cluster_id, user_id, local_username
+		`SELECT `+computeClusterUserColumns+`
            FROM compute_cluster_users WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -53,7 +55,7 @@ func (s *mysqlComputeClusterUserStore) FindByID(ctx context.Context, id string) 
 func (s *mysqlComputeClusterUserStore) FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, compute_cluster_id, user_id, local_username
+		`SELECT `+computeClusterUserColumns+`
            FROM compute_cluster_users
           WHERE compute_cluster_id = ? AND user_id = ?`, clusterID, userID)
 	if err != nil {
@@ -68,7 +70,7 @@ func (s *mysqlComputeClusterUserStore) FindByPair(ctx context.Context, clusterID
 func (s *mysqlComputeClusterUserStore) FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 	var users []models.ComputeClusterUser
 	err := s.db.SelectContext(ctx, &users,
-		`SELECT id, compute_cluster_id, user_id, local_username
+		`SELECT `+computeClusterUserColumns+`
            FROM compute_cluster_users
           WHERE compute_cluster_id = ?
           ORDER BY local_username`, clusterID)
@@ -81,7 +83,7 @@ func (s *mysqlComputeClusterUserStore) FindByCluster(ctx context.Context, cluste
 func (s *mysqlComputeClusterUserStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error) {
 	var users []models.ComputeClusterUser
 	err := s.db.SelectContext(ctx, &users,
-		`SELECT id, compute_cluster_id, user_id, local_username
+		`SELECT `+computeClusterUserColumns+`
            FROM compute_cluster_users
           WHERE user_id = ?
           ORDER BY compute_cluster_id`, userID)
@@ -93,9 +95,9 @@ func (s *mysqlComputeClusterUserStore) FindByUser(ctx context.Context, userID st
 
 func (s *mysqlComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username)
-         VALUES (?, ?, ?, ?)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername)
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, status)
+         VALUES (?, ?, ?, ?, ?)`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.Status)
 	return err
 }
 
@@ -104,9 +106,35 @@ func (s *mysqlComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c
 		`UPDATE compute_cluster_users
             SET compute_cluster_id = ?,
                 user_id            = ?,
-                local_username     = ?
+                local_username     = ?,
+                status             = ?
           WHERE id = ?`,
-		c.ComputeClusterID, c.UserID, c.LocalUsername, c.ID)
+		c.ComputeClusterID, c.UserID, c.LocalUsername, c.Status, c.ID)
+	return err
+}
+
+func (s *mysqlComputeClusterUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users SET status = ? WHERE id = ?`,
+		status, id)
+	return err
+}
+
+func (s *mysqlComputeClusterUserStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM compute_cluster_users
+		 WHERE user_id = ?
+		   AND compute_cluster_id IN (
+		       SELECT compute_cluster_id FROM (
+		           SELECT compute_cluster_id FROM compute_cluster_users WHERE user_id = ?
+		       ) AS s
+		   )`,
+		fromUserID, toUserID); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_cluster_users SET user_id = ? WHERE user_id = ?`,
+		toUserID, fromUserID)
 	return err
 }
 

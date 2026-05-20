@@ -16,10 +16,11 @@ type ComputeCluster struct {
 }
 
 type ComputeClusterUser struct {
-	ID               string `json:"id"                db:"id"`
-	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string `json:"user_id"            db:"user_id"`
-	LocalUsername    string `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	ID               string           `json:"id"                db:"id"`
+	ComputeClusterID string           `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string           `json:"user_id"            db:"user_id"`
+	LocalUsername    string           `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	Status           AllocationStatus `json:"status"             db:"status"`
 }
 
 type ComputeAllocation struct {
