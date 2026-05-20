@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -52,8 +53,15 @@ func (h *RequestAccountInactivateHandler) Handle(ctx context.Context, tx *sql.Tx
 		return err
 	}
 
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "membership_request", personID, fmt.Sprintf("project=%s person=%s (membership persistence pending allocation mapping)", projectID, personID)); err != nil {
-		return fmt.Errorf("request_account_inactivate: audit INACTIVATE_MEMBERSHIP: %w", err)
+	flipped, err := flipUserMemberships(ctx, h.svc, projectID, personID, models.INACTIVE)
+	if err != nil {
+		return fmt.Errorf("request_account_inactivate: flip memberships: %w", err)
+	}
+	for _, m := range flipped {
+		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "compute_allocation_membership", m.ID,
+			fmt.Sprintf("user=%s allocation=%s", m.UserID, m.ComputeAllocationID)); err != nil {
+			return fmt.Errorf("request_account_inactivate: audit INACTIVATE_MEMBERSHIP: %w", err)
+		}
 	}
 
 	reply := map[string]any{

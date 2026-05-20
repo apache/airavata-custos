@@ -111,6 +111,67 @@ func getResourceList(body map[string]any) []string {
 	return result
 }
 
+// ensureExternalIdentity is the idempotent upsert used by data_project_create
+// and data_account_create. It is a no-op when the user already has an AMIE
+// ExternalIdentity row for this globalID; creates one otherwise. Pre-existing
+// rows are NOT touched here, attribute updates (org / orgCode / nsfStatus)
+// are owned by request_user_modify.
+func ensureExternalIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
+	if existing, err := svc.GetExternalIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
+		if existing.UserID == userID {
+			return nil
+		}
+		return fmt.Errorf("external identity for %s=%s is bound to user %s (not %s)", amieIdentitySource, globalID, existing.UserID, userID)
+	} else if !errors.Is(err, service.ErrNotFound) {
+		return err
+	}
+	if _, err := svc.CreateExternalIdentity(ctx, &models.ExternalIdentity{
+		UserID:     userID,
+		Source:     amieIdentitySource,
+		ExternalID: globalID,
+	}); err != nil {
+		return fmt.Errorf("create external identity: %w", err)
+	}
+	return nil
+}
+
+// flipUserMemberships flips every ComputeAllocationMembership the user holds
+// under any allocation belonging to the given project (Custos project.id) to
+// the given status. Returns the rows that were updated. Silently returns an
+// empty slice when the project or user is unknown, the reply still goes back
+// to AMIE but no state changes.
+func flipUserMemberships(ctx context.Context, svc *service.Service, projectID, userID string, status models.AllocationStatus) ([]models.ComputeAllocationMembership, error) {
+	project, err := svc.GetProject(ctx, projectID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("lookup project: %w", err)
+	}
+	allocations, err := svc.ListComputeAllocationsByProject(ctx, project.ID)
+	if err != nil {
+		return nil, fmt.Errorf("list allocations: %w", err)
+	}
+	var updated []models.ComputeAllocationMembership
+	for _, a := range allocations {
+		members, err := svc.ListMembersForAllocation(ctx, a.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list memberships for allocation %s: %w", a.ID, err)
+		}
+		for _, m := range members {
+			if m.UserID != userID {
+				continue
+			}
+			flipped, err := svc.UpdateMembershipStatus(ctx, m.ID, status)
+			if err != nil {
+				return nil, fmt.Errorf("update membership %s: %w", m.ID, err)
+			}
+			updated = append(updated, *flipped)
+		}
+	}
+	return updated, nil
+}
+
 // ensureOrganization looks up an Organization by its originated_id (the
 // AMIE-side org code such as "TEST123"); creates one if missing, using the
 // human-readable organization name from the packet.

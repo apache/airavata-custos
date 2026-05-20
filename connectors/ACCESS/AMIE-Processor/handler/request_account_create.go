@@ -51,8 +51,8 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err != nil {
 		return err
 	}
-	projectOriginatedID := getString(body, "ProjectID")
-	if err := requireText(projectOriginatedID, "ProjectID"); err != nil {
+	projectID := getString(body, "ProjectID")
+	if err := requireText(projectID, "ProjectID"); err != nil {
 		return err
 	}
 	if err := requireText(getString(body, "GrantNumber"), "GrantNumber"); err != nil {
@@ -74,9 +74,11 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_PERSON: %w", err)
 	}
 
-	project, err := h.svc.GetProjectByOriginatedID(ctx, projectOriginatedID)
+	// AMIE replies to notify_project_create with project.id (Custos UUID), so
+	// subsequent packets carry that id back to us as body.ProjectID.
+	project, err := h.svc.GetProject(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectOriginatedID, err)
+		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
 	}
 
 	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, project.ID)
@@ -84,7 +86,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: list allocations: %w", err)
 	}
 	if len(allocations) == 0 {
-		return fmt.Errorf("request_account_create: project %q has no ComputeAllocation; request_project_create did not provision one", projectOriginatedID)
+		return fmt.Errorf("request_account_create: project %q has no ComputeAllocation; request_project_create did not provision one", projectID)
 	}
 	allocation := allocations[0]
 
@@ -107,7 +109,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 
 	replyBody := map[string]any{
-		"ProjectID":           projectOriginatedID,
+		"ProjectID":           projectID,
 		"GrantNumber":         getString(body, "GrantNumber"),
 		"UserPersonID":        user.ID,
 		"UserRemoteSiteLogin": account.Username,

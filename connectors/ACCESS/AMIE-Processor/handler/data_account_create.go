@@ -54,17 +54,21 @@ func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		return err
 	}
 
-	dns := getDNList(body)
-	if len(dns) > 0 {
-		user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, personGlobalID)
-		if err != nil {
-			if errors.Is(err, service.ErrNotFound) {
-				slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence",
-					"personGlobalID", personGlobalID)
-			} else {
-				return fmt.Errorf("data_account_create: resolve user: %w", err)
-			}
+	user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, personGlobalID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence and ExternalIdentity upsert",
+				"personGlobalID", personGlobalID)
 		} else {
+			return fmt.Errorf("data_account_create: resolve user: %w", err)
+		}
+	}
+	if user != nil {
+		if err := ensureExternalIdentity(ctx, h.svc, user.ID, personGlobalID); err != nil {
+			return fmt.Errorf("data_account_create: ensure external identity: %w", err)
+		}
+		dns := getDNList(body)
+		if len(dns) > 0 {
 			for _, dn := range dns {
 				if _, err := h.svc.AddUserDN(ctx, &models.UserDN{UserID: user.ID, DN: dn}); err != nil {
 					if errors.Is(err, service.ErrAlreadyExists) {

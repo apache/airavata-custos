@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -63,7 +64,12 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	// AMIE protocol: request_project_create does not carry a ProjectID. The
 	// receiving site assigns one. We use the GrantNumber as the originated_id
-	// since it is the stable cross-site identifier on the AMIE side.
+	// (the stable cross-site identifier on the AMIE side) so first delivery
+	// and supplement/renewal re-deliveries map to the same Project row.
+	//
+	// TODO(amie-integration, grant-number-modeling): verify whether
+	// GrantNumber should be promoted to a first-class column on `projects`
+	// (with its own UNIQUE constraint) instead of being injected into originated_id.
 	projectOriginatedID := grantNumber
 
 	pi, err := h.ensurePIUser(ctx, body, piGlobalID)
@@ -150,20 +156,18 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 	})
 }
 
-// ensureAllocation creates a ComputeAllocation for the project if none exists
-// yet. If one already exists (e.g. a repeat request_project_create signaling a
-// supplement/renewal), the existing row is returned unchanged.
-//
-// TODO(amie-integration, allocation-type): branch on body["AllocationType"]
-// (new / renewal / supplement / extension) and adjust the allocation
-// accordingly.
+// ensureAllocation creates a ComputeAllocation for the project on first
+// delivery. On repeat delivery (supplement / renewal / extension / adjustment),
+// the existing row is preserved and a ComputeAllocationDiff is recorded
+// capturing the grant event. InitialSUAmount on the parent row stays as the
+// original grant; effective SUs = InitialSUAmount + sum(grant diffs).
 func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
 	existing, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list allocations: %w", err)
 	}
 	if len(existing) > 0 {
-		return &existing[0], nil
+		return h.recordAllocationDiff(ctx, body, &existing[0])
 	}
 
 	su, err := getInt64(body, "ServiceUnitsAllocated")
@@ -187,4 +191,31 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 		StartTime:        start,
 		EndTime:          end,
 	})
+}
+
+// recordAllocationDiff writes a ComputeAllocationDiff for a re-delivered
+// request_project_create against an existing allocation (the AMIE pattern for
+// supplements / renewals / extensions / adjustments). DiffType is the upper-cased
+// AllocationType from the packet body; falls back to "GRANT" when AMIE did not supply one.
+// NewSUAmount carries this packet's ServiceUnitsAllocated, the delta granted
+// by this event, not the cumulative total.
+func (h *RequestProjectCreateHandler) recordAllocationDiff(ctx context.Context, body map[string]any, existing *models.ComputeAllocation) (*models.ComputeAllocation, error) {
+	su, err := getInt64(body, "ServiceUnitsAllocated")
+	if err != nil {
+		return nil, err
+	}
+	diffType := strings.ToUpper(strings.TrimSpace(getString(body, "AllocationType")))
+	if diffType == "" {
+		diffType = "GRANT"
+	}
+	if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+		ComputeAllocationID: existing.ID,
+		DiffType:            diffType,
+		NewSUAmount:         su,
+		Status:              models.ACTIVE,
+		Description:         fmt.Sprintf("AMIE %s of %d SUs", diffType, su),
+	}); err != nil {
+		return nil, fmt.Errorf("record allocation diff: %w", err)
+	}
+	return existing, nil
 }
