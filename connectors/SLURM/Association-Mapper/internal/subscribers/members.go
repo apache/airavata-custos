@@ -116,19 +116,19 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 
 	grpTres := []client.TRES{}
 
-	if allocationResource.ResourceType == "GrpTRES" {
+	if override.OverrideResourceAmount > 0 {
 		grpTres = append(grpTres, client.TRES{
 			Type:  allocationResource.ResourceType,
-			Count: override.OverriddenResourceAmount, // override.OverriddenResourceAmount is the SU amount, but SLURM needs the actual resource amount (e.g., number of CPU hours), so we need to convert it using the rate for the resource
+			Count: override.OverrideResourceAmount, // override.OverrideResourceAmount is the resource amount granted to the user for this resource (e.g., number of CPUs, GPUs).
 		})
 	}
 
 	grpTresMins := []client.TRES{}
 
-	if allocationResource.ResourceType == "GrpTRESMins" {
+	if override.OverrideResourceTime > 0 {
 		grpTresMins = append(grpTresMins, client.TRES{
 			Type:  allocationResource.ResourceType,
-			Count: override.OverriddenResourceAmount,
+			Count: override.OverrideResourceTime, // override.OverrideResourceTime is the wall-clock time in minutes that the resource amount is granted for.
 		})
 	}
 
