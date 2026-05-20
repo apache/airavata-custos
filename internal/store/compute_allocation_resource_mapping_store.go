@@ -37,10 +37,25 @@ func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationReso
 	return &mysqlComputeAllocationResourceMappingStore{db: db}
 }
 
+func (s *mysqlComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
+	var m models.ComputeAllocationResourceMapping
+	err := s.db.GetContext(ctx, &m,
+		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
+		 FROM compute_allocation_resource_mappings
+		 WHERE id = ?`, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &m, nil
+}
+
 func (s *mysqlComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
-		`SELECT id, compute_allocation_id, compute_allocation_resource_id
+		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
 		 FROM compute_allocation_resource_mappings
 		 WHERE compute_allocation_id = ? AND compute_allocation_resource_id = ?`,
 		allocationID, resourceID)
@@ -87,9 +102,19 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindAllocationsByResource(c
 func (s *mysqlComputeAllocationResourceMappingStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_resource_mappings
-		     (id, compute_allocation_id, compute_allocation_resource_id)
-		 VALUES (?, ?, ?)`,
-		m.ID, m.ComputeAllocationID, m.ComputeAllocationResourceID)
+		     (id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time)
+		 VALUES (?, ?, ?, ?, ?)`,
+		m.ID, m.ComputeAllocationID, m.ComputeAllocationResourceID, m.ResourceAmount, m.ResourceTime)
+	return err
+}
+
+func (s *mysqlComputeAllocationResourceMappingStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE compute_allocation_resource_mappings
+		    SET resource_amount = ?,
+		        resource_time   = ?
+		  WHERE id = ?`,
+		m.ResourceAmount, m.ResourceTime, m.ID)
 	return err
 }
 

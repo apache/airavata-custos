@@ -27,15 +27,22 @@ import (
 )
 
 // AttachResourceToAllocation links a compute allocation resource to a compute
-// allocation. Both entities must already exist. The link is idempotent — if
-// the same (allocation, resource) pair is already linked, ErrAlreadyExists is
-// returned.
-func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
+// allocation, recording the resource amount and wall-clock time granted to
+// the allocation. Both entities must already exist. The link is idempotent —
+// if the same (allocation, resource) pair is already linked, ErrAlreadyExists
+// is returned.
+func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, resourceID string, resourceAmount, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 	if allocationID == "" {
 		return nil, fmt.Errorf("%w: compute_allocation_id is required", ErrInvalidInput)
 	}
 	if resourceID == "" {
 		return nil, fmt.Errorf("%w: compute_allocation_resource_id is required", ErrInvalidInput)
+	}
+	if resourceAmount < 0 {
+		return nil, fmt.Errorf("%w: resource_amount must be non-negative", ErrInvalidInput)
+	}
+	if resourceTime < 0 {
+		return nil, fmt.Errorf("%w: resource_time must be non-negative", ErrInvalidInput)
 	}
 
 	if alloc, err := s.allocs.FindByID(ctx, allocationID); err != nil {
@@ -60,6 +67,8 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 		ID:                          newID(),
 		ComputeAllocationID:         allocationID,
 		ComputeAllocationResourceID: resourceID,
+		ResourceAmount:              resourceAmount,
+		ResourceTime:                resourceTime,
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.resourceMappings.Create(ctx, tx, mapping)
@@ -69,6 +78,39 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 
 	s.eventBus.Publish(events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	return mapping, nil
+}
+
+// UpdateAllocationResourceMapping updates the resource_amount and
+// resource_time recorded against an existing (allocation, resource) mapping.
+func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocationID, resourceID string, resourceAmount, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
+	if allocationID == "" || resourceID == "" {
+		return nil, fmt.Errorf("%w: allocation and resource ids are required", ErrInvalidInput)
+	}
+	if resourceAmount < 0 {
+		return nil, fmt.Errorf("%w: resource_amount must be non-negative", ErrInvalidInput)
+	}
+	if resourceTime < 0 {
+		return nil, fmt.Errorf("%w: resource_time must be non-negative", ErrInvalidInput)
+	}
+
+	existing, err := s.resourceMappings.FindByPair(ctx, allocationID, resourceID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup mapping: %w", err)
+	}
+	if existing == nil {
+		return nil, ErrNotFound
+	}
+
+	existing.ResourceAmount = resourceAmount
+	existing.ResourceTime = resourceTime
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.resourceMappings.Update(ctx, tx, existing)
+	}); err != nil {
+		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
+	}
+
+	s.eventBus.Publish(events.ComputeAllocationResourceMappingUpdateEvent, existing)
+	return existing, nil
 }
 
 // DetachResourceFromAllocation removes the link between a compute allocation

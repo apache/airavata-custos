@@ -118,7 +118,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 
 	if allocationResource.ResourceType == "GrpTRES" {
 		grpTres = append(grpTres, client.TRES{
-			Type:  allocationResource.Name,
+			Type:  allocationResource.ResourceType,
 			Count: override.OverriddenResourceAmount, // override.OverriddenResourceAmount is the SU amount, but SLURM needs the actual resource amount (e.g., number of CPU hours), so we need to convert it using the rate for the resource
 		})
 	}
@@ -127,7 +127,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 
 	if allocationResource.ResourceType == "GrpTRESMins" {
 		grpTresMins = append(grpTresMins, client.TRES{
-			Type:  allocationResource.Name,
+			Type:  allocationResource.ResourceType,
 			Count: override.OverriddenResourceAmount,
 		})
 	}

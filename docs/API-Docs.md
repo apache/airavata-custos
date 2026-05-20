@@ -619,15 +619,21 @@ removed.
 
 ### `POST /compute-allocations/{id}/resources`
 
-Attach an existing resource to a compute allocation.
+Attach an existing resource to a compute allocation, recording the amount of
+the resource and the wall-clock time granted to the allocation.
 
 **Path parameters:** `{id}` — the compute allocation ID.
 **Required body fields:** `compute_allocation_resource_id`
+**Optional body fields:** `resource_amount` (int64, default `0`), `resource_time` (int64, default `0`). Both must be non-negative.
 
 **Request**
 
 ```json
-{ "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff" }
+{
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "resource_amount": 24,
+  "resource_time": 1440
+}
 ```
 
 **Response 201**
@@ -636,14 +642,52 @@ Attach an existing resource to a compute allocation.
 {
   "id": "7e1d2c3b-4a5f-4b6c-9d8e-0011223344ff",
   "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
-  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff"
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "resource_amount": 24,
+  "resource_time": 1440
 }
 ```
 
 **Errors**
 
-- `400` — `compute_allocation_resource_id` missing, or either the allocation or the resource does not exist.
+- `400` — `compute_allocation_resource_id` missing, `resource_amount` / `resource_time` negative, or either the allocation or the resource does not exist.
 - `409` — this resource is already attached to the allocation.
+
+---
+
+### `PUT /compute-allocations/{id}/resources/{resourceId}`
+
+Update the `resource_amount` and `resource_time` recorded on an existing
+(allocation, resource) mapping.
+
+**Path parameters:** `{id}` — the compute allocation ID; `{resourceId}` — the compute allocation resource ID.
+**Required body fields:** `resource_amount`, `resource_time` (both non-negative int64).
+
+**Request**
+
+```json
+{
+  "resource_amount": 48,
+  "resource_time": 2880
+}
+```
+
+**Response 200**
+
+```json
+{
+  "id": "7e1d2c3b-4a5f-4b6c-9d8e-0011223344ff",
+  "compute_allocation_id": "2f6a8c1d-3e4b-4a7d-8c91-aa12bb34cc56",
+  "compute_allocation_resource_id": "c0a1b2c3-d4e5-46f7-8899-aabbccddeeff",
+  "resource_amount": 48,
+  "resource_time": 2880
+}
+```
+
+**Errors**
+
+- `400` — either id missing, or `resource_amount` / `resource_time` negative.
+- `404` — no such mapping exists.
 
 ---
 
@@ -1276,7 +1320,7 @@ RES_ID=$(curl -s -X POST $BASE/compute-allocation-resources \
 # Attach the resource to the allocation.
 curl -s -X POST $BASE/compute-allocations/$ALLOC_ID/resources \
   -H 'Content-Type: application/json' \
-  -d "{\"compute_allocation_resource_id\":\"$RES_ID\"}" | jq
+  -d "{\"compute_allocation_resource_id\":\"$RES_ID\",\"resource_amount\":24,\"resource_time\":1440}" | jq
 
 # Define a rate for the resource.
 curl -s -X POST $BASE/compute-allocation-resource-rates \
@@ -1329,7 +1373,7 @@ OVERRIDE_ID=$(curl -s -X POST $BASE/compute-allocation-membership-resource-overr
   -d "{
         \"compute_allocation_membership_id\":\"$MEMBERSHIP_ID\",
         \"compute_allocation_resource_id\":\"$RES_ID\",
-        \"overridden_resource_amount\":10000
+        \"overridden_resource_amount\":10
       }" | jq -r .id)
 
 # Bump the override amount.
