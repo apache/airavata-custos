@@ -66,6 +66,8 @@ func run() error {
 	}
 	defer database.Close()
 
+	// Core schema must run before connector migrations because connector
+	// schemas may FK into core tables.
 	if err := db.MigrateEmbedded(database); err != nil {
 		return err
 	}
