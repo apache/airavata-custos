@@ -36,11 +36,12 @@ func NewProjectStore(db *sqlx.DB) ProjectStore {
 	return &mysqlProjectStore{db: db}
 }
 
+const projectColumns = `id, originated_id, title, origination, project_pi_id, status, created_time`
+
 func (s *mysqlProjectStore) FindByID(ctx context.Context, id string) (*models.Project, error) {
 	var p models.Project
 	err := s.db.GetContext(ctx, &p,
-		`SELECT id, originated_id, title, origination, project_pi_id, created_time
-		 FROM projects WHERE id = ?`, id)
+		`SELECT `+projectColumns+` FROM projects WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,8 +54,7 @@ func (s *mysqlProjectStore) FindByID(ctx context.Context, id string) (*models.Pr
 func (s *mysqlProjectStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error) {
 	var p models.Project
 	err := s.db.GetContext(ctx, &p,
-		`SELECT id, originated_id, title, origination, project_pi_id, created_time
-		 FROM projects WHERE originated_id = ?`, originatedID)
+		`SELECT `+projectColumns+` FROM projects WHERE originated_id = ?`, originatedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -67,8 +67,7 @@ func (s *mysqlProjectStore) FindByOriginatedID(ctx context.Context, originatedID
 func (s *mysqlProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
 	var projects []models.Project
 	err := s.db.SelectContext(ctx, &projects,
-		`SELECT id, originated_id, title, origination, project_pi_id, created_time
-		 FROM projects WHERE project_pi_id = ?`, piUserID)
+		`SELECT `+projectColumns+` FROM projects WHERE project_pi_id = ?`, piUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,17 +76,31 @@ func (s *mysqlProjectStore) FindByPI(ctx context.Context, piUserID string) ([]mo
 
 func (s *mysqlProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, created_time)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		p.ID, p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.CreatedTime)
+		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status, created_time)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.Status, p.CreatedTime)
 	return err
 }
 
 func (s *mysqlProjectStore) Update(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE projects SET originated_id = ?, title = ?, origination = ?, project_pi_id = ?
+		`UPDATE projects SET originated_id = ?, title = ?, origination = ?, project_pi_id = ?, status = ?
 		 WHERE id = ?`,
-		p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.ID)
+		p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.Status, p.ID)
+	return err
+}
+
+func (s *mysqlProjectStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE projects SET status = ? WHERE id = ?`,
+		status, id)
+	return err
+}
+
+func (s *mysqlProjectStore) ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE projects SET project_pi_id = ? WHERE project_pi_id = ?`,
+		toUserID, fromUserID)
 	return err
 }
 

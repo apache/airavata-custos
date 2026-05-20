@@ -37,8 +37,21 @@ type UserStore interface {
 	Create(ctx context.Context, tx *sql.Tx, u *models.User) error
 	// Update replaces mutable fields of an existing user within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, u *models.User) error
+	// UpdateStatus sets the lifecycle status of an existing user within the provided transaction.
+	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error
 	// Delete removes a user by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// UserMergeStore records when one user is consolidated into another. Rows are
+// append-only; each retiring user can be merged at most once.
+type UserMergeStore interface {
+	// Record inserts a new merge record within the provided transaction.
+	Record(ctx context.Context, tx *sql.Tx, retiringUserID, survivingUserID, reason string) error
+	// FindByRetiringUser returns the merge record whose retiring user matches, or nil if absent.
+	FindByRetiringUser(ctx context.Context, retiringUserID string) (*models.UserMerge, error)
+	// FindBySurvivingUser returns every merge record whose survivor matches, oldest first.
+	FindBySurvivingUser(ctx context.Context, survivingUserID string) ([]models.UserMerge, error)
 }
 
 // OrganizationStore defines persistence operations for organizations.
@@ -86,7 +99,50 @@ type ComputeClusterUserStore interface {
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// UpdateStatus sets the lifecycle status of an existing mapping within the provided transaction.
+	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error
+	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
+	// dropping fromUserID's rows on clusters where toUserID already has one.
+	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a mapping by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// ExternalIdentityStore defines persistence operations for external-identity
+// bindings between Custos users and identifiers issued by external systems.
+type ExternalIdentityStore interface {
+	// FindByID returns the external identity with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.ExternalIdentity, error)
+	// FindBySourceAndExternalID returns the binding for the given (source, external_id) pair, or nil if absent.
+	FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.ExternalIdentity, error)
+	// FindByOIDCSub returns the first binding matching the given OIDC subject, or nil if none.
+	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.ExternalIdentity, error)
+	// FindByUser returns every external identity bound to the given user, ordered by created_at.
+	FindByUser(ctx context.Context, userID string) ([]models.ExternalIdentity, error)
+	// Create inserts a new external identity within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
+	// Update replaces mutable fields of an existing external identity within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
+	// ReassignUser moves every external identity owned by fromUserID over to toUserID.
+	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
+	// Delete removes an external identity by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
+// UserDNStore defines persistence operations for X.509 distinguished-name
+// bindings against a Custos user.
+type UserDNStore interface {
+	// FindByID returns the DN binding with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.UserDN, error)
+	// FindByDN returns the binding matching the given DN, or nil if absent.
+	FindByDN(ctx context.Context, dn string) (*models.UserDN, error)
+	// FindByUser returns every DN bound to the given user, ordered by created_at.
+	FindByUser(ctx context.Context, userID string) ([]models.UserDN, error)
+	// Create inserts a new DN binding within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, d *models.UserDN) error
+	// ReassignUser moves every DN owned by fromUserID over to toUserID, dropping duplicates.
+	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
+	// Delete removes a DN binding by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
@@ -102,6 +158,10 @@ type ProjectStore interface {
 	Create(ctx context.Context, tx *sql.Tx, p *models.Project) error
 	// Update replaces mutable fields of an existing project within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, p *models.Project) error
+	// UpdateStatus sets the lifecycle status of an existing project within the provided transaction.
+	UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) error
+	// ReassignPI changes project_pi_id from fromUserID to toUserID for every project.
+	ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
@@ -250,6 +310,9 @@ type ComputeAllocationMembershipStore interface {
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
 	// Update replaces mutable fields of an existing membership within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
+	// ReassignUser moves every membership owned by fromUserID over to toUserID,
+	// dropping fromUserID's rows on allocations where toUserID already has one.
+	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a membership by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }

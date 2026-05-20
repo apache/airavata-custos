@@ -57,3 +57,10 @@ venv/
 # Vault
 vault.db
 raft.db
+
+# Configurations
+.env
+config.yaml
+
+# Binaries
+bin/

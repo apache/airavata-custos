@@ -56,6 +56,9 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	if project.ID == "" {
 		project.ID = newID()
 	}
+	if project.Status == "" {
+		project.Status = models.ProjectActive
+	}
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = nowUTC()
 	}
@@ -103,10 +106,36 @@ func (s *Service) ListProjectsByPI(ctx context.Context, piUserID string) ([]mode
 	return projects, nil
 }
 
-// UpdateProject persists changes to an existing project.
+// UpdateProject persists changes to an existing project. Fields left
+// blank/zero on the supplied record fall back to the stored value.
 func (s *Service) UpdateProject(ctx context.Context, project *models.Project) error {
 	if project == nil || project.ID == "" {
 		return fmt.Errorf("%w: project id is required", ErrInvalidInput)
+	}
+	existing, err := s.projs.FindByID(ctx, project.ID)
+	if err != nil {
+		return fmt.Errorf("lookup project: %w", err)
+	}
+	if existing == nil {
+		return ErrNotFound
+	}
+	if project.OriginatedID == "" {
+		project.OriginatedID = existing.OriginatedID
+	}
+	if project.Title == "" {
+		project.Title = existing.Title
+	}
+	if project.Origination == "" {
+		project.Origination = existing.Origination
+	}
+	if project.ProjectPIID == "" {
+		project.ProjectPIID = existing.ProjectPIID
+	}
+	if project.Status == "" {
+		project.Status = existing.Status
+	}
+	if project.CreatedTime.IsZero() {
+		project.CreatedTime = existing.CreatedTime
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.projs.Update(ctx, tx, project)
@@ -116,6 +145,33 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 
 	s.eventBus.Publish(events.ProjectUpdateEvent, project)
 	return nil
+}
+
+// UpdateProjectStatus sets the lifecycle status of the project identified by
+// id. Other fields are preserved.
+func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error) {
+	if id == "" {
+		return nil, fmt.Errorf("%w: project id is required", ErrInvalidInput)
+	}
+	if status == "" {
+		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
+	}
+	existing, err := s.projs.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("lookup project: %w", err)
+	}
+	if existing == nil {
+		return nil, ErrNotFound
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.projs.UpdateStatus(ctx, tx, id, status)
+	}); err != nil {
+		return nil, fmt.Errorf("update project status: %w", err)
+	}
+	existing.Status = status
+
+	s.eventBus.Publish(events.ProjectUpdateEvent, existing)
+	return existing, nil
 }
 
 // DeleteProject removes a project by ID.

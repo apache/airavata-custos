@@ -56,9 +56,14 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("POST /users", s.createUser)
 	s.mux.HandleFunc("GET /users/{id}", s.getUser)
+	s.mux.HandleFunc("PUT /users/{id}/status", s.updateUserStatus)
+	s.mux.HandleFunc("POST /users/merge", s.mergeUsers)
+	s.mux.HandleFunc("GET /users/{id}/merge", s.getUserMergeByRetiringUser)
+	s.mux.HandleFunc("GET /users/{id}/merged-users", s.listUserMergesBySurvivingUser)
 
 	s.mux.HandleFunc("POST /projects", s.createProject)
 	s.mux.HandleFunc("GET /projects/{id}", s.getProject)
+	s.mux.HandleFunc("PUT /projects/{id}/status", s.updateProjectStatus)
 
 	s.mux.HandleFunc("POST /compute-clusters", s.createComputeCluster)
 	s.mux.HandleFunc("GET /compute-clusters", s.listComputeClusters)
@@ -67,6 +72,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /compute-cluster-users", s.createComputeClusterUser)
 	s.mux.HandleFunc("GET /compute-cluster-users/{id}", s.getComputeClusterUser)
 	s.mux.HandleFunc("PUT /compute-cluster-users/{id}", s.updateComputeClusterUser)
+	s.mux.HandleFunc("PUT /compute-cluster-users/{id}/status", s.updateComputeClusterUserStatus)
 	s.mux.HandleFunc("DELETE /compute-cluster-users/{id}", s.deleteComputeClusterUser)
 	s.mux.HandleFunc("GET /compute-clusters/{id}/users", s.listComputeClusterUsersByCluster)
 	s.mux.HandleFunc("GET /compute-clusters/{id}/users/{userId}", s.getComputeClusterUserByPair)
@@ -131,6 +137,20 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-allocations/{id}/usages/total", s.getTotalSUUsageForAllocation)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/users/{userId}/usages/total", s.getTotalSUUsageForUserInAllocation)
 	s.mux.HandleFunc("GET /users/{id}/compute-allocation-usages", s.listUsagesByUser)
+
+	s.mux.HandleFunc("POST /external-identities", s.createExternalIdentity)
+	s.mux.HandleFunc("GET /external-identities/{id}", s.getExternalIdentity)
+	s.mux.HandleFunc("PUT /external-identities/{id}", s.updateExternalIdentity)
+	s.mux.HandleFunc("DELETE /external-identities/{id}", s.deleteExternalIdentity)
+	s.mux.HandleFunc("GET /external-identities/sources/{source}/external/{externalId}", s.getExternalIdentityBySourceAndExternalID)
+	s.mux.HandleFunc("GET /external-identities/oidc-subjects/{oidcSub}", s.getExternalIdentityByOIDCSub)
+	s.mux.HandleFunc("GET /users/{id}/external-identities", s.listExternalIdentitiesForUser)
+
+	s.mux.HandleFunc("POST /user-dns", s.addUserDN)
+	s.mux.HandleFunc("GET /user-dns/{id}", s.getUserDN)
+	s.mux.HandleFunc("DELETE /user-dns/{id}", s.removeUserDN)
+	s.mux.HandleFunc("GET /user-dns/lookup", s.getUserDNByDN)
+	s.mux.HandleFunc("GET /users/{id}/user-dns", s.listUserDNs)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -860,6 +880,216 @@ func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *ht
 		"user_id":               userID,
 		"total_su_amount":       total,
 	})
+}
+
+type statusUpdateRequest struct {
+	Status string `json:"status"`
+}
+
+func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
+	var req statusUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	u, err := s.svc.UpdateUserStatus(r.Context(), r.PathValue("id"), models.UserStatus(req.Status))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
+}
+
+func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
+	var req statusUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	p, err := s.svc.UpdateProjectStatus(r.Context(), r.PathValue("id"), models.ProjectStatus(req.Status))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}
+
+func (s *Server) updateComputeClusterUserStatus(w http.ResponseWriter, r *http.Request) {
+	var req statusUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	cu, err := s.svc.UpdateComputeClusterUserStatus(r.Context(), r.PathValue("id"), models.AllocationStatus(req.Status))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, cu)
+}
+
+func (s *Server) createExternalIdentity(w http.ResponseWriter, r *http.Request) {
+	var e models.ExternalIdentity
+	if err := decodeJSON(r, &e); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.CreateExternalIdentity(r.Context(), &e)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getExternalIdentity(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetExternalIdentity(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
+func (s *Server) getExternalIdentityBySourceAndExternalID(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetExternalIdentityBySourceAndExternalID(r.Context(), r.PathValue("source"), r.PathValue("externalId"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
+func (s *Server) getExternalIdentityByOIDCSub(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetExternalIdentityByOIDCSub(r.Context(), r.PathValue("oidcSub"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, e)
+}
+
+func (s *Server) listExternalIdentitiesForUser(w http.ResponseWriter, r *http.Request) {
+	out, err := s.svc.ListExternalIdentitiesForUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) updateExternalIdentity(w http.ResponseWriter, r *http.Request) {
+	var e models.ExternalIdentity
+	if err := decodeJSON(r, &e); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	e.ID = r.PathValue("id")
+	if err := s.svc.UpdateExternalIdentity(r.Context(), &e); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, &e)
+}
+
+func (s *Server) deleteExternalIdentity(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteExternalIdentity(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) addUserDN(w http.ResponseWriter, r *http.Request) {
+	var d models.UserDN
+	if err := decodeJSON(r, &d); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	created, err := s.svc.AddUserDN(r.Context(), &d)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+func (s *Server) getUserDN(w http.ResponseWriter, r *http.Request) {
+	d, err := s.svc.GetUserDN(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
+}
+
+func (s *Server) getUserDNByDN(w http.ResponseWriter, r *http.Request) {
+	dn := r.URL.Query().Get("dn")
+	if dn == "" {
+		writeError(w, http.StatusBadRequest, errors.New("dn query parameter is required"))
+		return
+	}
+	d, err := s.svc.GetUserDNByDN(r.Context(), dn)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
+}
+
+func (s *Server) listUserDNs(w http.ResponseWriter, r *http.Request) {
+	out, err := s.svc.ListUserDNs(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) removeUserDN(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.RemoveUserDN(r.Context(), r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type mergeUsersRequest struct {
+	SurvivingUserID string `json:"surviving_user_id"`
+	RetiringUserID  string `json:"retiring_user_id"`
+	Reason          string `json:"reason,omitempty"`
+}
+
+func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
+	var req mergeUsersRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	survivor, err := s.svc.MergeUsers(r.Context(), req.SurvivingUserID, req.RetiringUserID, req.Reason)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, survivor)
+}
+
+func (s *Server) getUserMergeByRetiringUser(w http.ResponseWriter, r *http.Request) {
+	m, err := s.svc.GetUserMergeByRetiringUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, m)
+}
+
+func (s *Server) listUserMergesBySurvivingUser(w http.ResponseWriter, r *http.Request) {
+	out, err := s.svc.ListUserMergesBySurvivingUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // LoggingMiddleware logs every request once it completes.

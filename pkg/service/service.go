@@ -34,46 +34,52 @@ import (
 // mutating operation in a transaction so callers do not need to manage
 // *sql.Tx themselves.
 type Service struct {
-	db               *sqlx.DB
-	eventBus         *events.Bus
-	orgs             store.OrganizationStore
-	users            store.UserStore
-	projs            store.ProjectStore
-	clusters         store.ComputeClusterStore
-	clusterUsers     store.ComputeClusterUserStore
-	allocs           store.ComputeAllocationStore
-	resources        store.ComputeAllocationResourceStore
-	resourceMappings store.ComputeAllocationResourceMappingStore
-	resourceRates    store.ComputeAllocationResourceRateStore
-	allocDiffs       store.ComputeAllocationDiffStore
-	changeRequests   store.ComputeAllocationChangeRequestStore
-	changeEvents     store.ComputeAllocationChangeRequestEventStore
-	memberships      store.ComputeAllocationMembershipStore
+	db                  *sqlx.DB
+	eventBus            *events.Bus
+	orgs                store.OrganizationStore
+	users               store.UserStore
+	projs               store.ProjectStore
+	clusters            store.ComputeClusterStore
+	clusterUsers        store.ComputeClusterUserStore
+	allocs              store.ComputeAllocationStore
+	resources           store.ComputeAllocationResourceStore
+	resourceMappings    store.ComputeAllocationResourceMappingStore
+	resourceRates       store.ComputeAllocationResourceRateStore
+	allocDiffs          store.ComputeAllocationDiffStore
+	changeRequests      store.ComputeAllocationChangeRequestStore
+	changeEvents        store.ComputeAllocationChangeRequestEventStore
+	memberships         store.ComputeAllocationMembershipStore
 	membershipOverrides store.ComputeAllocationMembershipResourceOverrideStore
-	usages           store.ComputeAllocationUsageStore
+	usages              store.ComputeAllocationUsageStore
+	extIDs              store.ExternalIdentityStore
+	userDNs             store.UserDNStore
+	userMerges          store.UserMergeStore
 }
 
 // New constructs a Service backed by the supplied database handle.
 // Stores are instantiated internally using the default MySQL implementations.
 func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 	return &Service{
-		db:               database,
-		eventBus:         eventBus,
-		orgs:             store.NewOrganizationStore(database),
-		users:            store.NewUserStore(database),
-		projs:            store.NewProjectStore(database),
-		clusters:         store.NewComputeClusterStore(database),
-		clusterUsers:     store.NewComputeClusterUserStore(database),
-		allocs:           store.NewComputeAllocationStore(database),
-		resources:        store.NewComputeAllocationResourceStore(database),
-		resourceMappings: store.NewComputeAllocationResourceMappingStore(database),
-		resourceRates:    store.NewComputeAllocationResourceRateStore(database),
-		allocDiffs:       store.NewComputeAllocationDiffStore(database),
-		changeRequests:   store.NewComputeAllocationChangeRequestStore(database),
-		changeEvents:     store.NewComputeAllocationChangeRequestEventStore(database),
-		memberships:      store.NewComputeAllocationMembershipStore(database),
+		db:                  database,
+		eventBus:            eventBus,
+		orgs:                store.NewOrganizationStore(database),
+		users:               store.NewUserStore(database),
+		projs:               store.NewProjectStore(database),
+		clusters:            store.NewComputeClusterStore(database),
+		clusterUsers:        store.NewComputeClusterUserStore(database),
+		allocs:              store.NewComputeAllocationStore(database),
+		resources:           store.NewComputeAllocationResourceStore(database),
+		resourceMappings:    store.NewComputeAllocationResourceMappingStore(database),
+		resourceRates:       store.NewComputeAllocationResourceRateStore(database),
+		allocDiffs:          store.NewComputeAllocationDiffStore(database),
+		changeRequests:      store.NewComputeAllocationChangeRequestStore(database),
+		changeEvents:        store.NewComputeAllocationChangeRequestEventStore(database),
+		memberships:         store.NewComputeAllocationMembershipStore(database),
 		membershipOverrides: store.NewComputeAllocationMembershipResourceOverrideStore(database),
-		usages:           store.NewComputeAllocationUsageStore(database),
+		usages:              store.NewComputeAllocationUsageStore(database),
+		extIDs:              store.NewExternalIdentityStore(database),
+		userDNs:             store.NewUserDNStore(database),
+		userMerges:          store.NewUserMergeStore(database),
 	}
 }
 
@@ -98,25 +104,31 @@ func NewWithStores(
 	membershipOverrides store.ComputeAllocationMembershipResourceOverrideStore,
 	memberships store.ComputeAllocationMembershipStore,
 	usages store.ComputeAllocationUsageStore,
+	extIDs store.ExternalIdentityStore,
+	userDNs store.UserDNStore,
+	userMerges store.UserMergeStore,
 ) *Service {
 	return &Service{
-		db:               database,
-		eventBus:         eventBus,
-		orgs:             orgs,
-		users:            users,
-		projs:            projs,
-		clusters:         clusters,
-		clusterUsers:     clusterUsers,
-		allocs:           allocs,
-		resources:        resources,
-		resourceMappings: resourceMappings,
-		resourceRates:    resourceRates,
-		allocDiffs:       allocDiffs,
-		changeRequests:   changeRequests,
-		changeEvents:     changeEvents,
+		db:                  database,
+		eventBus:            eventBus,
+		orgs:                orgs,
+		users:               users,
+		projs:               projs,
+		clusters:            clusters,
+		clusterUsers:        clusterUsers,
+		allocs:              allocs,
+		resources:           resources,
+		resourceMappings:    resourceMappings,
+		resourceRates:       resourceRates,
+		allocDiffs:          allocDiffs,
+		changeRequests:      changeRequests,
+		changeEvents:        changeEvents,
 		membershipOverrides: membershipOverrides,
-		memberships:      memberships,
-		usages:           usages,
+		memberships:         memberships,
+		usages:              usages,
+		extIDs:              extIDs,
+		userDNs:             userDNs,
+		userMerges:          userMerges,
 	}
 }
 
