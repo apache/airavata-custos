@@ -64,16 +64,20 @@ func (amieConnector) Start(ctx context.Context, deps connectors.Deps) error {
 	auditStore := store.NewAuditStore(deps.DB)
 	auditSvc := service.NewAuditService(auditStore)
 
-	defaultOrgID := os.Getenv("AMIE_DEFAULT_ORG_ID")
-	if defaultOrgID == "" {
-		slog.Warn("AMIE_DEFAULT_ORG_ID not set; request_account_create and request_project_create will fail when creating new users")
+	// One AMIE site is tied to one downstream cluster by protocol, so the
+	// cluster id is a per-deployment config value rather than a per-packet
+	// lookup. Organizations are resolved per-packet from the *OrgCode and
+	// *Organization fields the AMIE packet carries.
+	clusterID := os.Getenv("AMIE_CLUSTER_ID")
+	if clusterID == "" {
+		slog.Warn("AMIE_CLUSTER_ID not set; request_project_create and request_account_create will fail when provisioning allocations/accounts")
 	}
 
 	amie := amieclient.New(cfg.AMIE)
 
 	router := handler.NewRouter(
-		handler.NewRequestProjectCreateHandler(deps.Service, defaultOrgID, amie, auditSvc),
-		handler.NewRequestAccountCreateHandler(deps.Service, defaultOrgID, amie, auditSvc),
+		handler.NewRequestProjectCreateHandler(deps.Service, clusterID, amie, auditSvc),
+		handler.NewRequestAccountCreateHandler(deps.Service, clusterID, amie, auditSvc),
 		handler.NewRequestProjectInactivateHandler(deps.Service, amie, auditSvc),
 		handler.NewRequestProjectReactivateHandler(deps.Service, amie, auditSvc),
 		handler.NewRequestAccountInactivateHandler(deps.Service, amie, auditSvc),

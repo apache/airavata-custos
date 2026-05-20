@@ -19,11 +19,18 @@ package handler
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 type PacketHandler interface {
@@ -102,6 +109,66 @@ func getResourceList(body map[string]any) []string {
 		}
 	}
 	return result
+}
+
+// ensureOrganization looks up an Organization by its originated_id (the
+// AMIE-side org code such as "TEST123"); creates one if missing, using the
+// human-readable organization name from the packet.
+func ensureOrganization(ctx context.Context, svc *service.Service, code, name string) (*models.Organization, error) {
+	if code == "" {
+		return nil, fmt.Errorf("organization code is empty")
+	}
+	if org, err := svc.GetOrganizationByOriginatedID(ctx, code); err == nil {
+		return org, nil
+	} else if !errors.Is(err, service.ErrNotFound) {
+		return nil, err
+	}
+	if name == "" {
+		name = code
+	}
+	return svc.CreateOrganization(ctx, &models.Organization{
+		OriginatedID: code,
+		Name:         name,
+	})
+}
+
+// generateTempPosixUsername returns a placeholder posix username for a
+// freshly provisioned ClusterAccount.
+//
+// TODO(amie-integration, username-policy): replace with a real policy
+// (operator-configured prefix, deterministic mapping from UserGlobalID).
+func generateTempPosixUsername() string {
+	var b [4]byte
+	_, _ = rand.Read(b[:])
+	return "amie-" + hex.EncodeToString(b[:])
+}
+
+// getInt64 reads a string-encoded integer from a packet body field. AMIE
+// transmits numeric fields like ServiceUnitsAllocated as JSON strings.
+func getInt64(body map[string]any, key string) (int64, error) {
+	raw := getString(body, key)
+	if raw == "" {
+		return 0, fmt.Errorf("'%s' is empty", key)
+	}
+	n, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("'%s' is not an integer: %w", key, err)
+	}
+	return n, nil
+}
+
+// getDate reads a YYYY-MM-DD string from a packet body field. Returns the
+// parsed time in UTC.
+func getDate(body map[string]any, key string) (time.Time, error) {
+	raw := getString(body, key)
+	if raw == "" {
+		return time.Time{}, fmt.Errorf("'%s' is empty", key)
+	}
+	t, err := time.Parse("2006-01-02", raw)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("'%s' is not a YYYY-MM-DD date: %w", key, err)
+	}
+	return t, nil
 }
 
 func getDNList(body map[string]any) []string {

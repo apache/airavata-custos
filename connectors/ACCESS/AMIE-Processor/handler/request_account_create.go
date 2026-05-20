@@ -29,23 +29,23 @@ import (
 )
 
 type RequestAccountCreateHandler struct {
-	svc          *service.Service
-	defaultOrgID string
-	amieClient   AmieClient
-	auditSvc     AuditService
+	svc        *service.Service
+	clusterID  string
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestAccountCreateHandler(svc *service.Service, defaultOrgID string, amieClient AmieClient, auditSvc AuditService) *RequestAccountCreateHandler {
-	return &RequestAccountCreateHandler{svc: svc, defaultOrgID: defaultOrgID, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestAccountCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService) *RequestAccountCreateHandler {
+	return &RequestAccountCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *RequestAccountCreateHandler) SupportsType() string { return "request_account_create" }
 
-// Handle is partial. It ensures the User (with ExternalIdentity) and confirms
-// the Project exists in core, then audits the membership request. Two
-// operations are still TODO:
-//   - ClusterAccount provisioning — username-generation policy
-//   - ComputeAllocationMembership creation
+// Handle ensures the User (with ExternalIdentity), looks up the Project (which
+// must already exist from a prior request_project_create), provisions a
+// ClusterAccount on the configured cluster, and attaches a
+// ComputeAllocationMembership against the project's allocation. Replies with
+// the assigned posix username.
 func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
@@ -62,6 +62,9 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
 		return err
 	}
+	if h.clusterID == "" {
+		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
+	}
 
 	user, err := h.ensureUser(ctx, body, userGlobalID)
 	if err != nil {
@@ -71,24 +74,35 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_PERSON: %w", err)
 	}
 
-	if _, err := h.svc.GetProjectByOriginatedID(ctx, projectOriginatedID); err != nil {
-		if !errors.Is(err, service.ErrNotFound) {
-			return fmt.Errorf("request_account_create: lookup project: %w", err)
-		}
-		// TODO(amie-integration): create the Project here when AMIE carries enough
-		// metadata to do so safely (title, PI, grant number).
-		// request_account_create assumes the project was created earlier via
-		// request_project_create.
+	project, err := h.svc.GetProjectByOriginatedID(ctx, projectOriginatedID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectOriginatedID, err)
 	}
 
-	// TODO(amie-integration): provision a ClusterAccount via svc.CreateClusterAccount
-	// once a username-generation policy is in place.
+	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, project.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: list allocations: %w", err)
+	}
+	if len(allocations) == 0 {
+		return fmt.Errorf("request_account_create: project %q has no ComputeAllocation; request_project_create did not provision one", projectOriginatedID)
+	}
+	allocation := allocations[0]
 
-	// TODO(amie-integration): create a ComputeAllocationMembership via
-	// svc.CreateComputeAllocationMembership once we have a ComputeAllocation
-	// under this Project to attach to.
+	account, err := h.ensureClusterAccount(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: ensure cluster account: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "cluster_account", account.ID, account.Username); err != nil {
+		return fmt.Errorf("request_account_create: audit CREATE_ACCOUNT: %w", err)
+	}
+
 	role := normalizeRole(getString(body, "UserRole"))
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "membership_request", "", fmt.Sprintf("project=%s user=%s role=%s (membership persistence pending allocation mapping)", projectOriginatedID, user.ID, role)); err != nil {
+	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: ensure membership: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", membership.ID,
+		fmt.Sprintf("allocation=%s user=%s role=%s", allocation.ID, user.ID, role)); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_MEMBERSHIP: %w", err)
 	}
 
@@ -96,7 +110,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		"ProjectID":           projectOriginatedID,
 		"GrantNumber":         getString(body, "GrantNumber"),
 		"UserPersonID":        user.ID,
-		"UserRemoteSiteLogin": getString(body, "UserGlobalID"),
+		"UserRemoteSiteLogin": account.Username,
 		"ResourceList":        getResourceList(body),
 	}
 	if v := getString(body, "UserOrgCode"); v != "" {
@@ -119,11 +133,12 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 		return nil, err
 	}
 
-	if h.defaultOrgID == "" {
-		return nil, fmt.Errorf("cannot create user: AMIE_DEFAULT_ORG_ID not configured")
+	org, err := ensureOrganization(ctx, h.svc, getString(body, "UserOrgCode"), getString(body, "UserOrganization"))
+	if err != nil {
+		return nil, fmt.Errorf("ensure user organization: %w", err)
 	}
 	user, err := h.svc.CreateUser(ctx, &models.User{
-		OrganizationID: h.defaultOrgID,
+		OrganizationID: org.ID,
 		FirstName:      getString(body, "UserFirstName"),
 		LastName:       getString(body, "UserLastName"),
 		Email:          getString(body, "UserEmail"),
@@ -139,4 +154,41 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 		return nil, fmt.Errorf("create external identity: %w", err)
 	}
 	return user, nil
+}
+
+// ensureClusterAccount returns the user's existing cluster account on the
+// configured cluster, or provisions a fresh one with a temp posix username.
+func (h *RequestAccountCreateHandler) ensureClusterAccount(ctx context.Context, userID string) (*models.ClusterAccount, error) {
+	existing, err := h.svc.ListClusterAccountsForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list cluster accounts: %w", err)
+	}
+	for _, a := range existing {
+		if a.ComputeClusterID == h.clusterID {
+			return &a, nil
+		}
+	}
+	return h.svc.CreateClusterAccount(ctx, &models.ClusterAccount{
+		UserID:           userID,
+		ComputeClusterID: h.clusterID,
+		Username:         generateTempPosixUsername(),
+	})
+}
+
+// ensureMembership returns the existing (allocation, user) membership or
+// creates a new one. Idempotent for re-delivered packets.
+func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
+	existing, err := h.svc.ListMembersForAllocation(ctx, allocationID)
+	if err != nil {
+		return nil, fmt.Errorf("list memberships: %w", err)
+	}
+	for _, m := range existing {
+		if m.UserID == userID {
+			return &m, nil
+		}
+	}
+	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
+		ComputeAllocationID: allocationID,
+		UserID:              userID,
+	})
 }

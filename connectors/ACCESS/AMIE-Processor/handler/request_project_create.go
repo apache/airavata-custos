@@ -29,18 +29,22 @@ import (
 )
 
 type RequestProjectCreateHandler struct {
-	svc          *service.Service
-	defaultOrgID string
-	amieClient   AmieClient
-	auditSvc     AuditService
+	svc        *service.Service
+	clusterID  string
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestProjectCreateHandler(svc *service.Service, defaultOrgID string, amieClient AmieClient, auditSvc AuditService) *RequestProjectCreateHandler {
-	return &RequestProjectCreateHandler{svc: svc, defaultOrgID: defaultOrgID, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestProjectCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService) *RequestProjectCreateHandler {
+	return &RequestProjectCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *RequestProjectCreateHandler) SupportsType() string { return "request_project_create" }
 
+// Handle ensures the PI user (resolving the organization from PiOrgCode +
+// PiOrganization), creates (or finds) the Project, and creates a
+// ComputeAllocation populated from the packet body's ServiceUnitsAllocated,
+// StartDate and EndDate.
 func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
@@ -53,6 +57,9 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	piGlobalID := getString(body, "PiGlobalID")
 	if err := requireText(piGlobalID, "PiGlobalID"); err != nil {
 		return err
+	}
+	if h.clusterID == "" {
+		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
 	// AMIE protocol: request_project_create does not carry a ProjectID. The
 	// receiving site assigns one. We use the GrantNumber as the originated_id
@@ -73,6 +80,14 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateProject, "project", project.ID, ""); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_PROJECT: %w", err)
+	}
+
+	allocation, err := h.ensureAllocation(ctx, body, project.ID, grantNumber)
+	if err != nil {
+		return fmt.Errorf("request_project_create: ensure allocation: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAllocation, "compute_allocation", allocation.ID, ""); err != nil {
+		return fmt.Errorf("request_project_create: audit CREATE_ALLOCATION: %w", err)
 	}
 
 	replyBody := map[string]any{
@@ -98,11 +113,12 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
 	}
-	if h.defaultOrgID == "" {
-		return nil, fmt.Errorf("cannot create PI user: AMIE_DEFAULT_ORG_ID not configured")
+	org, err := ensureOrganization(ctx, h.svc, getString(body, "PiOrgCode"), getString(body, "PiOrganization"))
+	if err != nil {
+		return nil, fmt.Errorf("ensure PI organization: %w", err)
 	}
 	user, err := h.svc.CreateUser(ctx, &models.User{
-		OrganizationID: h.defaultOrgID,
+		OrganizationID: org.ID,
 		FirstName:      getString(body, "PiFirstName"),
 		LastName:       getString(body, "PiLastName"),
 		Email:          getString(body, "PiEmail"),
@@ -131,5 +147,44 @@ func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, origina
 		Title:        grantNumber,
 		Origination:  amieIdentitySource,
 		ProjectPIID:  piID,
+	})
+}
+
+// ensureAllocation creates a ComputeAllocation for the project if none exists
+// yet. If one already exists (e.g. a repeat request_project_create signaling a
+// supplement/renewal), the existing row is returned unchanged.
+//
+// TODO(amie-integration, allocation-type): branch on body["AllocationType"]
+// (new / renewal / supplement / extension) and adjust the allocation
+// accordingly.
+func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body map[string]any, projectID, grantNumber string) (*models.ComputeAllocation, error) {
+	existing, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("list allocations: %w", err)
+	}
+	if len(existing) > 0 {
+		return &existing[0], nil
+	}
+
+	su, err := getInt64(body, "ServiceUnitsAllocated")
+	if err != nil {
+		return nil, err
+	}
+	start, err := getDate(body, "StartDate")
+	if err != nil {
+		return nil, err
+	}
+	end, err := getDate(body, "EndDate")
+	if err != nil {
+		return nil, err
+	}
+
+	return h.svc.CreateComputeAllocation(ctx, &models.ComputeAllocation{
+		ProjectID:        projectID,
+		Name:             grantNumber,
+		ComputeClusterID: h.clusterID,
+		InitialSUAmount:  su,
+		StartTime:        start,
+		EndTime:          end,
 	})
 }
