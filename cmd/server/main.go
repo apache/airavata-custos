@@ -76,7 +76,10 @@ func run() error {
 	eventBus := events.New()
 	svc := service.New(database, eventBus)
 
-	if err := connectors.LoadConnectors(eventBus, svc); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := connectors.LoadConnectors(ctx, database, eventBus, svc); err != nil {
 		return err
 	}
 
@@ -90,9 +93,6 @@ func run() error {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	serverErr := make(chan error, 1)
 	go func() {

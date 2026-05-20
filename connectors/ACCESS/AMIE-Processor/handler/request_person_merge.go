@@ -21,85 +21,96 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type requestPersonMergePersonService interface {
-	MergePersons(ctx context.Context, tx *sql.Tx, survivingID, retiringID string) error
-}
-
-type requestPersonMergeAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type requestPersonMergeAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type RequestPersonMergeHandler struct {
-	personSvc  requestPersonMergePersonService
-	amieClient requestPersonMergeAmieClient
-	auditSvc   requestPersonMergeAuditService
+	svc        *service.Service
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestPersonMergeHandler(
-	personSvc requestPersonMergePersonService,
-	amieClient requestPersonMergeAmieClient,
-	auditSvc requestPersonMergeAuditService,
-) *RequestPersonMergeHandler {
-	return &RequestPersonMergeHandler{
-		personSvc:  personSvc,
-		amieClient: amieClient,
-		auditSvc:   auditSvc,
-	}
+func NewRequestPersonMergeHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *RequestPersonMergeHandler {
+	return &RequestPersonMergeHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *RequestPersonMergeHandler) SupportsType() string {
-	return "request_person_merge"
-}
+func (h *RequestPersonMergeHandler) SupportsType() string { return "request_person_merge" }
 
 func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Extract required fields.
-	keepPersonID := getString(body, "KeepPersonID")
-	if err := requireText(keepPersonID, "KeepPersonID"); err != nil {
+	primaryGlobalID := getString(body, "PrimaryGlobalID")
+	if err := requireText(primaryGlobalID, "PrimaryGlobalID"); err != nil {
 		return err
 	}
-	deletePersonID := getString(body, "DeletePersonID")
-	if err := requireText(deletePersonID, "DeletePersonID"); err != nil {
+	secondaryGlobalID := getString(body, "SecondaryGlobalID")
+	if err := requireText(secondaryGlobalID, "SecondaryGlobalID"); err != nil {
 		return err
 	}
-
-	// Merge persons.
-	if err := h.personSvc.MergePersons(ctx, tx, keepPersonID, deletePersonID); err != nil {
-		return fmt.Errorf("request_person_merge: merging persons: %w", err)
+	if primaryGlobalID == secondaryGlobalID {
+		return fmt.Errorf("request_person_merge: primary and secondary global IDs are identical")
 	}
-	summary := fmt.Sprintf("Merged person %s into %s", deletePersonID, keepPersonID)
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditMergePersons, "person", keepPersonID, summary); err != nil {
+
+	survivor, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, primaryGlobalID)
+	if err != nil {
+		return fmt.Errorf("request_person_merge: resolve surviving user: %w", err)
+	}
+	retiring, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, secondaryGlobalID)
+	if err != nil {
+		return fmt.Errorf("request_person_merge: resolve retiring user: %w", err)
+	}
+
+	// Refuse to merge while the retiring user still has active memberships:
+	// AMIE is expected to inactivate the user's accounts first, and merging
+	// over active state would silently transfer ownership of live resources.
+	memberships, err := h.svc.ListAllocationsForUser(ctx, retiring.ID)
+	if err != nil {
+		return fmt.Errorf("request_person_merge: list memberships: %w", err)
+	}
+	for _, m := range memberships {
+		if m.MembershipStatus == models.ACTIVE {
+			return fmt.Errorf("request_person_merge: retiring user %s has active membership %s; inactivate first",
+				retiring.ID, m.ID)
+		}
+	}
+
+	slog.WarnContext(ctx, "executing user merge",
+		"primary_global_id", primaryGlobalID,
+		"secondary_global_id", secondaryGlobalID,
+		"survivor_id", survivor.ID,
+		"retiring_id", retiring.ID,
+	)
+
+	reason := getString(body, "MergeReason")
+	if reason == "" {
+		reason = fmt.Sprintf("AMIE request_person_merge packet %d", packet.AmieID)
+	}
+	if _, err := h.svc.MergeUsers(ctx, survivor.ID, retiring.ID, reason); err != nil {
+		return fmt.Errorf("request_person_merge: merge: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditMergePersons, "user", survivor.ID, fmt.Sprintf("merged %s into %s", retiring.ID, survivor.ID)); err != nil {
 		return fmt.Errorf("request_person_merge: audit MERGE_PERSONS: %w", err)
 	}
 
-	// Build and send the reply.
 	reply := map[string]any{
 		"type": "inform_transaction_complete",
 		"body": map[string]any{
 			"StatusCode": "Success",
 			"DetailCode": float64(1),
-			"Message":    "Person merge transaction completed successfully.",
+			"Message":    "Person merge completed.",
 		},
 	}
-
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_person_merge: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("request_person_merge: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
 }
