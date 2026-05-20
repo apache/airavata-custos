@@ -103,7 +103,8 @@ type ComputeAllocationMembershipResourceOverride struct {
 	ID                            string `json:"id"                             db:"id"`
 	ComputeAllocationMembershipID string `json:"compute_allocation_membership_id" db:"compute_allocation_membership_id"`
 	ComputeAllocationResourceID   string `json:"compute_allocation_resource_id" db:"compute_allocation_resource_id"`
-	OverriddenResourceAmount      int64  `json:"overridden_resource_amount"       db:"overridden_resource_amount"` // The overridden SU amount for the user for this specific resource, e.g., 150 SUs for GPU hours, etc.
+	OverrideResourceAmount        int64  `json:"override_resource_amount"         db:"override_resource_amount"` // The overridden amount of the resource for the user (e.g., number of CPUs, GPUs).
+	OverrideResourceTime          int64  `json:"override_resource_time"           db:"override_resource_time"`   // The overridden wall-clock time in minutes that the resource amount is granted for.
 }
 
 type ComputeAllocationMembership struct {

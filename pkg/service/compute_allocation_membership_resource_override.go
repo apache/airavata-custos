@@ -40,8 +40,11 @@ func (s *Service) CreateComputeAllocationMembershipResourceOverride(ctx context.
 	if o.ComputeAllocationResourceID == "" {
 		return nil, fmt.Errorf("%w: compute_allocation_resource_id is required", ErrInvalidInput)
 	}
-	if o.OverriddenResourceAmount < 0 {
-		return nil, fmt.Errorf("%w: overridden_resource_amount must be non-negative", ErrInvalidInput)
+	if o.OverrideResourceAmount < 0 {
+		return nil, fmt.Errorf("%w: override_resource_amount must be non-negative", ErrInvalidInput)
+	}
+	if o.OverrideResourceTime < 0 {
+		return nil, fmt.Errorf("%w: override_resource_time must be non-negative", ErrInvalidInput)
 	}
 
 	if m, err := s.memberships.FindByID(ctx, o.ComputeAllocationMembershipID); err != nil {
@@ -141,8 +144,11 @@ func (s *Service) UpdateComputeAllocationMembershipResourceOverride(ctx context.
 	if o == nil || o.ID == "" {
 		return nil, fmt.Errorf("%w: membership resource override id is required", ErrInvalidInput)
 	}
-	if o.OverriddenResourceAmount < 0 {
-		return nil, fmt.Errorf("%w: overridden_resource_amount must be non-negative", ErrInvalidInput)
+	if o.OverrideResourceAmount < 0 {
+		return nil, fmt.Errorf("%w: override_resource_amount must be non-negative", ErrInvalidInput)
+	}
+	if o.OverrideResourceTime < 0 {
+		return nil, fmt.Errorf("%w: override_resource_time must be non-negative", ErrInvalidInput)
 	}
 	existing, err := s.membershipOverrides.FindByID(ctx, o.ID)
 	if err != nil {

@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const computeAllocationMembershipResourceOverrideColumns = "id, compute_allocation_membership_id, compute_allocation_resource_id, overridden_resource_amount"
+const computeAllocationMembershipResourceOverrideColumns = "id, compute_allocation_membership_id, compute_allocation_resource_id, override_resource_amount, override_resource_time"
 
 type mysqlComputeAllocationMembershipResourceOverrideStore struct {
 	db *sqlx.DB
@@ -99,9 +99,9 @@ func (s *mysqlComputeAllocationMembershipResourceOverrideStore) FindByResource(c
 func (s *mysqlComputeAllocationMembershipResourceOverrideStore) Create(ctx context.Context, tx *sql.Tx, o *models.ComputeAllocationMembershipResourceOverride) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_membership_resource_overrides
-             (id, compute_allocation_membership_id, compute_allocation_resource_id, overridden_resource_amount)
-         VALUES (?, ?, ?, ?)`,
-		o.ID, o.ComputeAllocationMembershipID, o.ComputeAllocationResourceID, o.OverriddenResourceAmount)
+             (id, compute_allocation_membership_id, compute_allocation_resource_id, override_resource_amount, override_resource_time)
+         VALUES (?, ?, ?, ?, ?)`,
+		o.ID, o.ComputeAllocationMembershipID, o.ComputeAllocationResourceID, o.OverrideResourceAmount, o.OverrideResourceTime)
 	return err
 }
 
@@ -110,9 +110,10 @@ func (s *mysqlComputeAllocationMembershipResourceOverrideStore) Update(ctx conte
 		`UPDATE compute_allocation_membership_resource_overrides
             SET compute_allocation_membership_id = ?,
                 compute_allocation_resource_id   = ?,
-                overridden_resource_amount       = ?
+                override_resource_amount         = ?,
+                override_resource_time           = ?
           WHERE id = ?`,
-		o.ComputeAllocationMembershipID, o.ComputeAllocationResourceID, o.OverriddenResourceAmount, o.ID)
+		o.ComputeAllocationMembershipID, o.ComputeAllocationResourceID, o.OverrideResourceAmount, o.OverrideResourceTime, o.ID)
 	return err
 }
 
