@@ -1,0 +1,6 @@
+FROM slurmrest/base:24.05
+
+COPY scripts/entrypoint-slurmd.sh /usr/local/bin/entrypoint-slurmd.sh
+RUN chmod +x /usr/local/bin/entrypoint-slurmd.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-slurmd.sh"]

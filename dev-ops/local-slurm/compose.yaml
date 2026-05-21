@@ -1,0 +1,150 @@
+# compose.yaml
+name: slurmrest
+
+x-slurm-env: &slurm-env
+  MARIADB_PASSWORD: ${MARIADB_PASSWORD:-slurm}
+
+services:
+  init-keys:
+    image: slurmrest/base:24.05
+    command: ["/usr/local/bin/init-keys.sh"]
+    volumes:
+      - munge-key:/etc/munge
+      - jwt-key:/keys
+      - ./scripts/init-keys.sh:/usr/local/bin/init-keys.sh:ro
+    restart: "no"
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-rootpass}
+      MARIADB_DATABASE: slurm_acct_db
+      MARIADB_USER: slurm
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-slurm}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-uslurm", "-p${MARIADB_PASSWORD:-slurm}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  slurmdbd:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.slurmdbd
+    hostname: slurmdbd
+    environment: *slurm-env
+    depends_on:
+      init-keys:
+        condition: service_completed_successfully
+      mariadb:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x slurmdbd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  slurmctld:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.slurmctld
+    hostname: slurmctld
+    environment:
+      CLUSTER_NAME: ${CLUSTER_NAME:-artisan}
+    depends_on:
+      slurmdbd:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+      - slurmctld-state:/var/spool/slurm
+    healthcheck:
+      test: ["CMD-SHELL", "scontrol ping >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  c1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.slurmd
+    hostname: c1
+    environment:
+      SLURMD_NODENAME: c1
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x slurmd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  c2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.slurmd
+    hostname: c2
+    environment:
+      SLURMD_NODENAME: c2
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x slurmd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  login:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.login
+    hostname: login
+    ports:
+      - "${LOGIN_SSH_PORT:-2222}:22"
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+
+  slurmrestd:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.slurmrestd
+    hostname: slurmrestd
+    ports:
+      - "${REST_PORT:-6820}:6820"
+    depends_on:
+      slurmctld:
+        condition: service_healthy
+      slurmdbd:
+        condition: service_healthy
+    volumes:
+      - munge-key:/etc/munge:ro
+      - jwt-key:/keys:ro
+      - ./slurm:/etc/slurm.readonly:ro
+
+volumes:
+  munge-key:
+  jwt-key:
+  mariadb-data:
+  slurmctld-state:

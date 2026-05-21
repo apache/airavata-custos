@@ -1,0 +1,8 @@
+# docker/Dockerfile.slurmrestd
+FROM slurmrest/base:24.05
+
+COPY scripts/entrypoint-restd.sh /usr/local/bin/entrypoint-restd.sh
+RUN chmod +x /usr/local/bin/entrypoint-restd.sh
+
+EXPOSE 6820
+ENTRYPOINT ["/usr/local/bin/entrypoint-restd.sh"]

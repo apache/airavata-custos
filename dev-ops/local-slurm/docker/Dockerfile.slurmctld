@@ -1,0 +1,8 @@
+# docker/Dockerfile.slurmctld
+FROM slurmrest/base:24.05
+
+COPY scripts/entrypoint-ctld.sh /usr/local/bin/entrypoint-ctld.sh
+COPY scripts/bootstrap-accounting.sh /usr/local/bin/bootstrap-accounting.sh
+RUN chmod +x /usr/local/bin/entrypoint-ctld.sh /usr/local/bin/bootstrap-accounting.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-ctld.sh"]
