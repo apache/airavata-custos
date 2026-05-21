@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -39,13 +40,14 @@ var handledModifyTags = map[string]struct{}{
 }
 
 type RequestUserModifyHandler struct {
-	svc        *service.Service
-	amieClient AmieClient
-	auditSvc   AuditService
+	svc         *service.Service
+	userDNStore store.UserDNStore
+	amieClient  AmieClient
+	auditSvc    AuditService
 }
 
-func NewRequestUserModifyHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *RequestUserModifyHandler {
-	return &RequestUserModifyHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
+func NewRequestUserModifyHandler(svc *service.Service, userDNStore store.UserDNStore, amieClient AmieClient, auditSvc AuditService) *RequestUserModifyHandler {
+	return &RequestUserModifyHandler{svc: svc, userDNStore: userDNStore, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *RequestUserModifyHandler) SupportsType() string { return "request_user_modify" }
@@ -64,7 +66,7 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		return err
 	}
 
-	user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, userGlobalID)
+	user, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, userGlobalID)
 	if err != nil && !errors.Is(err, service.ErrNotFound) {
 		return fmt.Errorf("request_user_modify: resolve user: %w", err)
 	}
@@ -110,7 +112,7 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 	return nil
 }
 
-// applyReplace updates the User row (basic profile), the ExternalIdentity row
+// applyReplace updates the User row (basic profile), the UserIdentity row
 // (org / orgCode / NSF status carried as metadata), and reconciles the DN list.
 func (h *RequestUserModifyHandler) applyReplace(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, user *models.User, userGlobalID string) error {
 	if v := getString(body, "UserFirstName"); v != "" {
@@ -129,8 +131,8 @@ func (h *RequestUserModifyHandler) applyReplace(ctx context.Context, tx *sql.Tx,
 		return fmt.Errorf("audit UPDATE_PERSON: %w", err)
 	}
 
-	if err := h.updateExternalIdentity(ctx, body, user.ID, userGlobalID); err != nil {
-		return fmt.Errorf("update external identity: %w", err)
+	if err := h.updateUserIdentity(ctx, body, user.ID, userGlobalID); err != nil {
+		return fmt.Errorf("update user identity: %w", err)
 	}
 	if err := h.syncDNs(ctx, tx, packet, eventID, body, user.ID); err != nil {
 		return fmt.Errorf("sync user DNs: %w", err)
@@ -138,12 +140,12 @@ func (h *RequestUserModifyHandler) applyReplace(ctx context.Context, tx *sql.Tx,
 	return nil
 }
 
-// updateExternalIdentity refreshes the AMIE ExternalIdentity row's metadata
+// updateUserIdentity refreshes the AMIE UserIdentity row's email and metadata
 // (organization, org_code, NSF status) — these are AMIE-side attributes that
 // may shift over a user's lifetime. The row's source / external_id are
 // immutable identifiers.
-func (h *RequestUserModifyHandler) updateExternalIdentity(ctx context.Context, body map[string]any, userID, userGlobalID string) error {
-	ext, err := h.svc.GetExternalIdentityBySourceAndExternalID(ctx, amieIdentitySource, userGlobalID)
+func (h *RequestUserModifyHandler) updateUserIdentity(ctx context.Context, body map[string]any, userID, userGlobalID string) error {
+	ident, err := h.svc.GetUserIdentityBySourceAndExternalID(ctx, amieIdentitySource, userGlobalID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			return nil
@@ -160,16 +162,23 @@ func (h *RequestUserModifyHandler) updateExternalIdentity(ctx context.Context, b
 	if v := getString(body, "NsfStatusCode"); v != "" {
 		metadata["nsf_status_code"] = v
 	}
-	if len(metadata) == 0 {
+	emailChanged := false
+	if v := getString(body, "UserEmail"); v != "" && v != ident.Email {
+		ident.Email = v
+		emailChanged = true
+	}
+	if len(metadata) == 0 && !emailChanged {
 		return nil
 	}
-	encoded, err := json.Marshal(metadata)
-	if err != nil {
-		return fmt.Errorf("encode metadata: %w", err)
+	if len(metadata) > 0 {
+		encoded, err := json.Marshal(metadata)
+		if err != nil {
+			return fmt.Errorf("encode metadata: %w", err)
+		}
+		ident.Metadata = string(encoded)
 	}
-	ext.UserID = userID
-	ext.Metadata = string(encoded)
-	return h.svc.UpdateExternalIdentity(ctx, ext)
+	ident.UserID = userID
+	return h.svc.UpdateUserIdentity(ctx, ident)
 }
 
 func (h *RequestUserModifyHandler) deleteDNs(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, userID string) error {
@@ -181,7 +190,7 @@ func (h *RequestUserModifyHandler) deleteDNs(ctx context.Context, tx *sql.Tx, pa
 	for _, dn := range dns {
 		target[dn] = struct{}{}
 	}
-	existing, err := h.svc.ListUserDNs(ctx, userID)
+	existing, err := h.userDNStore.ListByUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("list user DNs: %w", err)
 	}
@@ -190,7 +199,7 @@ func (h *RequestUserModifyHandler) deleteDNs(ctx context.Context, tx *sql.Tx, pa
 		if _, hit := target[e.DN]; !hit {
 			continue
 		}
-		if err := h.svc.RemoveUserDN(ctx, e.ID); err != nil {
+		if err := h.userDNStore.DeleteByID(ctx, tx, e.ID); err != nil {
 			return fmt.Errorf("remove DN %s: %w", e.DN, err)
 		}
 		removed++
@@ -217,8 +226,8 @@ func unhandledModifyTags(body map[string]any) []string {
 	return out
 }
 
-// syncDNs reconciles the user's DN list with the packet body's UserDnList:
-// new DNs are added, DNs missing from the packet are removed. AMIE's
+// syncDNs reconciles the user's DN list with the packet body's DnList: new
+// DNs are added, DNs missing from the packet are removed. AMIE's
 // request_user_modify with ActionType=replace is the authoritative source.
 func (h *RequestUserModifyHandler) syncDNs(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, userID string) error {
 	incoming := getDNList(body)
@@ -229,7 +238,7 @@ func (h *RequestUserModifyHandler) syncDNs(ctx context.Context, tx *sql.Tx, pack
 	for _, dn := range incoming {
 		desired[dn] = struct{}{}
 	}
-	existing, err := h.svc.ListUserDNs(ctx, userID)
+	existing, err := h.userDNStore.ListByUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("list user DNs: %w", err)
 	}
@@ -239,7 +248,7 @@ func (h *RequestUserModifyHandler) syncDNs(ctx context.Context, tx *sql.Tx, pack
 	for _, e := range existing {
 		have[e.DN] = struct{}{}
 		if _, keep := desired[e.DN]; !keep {
-			if err := h.svc.RemoveUserDN(ctx, e.ID); err != nil {
+			if err := h.userDNStore.DeleteByID(ctx, tx, e.ID); err != nil {
 				return fmt.Errorf("remove DN %s: %w", e.DN, err)
 			}
 			removed++
@@ -249,10 +258,7 @@ func (h *RequestUserModifyHandler) syncDNs(ctx context.Context, tx *sql.Tx, pack
 		if _, exists := have[dn]; exists {
 			continue
 		}
-		if _, err := h.svc.AddUserDN(ctx, &models.UserDN{UserID: userID, DN: dn}); err != nil {
-			if errors.Is(err, service.ErrAlreadyExists) {
-				continue
-			}
+		if err := h.userDNStore.Add(ctx, tx, &model.UserDN{UserID: userID, DN: dn}); err != nil {
 			return fmt.Errorf("add DN %s: %w", dn, err)
 		}
 		added++

@@ -91,3 +91,19 @@ CREATE TABLE IF NOT EXISTS amie_audit_log
     KEY idx_amie_audit_action (action),
     KEY idx_amie_audit_created_at (created_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- AMIE-side DN registry. AMIE delivers DnList fields that contain DNs across
+-- the federation (not just this site's downstream cluster).
+--
+-- user_id references core users.id by value; no FK because connector schema
+-- stays independent of core.
+CREATE TABLE IF NOT EXISTS amie_user_dns
+(
+    id         VARCHAR(255) NOT NULL,
+    user_id    VARCHAR(255) NOT NULL,
+    dn         VARCHAR(512) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_amie_user_dns_dn (dn),
+    KEY idx_amie_user_dns_user (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

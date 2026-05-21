@@ -41,7 +41,7 @@ func NewRequestAccountCreateHandler(svc *service.Service, clusterID string, amie
 
 func (h *RequestAccountCreateHandler) SupportsType() string { return "request_account_create" }
 
-// Handle ensures the User (with ExternalIdentity), looks up the Project (which
+// Handle ensures the User (with UserIdentity), looks up the Project (which
 // must already exist from a prior request_project_create), provisions a
 // ComputeClusterUser on the configured cluster, and attaches a
 // ComputeAllocationMembership against the project's allocation. Replies with
@@ -129,7 +129,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 }
 
 func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
-	if u, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, globalID); err == nil {
+	if u, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, globalID); err == nil {
 		return u, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
@@ -139,21 +139,23 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 	if err != nil {
 		return nil, fmt.Errorf("ensure user organization: %w", err)
 	}
+	email := getString(body, "UserEmail")
 	user, err := h.svc.CreateUser(ctx, &models.User{
 		OrganizationID: org.ID,
 		FirstName:      getString(body, "UserFirstName"),
 		LastName:       getString(body, "UserLastName"),
-		Email:          getString(body, "UserEmail"),
+		Email:          email,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
-	if _, err := h.svc.CreateExternalIdentity(ctx, &models.ExternalIdentity{
+	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     user.ID,
 		Source:     amieIdentitySource,
 		ExternalID: globalID,
+		Email:      email,
 	}); err != nil {
-		return nil, fmt.Errorf("create external identity: %w", err)
+		return nil, fmt.Errorf("create user identity: %w", err)
 	}
 	return user, nil
 }

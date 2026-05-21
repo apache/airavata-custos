@@ -112,7 +112,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 }
 
 func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
-	if u, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, globalID); err == nil {
+	if u, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, globalID); err == nil {
 		return u, nil
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return nil, err
@@ -121,21 +121,23 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 	if err != nil {
 		return nil, fmt.Errorf("ensure PI organization: %w", err)
 	}
+	email := getString(body, "PiEmail")
 	user, err := h.svc.CreateUser(ctx, &models.User{
 		OrganizationID: org.ID,
 		FirstName:      getString(body, "PiFirstName"),
 		LastName:       getString(body, "PiLastName"),
-		Email:          getString(body, "PiEmail"),
+		Email:          email,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create PI user: %w", err)
 	}
-	if _, err := h.svc.CreateExternalIdentity(ctx, &models.ExternalIdentity{
+	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     user.ID,
 		Source:     amieIdentitySource,
 		ExternalID: globalID,
+		Email:      email,
 	}); err != nil {
-		return nil, fmt.Errorf("create PI external identity: %w", err)
+		return nil, fmt.Errorf("create PI user identity: %w", err)
 	}
 	return user, nil
 }

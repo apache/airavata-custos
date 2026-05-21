@@ -111,26 +111,26 @@ func getResourceList(body map[string]any) []string {
 	return result
 }
 
-// ensureExternalIdentity is the idempotent upsert used by data_project_create
+// ensureUserIdentity is the idempotent upsert used by data_project_create
 // and data_account_create. It is a no-op when the user already has an AMIE
-// ExternalIdentity row for this globalID; creates one otherwise. Pre-existing
+// UserIdentity row for this globalID; creates one otherwise. Pre-existing
 // rows are NOT touched here, attribute updates (org / orgCode / nsfStatus)
 // are owned by request_user_modify.
-func ensureExternalIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
-	if existing, err := svc.GetExternalIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
+func ensureUserIdentity(ctx context.Context, svc *service.Service, userID, globalID string) error {
+	if existing, err := svc.GetUserIdentityBySourceAndExternalID(ctx, amieIdentitySource, globalID); err == nil {
 		if existing.UserID == userID {
 			return nil
 		}
-		return fmt.Errorf("external identity for %s=%s is bound to user %s (not %s)", amieIdentitySource, globalID, existing.UserID, userID)
+		return fmt.Errorf("user identity for %s=%s is bound to user %s (not %s)", amieIdentitySource, globalID, existing.UserID, userID)
 	} else if !errors.Is(err, service.ErrNotFound) {
 		return err
 	}
-	if _, err := svc.CreateExternalIdentity(ctx, &models.ExternalIdentity{
+	if _, err := svc.CreateUserIdentity(ctx, &models.UserIdentity{
 		UserID:     userID,
 		Source:     amieIdentitySource,
 		ExternalID: globalID,
 	}); err != nil {
-		return fmt.Errorf("create external identity: %w", err)
+		return fmt.Errorf("create user identity: %w", err)
 	}
 	return nil
 }

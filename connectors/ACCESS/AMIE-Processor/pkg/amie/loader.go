@@ -61,6 +61,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	eventStore := store.NewEventStore(database)
 	errorStore := store.NewProcessingErrorStore(database)
 	auditStore := store.NewAuditStore(database)
+	userDNStore := store.NewUserDNStore(database)
 	auditSvc := service.NewAuditService(auditStore)
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster
@@ -79,10 +80,10 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		handler.NewRequestProjectReactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountInactivateHandler(coreService, amie, auditSvc),
 		handler.NewRequestAccountReactivateHandler(coreService, amie, auditSvc),
-		handler.NewRequestPersonMergeHandler(coreService, amie, auditSvc),
-		handler.NewRequestUserModifyHandler(coreService, amie, auditSvc),
-		handler.NewDataProjectCreateHandler(coreService, amie, auditSvc),
-		handler.NewDataAccountCreateHandler(coreService, amie, auditSvc),
+		handler.NewRequestPersonMergeHandler(coreService, userDNStore, amie, auditSvc),
+		handler.NewRequestUserModifyHandler(coreService, userDNStore, amie, auditSvc),
+		handler.NewDataProjectCreateHandler(coreService, userDNStore, amie, auditSvc),
+		handler.NewDataAccountCreateHandler(coreService, userDNStore, amie, auditSvc),
 		handler.NewInformTransactionCompleteHandler(auditSvc),
 		handler.NewNoOpHandler(),
 	)

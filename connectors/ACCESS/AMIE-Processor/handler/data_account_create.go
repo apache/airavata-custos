@@ -25,18 +25,19 @@ import (
 	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
-	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 type DataAccountCreateHandler struct {
-	svc        *service.Service
-	amieClient AmieClient
-	auditSvc   AuditService
+	svc         *service.Service
+	userDNStore store.UserDNStore
+	amieClient  AmieClient
+	auditSvc    AuditService
 }
 
-func NewDataAccountCreateHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *DataAccountCreateHandler {
-	return &DataAccountCreateHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
+func NewDataAccountCreateHandler(svc *service.Service, userDNStore store.UserDNStore, amieClient AmieClient, auditSvc AuditService) *DataAccountCreateHandler {
+	return &DataAccountCreateHandler{svc: svc, userDNStore: userDNStore, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *DataAccountCreateHandler) SupportsType() string { return "data_account_create" }
@@ -54,26 +55,23 @@ func (h *DataAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		return err
 	}
 
-	user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, personGlobalID)
+	user, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, personGlobalID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence and ExternalIdentity upsert",
+			slog.WarnContext(ctx, "data_account_create: user not found for AMIE PersonID; skipping DN persistence and UserIdentity upsert",
 				"personGlobalID", personGlobalID)
 		} else {
 			return fmt.Errorf("data_account_create: resolve user: %w", err)
 		}
 	}
 	if user != nil {
-		if err := ensureExternalIdentity(ctx, h.svc, user.ID, personGlobalID); err != nil {
-			return fmt.Errorf("data_account_create: ensure external identity: %w", err)
+		if err := ensureUserIdentity(ctx, h.svc, user.ID, personGlobalID); err != nil {
+			return fmt.Errorf("data_account_create: ensure user identity: %w", err)
 		}
 		dns := getDNList(body)
 		if len(dns) > 0 {
 			for _, dn := range dns {
-				if _, err := h.svc.AddUserDN(ctx, &models.UserDN{UserID: user.ID, DN: dn}); err != nil {
-					if errors.Is(err, service.ErrAlreadyExists) {
-						continue
-					}
+				if err := h.userDNStore.Add(ctx, tx, &model.UserDN{UserID: user.ID, DN: dn}); err != nil {
 					return fmt.Errorf("data_account_create: add DN %q: %w", dn, err)
 				}
 			}

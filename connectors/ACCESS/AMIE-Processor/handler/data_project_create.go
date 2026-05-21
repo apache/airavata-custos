@@ -25,18 +25,19 @@ import (
 	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
-	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 type DataProjectCreateHandler struct {
-	svc        *service.Service
-	amieClient AmieClient
-	auditSvc   AuditService
+	svc         *service.Service
+	userDNStore store.UserDNStore
+	amieClient  AmieClient
+	auditSvc    AuditService
 }
 
-func NewDataProjectCreateHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *DataProjectCreateHandler {
-	return &DataProjectCreateHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
+func NewDataProjectCreateHandler(svc *service.Service, userDNStore store.UserDNStore, amieClient AmieClient, auditSvc AuditService) *DataProjectCreateHandler {
+	return &DataProjectCreateHandler{svc: svc, userDNStore: userDNStore, amieClient: amieClient, auditSvc: auditSvc}
 }
 
 func (h *DataProjectCreateHandler) SupportsType() string { return "data_project_create" }
@@ -54,26 +55,23 @@ func (h *DataProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		return err
 	}
 
-	user, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, piGlobalID)
+	user, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, piGlobalID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
-			slog.WarnContext(ctx, "data_project_create: PI user not found; skipping DN persistence and ExternalIdentity upsert",
+			slog.WarnContext(ctx, "data_project_create: PI user not found; skipping DN persistence and UserIdentity upsert",
 				"piGlobalID", piGlobalID)
 		} else {
 			return fmt.Errorf("data_project_create: resolve PI user: %w", err)
 		}
 	}
 	if user != nil {
-		if err := ensureExternalIdentity(ctx, h.svc, user.ID, piGlobalID); err != nil {
-			return fmt.Errorf("data_project_create: ensure external identity: %w", err)
+		if err := ensureUserIdentity(ctx, h.svc, user.ID, piGlobalID); err != nil {
+			return fmt.Errorf("data_project_create: ensure user identity: %w", err)
 		}
 		dns := getDNList(body)
 		if len(dns) > 0 {
 			for _, dn := range dns {
-				if _, err := h.svc.AddUserDN(ctx, &models.UserDN{UserID: user.ID, DN: dn}); err != nil {
-					if errors.Is(err, service.ErrAlreadyExists) {
-						continue
-					}
+				if err := h.userDNStore.Add(ctx, tx, &model.UserDN{UserID: user.ID, DN: dn}); err != nil {
 					return fmt.Errorf("data_project_create: add DN %q: %w", dn, err)
 				}
 			}
