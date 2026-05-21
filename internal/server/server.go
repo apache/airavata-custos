@@ -70,7 +70,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /compute-cluster-users", s.createComputeClusterUser)
 	s.mux.HandleFunc("GET /compute-cluster-users/{id}", s.getComputeClusterUser)
 	s.mux.HandleFunc("PUT /compute-cluster-users/{id}", s.updateComputeClusterUser)
-	s.mux.HandleFunc("PUT /compute-cluster-users/{id}/status", s.updateComputeClusterUserStatus)
 	s.mux.HandleFunc("DELETE /compute-cluster-users/{id}", s.deleteComputeClusterUser)
 	s.mux.HandleFunc("GET /compute-clusters/{id}/users", s.listComputeClusterUsersByCluster)
 	s.mux.HandleFunc("GET /compute-clusters/{id}/users/{userId}", s.getComputeClusterUserByPair)
@@ -905,20 +904,6 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, p)
-}
-
-func (s *Server) updateComputeClusterUserStatus(w http.ResponseWriter, r *http.Request) {
-	var req statusUpdateRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	cu, err := s.svc.UpdateComputeClusterUserStatus(r.Context(), r.PathValue("id"), models.AllocationStatus(req.Status))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, cu)
 }
 
 func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {

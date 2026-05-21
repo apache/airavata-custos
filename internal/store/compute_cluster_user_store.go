@@ -36,7 +36,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &mysqlComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, status`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username`
 
 func (s *mysqlComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -95,9 +95,9 @@ func (s *mysqlComputeClusterUserStore) FindByUser(ctx context.Context, userID st
 
 func (s *mysqlComputeClusterUserStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, status)
-         VALUES (?, ?, ?, ?, ?)`,
-		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername, c.Status)
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username)
+         VALUES (?, ?, ?, ?)`,
+		c.ID, c.ComputeClusterID, c.UserID, c.LocalUsername)
 	return err
 }
 
@@ -106,17 +106,9 @@ func (s *mysqlComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c
 		`UPDATE compute_cluster_users
             SET compute_cluster_id = ?,
                 user_id            = ?,
-                local_username     = ?,
-                status             = ?
+                local_username     = ?
           WHERE id = ?`,
-		c.ComputeClusterID, c.UserID, c.LocalUsername, c.Status, c.ID)
-	return err
-}
-
-func (s *mysqlComputeClusterUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.AllocationStatus) error {
-	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_cluster_users SET status = ? WHERE id = ?`,
-		status, id)
+		c.ComputeClusterID, c.UserID, c.LocalUsername, c.ID)
 	return err
 }
 
