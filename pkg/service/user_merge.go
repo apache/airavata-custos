@@ -59,8 +59,9 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	if survivor == nil {
 		return nil, fmt.Errorf("%w: surviving user %q does not exist", ErrInvalidInput, survivingID)
 	}
-	if survivor.Status == models.UserMerged {
-		return nil, fmt.Errorf("%w: surviving user %q is itself merged", ErrInvalidInput, survivingID)
+	if survivor.Status != models.UserActive {
+		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE (got %s)",
+			ErrInvalidInput, survivingID, survivor.Status)
 	}
 	retiring, err := s.users.FindByID(ctx, retiringID)
 	if err != nil {
@@ -71,6 +72,10 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	}
 	if retiring.Status == models.UserMerged {
 		return nil, fmt.Errorf("%w: retiring user %q is already merged", ErrAlreadyExists, retiringID)
+	}
+	if retiring.Status != models.UserActive {
+		return nil, fmt.Errorf("%w: retiring user %q must be ACTIVE (got %s)",
+			ErrInvalidInput, retiringID, retiring.Status)
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {

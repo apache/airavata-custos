@@ -130,6 +130,19 @@ def gen_valid_user_modify():
     })
 
 
+def gen_valid_user_modify_delete():
+    """request_user_modify — delete a DN from a known user's DN list."""
+    gid = str(random.randint(100000, 999999))
+    return make_packet("request_user_modify", {
+        "ActionType": "delete",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "UserGlobalID": gid,
+        "DnList": [
+            f"/C=US/O=Mock Institute/CN=User {gid}",
+        ],
+    })
+
+
 def gen_valid_data_account_create():
     """data_account_create — pass DNs for an existing user (looked up by GlobalID)."""
     gid = str(random.randint(100000, 999999))
@@ -333,6 +346,7 @@ SUCCESS_GENERATORS = [
     (gen_valid_project_create, 2),
     (gen_valid_account_create, 2),
     (gen_valid_user_modify, 1),
+    (gen_valid_user_modify_delete, 1),
     (gen_valid_data_account_create, 1),
     (gen_valid_data_project_create, 1),
     (gen_valid_project_inactivate, 1),
@@ -409,6 +423,7 @@ def generate_all_handlers_once():
         gen_valid_project_create(),
         gen_valid_account_create(),
         gen_valid_user_modify(),
+        gen_valid_user_modify_delete(),
         make_packet("data_account_create", {
             "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
             "PersonID": f"person-{uuid.uuid4().hex[:8]}",
@@ -531,6 +546,15 @@ def gen_baseline_scenario():
             "DeleteGlobalID": "bl-pi-002",
             "DeletePersonID": "bl-delete-person",
             "MergeReason": "Duplicate person records",
+        }),
+        # Remove one of the survivor's DNs via the delete ActionType.
+        make_packet("request_user_modify", {
+            "ActionType": "delete",
+            "PersonID": "bl-pi-001-person",
+            "UserGlobalID": "bl-pi-001",
+            "DnList": [
+                "/DC=EDU/CN=patfirst",
+            ],
         }),
         make_packet("inform_transaction_complete", {
             "StatusCode": "Success",

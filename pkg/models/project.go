@@ -10,7 +10,6 @@ const (
 	UserInactive  UserStatus = "INACTIVE"
 	UserSuspended UserStatus = "SUSPENDED"
 	UserMerged    UserStatus = "MERGED"
-	UserRemoved   UserStatus = "REMOVED"
 )
 
 // ProjectStatus enumerates the lifecycle states a Project may occupy.

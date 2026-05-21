@@ -24,6 +24,7 @@ import (
 	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -71,7 +72,7 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 	}
 	activeMemberships := make([]string, 0, len(memberships))
 	for _, m := range memberships {
-		if m.MembershipStatus == "ACTIVE" {
+		if m.MembershipStatus == models.ACTIVE {
 			activeMemberships = append(activeMemberships, m.ID)
 		}
 	}

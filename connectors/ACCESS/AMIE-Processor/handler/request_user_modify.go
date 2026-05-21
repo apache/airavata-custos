@@ -23,12 +23,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+var handledModifyTags = map[string]struct{}{
+	"ActionType":   {},
+	"PersonID":     {},
+	"UserGlobalID": {},
+	"DnList":       {},
+}
 
 type RequestUserModifyHandler struct {
 	svc        *service.Service
@@ -73,11 +81,12 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		}
 	case strings.EqualFold(actionType, "delete"):
 		if user != nil {
-			if _, err := h.svc.UpdateUserStatus(ctx, user.ID, models.UserRemoved); err != nil {
-				return fmt.Errorf("request_user_modify: soft-remove user: %w", err)
+			if err := h.deleteDNs(ctx, tx, packet, eventID, body, user.ID); err != nil {
+				return err
 			}
-			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditDeletePerson, "user", user.ID, "status=REMOVED"); err != nil {
-				return fmt.Errorf("request_user_modify: audit DELETE_PERSON: %w", err)
+			if unhandled := unhandledModifyTags(body); len(unhandled) > 0 {
+				slog.WarnContext(ctx, "request_user_modify delete carries unhandled tags",
+					"user_id", user.ID, "tags", unhandled)
 			}
 		}
 	default:
@@ -161,6 +170,51 @@ func (h *RequestUserModifyHandler) updateExternalIdentity(ctx context.Context, b
 	ext.UserID = userID
 	ext.Metadata = string(encoded)
 	return h.svc.UpdateExternalIdentity(ctx, ext)
+}
+
+func (h *RequestUserModifyHandler) deleteDNs(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID string, body map[string]any, userID string) error {
+	dns := getDNList(body)
+	if len(dns) == 0 {
+		return nil
+	}
+	target := make(map[string]struct{}, len(dns))
+	for _, dn := range dns {
+		target[dn] = struct{}{}
+	}
+	existing, err := h.svc.ListUserDNs(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("list user DNs: %w", err)
+	}
+	removed := 0
+	for _, e := range existing {
+		if _, hit := target[e.DN]; !hit {
+			continue
+		}
+		if err := h.svc.RemoveUserDN(ctx, e.ID); err != nil {
+			return fmt.Errorf("remove DN %s: %w", e.DN, err)
+		}
+		removed++
+	}
+	if removed > 0 {
+		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditPersistDNs, "user", userID,
+			fmt.Sprintf("DN delete: -%d", removed)); err != nil {
+			return fmt.Errorf("audit PERSIST_DNS: %w", err)
+		}
+	}
+	return nil
+}
+
+func unhandledModifyTags(body map[string]any) []string {
+	if len(body) == 0 {
+		return nil
+	}
+	var out []string
+	for k := range body {
+		if _, known := handledModifyTags[k]; !known {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // syncDNs reconciles the user's DN list with the packet body's UserDnList:
