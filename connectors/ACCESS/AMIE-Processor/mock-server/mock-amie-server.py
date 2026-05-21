@@ -195,10 +195,10 @@ def gen_valid_person_merge():
     primary = str(random.randint(100000, 999999))
     secondary = str(random.randint(100000, 999999))
     return make_packet("request_person_merge", {
+        "KeepGlobalID": primary,
         "KeepPersonID": f"person-keep-{uuid.uuid4().hex[:8]}",
+        "DeleteGlobalID": secondary,
         "DeletePersonID": f"person-delete-{uuid.uuid4().hex[:8]}",
-        "PrimaryGlobalID": primary,
-        "SecondaryGlobalID": secondary,
         "MergeReason": "Duplicate person records",
     })
 
@@ -426,13 +426,117 @@ def generate_all_handlers_once():
         gen_valid_account_inactivate(),
         gen_valid_account_reactivate(),
         make_packet("request_person_merge", {
+            "KeepGlobalID": primary_gid,
             "KeepPersonID": f"person-keep-{uuid.uuid4().hex[:8]}",
+            "DeleteGlobalID": secondary_gid,
             "DeletePersonID": f"person-delete-{uuid.uuid4().hex[:8]}",
-            "PrimaryGlobalID": primary_gid,
-            "SecondaryGlobalID": secondary_gid,
             "MergeReason": "all_handlers test scenario",
         }),
         gen_inform_transaction_complete(),
+    ]
+
+
+# Deterministic baseline scenario. Skips handlers that need a Custos UUID
+# (request_account_create, the inactivate/reactivate handlers).
+
+def gen_baseline_scenario():
+    return [
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-001",
+            "PfosNumber": "PFOS-BL-001",
+            "ProjectTitle": "Baseline Project 1",
+            "PiGlobalID": "bl-pi-001",
+            "PiFirstName": "Pat",
+            "PiLastName": "First",
+            "PiEmail": "pat.first@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "PiDnList": ["/C=US/O=Baseline Org/CN=Pat First"],
+            "ServiceUnitsAllocated": "10000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "new",
+        }),
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-002",
+            "PfosNumber": "PFOS-BL-002",
+            "ProjectTitle": "Baseline Project 2",
+            "PiGlobalID": "bl-pi-002",
+            "PiFirstName": "Sam",
+            "PiLastName": "Second",
+            "PiEmail": "sam.second@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "PiDnList": [],
+            "ServiceUnitsAllocated": "20000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "new",
+        }),
+        # Re-delivery of BL-001 as a supplement; writes a compute_allocation_diffs row.
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-001",
+            "PfosNumber": "PFOS-BL-001",
+            "ProjectTitle": "Baseline Project 1",
+            "PiGlobalID": "bl-pi-001",
+            "PiFirstName": "Pat",
+            "PiLastName": "First",
+            "PiEmail": "pat.first@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "ServiceUnitsAllocated": "5000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "supplement",
+        }),
+        make_packet("data_project_create", {
+            "ProjectID": "BL-001",
+            "PersonID": "bl-pi-001-person",
+            "GlobalID": "bl-pi-001",
+            "DnList": [
+                "/C=US/O=Baseline Org/CN=Pat First Extra",
+                "/DC=EDU/CN=patfirst",
+            ],
+        }),
+        make_packet("data_account_create", {
+            "ProjectID": "BL-002",
+            "PersonID": "bl-pi-002-person",
+            "GlobalID": "bl-pi-002",
+            "DnList": [
+                "/C=US/O=Baseline Org/CN=Sam Second",
+            ],
+        }),
+        make_packet("request_user_modify", {
+            "ActionType": "replace",
+            "ProjectID": "BL-001",
+            "PersonID": "bl-pi-001-person",
+            "UserPersonID": "bl-pi-001-user",
+            "UserGlobalID": "bl-pi-001",
+            "UserFirstName": "Pat",
+            "UserLastName": "First-Updated",
+            "UserEmail": "pat.first.updated@baseline.example.edu",
+            "UserOrganization": "Baseline Org",
+            "UserOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+        }),
+        make_packet("request_person_merge", {
+            "KeepGlobalID": "bl-pi-001",
+            "KeepPersonID": "bl-keep-person",
+            "DeleteGlobalID": "bl-pi-002",
+            "DeletePersonID": "bl-delete-person",
+            "MergeReason": "Duplicate person records",
+        }),
+        make_packet("inform_transaction_complete", {
+            "StatusCode": "Success",
+            "Message": "Baseline complete",
+            "DetailCode": "1",
+        }),
     ]
 
 
@@ -482,6 +586,8 @@ def create_scenario(site):
         packets = generate_all_handlers_once()
     elif scenario_type == "dev_email":
         packets = gen_dev_email_scenario()
+    elif scenario_type == "baseline":
+        packets = gen_baseline_scenario()
     else:
         packets = generate_batch(success_count=3, failure_count=2)
     pending_packets.extend(packets)

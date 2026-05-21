@@ -24,7 +24,6 @@ import (
 	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
-	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -45,44 +44,49 @@ func (h *RequestPersonMergeHandler) Handle(ctx context.Context, tx *sql.Tx, pack
 	if err != nil {
 		return err
 	}
-	primaryGlobalID := getString(body, "PrimaryGlobalID")
-	if err := requireText(primaryGlobalID, "PrimaryGlobalID"); err != nil {
+	keepGlobalID := getString(body, "KeepGlobalID")
+	if err := requireText(keepGlobalID, "KeepGlobalID"); err != nil {
 		return err
 	}
-	secondaryGlobalID := getString(body, "SecondaryGlobalID")
-	if err := requireText(secondaryGlobalID, "SecondaryGlobalID"); err != nil {
+	deleteGlobalID := getString(body, "DeleteGlobalID")
+	if err := requireText(deleteGlobalID, "DeleteGlobalID"); err != nil {
 		return err
 	}
-	if primaryGlobalID == secondaryGlobalID {
-		return fmt.Errorf("request_person_merge: primary and secondary global IDs are identical")
+	if keepGlobalID == deleteGlobalID {
+		return fmt.Errorf("request_person_merge: keep and delete global IDs are identical")
 	}
 
-	survivor, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, primaryGlobalID)
+	survivor, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, keepGlobalID)
 	if err != nil {
 		return fmt.Errorf("request_person_merge: resolve surviving user: %w", err)
 	}
-	retiring, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, secondaryGlobalID)
+	retiring, err := h.svc.GetUserByExternalIdentity(ctx, amieIdentitySource, deleteGlobalID)
 	if err != nil {
 		return fmt.Errorf("request_person_merge: resolve retiring user: %w", err)
 	}
 
-	// Refuse to merge while the retiring user still has active memberships:
-	// AMIE is expected to inactivate the user's accounts first, and merging
-	// over active state would silently transfer ownership of live resources.
 	memberships, err := h.svc.ListAllocationsForUser(ctx, retiring.ID)
 	if err != nil {
 		return fmt.Errorf("request_person_merge: list memberships: %w", err)
 	}
+	activeMemberships := make([]string, 0, len(memberships))
 	for _, m := range memberships {
-		if m.MembershipStatus == models.ACTIVE {
-			return fmt.Errorf("request_person_merge: retiring user %s has active membership %s; inactivate first",
-				retiring.ID, m.ID)
+		if m.MembershipStatus == "ACTIVE" {
+			activeMemberships = append(activeMemberships, m.ID)
 		}
 	}
+	if len(activeMemberships) > 0 {
+		slog.WarnContext(ctx, "merging user with active memberships",
+			"keep_global_id", keepGlobalID,
+			"delete_global_id", deleteGlobalID,
+			"retiring_id", retiring.ID,
+			"active_membership_ids", activeMemberships,
+		)
+	}
 
-	slog.WarnContext(ctx, "executing user merge",
-		"primary_global_id", primaryGlobalID,
-		"secondary_global_id", secondaryGlobalID,
+	slog.InfoContext(ctx, "executing user merge",
+		"keep_global_id", keepGlobalID,
+		"delete_global_id", deleteGlobalID,
 		"survivor_id", survivor.ID,
 		"retiring_id", retiring.ID,
 	)
