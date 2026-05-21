@@ -73,10 +73,10 @@ func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packe
 		}
 	case strings.EqualFold(actionType, "delete"):
 		if user != nil {
-			if err := h.svc.DeleteUser(ctx, user.ID); err != nil {
-				return fmt.Errorf("request_user_modify: delete user: %w", err)
+			if _, err := h.svc.UpdateUserStatus(ctx, user.ID, models.UserRemoved); err != nil {
+				return fmt.Errorf("request_user_modify: soft-remove user: %w", err)
 			}
-			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditDeletePerson, "user", user.ID, ""); err != nil {
+			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditDeletePerson, "user", user.ID, "status=REMOVED"); err != nil {
 				return fmt.Errorf("request_user_modify: audit DELETE_PERSON: %w", err)
 			}
 		}
