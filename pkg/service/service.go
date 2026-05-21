@@ -52,8 +52,6 @@ type Service struct {
 	membershipOverrides store.ComputeAllocationMembershipResourceOverrideStore
 	usages              store.ComputeAllocationUsageStore
 	userIdentities      store.UserIdentityStore
-	userDNs             store.UserDNStore
-	userMerges          store.UserMergeStore
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -78,8 +76,6 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		membershipOverrides: store.NewComputeAllocationMembershipResourceOverrideStore(database),
 		usages:              store.NewComputeAllocationUsageStore(database),
 		userIdentities:      store.NewUserIdentityStore(database),
-		userDNs:             store.NewUserDNStore(database),
-		userMerges:          store.NewUserMergeStore(database),
 	}
 }
 
@@ -105,8 +101,6 @@ func NewWithStores(
 	memberships store.ComputeAllocationMembershipStore,
 	usages store.ComputeAllocationUsageStore,
 	userIdentities store.UserIdentityStore,
-	userDNs store.UserDNStore,
-	userMerges store.UserMergeStore,
 ) *Service {
 	return &Service{
 		db:                  database,
@@ -127,8 +121,6 @@ func NewWithStores(
 		memberships:         memberships,
 		usages:              usages,
 		userIdentities:      userIdentities,
-		userDNs:             userDNs,
-		userMerges:          userMerges,
 	}
 }
 

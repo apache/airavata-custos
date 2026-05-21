@@ -33,13 +33,3 @@ type UserIdentity struct {
 	Metadata   string    `json:"metadata,omitempty"  db:"metadata"`    // JSON-encoded source-specific fields
 	CreatedAt  time.Time `json:"created_at"          db:"created_at"`
 }
-
-// UserDN binds an X.509 distinguished name (e.g. mTLS client cert subject) to
-// a User. Append-only: DNs are credentials and are added or removed, never
-// edited.
-type UserDN struct {
-	ID        string    `json:"id"         db:"id"`
-	UserID    string    `json:"user_id"    db:"user_id"`
-	DN        string    `json:"dn"         db:"dn"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-}
