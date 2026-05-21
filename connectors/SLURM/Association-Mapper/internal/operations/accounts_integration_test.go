@@ -34,13 +34,6 @@ func crearteAndValidateAccount(t *testing.T, client *Client) {
 	}
 }
 
-func isLocalSlurmConfigAvailable() bool {
-	if os.Getenv("TEST_SLURM_API") == "" || os.Getenv("TEST_SLURM_USER") == "" || os.Getenv("TEST_SLURM_TOKEN") == "" || os.Getenv("TEST_SLURM_API_VERSION") == "" {
-		return false
-	}
-	return true
-}
-
 func TestAccountCreatiion_Integration(t *testing.T) {
 
 	if !isLocalSlurmConfigAvailable() {

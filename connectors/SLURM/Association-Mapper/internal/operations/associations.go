@@ -1,7 +1,11 @@
 // cli/internal/client/associations.go
 package operations
 
-import "net/url"
+import (
+	"errors"
+	"log"
+	"net/url"
+)
 
 type AssocFilter struct {
 	Account   string
@@ -49,7 +53,30 @@ func (c *Client) ListAssociations(f AssocFilter) ([]Association, error) {
 func (c *Client) UpsertAssociation(a Association) error {
 	body := map[string]any{"associations": []Association{a}}
 	_, err := c.do("POST", "/slurmdb/v0.0."+c.apiVersion+"/associations", body, nil)
-	return err
+
+	if err != nil {
+		log.Printf("Failed to upsert association: %v", err)
+		return err
+	}
+
+	filter := AssocFilter{
+		Account:   a.Account,
+		User:      a.User,
+		Cluster:   a.Cluster,
+		Partition: a.Partition,
+	}
+	assos, err := c.ListAssociations(filter)
+	if err != nil {
+		log.Printf("Failed to list associations after upsert: %v", err)
+		return err
+	}
+
+	if len(assos) == 0 {
+		log.Printf("No associations found after upsert")
+		return errors.New("association not found after upsert")
+	}
+
+	return nil
 }
 
 func (c *Client) DeleteAssociation(f AssocFilter) error {
