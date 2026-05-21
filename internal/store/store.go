@@ -108,24 +108,25 @@ type ComputeClusterUserStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
-// ExternalIdentityStore defines persistence operations for external-identity
-// bindings between Custos users and identifiers issued by external systems.
-type ExternalIdentityStore interface {
-	// FindByID returns the external identity with the given ID, or nil if not found.
-	FindByID(ctx context.Context, id string) (*models.ExternalIdentity, error)
+// UserIdentityStore defines persistence operations for the bindings between
+// Custos users and identifiers issued by external systems (ACCESS, NAIRR,
+// CILogon, etc.).
+type UserIdentityStore interface {
+	// FindByID returns the user identity with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.UserIdentity, error)
 	// FindBySourceAndExternalID returns the binding for the given (source, external_id) pair, or nil if absent.
-	FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.ExternalIdentity, error)
+	FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.UserIdentity, error)
 	// FindByOIDCSub returns the first binding matching the given OIDC subject, or nil if none.
-	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.ExternalIdentity, error)
-	// FindByUser returns every external identity bound to the given user, ordered by created_at.
-	FindByUser(ctx context.Context, userID string) ([]models.ExternalIdentity, error)
-	// Create inserts a new external identity within the provided transaction.
-	Create(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
-	// Update replaces mutable fields of an existing external identity within the provided transaction.
-	Update(ctx context.Context, tx *sql.Tx, e *models.ExternalIdentity) error
-	// ReassignUser moves every external identity owned by fromUserID over to toUserID.
+	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error)
+	// FindByUser returns every user identity bound to the given user, ordered by created_at.
+	FindByUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	// Create inserts a new user identity within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error
+	// Update replaces mutable fields of an existing user identity within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error
+	// ReassignUser moves every user identity owned by fromUserID over to toUserID.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
-	// Delete removes an external identity by ID within the provided transaction.
+	// Delete removes a user identity by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 

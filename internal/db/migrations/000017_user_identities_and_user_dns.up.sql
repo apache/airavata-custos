@@ -15,24 +15,26 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+-- email captures the address the source IdP configured for this identity.
 -- oidc_sub is nullable: not every external identity issues an OIDC subject
 -- (AMIE binds by external_id only). UNIQUE permits multiple NULLs but blocks
 -- collisions on real values across IdPs.
-CREATE TABLE IF NOT EXISTS external_identities
+CREATE TABLE IF NOT EXISTS user_identities
 (
     id          VARCHAR(255) NOT NULL,
     user_id     VARCHAR(255) NOT NULL,
     source      VARCHAR(64)  NOT NULL,
     external_id VARCHAR(255) NOT NULL,
+    email       VARCHAR(255) NULL DEFAULT NULL,
     oidc_sub    VARCHAR(255) NULL DEFAULT NULL,
     metadata    TEXT         NULL DEFAULT NULL,
     created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uq_external_identities_source_external (source, external_id),
-    UNIQUE KEY uq_external_identities_oidc_sub (oidc_sub),
-    KEY idx_external_identities_user (user_id),
-    CONSTRAINT fk_external_identities_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    UNIQUE KEY uq_user_identities_source_external (source, external_id),
+    UNIQUE KEY uq_user_identities_oidc_sub (oidc_sub),
+    KEY idx_user_identities_user (user_id),
+    CONSTRAINT fk_user_identities_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- A DN is a globally-unique credential. UNIQUE on dn alone subsumes

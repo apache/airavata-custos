@@ -16,4 +16,4 @@
 -- under the License.
 
 DROP TABLE IF EXISTS user_dns;
-DROP TABLE IF EXISTS external_identities;
+DROP TABLE IF EXISTS user_identities;
