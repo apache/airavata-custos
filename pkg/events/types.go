@@ -110,11 +110,11 @@ const (
 	ComputeAllocationResourceMappingDeleteEvent EventType = "compute_allocation_resource_mapping::delete"
 )
 
-// ExternalIdentity lifecycle message types.
+// UserIdentity lifecycle message types.
 const (
-	ExternalIdentityCreateEvent EventType = "external_identity::create"
-	ExternalIdentityUpdateEvent EventType = "external_identity::update"
-	ExternalIdentityDeleteEvent EventType = "external_identity::delete"
+	UserIdentityCreateEvent EventType = "user_identity::create"
+	UserIdentityUpdateEvent EventType = "user_identity::update"
+	UserIdentityDeleteEvent EventType = "user_identity::delete"
 )
 
 // UserDN lifecycle message types. DN bindings are append-only credentials, so

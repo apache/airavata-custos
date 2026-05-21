@@ -19,15 +19,16 @@ package models
 
 import "time"
 
-// ExternalIdentity links a User to its identifier in an external system
-// (ACCESS, NAIRR, CILogon, etc.). One user may have many external identities.
-// Source-specific attributes (e.g. NSF status code, ACCESS org code) belong
-// in Metadata as a JSON-encoded blob.
-type ExternalIdentity struct {
+// UserIdentity links a User to its identifier in an external system (ACCESS,
+// NAIRR, CILogon, etc.). One user may have many identities. Source-specific
+// attributes (e.g. NSF status code, ACCESS org code) belong in Metadata as a
+// JSON-encoded blob.
+type UserIdentity struct {
 	ID         string    `json:"id"                  db:"id"`
 	UserID     string    `json:"user_id"             db:"user_id"`
 	Source     string    `json:"source"              db:"source"`      // e.g. access, nairr, cilogon
 	ExternalID string    `json:"external_id"         db:"external_id"` // the source's native identifier
+	Email      string    `json:"email,omitempty"     db:"email"`       // the email configured by the source
 	OIDCSub    string    `json:"oidc_sub,omitempty"  db:"oidc_sub"`    // OIDC subject when the source issues one
 	Metadata   string    `json:"metadata,omitempty"  db:"metadata"`    // JSON-encoded source-specific fields
 	CreatedAt  time.Time `json:"created_at"          db:"created_at"`

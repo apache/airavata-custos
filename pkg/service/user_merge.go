@@ -33,7 +33,7 @@ import (
 // happens in a single transaction.
 //
 // Moved to survivor (duplicates on the retiring user are dropped first):
-//   - external_identities
+//   - user_identities
 //   - user_dns
 //   - compute_cluster_users
 //   - projects.project_pi_id
@@ -85,8 +85,8 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID, reaso
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.extIDs.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
-			return fmt.Errorf("reassign external identities: %w", err)
+		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
+			return fmt.Errorf("reassign user identities: %w", err)
 		}
 		if err := s.userDNs.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user dns: %w", err)

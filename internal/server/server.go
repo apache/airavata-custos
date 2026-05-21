@@ -138,13 +138,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-allocations/{id}/users/{userId}/usages/total", s.getTotalSUUsageForUserInAllocation)
 	s.mux.HandleFunc("GET /users/{id}/compute-allocation-usages", s.listUsagesByUser)
 
-	s.mux.HandleFunc("POST /external-identities", s.createExternalIdentity)
-	s.mux.HandleFunc("GET /external-identities/{id}", s.getExternalIdentity)
-	s.mux.HandleFunc("PUT /external-identities/{id}", s.updateExternalIdentity)
-	s.mux.HandleFunc("DELETE /external-identities/{id}", s.deleteExternalIdentity)
-	s.mux.HandleFunc("GET /external-identities/sources/{source}/external/{externalId}", s.getExternalIdentityBySourceAndExternalID)
-	s.mux.HandleFunc("GET /external-identities/oidc-subjects/{oidcSub}", s.getExternalIdentityByOIDCSub)
-	s.mux.HandleFunc("GET /users/{id}/external-identities", s.listExternalIdentitiesForUser)
+	s.mux.HandleFunc("POST /user-identities", s.createUserIdentity)
+	s.mux.HandleFunc("GET /user-identities/{id}", s.getUserIdentity)
+	s.mux.HandleFunc("PUT /user-identities/{id}", s.updateUserIdentity)
+	s.mux.HandleFunc("DELETE /user-identities/{id}", s.deleteUserIdentity)
+	s.mux.HandleFunc("GET /user-identities/sources/{source}/external/{externalId}", s.getUserIdentityBySourceAndExternalID)
+	s.mux.HandleFunc("GET /user-identities/oidc-subjects/{oidcSub}", s.getUserIdentityByOIDCSub)
+	s.mux.HandleFunc("GET /users/{id}/user-identities", s.listUserIdentitiesForUser)
 
 	s.mux.HandleFunc("POST /user-dns", s.addUserDN)
 	s.mux.HandleFunc("GET /user-dns/{id}", s.getUserDN)
@@ -928,13 +928,13 @@ func (s *Server) updateComputeClusterUserStatus(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, cu)
 }
 
-func (s *Server) createExternalIdentity(w http.ResponseWriter, r *http.Request) {
-	var e models.ExternalIdentity
+func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
+	var e models.UserIdentity
 	if err := decodeJSON(r, &e); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	created, err := s.svc.CreateExternalIdentity(r.Context(), &e)
+	created, err := s.svc.CreateUserIdentity(r.Context(), &e)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -942,8 +942,8 @@ func (s *Server) createExternalIdentity(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusCreated, created)
 }
 
-func (s *Server) getExternalIdentity(w http.ResponseWriter, r *http.Request) {
-	e, err := s.svc.GetExternalIdentity(r.Context(), r.PathValue("id"))
+func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetUserIdentity(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -951,8 +951,8 @@ func (s *Server) getExternalIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, e)
 }
 
-func (s *Server) getExternalIdentityBySourceAndExternalID(w http.ResponseWriter, r *http.Request) {
-	e, err := s.svc.GetExternalIdentityBySourceAndExternalID(r.Context(), r.PathValue("source"), r.PathValue("externalId"))
+func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetUserIdentityBySourceAndExternalID(r.Context(), r.PathValue("source"), r.PathValue("externalId"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -960,8 +960,8 @@ func (s *Server) getExternalIdentityBySourceAndExternalID(w http.ResponseWriter,
 	writeJSON(w, http.StatusOK, e)
 }
 
-func (s *Server) getExternalIdentityByOIDCSub(w http.ResponseWriter, r *http.Request) {
-	e, err := s.svc.GetExternalIdentityByOIDCSub(r.Context(), r.PathValue("oidcSub"))
+func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request) {
+	e, err := s.svc.GetUserIdentityByOIDCSub(r.Context(), r.PathValue("oidcSub"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -969,8 +969,8 @@ func (s *Server) getExternalIdentityByOIDCSub(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, e)
 }
 
-func (s *Server) listExternalIdentitiesForUser(w http.ResponseWriter, r *http.Request) {
-	out, err := s.svc.ListExternalIdentitiesForUser(r.Context(), r.PathValue("id"))
+func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Request) {
+	out, err := s.svc.ListUserIdentitiesForUser(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -978,22 +978,22 @@ func (s *Server) listExternalIdentitiesForUser(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, out)
 }
 
-func (s *Server) updateExternalIdentity(w http.ResponseWriter, r *http.Request) {
-	var e models.ExternalIdentity
+func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
+	var e models.UserIdentity
 	if err := decodeJSON(r, &e); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	e.ID = r.PathValue("id")
-	if err := s.svc.UpdateExternalIdentity(r.Context(), &e); err != nil {
+	if err := s.svc.UpdateUserIdentity(r.Context(), &e); err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, &e)
 }
 
-func (s *Server) deleteExternalIdentity(w http.ResponseWriter, r *http.Request) {
-	if err := s.svc.DeleteExternalIdentity(r.Context(), r.PathValue("id")); err != nil {
+func (s *Server) deleteUserIdentity(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.DeleteUserIdentity(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
 		return
 	}

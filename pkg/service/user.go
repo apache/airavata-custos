@@ -80,24 +80,23 @@ func (s *Service) GetUser(ctx context.Context, id string) (*models.User, error) 
 	return u, nil
 }
 
-// GetUserByExternalIdentity returns the user owning the external identity
-// uniquely identified by (source, externalID). Returns ErrNotFound when no
-// such binding exists.
-func (s *Service) GetUserByExternalIdentity(ctx context.Context, source, externalID string) (*models.User, error) {
+// GetUserByUserIdentity returns the user owning the user identity uniquely
+// identified by (source, externalID). Returns ErrNotFound when no such binding exists.
+func (s *Service) GetUserByUserIdentity(ctx context.Context, source, externalID string) (*models.User, error) {
 	if source == "" {
 		return nil, fmt.Errorf("%w: source is required", ErrInvalidInput)
 	}
 	if externalID == "" {
 		return nil, fmt.Errorf("%w: external_id is required", ErrInvalidInput)
 	}
-	ext, err := s.extIDs.FindBySourceAndExternalID(ctx, source, externalID)
+	ident, err := s.userIdentities.FindBySourceAndExternalID(ctx, source, externalID)
 	if err != nil {
-		return nil, fmt.Errorf("lookup external identity: %w", err)
+		return nil, fmt.Errorf("lookup user identity: %w", err)
 	}
-	if ext == nil {
+	if ident == nil {
 		return nil, ErrNotFound
 	}
-	return s.GetUser(ctx, ext.UserID)
+	return s.GetUser(ctx, ident.UserID)
 }
 
 // GetUserByEmail retrieves a user by email.
