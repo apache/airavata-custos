@@ -43,17 +43,6 @@ type UserStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
-// UserMergeStore records when one user is consolidated into another. Rows are
-// append-only; each retiring user can be merged at most once.
-type UserMergeStore interface {
-	// Record inserts a new merge record within the provided transaction.
-	Record(ctx context.Context, tx *sql.Tx, retiringUserID, survivingUserID, reason string) error
-	// FindByRetiringUser returns the merge record whose retiring user matches, or nil if absent.
-	FindByRetiringUser(ctx context.Context, retiringUserID string) (*models.UserMerge, error)
-	// FindBySurvivingUser returns every merge record whose survivor matches, oldest first.
-	FindBySurvivingUser(ctx context.Context, survivingUserID string) ([]models.UserMerge, error)
-}
-
 // OrganizationStore defines persistence operations for organizations.
 type OrganizationStore interface {
 	// FindByID returns the organization with the given ID, or nil if not found.
@@ -127,23 +116,6 @@ type UserIdentityStore interface {
 	// ReassignUser moves every user identity owned by fromUserID over to toUserID.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a user identity by ID within the provided transaction.
-	Delete(ctx context.Context, tx *sql.Tx, id string) error
-}
-
-// UserDNStore defines persistence operations for X.509 distinguished-name
-// bindings against a Custos user.
-type UserDNStore interface {
-	// FindByID returns the DN binding with the given ID, or nil if not found.
-	FindByID(ctx context.Context, id string) (*models.UserDN, error)
-	// FindByDN returns the binding matching the given DN, or nil if absent.
-	FindByDN(ctx context.Context, dn string) (*models.UserDN, error)
-	// FindByUser returns every DN bound to the given user, ordered by created_at.
-	FindByUser(ctx context.Context, userID string) ([]models.UserDN, error)
-	// Create inserts a new DN binding within the provided transaction.
-	Create(ctx context.Context, tx *sql.Tx, d *models.UserDN) error
-	// ReassignUser moves every DN owned by fromUserID over to toUserID, dropping duplicates.
-	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
-	// Delete removes a DN binding by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 

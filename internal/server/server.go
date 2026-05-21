@@ -58,8 +58,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /users/{id}", s.getUser)
 	s.mux.HandleFunc("PUT /users/{id}/status", s.updateUserStatus)
 	s.mux.HandleFunc("POST /users/merge", s.mergeUsers)
-	s.mux.HandleFunc("GET /users/{id}/merge", s.getUserMergeByRetiringUser)
-	s.mux.HandleFunc("GET /users/{id}/merged-users", s.listUserMergesBySurvivingUser)
 
 	s.mux.HandleFunc("POST /projects", s.createProject)
 	s.mux.HandleFunc("GET /projects/{id}", s.getProject)
@@ -146,11 +144,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /user-identities/oidc-subjects/{oidcSub}", s.getUserIdentityByOIDCSub)
 	s.mux.HandleFunc("GET /users/{id}/user-identities", s.listUserIdentitiesForUser)
 
-	s.mux.HandleFunc("POST /user-dns", s.addUserDN)
-	s.mux.HandleFunc("GET /user-dns/{id}", s.getUserDN)
-	s.mux.HandleFunc("DELETE /user-dns/{id}", s.removeUserDN)
-	s.mux.HandleFunc("GET /user-dns/lookup", s.getUserDNByDN)
-	s.mux.HandleFunc("GET /users/{id}/user-dns", s.listUserDNs)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -1000,64 +993,9 @@ func (s *Server) deleteUserIdentity(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) addUserDN(w http.ResponseWriter, r *http.Request) {
-	var d models.UserDN
-	if err := decodeJSON(r, &d); err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	created, err := s.svc.AddUserDN(r.Context(), &d)
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, created)
-}
-
-func (s *Server) getUserDN(w http.ResponseWriter, r *http.Request) {
-	d, err := s.svc.GetUserDN(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, d)
-}
-
-func (s *Server) getUserDNByDN(w http.ResponseWriter, r *http.Request) {
-	dn := r.URL.Query().Get("dn")
-	if dn == "" {
-		writeError(w, http.StatusBadRequest, errors.New("dn query parameter is required"))
-		return
-	}
-	d, err := s.svc.GetUserDNByDN(r.Context(), dn)
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, d)
-}
-
-func (s *Server) listUserDNs(w http.ResponseWriter, r *http.Request) {
-	out, err := s.svc.ListUserDNs(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-func (s *Server) removeUserDN(w http.ResponseWriter, r *http.Request) {
-	if err := s.svc.RemoveUserDN(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
 type mergeUsersRequest struct {
 	SurvivingUserID string `json:"surviving_user_id"`
 	RetiringUserID  string `json:"retiring_user_id"`
-	Reason          string `json:"reason,omitempty"`
 }
 
 func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
@@ -1066,30 +1004,12 @@ func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	survivor, err := s.svc.MergeUsers(r.Context(), req.SurvivingUserID, req.RetiringUserID, req.Reason)
+	survivor, err := s.svc.MergeUsers(r.Context(), req.SurvivingUserID, req.RetiringUserID)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, survivor)
-}
-
-func (s *Server) getUserMergeByRetiringUser(w http.ResponseWriter, r *http.Request) {
-	m, err := s.svc.GetUserMergeByRetiringUser(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, m)
-}
-
-func (s *Server) listUserMergesBySurvivingUser(w http.ResponseWriter, r *http.Request) {
-	out, err := s.svc.ListUserMergesBySurvivingUser(r.Context(), r.PathValue("id"))
-	if err != nil {
-		writeServiceError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, out)
 }
 
 // LoggingMiddleware logs every request once it completes.

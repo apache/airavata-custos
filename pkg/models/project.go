@@ -46,14 +46,3 @@ type User struct {
 	Email          string     `json:"email"           db:"email"`
 	Status         UserStatus `json:"status"          db:"status"`
 }
-
-// UserMerge is the audit record that links a retiring user to the surviving
-// user that absorbed its identity-forward state. Each retiring user can be
-// merged at most once; merges are not reversed in-place.
-type UserMerge struct {
-	ID              int64     `json:"id"                 db:"id"`
-	RetiringUserID  string    `json:"retiring_user_id"   db:"retiring_user_id"`
-	SurvivingUserID string    `json:"surviving_user_id"  db:"surviving_user_id"`
-	Reason          string    `json:"reason,omitempty"   db:"reason"`
-	MergedAt        time.Time `json:"merged_at"          db:"merged_at"`
-}

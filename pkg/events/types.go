@@ -117,13 +117,6 @@ const (
 	UserIdentityDeleteEvent EventType = "user_identity::delete"
 )
 
-// UserDN lifecycle message types. DN bindings are append-only credentials, so
-// no update topic.
-const (
-	UserDNCreateEvent EventType = "user_dn::create"
-	UserDNDeleteEvent EventType = "user_dn::delete"
-)
-
 // Event represents a change in the system that downstream consumers may be interested in.
 // The payload is the full record after the change (e.g. the
 // new state of a project after an update).

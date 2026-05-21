@@ -15,5 +15,4 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-DROP TABLE IF EXISTS user_dns;
 DROP TABLE IF EXISTS user_identities;

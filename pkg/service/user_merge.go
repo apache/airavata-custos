@@ -28,13 +28,11 @@ import (
 
 // MergeUsers consolidates the retiring user into the surviving user. All
 // identity-forward state moves to the survivor; historical truth stays in
-// place. The retiring user is flipped to status=MERGED and a row is written
-// to user_merges with the surviving user and the given reason. All work
-// happens in a single transaction.
+// place. The retiring user is flipped to status=MERGED. All work happens in a
+// single transaction.
 //
 // Moved to survivor (duplicates on the retiring user are dropped first):
 //   - user_identities
-//   - user_dns
 //   - compute_cluster_users
 //   - projects.project_pi_id
 //   - compute_allocation_memberships
@@ -42,7 +40,11 @@ import (
 // Left in place (who actually did the thing):
 //   - compute_allocation_change_requests (requester / approver)
 //   - compute_allocation_usages
-func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID, reason string) (*models.User, error) {
+//
+// Not idempotent — a retiring user already in status=MERGED is rejected with
+// ErrAlreadyExists. Callers that need replay safety should fetch the retiring
+// user by ID and skip the call when its status is already MERGED.
+func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string) (*models.User, error) {
 	if survivingID == "" || retiringID == "" {
 		return nil, fmt.Errorf("%w: surviving and retiring user IDs are required", ErrInvalidInput)
 	}
@@ -67,29 +69,13 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID, reaso
 	if retiring == nil {
 		return nil, fmt.Errorf("%w: retiring user %q does not exist", ErrInvalidInput, retiringID)
 	}
-
-	// Idempotency: re-running the same merge is a no-op; merging the same
-	// retiring user into a different survivor is rejected.
 	if retiring.Status == models.UserMerged {
-		prior, err := s.userMerges.FindByRetiringUser(ctx, retiringID)
-		if err != nil {
-			return nil, fmt.Errorf("lookup prior merge: %w", err)
-		}
-		if prior != nil {
-			if prior.SurvivingUserID == survivingID {
-				return survivor, nil
-			}
-			return nil, fmt.Errorf("%w: user %q already merged into %q",
-				ErrAlreadyExists, retiringID, prior.SurvivingUserID)
-		}
+		return nil, fmt.Errorf("%w: retiring user %q is already merged", ErrAlreadyExists, retiringID)
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		if err := s.userIdentities.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign user identities: %w", err)
-		}
-		if err := s.userDNs.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
-			return fmt.Errorf("reassign user dns: %w", err)
 		}
 		if err := s.clusterUsers.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign compute cluster users: %w", err)
@@ -100,10 +86,7 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID, reaso
 		if err := s.memberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign memberships: %w", err)
 		}
-		if err := s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged); err != nil {
-			return fmt.Errorf("mark retiring user merged: %w", err)
-		}
-		return s.userMerges.Record(ctx, tx, retiringID, survivingID, reason)
+		return s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged)
 	}); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)
 	}
@@ -112,33 +95,4 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID, reaso
 	s.eventBus.Publish(events.UserUpdateEvent, retiring)
 	s.eventBus.Publish(events.UserUpdateEvent, survivor)
 	return survivor, nil
-}
-
-// GetUserMergeByRetiringUser returns the merge record for a retiring user, or
-// ErrNotFound if the user has not been merged.
-func (s *Service) GetUserMergeByRetiringUser(ctx context.Context, retiringUserID string) (*models.UserMerge, error) {
-	if retiringUserID == "" {
-		return nil, fmt.Errorf("%w: retiring_user_id is required", ErrInvalidInput)
-	}
-	m, err := s.userMerges.FindByRetiringUser(ctx, retiringUserID)
-	if err != nil {
-		return nil, fmt.Errorf("get user merge: %w", err)
-	}
-	if m == nil {
-		return nil, ErrNotFound
-	}
-	return m, nil
-}
-
-// ListUserMergesBySurvivingUser returns every merge record absorbed by the
-// given surviving user, oldest first.
-func (s *Service) ListUserMergesBySurvivingUser(ctx context.Context, survivingUserID string) ([]models.UserMerge, error) {
-	if survivingUserID == "" {
-		return nil, fmt.Errorf("%w: surviving_user_id is required", ErrInvalidInput)
-	}
-	out, err := s.userMerges.FindBySurvivingUser(ctx, survivingUserID)
-	if err != nil {
-		return nil, fmt.Errorf("list user merges by surviving user: %w", err)
-	}
-	return out, nil
 }

@@ -36,17 +36,3 @@ CREATE TABLE IF NOT EXISTS user_identities
     KEY idx_user_identities_user (user_id),
     CONSTRAINT fk_user_identities_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
--- A DN is a globally-unique credential. UNIQUE on dn alone subsumes
--- (user_id, dn), so the composite index is omitted.
-CREATE TABLE IF NOT EXISTS user_dns
-(
-    id         VARCHAR(255) NOT NULL,
-    user_id    VARCHAR(255) NOT NULL,
-    dn         VARCHAR(512) NOT NULL,
-    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_user_dns_dn (dn),
-    KEY idx_user_dns_user (user_id),
-    CONSTRAINT fk_user_dns_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
