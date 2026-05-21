@@ -43,10 +43,9 @@ import (
 
 const connectorName = "amie"
 
-// LoadConnector applies the connector's migrations and starts its background
-// workers. It returns nil and skips when AMIE_BASE_URL / AMIE_SITE_CODE /
+// LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
 // AMIE_API_KEY are not all set.
-func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service) error {
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup) error {
 	cfg := loadConfig()
 	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
@@ -92,15 +91,16 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg.AMIE)
 	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, database, cfg.AMIE)
 
-	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); poller.Run(ctx) }()
-	go func() { defer wg.Done(); processor.Run(ctx) }()
-
 	go func() {
-		<-ctx.Done()
-		wg.Wait()
-		slog.Info("AMIE connector stopped")
+		defer wg.Done()
+		poller.Run(ctx)
+		slog.Info("AMIE poller stopped")
+	}()
+	go func() {
+		defer wg.Done()
+		processor.Run(ctx)
+		slog.Info("AMIE processor stopped")
 	}()
 
 	slog.Info("AMIE connector started", "site", cfg.AMIE.SiteCode, "baseURL", cfg.AMIE.BaseURL)

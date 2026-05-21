@@ -20,6 +20,7 @@ package connectors
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 
@@ -29,17 +30,17 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service) error {
+func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
 	slog.Info("loading connectors")
 
 	slog.Info("loading SLURM Association Mapper connector")
-	if err := smapper.LoadConnector(ctx, database, eventBus, coreService); err != nil {
+	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
 		slog.Error("failed to load SLURM Association Mapper connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading AMIE connector")
-	if err := amie.LoadConnector(ctx, database, eventBus, coreService); err != nil {
+	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
 		slog.Error("failed to load AMIE connector", "error", err)
 		return err
 	}

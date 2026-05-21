@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -79,7 +80,10 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := connectors.LoadConnectors(ctx, database, eventBus, svc); err != nil {
+	// Tracks every background goroutine spawned by connectors so we can wait
+	// for them to drain on shutdown instead of killing them mid-flight.
+	var connectorsWG sync.WaitGroup
+	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG); err != nil {
 		return err
 	}
 
@@ -117,6 +121,20 @@ func run() error {
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		return err
 	}
+
+	slog.Info("waiting for connectors to drain")
+	connectorsDone := make(chan struct{})
+	go func() {
+		connectorsWG.Wait()
+		close(connectorsDone)
+	}()
+	select {
+	case <-connectorsDone:
+		slog.Info("connectors drained cleanly")
+	case <-time.After(30 * time.Second):
+		slog.Warn("connector drain timed out; some workers may have leaked")
+	}
+
 	slog.Info("server stopped cleanly")
 	return nil
 }

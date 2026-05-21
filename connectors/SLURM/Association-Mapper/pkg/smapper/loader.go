@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service) error {
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
 
 	// Read url, username, and password from environment variables
 	apiUrl := os.Getenv("SLURM_API")
