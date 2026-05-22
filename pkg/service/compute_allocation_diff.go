@@ -43,6 +43,12 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 	if diff.Status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
 	}
+	if diff.NewSUAmount < 0 {
+		return nil, fmt.Errorf("%w: new_su_amount must be non-negative", ErrInvalidInput)
+	}
+	if err := validateAllocationStatus("status", diff.Status); err != nil {
+		return nil, err
+	}
 
 	if alloc, err := s.allocs.FindByID(ctx, diff.ComputeAllocationID); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)

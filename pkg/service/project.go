@@ -59,6 +59,9 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 	if project.Status == "" {
 		project.Status = models.ProjectActive
 	}
+	if err := validateProjectStatus(project.Status); err != nil {
+		return nil, err
+	}
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = nowUTC()
 	}
@@ -134,6 +137,9 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 	if project.Status == "" {
 		project.Status = existing.Status
 	}
+	if err := validateProjectStatus(project.Status); err != nil {
+		return err
+	}
 	if project.CreatedTime.IsZero() {
 		project.CreatedTime = existing.CreatedTime
 	}
@@ -155,6 +161,9 @@ func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status mod
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
+	}
+	if err := validateProjectStatus(status); err != nil {
+		return nil, err
 	}
 	existing, err := s.projs.FindByID(ctx, id)
 	if err != nil {

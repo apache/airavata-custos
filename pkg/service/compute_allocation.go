@@ -42,11 +42,20 @@ func (s *Service) CreateComputeAllocation(ctx context.Context, alloc *models.Com
 	if alloc.ComputeClusterID == "" {
 		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
 	}
+	if alloc.InitialSUAmount < 0 {
+		return nil, fmt.Errorf("%w: initial_su_amount must be non-negative", ErrInvalidInput)
+	}
+	if err := validateRequiredTimeRange(alloc.StartTime, alloc.EndTime); err != nil {
+		return nil, err
+	}
 	if alloc.ID == "" {
 		alloc.ID = newID()
 	}
 	if alloc.Status == "" {
 		alloc.Status = models.ACTIVE
+	}
+	if err := validateAllocationStatus("status", alloc.Status); err != nil {
+		return nil, err
 	}
 
 	if proj, err := s.projs.FindByID(ctx, alloc.ProjectID); err != nil {
@@ -106,6 +115,24 @@ func (s *Service) ListComputeAllocationsByCluster(ctx context.Context, clusterID
 func (s *Service) UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error {
 	if alloc == nil || alloc.ID == "" {
 		return fmt.Errorf("%w: compute allocation id is required", ErrInvalidInput)
+	}
+	if alloc.Name == "" {
+		return fmt.Errorf("%w: compute allocation name is required", ErrInvalidInput)
+	}
+	if alloc.ProjectID == "" {
+		return fmt.Errorf("%w: project_id is required", ErrInvalidInput)
+	}
+	if alloc.ComputeClusterID == "" {
+		return fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+	}
+	if alloc.InitialSUAmount < 0 {
+		return fmt.Errorf("%w: initial_su_amount must be non-negative", ErrInvalidInput)
+	}
+	if err := validateRequiredTimeRange(alloc.StartTime, alloc.EndTime); err != nil {
+		return err
+	}
+	if err := validateAllocationStatus("status", alloc.Status); err != nil {
+		return err
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.allocs.Update(ctx, tx, alloc)

@@ -57,6 +57,9 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.Status == "" {
 		user.Status = models.UserActive
 	}
+	if err := validateUserStatus(user.Status); err != nil {
+		return nil, err
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.users.Create(ctx, tx, user)
@@ -160,6 +163,9 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.Status == "" {
 		user.Status = existing.Status
 	}
+	if err := validateUserStatus(user.Status); err != nil {
+		return err
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.users.Update(ctx, tx, user)
@@ -179,6 +185,9 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: status is required", ErrInvalidInput)
+	}
+	if err := validateUserStatus(status); err != nil {
+		return nil, err
 	}
 	existing, err := s.users.FindByID(ctx, id)
 	if err != nil {
