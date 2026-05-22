@@ -15,6 +15,38 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+
+CREATE TABLE IF NOT EXISTS organizations
+(
+    id            VARCHAR(255) NOT NULL,
+    originated_id VARCHAR(255) NOT NULL,
+    name          VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_organizations_originated_id (originated_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id              VARCHAR(255) NOT NULL,
+    organization_id VARCHAR(255) NOT NULL,
+    first_name      VARCHAR(255) NOT NULL,
+    last_name       VARCHAR(255) NOT NULL,
+    middle_name     VARCHAR(255) NULL,
+    email           VARCHAR(255) NOT NULL,
+    status          VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users_email (email),
+    KEY idx_users_organization_id (organization_id),
+    KEY idx_users_status (status),
+    CONSTRAINT fk_users_organization FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- email captures the address the source IdP configured for this identity.
 -- oidc_sub is nullable: not every external identity issues an OIDC subject
 -- (AMIE binds by external_id only). UNIQUE permits multiple NULLs but blocks

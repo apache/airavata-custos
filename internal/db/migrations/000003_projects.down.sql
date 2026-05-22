@@ -15,6 +15,4 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-ALTER TABLE projects
-    DROP KEY idx_projects_status,
-    DROP COLUMN status;
+DROP TABLE IF EXISTS projects;
