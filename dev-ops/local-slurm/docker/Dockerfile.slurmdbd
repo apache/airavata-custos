@@ -1,0 +1,7 @@
+# docker/Dockerfile.slurmdbd
+FROM slurmrest/base:24.05
+
+COPY scripts/entrypoint-dbd.sh /usr/local/bin/entrypoint-dbd.sh
+RUN chmod +x /usr/local/bin/entrypoint-dbd.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-dbd.sh"]

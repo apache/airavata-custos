@@ -1,0 +1,33 @@
+# docker/Dockerfile.base
+FROM rockylinux:9
+
+ARG SLURM_VERSION=24.05.5
+
+RUN dnf -y install epel-release \
+ && dnf -y install dnf-plugins-core \
+ && dnf config-manager --set-enabled crb \
+ && dnf -y install \
+      munge munge-libs munge-devel \
+      mariadb-connector-c mariadb-connector-c-devel \
+      http-parser-devel json-c-devel libyaml-devel libjwt-devel \
+      dbus-devel \
+      pam-devel readline-devel perl perl-Switch \
+      gcc make wget which procps-ng iproute bzip2 \
+      openssh-server openssh-clients \
+      python3 python3-pip \
+ && dnf clean all
+
+RUN useradd -r -u 995 -g 0 -s /sbin/nologin slurm \
+ && install -d -o slurm -g 0 -m 0755 /var/spool/slurm /var/log/slurm /var/run/slurm /etc/slurm
+
+RUN wget -q https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2 \
+ && tar -xjf slurm-${SLURM_VERSION}.tar.bz2 \
+ && cd slurm-${SLURM_VERSION} \
+ && ./configure --prefix=/usr --sysconfdir=/etc/slurm \
+      --enable-slurmrestd \
+ && make -j"$(nproc)" && make install \
+ && cd .. && rm -rf slurm-${SLURM_VERSION}*
+
+RUN ssh-keygen -A
+
+CMD ["/bin/bash"]
