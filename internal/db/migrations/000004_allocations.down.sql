@@ -15,6 +15,13 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-ALTER TABLE compute_allocation_resource_mappings
-    ADD COLUMN resource_amount BIGINT NOT NULL DEFAULT 0 AFTER compute_allocation_resource_id,
-    ADD COLUMN resource_time   BIGINT NOT NULL DEFAULT 0 AFTER resource_amount;
+DROP TABLE IF EXISTS compute_allocation_membership_resource_overrides;
+DROP TABLE IF EXISTS compute_allocation_usages;
+DROP TABLE IF EXISTS compute_allocation_memberships;
+DROP TABLE IF EXISTS compute_allocation_change_request_events;
+DROP TABLE IF EXISTS compute_allocation_change_requests;
+DROP TABLE IF EXISTS compute_allocation_diffs;
+DROP TABLE IF EXISTS compute_allocation_resource_rates;
+DROP TABLE IF EXISTS compute_allocation_resource_mappings;
+DROP TABLE IF EXISTS compute_allocation_resources;
+DROP TABLE IF EXISTS compute_allocations;

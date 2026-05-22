@@ -15,4 +15,21 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-DROP TABLE IF EXISTS user_identities;
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+
+CREATE TABLE IF NOT EXISTS projects
+(
+    id            VARCHAR(255) NOT NULL,
+    originated_id VARCHAR(255) NOT NULL,
+    title         VARCHAR(255) NOT NULL,
+    origination   VARCHAR(255) NOT NULL,
+    project_pi_id VARCHAR(255) NOT NULL,
+    status        VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
+    created_time  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_projects_originated_id (originated_id),
+    KEY idx_projects_pi (project_pi_id),
+    KEY idx_projects_status (status),
+    CONSTRAINT fk_projects_pi FOREIGN KEY (project_pi_id) REFERENCES users (id) ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

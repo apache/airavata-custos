@@ -15,6 +15,6 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS user_identities;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
