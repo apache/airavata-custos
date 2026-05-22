@@ -33,6 +33,19 @@ func TestListAssociationsByAccount(t *testing.T) {
 
 func TestCreateAssociation(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Support to list associations so we can verify the association was created successfully
+		if r.Method == "GET" && r.URL.Path == "/slurmdb/v0.0.41/associations" {
+			q := r.URL.Query()
+			if q.Get("account") != "eng" || q.Get("cluster") != "artisan" || q.Get("user") != "alice" {
+				t.Errorf("unexpected list query = %q", r.URL.RawQuery)
+				http.Error(w, "bad query", http.StatusBadRequest)
+				return
+			}
+			_, _ = w.Write([]byte(`{"associations":[{"account":"eng","cluster":"artisan","user":"alice","id_association":5}]}`))
+			return
+		}
+
 		if r.Method != "POST" || r.URL.Path != "/slurmdb/v0.0.41/associations" {
 			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
