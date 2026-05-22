@@ -5,35 +5,6 @@ import (
 	"testing"
 )
 
-func crearteAndValidateAccount(t *testing.T, client *Client) {
-
-	err := client.CreateAccount(Account{
-		Name:         "test_account",
-		Description:  "Test account for integration testing",
-		Organization: "Test Organization",
-	}, "artisan")
-
-	if err != nil {
-		t.Fatalf("Failed to create account: %v", err)
-	}
-
-	accounts, err := client.ListAccounts()
-	if err != nil {
-		t.Fatalf("Failed to list accounts: %v", err)
-	}
-
-	if len(accounts) == 0 {
-		t.Fatal("No accounts found after creation")
-	}
-
-	for _, account := range accounts {
-		if account.Name == "test_account" {
-			t.Logf("Successfully created account: %+v\n", account)
-			return
-		}
-	}
-}
-
 func TestAccountCreatiion_Integration(t *testing.T) {
 
 	if !isLocalSlurmConfigAvailable() {

@@ -34,3 +34,30 @@ func TestCreateInvalidAssocation(t *testing.T) {
 		t.Fatal("Expected error when creating association with non-existent account, user, cluster, and partition, but got nil")
 	}
 }
+
+func TestCreateValidAssociation(t *testing.T) {
+	if !isLocalSlurmConfigAvailable() {
+		t.Skip("Skipping integration test for association creation because local SLURM config is not available")
+	}
+
+	apiUrl := os.Getenv("TEST_SLURM_API")
+	user := os.Getenv("TEST_SLURM_USER")
+	token := os.Getenv("TEST_SLURM_TOKEN")
+	apiVersion := os.Getenv("TEST_SLURM_API_VERSION")
+
+	client := New(apiUrl, user, token, apiVersion)
+
+	crearteAndValidateAccount(t, client)
+
+	association := Association{
+		Account:   "test_account",
+		User:      "test_user",
+		Cluster:   "artisan",
+		Partition: "compute",
+	}
+
+	err := client.UpsertAssociation(association)
+	if err != nil {
+		t.Fatalf("Failed to create association: %v", err)
+	}
+}
