@@ -1,13 +1,20 @@
 package smapper
 
-import "github.com/apache/airavata-custos/pkg/events"
-import "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/subscribers"
-import client "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
-import "os"
-import "log/slog"
-import "github.com/apache/airavata-custos/pkg/service"
+import (
+	"context"
+	"log/slog"
+	"os"
+	"sync"
 
-func LoadConnector(eventBus *events.Bus, coreService *service.Service) error {
+	"github.com/jmoiron/sqlx"
+
+	client "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
+	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/subscribers"
+	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/service"
+)
+
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
 
 	// Read url, username, and password from environment variables
 	apiUrl := os.Getenv("SLURM_API")
@@ -16,9 +23,8 @@ func LoadConnector(eventBus *events.Bus, coreService *service.Service) error {
 	apiVersion := os.Getenv("SLURM_API_VERSION")
 	if apiUrl == "" || user == "" || token == "" || apiVersion == "" {
 		slog.Info("SLURM API credentials not fully provided, skipping SLURM Association Mapper connector")
-		// print valualues of the env vars for debugging
 		slog.Info("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token", token, "apiVersion", apiVersion)
-		return nil // skip loading if any of the required env vars are missing
+		return nil
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)

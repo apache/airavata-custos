@@ -20,101 +20,117 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type requestProjectInactivateProjectService interface {
-	InactivateProject(ctx context.Context, tx *sql.Tx, projectID string) error
-}
-
-type requestProjectInactivateMembershipService interface {
-	InactivateAllForProject(ctx context.Context, tx *sql.Tx, projectID string) error
-}
-
-type requestProjectInactivateAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type requestProjectInactivateAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type RequestProjectInactivateHandler struct {
-	projectSvc    requestProjectInactivateProjectService
-	membershipSvc requestProjectInactivateMembershipService
-	amieClient    requestProjectInactivateAmieClient
-	auditSvc      requestProjectInactivateAuditService
+	svc        *service.Service
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestProjectInactivateHandler(
-	projectSvc requestProjectInactivateProjectService,
-	membershipSvc requestProjectInactivateMembershipService,
-	amieClient requestProjectInactivateAmieClient,
-	auditSvc requestProjectInactivateAuditService,
-) *RequestProjectInactivateHandler {
-	return &RequestProjectInactivateHandler{
-		projectSvc:    projectSvc,
-		membershipSvc: membershipSvc,
-		amieClient:    amieClient,
-		auditSvc:      auditSvc,
-	}
+func NewRequestProjectInactivateHandler(svc *service.Service, amieClient AmieClient, auditSvc AuditService) *RequestProjectInactivateHandler {
+	return &RequestProjectInactivateHandler{svc: svc, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *RequestProjectInactivateHandler) SupportsType() string {
-	return "request_project_inactivate"
-}
+func (h *RequestProjectInactivateHandler) SupportsType() string { return "request_project_inactivate" }
 
 func (h *RequestProjectInactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Validate required fields.
 	projectID := getString(body, "ProjectID")
 	if err := requireText(projectID, "ProjectID"); err != nil {
 		return err
 	}
 
-	// Inactivate the project.
-	if err := h.projectSvc.InactivateProject(ctx, tx, projectID); err != nil {
-		return fmt.Errorf("request_project_inactivate: inactivating project: %w", err)
+	// AMIE carries the Custos project.id we returned in notify_project_create.
+	project, err := h.svc.GetProject(ctx, projectID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.WarnContext(ctx, "request_project_inactivate: project not found in core; skipping",
+				"projectID", projectID)
+			return h.reply(ctx, tx, packet, eventID, projectID)
+		}
+		return fmt.Errorf("request_project_inactivate: lookup project: %w", err)
 	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateProject, "project", projectID, ""); err != nil {
+
+	if _, err := h.svc.UpdateProjectStatus(ctx, project.ID, models.ProjectInactive); err != nil {
+		return fmt.Errorf("request_project_inactivate: update project status: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateProject, "project", project.ID, ""); err != nil {
 		return fmt.Errorf("request_project_inactivate: audit INACTIVATE_PROJECT: %w", err)
 	}
 
-	// Inactivate all memberships for the project.
-	if err := h.membershipSvc.InactivateAllForProject(ctx, tx, projectID); err != nil {
-		return fmt.Errorf("request_project_inactivate: inactivating memberships: %w", err)
-	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "membership", projectID, ""); err != nil {
-		return fmt.Errorf("request_project_inactivate: audit INACTIVATE_MEMBERSHIP: %w", err)
+	if err := h.deactivateAllocations(ctx, tx, packet, eventID, project.ID, getString(body, "Comment")); err != nil {
+		return err
 	}
 
-	// Build and send the reply.
-	replyBody := map[string]any{
-		"ProjectID":    projectID,
-		"ResourceList": getResourceList(body),
-	}
-	personID := getString(body, "PersonID")
-	if personID != "" {
-		replyBody["PersonID"] = personID
-	}
+	return h.reply(ctx, tx, packet, eventID, projectID)
+}
 
+// deactivateAllocations flips every ComputeAllocation under the project to
+// INACTIVE, writes a status-change Diff per allocation, and flips every
+// ComputeAllocationMembership under those allocations to INACTIVE.
+func (h *RequestProjectInactivateHandler) deactivateAllocations(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID, projectID, comment string) error {
+	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("list allocations: %w", err)
+	}
+	for _, a := range allocations {
+		a.Status = models.INACTIVE
+		if err := h.svc.UpdateComputeAllocation(ctx, &a); err != nil {
+			return fmt.Errorf("inactivate allocation %s: %w", a.ID, err)
+		}
+		if _, err := h.svc.CreateComputeAllocationDiff(ctx, &models.ComputeAllocationDiff{
+			ComputeAllocationID: a.ID,
+			DiffType:            "ALLOCATION_STATUS_CHANGE",
+			Status:              models.INACTIVE,
+			Description:         describeStatusChange("Inactivated by AMIE request_project_inactivate", comment),
+		}); err != nil {
+			return fmt.Errorf("record inactivate diff for %s: %w", a.ID, err)
+		}
+		members, err := h.svc.ListMembersForAllocation(ctx, a.ID)
+		if err != nil {
+			return fmt.Errorf("list memberships for allocation %s: %w", a.ID, err)
+		}
+		for _, m := range members {
+			if _, err := h.svc.UpdateMembershipStatus(ctx, m.ID, models.INACTIVE); err != nil {
+				return fmt.Errorf("inactivate membership %s: %w", m.ID, err)
+			}
+			if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditInactivateMembership, "compute_allocation_membership", m.ID,
+				fmt.Sprintf("user=%s allocation=%s", m.UserID, a.ID)); err != nil {
+				return fmt.Errorf("audit INACTIVATE_MEMBERSHIP for %s: %w", m.ID, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (h *RequestProjectInactivateHandler) reply(ctx context.Context, tx *sql.Tx, packet *model.Packet, eventID, projectID string) error {
 	reply := map[string]any{
 		"type": "notify_project_inactivate",
-		"body": replyBody,
+		"body": map[string]any{"ProjectID": projectID},
 	}
-
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_project_inactivate: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("request_project_inactivate: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
+}
+
+func describeStatusChange(primary, comment string) string {
+	if comment == "" {
+		return primary
+	}
+	return primary + " (" + comment + ")"
 }

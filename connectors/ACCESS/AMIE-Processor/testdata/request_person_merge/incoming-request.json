@@ -23,12 +23,10 @@
     "transaction_state": "in-progress"
   },
   "body": {
+    "KeepGlobalID": "12345",
     "KeepPersonID": "test-person-primary-123",
+    "DeleteGlobalID": "67890",
     "DeletePersonID": "test-person-secondary-456",
-    "PrimaryGlobalID": "12345",
-    "SecondaryGlobalID": "67890",
-    "PrimarySitePersonID": "primary-user",
-    "SecondarySitePersonID": "secondary-user",
     "MergeReason": "Duplicate person records",
     "Comment": "Person merge for testing"
   }

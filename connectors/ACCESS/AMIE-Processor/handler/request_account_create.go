@@ -20,141 +20,179 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type requestAccountCreatePersonService interface {
-	FindOrCreateFromPacket(ctx context.Context, tx *sql.Tx, body map[string]any) (*model.Person, error)
-}
-
-type requestAccountCreateAccountService interface {
-	ProvisionClusterAccount(ctx context.Context, tx *sql.Tx, person *model.Person) (*model.ClusterAccount, error)
-}
-
-type requestAccountCreateProjectService interface {
-	CreateOrFindProject(ctx context.Context, tx *sql.Tx, projectID, grantNumber string) (*model.Project, error)
-}
-
-type requestAccountCreateMembershipService interface {
-	CreateMembership(ctx context.Context, tx *sql.Tx, projectID, clusterAccountID, role string) (*model.ProjectMembership, error)
-}
-
-type requestAccountCreateAmieClient interface {
-	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
-}
-
-type requestAccountCreateAuditService interface {
-	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
-}
-
 type RequestAccountCreateHandler struct {
-	personSvc     requestAccountCreatePersonService
-	accountSvc    requestAccountCreateAccountService
-	projectSvc    requestAccountCreateProjectService
-	membershipSvc requestAccountCreateMembershipService
-	amieClient    requestAccountCreateAmieClient
-	auditSvc      requestAccountCreateAuditService
+	svc        *service.Service
+	clusterID  string
+	amieClient AmieClient
+	auditSvc   AuditService
 }
 
-func NewRequestAccountCreateHandler(
-	personSvc requestAccountCreatePersonService,
-	accountSvc requestAccountCreateAccountService,
-	projectSvc requestAccountCreateProjectService,
-	membershipSvc requestAccountCreateMembershipService,
-	amieClient requestAccountCreateAmieClient,
-	auditSvc requestAccountCreateAuditService,
-) *RequestAccountCreateHandler {
-	return &RequestAccountCreateHandler{
-		personSvc:     personSvc,
-		accountSvc:    accountSvc,
-		projectSvc:    projectSvc,
-		membershipSvc: membershipSvc,
-		amieClient:    amieClient,
-		auditSvc:      auditSvc,
-	}
+func NewRequestAccountCreateHandler(svc *service.Service, clusterID string, amieClient AmieClient, auditSvc AuditService) *RequestAccountCreateHandler {
+	return &RequestAccountCreateHandler{svc: svc, clusterID: clusterID, amieClient: amieClient, auditSvc: auditSvc}
 }
 
-func (h *RequestAccountCreateHandler) SupportsType() string {
-	return "request_account_create"
-}
+func (h *RequestAccountCreateHandler) SupportsType() string { return "request_account_create" }
 
+// Handle ensures the User (with UserIdentity), looks up the Project (which
+// must already exist from a prior request_project_create), provisions a
+// ComputeClusterUser on the configured cluster, and attaches a
+// ComputeAllocationMembership against the project's allocation. Replies with
+// the assigned posix username.
 func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err
 	}
-
-	// Validate required fields.
 	projectID := getString(body, "ProjectID")
 	if err := requireText(projectID, "ProjectID"); err != nil {
 		return err
 	}
-	grantNumber := getString(body, "GrantNumber")
-	if err := requireText(grantNumber, "GrantNumber"); err != nil {
+	if err := requireText(getString(body, "GrantNumber"), "GrantNumber"); err != nil {
 		return err
 	}
 	userGlobalID := getString(body, "UserGlobalID")
 	if err := requireText(userGlobalID, "UserGlobalID"); err != nil {
 		return err
 	}
-
-	// Create or find the person.
-	person, err := h.personSvc.FindOrCreateFromPacket(ctx, tx, body)
-	if err != nil {
-		return fmt.Errorf("request_account_create: finding/creating person: %w", err)
+	if h.clusterID == "" {
+		return fmt.Errorf("AMIE_CLUSTER_ID not configured")
 	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreatePerson, "person", person.ID, ""); err != nil {
+
+	user, err := h.ensureUser(ctx, body, userGlobalID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: ensure user: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreatePerson, "user", user.ID, ""); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_PERSON: %w", err)
 	}
 
-	// Provision a cluster account.
-	account, err := h.accountSvc.ProvisionClusterAccount(ctx, tx, person)
+	// AMIE replies to notify_project_create with project.id (Custos UUID), so
+	// subsequent packets carry that id back to us as body.ProjectID.
+	project, err := h.svc.GetProject(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("request_account_create: provisioning cluster account: %w", err)
+		return fmt.Errorf("request_account_create: project %q not found (request_project_create must precede this packet): %w", projectID, err)
 	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "account", account.ID, ""); err != nil {
+
+	allocations, err := h.svc.ListComputeAllocationsByProject(ctx, project.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: list allocations: %w", err)
+	}
+	if len(allocations) == 0 {
+		return fmt.Errorf("request_account_create: project %q has no ComputeAllocation; request_project_create did not provision one", projectID)
+	}
+	allocation := allocations[0]
+
+	account, err := h.ensureComputeClusterUser(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: ensure compute cluster user: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "compute_cluster_user", account.ID, account.LocalUsername); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_ACCOUNT: %w", err)
 	}
 
-	// Ensure the project exists.
-	if _, err := h.projectSvc.CreateOrFindProject(ctx, tx, projectID, grantNumber); err != nil {
-		return fmt.Errorf("request_account_create: creating/finding project: %w", err)
-	}
-
 	role := normalizeRole(getString(body, "UserRole"))
-	if _, err := h.membershipSvc.CreateMembership(ctx, tx, projectID, account.ID, role); err != nil {
-		return fmt.Errorf("request_account_create: creating %s membership: %w", role, err)
+	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID)
+	if err != nil {
+		return fmt.Errorf("request_account_create: ensure membership: %w", err)
 	}
-	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "membership", "", ""); err != nil {
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", membership.ID,
+		fmt.Sprintf("allocation=%s user=%s role=%s", allocation.ID, user.ID, role)); err != nil {
 		return fmt.Errorf("request_account_create: audit CREATE_MEMBERSHIP: %w", err)
 	}
 
-	// Build and send the reply.
 	replyBody := map[string]any{
 		"ProjectID":           projectID,
-		"GrantNumber":         grantNumber,
-		"UserPersonID":        person.ID,
-		"UserRemoteSiteLogin": account.Username,
+		"GrantNumber":         getString(body, "GrantNumber"),
+		"UserPersonID":        user.ID,
+		"UserRemoteSiteLogin": account.LocalUsername,
 		"ResourceList":        getResourceList(body),
 	}
-	userOrgCode := getString(body, "UserOrgCode")
-	if userOrgCode != "" {
-		replyBody["UserOrgCode"] = userOrgCode
+	if v := getString(body, "UserOrgCode"); v != "" {
+		replyBody["UserOrgCode"] = v
 	}
-
-	reply := map[string]any{
-		"type": "notify_account_create",
-		"body": replyBody,
-	}
-
+	reply := map[string]any{"type": "notify_account_create", "body": replyBody}
 	if err := h.amieClient.ReplyToPacket(ctx, packet.AmieID, reply); err != nil {
 		return fmt.Errorf("request_account_create: sending reply: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditReplySent, "reply", "", ""); err != nil {
 		return fmt.Errorf("request_account_create: audit REPLY_SENT: %w", err)
 	}
-
 	return nil
+}
+
+func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[string]any, globalID string) (*models.User, error) {
+	if u, err := h.svc.GetUserByUserIdentity(ctx, amieIdentitySource, globalID); err == nil {
+		return u, nil
+	} else if !errors.Is(err, service.ErrNotFound) {
+		return nil, err
+	}
+
+	org, err := ensureOrganization(ctx, h.svc, getString(body, "UserOrgCode"), getString(body, "UserOrganization"))
+	if err != nil {
+		return nil, fmt.Errorf("ensure user organization: %w", err)
+	}
+	email := getString(body, "UserEmail")
+	user, err := h.svc.CreateUser(ctx, &models.User{
+		OrganizationID: org.ID,
+		FirstName:      getString(body, "UserFirstName"),
+		LastName:       getString(body, "UserLastName"),
+		Email:          email,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+	if _, err := h.svc.CreateUserIdentity(ctx, &models.UserIdentity{
+		UserID:     user.ID,
+		Source:     amieIdentitySource,
+		ExternalID: globalID,
+		Email:      email,
+	}); err != nil {
+		return nil, fmt.Errorf("create user identity: %w", err)
+	}
+	return user, nil
+}
+
+// ensureComputeClusterUser returns the user's existing cluster mapping on the
+// configured cluster, or provisions a fresh one with a temp posix username.
+func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
+	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute cluster users: %w", err)
+	}
+	for _, a := range existing {
+		if a.ComputeClusterID == h.clusterID {
+			return &a, nil
+		}
+	}
+	return h.svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{
+		UserID:           userID,
+		ComputeClusterID: h.clusterID,
+		LocalUsername:    generateTempPosixUsername(),
+	})
+}
+
+// ensureMembership returns the existing (allocation, user) membership or
+// creates a new one. Idempotent for re-delivered packets.
+func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
+	existing, err := h.svc.ListMembersForAllocation(ctx, allocationID)
+	if err != nil {
+		return nil, fmt.Errorf("list memberships: %w", err)
+	}
+	for _, m := range existing {
+		if m.UserID == userID {
+			return &m, nil
+		}
+	}
+	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
+		ComputeAllocationID: allocationID,
+		UserID:              userID,
+	})
 }

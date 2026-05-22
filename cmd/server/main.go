@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -66,6 +67,8 @@ func run() error {
 	}
 	defer database.Close()
 
+	// Core schema must run before connector migrations because connector
+	// schemas may FK into core tables.
 	if err := db.MigrateEmbedded(database); err != nil {
 		return err
 	}
@@ -74,7 +77,13 @@ func run() error {
 	eventBus := events.New()
 	svc := service.New(database, eventBus)
 
-	if err := connectors.LoadConnectors(eventBus, svc); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// Tracks every background goroutine spawned by connectors so we can wait
+	// for them to drain on shutdown instead of killing them mid-flight.
+	var connectorsWG sync.WaitGroup
+	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG); err != nil {
 		return err
 	}
 
@@ -88,9 +97,6 @@ func run() error {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	serverErr := make(chan error, 1)
 	go func() {
@@ -115,6 +121,20 @@ func run() error {
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		return err
 	}
+
+	slog.Info("waiting for connectors to drain")
+	connectorsDone := make(chan struct{})
+	go func() {
+		connectorsWG.Wait()
+		close(connectorsDone)
+	}()
+	select {
+	case <-connectorsDone:
+		slog.Info("connectors drained cleanly")
+	case <-time.After(30 * time.Second):
+		slog.Warn("connector drain timed out; some workers may have leaked")
+	}
+
 	slog.Info("server stopped cleanly")
 	return nil
 }

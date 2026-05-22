@@ -20,7 +20,9 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
@@ -51,5 +53,58 @@ func MigrateEmbedded(database *sqlx.DB) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	slog.Info("database migrations applied successfully")
+	return nil
+}
+
+// connectorNamePattern restricts connector names to a safe identifier shape so
+// the value can be concatenated into a SQL table name (schema_migrations_<name>)
+// without escaping concerns.
+var connectorNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,30}$`)
+
+// MigrateConnectorFS applies pending migrations from src against the database,
+// tracking version state in schema_migrations_<name> so each connector
+// versions its schema independently of core and of other connectors.
+func MigrateConnectorFS(database *sqlx.DB, src fs.FS, dir, name string) error {
+	if database == nil {
+		return errors.New("database is required")
+	}
+	if src == nil {
+		return errors.New("migration source is required")
+	}
+	if dir == "" {
+		return errors.New("migration directory is required")
+	}
+	if !connectorNamePattern.MatchString(name) {
+		return fmt.Errorf("connector name %q is invalid; must match %s", name, connectorNamePattern)
+	}
+
+	driver, err := mysql.WithInstance(database.DB, &mysql.Config{
+		MigrationsTable: "schema_migrations_" + name,
+	})
+	if err != nil {
+		return fmt.Errorf("create migration driver for %s: %w", name, err)
+	}
+
+	source, err := iofs.New(src, dir)
+	if err != nil {
+		return fmt.Errorf("create migration source for %s: %w", name, err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", source, "mysql", driver)
+	if err != nil {
+		return fmt.Errorf("create migrator for %s: %w", name, err)
+	}
+
+	before, _, _ := m.Version()
+	upErr := m.Up()
+	after, _, _ := m.Version()
+	if upErr != nil && !errors.Is(upErr, migrate.ErrNoChange) {
+		return fmt.Errorf("run migrations for %s: %w", name, upErr)
+	}
+	if errors.Is(upErr, migrate.ErrNoChange) {
+		slog.Info("connector migrations already up to date", "connector", name, "version", after)
+		return nil
+	}
+	slog.Info("connector migrations applied", "connector", name, "from", before, "to", after)
 	return nil
 }

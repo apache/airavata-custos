@@ -19,10 +19,13 @@ package model
 
 import "time"
 
-type ClusterAccount struct {
-	ID        string    `db:"id" json:"id"`
-	PersonID  string    `db:"person_id" json:"person_id"`
-	Username  string    `db:"username" json:"username"`
+// UserDN binds an X.509 distinguished name (e.g. mTLS client cert subject) to
+// a Custos user. AMIE delivers DnList fields that span multiple federated
+// sites, so DN storage is connector-local rather than a core concern.
+// UserID references core users.id by value; no FK enforces it.
+type UserDN struct {
+	ID        string    `db:"id"         json:"id"`
+	UserID    string    `db:"user_id"    json:"user_id"`
+	DN        string    `db:"dn"         json:"dn"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

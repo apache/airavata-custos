@@ -15,8 +15,15 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-DROP TABLE IF EXISTS amie_user_dns;
-DROP TABLE IF EXISTS amie_audit_log;
-DROP TABLE IF EXISTS amie_processing_errors;
-DROP TABLE IF EXISTS amie_processing_events;
-DROP TABLE IF EXISTS amie_packets;
+-- Dev-only seed: inserts a single default compute_clusters row so a
+-- freshly-wiped dev DB can immediately exercise ClusterAccount creation,
+-- AMIE handler flows, and any future feature that requires a cluster
+-- reference. NOT applied automatically. Apply after core has run its
+-- migrations (which create the compute_clusters table):
+--
+--   docker exec -i custos_db mariadb -u admin -padmin custos \
+--     < dev-ops/compose/seeds/default_cluster.sql
+--
+
+INSERT IGNORE INTO compute_clusters (id, name)
+VALUES ('00000000-0000-0000-0000-000000000001', 'default-cluster');

@@ -17,16 +17,13 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# Mock AMIE server for testing the ACCESS CI service with both
-# success and failure scenarios. Simulates the AMIE API endpoints
-# that the service polls.
-#
-# Usage:
-#   python3 mock-amie-server.py
-#
-# Then point the service at: access.amie.base-url=http://localhost:8180
+# Mock AMIE server for testing the ACCESS-AMIE connector. Generates
+# packets that match the canonical AMIE protocol field names (see
+# connectors/ACCESS/AMIE-Processor/testdata/*/incoming-request.json for the
+# reference shapes). Field names are kept identical to what a real AMIE
+# upstream emits so the connector can be exercised end-to-end without a
+# decoder shim.
 
-import json
 import os
 import random
 import time
@@ -38,11 +35,10 @@ app = Flask(__name__)
 
 pending_packets = []
 replied_packets = {}
-packet_counter = 900000  # starting ID
+packet_counter = 900000
 stats = {"created": 0, "fetched": 0, "replied": 0}
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
-
 DEV_EMAIL = os.getenv("DEV_EMAIL", "").strip()
 
 
@@ -70,9 +66,12 @@ def make_packet(packet_type, body, transaction_id=None):
     }
 
 
-# Scenario generators
+# ----- Success generators (canonical AMIE protocol field names) -----
 
 def gen_valid_project_create():
+    """request_project_create — site is being asked to create a new project.
+    Note: AMIE protocol does NOT include ProjectID here; the receiving site
+    assigns one and returns it in notify_project_create."""
     gid = str(random.randint(100000, 999999))
     grant = f"TST{random.randint(100000, 999999)}"
     return make_packet("request_project_create", {
@@ -90,15 +89,17 @@ def gen_valid_project_create():
         "ServiceUnitsAllocated": str(random.randint(1000, 50000)),
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": "mock-cluster.example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     })
 
 
 def gen_valid_account_create():
+    """request_account_create — user requests an account on an existing project."""
     gid = str(random.randint(100000, 999999))
     return make_packet("request_account_create", {
         "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
         "GrantNumber": f"TST{random.randint(100000, 999999)}",
+        "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
         "UserGlobalID": gid,
         "UserFirstName": random.choice(["Frank", "Grace", "Heidi", "Ivan", "Judy"]),
         "UserLastName": random.choice(["Davis", "Garcia", "Rodriguez", "Wilson", "Martinez"]),
@@ -107,112 +108,173 @@ def gen_valid_account_create():
         "UserOrgCode": "MI",
         "NsfStatusCode": "GR",
         "UserDnList": [f"/C=US/O=Mock Institute/CN=User {gid}"],
-        "ResourceList": "mock-cluster.example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     })
 
 
 def gen_valid_user_modify():
+    """request_user_modify — replace user attributes for a known UserGlobalID."""
     gid = str(random.randint(100000, 999999))
     return make_packet("request_user_modify", {
-        "PersonID": f"person-mock-{uuid.uuid4().hex[:8]}",
         "ActionType": "replace",
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "UserPersonID": f"user-person-{uuid.uuid4().hex[:8]}",
+        "UserGlobalID": gid,
         "UserFirstName": "Updated",
         "UserLastName": "Name",
         "UserEmail": f"updated{gid}@example.edu",
         "UserOrganization": "Updated University",
+        "UserOrgCode": "UPD",
+        "NsfStatusCode": "AC",
+    })
+
+
+def gen_valid_user_modify_delete():
+    """request_user_modify — delete a DN from a known user's DN list."""
+    gid = str(random.randint(100000, 999999))
+    return make_packet("request_user_modify", {
+        "ActionType": "delete",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "UserGlobalID": gid,
+        "DnList": [
+            f"/C=US/O=Mock Institute/CN=User {gid}",
+        ],
+    })
+
+
+def gen_valid_data_account_create():
+    """data_account_create — pass DNs for an existing user (looked up by GlobalID)."""
+    gid = str(random.randint(100000, 999999))
+    return make_packet("data_account_create", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "GlobalID": gid,
+        "DnList": [
+            f"/C=US/O=Mock Institute/CN=User {gid}",
+            f"/DC=EDU/CN=user{gid}",
+        ],
+    })
+
+
+def gen_valid_data_project_create():
+    """data_project_create — pass DNs for an existing PI (looked up by GlobalID)."""
+    gid = str(random.randint(100000, 999999))
+    return make_packet("data_project_create", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "GlobalID": gid,
+        "DnList": [
+            f"/C=US/O=Mock University/CN=PI {gid}",
+        ],
+    })
+
+
+def gen_valid_project_inactivate():
+    return make_packet("request_project_inactivate", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "ResourceList": ["mock-cluster.example.edu"],
+        "GrantNumber": f"TST{random.randint(100000, 999999)}",
+    })
+
+
+def gen_valid_project_reactivate():
+    return make_packet("request_project_reactivate", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "ResourceList": ["mock-cluster.example.edu"],
+        "GrantNumber": f"TST{random.randint(100000, 999999)}",
+    })
+
+
+def gen_valid_account_inactivate():
+    return make_packet("request_account_inactivate", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "ResourceList": ["mock-cluster.example.edu"],
+    })
+
+
+def gen_valid_account_reactivate():
+    return make_packet("request_account_reactivate", {
+        "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+        "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+        "ResourceList": ["mock-cluster.example.edu"],
+    })
+
+
+def gen_valid_person_merge():
+    primary = str(random.randint(100000, 999999))
+    secondary = str(random.randint(100000, 999999))
+    return make_packet("request_person_merge", {
+        "KeepGlobalID": primary,
+        "KeepPersonID": f"person-keep-{uuid.uuid4().hex[:8]}",
+        "DeleteGlobalID": secondary,
+        "DeletePersonID": f"person-delete-{uuid.uuid4().hex[:8]}",
+        "MergeReason": "Duplicate person records",
     })
 
 
 def gen_inform_transaction_complete():
+    """Canonical fields: StatusCode, Message, DetailCode."""
     return make_packet("inform_transaction_complete", {
         "StatusCode": "Success",
-        "StatusMessage": "OK",
+        "Message": "OK",
         "DetailCode": "1",
     })
 
 
-# Failure scenarios
+# ----- Failure generators (intentionally malformed) -----
 
 def gen_missing_global_id():
-    """request_account_create with no UserGlobalID — will cause IllegalArgumentException."""
+    """request_account_create with no UserGlobalID."""
     return make_packet("request_account_create", {
         "ProjectID": f"PRJ-FAIL{random.randint(1000, 9999)}",
         "GrantNumber": f"FAIL{random.randint(100000, 999999)}",
-        # UserGlobalID MISSING — required field
         "UserFirstName": "NoGlobalID",
         "UserLastName": "User",
         "UserEmail": "noglobal@example.edu",
-        "ResourceList": "mock-cluster.example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     })
 
 
 def gen_missing_grant_number():
-    """request_project_create with no GrantNumber — will cause IllegalArgumentException."""
+    """request_project_create with no GrantNumber."""
     return make_packet("request_project_create", {
-        # GrantNumber MISSING — required field
         "PiGlobalID": str(random.randint(100000, 999999)),
         "PiFirstName": "NoGrant",
         "PiLastName": "User",
         "PiEmail": "nogrant@example.edu",
         "NsfStatusCode": "AC",
-        "ResourceList": "mock-cluster.example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     })
 
 
-def gen_missing_email():
-    """request_project_create with no PiEmail — known optional field."""
-    gid = str(random.randint(100000, 999999))
+def gen_missing_pi_global_id():
+    """request_project_create with no PiGlobalID."""
     return make_packet("request_project_create", {
-        "GrantNumber": f"NOEMAIL{random.randint(100000, 999999)}",
-        "PiGlobalID": gid,
-        "PiFirstName": "NoEmail",
+        "GrantNumber": f"NOPI{random.randint(100000, 999999)}",
+        "PiFirstName": "NoGlobal",
         "PiLastName": "Person",
-        # PiEmail MISSING — optional per protocol, but we need it
-        "PiOrganization": "No Email University",
+        "PiEmail": "nopi@example.edu",
         "NsfStatusCode": "AC",
-        "PiDnList": [],
-        "ResourceList": "mock-cluster.example.edu",
-    })
-
-
-def gen_missing_pi_name():
-    """request_project_create with no PiFirstName — will cause IllegalArgumentException."""
-    return make_packet("request_project_create", {
-        "GrantNumber": f"NONAME{random.randint(100000, 999999)}",
-        "PiGlobalID": str(random.randint(100000, 999999)),
-        # PiFirstName MISSING — asserted as required
-        "PiLastName": "OnlyLast",
-        "PiEmail": "noname@example.edu",
-        "NsfStatusCode": "AC",
-        "ResourceList": "mock-cluster.example.edu",
-    })
-
-
-def gen_invalid_person_modify():
-    """request_user_modify for a person that doesn't exist in the DB."""
-    return make_packet("request_user_modify", {
-        "PersonID": "nonexistent-person-id-12345",
-        "ActionType": "replace",
-        "UserFirstName": "Ghost",
-        "UserLastName": "User",
-        "UserEmail": "ghost@example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     })
 
 
 def gen_unknown_packet_type():
     """Packet with an unrecognized type — should hit NoOpHandler."""
-    return make_packet("request_something_unknown", {
-        "SomeField": "SomeValue",
-    })
+    return make_packet("request_something_unknown", {"SomeField": "SomeValue"})
 
 
 def gen_empty_body():
-    """Packet with an empty body — should cause NPE or validation failure."""
     return make_packet("request_project_create", {})
 
 
-DEV_USER_GID = "100001"
+# ----- dev_email scripted scenario -----
 
+DEV_USER_GID = "100001"
 DEV_MEMBER_PROJECTS = [
     ("DEV-PROJ-002", "Climate Modeling Group", "Alice", "Smith", "alice.smith@bogus.example.edu", "100002", "CoPI"),
     ("DEV-PROJ-003", "Particle Physics Sim",   "Bob",   "Johnson", "bob.johnson@bogus.example.edu", "100003", "Allocation Manager"),
@@ -224,9 +286,7 @@ def gen_dev_email_scenario():
     if not DEV_EMAIL:
         app.logger.warning("DEV_EMAIL is not set; dev_email scenario emits no packets")
         return []
-
     packets = []
-
     packets.append(make_packet("request_project_create", {
         "GrantNumber": "DEV-PROJ-001",
         "PfosNumber": "PFOS-DEV-PROJ-001",
@@ -242,9 +302,8 @@ def gen_dev_email_scenario():
         "ServiceUnitsAllocated": "100000",
         "StartDate": "2026-01-01",
         "EndDate": "2026-12-31",
-        "ResourceList": "mock-cluster.example.edu",
+        "ResourceList": ["mock-cluster.example.edu"],
     }))
-
     for grant, title, pi_first, pi_last, pi_email, pi_gid, dev_role in DEV_MEMBER_PROJECTS:
         packets.append(make_packet("request_project_create", {
             "GrantNumber": grant,
@@ -261,11 +320,12 @@ def gen_dev_email_scenario():
             "ServiceUnitsAllocated": "50000",
             "StartDate": "2026-01-01",
             "EndDate": "2026-12-31",
-            "ResourceList": "mock-cluster.example.edu",
+            "ResourceList": ["mock-cluster.example.edu"],
         }))
         packets.append(make_packet("request_account_create", {
             "ProjectID": f"PRJ-{grant}",
             "GrantNumber": grant,
+            "UserPersonID": f"person-{DEV_USER_GID}-{grant}",
             "UserGlobalID": DEV_USER_GID,
             "UserFirstName": "Dev",
             "UserLastName": "User",
@@ -275,77 +335,250 @@ def gen_dev_email_scenario():
             "NsfStatusCode": "AC",
             "UserDnList": ["/C=US/O=Dev Lab/CN=Dev User"],
             "UserRole": dev_role,
-            "ResourceList": "mock-cluster.example.edu",
+            "ResourceList": ["mock-cluster.example.edu"],
         }))
-
     return packets
 
 
 # Scenario mix
 
 SUCCESS_GENERATORS = [
-    (gen_valid_project_create, 3),
-    (gen_valid_account_create, 3),
+    (gen_valid_project_create, 2),
+    (gen_valid_account_create, 2),
     (gen_valid_user_modify, 1),
-    (gen_inform_transaction_complete, 2),
+    (gen_valid_user_modify_delete, 1),
+    (gen_valid_data_account_create, 1),
+    (gen_valid_data_project_create, 1),
+    (gen_valid_project_inactivate, 1),
+    (gen_valid_project_reactivate, 1),
+    (gen_valid_account_inactivate, 1),
+    (gen_valid_account_reactivate, 1),
+    (gen_valid_person_merge, 1),
+    (gen_inform_transaction_complete, 1),
 ]
 
 FAILURE_GENERATORS = [
     (gen_missing_global_id, 2),
     (gen_missing_grant_number, 1),
-    (gen_missing_email, 2),
-    (gen_missing_pi_name, 1),
-    (gen_invalid_person_modify, 2),
+    (gen_missing_pi_global_id, 1),
     (gen_unknown_packet_type, 1),
     (gen_empty_body, 1),
 ]
 
 
 def generate_batch(success_count=6, failure_count=4):
-    """Generate a mixed batch of success and failure packets."""
+    """Mixed batch of success and failure packets."""
     packets = []
-
     success_pool = []
     for gen, weight in SUCCESS_GENERATORS:
         success_pool.extend([gen] * weight)
-
     failure_pool = []
     for gen, weight in FAILURE_GENERATORS:
         failure_pool.extend([gen] * weight)
-
     for _ in range(success_count):
-        gen = random.choice(success_pool)
-        packets.append(gen())
-
+        packets.append(random.choice(success_pool)())
     for _ in range(failure_count):
-        gen = random.choice(failure_pool)
-        packets.append(gen())
-
+        packets.append(random.choice(failure_pool)())
     random.shuffle(packets)
     return packets
 
 
-# API endpoints
+def generate_all_handlers_once():
+    """One packet per handler type. Useful for verifying every handler runs.
+
+    For request_person_merge to actually exercise the merge path (rather than
+    erroring on missing users), the scenario pre-creates two users via
+    request_account_create with deterministic UserGlobalIDs before emitting
+    the merge. Same trick for data_account_create / data_project_create:
+    a prior request_account_create establishes the user that the DN-pass
+    handler will look up by GlobalID."""
+    primary_gid = f"merge-primary-{random.randint(100000, 999999)}"
+    secondary_gid = f"merge-secondary-{random.randint(100000, 999999)}"
+    data_user_gid = f"data-user-{random.randint(100000, 999999)}"
+    data_pi_gid = f"data-pi-{random.randint(100000, 999999)}"
+
+    def account_create_with_gid(gid):
+        return make_packet("request_account_create", {
+            "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+            "GrantNumber": f"TST{random.randint(100000, 999999)}",
+            "UserPersonID": f"person-{uuid.uuid4().hex[:8]}",
+            "UserGlobalID": gid,
+            "UserFirstName": "Test",
+            "UserLastName": "User",
+            "UserEmail": f"{gid}@example.edu",
+            "UserOrganization": "Mock Institute",
+            "UserOrgCode": "MI",
+            "NsfStatusCode": "AC",
+            "UserDnList": [],
+            "ResourceList": ["mock-cluster.example.edu"],
+        })
+
+    return [
+        # Set up: create the users that downstream handlers need.
+        account_create_with_gid(primary_gid),
+        account_create_with_gid(secondary_gid),
+        account_create_with_gid(data_user_gid),
+        account_create_with_gid(data_pi_gid),
+        # One packet per handler type:
+        gen_valid_project_create(),
+        gen_valid_account_create(),
+        gen_valid_user_modify(),
+        gen_valid_user_modify_delete(),
+        make_packet("data_account_create", {
+            "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+            "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+            "GlobalID": data_user_gid,
+            "DnList": [f"/C=US/O=Mock/CN=User {data_user_gid}"],
+        }),
+        make_packet("data_project_create", {
+            "ProjectID": f"PRJ-MOCK{random.randint(1000, 9999)}",
+            "PersonID": f"person-{uuid.uuid4().hex[:8]}",
+            "GlobalID": data_pi_gid,
+            "DnList": [f"/C=US/O=Mock/CN=PI {data_pi_gid}"],
+        }),
+        gen_valid_project_inactivate(),
+        gen_valid_project_reactivate(),
+        gen_valid_account_inactivate(),
+        gen_valid_account_reactivate(),
+        make_packet("request_person_merge", {
+            "KeepGlobalID": primary_gid,
+            "KeepPersonID": f"person-keep-{uuid.uuid4().hex[:8]}",
+            "DeleteGlobalID": secondary_gid,
+            "DeletePersonID": f"person-delete-{uuid.uuid4().hex[:8]}",
+            "MergeReason": "all_handlers test scenario",
+        }),
+        gen_inform_transaction_complete(),
+    ]
+
+
+# Deterministic baseline scenario. Skips handlers that need a Custos UUID
+# (request_account_create, the inactivate/reactivate handlers).
+
+def gen_baseline_scenario():
+    return [
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-001",
+            "PfosNumber": "PFOS-BL-001",
+            "ProjectTitle": "Baseline Project 1",
+            "PiGlobalID": "bl-pi-001",
+            "PiFirstName": "Pat",
+            "PiLastName": "First",
+            "PiEmail": "pat.first@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "PiDnList": ["/C=US/O=Baseline Org/CN=Pat First"],
+            "ServiceUnitsAllocated": "10000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "new",
+        }),
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-002",
+            "PfosNumber": "PFOS-BL-002",
+            "ProjectTitle": "Baseline Project 2",
+            "PiGlobalID": "bl-pi-002",
+            "PiFirstName": "Sam",
+            "PiLastName": "Second",
+            "PiEmail": "sam.second@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "PiDnList": [],
+            "ServiceUnitsAllocated": "20000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "new",
+        }),
+        # Re-delivery of BL-001 as a supplement; writes a compute_allocation_diffs row.
+        make_packet("request_project_create", {
+            "GrantNumber": "BL-001",
+            "PfosNumber": "PFOS-BL-001",
+            "ProjectTitle": "Baseline Project 1",
+            "PiGlobalID": "bl-pi-001",
+            "PiFirstName": "Pat",
+            "PiLastName": "First",
+            "PiEmail": "pat.first@baseline.example.edu",
+            "PiOrganization": "Baseline Org",
+            "PiOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "ServiceUnitsAllocated": "5000",
+            "StartDate": "2026-01-01",
+            "EndDate": "2026-12-31",
+            "ResourceList": ["baseline-cluster.example.edu"],
+            "AllocationType": "supplement",
+        }),
+        make_packet("data_project_create", {
+            "ProjectID": "BL-001",
+            "PersonID": "bl-pi-001-person",
+            "GlobalID": "bl-pi-001",
+            "DnList": [
+                "/C=US/O=Baseline Org/CN=Pat First Extra",
+                "/DC=EDU/CN=patfirst",
+            ],
+        }),
+        make_packet("data_account_create", {
+            "ProjectID": "BL-002",
+            "PersonID": "bl-pi-002-person",
+            "GlobalID": "bl-pi-002",
+            "DnList": [
+                "/C=US/O=Baseline Org/CN=Sam Second",
+            ],
+        }),
+        make_packet("request_user_modify", {
+            "ActionType": "replace",
+            "ProjectID": "BL-001",
+            "PersonID": "bl-pi-001-person",
+            "UserPersonID": "bl-pi-001-user",
+            "UserGlobalID": "bl-pi-001",
+            "UserFirstName": "Pat",
+            "UserLastName": "First-Updated",
+            "UserEmail": "pat.first.updated@baseline.example.edu",
+            "UserOrganization": "Baseline Org",
+            "UserOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+        }),
+        make_packet("request_person_merge", {
+            "KeepGlobalID": "bl-pi-001",
+            "KeepPersonID": "bl-keep-person",
+            "DeleteGlobalID": "bl-pi-002",
+            "DeletePersonID": "bl-delete-person",
+            "MergeReason": "Duplicate person records",
+        }),
+        # Remove one of the survivor's DNs via the delete ActionType.
+        make_packet("request_user_modify", {
+            "ActionType": "delete",
+            "PersonID": "bl-pi-001-person",
+            "UserGlobalID": "bl-pi-001",
+            "DnList": [
+                "/DC=EDU/CN=patfirst",
+            ],
+        }),
+        make_packet("inform_transaction_complete", {
+            "StatusCode": "Success",
+            "Message": "Baseline complete",
+            "DetailCode": "1",
+        }),
+    ]
+
+
+# ----- API endpoints -----
 
 @app.route("/packets/<site>", methods=["GET"])
 def get_packets(site):
-    """Return pending packets (mimics AMIE API poll).
-    Returns a JSON array at the top level, matching the format
-    that AmieClient.parsePacketsFromResponse() expects."""
     if not pending_packets:
         return jsonify([])
-
     batch = list(pending_packets)
     pending_packets.clear()
     stats["fetched"] += len(batch)
-
     app.logger.info(f"Serving {len(batch)} packets to site {site}")
     return jsonify(batch)
 
 
 @app.route("/packets/<site>/<int:packet_rec_id>/reply", methods=["POST"])
 def reply_to_packet(site, packet_rec_id):
-    """Accept a reply from the service."""
     replied_packets[packet_rec_id] = request.get_json(silent=True)
     stats["replied"] += 1
     return jsonify({"message": "Reply accepted"}), 200
@@ -353,7 +586,6 @@ def reply_to_packet(site, packet_rec_id):
 
 @app.route("/test/<site>/reset", methods=["POST"])
 def reset(site):
-    """Reset all state."""
     pending_packets.clear()
     replied_packets.clear()
     stats["created"] = 0
@@ -365,9 +597,7 @@ def reset(site):
 
 @app.route("/test/<site>/scenarios", methods=["POST"])
 def create_scenario(site):
-    """Generate a batch of mixed success/failure scenarios."""
     scenario_type = request.args.get("type", "mixed")
-
     if scenario_type == "mixed":
         packets = generate_batch(success_count=6, failure_count=4)
     elif scenario_type == "failures_only":
@@ -376,42 +606,40 @@ def create_scenario(site):
         packets = generate_batch(success_count=8, failure_count=0)
     elif scenario_type == "heavy":
         packets = generate_batch(success_count=15, failure_count=10)
+    elif scenario_type == "all_handlers":
+        packets = generate_all_handlers_once()
     elif scenario_type == "dev_email":
         packets = gen_dev_email_scenario()
+    elif scenario_type == "baseline":
+        packets = gen_baseline_scenario()
     else:
         packets = generate_batch(success_count=3, failure_count=2)
-
     pending_packets.extend(packets)
     stats["created"] += len(packets)
-
     app.logger.info(f"Created {len(packets)} packets ({scenario_type}) for site {site}")
     return jsonify({"message": "Test scenario initiated", "result": None})
 
 
 @app.route("/stats", methods=["GET"])
 def get_stats():
-    """Stats endpoint for debugging."""
-    return jsonify({
-        "pending": len(pending_packets),
-        "replied": len(replied_packets),
-        "stats": stats,
-    })
+    return jsonify({"pending": len(pending_packets), "replied": len(replied_packets), "stats": stats})
 
 
 if __name__ == "__main__":
     print("Mock AMIE Server starting on http://localhost:8180")
-    print("Point your service at: access.amie.base-url=http://localhost:8180")
-    print("")
+    print("Point your connector at: AMIE_BASE_URL=http://localhost:8180")
+    print()
     print("Scenario types:")
     print("  POST /test/{site}/scenarios?type=mixed          — 6 success + 4 failure")
     print("  POST /test/{site}/scenarios?type=failures_only  — 8 failures")
     print("  POST /test/{site}/scenarios?type=success_only   — 8 successes")
     print("  POST /test/{site}/scenarios?type=heavy          — 15 success + 10 failure")
-    print("  POST /test/{site}/scenarios?type=dev_email      — scripted set placing DEV_EMAIL across projects")
-    print("")
+    print("  POST /test/{site}/scenarios?type=all_handlers   — one packet per handler type")
+    print("  POST /test/{site}/scenarios?type=dev_email      — scripted dev_email scenario")
+    print()
     if DEV_EMAIL:
         print(f"DEV_EMAIL injection enabled: {DEV_EMAIL}")
     else:
-        print("DEV_EMAIL is unset — set it (e.g. DEV_EMAIL=you@example.edu) to use the dev_email scenario")
-    print("")
+        print("DEV_EMAIL unset; dev_email scenario will be empty")
+    print()
     app.run(host="0.0.0.0", port=8180, debug=False)
