@@ -6,7 +6,7 @@ import (
 )
 
 func TestCreateInvalidAssocation_Integration(t *testing.T) {
-	if !isLocalSlurmConfigAvailable() {
+	if !IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for association creation because local SLURM config is not available")
 	}
 
@@ -36,7 +36,7 @@ func TestCreateInvalidAssocation_Integration(t *testing.T) {
 }
 
 func TestCreateValidAssociation_Integration(t *testing.T) {
-	if !isLocalSlurmConfigAvailable() {
+	if !IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for association creation because local SLURM config is not available")
 	}
 
@@ -47,7 +47,7 @@ func TestCreateValidAssociation_Integration(t *testing.T) {
 
 	client := New(apiUrl, user, token, apiVersion)
 
-	crearteAndValidateAccount(t, client)
+	CrearteAndValidateAccount(t, client)
 
 	association := Association{
 		Account:   "test_account",
@@ -82,7 +82,7 @@ func TestCreateValidAssociation_Integration(t *testing.T) {
 }
 
 func TestDeleteAssociation_Integration(t *testing.T) {
-	if !isLocalSlurmConfigAvailable() {
+	if !IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for association deletion because local SLURM config is not available")
 	}
 
@@ -93,7 +93,7 @@ func TestDeleteAssociation_Integration(t *testing.T) {
 
 	client := New(apiUrl, user, token, apiVersion)
 
-	crearteAndValidateAccount(t, client)
+	CrearteAndValidateAccount(t, client)
 	defer client.DeleteAccount("test_account") // clean up after test
 
 	association := Association{

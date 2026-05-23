@@ -308,6 +308,24 @@ type ComputeAllocationMembershipResourceOverrideStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// AuditEventStore defines persistence operations for the append-only log
+// of audit events emitted as domain entities are created, updated, and
+// deleted.
+type AuditEventStore interface {
+	// FindByID returns the audit event with the given ID, or nil if not found.
+	FindByID(ctx context.Context, id string) (*models.AuditEvent, error)
+	// FindByEntity returns every audit event recorded against the given entity,
+	// ordered by event_time ascending.
+	FindByEntity(ctx context.Context, entityID string) ([]models.AuditEvent, error)
+	// FindByEventType returns every audit event of the given type, ordered by
+	// event_time ascending.
+	FindByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error)
+	// Create inserts a new audit event within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error
+	// Delete removes an audit event by ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.

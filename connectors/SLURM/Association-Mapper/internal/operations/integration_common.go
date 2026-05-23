@@ -3,14 +3,14 @@ package operations
 import "os"
 import "testing"
 
-func isLocalSlurmConfigAvailable() bool {
+func IsLocalSlurmConfigAvailable() bool {
 	if os.Getenv("TEST_SLURM_API") == "" || os.Getenv("TEST_SLURM_USER") == "" || os.Getenv("TEST_SLURM_TOKEN") == "" || os.Getenv("TEST_SLURM_API_VERSION") == "" {
 		return false
 	}
 	return true
 }
 
-func crearteAndValidateAccount(t *testing.T, client *Client) {
+func CrearteAndValidateAccount(t *testing.T, client *Client) {
 
 	err := client.CreateAccount(Account{
 		Name:         "test_account",

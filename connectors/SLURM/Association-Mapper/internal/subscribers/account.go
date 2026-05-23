@@ -19,24 +19,52 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(computeAcco
 	cluster, err := a.coreService.GetComputeCluster(ctx, computeAccount.ComputeClusterID)
 	if err != nil {
 		slog.Error("Failed to get compute cluster for allocation creation", "error", err)
+		auditEvent := models.AuditEvent{
+			EventType: "ComputeAllocationCreationFailed",
+			Details:   err.Error(),
+			EntityID:  computeAccount.ID,
+			EventTime: time.Now(),
+		}
+		a.coreService.CreateAuditEvent(ctx, &auditEvent)
 		return
 	}
 
 	project, err := a.coreService.GetProject(ctx, computeAccount.ProjectID)
 	if err != nil {
 		slog.Error("Failed to get project for allocation creation", "error", err)
+		auditEvent := models.AuditEvent{
+			EventType: "ComputeAllocationCreationFailed",
+			Details:   err.Error(),
+			EntityID:  computeAccount.ID,
+			EventTime: time.Now(),
+		}
+		a.coreService.CreateAuditEvent(ctx, &auditEvent)
 		return
 	}
 
 	pi, err := a.coreService.GetUser(ctx, project.ProjectPIID)
 	if err != nil {
 		slog.Error("Failed to get project PI for allocation creation", "error", err)
+		auditEvent := models.AuditEvent{
+			EventType: "ComputeAllocationCreationFailed",
+			Details:   err.Error(),
+			EntityID:  computeAccount.ID,
+			EventTime: time.Now(),
+		}
+		a.coreService.CreateAuditEvent(ctx, &auditEvent)
 		return
 	}
 
 	organization, err := a.coreService.GetOrganization(ctx, pi.OrganizationID)
 	if err != nil {
 		slog.Error("Failed to get organization for allocation creation", "error", err)
+		auditEvent := models.AuditEvent{
+			EventType: "ComputeAllocationCreationFailed",
+			Details:   err.Error(),
+			EntityID:  computeAccount.ID,
+			EventTime: time.Now(),
+		}
+		a.coreService.CreateAuditEvent(ctx, &auditEvent)
 		return
 	}
 
@@ -49,7 +77,25 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(computeAcco
 	err = a.slurmClient.CreateAccount(slurmAccount, cluster.Name) // TODO: where to get cluster name from?
 	if err != nil {
 		slog.Error("Failed to create SLURM account", "error", err)
+		auditEvent := models.AuditEvent{
+			EventType: "ComputeAllocationCreationFailed",
+			Details:   err.Error(),
+			EntityID:  computeAccount.ID,
+			EventTime: time.Now(),
+		}
+		a.coreService.CreateAuditEvent(ctx, &auditEvent)
+		return
 	}
+
+	auditEvent := models.AuditEvent{
+		EventType: "ComputeAllocationCreationSucceeded",
+		Details:   "Successfully created SLURM account for compute allocation",
+		EntityID:  computeAccount.ID,
+		EventTime: time.Now(),
+	}
+	a.coreService.CreateAuditEvent(ctx, &auditEvent)
+
+	slog.Info("Successfully created SLURM account for compute allocation", "account", slurmAccount)
 }
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(computeAccount models.ComputeAllocation) {
