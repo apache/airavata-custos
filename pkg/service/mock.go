@@ -212,6 +212,9 @@ var _ CoreService = &CoreServiceMock{}
 //			GetUserIdentityBySourceAndExternalIDFunc: func(ctx context.Context, source string, externalID string) (*models.UserIdentity, error) {
 //				panic("mock out the GetUserIdentityBySourceAndExternalID method")
 //			},
+//			ListAllAuditEventsFunc: func(ctx context.Context) ([]*models.AuditEvent, error) {
+//				panic("mock out the ListAllAuditEvents method")
+//			},
 //			ListAllocationsForResourceFunc: func(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
 //				panic("mock out the ListAllocationsForResource method")
 //			},
@@ -533,6 +536,9 @@ type CoreServiceMock struct {
 
 	// GetUserIdentityBySourceAndExternalIDFunc mocks the GetUserIdentityBySourceAndExternalID method.
 	GetUserIdentityBySourceAndExternalIDFunc func(ctx context.Context, source string, externalID string) (*models.UserIdentity, error)
+
+	// ListAllAuditEventsFunc mocks the ListAllAuditEvents method.
+	ListAllAuditEventsFunc func(ctx context.Context) ([]*models.AuditEvent, error)
 
 	// ListAllocationsForResourceFunc mocks the ListAllocationsForResource method.
 	ListAllocationsForResourceFunc func(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error)
@@ -1127,6 +1133,11 @@ type CoreServiceMock struct {
 			// ExternalID is the externalID argument value.
 			ExternalID string
 		}
+		// ListAllAuditEvents holds details about calls to the ListAllAuditEvents method.
+		ListAllAuditEvents []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// ListAllocationsForResource holds details about calls to the ListAllocationsForResource method.
 		ListAllocationsForResource []struct {
 			// Ctx is the ctx argument value.
@@ -1489,6 +1500,7 @@ type CoreServiceMock struct {
 	lockGetUserIdentity                                      sync.RWMutex
 	lockGetUserIdentityByOIDCSub                             sync.RWMutex
 	lockGetUserIdentityBySourceAndExternalID                 sync.RWMutex
+	lockListAllAuditEvents                                   sync.RWMutex
 	lockListAllocationsForResource                           sync.RWMutex
 	lockListAllocationsForUser                               sync.RWMutex
 	lockListAuditEventsByEntity                              sync.RWMutex
@@ -3873,6 +3885,38 @@ func (mock *CoreServiceMock) GetUserIdentityBySourceAndExternalIDCalls() []struc
 	mock.lockGetUserIdentityBySourceAndExternalID.RLock()
 	calls = mock.calls.GetUserIdentityBySourceAndExternalID
 	mock.lockGetUserIdentityBySourceAndExternalID.RUnlock()
+	return calls
+}
+
+// ListAllAuditEvents calls ListAllAuditEventsFunc.
+func (mock *CoreServiceMock) ListAllAuditEvents(ctx context.Context) ([]*models.AuditEvent, error) {
+	if mock.ListAllAuditEventsFunc == nil {
+		panic("CoreServiceMock.ListAllAuditEventsFunc: method is nil but CoreService.ListAllAuditEvents was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockListAllAuditEvents.Lock()
+	mock.calls.ListAllAuditEvents = append(mock.calls.ListAllAuditEvents, callInfo)
+	mock.lockListAllAuditEvents.Unlock()
+	return mock.ListAllAuditEventsFunc(ctx)
+}
+
+// ListAllAuditEventsCalls gets all the calls that were made to ListAllAuditEvents.
+// Check the length with:
+//
+//	len(mockedCoreService.ListAllAuditEventsCalls())
+func (mock *CoreServiceMock) ListAllAuditEventsCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockListAllAuditEvents.RLock()
+	calls = mock.calls.ListAllAuditEvents
+	mock.lockListAllAuditEvents.RUnlock()
 	return calls
 }
 

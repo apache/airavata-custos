@@ -77,6 +77,18 @@ func (s *mysqlAuditEventStore) FindByEventType(ctx context.Context, eventType st
 	return rows, nil
 }
 
+func (s *mysqlAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEvent, error) {
+	var rows []*models.AuditEvent
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT `+auditEventColumns+`
+		 FROM audit_events
+		 ORDER BY event_time`)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func (s *mysqlAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO audit_events (id, event_type, event_time, entity_id, details)
