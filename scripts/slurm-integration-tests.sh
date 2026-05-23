@@ -12,9 +12,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${REPO_ROOT}"
 
-# make -s -C dev-ops/local-slurm down
-# make -s -C dev-ops/local-slurm build
-# make -s -C dev-ops/local-slurm up
+make -s -C dev-ops/local-slurm down
+make -s -C dev-ops/local-slurm build
+make -s -C dev-ops/local-slurm up
 
 # Mint a fresh SLURM JWT via the local-slurm Makefile target.
 # `make token` prints e.g. `SLURM_JWT=eyJhbGciOi...` — strip the prefix.
@@ -32,6 +32,9 @@ export TEST_SLURM_TOKEN="${TOKEN_LINE#SLURM_JWT=}"
 echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
 
  go test -tags integration -v -count=1 \
+    ./connectors/SLURM/Association-Mapper/internal/operations/...
+
+ go test -tags integration -v -count=1 \
     ./connectors/SLURM/Association-Mapper/internal/subscribers/...
 
 
@@ -45,4 +48,4 @@ echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
 #  ./connectors/SLURM/Association-Mapper/internal/operations/associations_integration_test.go
 
 
-# make -s -C dev-ops/local-slurm down
+make -s -C dev-ops/local-slurm down
