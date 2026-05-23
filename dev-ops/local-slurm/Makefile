@@ -31,3 +31,9 @@ logs:
 
 token:
 	docker compose exec login scontrol token
+
+allocations:
+	docker compose exec login sacct -n -o JobID,State --starttime now-5minutes
+
+associations:
+	docker compose exec login sacctmgr list associations format=Account,User,GrpTRES,GrpTRESMins,QOS

@@ -320,6 +320,8 @@ type AuditEventStore interface {
 	// FindByEventType returns every audit event of the given type, ordered by
 	// event_time ascending.
 	FindByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error)
+	// ListAll returns every audit event ordered by event_time ascending.
+	ListAll(ctx context.Context) ([]*models.AuditEvent, error)
 	// Create inserts a new audit event within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error
 	// Delete removes an audit event by ID within the provided transaction.

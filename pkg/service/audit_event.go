@@ -93,6 +93,15 @@ func (s *Service) ListAuditEventsByEventType(ctx context.Context, eventType stri
 	return rows, nil
 }
 
+// ListAllAuditEvents returns every audit event ordered by event_time ascending.
+func (s *Service) ListAllAuditEvents(ctx context.Context) ([]*models.AuditEvent, error) {
+	rows, err := s.auditEvents.ListAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list all audit events: %w", err)
+	}
+	return rows, nil
+}
+
 // DeleteAuditEvent removes an audit event by ID.
 func (s *Service) DeleteAuditEvent(ctx context.Context, id string) error {
 	if id == "" {

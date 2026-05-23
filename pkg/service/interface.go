@@ -210,6 +210,7 @@ type AuditEventService interface {
 	GetAuditEvent(ctx context.Context, id string) (*models.AuditEvent, error)
 	ListAuditEventsByEntity(ctx context.Context, entityID string) ([]models.AuditEvent, error)
 	ListAuditEventsByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error)
+	ListAllAuditEvents(ctx context.Context) ([]*models.AuditEvent, error)
 	DeleteAuditEvent(ctx context.Context, id string) error
 }
 
