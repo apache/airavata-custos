@@ -1,7 +1,6 @@
 package subscribers
 
 import (
-	//"log"
 	"context"
 	"fmt"
 	operations "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
@@ -251,7 +250,7 @@ func TestSubscribeToComputeAllocationResourceMappingCreation(t *testing.T) {
 			return &models.ComputeAllocation{ID: id, Name: computeAllocationName, ComputeClusterID: clusterID}, nil
 		},
 		GetComputeAllocationResourceFunc: func(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
-			return &models.ComputeAllocationResource{ID: id, Name: partitionName, ResourceType: "cpu8", ResourceAmount: 1000}, nil
+			return &models.ComputeAllocationResource{ID: id, Name: partitionName, ResourceType: "cpu", ResourceAmount: 1000}, nil
 		},
 		ListAllAuditEventsFunc: func(ctx context.Context) ([]*models.AuditEvent, error) {
 			return auditEvents, nil
