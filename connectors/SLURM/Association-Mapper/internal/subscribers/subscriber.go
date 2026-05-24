@@ -1,8 +1,14 @@
 package subscribers
 
-import client "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
-import "github.com/apache/airavata-custos/pkg/events"
-import "github.com/apache/airavata-custos/pkg/service"
+import (
+	"context"
+	"time"
+
+	client "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
+	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
+)
 
 type AssociationSubscriber struct {
 	slurmClient *client.Client
@@ -25,4 +31,14 @@ func (a *AssociationSubscriber) RegisterSubscribers() {
 	a.eventBus.SubscribeComputeAllocationMembershipCreated(a.SubscribeToComputeAllocationMembershipCreation)
 	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(a.SubscribeToComputeAllocationMembershipResourceOverrideCreation)
 	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(a.SubscribeToComputeAllocationResourceMappingCreation)
+}
+
+func (a *AssociationSubscriber) recordAuditEvent(eventType, entityId, message string) {
+	auditEvent := &models.AuditEvent{
+		EventType: eventType,
+		EntityID:  entityId,
+		Details:   message,
+		EventTime: time.Now(),
+	}
+	a.coreService.CreateAuditEvent(context.Background(), auditEvent)
 }
