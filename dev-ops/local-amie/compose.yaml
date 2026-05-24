@@ -1,0 +1,56 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Isolated DB + mock-AMIE stack for AMIE connector integration tests.
+# Ports are deliberately offset from the dev-ops/compose stack so both can
+# coexist on one developer machine.
+
+services:
+  db:
+    container_name: custos_amie_test_db
+    image: mariadb:11.2
+    restart: "no"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_USER: admin
+      MARIADB_PASSWORD: admin
+      MAX_ALLOWED_PACKET: 1073741824
+    volumes:
+      - ../compose/dbinit:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD", "mariadb-admin", "ping", "-uroot", "-proot", "--silent" ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  mock-amie:
+    container_name: custos_amie_test_mock
+    build:
+      context: ../../connectors/ACCESS/AMIE-Processor/mock-server
+      dockerfile: ../../../../dev-ops/local-amie/Dockerfile.mock
+    restart: "no"
+    ports:
+      - "8181:8180"
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8180/packets/TESTSITE').read()" ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
