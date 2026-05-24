@@ -21,30 +21,35 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		slog.Error("Failed to get compute cluster", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
 
 	user, err := a.coreService.GetUser(ctx, membership.UserID)
 	if err != nil {
 		slog.Error("Failed to get user", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, user.ID) // TODO: use this to get the local username for the association instead of assuming it's the same as the Airavata Custos username
 	if err != nil {
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
 	resources, err := a.coreService.ListResourcesForAllocation(ctx, allocation.ID) // TODO: use this to get the partition for the association instead of hardcoding it to "default"
 	if err != nil {
 		slog.Error("Failed to list resources for allocation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to list resources for allocation. Error: "+err.Error())
 		return
 	}
 
@@ -56,14 +61,16 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(
 		Account:   allocation.Name,
 		Cluster:   cluster.Name,
 		User:      csu.LocalUsername,
-		Partition: resources[0].Name,
+		Partition: resources[0].Name, // TODO: do for each resource
 	}
 
 	err = a.slurmClient.UpsertAssociation(association)
 	if err != nil {
 		slog.Error("Failed to upsert association", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association", "association", association)
+		a.recordAuditEvent("ComputeAllocationMembershipCreationSucceeded", membership.ID, "Successfully upserted association.")
 	}
 }
 
@@ -78,12 +85,14 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	membership, err := a.coreService.GetComputeAllocationMembership(ctx, override.ComputeAllocationMembershipID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation membership for resource override creation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
 		return
 	}
 
 	allocationResource, err := a.coreService.GetComputeAllocationResource(ctx, override.ComputeAllocationResourceID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation resource for resource override creation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation resource. Error: "+err.Error())
 		return
 	}
 
@@ -93,24 +102,28 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		slog.Error("Failed to get compute cluster", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
 
 	user, err := a.coreService.GetUser(ctx, membership.UserID)
 	if err != nil {
 		slog.Error("Failed to get user", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, user.ID) // TODO: use this to get the local username for the association instead of assuming it's the same as the Airavata Custos username
 	if err != nil {
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
@@ -148,7 +161,9 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	err = a.slurmClient.UpsertAssociation(association)
 	if err != nil {
 		slog.Error("Failed to upsert association for membership resource override creation", "error", err)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association for membership resource override creation", "association", association)
+		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationSucceeded", override.ID, "Successfully upserted association.")
 	}
 }
