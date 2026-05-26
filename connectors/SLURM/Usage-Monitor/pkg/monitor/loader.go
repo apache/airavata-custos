@@ -1,17 +1,15 @@
-package smapper
+package monitor
 
 import (
 	"context"
+	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/internal/smonitor"
+	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/service"
+	"github.com/jmoiron/sqlx"
 	"log/slog"
 	"os"
 	"sync"
-
-	"github.com/jmoiron/sqlx"
-
-	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/subscribers"
-	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
-	"github.com/apache/airavata-custos/pkg/events"
-	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
@@ -22,12 +20,12 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	token := os.Getenv("SLURM_TOKEN")
 	apiVersion := os.Getenv("SLURM_API_VERSION")
 	if apiUrl == "" || user == "" || token == "" || apiVersion == "" {
-		slog.Info("SLURM API credentials not fully provided, skipping SLURM Association Mapper connector")
+		slog.Info("SLURM API credentials not fully provided, skipping SLURM Usage Monitor connector")
 		slog.Info("SLURM API credentials", "apiUrl", apiUrl, "user", user, "token", token, "apiVersion", apiVersion)
 		return nil
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService).RegisterSubscribers()
+	go smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService).StartMonitor()
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -37,6 +38,8 @@ func (c *Client) do(method, path string, body any, out any) (*http.Response, err
 			return nil, err
 		}
 		reqBody = bytes.NewReader(buf)
+
+		log.Printf("Request body: %s", string(buf))
 	}
 	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
 	if err != nil {

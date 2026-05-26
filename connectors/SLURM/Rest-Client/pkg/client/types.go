@@ -184,3 +184,61 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+type JobTime struct {
+	Elapsed    int64 `json:"elapsed"`
+	Eligible   int64 `json:"eligible"`
+	End        int64 `json:"end"`
+	Start      int64 `json:"start"`
+	Submission int64 `json:"submission"`
+	Suspended  int64 `json:"suspended"`
+}
+
+type JobTresInfo struct {
+	Allocated []TRES `json:"allocated,omitempty"`
+	Requested []TRES `json:"requested,omitempty"`
+}
+
+type JobExitInfo struct {
+	Status     []string    `json:"status"`
+	ReturnCode slurmNumber `json:"return_code"`
+}
+
+type JobInfo struct {
+	Account         string      `json:"account"`
+	Cluster         string      `json:"cluster"`
+	Time            JobTime     `json:"time"`
+	JobID           int64       `json:"job_id"`
+	Name            string      `json:"name"`
+	Partition       string      `json:"partition"`
+	QoS             string      `json:"qos"`
+	User            string      `json:"user"`
+	Nodes           string      `json:"nodes"`
+	Tres            JobTresInfo `json:"tres"`
+	ExitCode        JobExitInfo `json:"exit_code"`
+	DerivedExitCode JobExitInfo `json:"derived_exit_code"`
+}
+
+type JobSubmitParam struct {
+	Account           string      `json:"account"`
+	Partition         string      `json:"partition,omitempty"`
+	QoS               string      `json:"qos,omitempty"`
+	Name              string      `json:"name,omitempty"`
+	Tasks             int64       `json:"tasks,omitempty"`
+	CurrentWorkingDir string      `json:"current_working_directory,omitempty"`
+	Environment       []string    `json:"environment,omitempty"`
+	CpusPerTask       int64       `json:"cpus_per_task,omitempty"`
+	Memory            int64       `json:"memory,omitempty"`
+	TimeLimit         slurmNumber `json:"time_limit,omitempty"` // seconds
+}
+
+type JobSubmitRequest struct {
+	JobSubmitParam JobSubmitParam `json:"job"`
+	Script         string         `json:"script"`
+}
+
+type JobSubmitResponse struct {
+	JobID            int64  `json:"job_id"`
+	StepID           string `json:"step_id"`
+	JobSubmitUserMsg string `json:"job_submit_user_msg"`
+}
