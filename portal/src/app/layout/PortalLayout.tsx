@@ -1,3 +1,6 @@
+// Persistent portal chrome (sidebar nav + header) rendered around every
+// route. Owns the unauthenticated → signIn() redirect and surfaces the
+// signed-in user/email in the header.
 "use client";
 
 import type React from "react";
@@ -26,8 +29,10 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      // No provider id: NextAuth picks the registered provider (OIDC in prod,
-      // dev Credentials fallback when OIDC_ISSUER_URL is unset).
+      // Calling signIn() without a provider id lets NextAuth route to
+      // whichever provider is registered at runtime — `cilogon` in
+      // production, the dev Credentials fallback when OIDC_ISSUER_URL is
+      // unset. See auth.ts for how the provider list is built.
       signIn();
     }
   }, [status]);

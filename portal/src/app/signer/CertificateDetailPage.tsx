@@ -1,3 +1,6 @@
+// Certificate detail panel for /signer/certificates/[serial]. Rendered as
+// a right-side overlay above a blurred snapshot of the list so users keep
+// list context while inspecting or revoking a single certificate.
 "use client";
 
 import type React from "react";

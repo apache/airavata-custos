@@ -1,3 +1,6 @@
+// Shared stub for nav entries that don't yet have a real backend or UI.
+// Kept intentionally minimal — no fake datasets or invented behavior — so
+// reviewers can tell unfinished sections apart from working ones.
 import type React from "react";
 
 type Props = {
@@ -6,8 +9,6 @@ type Props = {
   children?: React.ReactNode;
 };
 
-// Shared stub for nav entries that don't yet have a real backend or UI.
-// Kept intentionally minimal — no fake datasets or invented behavior.
 export function PlaceholderPage({ title, description, children }: Props) {
   return (
     <section className="mx-auto max-w-3xl space-y-6">

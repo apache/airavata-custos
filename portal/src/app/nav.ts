@@ -1,3 +1,8 @@
+// Sidebar navigation manifest. Each entry maps a label and Lucide icon to
+// a route under the App Router. Only /signer/certificates is fully
+// implemented today; the rest point at PlaceholderPage stubs so the
+// sidebar matches the reference layout.
+// TODO: replace placeholders once the corresponding portal areas exist.
 import {
   BadgeCheck,
   LayoutDashboard,
@@ -6,9 +11,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-// Only /signer/certificates is fully implemented; the others render
-// PlaceholderPage stubs so the sidebar mirrors the reference layout.
-// TODO: replace placeholders once the corresponding portal areas exist.
 export const navItems = [
   {
     label: "Overview",

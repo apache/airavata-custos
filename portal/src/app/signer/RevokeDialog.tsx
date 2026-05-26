@@ -1,3 +1,6 @@
+// Modal that confirms a certificate revocation and submits it through
+// useRevokeCertificate. Lives next to the detail page since it's the only
+// caller, but is split out so it can be unit-tested independently later.
 "use client";
 
 import { useState } from "react";

@@ -1,3 +1,16 @@
+/**
+ * Browser → Signer API proxy.
+ *
+ * All calls to /api/v1/* from the portal client are server-handled here and
+ * forwarded to the signer service. The proxy exists to keep the signer's
+ * client credentials and the user's session token server-side: nothing
+ * sensitive ever reaches the browser bundle.
+ *
+ * GET endpoints (e.g. /userinfo, /certificates, /certificates/{serial}) are
+ * scoped to the signed-in user and require a session bearer. POST endpoints
+ * (currently /revoke) act on behalf of the portal as an OAuth client and
+ * use signer-issued client credentials instead.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../auth";
 import {
@@ -25,8 +38,6 @@ async function proxySignerRequest(
   context: Context,
   authScheme: "bearer" | "client"
 ) {
-  // Mirror the browser-facing /api/v1 route onto the local Signer backend while
-  // injecting the auth scheme expected by each endpoint family.
   const { path } = await context.params;
   const upstreamUrl = new URL(`/api/v1/${path.join("/")}`, API_BASE_URL);
   upstreamUrl.search = request.nextUrl.search;
@@ -39,6 +50,10 @@ async function proxySignerRequest(
   }
 
   if (authScheme === "bearer") {
+    // Read the session server-side and forward the issuer-issued access
+    // token to the signer. A missing session means an anonymous request,
+    // which the signer would reject anyway — short-circuit with a clearer
+    // 401 so the client doesn't have to decode an upstream HTML error.
     const session = await auth();
 
     if (!session?.accessToken) {
@@ -50,6 +65,8 @@ async function proxySignerRequest(
 
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   } else {
+    // Client-credentials path. Used for endpoints the signer treats as
+    // portal-initiated rather than user-initiated (e.g. revocations).
     headers.set("X-Client-Id", CLIENT_ID);
     headers.set("X-Client-Secret", CLIENT_SECRET);
   }
@@ -58,7 +75,8 @@ async function proxySignerRequest(
     method: request.method,
     headers,
     body: request.method === "GET" ? undefined : await request.text(),
-    // Certificate state should reflect the signer service, not a cached route.
+    // Certificate state changes outside the request lifetime (issuance,
+    // revocation), so route caching would hand back stale data.
     cache: "no-store",
   });
 

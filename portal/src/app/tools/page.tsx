@@ -1,3 +1,5 @@
+// Route stub for the Tools sidebar entry; replaced once gateway tooling
+// integrations land.
 import { PlaceholderPage } from "../components/PlaceholderPage";
 
 export default function ToolsPage() {

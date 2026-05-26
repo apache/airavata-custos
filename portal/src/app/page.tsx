@@ -1,3 +1,5 @@
+// Portal root route ("/"). Renders an Overview placeholder until the
+// dashboard is implemented.
 import { PlaceholderPage } from "./components/PlaceholderPage";
 
 export default function HomePage() {

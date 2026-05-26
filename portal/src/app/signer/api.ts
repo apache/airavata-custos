@@ -1,3 +1,6 @@
+// Typed wrappers around the signer REST API. All calls are intentionally
+// relative URLs so the Next /api/v1/[...path] proxy can apply server-side
+// auth before forwarding to the signer backend.
 import { apiFetch } from "../../lib/http";
 import type {
   Certificate,
@@ -7,7 +10,6 @@ import type {
   UserInfo,
 } from "./types";
 
-// Browser calls stay relative so Next can proxy them to the signer backend.
 export function getUserInfo(): Promise<UserInfo> {
   return apiFetch<UserInfo>("/api/v1/userinfo");
 }

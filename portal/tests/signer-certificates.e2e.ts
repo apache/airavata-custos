@@ -1,3 +1,6 @@
+// End-to-end happy path for the SSH certificate workflow: list → detail →
+// revoke. Boots its own Next dev server on port 3105 and intercepts
+// /api/v1/* with page.route() so the test runs without a real signer.
 import { expect, test } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 

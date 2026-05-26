@@ -1,3 +1,7 @@
+// Certificate list view at /signer/certificates. Owns the filter controls
+// (status, allocation, time range, username) and the paginated table.
+// Server-side filtering is limited to username today; the rest filter
+// client-side within the current page window.
 "use client";
 
 import type React from "react";

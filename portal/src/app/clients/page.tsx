@@ -1,3 +1,5 @@
+// Route stub for the Clients sidebar entry; replaced once the registered
+// API clients view is implemented.
 import { PlaceholderPage } from "../components/PlaceholderPage";
 
 export default function ClientsPage() {

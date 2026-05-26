@@ -1,4 +1,9 @@
 /**
+ * Vitest coverage for the signer data hooks. Mocks the global fetch so the
+ * hooks can be exercised without a live signer or NextAuth session, and
+ * verifies that each hook fires the expected /api/v1 call and surfaces
+ * success/error state through its returned object.
+ *
  * @vitest-environment jsdom
  */
 import React from "react";

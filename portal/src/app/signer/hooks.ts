@@ -1,3 +1,6 @@
+// React hooks that wrap the signer API. They expose a small {data, loading,
+// error} shape per call site so client components can render skeletons,
+// error banners, and live data without each owning their own request state.
 import { useCallback, useEffect, useState } from "react";
 import {
   getCertificate,

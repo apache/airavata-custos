@@ -1,3 +1,7 @@
+// Signer-domain types and formatting helpers shared by the signer pages,
+// hooks, and tests. Keeping the type definitions co-located with the
+// derived helpers (status, lifetime, allocation) avoids drift between the
+// data shape and the UI's interpretation of it.
 export type CertificateStatus = "active" | "expired" | "revoked";
 
 export type Certificate = {
