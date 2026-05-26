@@ -27,15 +27,23 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
   const displayEmail = user?.email ?? "no session";
   const avatarInitial = (user?.email ?? displayName).slice(0, 1).toUpperCase();
 
+  // Routes that own their own chrome and must not be wrapped in the
+  // authenticated sidebar/header (and must not trigger the sign-in
+  // redirect below — that would loop the user on the sign-in page).
+  const isPreAuthRoute = pathname?.startsWith("/signin") ?? false;
+
   useEffect(() => {
-    if (status === "unauthenticated") {
-      // Calling signIn() without a provider id lets NextAuth route to
-      // whichever provider is registered at runtime — `cilogon` in
-      // production, the dev Credentials fallback when OIDC_ISSUER_URL is
-      // unset. See auth.ts for how the provider list is built.
+    if (!isPreAuthRoute && status === "unauthenticated") {
+      // Calling signIn() without a provider id sends the user to the
+      // configured `pages.signIn` route (see auth.ts), which renders the
+      // branded sign-in form.
       signIn();
     }
-  }, [status]);
+  }, [status, isPreAuthRoute]);
+
+  if (isPreAuthRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex min-h-screen bg-white text-neutral-950">

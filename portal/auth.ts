@@ -71,6 +71,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // on a non-standard host; trust the inbound Host header rather than fixing
   // a Vercel-style URL.
   trustHost: true,
+  // Replace Auth.js's stock provider chooser with a branded portal page.
+  // Both the unauthenticated redirect in PortalLayout and any explicit
+  // signIn() call without a provider id route here.
+  pages: {
+    signIn: "/signin",
+  },
   callbacks: {
     // The `account` object is only present on the first JWT pass right after
     // a successful sign-in. Persist the issuer's access token onto the JWT
