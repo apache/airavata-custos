@@ -62,6 +62,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(
 		Cluster:   cluster.Name,
 		User:      csu.LocalUsername,
 		Partition: resources[0].Name, // TODO: do for each resource
+		QoS:       []string{"normal"},
 	}
 
 	err = a.slurmClient.UpsertAssociation(association)
@@ -155,6 +156,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		Cluster:   cluster.Name,
 		User:      csu.LocalUsername,
 		Partition: allocationResource.Name,
+		QoS:       []string{"normal"},
 		Limits:    limits,
 	}
 

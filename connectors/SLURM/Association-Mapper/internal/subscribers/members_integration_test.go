@@ -24,7 +24,7 @@ func TestSubscribeToComputeAllocationMembershipCreation(t *testing.T) {
 	clusterID := "cluster-001"
 	clusterName := "artisan"
 	computeAllocationID := "compute-allocation-001"
-	computeAllocationName := "MD Allocation"
+	computeAllocationName := "md-allocation"
 	partitionName := "compute"
 	allocationResourceId := "allocation-resource-001"
 	//allocationMappingId := "allocation-mapping-001"
@@ -131,7 +131,7 @@ func TestSubscribeToComputeAllocationMembershipResourceOverrideCreation(t *testi
 	clusterID := "cluster-001"
 	clusterName := "artisan"
 	computeAllocationID := "compute-allocation-001"
-	computeAllocationName := "MD Allocation"
+	computeAllocationName := "md-allocation"
 	partitionName := "compute"
 	allocationResourceId := "allocation-resource-001"
 	//allocationMappingId := "allocation-mapping-001"
@@ -152,13 +152,13 @@ func TestSubscribeToComputeAllocationMembershipResourceOverrideCreation(t *testi
 			GrpTRES: []operations.TRES{
 				{
 					Type:  "cpu",
-					Count: 100,
+					Count: 10,
 				},
 			},
 			GrpTRESMins: []operations.TRES{
 				{
 					Type:  "cpu",
-					Count: 1000,
+					Count: 2,
 				},
 			},
 		},
@@ -227,8 +227,8 @@ func TestSubscribeToComputeAllocationMembershipResourceOverrideCreation(t *testi
 		ID:                            "override-001",
 		ComputeAllocationMembershipID: "membership-001",
 		ComputeAllocationResourceID:   allocationResourceId,
-		OverrideResourceAmount:        50,
-		OverrideResourceTime:          500,
+		OverrideResourceAmount:        1,
+		OverrideResourceTime:          1,
 	}
 
 	associationSubscriber := NewAssociationSubscriber(client, nil, mockCoreService)

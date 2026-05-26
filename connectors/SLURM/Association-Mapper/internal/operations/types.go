@@ -43,6 +43,9 @@ type Association struct {
 	ParentAccount string `json:"parent_account,omitempty"`
 	IsDefault     *bool  `json:"is_default,omitempty"`
 	ID            int64  `json:"id_association,omitempty"`
+	// QoS is the list of QoS names permitted for this association
+	// (e.g. ["normal"]). Marshaled to the top-level `qos` field on the wire.
+	QoS []string `json:"-"`
 	// Limits is a logical grouping — slurmrestd v0.0.41 actually encodes limits
 	// in a nested `max` object per-association. We translate between the two
 	// shapes in Marshal/UnmarshalJSON below.
@@ -108,6 +111,7 @@ type assocWire struct {
 	ParentAccount string    `json:"parent_account,omitempty"`
 	IsDefault     *bool     `json:"is_default,omitempty"`
 	ID            int64     `json:"id_association,omitempty"`
+	QoS           []string  `json:"qos,omitempty"`
 	Max           *assocMax `json:"max,omitempty"`
 }
 
@@ -120,6 +124,7 @@ func (a Association) MarshalJSON() ([]byte, error) {
 		ParentAccount: a.ParentAccount,
 		IsDefault:     a.IsDefault,
 		ID:            a.ID,
+		QoS:           a.QoS,
 	}
 	m := &assocMax{}
 	touched := false
@@ -163,6 +168,7 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 	a.ParentAccount = w.ParentAccount
 	a.IsDefault = w.IsDefault
 	a.ID = w.ID
+	a.QoS = w.QoS
 	a.Limits = AssocLimits{}
 	if w.Max != nil {
 		if w.Max.Jobs != nil && w.Max.Jobs.Per != nil {
