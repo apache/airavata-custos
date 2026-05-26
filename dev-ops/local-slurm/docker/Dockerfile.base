@@ -20,6 +20,13 @@ RUN dnf -y install epel-release \
 RUN useradd -r -u 995 -g 0 -s /sbin/nologin slurm \
  && install -d -o slurm -g 0 -m 0755 /var/spool/slurm /var/log/slurm /var/run/slurm /etc/slurm
 
+# Test users baked into the base image so UIDs match across login,
+# slurmctld, and slurmd containers (slurmctld/slurmd both do pwd lookups
+# and slurmd execs the job as the submitting user).
+RUN useradd -m -u 1000 -s /bin/bash testuser \
+ && useradd -m -u 1001 -s /bin/bash testuser2 \
+ && useradd -m -u 1002 -s /bin/bash testuser3
+
 RUN wget -q https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2 \
  && tar -xjf slurm-${SLURM_VERSION}.tar.bz2 \
  && cd slurm-${SLURM_VERSION} \

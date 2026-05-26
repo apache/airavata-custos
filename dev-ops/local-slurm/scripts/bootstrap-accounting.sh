@@ -19,6 +19,17 @@ CLUSTER="${CLUSTER_NAME:-artisan}"
 if ! sacctmgr -in show cluster format=cluster | grep -qw "$CLUSTER"; then
   sacctmgr -i add cluster "$CLUSTER"
 fi
+
+# slurm.conf sets AccountingStorageEnforce=...,qos,..., which means every
+# association must have at least one allowed QoS and a default QoS or the
+# controller rejects submissions with the misleading error "Invalid account
+# or account/partition combination specified". Ensure the built-in `normal`
+# QoS is allowed on the cluster and set as the default for new associations.
+if ! sacctmgr -in show qos format=name | grep -qw "normal"; then
+  sacctmgr -i add qos normal
+fi
+sacctmgr -i modify cluster "$CLUSTER" set QOS=normal DefaultQOS=normal >/dev/null
+
 if ! sacctmgr -in show account format=account | grep -qw "root"; then
   sacctmgr -i add account root Description="root account" Organization="$CLUSTER"
 fi

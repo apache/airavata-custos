@@ -8,10 +8,8 @@ install -d -m 0755 -o munge -g munge /var/run/munge
 install -d -m 0700 -o munge -g munge /var/log/munge /var/lib/munge
 runuser -u munge -- /usr/sbin/munged --force
 
-# Ensure the default test user exists
-id -u testuser >/dev/null 2>&1 || useradd -m -s /bin/bash testuser
-id -u testuser2 >/dev/null 2>&1 || useradd -m -s /bin/bash testuser2
-id -u testuser3 >/dev/null 2>&1 || useradd -m -s /bin/bash testuser3
+# testuser{,2,3} are baked into the base image with fixed UIDs so they
+# match across login/slurmctld/slurmd. Nothing to create here.
 
 # Start sshd in the foreground
 exec /usr/sbin/sshd -D -e
