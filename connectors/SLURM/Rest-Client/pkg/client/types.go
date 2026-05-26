@@ -1,5 +1,5 @@
 // cli/internal/client/types.go
-package operations
+package client
 
 import "encoding/json"
 

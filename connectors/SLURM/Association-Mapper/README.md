@@ -13,11 +13,13 @@ This package is part of the root `github.com/apache/airavata-custos` module.
 
 ```
 .
-├── internal/operations/   # slurmrestd client + accounts/associations/TRES
-└── pkg/operations/
+├── internal/subscribers/   # event subscribers wiring core events to slurmrestd
+└── pkg/smapper/            # connector loader
 ```
 
-Import path: `github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations`.
+The slurmrestd client lives in the sibling Rest-Client module at `connectors/SLURM/Rest-Client/pkg/client`.
+
+Import path: `github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client`.
 
 ## Configuration
 

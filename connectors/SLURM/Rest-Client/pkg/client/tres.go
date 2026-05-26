@@ -1,5 +1,5 @@
 // cli/internal/client/tres.go
-package operations
+package client
 
 import (
 	"fmt"

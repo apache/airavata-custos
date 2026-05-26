@@ -2,7 +2,7 @@ package subscribers
 
 import (
 	"context"
-	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
+	operations "github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 	"os"

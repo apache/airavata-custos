@@ -1,5 +1,5 @@
 // cli/internal/client/client.go
-package operations
+package client
 
 import (
 	"bytes"
