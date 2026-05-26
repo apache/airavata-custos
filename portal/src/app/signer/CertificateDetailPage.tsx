@@ -23,7 +23,7 @@ export function CertificateDetailPage({ serial }: { serial: string }) {
 
   if (loading && !cert) {
     return (
-      <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[690px] flex-col gap-4 overflow-hidden rounded-l-2xl bg-white p-12 shadow-[-10px_0_30px_rgba(0,0,0,0.14)]">
+      <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[820px] flex-col gap-4 overflow-hidden rounded-l-2xl bg-white p-12 shadow-[-10px_0_30px_rgba(0,0,0,0.14)]">
         <Skeleton className="h-10 w-3/4" />
         <Skeleton className="h-6 w-1/2" />
         <Skeleton className="h-40 w-full" />
@@ -44,18 +44,23 @@ export function CertificateDetailPage({ serial }: { serial: string }) {
       </div>
       <div className="fixed inset-0 z-30 bg-white/20 backdrop-blur-[2px]" />
 
-      <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[690px] flex-col overflow-hidden rounded-l-2xl bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.14)]">
+      <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[820px] flex-col overflow-hidden rounded-l-2xl bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.14)]">
         <header className="flex min-h-28 items-center justify-between border-b border-neutral-200 px-12">
           <h1 className="text-2xl font-semibold tracking-normal">
             Certificate {cert.serial_number}
           </h1>
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-sm text-neutral-500">Remaining time</div>
-              <div className="text-base font-bold tabular-nums">
-                {formatRemainingTime(getRemainingSeconds(cert))}
+            {/* Only show the countdown for active certs — once revoked or
+                expired the remaining time is zero by definition and the
+                status badge already conveys that. */}
+            {isActive && (
+              <div className="text-right">
+                <div className="text-sm text-neutral-500">Remaining time</div>
+                <div className="text-base font-bold tabular-nums">
+                  {formatRemainingTime(getRemainingSeconds(cert))}
+                </div>
               </div>
-            </div>
+            )}
             <StatusBadge status={status} large />
           </div>
         </header>
