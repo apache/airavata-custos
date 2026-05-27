@@ -30,18 +30,29 @@ export async function apiFetch<T>(
     headers: requestHeaders,
   });
 
+  // Read the body once as text so we can both surface non-JSON error
+  // messages and avoid the cryptic "Unexpected end of JSON input" that
+  // response.json() throws on an empty payload (e.g. 204, or a proxy that
+  // strips the body).
+  const rawBody = await response.text();
+  const parsed = rawBody ? safeParseJson(rawBody) : null;
+
   if (!response.ok) {
-    let message = `Request failed with ${response.status}`;
-
-    try {
-      const body = await response.json();
-      message = body.message ?? body.error ?? message;
-    } catch {
-      // Backend may respond with plain text or empty body on errors.
-    }
-
+    const message =
+      (parsed && typeof parsed === "object"
+        ? (parsed as { message?: string; error?: string }).message ??
+          (parsed as { message?: string; error?: string }).error
+        : undefined) ?? `Request failed with ${response.status}`;
     throw new Error(message);
   }
 
-  return response.json() as Promise<T>;
+  return parsed as T;
+}
+
+function safeParseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }

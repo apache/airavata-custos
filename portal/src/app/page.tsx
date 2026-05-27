@@ -1,12 +1,10 @@
-// Portal root route ("/"). Renders an Overview placeholder until the
-// dashboard is implemented.
-import { PlaceholderPage } from "./components/PlaceholderPage";
+// Portal root route ("/"). The dashboard is not implemented yet and the
+// only feature surface is /signer/certificates, so redirect there. Using
+// next/navigation's redirect() turns this into a clean server-side 307
+// instead of rendering anything, which also sidesteps any client-side
+// session/json parsing on the root render path.
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return (
-    <PlaceholderPage
-      title="Overview"
-      description="A high-level summary of your portal activity will live here."
-    />
-  );
+  redirect("/signer/certificates");
 }

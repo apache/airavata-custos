@@ -71,11 +71,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // on a non-standard host; trust the inbound Host header rather than fixing
   // a Vercel-style URL.
   trustHost: true,
-  // Replace Auth.js's stock provider chooser with a branded portal page.
-  // Both the unauthenticated redirect in PortalLayout and any explicit
-  // signIn() call without a provider id route here.
+  // Replace Auth.js's stock provider chooser and error screen with branded
+  // portal pages. Routing failed CILogon callbacks to /auth-error (instead
+  // of the default /api/auth/error) means a refresh re-renders a normal
+  // page where the user can retry or clear their session, rather than
+  // reloading the Auth.js error screen.
   pages: {
     signIn: "/signin",
+    error: "/auth-error",
   },
   callbacks: {
     // The `account` object is only present on the first JWT pass right after

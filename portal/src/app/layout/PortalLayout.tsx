@@ -29,8 +29,12 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
 
   // Routes that own their own chrome and must not be wrapped in the
   // authenticated sidebar/header (and must not trigger the sign-in
-  // redirect below — that would loop the user on the sign-in page).
-  const isPreAuthRoute = pathname?.startsWith("/signin") ?? false;
+  // redirect below — that would loop the user on the sign-in page or
+  // pull them off the error-recovery page before they can act).
+  const isPreAuthRoute =
+    pathname?.startsWith("/signin") ||
+    pathname?.startsWith("/auth-error") ||
+    false;
 
   useEffect(() => {
     if (!isPreAuthRoute && status === "unauthenticated") {

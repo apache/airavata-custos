@@ -186,10 +186,13 @@ function fetchMock() {
 }
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
+  // Mirror a real Response: apiFetch now reads via text() so an empty body
+  // can be detected before JSON.parse.
   return {
     ok,
     status,
     json: async () => body,
+    text: async () => JSON.stringify(body),
   } as Response;
 }
 
