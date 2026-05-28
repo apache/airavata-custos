@@ -328,6 +328,28 @@ type AuditEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// UserPrivilegeStore defines persistence operations for fine-grained admin
+// privileges. Only active grants live in the table; revoke is DELETE. The
+// full grant/revoke history is in audit_events.
+type UserPrivilegeStore interface {
+	// Find returns the active grant for (userID, privilege), or nil.
+	Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
+	// FindForUpdate returns the active grant inside a tx with SELECT FOR
+	// UPDATE so the caller can serialize grant / revoke decisions.
+	FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
+	// ListByUser returns every active grant held by the user.
+	ListByUser(ctx context.Context, userID string) ([]models.UserPrivilege, error)
+	// ListByPrivilege returns every active holder of the given privilege.
+	ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
+	// CountByPrivilege returns the number of active holders inside a tx.
+	// Used to enforce the last-meta-holder guard when revoking PrivilegeGrant.
+	CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
+	// Create inserts a new grant inside the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error
+	// Delete removes the grant for (userID, privilege) inside the provided tx.
+	Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.

@@ -214,6 +214,20 @@ type AuditEventService interface {
 	DeleteAuditEvent(ctx context.Context, id string) error
 }
 
+// UserPrivilegeService exposes the fine-grained capability layer that gates
+// admin surfaces. Privileges are the sole authorization signal; the DB is
+// the source of truth and HasPrivilege re-reads it on every call (callers
+// cache the result if hot).
+type UserPrivilegeService interface {
+	GrantPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID, reason string) (*models.UserPrivilege, error)
+	RevokePrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID, reason string) error
+	HasPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
+	ListUserPrivileges(ctx context.Context, userID string) ([]models.UserPrivilege, error)
+	ListPrivilegeHolders(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
+	PrivilegeCatalog() []models.PrivilegeKey
+	BootstrapPrivilegeGrant(ctx context.Context, email, source string) error
+}
+
 // CoreService is the aggregate of every domain interface this package exposes.
 // Most callers should depend on this, or — when they need only a slice of
 // the API — on the narrower per-domain interfaces above.
@@ -235,6 +249,7 @@ type CoreService interface {
 	ComputeAllocationMembershipResourceOverrideService
 	ComputeAllocationUsageService
 	AuditEventService
+	UserPrivilegeService
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

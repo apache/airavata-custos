@@ -23,6 +23,9 @@ var _ CoreService = &CoreServiceMock{}
 //			AttachResourceToAllocationFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the AttachResourceToAllocation method")
 //			},
+//			BootstrapPrivilegeGrantFunc: func(ctx context.Context, email string, source string) error {
+//				panic("mock out the BootstrapPrivilegeGrant method")
+//			},
 //			CreateAuditEventFunc: func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
 //				panic("mock out the CreateAuditEvent method")
 //			},
@@ -212,6 +215,12 @@ var _ CoreService = &CoreServiceMock{}
 //			GetUserIdentityBySourceAndExternalIDFunc: func(ctx context.Context, source string, externalID string) (*models.UserIdentity, error) {
 //				panic("mock out the GetUserIdentityBySourceAndExternalID method")
 //			},
+//			GrantPrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID string, reason string) (*models.UserPrivilege, error) {
+//				panic("mock out the GrantPrivilege method")
+//			},
+//			HasPrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
+//				panic("mock out the HasPrivilege method")
+//			},
 //			ListAllAuditEventsFunc: func(ctx context.Context) ([]*models.AuditEvent, error) {
 //				panic("mock out the ListAllAuditEvents method")
 //			},
@@ -266,6 +275,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListOverridesForResourceFunc: func(ctx context.Context, resourceID string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
 //				panic("mock out the ListOverridesForResource method")
 //			},
+//			ListPrivilegeHoldersFunc: func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
+//				panic("mock out the ListPrivilegeHolders method")
+//			},
 //			ListProjectsByPIFunc: func(ctx context.Context, piUserID string) ([]models.Project, error) {
 //				panic("mock out the ListProjectsByPI method")
 //			},
@@ -284,11 +296,20 @@ var _ CoreService = &CoreServiceMock{}
 //			ListUserIdentitiesForUserFunc: func(ctx context.Context, userID string) ([]models.UserIdentity, error) {
 //				panic("mock out the ListUserIdentitiesForUser method")
 //			},
+//			ListUserPrivilegesFunc: func(ctx context.Context, userID string) ([]models.UserPrivilege, error) {
+//				panic("mock out the ListUserPrivileges method")
+//			},
 //			ListUsersByOrganizationFunc: func(ctx context.Context, organizationID string) ([]models.User, error) {
 //				panic("mock out the ListUsersByOrganization method")
 //			},
 //			MergeUsersFunc: func(ctx context.Context, survivingID string, retiringID string) (*models.User, error) {
 //				panic("mock out the MergeUsers method")
+//			},
+//			PrivilegeCatalogFunc: func() []models.PrivilegeKey {
+//				panic("mock out the PrivilegeCatalog method")
+//			},
+//			RevokePrivilegeFunc: func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error {
+//				panic("mock out the RevokePrivilege method")
 //			},
 //			UpdateAllocationResourceMappingFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the UpdateAllocationResourceMapping method")
@@ -347,6 +368,9 @@ var _ CoreService = &CoreServiceMock{}
 type CoreServiceMock struct {
 	// AttachResourceToAllocationFunc mocks the AttachResourceToAllocation method.
 	AttachResourceToAllocationFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
+
+	// BootstrapPrivilegeGrantFunc mocks the BootstrapPrivilegeGrant method.
+	BootstrapPrivilegeGrantFunc func(ctx context.Context, email string, source string) error
 
 	// CreateAuditEventFunc mocks the CreateAuditEvent method.
 	CreateAuditEventFunc func(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
@@ -537,6 +561,12 @@ type CoreServiceMock struct {
 	// GetUserIdentityBySourceAndExternalIDFunc mocks the GetUserIdentityBySourceAndExternalID method.
 	GetUserIdentityBySourceAndExternalIDFunc func(ctx context.Context, source string, externalID string) (*models.UserIdentity, error)
 
+	// GrantPrivilegeFunc mocks the GrantPrivilege method.
+	GrantPrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID string, reason string) (*models.UserPrivilege, error)
+
+	// HasPrivilegeFunc mocks the HasPrivilege method.
+	HasPrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
+
 	// ListAllAuditEventsFunc mocks the ListAllAuditEvents method.
 	ListAllAuditEventsFunc func(ctx context.Context) ([]*models.AuditEvent, error)
 
@@ -591,6 +621,9 @@ type CoreServiceMock struct {
 	// ListOverridesForResourceFunc mocks the ListOverridesForResource method.
 	ListOverridesForResourceFunc func(ctx context.Context, resourceID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
 
+	// ListPrivilegeHoldersFunc mocks the ListPrivilegeHolders method.
+	ListPrivilegeHoldersFunc func(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
+
 	// ListProjectsByPIFunc mocks the ListProjectsByPI method.
 	ListProjectsByPIFunc func(ctx context.Context, piUserID string) ([]models.Project, error)
 
@@ -609,11 +642,20 @@ type CoreServiceMock struct {
 	// ListUserIdentitiesForUserFunc mocks the ListUserIdentitiesForUser method.
 	ListUserIdentitiesForUserFunc func(ctx context.Context, userID string) ([]models.UserIdentity, error)
 
+	// ListUserPrivilegesFunc mocks the ListUserPrivileges method.
+	ListUserPrivilegesFunc func(ctx context.Context, userID string) ([]models.UserPrivilege, error)
+
 	// ListUsersByOrganizationFunc mocks the ListUsersByOrganization method.
 	ListUsersByOrganizationFunc func(ctx context.Context, organizationID string) ([]models.User, error)
 
 	// MergeUsersFunc mocks the MergeUsers method.
 	MergeUsersFunc func(ctx context.Context, survivingID string, retiringID string) (*models.User, error)
+
+	// PrivilegeCatalogFunc mocks the PrivilegeCatalog method.
+	PrivilegeCatalogFunc func() []models.PrivilegeKey
+
+	// RevokePrivilegeFunc mocks the RevokePrivilege method.
+	RevokePrivilegeFunc func(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error
 
 	// UpdateAllocationResourceMappingFunc mocks the UpdateAllocationResourceMapping method.
 	UpdateAllocationResourceMappingFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
@@ -677,6 +719,15 @@ type CoreServiceMock struct {
 			ResourceAmount int64
 			// ResourceTime is the resourceTime argument value.
 			ResourceTime int64
+		}
+		// BootstrapPrivilegeGrant holds details about calls to the BootstrapPrivilegeGrant method.
+		BootstrapPrivilegeGrant []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Email is the email argument value.
+			Email string
+			// Source is the source argument value.
+			Source string
 		}
 		// CreateAuditEvent holds details about calls to the CreateAuditEvent method.
 		CreateAuditEvent []struct {
@@ -1133,6 +1184,28 @@ type CoreServiceMock struct {
 			// ExternalID is the externalID argument value.
 			ExternalID string
 		}
+		// GrantPrivilege holds details about calls to the GrantPrivilege method.
+		GrantPrivilege []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// Privilege is the privilege argument value.
+			Privilege models.PrivilegeKey
+			// GranterID is the granterID argument value.
+			GranterID string
+			// Reason is the reason argument value.
+			Reason string
+		}
+		// HasPrivilege holds details about calls to the HasPrivilege method.
+		HasPrivilege []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// Privilege is the privilege argument value.
+			Privilege models.PrivilegeKey
+		}
 		// ListAllAuditEvents holds details about calls to the ListAllAuditEvents method.
 		ListAllAuditEvents []struct {
 			// Ctx is the ctx argument value.
@@ -1253,6 +1326,13 @@ type CoreServiceMock struct {
 			// ResourceID is the resourceID argument value.
 			ResourceID string
 		}
+		// ListPrivilegeHolders holds details about calls to the ListPrivilegeHolders method.
+		ListPrivilegeHolders []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Privilege is the privilege argument value.
+			Privilege models.PrivilegeKey
+		}
 		// ListProjectsByPI holds details about calls to the ListProjectsByPI method.
 		ListProjectsByPI []struct {
 			// Ctx is the ctx argument value.
@@ -1295,6 +1375,13 @@ type CoreServiceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// ListUserPrivileges holds details about calls to the ListUserPrivileges method.
+		ListUserPrivileges []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// ListUsersByOrganization holds details about calls to the ListUsersByOrganization method.
 		ListUsersByOrganization []struct {
 			// Ctx is the ctx argument value.
@@ -1310,6 +1397,22 @@ type CoreServiceMock struct {
 			SurvivingID string
 			// RetiringID is the retiringID argument value.
 			RetiringID string
+		}
+		// PrivilegeCatalog holds details about calls to the PrivilegeCatalog method.
+		PrivilegeCatalog []struct {
+		}
+		// RevokePrivilege holds details about calls to the RevokePrivilege method.
+		RevokePrivilege []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// UserID is the userID argument value.
+			UserID string
+			// Privilege is the privilege argument value.
+			Privilege models.PrivilegeKey
+			// RevokerID is the revokerID argument value.
+			RevokerID string
+			// Reason is the reason argument value.
+			Reason string
 		}
 		// UpdateAllocationResourceMapping holds details about calls to the UpdateAllocationResourceMapping method.
 		UpdateAllocationResourceMapping []struct {
@@ -1437,6 +1540,7 @@ type CoreServiceMock struct {
 		}
 	}
 	lockAttachResourceToAllocation                           sync.RWMutex
+	lockBootstrapPrivilegeGrant                              sync.RWMutex
 	lockCreateAuditEvent                                     sync.RWMutex
 	lockCreateComputeAllocation                              sync.RWMutex
 	lockCreateComputeAllocationChangeRequest                 sync.RWMutex
@@ -1500,6 +1604,8 @@ type CoreServiceMock struct {
 	lockGetUserIdentity                                      sync.RWMutex
 	lockGetUserIdentityByOIDCSub                             sync.RWMutex
 	lockGetUserIdentityBySourceAndExternalID                 sync.RWMutex
+	lockGrantPrivilege                                       sync.RWMutex
+	lockHasPrivilege                                         sync.RWMutex
 	lockListAllAuditEvents                                   sync.RWMutex
 	lockListAllocationsForResource                           sync.RWMutex
 	lockListAllocationsForUser                               sync.RWMutex
@@ -1518,14 +1624,18 @@ type CoreServiceMock struct {
 	lockListMembersForAllocation                             sync.RWMutex
 	lockListOverridesForMembership                           sync.RWMutex
 	lockListOverridesForResource                             sync.RWMutex
+	lockListPrivilegeHolders                                 sync.RWMutex
 	lockListProjectsByPI                                     sync.RWMutex
 	lockListRatesForResource                                 sync.RWMutex
 	lockListResourcesForAllocation                           sync.RWMutex
 	lockListUsagesByUser                                     sync.RWMutex
 	lockListUsagesForAllocation                              sync.RWMutex
 	lockListUserIdentitiesForUser                            sync.RWMutex
+	lockListUserPrivileges                                   sync.RWMutex
 	lockListUsersByOrganization                              sync.RWMutex
 	lockMergeUsers                                           sync.RWMutex
+	lockPrivilegeCatalog                                     sync.RWMutex
+	lockRevokePrivilege                                      sync.RWMutex
 	lockUpdateAllocationResourceMapping                      sync.RWMutex
 	lockUpdateComputeAllocation                              sync.RWMutex
 	lockUpdateComputeAllocationChangeRequest                 sync.RWMutex
@@ -1589,6 +1699,46 @@ func (mock *CoreServiceMock) AttachResourceToAllocationCalls() []struct {
 	mock.lockAttachResourceToAllocation.RLock()
 	calls = mock.calls.AttachResourceToAllocation
 	mock.lockAttachResourceToAllocation.RUnlock()
+	return calls
+}
+
+// BootstrapPrivilegeGrant calls BootstrapPrivilegeGrantFunc.
+func (mock *CoreServiceMock) BootstrapPrivilegeGrant(ctx context.Context, email string, source string) error {
+	if mock.BootstrapPrivilegeGrantFunc == nil {
+		panic("CoreServiceMock.BootstrapPrivilegeGrantFunc: method is nil but CoreService.BootstrapPrivilegeGrant was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		Email  string
+		Source string
+	}{
+		Ctx:    ctx,
+		Email:  email,
+		Source: source,
+	}
+	mock.lockBootstrapPrivilegeGrant.Lock()
+	mock.calls.BootstrapPrivilegeGrant = append(mock.calls.BootstrapPrivilegeGrant, callInfo)
+	mock.lockBootstrapPrivilegeGrant.Unlock()
+	return mock.BootstrapPrivilegeGrantFunc(ctx, email, source)
+}
+
+// BootstrapPrivilegeGrantCalls gets all the calls that were made to BootstrapPrivilegeGrant.
+// Check the length with:
+//
+//	len(mockedCoreService.BootstrapPrivilegeGrantCalls())
+func (mock *CoreServiceMock) BootstrapPrivilegeGrantCalls() []struct {
+	Ctx    context.Context
+	Email  string
+	Source string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		Email  string
+		Source string
+	}
+	mock.lockBootstrapPrivilegeGrant.RLock()
+	calls = mock.calls.BootstrapPrivilegeGrant
+	mock.lockBootstrapPrivilegeGrant.RUnlock()
 	return calls
 }
 
@@ -3888,6 +4038,94 @@ func (mock *CoreServiceMock) GetUserIdentityBySourceAndExternalIDCalls() []struc
 	return calls
 }
 
+// GrantPrivilege calls GrantPrivilegeFunc.
+func (mock *CoreServiceMock) GrantPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID string, reason string) (*models.UserPrivilege, error) {
+	if mock.GrantPrivilegeFunc == nil {
+		panic("CoreServiceMock.GrantPrivilegeFunc: method is nil but CoreService.GrantPrivilege was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+		GranterID string
+		Reason    string
+	}{
+		Ctx:       ctx,
+		UserID:    userID,
+		Privilege: privilege,
+		GranterID: granterID,
+		Reason:    reason,
+	}
+	mock.lockGrantPrivilege.Lock()
+	mock.calls.GrantPrivilege = append(mock.calls.GrantPrivilege, callInfo)
+	mock.lockGrantPrivilege.Unlock()
+	return mock.GrantPrivilegeFunc(ctx, userID, privilege, granterID, reason)
+}
+
+// GrantPrivilegeCalls gets all the calls that were made to GrantPrivilege.
+// Check the length with:
+//
+//	len(mockedCoreService.GrantPrivilegeCalls())
+func (mock *CoreServiceMock) GrantPrivilegeCalls() []struct {
+	Ctx       context.Context
+	UserID    string
+	Privilege models.PrivilegeKey
+	GranterID string
+	Reason    string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+		GranterID string
+		Reason    string
+	}
+	mock.lockGrantPrivilege.RLock()
+	calls = mock.calls.GrantPrivilege
+	mock.lockGrantPrivilege.RUnlock()
+	return calls
+}
+
+// HasPrivilege calls HasPrivilegeFunc.
+func (mock *CoreServiceMock) HasPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
+	if mock.HasPrivilegeFunc == nil {
+		panic("CoreServiceMock.HasPrivilegeFunc: method is nil but CoreService.HasPrivilege was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+	}{
+		Ctx:       ctx,
+		UserID:    userID,
+		Privilege: privilege,
+	}
+	mock.lockHasPrivilege.Lock()
+	mock.calls.HasPrivilege = append(mock.calls.HasPrivilege, callInfo)
+	mock.lockHasPrivilege.Unlock()
+	return mock.HasPrivilegeFunc(ctx, userID, privilege)
+}
+
+// HasPrivilegeCalls gets all the calls that were made to HasPrivilege.
+// Check the length with:
+//
+//	len(mockedCoreService.HasPrivilegeCalls())
+func (mock *CoreServiceMock) HasPrivilegeCalls() []struct {
+	Ctx       context.Context
+	UserID    string
+	Privilege models.PrivilegeKey
+} {
+	var calls []struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+	}
+	mock.lockHasPrivilege.RLock()
+	calls = mock.calls.HasPrivilege
+	mock.lockHasPrivilege.RUnlock()
+	return calls
+}
+
 // ListAllAuditEvents calls ListAllAuditEventsFunc.
 func (mock *CoreServiceMock) ListAllAuditEvents(ctx context.Context) ([]*models.AuditEvent, error) {
 	if mock.ListAllAuditEventsFunc == nil {
@@ -4524,6 +4762,42 @@ func (mock *CoreServiceMock) ListOverridesForResourceCalls() []struct {
 	return calls
 }
 
+// ListPrivilegeHolders calls ListPrivilegeHoldersFunc.
+func (mock *CoreServiceMock) ListPrivilegeHolders(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
+	if mock.ListPrivilegeHoldersFunc == nil {
+		panic("CoreServiceMock.ListPrivilegeHoldersFunc: method is nil but CoreService.ListPrivilegeHolders was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		Privilege models.PrivilegeKey
+	}{
+		Ctx:       ctx,
+		Privilege: privilege,
+	}
+	mock.lockListPrivilegeHolders.Lock()
+	mock.calls.ListPrivilegeHolders = append(mock.calls.ListPrivilegeHolders, callInfo)
+	mock.lockListPrivilegeHolders.Unlock()
+	return mock.ListPrivilegeHoldersFunc(ctx, privilege)
+}
+
+// ListPrivilegeHoldersCalls gets all the calls that were made to ListPrivilegeHolders.
+// Check the length with:
+//
+//	len(mockedCoreService.ListPrivilegeHoldersCalls())
+func (mock *CoreServiceMock) ListPrivilegeHoldersCalls() []struct {
+	Ctx       context.Context
+	Privilege models.PrivilegeKey
+} {
+	var calls []struct {
+		Ctx       context.Context
+		Privilege models.PrivilegeKey
+	}
+	mock.lockListPrivilegeHolders.RLock()
+	calls = mock.calls.ListPrivilegeHolders
+	mock.lockListPrivilegeHolders.RUnlock()
+	return calls
+}
+
 // ListProjectsByPI calls ListProjectsByPIFunc.
 func (mock *CoreServiceMock) ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
 	if mock.ListProjectsByPIFunc == nil {
@@ -4740,6 +5014,42 @@ func (mock *CoreServiceMock) ListUserIdentitiesForUserCalls() []struct {
 	return calls
 }
 
+// ListUserPrivileges calls ListUserPrivilegesFunc.
+func (mock *CoreServiceMock) ListUserPrivileges(ctx context.Context, userID string) ([]models.UserPrivilege, error) {
+	if mock.ListUserPrivilegesFunc == nil {
+		panic("CoreServiceMock.ListUserPrivilegesFunc: method is nil but CoreService.ListUserPrivileges was just called")
+	}
+	callInfo := struct {
+		Ctx    context.Context
+		UserID string
+	}{
+		Ctx:    ctx,
+		UserID: userID,
+	}
+	mock.lockListUserPrivileges.Lock()
+	mock.calls.ListUserPrivileges = append(mock.calls.ListUserPrivileges, callInfo)
+	mock.lockListUserPrivileges.Unlock()
+	return mock.ListUserPrivilegesFunc(ctx, userID)
+}
+
+// ListUserPrivilegesCalls gets all the calls that were made to ListUserPrivileges.
+// Check the length with:
+//
+//	len(mockedCoreService.ListUserPrivilegesCalls())
+func (mock *CoreServiceMock) ListUserPrivilegesCalls() []struct {
+	Ctx    context.Context
+	UserID string
+} {
+	var calls []struct {
+		Ctx    context.Context
+		UserID string
+	}
+	mock.lockListUserPrivileges.RLock()
+	calls = mock.calls.ListUserPrivileges
+	mock.lockListUserPrivileges.RUnlock()
+	return calls
+}
+
 // ListUsersByOrganization calls ListUsersByOrganizationFunc.
 func (mock *CoreServiceMock) ListUsersByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
 	if mock.ListUsersByOrganizationFunc == nil {
@@ -4813,6 +5123,81 @@ func (mock *CoreServiceMock) MergeUsersCalls() []struct {
 	mock.lockMergeUsers.RLock()
 	calls = mock.calls.MergeUsers
 	mock.lockMergeUsers.RUnlock()
+	return calls
+}
+
+// PrivilegeCatalog calls PrivilegeCatalogFunc.
+func (mock *CoreServiceMock) PrivilegeCatalog() []models.PrivilegeKey {
+	if mock.PrivilegeCatalogFunc == nil {
+		panic("CoreServiceMock.PrivilegeCatalogFunc: method is nil but CoreService.PrivilegeCatalog was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockPrivilegeCatalog.Lock()
+	mock.calls.PrivilegeCatalog = append(mock.calls.PrivilegeCatalog, callInfo)
+	mock.lockPrivilegeCatalog.Unlock()
+	return mock.PrivilegeCatalogFunc()
+}
+
+// PrivilegeCatalogCalls gets all the calls that were made to PrivilegeCatalog.
+// Check the length with:
+//
+//	len(mockedCoreService.PrivilegeCatalogCalls())
+func (mock *CoreServiceMock) PrivilegeCatalogCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockPrivilegeCatalog.RLock()
+	calls = mock.calls.PrivilegeCatalog
+	mock.lockPrivilegeCatalog.RUnlock()
+	return calls
+}
+
+// RevokePrivilege calls RevokePrivilegeFunc.
+func (mock *CoreServiceMock) RevokePrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID string, reason string) error {
+	if mock.RevokePrivilegeFunc == nil {
+		panic("CoreServiceMock.RevokePrivilegeFunc: method is nil but CoreService.RevokePrivilege was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+		RevokerID string
+		Reason    string
+	}{
+		Ctx:       ctx,
+		UserID:    userID,
+		Privilege: privilege,
+		RevokerID: revokerID,
+		Reason:    reason,
+	}
+	mock.lockRevokePrivilege.Lock()
+	mock.calls.RevokePrivilege = append(mock.calls.RevokePrivilege, callInfo)
+	mock.lockRevokePrivilege.Unlock()
+	return mock.RevokePrivilegeFunc(ctx, userID, privilege, revokerID, reason)
+}
+
+// RevokePrivilegeCalls gets all the calls that were made to RevokePrivilege.
+// Check the length with:
+//
+//	len(mockedCoreService.RevokePrivilegeCalls())
+func (mock *CoreServiceMock) RevokePrivilegeCalls() []struct {
+	Ctx       context.Context
+	UserID    string
+	Privilege models.PrivilegeKey
+	RevokerID string
+	Reason    string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		UserID    string
+		Privilege models.PrivilegeKey
+		RevokerID string
+		Reason    string
+	}
+	mock.lockRevokePrivilege.RLock()
+	calls = mock.calls.RevokePrivilege
+	mock.lockRevokePrivilege.RUnlock()
 	return calls
 }
 

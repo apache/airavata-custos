@@ -80,6 +80,12 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if email := os.Getenv("CUSTOS_BOOTSTRAP_ADMIN_EMAIL"); email != "" {
+		if err := svc.BootstrapPrivilegeGrant(ctx, email, "env:CUSTOS_BOOTSTRAP_ADMIN_EMAIL"); err != nil {
+			slog.Warn("bootstrap privilege grant failed", "email", email, "error", err)
+		}
+	}
+
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
