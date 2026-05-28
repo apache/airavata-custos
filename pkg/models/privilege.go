@@ -32,6 +32,7 @@ const (
 	PrivilegeSignerRead  PrivilegeKey = "signer:read"
 	PrivilegeSignerWrite PrivilegeKey = "signer:write"
 	PrivilegeGrant       PrivilegeKey = "privileges:grant"
+	PrivilegeRolesManage PrivilegeKey = "roles:manage"
 )
 
 // KnownPrivileges returns the static catalog of declared privilege keys.
@@ -44,6 +45,7 @@ func KnownPrivileges() []PrivilegeKey {
 		PrivilegeSignerRead,
 		PrivilegeSignerWrite,
 		PrivilegeGrant,
+		PrivilegeRolesManage,
 	}
 }
 

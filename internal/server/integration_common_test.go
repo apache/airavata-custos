@@ -75,6 +75,9 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 func truncateAll(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	tables := []string{
+		"user_roles",
+		"role_privileges",
+		"roles",
 		"user_privileges",
 		"audit_events",
 		"user_identities",

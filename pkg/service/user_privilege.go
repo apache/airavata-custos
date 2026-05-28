@@ -22,26 +22,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 const (
-	privilegeAuditGrant     = "PRIVILEGE_GRANTED"
-	privilegeAuditRevoke    = "PRIVILEGE_REVOKED"
-	privilegeAuditBootstrap = "PRIVILEGE_BOOTSTRAPPED"
+	privilegeAuditGrant  = "PRIVILEGE_GRANTED"
+	privilegeAuditRevoke = "PRIVILEGE_REVOKED"
 )
 
 // GrantPrivilege attaches privilege to userID. Caller (granterID) must hold
 // an active privileges:grant.
-func (s *Service) GrantPrivilege(
-	ctx context.Context,
-	userID string,
-	privilege models.PrivilegeKey,
-	granterID string,
-	reason string,
-) (*models.UserPrivilege, error) {
+func (s *Service) GrantPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID, reason string) (*models.UserPrivilege, error) {
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
@@ -90,13 +82,7 @@ func (s *Service) GrantPrivilege(
 // full revoke history (who, when, why) is captured in audit_events. The
 // meta-privilege (privileges:grant) cannot be self-revoked and cannot be
 // removed from the last holder.
-func (s *Service) RevokePrivilege(
-	ctx context.Context,
-	userID string,
-	privilege models.PrivilegeKey,
-	revokerID string,
-	reason string,
-) error {
+func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID, reason string) error {
 	if userID == "" {
 		return fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
@@ -141,8 +127,8 @@ func (s *Service) RevokePrivilege(
 	})
 }
 
-// HasPrivilege returns true iff an active grant of the named privilege
-// exists for userID.
+// HasPrivilege returns true iff the user holds the named privilege either
+// directly OR through any role assigned to them.
 func (s *Service) HasPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error) {
 	if userID == "" {
 		return false, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
@@ -150,14 +136,27 @@ func (s *Service) HasPrivilege(ctx context.Context, userID string, privilege mod
 	if !models.IsKnownPrivilege(privilege) {
 		return false, fmt.Errorf("%w: unknown privilege %q", ErrInvalidInput, privilege)
 	}
-	row, err := s.privileges.Find(ctx, userID, privilege)
+	direct, err := s.privileges.Find(ctx, userID, privilege)
 	if err != nil {
-		return false, fmt.Errorf("lookup privilege: %w", err)
+		return false, fmt.Errorf("lookup direct privilege: %w", err)
 	}
-	return row != nil, nil
+	if direct != nil {
+		return true, nil
+	}
+	roleKeys, err := s.userRoles.PrivilegesForUser(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("lookup role privileges: %w", err)
+	}
+	for _, k := range roleKeys {
+		if k == privilege {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
-// ListUserPrivileges returns the user's active privileges.
+// ListUserPrivileges returns only direct grants. Use EffectivePrivileges
+// to include role-derived privileges.
 func (s *Service) ListUserPrivileges(ctx context.Context, userID string) ([]models.UserPrivilege, error) {
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
@@ -167,6 +166,34 @@ func (s *Service) ListUserPrivileges(ctx context.Context, userID string) ([]mode
 		return nil, fmt.Errorf("list privileges: %w", err)
 	}
 	return rows, nil
+}
+
+// EffectivePrivileges returns the union of direct grants and every
+// privilege carried by every role the user holds.
+func (s *Service) EffectivePrivileges(ctx context.Context, userID string) ([]models.PrivilegeKey, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
+	}
+	set := make(map[models.PrivilegeKey]struct{})
+	direct, err := s.privileges.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list direct privileges: %w", err)
+	}
+	for _, p := range direct {
+		set[p.Privilege] = struct{}{}
+	}
+	roleKeys, err := s.userRoles.PrivilegesForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list role privileges: %w", err)
+	}
+	for _, k := range roleKeys {
+		set[k] = struct{}{}
+	}
+	out := make([]models.PrivilegeKey, 0, len(set))
+	for k := range set {
+		out = append(out, k)
+	}
+	return out, nil
 }
 
 // ListPrivilegeHolders returns the active holders of privilege.
@@ -186,76 +213,15 @@ func (s *Service) PrivilegeCatalog() []models.PrivilegeKey {
 	return models.KnownPrivileges()
 }
 
-// BootstrapPrivilegeGrant is called once at server startup if
-// CUSTOS_BOOTSTRAP_ADMIN_EMAIL is set. Looks up the user by email and grants
-// PrivilegeGrant if no active holder exists. Returns nil on every no-op
-// case (no env user, user not found, holder already present); startup must
-// not fail because of this.
-func (s *Service) BootstrapPrivilegeGrant(ctx context.Context, email, source string) error {
-	if email == "" {
-		return nil
-	}
-	user, err := s.users.FindByEmail(ctx, email)
-	if err != nil {
-		return fmt.Errorf("lookup bootstrap user: %w", err)
-	}
-	if user == nil {
-		slog.Warn("bootstrap: user not found, skipping", "email", email)
-		return nil
-	}
-	return s.inTx(ctx, func(tx *sql.Tx) error {
-		existing, err := s.privileges.CountByPrivilege(ctx, tx, models.PrivilegeGrant)
-		if err != nil {
-			return fmt.Errorf("count grant-holders: %w", err)
-		}
-		if existing > 0 {
-			slog.Info("bootstrap: privileges:grant already held by another user, skipping", "email", email)
-			return nil
-		}
-		grant := &models.UserPrivilege{
-			ID:        newID(),
-			UserID:    user.ID,
-			Privilege: models.PrivilegeGrant,
-			GrantedBy: nil,
-			GrantedAt: nowUTC(),
-			Reason:    stringPtrOrNil("bootstrap"),
-		}
-		if err := s.privileges.Create(ctx, tx, grant); err != nil {
-			return fmt.Errorf("insert bootstrap grant: %w", err)
-		}
-		if err := s.writePrivilegeAuditTx(ctx, tx, privilegeAuditBootstrap, user.ID, map[string]any{
-			"privilege": models.PrivilegeGrant,
-			"source":    source,
-		}); err != nil {
-			return fmt.Errorf("audit bootstrap grant: %w", err)
-		}
-		slog.Info("bootstrap: privileges:grant granted", "user_id", user.ID, "email", email, "source", source)
-		return nil
-	})
-}
-
 // assertGranterTx fails with ErrInvalidInput when actorID does not hold an
-// active privileges:grant. The check runs inside the supplied tx with
-// SELECT FOR UPDATE so concurrent grant + revoke serialize.
+// active privileges:grant either directly or via a role. The check runs
+// inside the supplied tx so concurrent grant + revoke serialize.
 func (s *Service) assertGranterTx(ctx context.Context, tx *sql.Tx, actorID string) error {
-	grant, err := s.privileges.FindForUpdate(ctx, tx, actorID, models.PrivilegeGrant)
-	if err != nil {
-		return fmt.Errorf("lookup actor meta privilege: %w", err)
-	}
-	if grant == nil {
-		return fmt.Errorf("%w: actor does not hold %s", ErrInvalidInput, models.PrivilegeGrant)
-	}
-	return nil
+	return s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeGrant)
 }
 
 // writePrivilegeAuditTx records a privilege lifecycle event in audit_events.
-func (s *Service) writePrivilegeAuditTx(
-	ctx context.Context,
-	tx *sql.Tx,
-	eventType string,
-	entityID string,
-	details map[string]any,
-) error {
+func (s *Service) writePrivilegeAuditTx(ctx context.Context, tx *sql.Tx, eventType string, entityID string, details map[string]any) error {
 	payload, err := json.Marshal(details)
 	if err != nil {
 		return fmt.Errorf("marshal audit details: %w", err)

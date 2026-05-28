@@ -100,6 +100,15 @@ func (c *authProfileCache) invalidate(userID string) {
 	delete(c.entries, userID)
 }
 
+// invalidateAll empties the cache. Used when one mutation affects many
+// users at once: adding or removing a privilege from a role (every holder
+// gains/loses it) or deleting a role.
+func (c *authProfileCache) invalidateAll() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = make(map[string]authProfileCacheEntry)
+}
+
 // requirePrivilege returns a middleware that admits the request only if the
 // caller (identified by callerHeader) holds the named active privilege.
 //
@@ -129,20 +138,20 @@ func (s *Server) requirePrivilege(p models.PrivilegeKey, next http.HandlerFunc) 
 	}
 }
 
-// lookupAuthProfile returns the caller's current privilege snapshot, hitting
-// the cache first and falling back to the DB. Errors propagate so middleware
-// can fail closed.
+// lookupAuthProfile returns the caller's effective privilege snapshot
+// (direct grants + role-derived privileges), hitting the cache first
+// and falling back to the DB. Errors propagate so middleware can fail closed.
 func (s *Server) lookupAuthProfile(ctx context.Context, userID string) (*authProfile, error) {
 	if cached, ok := s.authCache.get(userID); ok {
 		return cached, nil
 	}
-	grants, err := s.svc.ListUserPrivileges(ctx, userID)
+	keys, err := s.svc.EffectivePrivileges(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	profile := &authProfile{privileges: make(map[models.PrivilegeKey]struct{}, len(grants))}
-	for _, g := range grants {
-		profile.privileges[g.Privilege] = struct{}{}
+	profile := &authProfile{privileges: make(map[models.PrivilegeKey]struct{}, len(keys))}
+	for _, k := range keys {
+		profile.privileges[k] = struct{}{}
 	}
 	s.authCache.set(userID, profile)
 	return profile, nil

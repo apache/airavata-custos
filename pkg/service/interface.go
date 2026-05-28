@@ -214,18 +214,39 @@ type AuditEventService interface {
 	DeleteAuditEvent(ctx context.Context, id string) error
 }
 
-// UserPrivilegeService exposes the fine-grained capability layer that gates
-// admin surfaces. Privileges are the sole authorization signal; the DB is
-// the source of truth and HasPrivilege re-reads it on every call (callers
-// cache the result if hot).
+// UserPrivilegeService exposes direct privilege grants. HasPrivilege
+// returns true when the user holds the key directly or via any role.
 type UserPrivilegeService interface {
 	GrantPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, granterID, reason string) (*models.UserPrivilege, error)
 	RevokePrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey, revokerID, reason string) error
 	HasPrivilege(ctx context.Context, userID string, privilege models.PrivilegeKey) (bool, error)
 	ListUserPrivileges(ctx context.Context, userID string) ([]models.UserPrivilege, error)
 	ListPrivilegeHolders(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
+	EffectivePrivileges(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
 	PrivilegeCatalog() []models.PrivilegeKey
-	BootstrapPrivilegeGrant(ctx context.Context, email, source string) error
+}
+
+// RoleService manages role definitions and their privilege bundles. All
+// mutating calls require roles:manage.
+type RoleService interface {
+	CreateRole(ctx context.Context, name, description, actorID string) (*models.Role, error)
+	UpdateRole(ctx context.Context, roleID, name, description, actorID string) (*models.Role, error)
+	DeleteRole(ctx context.Context, roleID, actorID string) error
+	GetRole(ctx context.Context, roleID string) (*models.Role, error)
+	ListRoles(ctx context.Context) ([]models.Role, error)
+	ListRolePrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
+	AddPrivilegeToRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+	RemovePrivilegeFromRole(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+}
+
+// UserRoleService manages role assignments. Granting and revoking require
+// roles:manage.
+type UserRoleService interface {
+	GrantRoleToUser(ctx context.Context, userID, roleID, granterID, reason string) (*models.UserRole, error)
+	RevokeRoleFromUser(ctx context.Context, userID, roleID, revokerID, reason string) error
+	ListUserRoles(ctx context.Context, userID string) ([]models.UserRole, error)
+	ListRoleHolders(ctx context.Context, roleID string) ([]models.UserRole, error)
+	BootstrapSuperAdmin(ctx context.Context, email, source string) error
 }
 
 // CoreService is the aggregate of every domain interface this package exposes.
@@ -250,6 +271,8 @@ type CoreService interface {
 	ComputeAllocationUsageService
 	AuditEventService
 	UserPrivilegeService
+	RoleService
+	UserRoleService
 }
 
 // Compile-time assertion that *Service satisfies the aggregate CoreService.

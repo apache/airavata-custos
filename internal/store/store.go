@@ -328,6 +328,34 @@ type AuditEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// RoleStore covers role definitions and the privilege bundle each carries.
+type RoleStore interface {
+	FindByID(ctx context.Context, id string) (*models.Role, error)
+	FindByName(ctx context.Context, name string) (*models.Role, error)
+	List(ctx context.Context) ([]models.Role, error)
+	Create(ctx context.Context, tx *sql.Tx, r *models.Role) error
+	Update(ctx context.Context, tx *sql.Tx, r *models.Role) error
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
+	AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error)
+	CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
+}
+
+// UserRoleStore covers role assignments. Revoke is DELETE; history lives in audit_events.
+type UserRoleStore interface {
+	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
+	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
+	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
+	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
+	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
+	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error
+	Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error
+	PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
+	UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error)
+}
+
 // UserPrivilegeStore defines persistence operations for fine-grained admin
 // privileges. Only active grants live in the table; revoke is DELETE. The
 // full grant/revoke history is in audit_events.

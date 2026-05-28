@@ -208,43 +208,50 @@ func TestPrivilegeCatalog(t *testing.T) {
 	}
 }
 
-func TestBootstrapPrivilegeGrant_HappyPath(t *testing.T) {
+func TestBootstrapSuperAdmin_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	user := seedUser(t, database, "boot@example.edu")
-	if err := svc.BootstrapPrivilegeGrant(ctx(), "boot@example.edu", "env:TEST"); err != nil {
-		t.Fatalf("BootstrapPrivilegeGrant: %v", err)
+	if err := svc.BootstrapSuperAdmin(ctx(), "boot@example.edu", "env:TEST"); err != nil {
+		t.Fatalf("BootstrapSuperAdmin: %v", err)
 	}
 	if has, err := svc.HasPrivilege(ctx(), user, models.PrivilegeGrant); err != nil || !has {
-		t.Errorf("HasPrivilege after bootstrap: has=%v err=%v", has, err)
+		t.Errorf("HasPrivilege grant after bootstrap: has=%v err=%v", has, err)
 	}
-	if got := countAuditEventsOfType(t, database, "PRIVILEGE_BOOTSTRAPPED", user); got != 1 {
-		t.Errorf("audit PRIVILEGE_BOOTSTRAPPED: got %d, want 1", got)
+	if has, err := svc.HasPrivilege(ctx(), user, models.PrivilegeRolesManage); err != nil || !has {
+		t.Errorf("HasPrivilege roles:manage after bootstrap: has=%v err=%v", has, err)
 	}
-}
-
-func TestBootstrapPrivilegeGrant_NoOpWhenHolderExists(t *testing.T) {
-	database := setupTestDB(t)
-	svc := newTestService(database)
-	existing := seedUser(t, database, "existing@example.edu")
-	seedPrivilegeGrant(t, database, existing)
-	if err := svc.BootstrapPrivilegeGrant(ctx(), "another@example.edu", "env:TEST"); err != nil {
-		t.Fatalf("BootstrapPrivilegeGrant: %v", err)
-	}
-	rows, err := svc.ListPrivilegeHolders(ctx(), models.PrivilegeGrant)
-	if err != nil {
-		t.Fatalf("ListPrivilegeHolders: %v", err)
-	}
-	if len(rows) != 1 || rows[0].UserID != existing {
-		t.Errorf("holders after bootstrap no-op: got %v, want only [%s]", rows, existing)
+	if got := countAuditEventsOfType(t, database, "ROLE_BOOTSTRAPPED", user); got != 1 {
+		t.Errorf("audit ROLE_BOOTSTRAPPED: got %d, want 1", got)
 	}
 }
 
-func TestBootstrapPrivilegeGrant_NoOpWhenEmailNotFound(t *testing.T) {
+func TestBootstrapSuperAdmin_NoOpWhenRoleHasHolder(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
-	if err := svc.BootstrapPrivilegeGrant(ctx(), "missing@example.edu", "env:TEST"); err != nil {
-		t.Fatalf("BootstrapPrivilegeGrant: %v", err)
+	first := seedUser(t, database, "first@example.edu")
+	another := seedUser(t, database, "another@example.edu")
+	_ = another
+	if err := svc.BootstrapSuperAdmin(ctx(), "first@example.edu", "env:TEST"); err != nil {
+		t.Fatalf("first bootstrap: %v", err)
+	}
+	if err := svc.BootstrapSuperAdmin(ctx(), "another@example.edu", "env:TEST"); err != nil {
+		t.Fatalf("second bootstrap: %v", err)
+	}
+	// only `first` should hold super_admin
+	if has, err := svc.HasPrivilege(ctx(), first, models.PrivilegeGrant); err != nil || !has {
+		t.Errorf("first should still hold grant: has=%v err=%v", has, err)
+	}
+	if has, err := svc.HasPrivilege(ctx(), another, models.PrivilegeGrant); err != nil || has {
+		t.Errorf("another should NOT hold grant: has=%v err=%v", has, err)
+	}
+}
+
+func TestBootstrapSuperAdmin_NoOpWhenEmailNotFound(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+	if err := svc.BootstrapSuperAdmin(ctx(), "missing@example.edu", "env:TEST"); err != nil {
+		t.Fatalf("BootstrapSuperAdmin: %v", err)
 	}
 	rows, err := svc.ListPrivilegeHolders(ctx(), models.PrivilegeGrant)
 	if err != nil {

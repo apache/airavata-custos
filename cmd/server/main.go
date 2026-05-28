@@ -81,8 +81,8 @@ func run() error {
 	defer stop()
 
 	if email := os.Getenv("CUSTOS_BOOTSTRAP_ADMIN_EMAIL"); email != "" {
-		if err := svc.BootstrapPrivilegeGrant(ctx, email, "env:CUSTOS_BOOTSTRAP_ADMIN_EMAIL"); err != nil {
-			slog.Warn("bootstrap privilege grant failed", "email", email, "error", err)
+		if err := svc.BootstrapSuperAdmin(ctx, email, "env:CUSTOS_BOOTSTRAP_ADMIN_EMAIL"); err != nil {
+			slog.Warn("bootstrap super_admin failed", "email", email, "error", err)
 		}
 	}
 
