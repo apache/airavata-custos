@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
 
 	// Read url, username, and password from environment variables
 	apiUrl := os.Getenv("SLURM_API")
@@ -26,6 +26,11 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	go smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService).StartMonitor()
+	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		monitor.StartMonitor(ctx)
+	}()
 	return nil
 }

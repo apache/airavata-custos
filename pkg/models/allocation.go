@@ -35,10 +35,11 @@ type ComputeAllocation struct {
 
 // Typically store the a paritition information
 type ComputeAllocationResource struct {
-	ID             string `json:"id"              db:"id"`
-	Name           string `json:"name"            db:"name"`            // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
-	ResourceType   string `json:"resource_type"   db:"resource_type"`   // cpu, gpu
-	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs.
+	ID               string `json:"id"                 db:"id"`
+	Name             string `json:"name"               db:"name"`               // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+	ResourceType     string `json:"resource_type"      db:"resource_type"`      // cpu, gpu
+	ResourceAmount   int64  `json:"resource_amount"    db:"resource_amount"`    // Number of CPUs, GPUs.
+	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"` // The ID of the compute cluster the resource (partition) belongs to.
 }
 
 // Store the association amount for a parition and allocation

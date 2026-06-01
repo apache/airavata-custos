@@ -62,7 +62,7 @@ func TestListJobs(t *testing.T) {
 	filter := JobFilter{
 		// You can set filter parameters here if needed
 		Users:     []string{"root"},
-		StartTime: &slurmNumber{Set: true, Infinite: false, Number: currentTime},
+		StartTime: currentTime,
 	}
 
 	jobs, err := client.ListJobs(filter)

@@ -158,6 +158,9 @@ type ComputeAllocationStore interface {
 type ComputeAllocationResourceStore interface {
 	// FindByID returns the resource with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+	// FindByNameAndCluster returns the resource with the given name on the
+	// given compute cluster, or nil if not found.
+	FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error)
 	// List returns all compute allocation resources.
 	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
 	// Create inserts a new resource within the provided transaction.

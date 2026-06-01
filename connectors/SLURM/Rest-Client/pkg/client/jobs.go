@@ -26,13 +26,29 @@ type jobsResponse struct {
 
 type JobFilter struct {
 	Users     []string     `json:"users,omitempty"`
+	StartTime int64        `json:"start_time,omitempty"`
+	EndTime   int64 		`json:"end_time,omitempty"`
+}
+
+type internalJobFilter struct {
+	Users     []string `json:"users,omitempty"`
 	StartTime *slurmNumber `json:"start_time,omitempty"`
 	EndTime   *slurmNumber `json:"end_time,omitempty"`
 }
 
 func (c *Client) ListJobs(filter JobFilter) ([]JobInfo, error) {
 	var out jobsResponse
-	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/jobs", filter, &out); err != nil {
+	internalFilter := internalJobFilter{
+		Users:     filter.Users,
+	}
+	if filter.StartTime > 0 {
+		internalFilter.StartTime = &slurmNumber{Set: true, Infinite: false, Number: filter.StartTime}
+	}
+	if filter.EndTime > 0 {
+		internalFilter.EndTime = &slurmNumber{Set: true, Infinite: false, Number: filter.EndTime}
+	}
+
+	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/jobs", internalFilter, &out); err != nil {
 		return nil, err
 	}
 	return out.Jobs, nil

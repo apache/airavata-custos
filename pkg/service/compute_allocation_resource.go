@@ -38,6 +38,14 @@ func (s *Service) CreateComputeAllocationResource(ctx context.Context, resource 
 	if resource.ResourceType == "" {
 		return nil, fmt.Errorf("%w: resource_type is required", ErrInvalidInput)
 	}
+	if resource.ComputeClusterID == "" {
+		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+	}
+	if cluster, err := s.clusters.FindByID(ctx, resource.ComputeClusterID); err != nil {
+		return nil, fmt.Errorf("lookup compute cluster: %w", err)
+	} else if cluster == nil {
+		return nil, fmt.Errorf("%w: compute cluster %q not found", ErrInvalidInput, resource.ComputeClusterID)
+	}
 	if resource.ID == "" {
 		resource.ID = newID()
 	}
@@ -58,6 +66,26 @@ func (s *Service) GetComputeAllocationResource(ctx context.Context, id string) (
 	r, err := s.resources.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("get compute allocation resource: %w", err)
+	}
+	if r == nil {
+		return nil, ErrNotFound
+	}
+	return r, nil
+}
+
+// GetComputeAllocationResourceByNameAndCluster retrieves a compute allocation
+// resource by its name within a given compute cluster. Returns ErrNotFound
+// when no resource matches.
+func (s *Service) GetComputeAllocationResourceByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
+	if name == "" {
+		return nil, fmt.Errorf("%w: resource name is required", ErrInvalidInput)
+	}
+	if clusterID == "" {
+		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+	}
+	r, err := s.resources.FindByNameAndCluster(ctx, name, clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("get compute allocation resource by name and cluster: %w", err)
 	}
 	if r == nil {
 		return nil, ErrNotFound

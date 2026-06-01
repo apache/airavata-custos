@@ -149,6 +149,9 @@ var _ CoreService = &CoreServiceMock{}
 //			GetComputeAllocationResourceFunc: func(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
 //				panic("mock out the GetComputeAllocationResource method")
 //			},
+//			GetComputeAllocationResourceByNameAndClusterFunc: func(ctx context.Context, name string, clusterID string) (*models.ComputeAllocationResource, error) {
+//				panic("mock out the GetComputeAllocationResourceByNameAndCluster method")
+//			},
 //			GetComputeAllocationResourceRateFunc: func(ctx context.Context, id string) (*models.ComputeAllocationResourceRate, error) {
 //				panic("mock out the GetComputeAllocationResourceRate method")
 //			},
@@ -473,6 +476,9 @@ type CoreServiceMock struct {
 
 	// GetComputeAllocationResourceFunc mocks the GetComputeAllocationResource method.
 	GetComputeAllocationResourceFunc func(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+
+	// GetComputeAllocationResourceByNameAndClusterFunc mocks the GetComputeAllocationResourceByNameAndCluster method.
+	GetComputeAllocationResourceByNameAndClusterFunc func(ctx context.Context, name string, clusterID string) (*models.ComputeAllocationResource, error)
 
 	// GetComputeAllocationResourceRateFunc mocks the GetComputeAllocationResourceRate method.
 	GetComputeAllocationResourceRateFunc func(ctx context.Context, id string) (*models.ComputeAllocationResourceRate, error)
@@ -975,6 +981,15 @@ type CoreServiceMock struct {
 			Ctx context.Context
 			// ID is the id argument value.
 			ID string
+		}
+		// GetComputeAllocationResourceByNameAndCluster holds details about calls to the GetComputeAllocationResourceByNameAndCluster method.
+		GetComputeAllocationResourceByNameAndCluster []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Name is the name argument value.
+			Name string
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 		}
 		// GetComputeAllocationResourceRate holds details about calls to the GetComputeAllocationResourceRate method.
 		GetComputeAllocationResourceRate []struct {
@@ -1479,6 +1494,7 @@ type CoreServiceMock struct {
 	lockGetComputeAllocationMembershipResourceOverride       sync.RWMutex
 	lockGetComputeAllocationMembershipResourceOverrideByPair sync.RWMutex
 	lockGetComputeAllocationResource                         sync.RWMutex
+	lockGetComputeAllocationResourceByNameAndCluster         sync.RWMutex
 	lockGetComputeAllocationResourceRate                     sync.RWMutex
 	lockGetComputeAllocationUsage                            sync.RWMutex
 	lockGetComputeCluster                                    sync.RWMutex
@@ -3109,6 +3125,46 @@ func (mock *CoreServiceMock) GetComputeAllocationResourceCalls() []struct {
 	mock.lockGetComputeAllocationResource.RLock()
 	calls = mock.calls.GetComputeAllocationResource
 	mock.lockGetComputeAllocationResource.RUnlock()
+	return calls
+}
+
+// GetComputeAllocationResourceByNameAndCluster calls GetComputeAllocationResourceByNameAndClusterFunc.
+func (mock *CoreServiceMock) GetComputeAllocationResourceByNameAndCluster(ctx context.Context, name string, clusterID string) (*models.ComputeAllocationResource, error) {
+	if mock.GetComputeAllocationResourceByNameAndClusterFunc == nil {
+		panic("CoreServiceMock.GetComputeAllocationResourceByNameAndClusterFunc: method is nil but CoreService.GetComputeAllocationResourceByNameAndCluster was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		Name      string
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		Name:      name,
+		ClusterID: clusterID,
+	}
+	mock.lockGetComputeAllocationResourceByNameAndCluster.Lock()
+	mock.calls.GetComputeAllocationResourceByNameAndCluster = append(mock.calls.GetComputeAllocationResourceByNameAndCluster, callInfo)
+	mock.lockGetComputeAllocationResourceByNameAndCluster.Unlock()
+	return mock.GetComputeAllocationResourceByNameAndClusterFunc(ctx, name, clusterID)
+}
+
+// GetComputeAllocationResourceByNameAndClusterCalls gets all the calls that were made to GetComputeAllocationResourceByNameAndCluster.
+// Check the length with:
+//
+//	len(mockedCoreService.GetComputeAllocationResourceByNameAndClusterCalls())
+func (mock *CoreServiceMock) GetComputeAllocationResourceByNameAndClusterCalls() []struct {
+	Ctx       context.Context
+	Name      string
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		Name      string
+		ClusterID string
+	}
+	mock.lockGetComputeAllocationResourceByNameAndCluster.RLock()
+	calls = mock.calls.GetComputeAllocationResourceByNameAndCluster
+	mock.lockGetComputeAllocationResourceByNameAndCluster.RUnlock()
 	return calls
 }
 

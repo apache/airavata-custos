@@ -118,6 +118,7 @@ type ComputeAllocationService interface {
 type ComputeAllocationResourceService interface {
 	CreateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) (*models.ComputeAllocationResource, error)
 	GetComputeAllocationResource(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+	GetComputeAllocationResourceByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error)
 	ListComputeAllocationResources(ctx context.Context) ([]models.ComputeAllocationResource, error)
 	UpdateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) error
 	DeleteComputeAllocationResource(ctx context.Context, id string) error
