@@ -27,11 +27,10 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig      `yaml:"server"`
-	Database    DatabaseConfig    `yaml:"database"`
-	AMIE        AMIEConfig        `yaml:"amie"`
-	Log         LogConfig         `yaml:"log"`
-	Provisioner ProvisionerConfig `yaml:"provisioner"`
+	Server   ServerConfig   `yaml:"server"`
+	Database DatabaseConfig `yaml:"database"`
+	AMIE     AMIEConfig     `yaml:"amie"`
+	Log      LogConfig      `yaml:"log"`
 }
 
 type ServerConfig struct {
@@ -58,10 +57,6 @@ type AMIEConfig struct {
 type LogConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"` // "text" or "json"
-}
-
-type ProvisionerConfig struct {
-	Type string `yaml:"type"` // "noop" or "slurm"
 }
 
 // Load reads config from a YAML file and applies environment variable overrides.
@@ -112,9 +107,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Log.Format == "" {
 		cfg.Log.Format = "text"
-	}
-	if cfg.Provisioner.Type == "" {
-		cfg.Provisioner.Type = "noop"
 	}
 }
 

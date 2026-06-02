@@ -18,6 +18,7 @@
 package posix
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -55,8 +56,7 @@ func TestBuildBase(t *testing.T) {
 			wantBase: "custos-alice", wantTrunc: false,
 		},
 		{
-			name: "non-ASCII stripped",
-			// "Aña" normalizes to "aa"; first letter 'a' + "kili" (from "Şəkili")
+			name:  "non-ASCII stripped",
 			first: "Aña", last: "Şəkili", prefix: "custos",
 			wantBase: "custos-akili", wantTrunc: false,
 		},
@@ -75,7 +75,10 @@ func TestBuildBase(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			u := &models.User{FirstName: tc.first, MiddleName: tc.middle, LastName: tc.last}
-			got, trunc := BuildBase(u, tc.prefix)
+			got, trunc, err := BuildBase(u, tc.prefix)
+			if err != nil {
+				t.Fatalf("BuildBase: %v", err)
+			}
 
 			if trunc != tc.wantTrunc {
 				t.Errorf("truncated = %v, want %v", trunc, tc.wantTrunc)
@@ -88,6 +91,30 @@ func TestBuildBase(t *testing.T) {
 			}
 			if !strings.HasPrefix(got, tc.prefix+"-") {
 				t.Errorf("base %q does not start with prefix %q", got, tc.prefix+"-")
+			}
+		})
+	}
+}
+
+func TestBuildBase_UnbuildableReturnsError(t *testing.T) {
+	cases := []struct {
+		name  string
+		first string
+		last  string
+	}{
+		{"both empty", "", ""},
+		{"both non-ASCII only", "李", "王"},
+		{"both punctuation only", "...", "---"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			u := &models.User{ID: "u-1", FirstName: tc.first, LastName: tc.last}
+			got, _, err := BuildBase(u, "custos")
+			if !errors.Is(err, ErrUnbuildableUsername) {
+				t.Fatalf("err = %v, want ErrUnbuildableUsername", err)
+			}
+			if got != "" {
+				t.Errorf("expected empty username on error, got %q", got)
 			}
 		})
 	}

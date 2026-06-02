@@ -20,6 +20,8 @@
 package posix
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"unicode"
@@ -29,9 +31,11 @@ import (
 
 const MaxCollisionSuffix = 999
 
-// BuildBase returns the unsuffixed username and a flag set when the name
-// portion was truncated to fit the 32-char Unix login limit.
-func BuildBase(u *models.User, prefix string) (string, bool) {
+var ErrUnbuildableUsername = errors.New("posix: cannot build username from empty first and last name")
+
+// BuildBase returns the unsuffixed username. 'truncated' is set when the name
+// portion was shortened to fit the 32-char POSIX login cap.
+func BuildBase(u *models.User, prefix string) (string, bool, error) {
 	first := Normalize(u.FirstName)
 	last := Normalize(u.LastName)
 
@@ -44,17 +48,17 @@ func BuildBase(u *models.User, prefix string) (string, bool) {
 	case first != "":
 		local = first
 	default:
-		local = "user"
+		return "", false, fmt.Errorf("%w: user %q (first=%q last=%q)", ErrUnbuildableUsername, u.ID, u.FirstName, u.LastName)
 	}
 
-	// Reserve 3 chars for a numeric collision suffix (up to "999").
+	// 32 = POSIX login cap; -1 separator, -3 reserved for collision suffix (up to "999").
 	maxLocal := 32 - len(prefix) - 1 - 3
 	truncated := false
 	if len(local) > maxLocal {
 		local = local[:maxLocal]
 		truncated = true
 	}
-	return prefix + "-" + local, truncated
+	return prefix + "-" + local, truncated, nil
 }
 
 func Normalize(s string) string {
