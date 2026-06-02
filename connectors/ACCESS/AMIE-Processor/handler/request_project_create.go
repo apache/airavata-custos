@@ -78,6 +78,14 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_PERSON: %w", err)
 	}
 
+	piClusterUser, err := h.ensurePIClusterUser(ctx, pi.ID)
+	if err != nil {
+		return fmt.Errorf("request_project_create: ensure PI cluster user: %w", err)
+	}
+	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAccount, "compute_cluster_user", piClusterUser.ID, piClusterUser.LocalUsername); err != nil {
+		return fmt.Errorf("request_project_create: audit CREATE_ACCOUNT (PI): %w", err)
+	}
+
 	project, err := h.ensureProject(ctx, projectOriginatedID, grantNumber, pi.ID)
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure project: %w", err)
@@ -98,7 +106,7 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		"ProjectID":         project.ID,
 		"GrantNumber":       grantNumber,
 		"PiPersonID":        pi.ID,
-		"PiRemoteSiteLogin": piGlobalID,
+		"PiRemoteSiteLogin": piClusterUser.LocalUsername,
 		"ResourceList":      getResourceList(body),
 	}
 	reply := map[string]any{"type": "notify_project_create", "body": replyBody}
@@ -140,6 +148,19 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 		return nil, fmt.Errorf("create PI user identity: %w", err)
 	}
 	return user, nil
+}
+
+func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
+	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute cluster users: %w", err)
+	}
+	for _, a := range existing {
+		if a.ComputeClusterID == h.clusterID {
+			return &a, nil
+		}
+	}
+	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
 func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, grantNumber, piID string) (*models.Project, error) {
