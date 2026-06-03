@@ -1,0 +1,20 @@
+# COmanage Identity-Provisioner connector
+#
+# This connector is configured via environment variables. Below is the full
+# list with example values; see README.md for semantics. Missing required
+# vars causes the loader to skip subscriber registration silently.
+
+# REQUIRED ---------------------------------------------------------------
+# COMANAGE_REGISTRY_URL=https://<your-registry>/registry
+# COMANAGE_CO_ID=<numeric CO id>
+# COMANAGE_API_USER=<api user for that CO>
+# COMANAGE_API_KEY=<api key for that user>
+# COMANAGE_PERSON_ID_TYPE=<CoPerson Identifier Type configured in the registry>
+# COMANAGE_UNIX_CLUSTER_ID=<numeric UnixCluster id>
+# CUSTOS_CLUSTER_ID=<UUID of the compute_cluster row this connector services>
+
+# OPTIONAL ---------------------------------------------------------------
+# COMANAGE_DEFAULT_SHELL=/bin/bash
+# COMANAGE_HOMEDIR_PREFIX=/home/
+# COMANAGE_HTTP_TIMEOUT=30s
+# POSIX_USERNAME_PREFIX=custos # read by pkg/posix; default "custos"

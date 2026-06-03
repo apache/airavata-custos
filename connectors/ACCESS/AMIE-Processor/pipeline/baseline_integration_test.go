@@ -56,8 +56,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_allocations", 2},            // tables.compute_allocations.total_count
 		{"compute_allocation_diffs", 1},       // tables.compute_allocation_diffs.total_count
 		{"amie_user_dns", 2},                  // tables.amie_user_dns.total_count
-		{"amie_audit_log", 23},                // audit_log.total_count
-		{"compute_cluster_users", 0},          // not_expected
+		{"amie_audit_log", 26},                // audit_log.total_count
+		{"compute_cluster_users", 1},          // tables.compute_cluster_users.total_count (survivor's PI CCU; merge dedups Sam's)
 		{"compute_allocation_memberships", 0}, // not_expected
 	}
 	if decoded != 9 {
@@ -75,6 +75,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		want   int
 	}{
 		{"CREATE_PERSON", 3},
+		{"CREATE_ACCOUNT", 3},
 		{"CREATE_PROJECT", 3},
 		{"CREATE_ALLOCATION", 3},
 		{"REPLY_SENT", 8},
