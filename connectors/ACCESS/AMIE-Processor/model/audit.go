@@ -23,6 +23,7 @@ import "time"
 type AuditAction string
 
 const (
+	AuditPacketReceived       AuditAction = "PACKET_RECEIVED"
 	AuditCreatePerson         AuditAction = "CREATE_PERSON"
 	AuditUpdatePerson         AuditAction = "UPDATE_PERSON"
 	AuditDeletePerson         AuditAction = "DELETE_PERSON"
@@ -42,12 +43,15 @@ const (
 
 // AuditLog records a handler action for traceability and compliance.
 type AuditLog struct {
-	ID         int64       `db:"id" json:"id"`
-	PacketID   string      `db:"packet_id" json:"packet_id"`
-	EventID    *string     `db:"event_id" json:"event_id,omitempty"`
-	Action     AuditAction `db:"action" json:"action"`
-	EntityType string      `db:"entity_type" json:"entity_type"`
-	EntityID   *string     `db:"entity_id" json:"entity_id,omitempty"`
-	Summary    *string     `db:"summary" json:"summary,omitempty"`
-	CreatedAt  time.Time   `db:"created_at" json:"created_at"`
+	ID           int64       `db:"id" json:"id"`
+	PacketID     string      `db:"packet_id" json:"packet_id"`
+	EventID      *string     `db:"event_id" json:"event_id,omitempty"`
+	Action       AuditAction `db:"action" json:"action"`
+	EntityType   string      `db:"entity_type" json:"entity_type"`
+	EntityID     *string     `db:"entity_id" json:"entity_id,omitempty"`
+	Summary      *string     `db:"summary" json:"summary,omitempty"`
+	CreatedAt    time.Time   `db:"created_at" json:"created_at"`
+	TraceID      []byte      `db:"trace_id" json:"-"`
+	SpanID       []byte      `db:"span_id" json:"-"`
+	ParentSpanID []byte      `db:"parent_span_id" json:"-"`
 }

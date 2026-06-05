@@ -18,14 +18,19 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"testing"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ---------------------------------------------------------------------------
@@ -112,4 +117,56 @@ func TestAuditLog_PropagatesStoreError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "audit_service")
 	store.AssertExpectations(t)
+}
+
+func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
+	prev := otel.GetTracerProvider()
+	tp := sdktrace.NewTracerProvider()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+
+	store := new(mockAuditStore)
+	svc := NewAuditService(store)
+
+	ctx, span := tracing.Start(context.Background(), "test.root")
+	defer span.End()
+
+	wantTrace := span.SpanContext().TraceID()
+	wantSpan := span.SpanContext().SpanID()
+
+	var captured *model.AuditLog
+	store.On("Save", mock.Anything, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
+		captured = a
+		return true
+	})).Return(nil)
+
+	err := svc.Log(ctx, nil, "packet-trace", "event-trace", model.AuditCreatePerson, "person", "p1", "with trace")
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	if !bytes.Equal(captured.TraceID, wantTrace[:]) {
+		t.Fatalf("trace_id mismatch: got %x want %x", captured.TraceID, wantTrace[:])
+	}
+	if !bytes.Equal(captured.SpanID, wantSpan[:]) {
+		t.Fatalf("span_id mismatch: got %x want %x", captured.SpanID, wantSpan[:])
+	}
+	store.AssertExpectations(t)
+}
+
+func TestAuditLog_NilTraceWhenNoSpan(t *testing.T) {
+	store := new(mockAuditStore)
+	svc := NewAuditService(store)
+
+	var captured *model.AuditLog
+	store.On("Save", mock.Anything, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
+		captured = a
+		return true
+	})).Return(nil)
+
+	err := svc.Log(trace.ContextWithSpanContext(context.Background(), trace.SpanContext{}),
+		nil, "p", "e", model.AuditReplySent, "reply", "", "")
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	if captured.TraceID != nil || captured.SpanID != nil {
+		t.Fatalf("expected nil trace/span IDs when no active span")
+	}
 }

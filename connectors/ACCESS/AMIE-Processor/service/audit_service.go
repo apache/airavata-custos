@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 )
 
 type auditStore interface {
@@ -49,6 +50,16 @@ func (s *AuditService) Log(ctx context.Context, tx *sql.Tx, packetID, eventID st
 		EntityID:   ptrOrNil(entityID),
 		Summary:    ptrOrNil(summary),
 		CreatedAt:  time.Now().UTC(),
+	}
+	tracing.PopulateAuditIDs(ctx, &entry.TraceID, &entry.SpanID, &entry.ParentSpanID)
+	if entry.TraceID == nil {
+		slog.WarnContext(ctx, "audit write outside an active span",
+			"packet_id", packetID,
+			"event_id", eventID,
+			"action", string(action),
+			"entity_type", entityType,
+			"entity_id", entityID,
+		)
 	}
 
 	if err := s.audits.Save(ctx, tx, entry); err != nil {

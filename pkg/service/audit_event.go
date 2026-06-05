@@ -21,7 +21,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -44,6 +46,14 @@ func (s *Service) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*
 	}
 	if e.EventTime.IsZero() {
 		e.EventTime = nowUTC()
+	}
+
+	tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID)
+	if e.TraceID == nil {
+		slog.WarnContext(ctx, "audit write outside an active span",
+			"event_type", e.EventType,
+			"entity_id", e.EntityID,
+		)
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {

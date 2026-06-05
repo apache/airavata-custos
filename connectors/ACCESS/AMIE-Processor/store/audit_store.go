@@ -39,8 +39,8 @@ func NewAuditStore(db *sqlx.DB) AuditStore {
 
 func (s *mariaDBauditStore) Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_audit_log (packet_id, event_id, action, entity_type, entity_id, summary, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		a.PacketID, a.EventID, a.Action, a.EntityType, a.EntityID, a.Summary, a.CreatedAt)
+		`INSERT INTO amie_audit_log (packet_id, event_id, action, entity_type, entity_id, summary, created_at, trace_id, span_id, parent_span_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.PacketID, a.EventID, a.Action, a.EntityType, a.EntityID, a.Summary, a.CreatedAt, a.TraceID, a.SpanID, a.ParentSpanID)
 	return err
 }
