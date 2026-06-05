@@ -56,7 +56,7 @@ func (s *Service) CreateComputeAllocationResource(ctx context.Context, resource 
 		return nil, fmt.Errorf("create compute allocation resource: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceCreateEvent, resource)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceCreateEvent, resource)
 	return resource, nil
 }
 
@@ -129,7 +129,7 @@ func (s *Service) UpdateComputeAllocationResource(ctx context.Context, resource 
 		return fmt.Errorf("update compute allocation resource: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceUpdateEvent, resource)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceUpdateEvent, resource)
 	return nil
 }
 
@@ -151,6 +151,6 @@ func (s *Service) DeleteComputeAllocationResource(ctx context.Context, id string
 		return fmt.Errorf("delete compute allocation resource: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceDeleteEvent, resource)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceDeleteEvent, resource)
 	return nil
 }

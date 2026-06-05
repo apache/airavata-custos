@@ -18,13 +18,14 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // UserIdentityHandler handles user-identity lifecycle events with a typed payload.
-type UserIdentityHandler func(identity models.UserIdentity)
+type UserIdentityHandler func(ctx context.Context, identity models.UserIdentity)
 
 // SubscribeUserIdentityCreated registers a typed handler invoked whenever a
 // user_identity::create event is published.
@@ -45,13 +46,13 @@ func (b *Bus) SubscribeUserIdentityDeleted(handler UserIdentityHandler) {
 }
 
 func (b *Bus) subscribeUserIdentity(topic EventType, handler UserIdentityHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch e := value.(type) {
 		case models.UserIdentity:
-			handler(e)
+			handler(ctx, e)
 		case *models.UserIdentity:
 			if e != nil {
-				handler(*e)
+				handler(ctx, *e)
 			}
 		default:
 			slog.Warn("user identity event payload has unexpected type",

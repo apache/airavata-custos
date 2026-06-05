@@ -77,7 +77,7 @@ func (s *Service) CreateComputeAllocationMembershipResourceOverride(ctx context.
 		return nil, fmt.Errorf("create membership resource override: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipResourceOverrideCreateEvent, o)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideCreateEvent, o)
 	return o, nil
 }
 
@@ -170,7 +170,7 @@ func (s *Service) UpdateComputeAllocationMembershipResourceOverride(ctx context.
 		return nil, fmt.Errorf("update membership resource override: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipResourceOverrideUpdateEvent, o)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideUpdateEvent, o)
 	return o, nil
 }
 
@@ -192,6 +192,6 @@ func (s *Service) DeleteComputeAllocationMembershipResourceOverride(ctx context.
 		return fmt.Errorf("delete membership resource override: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipResourceOverrideDeleteEvent, existing)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipResourceOverrideDeleteEvent, existing)
 	return nil
 }

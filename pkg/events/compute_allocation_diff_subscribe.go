@@ -1,13 +1,14 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // ComputeAllocationDiffHandler handles compute allocation diff lifecycle events with a typed payload.
-type ComputeAllocationDiffHandler func(diff models.ComputeAllocationDiff)
+type ComputeAllocationDiffHandler func(ctx context.Context, diff models.ComputeAllocationDiff)
 
 // SubscribeComputeAllocationDiffCreated registers a typed handler invoked whenever a
 // compute_allocation_diff::create event is published. Events with payloads that are
@@ -30,13 +31,13 @@ func (b *Bus) SubscribeComputeAllocationDiffDeleted(handler ComputeAllocationDif
 }
 
 func (b *Bus) subscribeComputeAllocationDiff(topic EventType, handler ComputeAllocationDiffHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch d := value.(type) {
 		case models.ComputeAllocationDiff:
-			handler(d)
+			handler(ctx, d)
 		case *models.ComputeAllocationDiff:
 			if d != nil {
-				handler(*d)
+				handler(ctx, *d)
 			}
 		default:
 			slog.Warn("compute allocation diff event payload has unexpected type",

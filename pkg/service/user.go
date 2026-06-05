@@ -64,7 +64,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	s.eventBus.Publish(events.UserCreateEvent, user)
+	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
 	return user, nil
 }
 
@@ -167,7 +167,7 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 		return fmt.Errorf("update user: %w", err)
 	}
 
-	s.eventBus.Publish(events.UserUpdateEvent, user)
+	s.eventBus.Publish(ctx, events.UserUpdateEvent, user)
 	return nil
 }
 
@@ -194,7 +194,7 @@ func (s *Service) UpdateUserStatus(ctx context.Context, id string, status models
 	}
 	existing.Status = status
 
-	s.eventBus.Publish(events.UserUpdateEvent, existing)
+	s.eventBus.Publish(ctx, events.UserUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -216,6 +216,6 @@ func (s *Service) DeleteUser(ctx context.Context, id string) error {
 		return fmt.Errorf("delete user: %w", err)
 	}
 
-	s.eventBus.Publish(events.UserDeleteEvent, existing)
+	s.eventBus.Publish(ctx, events.UserDeleteEvent, existing)
 	return nil
 }

@@ -76,7 +76,7 @@ func (s *Service) AttachResourceToAllocation(ctx context.Context, allocationID, 
 		return nil, fmt.Errorf("attach resource to allocation: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceMappingCreateEvent, mapping)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingCreateEvent, mapping)
 	return mapping, nil
 }
 
@@ -109,7 +109,7 @@ func (s *Service) UpdateAllocationResourceMapping(ctx context.Context, allocatio
 		return nil, fmt.Errorf("update allocation resource mapping: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceMappingUpdateEvent, existing)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -135,7 +135,7 @@ func (s *Service) DetachResourceFromAllocation(ctx context.Context, allocationID
 		return fmt.Errorf("detach resource from allocation: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationResourceMappingDeleteEvent, existing)
+	s.eventBus.Publish(ctx, events.ComputeAllocationResourceMappingDeleteEvent, existing)
 	return nil
 }
 
