@@ -19,17 +19,15 @@ package models
 
 import "time"
 
-// Profile is the persistent researcher identity that can outlive any single
-// institutional account or external identity provider login.
-type Profile struct {
-	ID                 string    `json:"id" db:"id"`
-	DisplayName        string    `json:"display_name" db:"display_name"`
-	Emails             []string  `json:"emails,omitempty"`
-	ResearchDomain     string    `json:"research_domain,omitempty" db:"research_domain"`
-	Department         string    `json:"department,omitempty" db:"department"`
-	Institution        string    `json:"institution,omitempty" db:"institution"`
-	ProjectMemberships []string  `json:"project_memberships,omitempty"`
-	GroupMemberships   []string  `json:"group_memberships,omitempty"`
-	CreatedAt          time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at" db:"updated_at"`
+// ResearcherProfile stores researcher-specific metadata for a Custos user.
+// The stable identity remains models.User; external identities remain
+// models.UserIdentity.
+type ResearcherProfile struct {
+	UserID         string    `json:"user_id" db:"user_id"`
+	DisplayName    string    `json:"display_name" db:"display_name"`
+	ResearchDomain string    `json:"research_domain,omitempty" db:"research_domain"`
+	Department     string    `json:"department,omitempty" db:"department"`
+	Institution    string    `json:"institution,omitempty" db:"institution"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }

@@ -43,6 +43,19 @@ type UserStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// ResearcherProfileStore defines persistence operations for researcher profile
+// metadata attached to a Custos user.
+type ResearcherProfileStore interface {
+	// FindByUserID returns the researcher profile for the given user ID, or nil if not found.
+	FindByUserID(ctx context.Context, userID string) (*models.ResearcherProfile, error)
+	// Create inserts a researcher profile within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, p *models.ResearcherProfile) error
+	// Update replaces mutable fields of an existing researcher profile within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, p *models.ResearcherProfile) error
+	// Delete removes a researcher profile by user ID within the provided transaction.
+	Delete(ctx context.Context, tx *sql.Tx, userID string) error
+}
+
 // OrganizationStore defines persistence operations for organizations.
 type OrganizationStore interface {
 	// FindByID returns the organization with the given ID, or nil if not found.
