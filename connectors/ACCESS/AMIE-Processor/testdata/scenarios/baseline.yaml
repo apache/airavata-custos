@@ -135,8 +135,9 @@ expectations:
             user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
 
   audit_log:
-    total_count: 26
+    total_count: 35
     by_action:
+      PACKET_RECEIVED: 9      # worker writes one root structural marker per packet so the trace tree has a root anchor
       CREATE_PERSON: 3        # all 3 request_project_create packets audit CREATE_PERSON (re-use audited too)
       CREATE_ACCOUNT: 3       # PI CCU provisioning audited on every request_project_create (re-use audited too)
       CREATE_PROJECT: 3
