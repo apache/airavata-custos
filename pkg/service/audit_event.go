@@ -23,9 +23,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/apache/airavata-custos/internal/audit"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// SourceCore is the default value stamped on audit rows when nothing
+// else has tagged the ctx direct service writes, admin endpoints, etc.
+const SourceCore = "core"
 
 // CreateAuditEvent records a new audit event. EventTime defaults to the
 // server's current UTC time when unset. Audit events are append-only — there
@@ -54,6 +59,13 @@ func (s *Service) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*
 			"event_type", e.EventType,
 			"entity_id", e.EntityID,
 		)
+	}
+	if e.Source == "" {
+		if src := audit.SourceFromContext(ctx); src != "" {
+			e.Source = src
+		} else {
+			e.Source = SourceCore
+		}
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {

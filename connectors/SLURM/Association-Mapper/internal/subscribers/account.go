@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/audit"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"go.opentelemetry.io/otel/attribute"
@@ -13,6 +14,7 @@ import (
 )
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context.Context, computeAllocation models.ComputeAllocation) {
+	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_create")
 	defer span.End()
 	span.SetAttributes(
@@ -89,6 +91,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.C
 }
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) {
+	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_resource_mapping_create")
 	defer span.End()
 	span.SetAttributes(attribute.String("slurm.allocation_id", mapping.ComputeAllocationID))

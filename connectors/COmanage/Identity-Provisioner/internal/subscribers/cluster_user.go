@@ -26,6 +26,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/operations"
+	"github.com/apache/airavata-custos/internal/audit"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -56,6 +57,7 @@ func (s *ClusterUserSubscriber) RegisterSubscribers() {
 }
 
 func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ events.Event, payload interface{}) {
+	ctx = audit.WithSource(ctx, "comanage")
 	ctx, span := tracing.Start(ctx, "comanage.cluster_user_create")
 	defer span.End()
 

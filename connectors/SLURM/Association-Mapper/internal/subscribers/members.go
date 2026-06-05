@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/audit"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"go.opentelemetry.io/otel/attribute"
@@ -13,6 +14,7 @@ import (
 )
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(ctx context.Context, membership models.ComputeAllocationMembership) {
+	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_create")
 	defer span.End()
 	span.SetAttributes(
@@ -96,6 +98,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 }
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) {
+	ctx = audit.WithSource(ctx, "slurm")
 	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_resource_override_create")
 	defer span.End()
 
