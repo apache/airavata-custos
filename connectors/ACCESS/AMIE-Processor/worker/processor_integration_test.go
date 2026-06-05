@@ -31,6 +31,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 )
 
@@ -90,6 +91,7 @@ func newProcessor(database *sqlx.DB, router processorRouter, met *stubMetrics) *
 		store.NewProcessingErrorStore(database),
 		router,
 		met,
+		service.NewAuditService(store.NewAuditStore(database)),
 		database,
 		cfg,
 	)

@@ -26,11 +26,16 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 )
+
+const rootEventMaxBytes = 64 * 1024
 
 const (
 	// MaxAttempts is the maximum number of processing attempts before an
@@ -70,23 +75,29 @@ type processorMetrics interface {
 	StartProcessingTimer() func(handlerType string)
 }
 
+type processorAuditService interface {
+	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
+}
+
 type Processor struct {
 	eventStore     processorEventStore
 	packetStore    processorPacketStore
 	errorStore     processorErrorStore
 	router         processorRouter
 	metrics        processorMetrics
+	auditSvc       processorAuditService
 	db             *sqlx.DB
 	workerInterval time.Duration
 }
 
-func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, db *sqlx.DB, cfg config.AMIEConfig) *Processor {
+func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, auditSvc processorAuditService, db *sqlx.DB, cfg config.AMIEConfig) *Processor {
 	return &Processor{
 		eventStore:     eventStore,
 		packetStore:    packetStore,
 		errorStore:     errorStore,
 		router:         router,
 		metrics:        metrics,
+		auditSvc:       auditSvc,
 		db:             db,
 		workerInterval: cfg.WorkerInterval,
 	}
@@ -150,13 +161,38 @@ func (p *Processor) processPendingEvents(ctx context.Context) {
 // If the handler returns an error, the entire transaction is rolled back
 // (including the attempt increment), and the caller should record the failure
 // in a separate transaction.
-func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWithPacket) error {
+func (p *Processor) executeInTransaction(ctx context.Context, ewp model.EventWithPacket) (err error) {
+	ctx, span := tracing.Start(ctx, "amie.process_event:"+string(ewp.Type))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("source", "amie"),
+		attribute.String("amie.event_id", ewp.ID),
+		attribute.String("amie.packet_id", ewp.PacketID),
+		attribute.String("amie.event_type", string(ewp.Type)),
+	)
+	if raw := ewp.PacketRawJSON; raw != "" && len(raw) <= rootEventMaxBytes {
+		span.SetAttributes(attribute.String("root_event", raw))
+	}
+
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+	}()
+
 	return custosdb.TxFn(ctx, p.db, func(tx *sql.Tx) error {
 		slog.Info("Processing event",
 			"eventId", ewp.ID,
 			"type", ewp.Type,
 			"attempt", ewp.Attempts+1,
 		)
+
+		// Root marker so child audit rows have a parent that exists in the table.
+		if err := p.auditSvc.Log(ctx, tx, ewp.PacketID, ewp.ID, model.AuditPacketReceived, "packet", ewp.PacketID, string(ewp.Type)); err != nil {
+			return fmt.Errorf("audit PACKET_RECEIVED: %w", err)
+		}
 
 		now := time.Now().UTC()
 		ewp.Status = model.ProcessingStatusRunning

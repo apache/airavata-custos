@@ -37,9 +37,14 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
+
+func init() {
+	tracing.RegisterTerminalMarkers("amie", "TRANSACTION_COMPLETE")
+}
 
 const connectorName = "amie"
 
@@ -90,7 +95,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	met := metrics.New()
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg.AMIE)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, database, cfg.AMIE)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg.AMIE)
 
 	wg.Add(2)
 	go func() {
