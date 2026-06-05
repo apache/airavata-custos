@@ -61,27 +61,92 @@ curl http://localhost:8083/metrics    # Prometheus metrics
 
 ## Testing
 
+Three layers, used for different things:
+
+### 1. Unit tests (correctness, no external services)
+
 ```bash
-make test           # Run all tests with verbose output
-make test-short     # Run tests in short mode
+make test           # all tests, verbose
+make test-short     # short mode
 ```
 
-All tests use mocks (testify/mock) and require no external services.
+Every package under this connector ships unit tests against `testify/mock`. No DB, no AMIE server, no network. Run on every commit.
 
-**93 test functions, 160 total test cases (including subtests), 0 failures.**
+### 2. Integration tests (real DB + mock AMIE server)
+
+Run the per-handler suite (~11 handler tests) plus the pipeline suite (`baseline_integration_test`, `comanage_trace_chain_test`, `tracing_clean_slate_test`). All gated by build tag `integration` and require these env vars set:
+
+- `DATABASE_DSN`, `AMIE_BASE_URL`, `AMIE_SITE_CODE`, `AMIE_API_KEY`, `AMIE_CLUSTER_ID`
+
+The canonical runner brings up an isolated DB on `:3307` + mock AMIE on `:8181`, applies all migrations, fires every integration test, then tears down:
+
+```bash
+# From repo root
+make integration-test-amie
+```
+
+Equivalent script: `scripts/run-amie-integration-tests.sh`.
+
+#### What the pipeline tests fire
+
+Only one fixture exists today: `testdata/scenarios/baseline.yaml` — a deterministic 9-packet flow covering all major handler paths:
+
+| Packet | Asserts |
+|---|---|
+| `request_project_create` | PI user + project + allocation + PI cluster account |
+| `request_account_create` | user + cluster account + membership |
+| `data_project_create` / `data_account_create` | PERSIST_DNS rows |
+| `request_user_modify` | user + DN updates |
+| `request_person_merge` | survivor / retiree consolidation |
+| `request_account_inactivate` / `_reactivate` | membership status flips |
+| `request_project_inactivate` / `_reactivate` | project + all-member flips |
+| `inform_transaction_complete` | TRANSACTION_COMPLETE row |
+
+The three pipeline tests reuse the same fixture but assert different properties:
+- `baseline_integration_test` — DB shape + idempotency on rerun.
+- `comanage_trace_chain_test` — proves AMIE and COmanage audit rows share a `trace_id` via JOIN over `amie_audit_log` and `audit_events` (uses mock COmanage REST; never hits the real registry).
+- `tracing_clean_slate_test` — clean-slate DB + full audit coverage + `/audit/*` endpoint smoke against an in-process httptest server.
+
+To add a new scenario: drop a YAML next to `baseline.yaml` and call `pipe.fireScenario(t, "<name>")` from a new `*_integration_test.go` file.
+
+### 3. Mock-server REST scenarios + k6 (load / soak / observability)
+
+For traffic generation against a **running** server (NOT a test — no assertions). Used to play in the admin UI, watch Grafana, or stress the worker.
+
+Start the mock AMIE server standalone:
+
+```bash
+cd connectors/ACCESS/AMIE-Processor/mock-server
+source venv/bin/activate
+python3 mock-amie-server.py            # :8180
+```
+
+Then queue packets via REST:
+
+```bash
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=mixed'         # success + failure mix
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=success_only'
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=failures_only'
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=heavy'          # large batch
+curl -X POST 'http://localhost:8180/test/TESTSITE/scenarios?type=dev_email'      # needs DEV_EMAIL env
+```
+
+For sustained traffic at a configurable rate, use k6 with `mock-server/amie-traffic.js` — see `mock-server/README.md` for stage configuration.
 
 ## Observability
 
 The service exports Prometheus metrics at `/metrics`. A pre-built Grafana dashboard is available at `compose/grafana/dashboards/amie-service.json` showing packet processing stats, failures, retries, and processing duration percentiles.
 
-To run the full observability stack:
+To run the metrics stack:
 
 ```bash
 # From the repo root
-docker compose -f compose/docker-compose.yml up db prometheus grafana -d
+docker compose -f dev-ops/compose/docker-compose.yml up db prometheus grafana -d
 ```
 
 Then open Grafana at `http://localhost:3000` (admin/admin). The AMIE dashboard loads automatically.
+
+For request-flow tracing, every AMIE audit row carries `trace_id` / `span_id` / `parent_span_id`. The admin trace view at `/audit/traces*` UNIONs `amie_audit_log` with the core `audit_events` table and renders the hierarchy from `parent_span_id`. See `docs/architecture/2026-06-04-tracing-audit-driven.md`.
 
 ## Architecture
 

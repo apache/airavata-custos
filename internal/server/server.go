@@ -26,23 +26,35 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/httputil"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+// AdminDeps wires the optional audit-trace surface (/audit/*). When nil the
+// /audit/* routes return 503. Useful for unit tests that exercise only the
+// non-admin API.
+type AdminDeps struct {
+	AuditTraces store.AuditTraceStore
+}
 
 // Server is an HTTP handler that exposes the service API.
 type Server struct {
 	svc       *service.Service
 	mux       *http.ServeMux
 	authCache *authProfileCache
+	admin     *AdminDeps
 }
 
-// New builds an HTTP handler wired to the supplied service.
-func New(svc *service.Service) *Server {
+// New builds an HTTP handler wired to the supplied service. admin may be nil
+// to disable the admin routes.
+func New(svc *service.Service, admin *AdminDeps) *Server {
 	s := &Server{
 		svc:       svc,
 		mux:       http.NewServeMux(),
 		authCache: newAuthProfileCache(authProfileTTL),
+		admin:     admin,
 	}
 	s.routes()
 	return s
@@ -166,6 +178,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.listUserRoles))
 	s.mux.HandleFunc("POST /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.grantRoleToUser))
 	s.mux.HandleFunc("DELETE /users/{id}/roles/{roleId}", s.requirePrivilege(models.PrivilegeRolesManage, s.revokeRoleFromUser))
+
+	s.mux.HandleFunc("GET /audit/traces", s.handleListTraces)
+	s.mux.HandleFunc("GET /audit/traces/{trace_id}", s.handleGetTrace)
+	s.mux.HandleFunc("GET /audit/events", s.handleListEvents)
+	s.mux.HandleFunc("GET /audit/sources", s.handleListSources)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -1020,29 +1037,26 @@ func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, survivor)
 }
 
-// LoggingMiddleware logs every request once it completes.
+// LoggingMiddleware logs every request once it completes. It wraps
+// tracing.Middleware (logging outer, tracing inner) and reads the trace_id
+// from the X-Trace-Id response header the inner span set, since the inner
+// request ctx is not visible at this scope after ServeHTTP returns.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		rw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		rw := &httputil.StatusRecorder{ResponseWriter: w, Status: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		slog.Info("http request",
+		attrs := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
-			"status", rw.status,
+			"status", rw.Status,
 			"duration", time.Since(start).String(),
-		)
+		}
+		if tid := rw.Header().Get("X-Trace-Id"); tid != "" {
+			attrs = append(attrs, "trace_id", tid)
+		}
+		slog.InfoContext(r.Context(), "http request", attrs...)
 	})
-}
-
-type statusRecorder struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *statusRecorder) WriteHeader(code int) {
-	r.status = code
-	r.ResponseWriter.WriteHeader(code)
 }
 
 func decodeJSON(r *http.Request, dst any) error {

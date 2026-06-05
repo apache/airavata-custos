@@ -33,12 +33,14 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
+	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	slog.SetDefault(slog.New(tracing.SlogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 
 	if err := run(); err != nil {
 		slog.Error("server exited with error", "error", err)
@@ -73,6 +75,26 @@ func run() error {
 		return err
 	}
 
+	tracingMode := tracing.ModeProduction
+	if os.Getenv("CUSTOS_TRACING_MODE") == "noop" {
+		tracingMode = tracing.ModeNoop
+	}
+	tracingShutdown, err := tracing.Init(tracing.InitConfig{
+		Mode:        tracingMode,
+		Logger:      slog.Default(),
+		ServiceName: "custos",
+	})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := tracingShutdown(shutdownCtx); err != nil {
+			slog.Warn("tracing shutdown returned error", "error", err)
+		}
+	}()
+
 	// Create a new event bus instance to async messaging between service and connectors
 	eventBus := events.New()
 	svc := service.New(database, eventBus)
@@ -89,7 +111,10 @@ func run() error {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(server.New(svc))
+	adminDeps := &server.AdminDeps{
+		AuditTraces: store.NewAuditTraceStore(database),
+	}
+	handler := server.LoggingMiddleware(tracing.Middleware(server.New(svc, adminDeps)))
 
 	httpServer := &http.Server{
 		Addr:              addr,
