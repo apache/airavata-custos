@@ -31,9 +31,14 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+func init() {
+	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
+}
 
 // LoadConnector wires the subscriber to the event bus. If any required env
 // var is missing, the loader logs and returns nil without registering.

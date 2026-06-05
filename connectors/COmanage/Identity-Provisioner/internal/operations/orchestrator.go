@@ -22,14 +22,27 @@ package operations
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
+// CoreService is the subset of pkg/service.Service the orchestrator depends
+// on. Defined here so tests can stub without standing up a real DB.
+type CoreService interface {
+	GetUser(ctx context.Context, id string) (*models.User, error)
+	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	CreateUserIdentity(ctx context.Context, ui *models.UserIdentity) (*models.UserIdentity, error)
+	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
+}
+
 type Orchestrator struct {
 	c    *client.Client
-	core *service.Service
+	core CoreService
 }
 
 func New(c *client.Client, core *service.Service) *Orchestrator {
@@ -37,5 +50,17 @@ func New(c *client.Client, core *service.Service) *Orchestrator {
 }
 
 func (o *Orchestrator) EnsurePOSIXAccount(ctx context.Context, cu *models.ComputeClusterUser) error {
-	return o.ensurePOSIXAccountImpl(ctx, cu)
+	ctx, span := tracing.Start(ctx, "comanage.ensure_posix_account")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("comanage.cluster_user_id", cu.ID),
+		attribute.String("comanage.user_id", cu.UserID),
+		attribute.Int("comanage.co_id", o.c.Config().COID),
+	)
+	if err := o.ensurePOSIXAccountImpl(ctx, cu); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+	return nil
 }
