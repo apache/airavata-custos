@@ -328,6 +328,56 @@ type AuditEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// RoleStore covers role definitions and the privilege bundle each carries.
+type RoleStore interface {
+	FindByID(ctx context.Context, id string) (*models.Role, error)
+	FindByName(ctx context.Context, name string) (*models.Role, error)
+	List(ctx context.Context) ([]models.Role, error)
+	Create(ctx context.Context, tx *sql.Tx, r *models.Role) error
+	Update(ctx context.Context, tx *sql.Tx, r *models.Role) error
+	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	ListPrivileges(ctx context.Context, roleID string) ([]models.PrivilegeKey, error)
+	AddPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	RemovePrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) error
+	HasPrivilege(ctx context.Context, tx *sql.Tx, roleID string, privilege models.PrivilegeKey) (bool, error)
+	CountRolesGrantingPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
+}
+
+// UserRoleStore covers role assignments. Revoke is DELETE; history lives in audit_events.
+type UserRoleStore interface {
+	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
+	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
+	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
+	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
+	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
+	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error
+	Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error
+	PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error)
+	UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error)
+}
+
+// UserPrivilegeStore defines persistence operations for fine-grained admin
+// privileges. Only active grants live in the table; revoke is DELETE. The
+// full grant/revoke history is in audit_events.
+type UserPrivilegeStore interface {
+	// Find returns the active grant for (userID, privilege), or nil.
+	Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
+	// FindForUpdate returns the active grant inside a tx with SELECT FOR
+	// UPDATE so the caller can serialize grant / revoke decisions.
+	FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error)
+	// ListByUser returns every active grant held by the user.
+	ListByUser(ctx context.Context, userID string) ([]models.UserPrivilege, error)
+	// ListByPrivilege returns every active holder of the given privilege.
+	ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
+	// CountByPrivilege returns the number of active holders inside a tx.
+	// Used to enforce the last-meta-holder guard when revoking PrivilegeGrant.
+	CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
+	// Create inserts a new grant inside the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error
+	// Delete removes the grant for (userID, privilege) inside the provided tx.
+	Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error
+}
+
 // ComputeAllocationUsageStore defines persistence operations for the
 // append-only log of resource consumption events charged against a compute
 // allocation.

@@ -32,13 +32,18 @@ import (
 
 // Server is an HTTP handler that exposes the service API.
 type Server struct {
-	svc *service.Service
-	mux *http.ServeMux
+	svc       *service.Service
+	mux       *http.ServeMux
+	authCache *authProfileCache
 }
 
 // New builds an HTTP handler wired to the supplied service.
 func New(svc *service.Service) *Server {
-	s := &Server{svc: svc, mux: http.NewServeMux()}
+	s := &Server{
+		svc:       svc,
+		mux:       http.NewServeMux(),
+		authCache: newAuthProfileCache(authProfileTTL),
+	}
 	s.routes()
 	return s
 }
@@ -143,6 +148,24 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /user-identities/oidc-subjects/{oidcSub}", s.getUserIdentityByOIDCSub)
 	s.mux.HandleFunc("GET /users/{id}/user-identities", s.listUserIdentitiesForUser)
 
+	s.mux.HandleFunc("GET /user/privileges", s.getCallerPrivileges)
+	s.mux.HandleFunc("GET /privileges/catalog", s.requirePrivilege(models.PrivilegeGrant, s.getPrivilegeCatalog))
+	s.mux.HandleFunc("GET /users/{id}/privileges", s.requirePrivilege(models.PrivilegeGrant, s.listUserPrivileges))
+	s.mux.HandleFunc("GET /privileges/{key}/holders", s.requirePrivilege(models.PrivilegeGrant, s.listPrivilegeHolders))
+	s.mux.HandleFunc("POST /users/{id}/privileges", s.requirePrivilege(models.PrivilegeGrant, s.grantPrivilege))
+	s.mux.HandleFunc("DELETE /users/{id}/privileges/{key}", s.requirePrivilege(models.PrivilegeGrant, s.revokePrivilege))
+
+	s.mux.HandleFunc("GET /roles", s.requirePrivilege(models.PrivilegeRolesManage, s.listRoles))
+	s.mux.HandleFunc("POST /roles", s.requirePrivilege(models.PrivilegeRolesManage, s.createRole))
+	s.mux.HandleFunc("GET /roles/{id}", s.requirePrivilege(models.PrivilegeRolesManage, s.getRole))
+	s.mux.HandleFunc("PUT /roles/{id}", s.requirePrivilege(models.PrivilegeRolesManage, s.updateRole))
+	s.mux.HandleFunc("DELETE /roles/{id}", s.requirePrivilege(models.PrivilegeRolesManage, s.deleteRole))
+	s.mux.HandleFunc("POST /roles/{id}/privileges", s.requirePrivilege(models.PrivilegeRolesManage, s.addRolePrivilege))
+	s.mux.HandleFunc("DELETE /roles/{id}/privileges/{key}", s.requirePrivilege(models.PrivilegeRolesManage, s.removeRolePrivilege))
+	s.mux.HandleFunc("GET /roles/{id}/holders", s.requirePrivilege(models.PrivilegeRolesManage, s.listRoleHolders))
+	s.mux.HandleFunc("GET /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.listUserRoles))
+	s.mux.HandleFunc("POST /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.grantRoleToUser))
+	s.mux.HandleFunc("DELETE /users/{id}/roles/{roleId}", s.requirePrivilege(models.PrivilegeRolesManage, s.revokeRoleFromUser))
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
