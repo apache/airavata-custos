@@ -40,6 +40,9 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 	if m.UserID == "" {
 		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
+	if err := validateRequiredTimeRange(m.StartTime, m.EndTime); err != nil {
+		return nil, err
+	}
 
 	if alloc, err := s.allocs.FindByID(ctx, m.ComputeAllocationID); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
@@ -63,6 +66,9 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 	}
 	if m.MembershipStatus == "" {
 		m.MembershipStatus = models.ACTIVE
+	}
+	if err := validateAllocationStatus("membership_status", m.MembershipStatus); err != nil {
+		return nil, err
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
@@ -143,6 +149,12 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 	if m.MembershipStatus == "" {
 		m.MembershipStatus = existing.MembershipStatus
 	}
+	if err := validateRequiredTimeRange(m.StartTime, m.EndTime); err != nil {
+		return nil, err
+	}
+	if err := validateAllocationStatus("membership_status", m.MembershipStatus); err != nil {
+		return nil, err
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.memberships.Update(ctx, tx, m)
@@ -162,6 +174,9 @@ func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status 
 	}
 	if status == "" {
 		return nil, fmt.Errorf("%w: membership_status is required", ErrInvalidInput)
+	}
+	if err := validateAllocationStatus("membership_status", status); err != nil {
+		return nil, err
 	}
 	existing, err := s.memberships.FindByID(ctx, id)
 	if err != nil {

@@ -38,6 +38,9 @@ func (s *Service) CreateComputeAllocationResource(ctx context.Context, resource 
 	if resource.ResourceType == "" {
 		return nil, fmt.Errorf("%w: resource_type is required", ErrInvalidInput)
 	}
+	if resource.ResourceAmount < 0 {
+		return nil, fmt.Errorf("%w: resource_amount must be non-negative", ErrInvalidInput)
+	}
 	if resource.ID == "" {
 		resource.ID = newID()
 	}
@@ -78,6 +81,15 @@ func (s *Service) ListComputeAllocationResources(ctx context.Context) ([]models.
 func (s *Service) UpdateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) error {
 	if resource == nil || resource.ID == "" {
 		return fmt.Errorf("%w: compute allocation resource id is required", ErrInvalidInput)
+	}
+	if resource.Name == "" {
+		return fmt.Errorf("%w: resource name is required", ErrInvalidInput)
+	}
+	if resource.ResourceType == "" {
+		return fmt.Errorf("%w: resource_type is required", ErrInvalidInput)
+	}
+	if resource.ResourceAmount < 0 {
+		return fmt.Errorf("%w: resource_amount must be non-negative", ErrInvalidInput)
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.resources.Update(ctx, tx, resource)

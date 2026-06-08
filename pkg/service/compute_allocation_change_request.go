@@ -40,6 +40,14 @@ func (s *Service) CreateComputeAllocationChangeRequest(ctx context.Context, req 
 	if req.RequesterID == "" {
 		return nil, fmt.Errorf("%w: requester_id is required", ErrInvalidInput)
 	}
+	if req.RequestedSUAmount < 0 {
+		return nil, fmt.Errorf("%w: requested_su_amount must be non-negative", ErrInvalidInput)
+	}
+	if req.RequestedStatus != "" {
+		if err := validateAllocationStatus("requested_status", req.RequestedStatus); err != nil {
+			return nil, err
+		}
+	}
 
 	if alloc, err := s.allocs.FindByID(ctx, req.ComputeAllocationID); err != nil {
 		return nil, fmt.Errorf("lookup compute allocation: %w", err)
@@ -137,6 +145,14 @@ func (s *Service) UpdateComputeAllocationChangeRequest(ctx context.Context, req 
 	}
 	if req.ChangeStatus == "" {
 		req.ChangeStatus = existing.ChangeStatus
+	}
+	if req.RequestedSUAmount < 0 {
+		return nil, fmt.Errorf("%w: requested_su_amount must be non-negative", ErrInvalidInput)
+	}
+	if req.RequestedStatus != "" {
+		if err := validateAllocationStatus("requested_status", req.RequestedStatus); err != nil {
+			return nil, err
+		}
 	}
 	if req.Timestamp.IsZero() {
 		req.Timestamp = existing.Timestamp

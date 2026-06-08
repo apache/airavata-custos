@@ -6,7 +6,7 @@ HTTP/JSON API exposed by `cmd/server`. All endpoints accept and return
 - **Base URL:** `http://<host>:<port>` (default port `8080`, configurable via `HTTP_ADDR`)
 - **Auth:** none currently enforced (deploy behind a trusted ingress / auth proxy)
 - **Content-Type:** `application/json` is required on every request that has a body
-- **Unknown fields:** request bodies with unknown JSON fields are rejected with `400`
+- **Unknown fields / extra JSON values:** request bodies with unknown fields or trailing JSON data are rejected with `400`
 
 ---
 
@@ -31,7 +31,7 @@ Errors are returned with an appropriate HTTP status code and a JSON body:
 
 | Status | Meaning | Triggered by |
 |--------|---------|--------------|
-| `400 Bad Request` | Malformed JSON, unknown field, missing required field, or unknown foreign-key reference | request body validation, `service.ErrInvalidInput` |
+| `400 Bad Request` | Malformed JSON, missing `application/json` content type, unknown field, trailing JSON data, missing required field, or unknown foreign-key reference | request body validation, `service.ErrInvalidInput` |
 | `404 Not Found` | Requested record does not exist | `service.ErrNotFound` |
 | `409 Conflict` | Duplicate `email` or duplicate `originated_id` | `service.ErrAlreadyExists` |
 | `500 Internal Server Error` | Unexpected server / database failure (driver message is logged, never returned) | any other error |

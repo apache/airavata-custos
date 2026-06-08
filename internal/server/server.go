@@ -21,10 +21,15 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -54,6 +59,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /{$}", s.index)
 	s.mux.HandleFunc("GET /healthz", s.healthz)
 
 	s.mux.HandleFunc("POST /organizations", s.createOrganization)
@@ -166,6 +172,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.listUserRoles))
 	s.mux.HandleFunc("POST /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.grantRoleToUser))
 	s.mux.HandleFunc("DELETE /users/{id}/roles/{roleId}", s.requirePrivilege(models.PrivilegeRolesManage, s.revokeRoleFromUser))
+}
+
+func (s *Server) index(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"name":          "Apache Airavata Custos API",
+		"health":        "/healthz",
+		"documentation": "docs/API-Docs.md",
+	})
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -1046,9 +1060,27 @@ func (r *statusRecorder) WriteHeader(code int) {
 }
 
 func decodeJSON(r *http.Request, dst any) error {
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		return errors.New("Content-Type must be application/json")
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil || mediaType != "application/json" {
+		return errors.New("Content-Type must be application/json")
+	}
+
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
-	return dec.Decode(dst)
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("request body must contain a single JSON value")
+		}
+		return fmt.Errorf("invalid trailing data after JSON value: %w", err)
+	}
+	return nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
@@ -1072,9 +1104,31 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		writeError(w, http.StatusBadRequest, err)
+	case isDuplicateKeyError(err):
+		writeError(w, http.StatusConflict, service.ErrAlreadyExists)
+	case isInvalidConstraintError(err):
+		writeError(w, http.StatusBadRequest, service.ErrInvalidInput)
 	default:
 		// Avoid leaking driver messages to clients; log the full error.
 		slog.Error("internal server error", "error", err.Error())
 		writeError(w, http.StatusInternalServerError, errors.New(strings.TrimSpace("internal server error")))
+	}
+}
+
+func isDuplicateKeyError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+}
+
+func isInvalidConstraintError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	if !errors.As(err, &mysqlErr) {
+		return false
+	}
+	switch mysqlErr.Number {
+	case 1292, 1451, 1452:
+		return true
+	default:
+		return false
 	}
 }
