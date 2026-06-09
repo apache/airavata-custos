@@ -245,7 +245,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 				TraceEvent: models.TraceEvent{
 					SpanID:    rootSpan,
 					Source:    "amie",
-					Action:    "CREATE_PERSON",
+					EventType: "CREATE_PERSON",
 					Status:    "ok",
 					CreatedAt: time.Unix(1700000000, 0).UTC(),
 				},
@@ -255,7 +255,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 							SpanID:       childSpan,
 							ParentSpanID: rootSpan,
 							Source:       "comanage",
-							Action:       "ComanageProvisioningFailed",
+							EventType:    "ComanageProvisioningFailed",
 							Status:       "error",
 							CreatedAt:    time.Unix(1700000001, 0).UTC(),
 						},
@@ -312,7 +312,7 @@ func TestListEventsFlat(t *testing.T) {
 	fs := &fakeAuditStore{events: []models.TraceEvent{{
 		SpanID:    span,
 		Source:    "amie",
-		Action:    "CREATE_PROJECT",
+		EventType: "CREATE_PROJECT",
 		Status:    "ok",
 		CreatedAt: time.Unix(1700000000, 0).UTC(),
 	}}}

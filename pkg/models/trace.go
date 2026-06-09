@@ -48,10 +48,10 @@ type TraceEvent struct {
 	SpanID       []byte    `db:"span_id" json:"-"`
 	ParentSpanID []byte    `db:"parent_span_id" json:"-"`
 	Source       string    `db:"source" json:"source"`
-	Action       string    `db:"action" json:"action"`
+	EventType    string    `db:"event_type" json:"event_type"`
 	EntityType   string    `db:"entity_type" json:"entity_type,omitempty"`
 	EntityID     string    `db:"entity_id" json:"entity_id,omitempty"`
-	Summary      string    `db:"summary" json:"summary,omitempty"`
+	Description  string    `db:"description" json:"description,omitempty"`
 	Status       string    `db:"status" json:"status"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }

@@ -36,17 +36,17 @@ func TestBuildTreeNestsByParent(t *testing.T) {
 	child := mkSpan(0x02)
 	leaf := mkSpan(0x03)
 	rows := []rowEvent{
-		{SpanID: root, Source: "amie", Action: "CREATE_PERSON", CreatedAt: time.Unix(1, 0)},
-		{SpanID: child, ParentSpanID: root, Source: "comanage", Action: "ComanageLookup", CreatedAt: time.Unix(2, 0)},
-		{SpanID: leaf, ParentSpanID: child, Source: "comanage", Action: "ComanageClusterAccountAttached", CreatedAt: time.Unix(3, 0)},
+		{SpanID: root, Source: "amie", EventType: "CREATE_PERSON", CreatedAt: time.Unix(1, 0)},
+		{SpanID: child, ParentSpanID: root, Source: "comanage", EventType: "ComanageLookup", CreatedAt: time.Unix(2, 0)},
+		{SpanID: leaf, ParentSpanID: child, Source: "comanage", EventType: "ComanageClusterAccountAttached", CreatedAt: time.Unix(3, 0)},
 	}
 	tree := buildTree(rows)
 	if got := len(tree.Children); got != 1 {
 		t.Fatalf("top level = %d, want 1", got)
 	}
 	rootNode := tree.Children[0]
-	if rootNode.Action != "CREATE_PERSON" {
-		t.Errorf("root action = %q", rootNode.Action)
+	if rootNode.EventType != "CREATE_PERSON" {
+		t.Errorf("root event_type = %q", rootNode.EventType)
 	}
 	if got := len(rootNode.Children); got != 1 {
 		t.Fatalf("root children = %d, want 1", got)
@@ -54,8 +54,8 @@ func TestBuildTreeNestsByParent(t *testing.T) {
 	if got := len(rootNode.Children[0].Children); got != 1 {
 		t.Fatalf("grandchild count = %d, want 1", got)
 	}
-	if rootNode.Children[0].Children[0].Action != "ComanageClusterAccountAttached" {
-		t.Errorf("leaf action = %q", rootNode.Children[0].Children[0].Action)
+	if rootNode.Children[0].Children[0].EventType != "ComanageClusterAccountAttached" {
+		t.Errorf("leaf event_type = %q", rootNode.Children[0].Children[0].EventType)
 	}
 }
 
@@ -64,9 +64,9 @@ func TestBuildTreeOrphansBecomeTopLevel(t *testing.T) {
 	ghost := mkSpan(0xEE)
 	row2 := mkSpan(0x11)
 	rows := []rowEvent{
-		{SpanID: row1, Source: "amie", Action: "ROOT"},
+		{SpanID: row1, Source: "amie", EventType: "ROOT"},
 		// parent references a span that did not write an audit row
-		{SpanID: row2, ParentSpanID: ghost, Source: "amie", Action: "ORPHAN"},
+		{SpanID: row2, ParentSpanID: ghost, Source: "amie", EventType: "ORPHAN"},
 	}
 	tree := buildTree(rows)
 	if got := len(tree.Children); got != 2 {
@@ -75,11 +75,11 @@ func TestBuildTreeOrphansBecomeTopLevel(t *testing.T) {
 }
 
 func TestEventStatusViaToTraceEvent(t *testing.T) {
-	row := rowEvent{Action: "ComanageProvisioningFailed"}
+	row := rowEvent{EventType: "ComanageProvisioningFailed"}
 	if got := row.toTraceEvent().Status; got != "error" {
 		t.Errorf("status = %q, want error", got)
 	}
-	row2 := rowEvent{Action: "CREATE_PERSON"}
+	row2 := rowEvent{EventType: "CREATE_PERSON"}
 	if got := row2.toTraceEvent().Status; got != "ok" {
 		t.Errorf("status = %q, want ok", got)
 	}

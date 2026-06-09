@@ -76,7 +76,7 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ e
 	)
 	// Subscription marker so downstream audits have a parent in the table.
 	_, _ = s.core.CreateAuditEvent(ctx, &models.AuditEvent{
-		EventType: "ComanageSubscriptionStarted",
+		EventType: "ComanageProvisioningStarted",
 		EntityID:  cu.ID,
 		Details:   "cluster_user_id=" + cu.ID + " user_id=" + cu.UserID,
 	})
