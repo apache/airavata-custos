@@ -19,6 +19,3 @@ amie:
 log:
   level: "info"
   format: "text"
-
-provisioner:
-  type: "noop"

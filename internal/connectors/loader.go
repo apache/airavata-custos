@@ -25,6 +25,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
+	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -43,6 +44,11 @@ func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus
 	slog.Info("loading AMIE connector")
 	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
 		slog.Error("failed to load AMIE connector", "error", err)
+		return err
+	}
+	slog.Info("loading COmanage Identity-Provisioner connector")
+	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+		slog.Error("failed to load COmanage Identity-Provisioner connector", "error", err)
 		return err
 	}
 

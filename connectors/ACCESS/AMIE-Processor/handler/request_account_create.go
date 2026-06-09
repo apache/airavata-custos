@@ -160,8 +160,8 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 	return user, nil
 }
 
-// ensureComputeClusterUser returns the user's existing cluster mapping on the
-// configured cluster, or provisions a fresh one with a temp posix username.
+// ensureComputeClusterUser returns the user's existing cluster mapping or
+// provisions a new one via the POSIX allocator.
 func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Context, userID string) (*models.ComputeClusterUser, error) {
 	existing, err := h.svc.ListComputeClusterUsersByUser(ctx, userID)
 	if err != nil {
@@ -172,11 +172,7 @@ func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Conte
 			return &a, nil
 		}
 	}
-	return h.svc.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{
-		UserID:           userID,
-		ComputeClusterID: h.clusterID,
-		LocalUsername:    generateTempPosixUsername(),
-	})
+	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
 }
 
 // ensureMembership returns the existing (allocation, user) membership or

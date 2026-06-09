@@ -187,6 +187,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 
 	for _, action := range []model.AuditAction{
 		model.AuditCreatePerson,
+		model.AuditCreateAccount,
 		model.AuditCreateProject,
 		model.AuditCreateAllocation,
 		model.AuditReplySent,
@@ -194,6 +195,19 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 		if got := countAuditActions(t, database, pkt.ID, action); got != 1 {
 			t.Errorf("audit %s: got %d, want 1", action, got)
 		}
+	}
+
+	var piCU struct {
+		LocalUsername string `db:"local_username"`
+	}
+	if err := database.Get(&piCU,
+		"SELECT local_username FROM compute_cluster_users WHERE user_id = ? AND compute_cluster_id = ?",
+		user.ID, testClusterID,
+	); err != nil {
+		t.Fatalf("read PI compute_cluster_user: %v", err)
+	}
+	if piCU.LocalUsername == "" {
+		t.Errorf("PI compute_cluster_user.local_username: empty")
 	}
 
 	if got, want := amie.lastReplyType(), "notify_project_create"; got != want {
@@ -211,6 +225,8 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 	if got, _ := reply["PiRemoteSiteLogin"].(string); got == "" {
 		t.Errorf("reply.PiRemoteSiteLogin: empty; required value")
+	} else if got != piCU.LocalUsername {
+		t.Errorf("reply.PiRemoteSiteLogin: got %q, want %q", got, piCU.LocalUsername)
 	}
 }
 

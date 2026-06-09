@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS compute_cluster_users
     updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     UNIQUE KEY uq_compute_cluster_users_pair (compute_cluster_id, user_id),
+    UNIQUE KEY uq_compute_cluster_users_local_username (compute_cluster_id, local_username),
     KEY idx_compute_cluster_users_user (user_id),
     CONSTRAINT fk_compute_cluster_users_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE CASCADE,
     CONSTRAINT fk_compute_cluster_users_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE

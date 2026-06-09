@@ -19,9 +19,7 @@ package handler
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -191,16 +189,6 @@ func ensureOrganization(ctx context.Context, svc *service.Service, code, name st
 		OriginatedID: code,
 		Name:         name,
 	})
-}
-
-// generateTempPosixUsername returns a placeholder posix username for a
-// freshly provisioned ComputeClusterUser.
-//
-// TODO: replace with a real policy
-func generateTempPosixUsername() string {
-	var b [4]byte
-	_, _ = rand.Read(b[:])
-	return "amie-" + hex.EncodeToString(b[:])
 }
 
 // getInt64 reads a string-encoded integer from a packet body field. AMIE

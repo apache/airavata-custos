@@ -10,8 +10,10 @@
 # NOT covered (handlers need the Custos-assigned project UUID, which the mock
 # can't supply): request_account_create, request_account_inactivate,
 # request_account_reactivate, request_project_inactivate, request_project_reactivate.
-# Tables left empty as a result: compute_cluster_users, compute_allocation_memberships.
+# Tables left empty as a result: compute_allocation_memberships.
 # Status-flip code paths on projects/allocations/memberships are also unexercised.
+# compute_cluster_users IS populated because request_project_create provisions
+# a PI cluster user via the POSIX allocator.
 
 scenario:
   name: baseline
@@ -121,10 +123,22 @@ expectations:
         - { dn: "/C=US/O=Baseline Org/CN=Sam Second",
             user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
 
+    compute_cluster_users:
+      # request_project_create now provisions a CCU for the PI via the POSIX
+      # allocator. BL-001 (#1 + supplement) creates Pat's CCU once. BL-002
+      # (#3) creates Sam's CCU. The merge then deletes Sam's CCU on Pat's
+      # cluster (cluster overlap dedup), leaving Pat's row only.
+      total_count: 1
+      rows:
+        - { compute_cluster_id: "${AMIE_CLUSTER_ID}",
+            local_username: custos-pfirst,
+            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
+
   audit_log:
-    total_count: 23
+    total_count: 26
     by_action:
       CREATE_PERSON: 3        # all 3 request_project_create packets audit CREATE_PERSON (re-use audited too)
+      CREATE_ACCOUNT: 3       # PI CCU provisioning audited on every request_project_create (re-use audited too)
       CREATE_PROJECT: 3
       CREATE_ALLOCATION: 3    # supplement-delivery still audits CREATE_ALLOCATION (known M1: diff is the actual write)
       REPLY_SENT: 8           # inform_transaction_complete does not reply
@@ -145,7 +159,6 @@ expectations:
       - PERMANENTLY_FAILED
 
   not_expected:
-    - compute_cluster_users
     - compute_allocation_memberships
     - amie_processing_errors
 

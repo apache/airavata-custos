@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
@@ -67,11 +68,27 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.clusterUsers.Create(ctx, tx, cu)
 	}); err != nil {
-		return nil, fmt.Errorf("create compute cluster user: %w", err)
+		switch {
+		case isLocalUsernameDuplicate(err):
+			return nil, fmt.Errorf("%w: %s", ErrAlreadyExists, cu.LocalUsername)
+		case isPairDuplicate(err):
+			return nil, fmt.Errorf("%w: user %q is already mapped on cluster %q",
+				ErrAlreadyExists, cu.UserID, cu.ComputeClusterID)
+		default:
+			return nil, fmt.Errorf("create compute cluster user: %w", err)
+		}
 	}
 
 	s.eventBus.Publish(events.ComputeClusterUserCreateEvent, cu)
 	return cu, nil
+}
+
+func isLocalUsernameDuplicate(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_local_username")
+}
+
+func isPairDuplicate(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "uq_compute_cluster_users_pair")
 }
 
 // GetComputeClusterUser retrieves a compute-cluster user by its ID.
