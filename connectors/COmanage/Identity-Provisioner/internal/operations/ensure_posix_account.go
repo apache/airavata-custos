@@ -350,9 +350,10 @@ func buildCreatePersonBody(coID int, user *models.User) ([]byte, error) {
 
 func (o *Orchestrator) audit(ctx context.Context, cu *models.ComputeClusterUser, eventType, details string) {
 	_, _ = o.core.CreateAuditEvent(ctx, &models.AuditEvent{
-		EventType: eventType,
-		EntityID:  cu.ID,
-		Details:   details,
+		EventType:  eventType,
+		EntityID:   cu.ID,
+		EntityType: "compute_cluster_user",
+		Details:    details,
 	})
 }
 
@@ -365,9 +366,10 @@ func (o *Orchestrator) dlq(ctx context.Context, cu *models.ComputeClusterUser, s
 	)
 	details := fmt.Sprintf("step=%s err=%v", step, err)
 	_, _ = o.core.CreateAuditEvent(ctx, &models.AuditEvent{
-		EventType: "ComanageProvisioningFailed",
-		EntityID:  cu.ID,
-		Details:   details,
+		EventType:  "ComanageProvisioningFailed",
+		EntityID:   cu.ID,
+		EntityType: "compute_cluster_user",
+		Details:    details,
 	})
 	// TODO: admin endpoint + CLI to re-fire ComputeClusterUserCreateEvent for a
 	// specific user, and to clean up orphan CoGroups from terminal dead-letters.

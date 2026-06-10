@@ -227,11 +227,12 @@ func (s *Service) writePrivilegeAuditTx(ctx context.Context, tx *sql.Tx, eventTy
 		return fmt.Errorf("marshal audit details: %w", err)
 	}
 	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:        newID(),
-		EventType: eventType,
-		EventTime: nowUTC(),
-		EntityID:  entityID,
-		Details:   string(payload),
+		ID:         newID(),
+		EventType:  eventType,
+		EventTime:  nowUTC(),
+		EntityID:   entityID,
+		EntityType: "user",
+		Details:    string(payload),
 	})
 }
 

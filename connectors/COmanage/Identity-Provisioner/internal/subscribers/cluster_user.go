@@ -76,9 +76,10 @@ func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ e
 	)
 	// Subscription marker so downstream audits have a parent in the table.
 	_, _ = s.core.CreateAuditEvent(ctx, &models.AuditEvent{
-		EventType: "ComanageProvisioningStarted",
-		EntityID:  cu.ID,
-		Details:   "cluster_user_id=" + cu.ID + " user_id=" + cu.UserID,
+		EventType:  "ComanageProvisioningStarted",
+		EntityID:   cu.ID,
+		EntityType: "compute_cluster_user",
+		Details:    "cluster_user_id=" + cu.ID + " user_id=" + cu.UserID,
 	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.

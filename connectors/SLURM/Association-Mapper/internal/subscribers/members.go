@@ -32,7 +32,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to get compute allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
@@ -41,7 +41,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to get compute cluster", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
@@ -51,7 +51,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to get user", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get user. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
@@ -60,7 +60,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
@@ -69,7 +69,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to list resources for allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to list resources for allocation. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to list resources for allocation. Error: "+err.Error())
 		return
 	}
 
@@ -90,10 +90,10 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(c
 		slog.Error("Failed to upsert association", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to upsert association. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association", "association", association)
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationSucceeded", membership.ID, "Successfully upserted association.")
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationSucceeded", "compute_allocation_membership", membership.ID, "Successfully upserted association.")
 	}
 }
 
@@ -112,7 +112,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get compute allocation membership for resource override creation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
 		return
 	}
 	span.SetAttributes(
@@ -125,7 +125,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get compute allocation resource for resource override creation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation resource. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation resource. Error: "+err.Error())
 		return
 	}
 
@@ -137,7 +137,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get compute allocation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
@@ -146,7 +146,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get compute cluster", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
 	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
@@ -156,7 +156,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get user", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get user. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
@@ -165,7 +165,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
@@ -206,9 +206,9 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 		slog.Error("Failed to upsert association for membership resource override creation", "error", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to upsert association. Error: "+err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association for membership resource override creation", "association", association)
-		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationSucceeded", override.ID, "Successfully upserted association.")
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationSucceeded", "compute_allocation_membership_resource_override", override.ID, "Successfully upserted association.")
 	}
 }

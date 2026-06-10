@@ -23,9 +23,10 @@ type AuditEvent struct {
 	ID           string    `json:"id" db:"id"`
 	EventType    string    `json:"event_type" db:"event_type"` // e.g., "COMPUTE_ALLOCATION_CREATED", "COMPUTE_ALLOCATION_UPDATED", "COMPUTE_ALLOCATION_DELETED", etc.
 	EventTime    time.Time `json:"event_time" db:"event_time"`
-	EntityID     string    `json:"entity_id" db:"entity_id"` // The ID of the entity associated with the event, e.g., the compute allocation ID.
-	Details      string    `json:"details" db:"details"`     // Additional details about the event, stored as a JSON string or plain text.
-	Source       string    `json:"source" db:"source"`       // The connector / subsystem that produced the event (e.g., "amie", "comanage", "slurm", "core").
+	EntityID     string    `json:"entity_id" db:"entity_id"`     // ID of the entity the event is about.
+	EntityType   string    `json:"entity_type" db:"entity_type"` // Kind of the entity ("user", "role", "compute_cluster_user", "packet", etc.).
+	Details      string    `json:"details" db:"details"`         // Additional details about the event, stored as a JSON string or plain text.
+	Source       string    `json:"source" db:"source"`           // Subsystem that produced the event (e.g., "amie", "comanage", "slurm", "core", etc.).
 	TraceID      []byte    `json:"-" db:"trace_id"`
 	SpanID       []byte    `json:"-" db:"span_id"`
 	ParentSpanID []byte    `json:"-" db:"parent_span_id"`
