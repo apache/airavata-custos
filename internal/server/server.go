@@ -32,13 +32,10 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// AdminDeps wires the optional audit-trace surface (/audit/*) and the
-// connector-specific endpoints (/connectors/{name}/...).
-// Any field left nil makes the routes that need it return 503. Useful for
-// unit tests that exercise only a subset of the API.
+// AdminDeps wires the /audit/* endpoints. A nil field makes its routes return 503.
+// Connector endpoints (/connectors/{name}/...) are registered by the connector.
 type AdminDeps struct {
-	AuditTraces      store.AuditTraceStore
-	AmiePacketAudits store.AmiePacketAuditStore
+	AuditTraces store.AuditTraceStore
 }
 
 // Server is an HTTP handler that exposes the service API.
@@ -66,6 +63,9 @@ func New(svc *service.Service, admin *AdminDeps) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
+
+// Mux exposes the underlying mux so connectors can register their own routes.
+func (s *Server) Mux() *http.ServeMux { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.healthz)
@@ -185,8 +185,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /audit/traces/{trace_id}", s.handleGetTrace)
 	s.mux.HandleFunc("GET /audit/events", s.handleListEvents)
 	s.mux.HandleFunc("GET /audit/sources", s.handleListSources)
-
-	s.mux.HandleFunc("GET /connectors/amie/packets/{packet_id}/audits", s.handleListAmiePacketAudits)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {

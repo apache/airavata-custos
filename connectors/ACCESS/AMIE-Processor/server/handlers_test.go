@@ -23,19 +23,20 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type fakeAmiePacketAuditStore struct {
+type fakePacketAuditStore struct {
 	events  []models.TraceEvent
 	listArg string
 	listErr error
 }
 
-func (f *fakeAmiePacketAuditStore) ListAuditsForPacket(_ context.Context, packetID string) ([]models.TraceEvent, error) {
+func (f *fakePacketAuditStore) ListAuditsForPacket(_ context.Context, packetID string) ([]models.TraceEvent, error) {
 	f.listArg = packetID
 	if f.listErr != nil {
 		return nil, f.listErr
@@ -43,16 +44,31 @@ func (f *fakeAmiePacketAuditStore) ListAuditsForPacket(_ context.Context, packet
 	return f.events, nil
 }
 
-func TestListAmiePacketAudits_HappyPath(t *testing.T) {
+func newTestServer(t *testing.T, store *fakePacketAuditStore) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	var h *Handlers
+	if store == nil {
+		h = NewHandlers(nil)
+	} else {
+		h = NewHandlers(store)
+	}
+	h.RegisterRoutes(mux)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestListPacketAudits_HappyPath(t *testing.T) {
 	span := []byte{1, 2, 3, 4, 5, 6, 7, 8}
-	fs := &fakeAmiePacketAuditStore{events: []models.TraceEvent{{
+	fs := &fakePacketAuditStore{events: []models.TraceEvent{{
 		SpanID:    span,
 		Source:    "amie",
 		EventType: "CREATE_ACCOUNT",
 		Status:    "ok",
 		CreatedAt: time.Unix(1700000000, 0).UTC(),
 	}}}
-	srv := newAuditServer(t, &AdminDeps{AmiePacketAudits: fs})
+	srv := newTestServer(t, fs)
 
 	resp, err := http.Get(srv.URL + "/connectors/amie/packets/packet-1/audits")
 	if err != nil {
@@ -84,8 +100,8 @@ func TestListAmiePacketAudits_HappyPath(t *testing.T) {
 	}
 }
 
-func TestListAmiePacketAudits_NoAdminReturns503(t *testing.T) {
-	srv := newAuditServer(t, nil)
+func TestListPacketAudits_NilStoreReturns503(t *testing.T) {
+	srv := newTestServer(t, nil)
 	resp, err := http.Get(srv.URL + "/connectors/amie/packets/p/audits")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -96,9 +112,9 @@ func TestListAmiePacketAudits_NoAdminReturns503(t *testing.T) {
 	}
 }
 
-func TestListAmiePacketAudits_StoreErrorReturns500(t *testing.T) {
-	fs := &fakeAmiePacketAuditStore{listErr: errors.New("boom")}
-	srv := newAuditServer(t, &AdminDeps{AmiePacketAudits: fs})
+func TestListPacketAudits_StoreErrorReturns500(t *testing.T) {
+	fs := &fakePacketAuditStore{listErr: errors.New("boom")}
+	srv := newTestServer(t, fs)
 	resp, err := http.Get(srv.URL + "/connectors/amie/packets/p/audits")
 	if err != nil {
 		t.Fatalf("get: %v", err)

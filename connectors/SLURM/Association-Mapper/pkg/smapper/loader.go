@@ -3,6 +3,7 @@ package smapper
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"sync"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *http.ServeMux) error {
 
 	// Read url, username, and password from environment variables
 	apiUrl := os.Getenv("SLURM_API")

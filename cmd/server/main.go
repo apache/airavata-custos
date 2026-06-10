@@ -104,18 +104,19 @@ func run() error {
 
 	tryBootstrap(ctx, svc)
 
+	adminDeps := &server.AdminDeps{
+		AuditTraces: store.NewAuditTraceStore(database),
+	}
+	srv := server.New(svc, adminDeps)
+
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG); err != nil {
+	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
 		return err
 	}
 
-	adminDeps := &server.AdminDeps{
-		AuditTraces:      store.NewAuditTraceStore(database),
-		AmiePacketAudits: store.NewAmiePacketAuditStore(database),
-	}
-	handler := server.LoggingMiddleware(tracing.Middleware(server.New(svc, adminDeps)))
+	handler := server.LoggingMiddleware(tracing.Middleware(srv))
 
 	httpServer := &http.Server{
 		Addr:              addr,

@@ -20,6 +20,7 @@ package connectors
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -32,22 +33,24 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
+// LoadConnectors brings every connector up at boot. Connectors register their
+// own HTTP routes on mux; core does not.
+func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	slog.Info("loading connectors")
 
 	slog.Info("loading SLURM Association Mapper connector")
-	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg, mux); err != nil {
 		slog.Error("failed to load SLURM Association Mapper connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading AMIE connector")
-	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg, mux); err != nil {
 		slog.Error("failed to load AMIE connector", "error", err)
 		return err
 	}
 	slog.Info("loading COmanage Identity-Provisioner connector")
-	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg, mux); err != nil {
 		slog.Error("failed to load COmanage Identity-Provisioner connector", "error", err)
 		return err
 	}

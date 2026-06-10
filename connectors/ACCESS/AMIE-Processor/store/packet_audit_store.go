@@ -28,23 +28,21 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// AmiePacketAuditStore exposes the AMIE-specific endpoints. Every audit row is
-// recorded for one AMIE packet. The store joins audit_events with the
-// connector-specific amie_audit_extras table (which carries packet_id /
-// event_id).
-type AmiePacketAuditStore interface {
+// PacketAuditStore returns every audit_events row written for one AMIE packet,
+// joined through amie_audit_extras (which carries packet_id / event_id).
+type PacketAuditStore interface {
 	ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error)
 }
 
-type mysqlAmiePacketAuditStore struct {
+type mysqlPacketAuditStore struct {
 	db *sqlx.DB
 }
 
-func NewAmiePacketAuditStore(db *sqlx.DB) AmiePacketAuditStore {
-	return &mysqlAmiePacketAuditStore{db: db}
+func NewPacketAuditStore(db *sqlx.DB) PacketAuditStore {
+	return &mysqlPacketAuditStore{db: db}
 }
 
-const amiePacketAuditSelect = `
+const packetAuditSelect = `
 SELECT
     ae.span_id,
     ae.parent_span_id,
@@ -60,7 +58,7 @@ WHERE x.packet_id = ?
 ORDER BY ae.event_time ASC, ae.span_id ASC
 `
 
-func (s *mysqlAmiePacketAuditStore) ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error) {
+func (s *mysqlPacketAuditStore) ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error) {
 	type row struct {
 		SpanID       []byte    `db:"span_id"`
 		ParentSpanID []byte    `db:"parent_span_id"`
@@ -72,8 +70,8 @@ func (s *mysqlAmiePacketAuditStore) ListAuditsForPacket(ctx context.Context, pac
 		CreatedAt    time.Time `db:"created_at"`
 	}
 	var rows []row
-	if err := s.db.SelectContext(ctx, &rows, amiePacketAuditSelect, packetID); err != nil {
-		return nil, fmt.Errorf("amie_packet_audit_store: list: %w", err)
+	if err := s.db.SelectContext(ctx, &rows, packetAuditSelect, packetID); err != nil {
+		return nil, fmt.Errorf("packet_audit_store: list: %w", err)
 	}
 	out := make([]models.TraceEvent, len(rows))
 	for i, r := range rows {

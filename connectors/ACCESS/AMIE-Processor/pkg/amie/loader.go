@@ -21,6 +21,7 @@ package amie
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -33,6 +34,7 @@ import (
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/handler"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/metrics"
+	amieserver "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/server"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
@@ -50,8 +52,9 @@ func init() {
 const connectorName = "amie"
 
 // LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
-// AMIE_API_KEY are not all set.
-func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup) error {
+// AMIE_API_KEY are not all set. When enabled, it attaches /connectors/amie/*
+// endpoints to mux.
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	cfg := loadConfig()
 	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
@@ -69,6 +72,10 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	auditExtras := store.NewAuditExtrasStore(database)
 	userDNStore := store.NewUserDNStore(database)
 	auditSvc := service.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
+	packetAuditStore := store.NewPacketAuditStore(database)
+	if mux != nil {
+		amieserver.NewHandlers(packetAuditStore).RegisterRoutes(mux)
+	}
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster
 	// identity is per-deployment configuration rather than per-packet.
