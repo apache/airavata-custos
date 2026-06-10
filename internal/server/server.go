@@ -32,11 +32,13 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// AdminDeps wires the optional audit-trace surface (/audit/*). When nil the
-// /audit/* routes return 503. Useful for unit tests that exercise only the
-// non-admin API.
+// AdminDeps wires the optional audit-trace surface (/audit/*) and the
+// connector-specific endpoints (/connectors/{name}/...).
+// Any field left nil makes the routes that need it return 503. Useful for
+// unit tests that exercise only a subset of the API.
 type AdminDeps struct {
-	AuditTraces store.AuditTraceStore
+	AuditTraces      store.AuditTraceStore
+	AmiePacketAudits store.AmiePacketAuditStore
 }
 
 // Server is an HTTP handler that exposes the service API.
@@ -183,6 +185,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /audit/traces/{trace_id}", s.handleGetTrace)
 	s.mux.HandleFunc("GET /audit/events", s.handleListEvents)
 	s.mux.HandleFunc("GET /audit/sources", s.handleListSources)
+
+	s.mux.HandleFunc("GET /connectors/amie/packets/{packet_id}/audits", s.handleListAmiePacketAudits)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {

@@ -112,7 +112,8 @@ func run() error {
 	}
 
 	adminDeps := &server.AdminDeps{
-		AuditTraces: store.NewAuditTraceStore(database),
+		AuditTraces:      store.NewAuditTraceStore(database),
+		AmiePacketAudits: store.NewAmiePacketAuditStore(database),
 	}
 	handler := server.LoggingMiddleware(tracing.Middleware(server.New(svc, adminDeps)))
 
