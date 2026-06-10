@@ -24,35 +24,53 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type auditStore interface {
-	Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error
-}
+// auditSource is marked on every audit_events row produced by this connector.
+const auditSource = "amie"
 
+// AuditService writes one audit_events row plus the matching amie_audit_extras
+// row for each handler action. Both writes happen inside the caller's
+// transaction so they commit or roll back together.
 type AuditService struct {
-	audits auditStore
+	coreEvents store.AuditEventStore
+	extras     extrasStore
 }
 
-func NewAuditService(audits auditStore) *AuditService {
-	return &AuditService{audits: audits}
+type extrasStore interface {
+	Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error
 }
 
-// Log records an audit entry for the given packet, event, and action.
+func NewAuditService(coreEvents store.AuditEventStore, extras extrasStore) *AuditService {
+	return &AuditService{coreEvents: coreEvents, extras: extras}
+}
+
+// Log records one audit row for the given packet/event/action. The audit_events
+// row carries the trace/span IDs from ctx; the amie_audit_extras row links
+// back to it and preserves the AMIE-specific (packet_id, event_id) references.
 func (s *AuditService) Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error {
-	entry := &model.AuditLog{
-		PacketID:   packetID,
-		EventID:    ptrOrNil(eventID),
-		Action:     action,
-		EntityType: entityType,
-		EntityID:   ptrOrNil(entityID),
-		Summary:    ptrOrNil(summary),
-		CreatedAt:  time.Now().UTC(),
+	if packetID == "" {
+		return fmt.Errorf("audit_service: packet_id is required")
 	}
-	tracing.PopulateAuditIDs(ctx, &entry.TraceID, &entry.SpanID, &entry.ParentSpanID)
-	if entry.TraceID == nil {
+
+	auditEventID := uuid.NewString()
+	event := &models.AuditEvent{
+		ID:         auditEventID,
+		EventType:  string(action),
+		EventTime:  time.Now().UTC(),
+		EntityID:   entityID,
+		EntityType: entityType,
+		Details:    summary,
+		Source:     auditSource,
+	}
+	tracing.PopulateAuditIDs(ctx, &event.TraceID, &event.SpanID, &event.ParentSpanID)
+	if event.TraceID == nil {
 		slog.WarnContext(ctx, "audit write outside an active span",
 			"packet_id", packetID,
 			"event_id", eventID,
@@ -62,8 +80,17 @@ func (s *AuditService) Log(ctx context.Context, tx *sql.Tx, packetID, eventID st
 		)
 	}
 
-	if err := s.audits.Save(ctx, tx, entry); err != nil {
-		return fmt.Errorf("audit_service: saving audit log for packet %s: %w", packetID, err)
+	if err := s.coreEvents.Create(ctx, tx, event); err != nil {
+		return fmt.Errorf("audit_service: saving audit_events row for packet %s: %w", packetID, err)
+	}
+
+	extras := &model.AmieAuditExtras{
+		AuditEventID: auditEventID,
+		PacketID:     packetID,
+		EventID:      ptrOrNil(eventID),
+	}
+	if err := s.extras.Save(ctx, tx, extras); err != nil {
+		return fmt.Errorf("audit_service: saving amie_audit_extras for packet %s: %w", packetID, err)
 	}
 
 	slog.DebugContext(ctx, "audit log recorded",

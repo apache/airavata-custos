@@ -37,6 +37,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 	"github.com/apache/airavata-custos/internal/db"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
@@ -65,9 +66,9 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	packetStore := store.NewPacketStore(database)
 	eventStore := store.NewEventStore(database)
 	errorStore := store.NewProcessingErrorStore(database)
-	auditStore := store.NewAuditStore(database)
+	auditExtras := store.NewAuditExtrasStore(database)
 	userDNStore := store.NewUserDNStore(database)
-	auditSvc := service.NewAuditService(auditStore)
+	auditSvc := service.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster
 	// identity is per-deployment configuration rather than per-packet.

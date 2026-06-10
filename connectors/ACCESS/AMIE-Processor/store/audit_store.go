@@ -21,26 +21,28 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 )
 
-type AuditStore interface {
-	Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error
+// AuditExtrasStore persists the AMIE-specific reference row (packet_id,
+// event_id) joined to a core audit_events row via audit_event_id.
+type AuditExtrasStore interface {
+	Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error
 }
 
-type mariaDBauditStore struct {
+type mariaDBauditExtrasStore struct {
 	db *sqlx.DB
 }
 
-func NewAuditStore(db *sqlx.DB) AuditStore {
-	return &mariaDBauditStore{db: db}
+func NewAuditExtrasStore(db *sqlx.DB) AuditExtrasStore {
+	return &mariaDBauditExtrasStore{db: db}
 }
 
-func (s *mariaDBauditStore) Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error {
+func (s *mariaDBauditExtrasStore) Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_audit_log (packet_id, event_id, action, entity_type, entity_id, summary, created_at, trace_id, span_id, parent_span_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.PacketID, a.EventID, a.Action, a.EntityType, a.EntityID, a.Summary, a.CreatedAt, a.TraceID, a.SpanID, a.ParentSpanID)
+		`INSERT INTO amie_audit_extras (audit_event_id, packet_id, event_id) VALUES (?, ?, ?)`,
+		e.AuditEventID, e.PacketID, e.EventID)
 	return err
 }

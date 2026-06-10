@@ -23,100 +23,136 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
-	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // ---------------------------------------------------------------------------
-// Mock implementation
+// Mocks for the two stores AuditService talks to
 // ---------------------------------------------------------------------------
 
-type mockAuditStore struct {
+type mockCoreEventStore struct {
 	mock.Mock
 }
 
-func (m *mockAuditStore) Save(ctx context.Context, tx *sql.Tx, a *model.AuditLog) error {
-	args := m.Called(ctx, tx, a)
+func (m *mockCoreEventStore) FindByID(ctx context.Context, id string) (*models.AuditEvent, error) {
+	args := m.Called(ctx, id)
+	if v := args.Get(0); v != nil {
+		return v.(*models.AuditEvent), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+func (m *mockCoreEventStore) FindByEntity(ctx context.Context, entityID string) ([]models.AuditEvent, error) {
+	args := m.Called(ctx, entityID)
+	return args.Get(0).([]models.AuditEvent), args.Error(1)
+}
+func (m *mockCoreEventStore) FindByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error) {
+	args := m.Called(ctx, eventType)
+	return args.Get(0).([]models.AuditEvent), args.Error(1)
+}
+func (m *mockCoreEventStore) ListAll(ctx context.Context) ([]*models.AuditEvent, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]*models.AuditEvent), args.Error(1)
+}
+func (m *mockCoreEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
+	args := m.Called(ctx, tx, e)
+	return args.Error(0)
+}
+func (m *mockCoreEventStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	args := m.Called(ctx, tx, id)
+	return args.Error(0)
+}
+
+type mockExtrasStore struct {
+	mock.Mock
+}
+
+func (m *mockExtrasStore) Save(ctx context.Context, tx *sql.Tx, e *model.AmieAuditExtras) error {
+	args := m.Called(ctx, tx, e)
 	return args.Error(0)
 }
 
 // ---------------------------------------------------------------------------
-// AuditService.Log tests
+// Tests
 // ---------------------------------------------------------------------------
 
-func TestAuditLog_WithBothPacketAndEvent(t *testing.T) {
+func TestAuditLog_WritesBothRowsWithSharedID(t *testing.T) {
 	ctx := context.Background()
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
 
-	store.On("Save", ctx, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
-		return a.PacketID == "packet-1" &&
-			a.EventID != nil && *a.EventID == "event-1" &&
-			a.Action == model.AuditCreatePerson &&
-			a.EntityType == "person" &&
-			a.EntityID != nil && *a.EntityID == "p1" &&
-			a.Summary != nil && *a.Summary == "created person"
+	var captured *models.AuditEvent
+	coreEvents.On("Create", ctx, mock.Anything, mock.MatchedBy(func(e *models.AuditEvent) bool {
+		captured = e
+		return e.EventType == string(model.AuditCreatePerson) &&
+			e.EntityType == "person" &&
+			e.EntityID == "p1" &&
+			e.Details == "created person" &&
+			e.Source == auditSource
+	})).Return(nil)
+
+	extras.On("Save", ctx, mock.Anything, mock.MatchedBy(func(x *model.AmieAuditExtras) bool {
+		return x.PacketID == "packet-1" &&
+			x.EventID != nil && *x.EventID == "event-1" &&
+			captured != nil && x.AuditEventID == captured.ID
 	})).Return(nil)
 
 	err := svc.Log(ctx, nil, "packet-1", "event-1", model.AuditCreatePerson, "person", "p1", "created person")
-
 	require.NoError(t, err)
-	store.AssertExpectations(t)
+	coreEvents.AssertExpectations(t)
+	extras.AssertExpectations(t)
 }
 
-func TestAuditLog_WithNullEvent(t *testing.T) {
+func TestAuditLog_NilEventIDWhenEmpty(t *testing.T) {
 	ctx := context.Background()
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
 
-	store.On("Save", ctx, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
-		return a.PacketID == "packet-2" &&
-			a.EventID == nil // empty event ID yields nil pointer
+	coreEvents.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
+	extras.On("Save", ctx, mock.Anything, mock.MatchedBy(func(x *model.AmieAuditExtras) bool {
+		return x.PacketID == "packet-2" && x.EventID == nil
 	})).Return(nil)
 
-	// Empty eventID -> EventID pointer should be nil
-	err := svc.Log(ctx, nil, "packet-2", "", model.AuditReplySent, "packet", "pkt-2", "reply sent")
-
-	require.NoError(t, err)
-	store.AssertExpectations(t)
+	require.NoError(t, svc.Log(ctx, nil, "packet-2", "", model.AuditReplySent, "reply", "", "reply sent"))
 }
 
-func TestAuditLog_WithNullEntityFields(t *testing.T) {
+func TestAuditLog_PropagatesCoreStoreError(t *testing.T) {
 	ctx := context.Background()
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
 
-	store.On("Save", ctx, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
-		// Both entityID and summary are empty strings -> should be nil pointers
-		return a.PacketID == "packet-3" &&
-			a.EntityID == nil &&
-			a.Summary == nil
-	})).Return(nil)
+	coreEvents.On("Create", ctx, mock.Anything, mock.Anything).Return(assert.AnError)
 
-	err := svc.Log(ctx, nil, "packet-3", "event-3", model.AuditTransactionComplete, "packet", "", "")
-
-	require.NoError(t, err)
-	store.AssertExpectations(t)
-}
-
-func TestAuditLog_PropagatesStoreError(t *testing.T) {
-	ctx := context.Background()
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
-
-	store.On("Save", ctx, mock.Anything, mock.AnythingOfType("*model.AuditLog")).Return(assert.AnError)
-
-	err := svc.Log(ctx, nil, "packet-err", "evt", model.AuditCreatePerson, "person", "p-err", "summary")
-
+	err := svc.Log(ctx, nil, "p", "e", model.AuditCreatePerson, "person", "p1", "boom")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "audit_service")
-	store.AssertExpectations(t)
+	assert.Contains(t, err.Error(), "audit_events")
+	// extras must NOT be called when the core write failed
+	extras.AssertNotCalled(t, "Save")
+}
+
+func TestAuditLog_PropagatesExtrasStoreError(t *testing.T) {
+	ctx := context.Background()
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
+
+	coreEvents.On("Create", ctx, mock.Anything, mock.Anything).Return(nil)
+	extras.On("Save", ctx, mock.Anything, mock.Anything).Return(assert.AnError)
+
+	err := svc.Log(ctx, nil, "p", "e", model.AuditCreatePerson, "person", "p1", "boom")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "amie_audit_extras")
 }
 
 func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
@@ -125,23 +161,23 @@ func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
 	otel.SetTracerProvider(tp)
 	t.Cleanup(func() { otel.SetTracerProvider(prev) })
 
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
-
 	ctx, span := tracing.Start(context.Background(), "test.root")
 	defer span.End()
-
 	wantTrace := span.SpanContext().TraceID()
 	wantSpan := span.SpanContext().SpanID()
 
-	var captured *model.AuditLog
-	store.On("Save", mock.Anything, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
-		captured = a
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
+
+	var captured *models.AuditEvent
+	coreEvents.On("Create", mock.Anything, mock.Anything, mock.MatchedBy(func(e *models.AuditEvent) bool {
+		captured = e
 		return true
 	})).Return(nil)
+	extras.On("Save", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := svc.Log(ctx, nil, "packet-trace", "event-trace", model.AuditCreatePerson, "person", "p1", "with trace")
-	require.NoError(t, err)
+	require.NoError(t, svc.Log(ctx, nil, "packet-trace", "event-trace", model.AuditCreatePerson, "person", "p1", "with trace"))
 	require.NotNil(t, captured)
 	if !bytes.Equal(captured.TraceID, wantTrace[:]) {
 		t.Fatalf("trace_id mismatch: got %x want %x", captured.TraceID, wantTrace[:])
@@ -149,24 +185,32 @@ func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
 	if !bytes.Equal(captured.SpanID, wantSpan[:]) {
 		t.Fatalf("span_id mismatch: got %x want %x", captured.SpanID, wantSpan[:])
 	}
-	store.AssertExpectations(t)
 }
 
 func TestAuditLog_NilTraceWhenNoSpan(t *testing.T) {
-	store := new(mockAuditStore)
-	svc := NewAuditService(store)
+	coreEvents := new(mockCoreEventStore)
+	extras := new(mockExtrasStore)
+	svc := NewAuditService(coreEvents, extras)
 
-	var captured *model.AuditLog
-	store.On("Save", mock.Anything, mock.Anything, mock.MatchedBy(func(a *model.AuditLog) bool {
-		captured = a
+	var captured *models.AuditEvent
+	coreEvents.On("Create", mock.Anything, mock.Anything, mock.MatchedBy(func(e *models.AuditEvent) bool {
+		captured = e
 		return true
 	})).Return(nil)
+	extras.On("Save", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := svc.Log(trace.ContextWithSpanContext(context.Background(), trace.SpanContext{}),
-		nil, "p", "e", model.AuditReplySent, "reply", "", "")
-	require.NoError(t, err)
+	require.NoError(t, svc.Log(
+		trace.ContextWithSpanContext(context.Background(), trace.SpanContext{}),
+		nil, "p", "e", model.AuditReplySent, "reply", "", ""))
 	require.NotNil(t, captured)
 	if captured.TraceID != nil || captured.SpanID != nil {
 		t.Fatalf("expected nil trace/span IDs when no active span")
 	}
+}
+
+func TestAuditLog_RejectsEmptyPacketID(t *testing.T) {
+	svc := NewAuditService(new(mockCoreEventStore), new(mockExtrasStore))
+	err := svc.Log(context.Background(), nil, "", "evt", model.AuditCreatePerson, "person", "p", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "packet_id")
 }

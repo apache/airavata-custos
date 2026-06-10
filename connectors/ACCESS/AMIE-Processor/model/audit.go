@@ -17,8 +17,6 @@
 
 package model
 
-import "time"
-
 // AuditAction identifies the kind of mutation recorded in an audit log entry.
 type AuditAction string
 
@@ -41,17 +39,10 @@ const (
 	AuditTransactionComplete  AuditAction = "TRANSACTION_COMPLETE"
 )
 
-// AuditLog records a handler action for traceability and compliance.
-type AuditLog struct {
-	ID           int64       `db:"id" json:"id"`
-	PacketID     string      `db:"packet_id" json:"packet_id"`
-	EventID      *string     `db:"event_id" json:"event_id,omitempty"`
-	Action       AuditAction `db:"action" json:"action"`
-	EntityType   string      `db:"entity_type" json:"entity_type"`
-	EntityID     *string     `db:"entity_id" json:"entity_id,omitempty"`
-	Summary      *string     `db:"summary" json:"summary,omitempty"`
-	CreatedAt    time.Time   `db:"created_at" json:"created_at"`
-	TraceID      []byte      `db:"trace_id" json:"-"`
-	SpanID       []byte      `db:"span_id" json:"-"`
-	ParentSpanID []byte      `db:"parent_span_id" json:"-"`
+// AmieAuditExtras carries the AMIE-specific references for a row written
+// to the core audit_events table. One extras row is inserted per audit_events row.
+type AmieAuditExtras struct {
+	AuditEventID string  `db:"audit_event_id"`
+	PacketID     string  `db:"packet_id"`
+	EventID      *string `db:"event_id"`
 }
