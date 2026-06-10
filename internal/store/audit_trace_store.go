@@ -49,32 +49,23 @@ type AuditTraceStore interface {
 	ListSources(ctx context.Context) ([]string, error)
 }
 
-// unionAuditSelect normalises audit_events and amie_audit_log to one shape.
-const unionAuditSelect = `
+// auditTraceSelect projects audit_events into the trace-view shape. Every
+// subsystem (core and each connector) writes its audit rows here, tagged by
+// `source`. Connector-specific references (e.g. AMIE's packet_id / event_id
+// on amie_audit_extras) live on connector-owned tables and are joined
+// only by the connector-specific endpoints.
+const auditTraceSelect = `
 SELECT
     trace_id,
     span_id,
     parent_span_id,
-    source       AS source,
-    event_type   AS event_type,
-    ''           AS entity_type,
-    entity_id    AS entity_id,
+    source,
+    event_type,
+    entity_type,
+    entity_id,
     details      AS description,
     event_time   AS created_at
 FROM audit_events
-WHERE trace_id IS NOT NULL
-UNION ALL
-SELECT
-    trace_id,
-    span_id,
-    parent_span_id,
-    'amie'                 AS source,
-    action                 AS event_type,
-    entity_type            AS entity_type,
-    COALESCE(entity_id,'') AS entity_id,
-    COALESCE(summary,'')   AS description,
-    created_at             AS created_at
-FROM amie_audit_log
 WHERE trace_id IS NOT NULL
 `
 
@@ -123,7 +114,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 	}
 
 	countQuery := `SELECT COUNT(*) FROM (
-		SELECT trace_id FROM (` + unionAuditSelect + `) u ` + whereSQL + `
+		SELECT trace_id FROM (` + auditTraceSelect + `) u ` + whereSQL + `
 		GROUP BY trace_id
 	) g`
 	var total int
@@ -135,7 +126,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 	        MIN(created_at) AS started_at,
 	        MAX(created_at) AS ended_at,
 	        COUNT(*)        AS event_count
-	  FROM (` + unionAuditSelect + `) u ` + whereSQL + `
+	  FROM (` + auditTraceSelect + `) u ` + whereSQL + `
 	  GROUP BY trace_id
 	  ORDER BY MAX(created_at) DESC
 	  LIMIT ? OFFSET ?`
@@ -177,7 +168,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 
 func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID []byte) (string, string, string, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
-	  FROM (` + unionAuditSelect + `) u
+	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
 	  ORDER BY created_at ASC, span_id ASC`
 	var rows []rowEvent
@@ -218,7 +209,7 @@ func dominantSource(rows []rowEvent) string {
 
 func (s *mysqlAuditTraceStore) GetTraceTree(ctx context.Context, traceID []byte) (*models.TraceNode, bool, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
-	  FROM (` + unionAuditSelect + `) u
+	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
 	  ORDER BY created_at ASC, span_id ASC
 	  LIMIT ?`
@@ -261,7 +252,7 @@ func buildTree(rows []rowEvent) *models.TraceNode {
 
 func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID []byte) ([]models.TraceEvent, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
-	  FROM (` + unionAuditSelect + `) u
+	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?`
 	args := []any{traceID}
 	if len(spanID) > 0 {
