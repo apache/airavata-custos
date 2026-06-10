@@ -43,6 +43,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
 	"github.com/apache/airavata-custos/internal/db"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
@@ -119,7 +120,8 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 func truncateAll(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	tables := []string{
-		"amie_audit_log",
+		"amie_audit_extras",
+		"audit_events",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -198,9 +200,9 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	packetStore := store.NewPacketStore(database)
 	eventStore := store.NewEventStore(database)
 	errorStore := store.NewProcessingErrorStore(database)
-	auditStore := store.NewAuditStore(database)
+	auditExtras := store.NewAuditExtrasStore(database)
 	userDNStore := store.NewUserDNStore(database)
-	auditSvc := amieservice.NewAuditService(auditStore)
+	auditSvc := amieservice.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 
 	router := handler.NewRouter(
 		handler.NewRequestProjectCreateHandler(coreSvc, testClusterID, amieClient, auditSvc),

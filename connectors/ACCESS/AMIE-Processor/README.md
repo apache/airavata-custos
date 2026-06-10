@@ -104,7 +104,7 @@ Only one fixture exists today: `testdata/scenarios/baseline.yaml` — a determin
 
 The three pipeline tests reuse the same fixture but assert different properties:
 - `baseline_integration_test` — DB shape + idempotency on rerun.
-- `comanage_trace_chain_test` — proves AMIE and COmanage audit rows share a `trace_id` via JOIN over `amie_audit_log` and `audit_events` (uses mock COmanage REST; never hits the real registry).
+- `comanage_trace_chain_test` — proves AMIE and COmanage audit rows share a `trace_id` over the unified `audit_events` table (uses mock COmanage REST; never hits the real registry).
 - `tracing_clean_slate_test` — clean-slate DB + full audit coverage + `/audit/*` endpoint smoke against an in-process httptest server.
 
 To add a new scenario: drop a YAML next to `baseline.yaml` and call `pipe.fireScenario(t, "<name>")` from a new `*_integration_test.go` file.
@@ -146,7 +146,7 @@ docker compose -f dev-ops/compose/docker-compose.yml up db prometheus grafana -d
 
 Then open Grafana at `http://localhost:3000` (admin/admin). The AMIE dashboard loads automatically.
 
-For request-flow tracing, every AMIE audit row carries `trace_id` / `span_id` / `parent_span_id`. The admin trace view at `/audit/traces*` UNIONs `amie_audit_log` with the core `audit_events` table and renders the hierarchy from `parent_span_id`. See `docs/architecture/2026-06-04-tracing-audit-driven.md`.
+For request-flow tracing, every AMIE audit row carries `trace_id` / `span_id` / `parent_span_id` and lives in the core `audit_events` table (source=`amie`). The connector-specific `packet_id` / `event_id` references live in `amie_audit_extras` joined on `audit_event_id`. The admin trace view at `/audit/traces*` queries `audit_events` directly and renders the hierarchy from `parent_span_id`. For per-packet drill-down, see `GET /connectors/amie/packets/{packet_id}/audits`.
 
 ## Architecture
 

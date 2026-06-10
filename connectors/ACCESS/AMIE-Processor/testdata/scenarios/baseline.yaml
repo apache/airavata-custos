@@ -135,6 +135,10 @@ expectations:
             user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
 
   audit_log:
+    # AMIE audit rows live in audit_events (source='amie'); the connector-specific
+    # (packet_id, event_id) refs live in amie_audit_extras joined on audit_event_id.
+    # `total_count` here = count over audit_events WHERE source='amie'
+    #                    = count over amie_audit_extras.
     total_count: 35
     by_action:
       PACKET_RECEIVED: 9      # worker writes one root structural marker per packet so the trace tree has a root anchor
@@ -200,12 +204,17 @@ verification_queries:
 
   - name: merge recorded in audit log (no user_merges table; audit is source of truth)
     sql: |
-      SELECT action, entity_type, entity_id, summary
-      FROM amie_audit_log
-      WHERE action = 'MERGE_PERSONS';
+      SELECT event_type, entity_type, entity_id, details
+      FROM audit_events
+      WHERE source = 'amie' AND event_type = 'MERGE_PERSONS';
     expect:
-      one row, entity_type=user, summary contains "merged <retiring_id> into <survivor_id>: <reason>"
+      one row, entity_type=user, details contains "merged <retiring_id> into <survivor_id>: <reason>"
 
   - name: audit action counts
-    sql: SELECT action, COUNT(*) AS n FROM amie_audit_log GROUP BY action ORDER BY action;
+    sql: |
+      SELECT event_type, COUNT(*) AS n
+      FROM audit_events
+      WHERE source = 'amie'
+      GROUP BY event_type
+      ORDER BY event_type;
     expect: see expectations.audit_log.by_action

@@ -41,7 +41,8 @@ type AmieClient interface {
 	ReplyToPacket(ctx context.Context, packetRecID int64, reply map[string]any) error
 }
 
-// AuditService writes to amie_audit_log. The audit log is AMIE-local.
+// AuditService writes one audit_events row (source='amie') plus the matching
+// amie_audit_extras row carrying (packet_id, event_id).
 type AuditService interface {
 	Log(ctx context.Context, tx *sql.Tx, packetID, eventID string, action model.AuditAction, entityType, entityID, summary string) error
 }
