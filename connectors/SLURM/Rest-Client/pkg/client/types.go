@@ -52,22 +52,22 @@ type Association struct {
 	Limits AssocLimits `json:"-"`
 }
 
-// slurmNumber matches slurmrestd's {set, infinite, number} triple used for
+// SlurmNumber matches slurmrestd's {set, infinite, number} triple used for
 // all scalar limit values in the v0.0.41 accounting schema.
-type slurmNumber struct {
+type SlurmNumber struct {
 	Set      bool  `json:"set"`
 	Infinite bool  `json:"infinite"`
 	Number   int64 `json:"number"`
 }
 
-func numPtr(n *int64) *slurmNumber {
+func numPtr(n *int64) *SlurmNumber {
 	if n == nil {
 		return nil
 	}
-	return &slurmNumber{Set: true, Number: *n}
+	return &SlurmNumber{Set: true, Number: *n}
 }
 
-func ptrNum(n *slurmNumber) *int64 {
+func ptrNum(n *SlurmNumber) *int64 {
 	if n == nil || !n.Set || n.Infinite {
 		return nil
 	}
@@ -87,8 +87,8 @@ type assocMaxJobs struct {
 }
 
 type assocMaxJobsPer struct {
-	Count     *slurmNumber `json:"count,omitempty"`      // GrpJobs
-	WallClock *slurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
+	Count     *SlurmNumber `json:"count,omitempty"`      // GrpJobs
+	WallClock *SlurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
 }
 
 type assocMaxTRES struct {
@@ -201,7 +201,7 @@ type JobTresInfo struct {
 
 type JobExitInfo struct {
 	Status     []string    `json:"status"`
-	ReturnCode slurmNumber `json:"return_code"`
+	ReturnCode SlurmNumber `json:"return_code"`
 }
 
 type JobInfo struct {
@@ -229,7 +229,7 @@ type JobSubmitParam struct {
 	Environment       []string    `json:"environment,omitempty"`
 	CpusPerTask       int64       `json:"cpus_per_task,omitempty"`
 	Memory            int64       `json:"memory,omitempty"`
-	TimeLimit         slurmNumber `json:"time_limit,omitempty"` // seconds
+	TimeLimit         SlurmNumber `json:"time_limit,omitempty"` // seconds
 }
 
 type JobSubmitRequest struct {

@@ -26,7 +26,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService)
+	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, "slurm-cluster")
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

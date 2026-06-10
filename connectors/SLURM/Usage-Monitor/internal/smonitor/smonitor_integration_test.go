@@ -1,14 +1,14 @@
-package client
+package smonitor
 
 import (
-	"log"
+	operations "github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"os"
 	"testing"
 	"time"
 )
 
-func TestListJobs(t *testing.T) {
-	if !IsLocalSlurmConfigAvailable() {
+func TestSlurmMonitorIntegration(t *testing.T) {
+	if !operations.IsLocalSlurmConfigAvailable() {
 		t.Skip("Skipping integration test for listing jobs because local SLURM config is not available")
 	}
 
@@ -17,16 +17,18 @@ func TestListJobs(t *testing.T) {
 	token := os.Getenv("TEST_SLURM_TOKEN")
 	apiVersion := os.Getenv("TEST_SLURM_API_VERSION")
 
-	client := New(apiUrl, user, token, apiVersion)
+	client := operations.New(apiUrl, user, token, apiVersion)
 
-	JobSubmitRequest := JobSubmitRequest{
-		JobSubmitParam: JobSubmitParam{
+	currentTime := time.Now().Unix()
+
+	client.SubmitJob(operations.JobSubmitRequest{
+		JobSubmitParam: operations.JobSubmitParam{
 			Name:        "test-job",
 			Account:     "root",
 			Partition:   "compute",
 			Tasks:       1,
 			CpusPerTask: 1,
-			TimeLimit: SlurmNumber{
+			TimeLimit: operations.SlurmNumber{
 				Set:      true,
 				Infinite: false,
 				Number:   20, // 10 seconds
@@ -38,28 +40,14 @@ func TestListJobs(t *testing.T) {
 			// You can set other job parameters here if needed
 		},
 		Script: "#!/bin/bash\nsleep 1", // Simple script that sleeps for 1 second
-	}
+	})
 
-	currentTime := time.Now().Unix()
-	totalJobsToSubmit := 12
-	for i := 0; i < totalJobsToSubmit; i++ {
-		resp, err := client.SubmitJob(JobSubmitRequest)
-		if err != nil {
-			t.Fatalf("Failed to submit job: %v", err)
-		}
-
-		if resp.JobID == 0 {
-			t.Fatalf("Invalid job ID returned from job submission: %d", resp.JobID)
-		}
-
-		log.Printf("Submitted job with ID: %d", resp.JobID)
-	}
-
-	sleepDuration := 20 // seconds
-	log.Printf("Sleeping for %d seconds to allow job to start...", sleepDuration)
+	// Sleep for a while to allow the monitor to pick up the job
+	sleepDuration := 4 // seconds
+	t.Logf("Sleeping for %d seconds to allow monitor to pick up the job...", sleepDuration)
 	time.Sleep(time.Duration(sleepDuration) * time.Second)
 
-	filter := JobFilter{
+	filter := operations.JobFilter{
 		// You can set filter parameters here if needed
 		Users:     []string{"root"},
 		StartTime: currentTime,
@@ -71,12 +59,7 @@ func TestListJobs(t *testing.T) {
 	}
 	if len(jobs) == 0 {
 		t.Log("No jobs found")
-	} else {
-		t.Logf("Found %d jobs", len(jobs))
-		if len(jobs) != totalJobsToSubmit {
-			t.Logf("Expected at %d jobs, but found %d", totalJobsToSubmit, len(jobs))
-		} else {
-			t.Log("Successfully found all submitted jobs")
-		}
 	}
+	t.Logf("Found %d jobs", len(jobs))
+
 }

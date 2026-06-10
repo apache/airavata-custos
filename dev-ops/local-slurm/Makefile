@@ -23,6 +23,9 @@ smoke:
 lint:
 	cd cli && go vet ./...
 
+login:
+	docker compose exec login bash
+
 keys:
 	docker compose up init-keys
 

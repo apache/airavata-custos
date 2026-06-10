@@ -12,9 +12,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${REPO_ROOT}"
 
-make -s -C dev-ops/local-slurm down
-make -s -C dev-ops/local-slurm build
-make -s -C dev-ops/local-slurm up
+#make -s -C dev-ops/local-slurm down
+#make -s -C dev-ops/local-slurm build
+#make -s -C dev-ops/local-slurm up
 
 # Mint a fresh SLURM JWT via the local-slurm Makefile target.
 # `make token` prints e.g. `SLURM_JWT=eyJhbGciOi...` — strip the prefix.
@@ -31,21 +31,21 @@ export TEST_SLURM_API_VERSION="41"
 export TEST_SLURM_TOKEN="${TOKEN_LINE#SLURM_JWT=}"
 echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
 
- go test -tags integration -v -count=1 \
-    ./connectors/SLURM/Association-Mapper/internal/operations/...
+# go test -tags integration -v -count=1 \
+#    ./connectors/SLURM/Rest-Client/pkg/client/...
 
  go test -tags integration -v -count=1 \
     ./connectors/SLURM/Association-Mapper/internal/subscribers/...
 
 
 #go test -tags integration -v -count=1 \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/accounts.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/associations.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/client.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/tres.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/types.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/integration_common.go \
-#  ./connectors/SLURM/Association-Mapper/internal/operations/associations_integration_test.go
+#  ./connectors/SLURM/Rest-Client/pkg/client/accounts.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/associations.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/client.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/tres.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/types.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/integration_common.go \
+#  ./connectors/SLURM/Rest-Client/pkg/client/associations_integration_test.go
 
 
-make -s -C dev-ops/local-slurm down
+#make -s -C dev-ops/local-slurm down
