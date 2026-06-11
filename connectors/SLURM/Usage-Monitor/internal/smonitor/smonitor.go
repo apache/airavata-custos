@@ -3,11 +3,12 @@ package smonitor
 import (
 	"context"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/events"
-	//"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -75,23 +76,42 @@ func (m *SlurmMonitor) poll() {
 	}
 	m.lastMonitorTime = jobFilter.EndTime
 
-	/*
-		for _, job := range jobs {
-			//slog.Debug("processing SLURM job", "job_id", job.JobID, "job_name", job.Name)
-			//m.coreService.GetComputeAllocationResource()
+	for _, job := range jobs {
+		//slog.Debug("processing SLURM job", "job_id", job.JobID, "job_name", job.Name)
+		//m.coreService.GetComputeAllocationResource()
+		slog.Info("Job object", "job", job)
+		targetAccount := job.Account
+		for _, alloc := range allocations {
+			if alloc.Name == targetAccount {
+				slog.Info("found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)
 
-			usageModel := &models.ComputeAllocationUsage{
-				ComputeAllocationID:         "",
-				UsedRawAmount:               23,
-				UsedSUAmount:                23,
-				CalculatedTime:              time.Now(),
-				UserID:                      "32",
-				JobID:                       "",
-				ComputeAllocationResourceID: "",
+				user, err := m.coreService.GetComputeClusterUserByLocalUsernameAndCluster(context, job.User, cluster.ID)
+				if err != nil {
+					slog.Error("failed to get compute cluster user", "error", err)
+					return
+				}
+
+				resource, err := m.coreService.GetComputeAllocationResourceByNameAndCluster(context, job.Partition, cluster.ID)
+
+				if err != nil {
+					slog.Error("failed to get compute allocation resource", "error", err)
+					return
+				}
+
+				usageModel := &models.ComputeAllocationUsage{
+					ComputeAllocationID:         alloc.ID,
+					UsedRawAmount:               (job.Time.End - job.Time.Start),     // This is a simplification, adjust as needed based on how you want to calculate usage
+					UsedSUAmount:                (job.Time.End - job.Time.Start) * 1, // Assuming 1 SU per second for simplicity, adjust as needed based on your SU calculation logic
+					CalculatedTime:              time.Now(),
+					UserID:                      user.ID,
+					JobID:                       strconv.FormatInt(job.JobID, 10),
+					ComputeAllocationResourceID: resource.ID,
+				}
+				m.coreService.CreateComputeAllocationUsage(context, usageModel)
+				break
 			}
-
-			m.coreService.CreateComputeAllocationUsage(context, usageModel)
-		}*/
+		}
+	}
 
 	slog.Info("successfully polled SLURM usage", "num_allocations", len(allocations), "num_jobs", len(jobs))
 

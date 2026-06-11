@@ -182,6 +182,9 @@ var _ CoreService = &CoreServiceMock{}
 //			GetComputeClusterUserFunc: func(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUser method")
 //			},
+//			GetComputeClusterUserByLocalUsernameAndClusterFunc: func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+//				panic("mock out the GetComputeClusterUserByLocalUsernameAndCluster method")
+//			},
 //			GetComputeClusterUserByPairFunc: func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUserByPair method")
 //			},
@@ -265,6 +268,9 @@ var _ CoreService = &CoreServiceMock{}
 //			},
 //			ListComputeAllocationResourcesFunc: func(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 //				panic("mock out the ListComputeAllocationResources method")
+//			},
+//			ListComputeAllocationResourcesByTypeAndClusterFunc: func(ctx context.Context, resourceType string, clusterID string) ([]models.ComputeAllocationResource, error) {
+//				panic("mock out the ListComputeAllocationResourcesByTypeAndCluster method")
 //			},
 //			ListComputeAllocationsByClusterFunc: func(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error) {
 //				panic("mock out the ListComputeAllocationsByCluster method")
@@ -570,6 +576,9 @@ type CoreServiceMock struct {
 	// GetComputeClusterUserFunc mocks the GetComputeClusterUser method.
 	GetComputeClusterUserFunc func(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 
+	// GetComputeClusterUserByLocalUsernameAndClusterFunc mocks the GetComputeClusterUserByLocalUsernameAndCluster method.
+	GetComputeClusterUserByLocalUsernameAndClusterFunc func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error)
+
 	// GetComputeClusterUserByPairFunc mocks the GetComputeClusterUserByPair method.
 	GetComputeClusterUserByPairFunc func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error)
 
@@ -653,6 +662,9 @@ type CoreServiceMock struct {
 
 	// ListComputeAllocationResourcesFunc mocks the ListComputeAllocationResources method.
 	ListComputeAllocationResourcesFunc func(ctx context.Context) ([]models.ComputeAllocationResource, error)
+
+	// ListComputeAllocationResourcesByTypeAndClusterFunc mocks the ListComputeAllocationResourcesByTypeAndCluster method.
+	ListComputeAllocationResourcesByTypeAndClusterFunc func(ctx context.Context, resourceType string, clusterID string) ([]models.ComputeAllocationResource, error)
 
 	// ListComputeAllocationsByClusterFunc mocks the ListComputeAllocationsByCluster method.
 	ListComputeAllocationsByClusterFunc func(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error)
@@ -1193,6 +1205,15 @@ type CoreServiceMock struct {
 			// ID is the id argument value.
 			ID string
 		}
+		// GetComputeClusterUserByLocalUsernameAndCluster holds details about calls to the GetComputeClusterUserByLocalUsernameAndCluster method.
+		GetComputeClusterUserByLocalUsernameAndCluster []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ClusterID is the clusterID argument value.
+			ClusterID string
+			// LocalUsername is the localUsername argument value.
+			LocalUsername string
+		}
 		// GetComputeClusterUserByPair holds details about calls to the GetComputeClusterUserByPair method.
 		GetComputeClusterUserByPair []struct {
 			// Ctx is the ctx argument value.
@@ -1408,6 +1429,15 @@ type CoreServiceMock struct {
 		ListComputeAllocationResources []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+		}
+		// ListComputeAllocationResourcesByTypeAndCluster holds details about calls to the ListComputeAllocationResourcesByTypeAndCluster method.
+		ListComputeAllocationResourcesByTypeAndCluster []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ResourceType is the resourceType argument value.
+			ResourceType string
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 		}
 		// ListComputeAllocationsByCluster holds details about calls to the ListComputeAllocationsByCluster method.
 		ListComputeAllocationsByCluster []struct {
@@ -1807,6 +1837,7 @@ type CoreServiceMock struct {
 	lockGetComputeCluster                                    sync.RWMutex
 	lockGetComputeClusterByName                              sync.RWMutex
 	lockGetComputeClusterUser                                sync.RWMutex
+	lockGetComputeClusterUserByLocalUsernameAndCluster       sync.RWMutex
 	lockGetComputeClusterUserByPair                          sync.RWMutex
 	lockGetEffectiveRateForResource                          sync.RWMutex
 	lockGetLatestDiffForAllocation                           sync.RWMutex
@@ -1835,6 +1866,7 @@ type CoreServiceMock struct {
 	lockListChangeRequestsByRequester                        sync.RWMutex
 	lockListChangeRequestsForAllocation                      sync.RWMutex
 	lockListComputeAllocationResources                       sync.RWMutex
+	lockListComputeAllocationResourcesByTypeAndCluster       sync.RWMutex
 	lockListComputeAllocationsByCluster                      sync.RWMutex
 	lockListComputeAllocationsByProject                      sync.RWMutex
 	lockListComputeClusterUsersByCluster                     sync.RWMutex
@@ -3874,6 +3906,46 @@ func (mock *CoreServiceMock) GetComputeClusterUserCalls() []struct {
 	return calls
 }
 
+// GetComputeClusterUserByLocalUsernameAndCluster calls GetComputeClusterUserByLocalUsernameAndClusterFunc.
+func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+	if mock.GetComputeClusterUserByLocalUsernameAndClusterFunc == nil {
+		panic("CoreServiceMock.GetComputeClusterUserByLocalUsernameAndClusterFunc: method is nil but CoreService.GetComputeClusterUserByLocalUsernameAndCluster was just called")
+	}
+	callInfo := struct {
+		Ctx           context.Context
+		ClusterID     string
+		LocalUsername string
+	}{
+		Ctx:           ctx,
+		ClusterID:     clusterID,
+		LocalUsername: localUsername,
+	}
+	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Lock()
+	mock.calls.GetComputeClusterUserByLocalUsernameAndCluster = append(mock.calls.GetComputeClusterUserByLocalUsernameAndCluster, callInfo)
+	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Unlock()
+	return mock.GetComputeClusterUserByLocalUsernameAndClusterFunc(ctx, clusterID, localUsername)
+}
+
+// GetComputeClusterUserByLocalUsernameAndClusterCalls gets all the calls that were made to GetComputeClusterUserByLocalUsernameAndCluster.
+// Check the length with:
+//
+//	len(mockedCoreService.GetComputeClusterUserByLocalUsernameAndClusterCalls())
+func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndClusterCalls() []struct {
+	Ctx           context.Context
+	ClusterID     string
+	LocalUsername string
+} {
+	var calls []struct {
+		Ctx           context.Context
+		ClusterID     string
+		LocalUsername string
+	}
+	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RLock()
+	calls = mock.calls.GetComputeClusterUserByLocalUsernameAndCluster
+	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RUnlock()
+	return calls
+}
+
 // GetComputeClusterUserByPair calls GetComputeClusterUserByPairFunc.
 func (mock *CoreServiceMock) GetComputeClusterUserByPair(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error) {
 	if mock.GetComputeClusterUserByPairFunc == nil {
@@ -4919,6 +4991,46 @@ func (mock *CoreServiceMock) ListComputeAllocationResourcesCalls() []struct {
 	mock.lockListComputeAllocationResources.RLock()
 	calls = mock.calls.ListComputeAllocationResources
 	mock.lockListComputeAllocationResources.RUnlock()
+	return calls
+}
+
+// ListComputeAllocationResourcesByTypeAndCluster calls ListComputeAllocationResourcesByTypeAndClusterFunc.
+func (mock *CoreServiceMock) ListComputeAllocationResourcesByTypeAndCluster(ctx context.Context, resourceType string, clusterID string) ([]models.ComputeAllocationResource, error) {
+	if mock.ListComputeAllocationResourcesByTypeAndClusterFunc == nil {
+		panic("CoreServiceMock.ListComputeAllocationResourcesByTypeAndClusterFunc: method is nil but CoreService.ListComputeAllocationResourcesByTypeAndCluster was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		ResourceType string
+		ClusterID    string
+	}{
+		Ctx:          ctx,
+		ResourceType: resourceType,
+		ClusterID:    clusterID,
+	}
+	mock.lockListComputeAllocationResourcesByTypeAndCluster.Lock()
+	mock.calls.ListComputeAllocationResourcesByTypeAndCluster = append(mock.calls.ListComputeAllocationResourcesByTypeAndCluster, callInfo)
+	mock.lockListComputeAllocationResourcesByTypeAndCluster.Unlock()
+	return mock.ListComputeAllocationResourcesByTypeAndClusterFunc(ctx, resourceType, clusterID)
+}
+
+// ListComputeAllocationResourcesByTypeAndClusterCalls gets all the calls that were made to ListComputeAllocationResourcesByTypeAndCluster.
+// Check the length with:
+//
+//	len(mockedCoreService.ListComputeAllocationResourcesByTypeAndClusterCalls())
+func (mock *CoreServiceMock) ListComputeAllocationResourcesByTypeAndClusterCalls() []struct {
+	Ctx          context.Context
+	ResourceType string
+	ClusterID    string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		ResourceType string
+		ClusterID    string
+	}
+	mock.lockListComputeAllocationResourcesByTypeAndCluster.RLock()
+	calls = mock.calls.ListComputeAllocationResourcesByTypeAndCluster
+	mock.lockListComputeAllocationResourcesByTypeAndCluster.RUnlock()
 	return calls
 }
 

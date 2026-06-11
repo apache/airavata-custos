@@ -65,6 +65,19 @@ func (s *mysqlComputeAllocationResourceStore) FindByNameAndCluster(ctx context.C
 	return &r, nil
 }
 
+func (s *mysqlComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
+	var resources []models.ComputeAllocationResource
+	err := s.db.SelectContext(ctx, &resources,
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
+		 FROM compute_allocation_resources
+		 WHERE resource_type = ? AND compute_cluster_id = ?
+		 ORDER BY name`, resourceType, clusterID)
+	if err != nil {
+		return nil, err
+	}
+	return resources, nil
+}
+
 func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,

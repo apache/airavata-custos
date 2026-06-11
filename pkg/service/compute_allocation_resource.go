@@ -102,6 +102,22 @@ func (s *Service) ListComputeAllocationResources(ctx context.Context) ([]models.
 	return resources, nil
 }
 
+// ListComputeAllocationResourcesByTypeAndCluster returns all resources of the
+// given type on the given compute cluster.
+func (s *Service) ListComputeAllocationResourcesByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
+	if resourceType == "" {
+		return nil, fmt.Errorf("%w: resource_type is required", ErrInvalidInput)
+	}
+	if clusterID == "" {
+		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
+	}
+	resources, err := s.resources.FindByTypeAndCluster(ctx, resourceType, clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute allocation resources by type and cluster: %w", err)
+	}
+	return resources, nil
+}
+
 // UpdateComputeAllocationResource persists changes to an existing resource.
 func (s *Service) UpdateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) error {
 	if resource == nil || resource.ID == "" {

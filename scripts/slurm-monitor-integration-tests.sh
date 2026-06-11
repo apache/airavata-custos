@@ -25,16 +25,46 @@ if [[ -z "${TOKEN_LINE}" ]]; then
     exit 1
 fi
 
+export TEST_SLURM_TOKEN="${TOKEN_LINE#SLURM_JWT=}"
+echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
+
+TOKEN_LINE2="$(make -s -C dev-ops/local-slurm token2 | grep -E '^SLURM_JWT=' | tail -n1)"
+if [[ -z "${TOKEN_LINE2}" ]]; then
+    echo "ERROR: 'make token2' did not produce a SLURM_JWT=... line" >&2
+    exit 1
+fi
+
+export TEST_SLURM_TOKEN2="${TOKEN_LINE2#SLURM_JWT=}"
+echo "==> TEST_SLURM_TOKEN2 set (${#TEST_SLURM_TOKEN2} chars)"
+
+
+TOKEN_LINE3="$(make -s -C dev-ops/local-slurm token3 | grep -E '^SLURM_JWT=' | tail -n1)"
+if [[ -z "${TOKEN_LINE3}" ]]; then
+    echo "ERROR: 'make token3' did not produce a SLURM_JWT=... line" >&2
+    exit 1
+fi
+
+export TEST_SLURM_TOKEN3="${TOKEN_LINE3#SLURM_JWT=}"
+echo "==> TEST_SLURM_TOKEN3 set (${#TEST_SLURM_TOKEN3} chars)"
+
+TOKEN_LINE4="$(make -s -C dev-ops/local-slurm token4 | grep -E '^SLURM_JWT=' | tail -n1)"
+if [[ -z "${TOKEN_LINE4}" ]]; then
+    echo "ERROR: 'make token4' did not produce a SLURM_JWT=... line" >&2
+    exit 1
+fi
+
+export TEST_SLURM_TOKEN4="${TOKEN_LINE4#SLURM_JWT=}"
+echo "==> TEST_SLURM_TOKEN4 set (${#TEST_SLURM_TOKEN4} chars)"
+
 export TEST_SLURM_API="http://localhost:6820"
 export TEST_SLURM_USER="root"
 export TEST_SLURM_API_VERSION="41"
-export TEST_SLURM_TOKEN="${TOKEN_LINE#SLURM_JWT=}"
-echo "==> TEST_SLURM_TOKEN set (${#TEST_SLURM_TOKEN} chars)"
 
 # go test -tags integration -v -count=1 \
 #    ./connectors/SLURM/Rest-Client/pkg/client/...
 
  go test -tags integration -v -count=1 \
+    ./connectors/SLURM/Usage-Monitor/internal/smonitor/smonitor.go \
     ./connectors/SLURM/Usage-Monitor/internal/smonitor/smonitor_integration_test.go
 
 

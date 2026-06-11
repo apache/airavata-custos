@@ -35,6 +35,15 @@ logs:
 token:
 	docker compose exec login scontrol token
 
+token2:
+	docker compose exec login su - testuser -c "scontrol token"
+
+token3:
+	docker compose exec login su - testuser2 -c "scontrol token"
+
+token4:
+	docker compose exec login su - testuser3 -c "scontrol token"
+
 allocations:
 	docker compose exec login sacct -n -o JobID,State --starttime now-5minutes
 

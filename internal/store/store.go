@@ -80,6 +80,8 @@ type ComputeClusterUserStore interface {
 	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
+	// FindByLocalUsernameAndCluster returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
+	FindByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	// FindByCluster returns every user mapping for the given compute cluster.
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.
@@ -161,6 +163,9 @@ type ComputeAllocationResourceStore interface {
 	// FindByNameAndCluster returns the resource with the given name on the
 	// given compute cluster, or nil if not found.
 	FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error)
+	// FindByTypeAndCluster returns all resources of the given type on the
+	// given compute cluster.
+	FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error)
 	// List returns all compute allocation resources.
 	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
 	// Create inserts a new resource within the provided transaction.
