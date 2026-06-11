@@ -78,6 +78,19 @@ func (s *mysqlComputeAllocationUsageStore) FindByUser(ctx context.Context, userI
 	return rows, nil
 }
 
+func (s *mysqlComputeAllocationUsageStore) FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error) {
+	var u models.ComputeAllocationUsage
+	err := s.db.GetContext(ctx, &u,
+		`SELECT `+computeAllocationUsageColumns+` FROM compute_allocation_usages WHERE compute_allocation_id = ? AND job_id = ?`, allocationID, jobID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (s *mysqlComputeAllocationUsageStore) SumSUForAllocation(ctx context.Context, allocationID string) (int64, error) {
 	var total sql.NullInt64
 	err := s.db.GetContext(ctx, &total,

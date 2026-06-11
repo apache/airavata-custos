@@ -398,6 +398,9 @@ type ComputeAllocationUsageStore interface {
 	// FindByUser returns every usage event attributed to the given user,
 	// ordered by calculated_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
+	// FindByComputeAllocationIDAndJobID returns the usage event for the given
+	// compute allocation ID and job ID, or nil if it does not exist.
+	FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	// SumSUForAllocation returns the total SUs consumed against the given
 	// allocation across all usage events.
 	SumSUForAllocation(ctx context.Context, allocationID string) (int64, error)

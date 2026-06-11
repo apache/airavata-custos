@@ -173,6 +173,9 @@ var _ CoreService = &CoreServiceMock{}
 //			GetComputeAllocationUsageFunc: func(ctx context.Context, id string) (*models.ComputeAllocationUsage, error) {
 //				panic("mock out the GetComputeAllocationUsage method")
 //			},
+//			GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc: func(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error) {
+//				panic("mock out the GetComputeAllocationUsageByComputeAllocationIDAndJobID method")
+//			},
 //			GetComputeClusterFunc: func(ctx context.Context, id string) (*models.ComputeCluster, error) {
 //				panic("mock out the GetComputeCluster method")
 //			},
@@ -566,6 +569,9 @@ type CoreServiceMock struct {
 
 	// GetComputeAllocationUsageFunc mocks the GetComputeAllocationUsage method.
 	GetComputeAllocationUsageFunc func(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
+
+	// GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc mocks the GetComputeAllocationUsageByComputeAllocationIDAndJobID method.
+	GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc func(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error)
 
 	// GetComputeClusterFunc mocks the GetComputeCluster method.
 	GetComputeClusterFunc func(ctx context.Context, id string) (*models.ComputeCluster, error)
@@ -1184,6 +1190,15 @@ type CoreServiceMock struct {
 			// ID is the id argument value.
 			ID string
 		}
+		// GetComputeAllocationUsageByComputeAllocationIDAndJobID holds details about calls to the GetComputeAllocationUsageByComputeAllocationIDAndJobID method.
+		GetComputeAllocationUsageByComputeAllocationIDAndJobID []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// JobID is the jobID argument value.
+			JobID string
+		}
 		// GetComputeCluster holds details about calls to the GetComputeCluster method.
 		GetComputeCluster []struct {
 			// Ctx is the ctx argument value.
@@ -1783,135 +1798,136 @@ type CoreServiceMock struct {
 			Status models.UserStatus
 		}
 	}
-	lockAddPrivilegeToRole                                   sync.RWMutex
-	lockAttachResourceToAllocation                           sync.RWMutex
-	lockBootstrapSuperAdmin                                  sync.RWMutex
-	lockCreateAuditEvent                                     sync.RWMutex
-	lockCreateComputeAllocation                              sync.RWMutex
-	lockCreateComputeAllocationChangeRequest                 sync.RWMutex
-	lockCreateComputeAllocationChangeRequestEvent            sync.RWMutex
-	lockCreateComputeAllocationDiff                          sync.RWMutex
-	lockCreateComputeAllocationMembership                    sync.RWMutex
-	lockCreateComputeAllocationMembershipResourceOverride    sync.RWMutex
-	lockCreateComputeAllocationResource                      sync.RWMutex
-	lockCreateComputeAllocationResourceRate                  sync.RWMutex
-	lockCreateComputeAllocationUsage                         sync.RWMutex
-	lockCreateComputeCluster                                 sync.RWMutex
-	lockCreateComputeClusterUser                             sync.RWMutex
-	lockCreateOrganization                                   sync.RWMutex
-	lockCreateProject                                        sync.RWMutex
-	lockCreateRole                                           sync.RWMutex
-	lockCreateUser                                           sync.RWMutex
-	lockCreateUserIdentity                                   sync.RWMutex
-	lockDeleteAuditEvent                                     sync.RWMutex
-	lockDeleteComputeAllocation                              sync.RWMutex
-	lockDeleteComputeAllocationChangeRequest                 sync.RWMutex
-	lockDeleteComputeAllocationChangeRequestEvent            sync.RWMutex
-	lockDeleteComputeAllocationDiff                          sync.RWMutex
-	lockDeleteComputeAllocationMembership                    sync.RWMutex
-	lockDeleteComputeAllocationMembershipResourceOverride    sync.RWMutex
-	lockDeleteComputeAllocationResource                      sync.RWMutex
-	lockDeleteComputeAllocationResourceRate                  sync.RWMutex
-	lockDeleteComputeAllocationUsage                         sync.RWMutex
-	lockDeleteComputeCluster                                 sync.RWMutex
-	lockDeleteComputeClusterUser                             sync.RWMutex
-	lockDeleteOrganization                                   sync.RWMutex
-	lockDeleteProject                                        sync.RWMutex
-	lockDeleteRole                                           sync.RWMutex
-	lockDeleteUser                                           sync.RWMutex
-	lockDeleteUserIdentity                                   sync.RWMutex
-	lockDetachResourceFromAllocation                         sync.RWMutex
-	lockEffectivePrivileges                                  sync.RWMutex
-	lockGetAuditEvent                                        sync.RWMutex
-	lockGetComputeAllocation                                 sync.RWMutex
-	lockGetComputeAllocationChangeRequest                    sync.RWMutex
-	lockGetComputeAllocationChangeRequestEvent               sync.RWMutex
-	lockGetComputeAllocationDiff                             sync.RWMutex
-	lockGetComputeAllocationMembership                       sync.RWMutex
-	lockGetComputeAllocationMembershipResourceOverride       sync.RWMutex
-	lockGetComputeAllocationMembershipResourceOverrideByPair sync.RWMutex
-	lockGetComputeAllocationResource                         sync.RWMutex
-	lockGetComputeAllocationResourceByNameAndCluster         sync.RWMutex
-	lockGetComputeAllocationResourceRate                     sync.RWMutex
-	lockGetComputeAllocationUsage                            sync.RWMutex
-	lockGetComputeCluster                                    sync.RWMutex
-	lockGetComputeClusterByName                              sync.RWMutex
-	lockGetComputeClusterUser                                sync.RWMutex
-	lockGetComputeClusterUserByLocalUsernameAndCluster       sync.RWMutex
-	lockGetComputeClusterUserByPair                          sync.RWMutex
-	lockGetEffectiveRateForResource                          sync.RWMutex
-	lockGetLatestDiffForAllocation                           sync.RWMutex
-	lockGetLatestEventForChangeRequest                       sync.RWMutex
-	lockGetOrganization                                      sync.RWMutex
-	lockGetOrganizationByOriginatedID                        sync.RWMutex
-	lockGetProject                                           sync.RWMutex
-	lockGetProjectByOriginatedID                             sync.RWMutex
-	lockGetRole                                              sync.RWMutex
-	lockGetTotalSUUsageForAllocation                         sync.RWMutex
-	lockGetTotalSUUsageForUserInAllocation                   sync.RWMutex
-	lockGetUser                                              sync.RWMutex
-	lockGetUserByEmail                                       sync.RWMutex
-	lockGetUserByUserIdentity                                sync.RWMutex
-	lockGetUserIdentity                                      sync.RWMutex
-	lockGetUserIdentityByOIDCSub                             sync.RWMutex
-	lockGetUserIdentityBySourceAndExternalID                 sync.RWMutex
-	lockGrantPrivilege                                       sync.RWMutex
-	lockGrantRoleToUser                                      sync.RWMutex
-	lockHasPrivilege                                         sync.RWMutex
-	lockListAllAuditEvents                                   sync.RWMutex
-	lockListAllocationsForResource                           sync.RWMutex
-	lockListAllocationsForUser                               sync.RWMutex
-	lockListAuditEventsByEntity                              sync.RWMutex
-	lockListAuditEventsByEventType                           sync.RWMutex
-	lockListChangeRequestsByRequester                        sync.RWMutex
-	lockListChangeRequestsForAllocation                      sync.RWMutex
-	lockListComputeAllocationResources                       sync.RWMutex
-	lockListComputeAllocationResourcesByTypeAndCluster       sync.RWMutex
-	lockListComputeAllocationsByCluster                      sync.RWMutex
-	lockListComputeAllocationsByProject                      sync.RWMutex
-	lockListComputeClusterUsersByCluster                     sync.RWMutex
-	lockListComputeClusterUsersByUser                        sync.RWMutex
-	lockListComputeClusters                                  sync.RWMutex
-	lockListDiffsForAllocation                               sync.RWMutex
-	lockListEventsForChangeRequest                           sync.RWMutex
-	lockListMembersForAllocation                             sync.RWMutex
-	lockListOverridesForMembership                           sync.RWMutex
-	lockListOverridesForResource                             sync.RWMutex
-	lockListPrivilegeHolders                                 sync.RWMutex
-	lockListProjectsByPI                                     sync.RWMutex
-	lockListRatesForResource                                 sync.RWMutex
-	lockListResourcesForAllocation                           sync.RWMutex
-	lockListRoleHolders                                      sync.RWMutex
-	lockListRolePrivileges                                   sync.RWMutex
-	lockListRoles                                            sync.RWMutex
-	lockListUsagesByUser                                     sync.RWMutex
-	lockListUsagesForAllocation                              sync.RWMutex
-	lockListUserIdentitiesForUser                            sync.RWMutex
-	lockListUserPrivileges                                   sync.RWMutex
-	lockListUserRoles                                        sync.RWMutex
-	lockListUsersByOrganization                              sync.RWMutex
-	lockMergeUsers                                           sync.RWMutex
-	lockPrivilegeCatalog                                     sync.RWMutex
-	lockRemovePrivilegeFromRole                              sync.RWMutex
-	lockRevokePrivilege                                      sync.RWMutex
-	lockRevokeRoleFromUser                                   sync.RWMutex
-	lockUpdateAllocationResourceMapping                      sync.RWMutex
-	lockUpdateComputeAllocation                              sync.RWMutex
-	lockUpdateComputeAllocationChangeRequest                 sync.RWMutex
-	lockUpdateComputeAllocationMembership                    sync.RWMutex
-	lockUpdateComputeAllocationMembershipResourceOverride    sync.RWMutex
-	lockUpdateComputeAllocationResource                      sync.RWMutex
-	lockUpdateComputeAllocationResourceRate                  sync.RWMutex
-	lockUpdateComputeCluster                                 sync.RWMutex
-	lockUpdateComputeClusterUser                             sync.RWMutex
-	lockUpdateMembershipStatus                               sync.RWMutex
-	lockUpdateOrganization                                   sync.RWMutex
-	lockUpdateProject                                        sync.RWMutex
-	lockUpdateProjectStatus                                  sync.RWMutex
-	lockUpdateRole                                           sync.RWMutex
-	lockUpdateUser                                           sync.RWMutex
-	lockUpdateUserIdentity                                   sync.RWMutex
-	lockUpdateUserStatus                                     sync.RWMutex
+	lockAddPrivilegeToRole                                     sync.RWMutex
+	lockAttachResourceToAllocation                             sync.RWMutex
+	lockBootstrapSuperAdmin                                    sync.RWMutex
+	lockCreateAuditEvent                                       sync.RWMutex
+	lockCreateComputeAllocation                                sync.RWMutex
+	lockCreateComputeAllocationChangeRequest                   sync.RWMutex
+	lockCreateComputeAllocationChangeRequestEvent              sync.RWMutex
+	lockCreateComputeAllocationDiff                            sync.RWMutex
+	lockCreateComputeAllocationMembership                      sync.RWMutex
+	lockCreateComputeAllocationMembershipResourceOverride      sync.RWMutex
+	lockCreateComputeAllocationResource                        sync.RWMutex
+	lockCreateComputeAllocationResourceRate                    sync.RWMutex
+	lockCreateComputeAllocationUsage                           sync.RWMutex
+	lockCreateComputeCluster                                   sync.RWMutex
+	lockCreateComputeClusterUser                               sync.RWMutex
+	lockCreateOrganization                                     sync.RWMutex
+	lockCreateProject                                          sync.RWMutex
+	lockCreateRole                                             sync.RWMutex
+	lockCreateUser                                             sync.RWMutex
+	lockCreateUserIdentity                                     sync.RWMutex
+	lockDeleteAuditEvent                                       sync.RWMutex
+	lockDeleteComputeAllocation                                sync.RWMutex
+	lockDeleteComputeAllocationChangeRequest                   sync.RWMutex
+	lockDeleteComputeAllocationChangeRequestEvent              sync.RWMutex
+	lockDeleteComputeAllocationDiff                            sync.RWMutex
+	lockDeleteComputeAllocationMembership                      sync.RWMutex
+	lockDeleteComputeAllocationMembershipResourceOverride      sync.RWMutex
+	lockDeleteComputeAllocationResource                        sync.RWMutex
+	lockDeleteComputeAllocationResourceRate                    sync.RWMutex
+	lockDeleteComputeAllocationUsage                           sync.RWMutex
+	lockDeleteComputeCluster                                   sync.RWMutex
+	lockDeleteComputeClusterUser                               sync.RWMutex
+	lockDeleteOrganization                                     sync.RWMutex
+	lockDeleteProject                                          sync.RWMutex
+	lockDeleteRole                                             sync.RWMutex
+	lockDeleteUser                                             sync.RWMutex
+	lockDeleteUserIdentity                                     sync.RWMutex
+	lockDetachResourceFromAllocation                           sync.RWMutex
+	lockEffectivePrivileges                                    sync.RWMutex
+	lockGetAuditEvent                                          sync.RWMutex
+	lockGetComputeAllocation                                   sync.RWMutex
+	lockGetComputeAllocationChangeRequest                      sync.RWMutex
+	lockGetComputeAllocationChangeRequestEvent                 sync.RWMutex
+	lockGetComputeAllocationDiff                               sync.RWMutex
+	lockGetComputeAllocationMembership                         sync.RWMutex
+	lockGetComputeAllocationMembershipResourceOverride         sync.RWMutex
+	lockGetComputeAllocationMembershipResourceOverrideByPair   sync.RWMutex
+	lockGetComputeAllocationResource                           sync.RWMutex
+	lockGetComputeAllocationResourceByNameAndCluster           sync.RWMutex
+	lockGetComputeAllocationResourceRate                       sync.RWMutex
+	lockGetComputeAllocationUsage                              sync.RWMutex
+	lockGetComputeAllocationUsageByComputeAllocationIDAndJobID sync.RWMutex
+	lockGetComputeCluster                                      sync.RWMutex
+	lockGetComputeClusterByName                                sync.RWMutex
+	lockGetComputeClusterUser                                  sync.RWMutex
+	lockGetComputeClusterUserByLocalUsernameAndCluster         sync.RWMutex
+	lockGetComputeClusterUserByPair                            sync.RWMutex
+	lockGetEffectiveRateForResource                            sync.RWMutex
+	lockGetLatestDiffForAllocation                             sync.RWMutex
+	lockGetLatestEventForChangeRequest                         sync.RWMutex
+	lockGetOrganization                                        sync.RWMutex
+	lockGetOrganizationByOriginatedID                          sync.RWMutex
+	lockGetProject                                             sync.RWMutex
+	lockGetProjectByOriginatedID                               sync.RWMutex
+	lockGetRole                                                sync.RWMutex
+	lockGetTotalSUUsageForAllocation                           sync.RWMutex
+	lockGetTotalSUUsageForUserInAllocation                     sync.RWMutex
+	lockGetUser                                                sync.RWMutex
+	lockGetUserByEmail                                         sync.RWMutex
+	lockGetUserByUserIdentity                                  sync.RWMutex
+	lockGetUserIdentity                                        sync.RWMutex
+	lockGetUserIdentityByOIDCSub                               sync.RWMutex
+	lockGetUserIdentityBySourceAndExternalID                   sync.RWMutex
+	lockGrantPrivilege                                         sync.RWMutex
+	lockGrantRoleToUser                                        sync.RWMutex
+	lockHasPrivilege                                           sync.RWMutex
+	lockListAllAuditEvents                                     sync.RWMutex
+	lockListAllocationsForResource                             sync.RWMutex
+	lockListAllocationsForUser                                 sync.RWMutex
+	lockListAuditEventsByEntity                                sync.RWMutex
+	lockListAuditEventsByEventType                             sync.RWMutex
+	lockListChangeRequestsByRequester                          sync.RWMutex
+	lockListChangeRequestsForAllocation                        sync.RWMutex
+	lockListComputeAllocationResources                         sync.RWMutex
+	lockListComputeAllocationResourcesByTypeAndCluster         sync.RWMutex
+	lockListComputeAllocationsByCluster                        sync.RWMutex
+	lockListComputeAllocationsByProject                        sync.RWMutex
+	lockListComputeClusterUsersByCluster                       sync.RWMutex
+	lockListComputeClusterUsersByUser                          sync.RWMutex
+	lockListComputeClusters                                    sync.RWMutex
+	lockListDiffsForAllocation                                 sync.RWMutex
+	lockListEventsForChangeRequest                             sync.RWMutex
+	lockListMembersForAllocation                               sync.RWMutex
+	lockListOverridesForMembership                             sync.RWMutex
+	lockListOverridesForResource                               sync.RWMutex
+	lockListPrivilegeHolders                                   sync.RWMutex
+	lockListProjectsByPI                                       sync.RWMutex
+	lockListRatesForResource                                   sync.RWMutex
+	lockListResourcesForAllocation                             sync.RWMutex
+	lockListRoleHolders                                        sync.RWMutex
+	lockListRolePrivileges                                     sync.RWMutex
+	lockListRoles                                              sync.RWMutex
+	lockListUsagesByUser                                       sync.RWMutex
+	lockListUsagesForAllocation                                sync.RWMutex
+	lockListUserIdentitiesForUser                              sync.RWMutex
+	lockListUserPrivileges                                     sync.RWMutex
+	lockListUserRoles                                          sync.RWMutex
+	lockListUsersByOrganization                                sync.RWMutex
+	lockMergeUsers                                             sync.RWMutex
+	lockPrivilegeCatalog                                       sync.RWMutex
+	lockRemovePrivilegeFromRole                                sync.RWMutex
+	lockRevokePrivilege                                        sync.RWMutex
+	lockRevokeRoleFromUser                                     sync.RWMutex
+	lockUpdateAllocationResourceMapping                        sync.RWMutex
+	lockUpdateComputeAllocation                                sync.RWMutex
+	lockUpdateComputeAllocationChangeRequest                   sync.RWMutex
+	lockUpdateComputeAllocationMembership                      sync.RWMutex
+	lockUpdateComputeAllocationMembershipResourceOverride      sync.RWMutex
+	lockUpdateComputeAllocationResource                        sync.RWMutex
+	lockUpdateComputeAllocationResourceRate                    sync.RWMutex
+	lockUpdateComputeCluster                                   sync.RWMutex
+	lockUpdateComputeClusterUser                               sync.RWMutex
+	lockUpdateMembershipStatus                                 sync.RWMutex
+	lockUpdateOrganization                                     sync.RWMutex
+	lockUpdateProject                                          sync.RWMutex
+	lockUpdateProjectStatus                                    sync.RWMutex
+	lockUpdateRole                                             sync.RWMutex
+	lockUpdateUser                                             sync.RWMutex
+	lockUpdateUserIdentity                                     sync.RWMutex
+	lockUpdateUserStatus                                       sync.RWMutex
 }
 
 // AddPrivilegeToRole calls AddPrivilegeToRoleFunc.
@@ -3795,6 +3811,46 @@ func (mock *CoreServiceMock) GetComputeAllocationUsageCalls() []struct {
 	mock.lockGetComputeAllocationUsage.RLock()
 	calls = mock.calls.GetComputeAllocationUsage
 	mock.lockGetComputeAllocationUsage.RUnlock()
+	return calls
+}
+
+// GetComputeAllocationUsageByComputeAllocationIDAndJobID calls GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc.
+func (mock *CoreServiceMock) GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error) {
+	if mock.GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc == nil {
+		panic("CoreServiceMock.GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc: method is nil but CoreService.GetComputeAllocationUsageByComputeAllocationIDAndJobID was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		JobID        string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		JobID:        jobID,
+	}
+	mock.lockGetComputeAllocationUsageByComputeAllocationIDAndJobID.Lock()
+	mock.calls.GetComputeAllocationUsageByComputeAllocationIDAndJobID = append(mock.calls.GetComputeAllocationUsageByComputeAllocationIDAndJobID, callInfo)
+	mock.lockGetComputeAllocationUsageByComputeAllocationIDAndJobID.Unlock()
+	return mock.GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc(ctx, allocationID, jobID)
+}
+
+// GetComputeAllocationUsageByComputeAllocationIDAndJobIDCalls gets all the calls that were made to GetComputeAllocationUsageByComputeAllocationIDAndJobID.
+// Check the length with:
+//
+//	len(mockedCoreService.GetComputeAllocationUsageByComputeAllocationIDAndJobIDCalls())
+func (mock *CoreServiceMock) GetComputeAllocationUsageByComputeAllocationIDAndJobIDCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	JobID        string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		JobID        string
+	}
+	mock.lockGetComputeAllocationUsageByComputeAllocationIDAndJobID.RLock()
+	calls = mock.calls.GetComputeAllocationUsageByComputeAllocationIDAndJobID
+	mock.lockGetComputeAllocationUsageByComputeAllocationIDAndJobID.RUnlock()
 	return calls
 }
 

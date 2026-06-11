@@ -200,6 +200,7 @@ type ComputeAllocationMembershipResourceOverrideService interface {
 type ComputeAllocationUsageService interface {
 	CreateComputeAllocationUsage(ctx context.Context, u *models.ComputeAllocationUsage) (*models.ComputeAllocationUsage, error)
 	GetComputeAllocationUsage(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
+	GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	ListUsagesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
 	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error)

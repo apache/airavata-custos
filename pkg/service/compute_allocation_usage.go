@@ -81,6 +81,25 @@ func (s *Service) GetComputeAllocationUsage(ctx context.Context, id string) (*mo
 	return u, nil
 }
 
+// GetComputeAllocationUsageByComputeAllocationIDAndJobID retrieves a usage event
+// by the given compute allocation ID and job ID. Returns ErrNotFound when no usage matches.
+func (s *Service) GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error) {
+	if allocationID == "" {
+		return nil, fmt.Errorf("%w: compute_allocation_id is required", ErrInvalidInput)
+	}
+	if jobID == "" {
+		return nil, fmt.Errorf("%w: job_id is required", ErrInvalidInput)
+	}
+	u, err := s.usages.FindByComputeAllocationIDAndJobID(ctx, allocationID, jobID)
+	if err != nil {
+		return nil, fmt.Errorf("get compute allocation usage by allocation id and job id: %w", err)
+	}
+	if u == nil {
+		return nil, ErrNotFound
+	}
+	return u, nil
+}
+
 // ListUsagesForAllocation returns every usage event recorded against the
 // given allocation, ordered by calculated_time ascending.
 func (s *Service) ListUsagesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error) {

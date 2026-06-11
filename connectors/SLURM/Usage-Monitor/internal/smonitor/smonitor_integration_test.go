@@ -214,6 +214,15 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 				ComputeClusterID: clusterId,
 			}, nil
 		},
+
+		GetComputeAllocationUsageByComputeAllocationIDAndJobIDFunc: func(ctx context.Context, allocationID string, jobID string) (*models.ComputeAllocationUsage, error) {
+			return nil, service.ErrNotFound
+		},
+
+		DeleteComputeAllocationUsageFunc: func(ctx context.Context, usageID string) error {
+			t.Logf("DeleteComputeAllocationUsage called with ID: %s", usageID)
+			return nil
+		},
 	}
 
 	monitor := &SlurmMonitor{
@@ -240,10 +249,10 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 			t.Errorf("Expected ComputeAllocationID to be 'allocation-1', got '%s'", usage.ComputeAllocationID)
 		}
 		if usage.UsedRawAmount <= 0 {
-			t.Errorf("Expected UsedRawAmount to be greater than 0, got %d", usage.UsedRawAmount)
+			t.Errorf("Expected UsedRawAmount to be greater than 0, got %f", usage.UsedRawAmount)
 		}
 		if usage.UsedSUAmount <= 0 {
-			t.Errorf("Expected UsedSUAmount to be greater than 0, got %d", usage.UsedSUAmount)
+			t.Errorf("Expected UsedSUAmount to be greater than 0, got %f", usage.UsedSUAmount)
 		}
 		if usage.UserID != "user-"+usage.UserID[5:] { // Extract local username from UserID
 			t.Errorf("Expected UserID to be 'user-%s', got '%s'", usage.UserID[5:], usage.UserID)
