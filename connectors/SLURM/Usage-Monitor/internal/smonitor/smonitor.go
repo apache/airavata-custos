@@ -36,11 +36,11 @@ func (m *SlurmMonitor) StartMonitor(ctx context.Context) {
 	ticker := time.NewTicker(monitorInterval)
 	defer ticker.Stop()
 
-	slog.Info("starting SLURM usage monitor", "interval", monitorInterval)
+	slog.Info("Starting SLURM usage monitor", "interval", monitorInterval)
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("stopping SLURM usage monitor", "reason", ctx.Err())
+			slog.Info("Stopping SLURM usage monitor", "reason", ctx.Err())
 			return
 		case <-ticker.C:
 			m.poll()
