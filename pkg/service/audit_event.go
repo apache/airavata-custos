@@ -54,7 +54,7 @@ func (s *Service) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*
 	}
 
 	tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID)
-	if e.TraceID == nil {
+	if e.TraceID == "" {
 		slog.WarnContext(ctx, "audit write outside an active span",
 			"event_type", e.EventType,
 			"entity_id", e.EntityID,

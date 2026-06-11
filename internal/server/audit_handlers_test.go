@@ -19,7 +19,6 @@ package server
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -40,9 +39,9 @@ type fakeAuditStore struct {
 	events        []models.TraceEvent
 	sources       []string
 	listFilter    store.TraceFilter
-	getTraceArg   []byte
+	getTraceArg   string
 	listEventsArg struct {
-		traceID, spanID []byte
+		traceID, spanID string
 	}
 	listErr   error
 	getErr    error
@@ -57,7 +56,7 @@ func (f *fakeAuditStore) ListTraces(_ context.Context, filter store.TraceFilter)
 	return f.traces, f.total, nil
 }
 
-func (f *fakeAuditStore) GetTraceTree(_ context.Context, traceID []byte) (*models.TraceNode, bool, error) {
+func (f *fakeAuditStore) GetTraceTree(_ context.Context, traceID string) (*models.TraceNode, bool, error) {
 	f.getTraceArg = traceID
 	if f.getErr != nil {
 		return nil, false, f.getErr
@@ -65,7 +64,7 @@ func (f *fakeAuditStore) GetTraceTree(_ context.Context, traceID []byte) (*model
 	return f.tree, f.truncated, nil
 }
 
-func (f *fakeAuditStore) ListEvents(_ context.Context, traceID, spanID []byte) ([]models.TraceEvent, error) {
+func (f *fakeAuditStore) ListEvents(_ context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
 	f.listEventsArg.traceID = traceID
 	f.listEventsArg.spanID = spanID
 	if f.eventsErr != nil {
@@ -81,14 +80,9 @@ func (f *fakeAuditStore) ListSources(_ context.Context) ([]string, error) {
 	return f.sources, nil
 }
 
-func mustHexTraceID(t *testing.T) (string, []byte) {
+func mustHexTraceID(t *testing.T) string {
 	t.Helper()
-	raw := strings.Repeat("ab", 16)
-	b, err := hex.DecodeString(raw)
-	if err != nil {
-		t.Fatalf("hex decode: %v", err)
-	}
-	return raw, b
+	return strings.Repeat("ab", 16)
 }
 
 func newAuditServer(t *testing.T, deps *AdminDeps) *httptest.Server {
@@ -99,7 +93,7 @@ func newAuditServer(t *testing.T, deps *AdminDeps) *httptest.Server {
 }
 
 func TestListTracesReturnsRowsAndEcho(t *testing.T) {
-	_, traceBytes := mustHexTraceID(t)
+	traceBytes := mustHexTraceID(t)
 	fs := &fakeAuditStore{
 		traces: []models.TraceSummary{{
 			TraceID:       traceBytes,
@@ -223,7 +217,7 @@ func TestGetTraceBadHex(t *testing.T) {
 }
 
 func TestGetTraceNotFound(t *testing.T) {
-	raw, _ := mustHexTraceID(t)
+	raw := mustHexTraceID(t)
 	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
 	resp, err := http.Get(srv.URL + "/audit/traces/" + raw)
 	if err != nil {
@@ -236,9 +230,10 @@ func TestGetTraceNotFound(t *testing.T) {
 }
 
 func TestGetTraceReturnsTree(t *testing.T) {
-	raw, traceBytes := mustHexTraceID(t)
-	rootSpan := []byte{1, 2, 3, 4, 5, 6, 7, 8}
-	childSpan := []byte{9, 10, 11, 12, 13, 14, 15, 16}
+	raw := mustHexTraceID(t)
+	traceBytes := raw
+	rootSpan := "0102030405060708"
+	childSpan := "090a0b0c0d0e0f10"
 	tree := &models.TraceNode{
 		Children: []*models.TraceNode{
 			{
@@ -287,7 +282,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 		t.Fatalf("tree len = %d", len(treeNodes))
 	}
 	root := treeNodes[0].(map[string]any)
-	if root["span_id"].(string) != hex.EncodeToString(rootSpan) {
+	if root["span_id"].(string) != rootSpan {
 		t.Errorf("root span_id mismatch")
 	}
 	children := root["children"].([]any)
@@ -295,7 +290,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 		t.Fatalf("child len = %d", len(children))
 	}
 	child := children[0].(map[string]any)
-	if child["parent_span_id"].(string) != hex.EncodeToString(rootSpan) {
+	if child["parent_span_id"].(string) != rootSpan {
 		t.Errorf("child parent_span_id missing/wrong")
 	}
 	if child["status"].(string) != "error" {
@@ -307,8 +302,9 @@ func TestGetTraceReturnsTree(t *testing.T) {
 }
 
 func TestListEventsFlat(t *testing.T) {
-	raw, traceBytes := mustHexTraceID(t)
-	span := []byte{1, 1, 1, 1, 1, 1, 1, 1}
+	raw := mustHexTraceID(t)
+	traceBytes := raw
+	span := "0101010101010101"
 	fs := &fakeAuditStore{events: []models.TraceEvent{{
 		SpanID:    span,
 		Source:    "amie",
@@ -318,7 +314,7 @@ func TestListEventsFlat(t *testing.T) {
 	}}}
 	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
 
-	resp, err := http.Get(srv.URL + "/audit/events?trace_id=" + raw + "&span_id=" + hex.EncodeToString(span))
+	resp, err := http.Get(srv.URL + "/audit/events?trace_id=" + raw + "&span_id=" + span)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -335,7 +331,7 @@ func TestListEventsFlat(t *testing.T) {
 	if len(body.Events) != 1 {
 		t.Fatalf("events = %d", len(body.Events))
 	}
-	if body.Events[0]["span_id"].(string) != hex.EncodeToString(span) {
+	if body.Events[0]["span_id"].(string) != span {
 		t.Errorf("span_id = %v", body.Events[0]["span_id"])
 	}
 	if string(fs.listEventsArg.traceID) != string(traceBytes) {

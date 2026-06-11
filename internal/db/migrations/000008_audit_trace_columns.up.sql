@@ -16,7 +16,7 @@
 -- under the License.
 
 ALTER TABLE audit_events
-    ADD COLUMN trace_id       BINARY(16) NULL,
-    ADD COLUMN span_id        BINARY(8)  NULL,
-    ADD COLUMN parent_span_id BINARY(8)  NULL,
+    ADD COLUMN trace_id       CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    ADD COLUMN span_id        CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    ADD COLUMN parent_span_id CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
     ADD KEY idx_audit_events_trace (trace_id);

@@ -44,8 +44,8 @@ type TraceFilter struct {
 
 type AuditTraceStore interface {
 	ListTraces(ctx context.Context, filter TraceFilter) ([]models.TraceSummary, int, error)
-	GetTraceTree(ctx context.Context, traceID []byte) (*models.TraceNode, bool, error)
-	ListEvents(ctx context.Context, traceID, spanID []byte) ([]models.TraceEvent, error)
+	GetTraceTree(ctx context.Context, traceID string) (*models.TraceNode, bool, error)
+	ListEvents(ctx context.Context, traceID, spanID string) ([]models.TraceEvent, error)
 	ListSources(ctx context.Context) ([]string, error)
 }
 
@@ -66,7 +66,7 @@ SELECT
     details      AS description,
     event_time   AS created_at
 FROM audit_events
-WHERE trace_id IS NOT NULL
+WHERE trace_id <> ''
 `
 
 type mysqlAuditTraceStore struct {
@@ -78,9 +78,9 @@ func NewAuditTraceStore(db *sqlx.DB) AuditTraceStore {
 }
 
 type rowEvent struct {
-	TraceID      []byte    `db:"trace_id"`
-	SpanID       []byte    `db:"span_id"`
-	ParentSpanID []byte    `db:"parent_span_id"`
+	TraceID      string    `db:"trace_id"`
+	SpanID       string    `db:"span_id"`
+	ParentSpanID string    `db:"parent_span_id"`
 	Source       string    `db:"source"`
 	EventType    string    `db:"event_type"`
 	EntityType   string    `db:"entity_type"`
@@ -134,7 +134,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 	listArgs = append(listArgs, limit, f.Offset)
 
 	type listRow struct {
-		TraceID    []byte    `db:"trace_id"`
+		TraceID    string    `db:"trace_id"`
 		StartedAt  time.Time `db:"started_at"`
 		EndedAt    time.Time `db:"ended_at"`
 		EventCount int       `db:"event_count"`
@@ -166,7 +166,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 	return out, total, nil
 }
 
-func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID []byte) (string, string, string, error) {
+func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID string) (string, string, string, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
@@ -181,7 +181,7 @@ func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID []byt
 
 	var rootOp string
 	for _, r := range rows {
-		if len(r.ParentSpanID) == 0 {
+		if r.ParentSpanID == "" {
 			rootOp = r.EventType
 			break
 		}
@@ -200,14 +200,14 @@ func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID []byt
 
 func dominantSource(rows []rowEvent) string {
 	for _, r := range rows {
-		if len(r.ParentSpanID) == 0 {
+		if r.ParentSpanID == "" {
 			return r.Source
 		}
 	}
 	return rows[0].Source
 }
 
-func (s *mysqlAuditTraceStore) GetTraceTree(ctx context.Context, traceID []byte) (*models.TraceNode, bool, error) {
+func (s *mysqlAuditTraceStore) GetTraceTree(ctx context.Context, traceID string) (*models.TraceNode, bool, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
@@ -233,14 +233,13 @@ func (s *mysqlAuditTraceStore) GetTraceTree(ctx context.Context, traceID []byte)
 func buildTree(rows []rowEvent) *models.TraceNode {
 	bySpan := make(map[string]*models.TraceNode, len(rows))
 	for _, r := range rows {
-		key := string(r.SpanID)
-		bySpan[key] = &models.TraceNode{TraceEvent: r.toTraceEvent()}
+		bySpan[r.SpanID] = &models.TraceNode{TraceEvent: r.toTraceEvent()}
 	}
 	root := &models.TraceNode{}
 	for _, r := range rows {
-		node := bySpan[string(r.SpanID)]
-		if len(r.ParentSpanID) > 0 {
-			if parent, ok := bySpan[string(r.ParentSpanID)]; ok {
+		node := bySpan[r.SpanID]
+		if r.ParentSpanID != "" {
+			if parent, ok := bySpan[r.ParentSpanID]; ok {
 				parent.Children = append(parent.Children, node)
 				continue
 			}
@@ -250,12 +249,12 @@ func buildTree(rows []rowEvent) *models.TraceNode {
 	return root
 }
 
-func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID []byte) ([]models.TraceEvent, error) {
+func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?`
 	args := []any{traceID}
-	if len(spanID) > 0 {
+	if spanID != "" {
 		q += ` AND span_id = ?`
 		args = append(args, spanID)
 	}
@@ -297,8 +296,8 @@ func buildTraceWhere(f TraceFilter) (string, []any) {
 		args = append(args, f.To)
 	}
 	if f.Q != "" {
-		clauses = append(clauses, "(HEX(u.trace_id) LIKE ? OR u.event_type LIKE ?)")
-		args = append(args, strings.ToUpper(f.Q)+"%", "%"+f.Q+"%")
+		clauses = append(clauses, "(u.trace_id LIKE ? OR u.event_type LIKE ?)")
+		args = append(args, strings.ToLower(f.Q)+"%", "%"+f.Q+"%")
 	}
 
 	if len(clauses) == 0 {

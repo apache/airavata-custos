@@ -18,13 +18,12 @@
 package models
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"time"
 )
 
 type TraceSummary struct {
-	TraceID       []byte    `db:"trace_id" json:"-"`
+	TraceID       string    `db:"trace_id" json:"trace_id"`
 	RootOperation string    `db:"root_operation" json:"root_operation"`
 	Source        string    `db:"source" json:"source"`
 	Status        string    `db:"status" json:"status"`
@@ -33,20 +32,9 @@ type TraceSummary struct {
 	EventCount    int       `db:"event_count" json:"event_count"`
 }
 
-func (t TraceSummary) MarshalJSON() ([]byte, error) {
-	type alias TraceSummary
-	return json.Marshal(struct {
-		TraceID string `json:"trace_id"`
-		alias
-	}{
-		TraceID: hex.EncodeToString(t.TraceID),
-		alias:   alias(t),
-	})
-}
-
 type TraceEvent struct {
-	SpanID       []byte    `db:"span_id" json:"-"`
-	ParentSpanID []byte    `db:"parent_span_id" json:"-"`
+	SpanID       string    `db:"span_id" json:"span_id"`
+	ParentSpanID string    `db:"parent_span_id" json:"parent_span_id,omitempty"`
 	Source       string    `db:"source" json:"source"`
 	EventType    string    `db:"event_type" json:"event_type"`
 	EntityType   string    `db:"entity_type" json:"entity_type,omitempty"`
@@ -56,45 +44,17 @@ type TraceEvent struct {
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 
-func (e TraceEvent) MarshalJSON() ([]byte, error) {
-	type alias TraceEvent
-	out := struct {
-		SpanID       string `json:"span_id"`
-		ParentSpanID string `json:"parent_span_id,omitempty"`
-		alias
-	}{
-		SpanID: hex.EncodeToString(e.SpanID),
-		alias:  alias(e),
-	}
-	if len(e.ParentSpanID) > 0 {
-		out.ParentSpanID = hex.EncodeToString(e.ParentSpanID)
-	}
-	return json.Marshal(out)
-}
-
 type TraceNode struct {
 	TraceEvent
 	Children []*TraceNode `json:"children"`
 }
 
-// Children is always emitted (non-nil) so clients can iterate without a check.
+// MarshalJSON ensures Children is emitted as [] (not null) so clients
+// can iterate without a nil check.
 func (n TraceNode) MarshalJSON() ([]byte, error) {
-	type alias TraceEvent
-	out := struct {
-		SpanID       string `json:"span_id"`
-		ParentSpanID string `json:"parent_span_id,omitempty"`
-		alias
-		Children []*TraceNode `json:"children"`
-	}{
-		SpanID:   hex.EncodeToString(n.SpanID),
-		alias:    alias(n.TraceEvent),
-		Children: n.Children,
+	type alias TraceNode
+	if n.Children == nil {
+		n.Children = []*TraceNode{}
 	}
-	if len(n.ParentSpanID) > 0 {
-		out.ParentSpanID = hex.EncodeToString(n.ParentSpanID)
-	}
-	if out.Children == nil {
-		out.Children = []*TraceNode{}
-	}
-	return json.Marshal(out)
+	return json.Marshal(alias(n))
 }

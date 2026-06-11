@@ -19,15 +19,15 @@ package tracing
 
 import "context"
 
-func PopulateAuditIDs(ctx context.Context, traceID, spanID, parentSpanID *[]byte) {
+func PopulateAuditIDs(ctx context.Context, traceID, spanID, parentSpanID *string) {
 	if traceID == nil || spanID == nil || parentSpanID == nil {
 		return
 	}
-	if *traceID == nil && *spanID == nil {
-		*traceID, *spanID = IDsBytesFromContext(ctx)
+	if *traceID == "" && *spanID == "" {
+		*traceID, *spanID = IDsFromContext(ctx)
 	}
-	if *parentSpanID == nil {
-		if p := ParentSpanIDFromContext(ctx); p != nil {
+	if *parentSpanID == "" {
+		if p := ParentSpanIDFromContext(ctx); p != "" {
 			*parentSpanID = p
 		}
 	}

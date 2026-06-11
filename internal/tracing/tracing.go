@@ -111,13 +111,11 @@ func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (con
 	return newCtx, span
 }
 
-func ParentSpanIDFromContext(ctx context.Context) []byte {
+func ParentSpanIDFromContext(ctx context.Context) string {
 	if p, ok := ctx.Value(parentSpanIDKey).(trace.SpanID); ok && p.IsValid() {
-		out := make([]byte, 8)
-		copy(out, p[:])
-		return out
+		return p.String()
 	}
-	return nil
+	return ""
 }
 
 func FromContext(ctx context.Context) trace.Span {

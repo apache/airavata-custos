@@ -247,13 +247,8 @@ func TestEnsurePOSIXAccount_DlqAuditCarriesTraceID(t *testing.T) {
 	if last.EventType != "ComanageProvisioningFailed" {
 		t.Fatalf("expected ComanageProvisioningFailed dlq audit, got %q", last.EventType)
 	}
-	if len(last.TraceID) != 16 {
-		t.Fatalf("dlq audit row missing trace_id; got len=%d", len(last.TraceID))
-	}
-	for i := range last.TraceID {
-		if last.TraceID[i] != wantTrace[i] {
-			t.Fatalf("dlq audit row trace_id != root span trace_id: got %x want %x", last.TraceID, wantTrace[:])
-		}
+	if last.TraceID != wantTrace.String() {
+		t.Fatalf("dlq audit row trace_id != root span trace_id: got %s want %s", last.TraceID, wantTrace.String())
 	}
 }
 

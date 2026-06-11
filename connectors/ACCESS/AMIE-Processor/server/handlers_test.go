@@ -19,7 +19,6 @@ package server
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -60,7 +59,7 @@ func newTestServer(t *testing.T, store *fakePacketAuditStore) *httptest.Server {
 }
 
 func TestListPacketAudits_HappyPath(t *testing.T) {
-	span := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	span := "0102030405060708"
 	fs := &fakePacketAuditStore{events: []models.TraceEvent{{
 		SpanID:    span,
 		Source:    "amie",
@@ -92,7 +91,7 @@ func TestListPacketAudits_HappyPath(t *testing.T) {
 	if len(body.Events) != 1 {
 		t.Fatalf("events len = %d, want 1", len(body.Events))
 	}
-	if body.Events[0]["span_id"].(string) != hex.EncodeToString(span) {
+	if body.Events[0]["span_id"].(string) != span {
 		t.Errorf("span_id mismatch")
 	}
 	if fs.listArg != "packet-1" {

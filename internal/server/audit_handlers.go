@@ -18,7 +18,6 @@
 package server
 
 import (
-	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
@@ -76,7 +75,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	traceID, err := decodeHexID(r.PathValue("trace_id"), traceIDHexLen)
+	traceID, err := validateHexID(r.PathValue("trace_id"), traceIDHexLen)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -92,7 +91,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]any{
-		"trace_id":  hex.EncodeToString(traceID),
+		"trace_id":  traceID,
 		"tree":      tree.Children,
 		"truncated": truncated,
 	}
@@ -105,14 +104,14 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	traceID, err := decodeHexID(q.Get("trace_id"), traceIDHexLen)
+	traceID, err := validateHexID(q.Get("trace_id"), traceIDHexLen)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	var spanID []byte
+	var spanID string
 	if raw := q.Get("span_id"); raw != "" {
-		spanID, err = decodeHexID(raw, spanIDHexLen)
+		spanID, err = validateHexID(raw, spanIDHexLen)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -218,13 +217,15 @@ func splitMulti(vals []string) []string {
 	return out
 }
 
-func decodeHexID(raw string, wantLen int) ([]byte, error) {
+func validateHexID(raw string, wantLen int) (string, error) {
 	if len(raw) != wantLen {
-		return nil, errors.New("expected " + strconv.Itoa(wantLen) + "-char lowercase hex id, got len " + strconv.Itoa(len(raw)))
+		return "", errors.New("expected " + strconv.Itoa(wantLen) + "-char lowercase hex id, got len " + strconv.Itoa(len(raw)))
 	}
-	b, err := hex.DecodeString(raw)
-	if err != nil {
-		return nil, errors.New("invalid hex id")
+	for i := 0; i < len(raw); i++ {
+		c := raw[i]
+		if !(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'f') {
+			return "", errors.New("invalid hex id")
+		}
 	}
-	return b, nil
+	return raw, nil
 }

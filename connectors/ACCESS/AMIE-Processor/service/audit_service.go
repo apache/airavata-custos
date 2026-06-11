@@ -70,7 +70,7 @@ func (s *AuditService) Log(ctx context.Context, tx *sql.Tx, packetID, eventID st
 		Source:     auditSource,
 	}
 	tracing.PopulateAuditIDs(ctx, &event.TraceID, &event.SpanID, &event.ParentSpanID)
-	if event.TraceID == nil {
+	if event.TraceID == "" {
 		slog.WarnContext(ctx, "audit write outside an active span",
 			"packet_id", packetID,
 			"event_id", eventID,

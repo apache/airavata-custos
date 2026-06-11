@@ -23,12 +23,10 @@ import (
 	"time"
 )
 
-func mkSpan(b byte) []byte {
-	out := make([]byte, 8)
-	for i := range out {
-		out[i] = b
-	}
-	return out
+func mkSpan(b byte) string {
+	hi := "0123456789abcdef"[b>>4]
+	lo := "0123456789abcdef"[b&0x0f]
+	return strings.Repeat(string(hi)+string(lo), 8)
 }
 
 func TestBuildTreeNestsByParent(t *testing.T) {
@@ -112,7 +110,7 @@ func TestBuildTraceWhereTimeAndQ(t *testing.T) {
 	if !strings.Contains(w, "u.created_at >= ?") || !strings.Contains(w, "u.created_at <= ?") {
 		t.Errorf("where missing time clauses: %q", w)
 	}
-	if !strings.Contains(w, "HEX(u.trace_id) LIKE ?") {
+	if !strings.Contains(w, "u.trace_id LIKE ?") {
 		t.Errorf("where missing trace_id LIKE: %q", w)
 	}
 	// 2 timestamps + 2 LIKE values

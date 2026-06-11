@@ -18,7 +18,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"testing"
@@ -179,11 +178,11 @@ func TestAuditLog_PersistsTraceAndSpanIDs(t *testing.T) {
 
 	require.NoError(t, svc.Log(ctx, nil, "packet-trace", "event-trace", model.AuditCreatePerson, "person", "p1", "with trace"))
 	require.NotNil(t, captured)
-	if !bytes.Equal(captured.TraceID, wantTrace[:]) {
-		t.Fatalf("trace_id mismatch: got %x want %x", captured.TraceID, wantTrace[:])
+	if captured.TraceID != wantTrace.String() {
+		t.Fatalf("trace_id mismatch: got %s want %s", captured.TraceID, wantTrace.String())
 	}
-	if !bytes.Equal(captured.SpanID, wantSpan[:]) {
-		t.Fatalf("span_id mismatch: got %x want %x", captured.SpanID, wantSpan[:])
+	if captured.SpanID != wantSpan.String() {
+		t.Fatalf("span_id mismatch: got %s want %s", captured.SpanID, wantSpan.String())
 	}
 }
 
@@ -203,7 +202,7 @@ func TestAuditLog_NilTraceWhenNoSpan(t *testing.T) {
 		trace.ContextWithSpanContext(context.Background(), trace.SpanContext{}),
 		nil, "p", "e", model.AuditReplySent, "reply", "", ""))
 	require.NotNil(t, captured)
-	if captured.TraceID != nil || captured.SpanID != nil {
+	if captured.TraceID != "" || captured.SpanID != "" {
 		t.Fatalf("expected nil trace/span IDs when no active span")
 	}
 }

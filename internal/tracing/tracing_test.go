@@ -18,7 +18,6 @@
 package tracing
 
 import (
-	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -88,14 +87,14 @@ func TestStartCapturesParentSpanID(t *testing.T) {
 	defer span2.End()
 
 	got := ParentSpanIDFromContext(ctx2)
-	if len(got) != 8 {
-		t.Fatalf("expected 8 bytes, got %d", len(got))
+	if len(got) != 16 {
+		t.Fatalf("expected 16 hex chars, got %d", len(got))
 	}
-	if !bytes.Equal(got, span1ID[:]) {
-		t.Errorf("parent mismatch: want %x got %x", span1ID, got)
+	if got != span1ID.String() {
+		t.Errorf("parent mismatch: want %s got %s", span1ID.String(), got)
 	}
 
-	if root := ParentSpanIDFromContext(ctx1); root != nil {
-		t.Errorf("expected nil parent on root span ctx, got %x", root)
+	if root := ParentSpanIDFromContext(ctx1); root != "" {
+		t.Errorf("expected empty parent on root span ctx, got %s", root)
 	}
 }

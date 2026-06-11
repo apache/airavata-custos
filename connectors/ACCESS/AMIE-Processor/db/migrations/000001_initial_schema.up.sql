@@ -74,22 +74,20 @@ CREATE TABLE IF NOT EXISTS amie_processing_errors
     KEY idx_amie_errors_occurred_at (occurred_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS amie_audit_log
+-- AMIE writes audit rows to core's audit_events table; this side table
+-- carries the connector-specific references (packet_id, event_id) joined on
+-- audit_event_id.
+CREATE TABLE IF NOT EXISTS amie_audit_extras
 (
-    id          BIGINT       NOT NULL AUTO_INCREMENT,
-    packet_id   VARCHAR(255) NOT NULL,
-    event_id    VARCHAR(255) NULL,
-    action      VARCHAR(64)  NOT NULL,
-    entity_type VARCHAR(64)  NOT NULL,
-    entity_id   VARCHAR(255) NULL,
-    summary     TEXT         NULL,
-    created_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    PRIMARY KEY (id),
-    CONSTRAINT fk_amie_audit_packet FOREIGN KEY (packet_id) REFERENCES amie_packets (id) ON DELETE CASCADE,
-    CONSTRAINT fk_amie_audit_event FOREIGN KEY (event_id) REFERENCES amie_processing_events (id) ON DELETE SET NULL,
-    KEY idx_amie_audit_packet_id (packet_id),
-    KEY idx_amie_audit_action (action),
-    KEY idx_amie_audit_created_at (created_at)
+    audit_event_id VARCHAR(255) NOT NULL,
+    packet_id      VARCHAR(255) NOT NULL,
+    event_id       VARCHAR(255) NULL,
+    PRIMARY KEY (audit_event_id),
+    CONSTRAINT fk_amie_audit_extras_event  FOREIGN KEY (audit_event_id) REFERENCES audit_events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_amie_audit_extras_packet FOREIGN KEY (packet_id) REFERENCES amie_packets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_amie_audit_extras_procev FOREIGN KEY (event_id) REFERENCES amie_processing_events(id) ON DELETE SET NULL,
+    KEY idx_amie_audit_extras_packet_id (packet_id),
+    KEY idx_amie_audit_extras_event_id  (event_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- AMIE-side DN registry. AMIE delivers DnList fields that contain DNs across

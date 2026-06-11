@@ -27,7 +27,7 @@ type AuditEvent struct {
 	EntityType   string    `json:"entity_type" db:"entity_type"` // Kind of the entity ("user", "role", "compute_cluster_user", "packet", etc.).
 	Details      string    `json:"details" db:"details"`         // Additional details about the event, stored as a JSON string or plain text.
 	Source       string    `json:"source" db:"source"`           // Subsystem that produced the event (e.g., "amie", "comanage", "slurm", "core", etc.).
-	TraceID      []byte    `json:"-" db:"trace_id"`
-	SpanID       []byte    `json:"-" db:"span_id"`
-	ParentSpanID []byte    `json:"-" db:"parent_span_id"`
+	TraceID      string    `json:"trace_id" db:"trace_id"`
+	SpanID       string    `json:"span_id" db:"span_id"`
+	ParentSpanID string    `json:"parent_span_id,omitempty" db:"parent_span_id"`
 }

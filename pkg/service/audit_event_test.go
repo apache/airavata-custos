@@ -18,7 +18,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
@@ -44,11 +43,11 @@ func TestAuditEventTraceIDs_PopulatedFromActiveSpan(t *testing.T) {
 	e := &models.AuditEvent{EventType: "X", EntityID: "y"}
 	tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID)
 
-	if !bytes.Equal(e.TraceID, wantTrace[:]) {
-		t.Fatalf("trace_id mismatch: got %x want %x", e.TraceID, wantTrace[:])
+	if e.TraceID != wantTrace.String() {
+		t.Fatalf("trace_id mismatch: got %s want %s", e.TraceID, wantTrace.String())
 	}
-	if !bytes.Equal(e.SpanID, wantSpan[:]) {
-		t.Fatalf("span_id mismatch: got %x want %x", e.SpanID, wantSpan[:])
+	if e.SpanID != wantSpan.String() {
+		t.Fatalf("span_id mismatch: got %s want %s", e.SpanID, wantSpan.String())
 	}
 }
 
@@ -56,8 +55,8 @@ func TestAuditEventTraceIDs_NilWhenNoSpan(t *testing.T) {
 	e := &models.AuditEvent{EventType: "X", EntityID: "y"}
 	tracing.PopulateAuditIDs(context.Background(), &e.TraceID, &e.SpanID, &e.ParentSpanID)
 
-	if e.TraceID != nil || e.SpanID != nil {
-		t.Fatalf("expected nil trace/span IDs, got trace=%x span=%x", e.TraceID, e.SpanID)
+	if e.TraceID != "" || e.SpanID != "" {
+		t.Fatalf("expected empty trace/span IDs, got trace=%s span=%s", e.TraceID, e.SpanID)
 	}
 }
 
@@ -70,8 +69,8 @@ func TestAuditEventTraceIDs_NotOverwrittenWhenPreset(t *testing.T) {
 	ctx, span := tracing.Start(context.Background(), "test.root")
 	defer span.End()
 
-	preset := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
-	presetSpan := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	preset := "0102030405060708090a0b0c0d0e0f10"
+	presetSpan := "0102030405060708"
 	e := &models.AuditEvent{
 		EventType: "X",
 		EntityID:  "y",
@@ -80,10 +79,10 @@ func TestAuditEventTraceIDs_NotOverwrittenWhenPreset(t *testing.T) {
 	}
 	tracing.PopulateAuditIDs(ctx, &e.TraceID, &e.SpanID, &e.ParentSpanID)
 
-	if !bytes.Equal(e.TraceID, preset) {
-		t.Fatalf("preset trace_id was overwritten: got %x want %x", e.TraceID, preset)
+	if e.TraceID != preset {
+		t.Fatalf("preset trace_id was overwritten: got %s want %s", e.TraceID, preset)
 	}
-	if !bytes.Equal(e.SpanID, presetSpan) {
-		t.Fatalf("preset span_id was overwritten: got %x want %x", e.SpanID, presetSpan)
+	if e.SpanID != presetSpan {
+		t.Fatalf("preset span_id was overwritten: got %s want %s", e.SpanID, presetSpan)
 	}
 }
