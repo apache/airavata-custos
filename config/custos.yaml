@@ -1,0 +1,59 @@
+core:
+  database:
+    url: "postgresql://custos_user:password@localhost:5432/custos_db?sslmode=disable"
+  api:
+    port: 8080
+  log_level: "info"
+
+connectors:
+  slurm-mapper:
+    type: "slurm-association-mapper"
+    enabled: true
+    slurm_api:
+      url: "https://slurm-api.example.com"
+      version: "0.0.38"
+      username: "slurm_admin"
+      token: "${SLURM_TOKEN}" # Reference to environment variable
+
+  slurm-usage-monitor:
+    type: "slurm-usage-monitor"
+    enabled: true
+    slurm_api:
+      url: "https://slurm-api.example.com"
+      version: "0.0.38"
+      username: "slurm_admin"
+      token: "${SLURM_TOKEN}" # Reference to environment variable
+    cluster_id: "slurm-cluster"
+
+  comanage-provisioner:
+    type: "comanage-identity-provisioner"
+    enabled: true
+    registry:
+      url: "https://comanage.example.org"
+      co_id: 1
+      api_user: "comanage_api_user"
+      api_key: "${COMANAGE_API_KEY}" # Reference to environment variable
+    unix_cluster:
+      id: 10
+      person_id_type: "eppn" # Educational Person Principal Name
+    provisioning:
+      custos_cluster_id: "cluster-001"
+      default_shell: "/bin/bash"
+      homedir_prefix: "/home/"
+      http_timeout: "30s"
+
+  amie-processor:
+    type: "amie-processor"
+    enabled: true
+    credentials:
+      base_url: "https://amie.xsede.org"
+      site_code: "XSEDE"
+      api_key: "${AMIE_API_KEY}" # Reference to environment variable
+    cluster:
+      id: "cluster-001" # Must match a cluster registered in Custos
+    polling:
+      poll_interval: "30s"
+      worker_interval: "5s"
+      poller_enabled: true
+    timeouts:
+      connect_timeout: "5s"

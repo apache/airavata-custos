@@ -31,17 +31,21 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
+	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // LoadConnector wires the subscriber to the event bus. If any required env
 // var is missing, the loader logs and returns nil without registering.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup) error {
-	cfg, ok := loadConfigFromEnv()
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, connectorConfig *config.ConnectorConfig) error {
+	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
 	if !ok {
-		slog.Info("comanage provisioner: required env vars not set; skipping")
-		return nil
+		cfg, ok = loadConfigFromEnv()
+		if !ok {
+			slog.Info("comanage provisioner: required config not set; skipping")
+			return nil
+		}
 	}
 	httpClient := client.New(cfg)
 	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers()
@@ -52,6 +56,84 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	// COmanage. There is no drift reconciliation; out-of-band edits will be
 	// invisible to Custos.
 	return nil
+}
+
+func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (client.Config, bool) {
+	if connectorConfig == nil {
+		return client.Config{}, false
+	}
+
+	var registryURL, apiUser, apiKey, personIDType, custosCluster, defaultShell, homedirPrefix string
+	var coID, unixClusterID int
+	timeout := 30 * time.Second
+
+	// Load registry config
+	if registry, err := connectorConfig.GetNestedConfig("registry"); err == nil {
+		if url, ok := registry["url"].(string); ok {
+			registryURL = url
+		}
+		if u, ok := registry["api_user"].(string); ok {
+			apiUser = u
+		}
+		if k, ok := registry["api_key"].(string); ok {
+			apiKey = k
+		}
+		if id, ok := registry["co_id"].(float64); ok {
+			coID = int(id)
+		}
+	}
+
+	// Load unix_cluster config
+	if unixCluster, err := connectorConfig.GetNestedConfig("unix_cluster"); err == nil {
+		if id, ok := unixCluster["id"].(float64); ok {
+			unixClusterID = int(id)
+		}
+		if pType, ok := unixCluster["person_id_type"].(string); ok {
+			personIDType = pType
+		}
+	}
+
+	// Load provisioning config
+	if provisioning, err := connectorConfig.GetNestedConfig("provisioning"); err == nil {
+		if id, ok := provisioning["custos_cluster_id"].(string); ok {
+			custosCluster = id
+		}
+		if shell, ok := provisioning["default_shell"].(string); ok {
+			defaultShell = shell
+		}
+		if prefix, ok := provisioning["homedir_prefix"].(string); ok {
+			homedirPrefix = prefix
+		}
+		if timeoutStr, ok := provisioning["http_timeout"].(string); ok {
+			if d, err := time.ParseDuration(timeoutStr); err == nil {
+				timeout = d
+			}
+		}
+	}
+
+	if registryURL == "" || coID == 0 || apiUser == "" || apiKey == "" || personIDType == "" || unixClusterID == 0 || custosCluster == "" {
+		return client.Config{}, false
+	}
+
+	if defaultShell == "" {
+		defaultShell = "/bin/bash"
+	}
+	if homedirPrefix == "" {
+		homedirPrefix = "/home/"
+	}
+
+	return client.Config{
+		RegistryURL:     registryURL,
+		COID:            coID,
+		APIUser:         apiUser,
+		APIKey:          apiKey,
+		PersonIDType:    personIDType,
+		UnixClusterID:   unixClusterID,
+		CustosClusterID: custosCluster,
+		DefaultShell:    defaultShell,
+		HomedirPrefix:   homedirPrefix,
+		HTTPTimeout:     timeout,
+	}, true
 }
 
 func loadConfigFromEnv() (client.Config, bool) {

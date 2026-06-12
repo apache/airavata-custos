@@ -28,6 +28,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
+	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -36,28 +37,66 @@ func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus
 	slog.Info("loading connectors")
 
 	slog.Info("loading SLURM Association Mapper connector")
-	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
 		slog.Error("failed to load SLURM Association Mapper connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading AMIE connector")
-	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
 		slog.Error("failed to load AMIE connector", "error", err)
 		return err
 	}
 	slog.Info("loading COmanage Identity-Provisioner connector")
-	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
 		slog.Error("failed to load COmanage Identity-Provisioner connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading SLURM Usage Monitor connector")
-	if err := monitor.LoadConnector(ctx, database, eventBus, coreService, wg); err != nil {
+	if err := monitor.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
 		slog.Error("failed to load SLURM Usage Monitor connector", "error", err)
 		return err
 	}
 
 	slog.Info("finished loading connectors")
+	return nil
+}
+
+func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
+	slog.Info("loading connectors from config")
+
+	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *config.ConnectorConfig) error{
+		"slurm-association-mapper":     smapper.LoadConnector,
+		"amie-processor":               amie.LoadConnector,
+		"comanage-identity-provisioner": comanage.LoadConnector,
+		"slurm-usage-monitor":          monitor.LoadConnector,
+	}
+
+	for connectorName, connectorCfg := range cfg.Connectors {
+		if connectorCfg == nil {
+			slog.Debug("connector config is nil", "name", connectorName)
+			continue
+		}
+
+		if !connectorCfg.Enabled {
+			slog.Info("connector is disabled", "name", connectorName, "type", connectorCfg.Type)
+			continue
+		}
+
+		loader, ok := connectorLoaders[connectorCfg.Type]
+		if !ok {
+			slog.Warn("unknown connector type", "name", connectorName, "type", connectorCfg.Type)
+			continue
+		}
+
+		slog.Info("loading connector", "name", connectorName, "type", connectorCfg.Type)
+		if err := loader(ctx, database, eventBus, coreService, wg, connectorCfg); err != nil {
+			slog.Error("failed to load connector", "name", connectorName, "type", connectorCfg.Type, "error", err)
+			return err
+		}
+	}
+
+	slog.Info("finished loading connectors from config")
 	return nil
 }

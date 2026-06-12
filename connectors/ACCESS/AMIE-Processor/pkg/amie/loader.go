@@ -36,6 +36,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/worker"
+	custosconfig "github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
@@ -45,8 +46,8 @@ const connectorName = "amie"
 
 // LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
 // AMIE_API_KEY are not all set.
-func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup) error {
-	cfg := loadConfig()
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, connectorConfig *custosconfig.ConnectorConfig) error {
+	cfg := loadConfig(connectorConfig)
 	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
 		return nil
@@ -108,16 +109,72 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	return nil
 }
 
-func loadConfig() *config.Config {
+func loadConfig(connectorConfig *custosconfig.ConnectorConfig) *config.Config {
 	cfg := &config.Config{}
-	cfg.AMIE.BaseURL = os.Getenv("AMIE_BASE_URL")
-	cfg.AMIE.SiteCode = os.Getenv("AMIE_SITE_CODE")
-	cfg.AMIE.APIKey = os.Getenv("AMIE_API_KEY")
-	cfg.AMIE.PollInterval = durationEnv("AMIE_POLL_INTERVAL", 30*time.Second)
-	cfg.AMIE.WorkerInterval = durationEnv("AMIE_WORKER_INTERVAL", 5*time.Second)
-	cfg.AMIE.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
-	cfg.AMIE.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
-	cfg.AMIE.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", true)
+
+	// Load from connector config if available
+	if connectorConfig != nil {
+		if credentials, err := connectorConfig.GetNestedConfig("credentials"); err == nil {
+			if url, ok := credentials["base_url"].(string); ok {
+				cfg.AMIE.BaseURL = url
+			}
+			if code, ok := credentials["site_code"].(string); ok {
+				cfg.AMIE.SiteCode = code
+			}
+			if key, ok := credentials["api_key"].(string); ok {
+				cfg.AMIE.APIKey = key
+			}
+		}
+
+		if polling, err := connectorConfig.GetNestedConfig("polling"); err == nil {
+			if interval, ok := polling["poll_interval"].(string); ok {
+				if d, err := time.ParseDuration(interval); err == nil {
+					cfg.AMIE.PollInterval = d
+				}
+			}
+			if interval, ok := polling["worker_interval"].(string); ok {
+				if d, err := time.ParseDuration(interval); err == nil {
+					cfg.AMIE.WorkerInterval = d
+				}
+			}
+			if enabled, ok := polling["poller_enabled"].(bool); ok {
+				cfg.AMIE.PollerEnabled = enabled
+			}
+		}
+
+		if timeouts, err := connectorConfig.GetNestedConfig("timeouts"); err == nil {
+			if timeout, ok := timeouts["connect_timeout"].(string); ok {
+				if d, err := time.ParseDuration(timeout); err == nil {
+					cfg.AMIE.ConnectTimeout = d
+				}
+			}
+		}
+	}
+
+	// Fall back to environment variables
+	if cfg.AMIE.BaseURL == "" {
+		cfg.AMIE.BaseURL = os.Getenv("AMIE_BASE_URL")
+	}
+	if cfg.AMIE.SiteCode == "" {
+		cfg.AMIE.SiteCode = os.Getenv("AMIE_SITE_CODE")
+	}
+	if cfg.AMIE.APIKey == "" {
+		cfg.AMIE.APIKey = os.Getenv("AMIE_API_KEY")
+	}
+	if cfg.AMIE.PollInterval == 0 {
+		cfg.AMIE.PollInterval = durationEnv("AMIE_POLL_INTERVAL", 30*time.Second)
+	}
+	if cfg.AMIE.WorkerInterval == 0 {
+		cfg.AMIE.WorkerInterval = durationEnv("AMIE_WORKER_INTERVAL", 5*time.Second)
+	}
+	if cfg.AMIE.ConnectTimeout == 0 {
+		cfg.AMIE.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
+	}
+	if cfg.AMIE.ReadTimeout == 0 {
+		cfg.AMIE.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
+	}
+	cfg.AMIE.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", cfg.AMIE.PollerEnabled)
+
 	return cfg
 }
 
