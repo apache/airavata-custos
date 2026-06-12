@@ -24,7 +24,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -44,7 +47,16 @@ func (h *RequestProjectReactivateHandler) SupportsType() string { return "reques
 // Handle flips the Project and all of its ComputeAllocations back to ACTIVE.
 // Per AMIE protocol, only the PI's membership is reactivated automatically;
 // other members must request reactivation via request_account_reactivate.
-func (h *RequestProjectReactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
+func (h *RequestProjectReactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) (err error) {
+	ctx, span := tracing.Start(ctx, "amie.handle:"+packet.Type)
+	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+	}()
+
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err

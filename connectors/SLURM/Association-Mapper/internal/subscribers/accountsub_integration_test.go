@@ -53,7 +53,7 @@ func TestSubscribeToComputeAllocationCreation(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(computeAccount)
+	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -116,7 +116,7 @@ func TestSubscribeToComputeAllocationCreationWrongCluster(t *testing.T) {
 		ComputeClusterID: "test_cluster_id",
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(computeAccount)
+	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAccount)
 
 	if len(auditEvents) == 0 {
 		t.Errorf("Expected at least one audit event, but got none")
@@ -149,7 +149,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ComputeClusterID: clusterID,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationCreation(computeAllocation)
+	associationSubscriber.SubscribeToComputeAllocationCreation(context.Background(), computeAllocation)
 
 	allAuditEvents, err := mockCoreService.ListAllAuditEvents(context.Background())
 
@@ -179,7 +179,7 @@ func createAllocationMapping(client *operations.Client, mockCoreService *service
 		ResourceTime:                100,
 	}
 
-	associationSubscriber.SubscribeToComputeAllocationResourceMappingCreation(resourceMapping)
+	associationSubscriber.SubscribeToComputeAllocationResourceMappingCreation(context.Background(), resourceMapping)
 
 	allAuditEvents, err = mockCoreService.ListAllAuditEvents(context.Background())
 

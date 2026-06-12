@@ -1,55 +1,75 @@
 package subscribers
 
 import (
-	"log/slog"
-
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/audit"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(
-	membership models.ComputeAllocationMembership) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(ctx context.Context, membership models.ComputeAllocationMembership) {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_create")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("slurm.allocation_id", membership.ComputeAllocationID),
+		attribute.String("slurm.user_id", membership.UserID),
+	)
 
 	slog.Info("Received compute allocation membership creation event", "membership", membership)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		slog.Error("Failed to get compute cluster", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
+	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
 	user, err := a.coreService.GetUser(ctx, membership.UserID)
 	if err != nil {
 		slog.Error("Failed to get user", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get user. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, user.ID) // TODO: use this to get the local username for the association instead of assuming it's the same as the Airavata Custos username
 	if err != nil {
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
 	resources, err := a.coreService.ListResourcesForAllocation(ctx, allocation.ID) // TODO: use this to get the partition for the association instead of hardcoding it to "default"
 	if err != nil {
 		slog.Error("Failed to list resources for allocation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to list resources for allocation. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to list resources for allocation. Error: "+err.Error())
 		return
 	}
 
@@ -68,32 +88,44 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipCreation(
 	err = a.slurmClient.UpsertAssociation(association)
 	if err != nil {
 		slog.Error("Failed to upsert association", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationFailed", membership.ID, "Failed to upsert association. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association", "association", association)
-		a.recordAuditEvent("ComputeAllocationMembershipCreationSucceeded", membership.ID, "Successfully upserted association.")
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipCreationSucceeded", "compute_allocation_membership", membership.ID, "Successfully upserted association.")
 	}
 }
 
-func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(
-	override models.ComputeAllocationMembershipResourceOverride) {
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOverrideCreation(ctx context.Context, override models.ComputeAllocationMembershipResourceOverride) {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_resource_override_create")
+	defer span.End()
 
 	slog.Info("Received compute allocation membership resource override creation event", "override", override)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	// TODO: read per-resource override via
 	membership, err := a.coreService.GetComputeAllocationMembership(ctx, override.ComputeAllocationMembershipID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation membership for resource override creation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation membership. Error: "+err.Error())
 		return
 	}
+	span.SetAttributes(
+		attribute.String("slurm.allocation_id", membership.ComputeAllocationID),
+		attribute.String("slurm.user_id", membership.UserID),
+	)
 
 	allocationResource, err := a.coreService.GetComputeAllocationResource(ctx, override.ComputeAllocationResourceID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation resource for resource override creation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation resource. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation resource. Error: "+err.Error())
 		return
 	}
 
@@ -103,28 +135,37 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		slog.Error("Failed to get compute allocation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute allocation. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute allocation. Error: "+err.Error())
 		return
 	}
 
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
 		slog.Error("Failed to get compute cluster", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute cluster. Error: "+err.Error())
 		return
 	}
+	span.SetAttributes(attribute.String("slurm.cluster_id", cluster.ID))
 
 	user, err := a.coreService.GetUser(ctx, membership.UserID)
 	if err != nil {
 		slog.Error("Failed to get user", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get user. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get user. Error: "+err.Error())
 		return
 	}
 
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, user.ID) // TODO: use this to get the local username for the association instead of assuming it's the same as the Airavata Custos username
 	if err != nil {
 		slog.Error("Failed to get compute cluster user by pair", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to get compute cluster user by pair. Error: "+err.Error())
 		return
 	}
 
@@ -163,9 +204,11 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	err = a.slurmClient.UpsertAssociation(association)
 	if err != nil {
 		slog.Error("Failed to upsert association for membership resource override creation", "error", err)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationFailed", override.ID, "Failed to upsert association. Error: "+err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationFailed", "compute_allocation_membership_resource_override", override.ID, "Failed to upsert association. Error: "+err.Error())
 	} else {
 		slog.Info("Successfully upserted association for membership resource override creation", "association", association)
-		a.recordAuditEvent("ComputeAllocationMembershipResourceOverrideCreationSucceeded", override.ID, "Successfully upserted association.")
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationSucceeded", "compute_allocation_membership_resource_override", override.ID, "Successfully upserted association.")
 	}
 }

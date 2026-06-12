@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const auditEventColumns = "id, event_type, event_time, entity_id, details"
+const auditEventColumns = "id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id"
 
 type mysqlAuditEventStore struct {
 	db *sqlx.DB
@@ -91,9 +91,9 @@ func (s *mysqlAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEven
 
 func (s *mysqlAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO audit_events (id, event_type, event_time, entity_id, details)
-		 VALUES (?, ?, ?, ?, ?)`,
-		e.ID, e.EventType, e.EventTime, e.EntityID, e.Details)
+		`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		e.ID, e.EventType, e.EventTime, e.EntityID, e.EntityType, e.Details, e.Source, e.TraceID, e.SpanID, e.ParentSpanID)
 	return err
 }
 

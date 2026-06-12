@@ -16,7 +16,7 @@
 -- under the License.
 
 DROP TABLE IF EXISTS amie_user_dns;
-DROP TABLE IF EXISTS amie_audit_log;
+DROP TABLE IF EXISTS amie_audit_extras;
 DROP TABLE IF EXISTS amie_processing_errors;
 DROP TABLE IF EXISTS amie_processing_events;
 DROP TABLE IF EXISTS amie_packets;

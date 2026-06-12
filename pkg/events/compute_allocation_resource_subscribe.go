@@ -1,13 +1,14 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // ComputeAllocationResourceHandler handles compute allocation resource lifecycle events with a typed payload.
-type ComputeAllocationResourceHandler func(resource models.ComputeAllocationResource)
+type ComputeAllocationResourceHandler func(ctx context.Context, resource models.ComputeAllocationResource)
 
 // SubscribeComputeAllocationResourceCreated registers a typed handler invoked whenever a
 // compute_allocation_resource::create event is published. Events with payloads that are
@@ -30,13 +31,13 @@ func (b *Bus) SubscribeComputeAllocationResourceDeleted(handler ComputeAllocatio
 }
 
 func (b *Bus) subscribeComputeAllocationResource(topic EventType, handler ComputeAllocationResourceHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch r := value.(type) {
 		case models.ComputeAllocationResource:
-			handler(r)
+			handler(ctx, r)
 		case *models.ComputeAllocationResource:
 			if r != nil {
-				handler(*r)
+				handler(ctx, *r)
 			}
 		default:
 			slog.Warn("compute allocation resource event payload has unexpected type",

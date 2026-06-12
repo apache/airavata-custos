@@ -21,8 +21,13 @@ import (
 	"context"
 	"log/slog"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/operations"
+	"github.com/apache/airavata-custos/internal/audit"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
@@ -51,19 +56,36 @@ func (s *ClusterUserSubscriber) RegisterSubscribers() {
 	s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleClusterUserCreate)
 }
 
-func (s *ClusterUserSubscriber) handleClusterUserCreate(_ events.Event, payload interface{}) {
+func (s *ClusterUserSubscriber) handleClusterUserCreate(ctx context.Context, _ events.Event, payload interface{}) {
+	ctx = audit.WithSource(ctx, "comanage")
+	ctx, span := tracing.Start(ctx, "comanage.cluster_user_create")
+	defer span.End()
+
 	cu, ok := payload.(*models.ComputeClusterUser)
 	if !ok {
 		slog.Error("comanage subscriber: payload is not *ComputeClusterUser", "type", payload)
+		span.SetStatus(codes.Error, "payload type mismatch")
 		return
 	}
 	if cu.ComputeClusterID != s.custosClusterID {
 		return
 	}
-	ctx := context.Background()
+	span.SetAttributes(
+		attribute.String("comanage.cluster_user_id", cu.ID),
+		attribute.String("comanage.user_id", cu.UserID),
+	)
+	// Subscription marker so downstream audits have a parent in the table.
+	_, _ = s.core.CreateAuditEvent(ctx, &models.AuditEvent{
+		EventType:  "ComanageProvisioningStarted",
+		EntityID:   cu.ID,
+		EntityType: "compute_cluster_user",
+		Details:    "cluster_user_id=" + cu.ID + " user_id=" + cu.UserID,
+	})
 	// TODO: move to a transactional scope. In-process delivery loses events
 	// if the process crashes between the core commit and subscriber pickup.
 	if err := s.ops.EnsurePOSIXAccount(ctx, cu); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		slog.Error("comanage subscriber: EnsurePOSIXAccount failed",
 			"compute_cluster_user_id", cu.ID, "user_id", cu.UserID, "err", err)
 	}

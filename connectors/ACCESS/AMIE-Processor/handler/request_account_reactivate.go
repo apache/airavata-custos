@@ -22,7 +22,10 @@ import (
 	"database/sql"
 	"fmt"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -39,7 +42,16 @@ func NewRequestAccountReactivateHandler(svc *service.Service, amieClient AmieCli
 
 func (h *RequestAccountReactivateHandler) SupportsType() string { return "request_account_reactivate" }
 
-func (h *RequestAccountReactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
+func (h *RequestAccountReactivateHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) (err error) {
+	ctx, span := tracing.Start(ctx, "amie.handle:"+packet.Type)
+	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+	}()
+
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err

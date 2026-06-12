@@ -97,7 +97,7 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	}
 
 	retiring.Status = models.UserMerged
-	s.eventBus.Publish(events.UserUpdateEvent, retiring)
-	s.eventBus.Publish(events.UserUpdateEvent, survivor)
+	s.eventBus.Publish(ctx, events.UserUpdateEvent, retiring)
+	s.eventBus.Publish(ctx, events.UserUpdateEvent, survivor)
 	return survivor, nil
 }

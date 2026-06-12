@@ -18,6 +18,7 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -25,7 +26,7 @@ import (
 
 // ComputeAllocationMembershipResourceOverrideHandler handles lifecycle
 // events for membership resource overrides with a typed payload.
-type ComputeAllocationMembershipResourceOverrideHandler func(o models.ComputeAllocationMembershipResourceOverride)
+type ComputeAllocationMembershipResourceOverrideHandler func(ctx context.Context, o models.ComputeAllocationMembershipResourceOverride)
 
 // SubscribeComputeAllocationMembershipResourceOverrideCreated registers a
 // typed handler invoked whenever a
@@ -49,13 +50,13 @@ func (b *Bus) SubscribeComputeAllocationMembershipResourceOverrideDeleted(handle
 }
 
 func (b *Bus) subscribeMembershipResourceOverride(topic EventType, handler ComputeAllocationMembershipResourceOverrideHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch o := value.(type) {
 		case models.ComputeAllocationMembershipResourceOverride:
-			handler(o)
+			handler(ctx, o)
 		case *models.ComputeAllocationMembershipResourceOverride:
 			if o != nil {
-				handler(*o)
+				handler(ctx, *o)
 			}
 		default:
 			slog.Warn("compute allocation membership resource override event payload has unexpected type",

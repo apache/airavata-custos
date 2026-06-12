@@ -35,6 +35,5 @@ export AMIE_BASE_URL="http://localhost:8181"
 export AMIE_SITE_CODE="TESTSITE"
 export AMIE_API_KEY="dev"
 export AMIE_CLUSTER_ID="00000000-0000-0000-0000-000000000001"
-export TEST_AMIE_INFRA_READY=1
 
 go test -tags integration -v -count=1 -p 1 -timeout 10m ./connectors/ACCESS/AMIE-Processor/...

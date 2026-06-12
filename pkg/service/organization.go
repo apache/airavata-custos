@@ -53,7 +53,7 @@ func (s *Service) CreateOrganization(ctx context.Context, org *models.Organizati
 		return nil, fmt.Errorf("create organization: %w", err)
 	}
 
-	s.eventBus.Publish(events.OrganizationCreateEvent, org)
+	s.eventBus.Publish(ctx, events.OrganizationCreateEvent, org)
 	return org, nil
 }
 
@@ -93,7 +93,7 @@ func (s *Service) UpdateOrganization(ctx context.Context, org *models.Organizati
 		return fmt.Errorf("update organization: %w", err)
 	}
 
-	s.eventBus.Publish(events.OrganizationUpdateEvent, org)
+	s.eventBus.Publish(ctx, events.OrganizationUpdateEvent, org)
 	return nil
 }
 
@@ -115,6 +115,6 @@ func (s *Service) DeleteOrganization(ctx context.Context, id string) error {
 		return fmt.Errorf("delete organization: %w", err)
 	}
 
-	s.eventBus.Publish(events.OrganizationDeleteEvent, org)
+	s.eventBus.Publish(ctx, events.OrganizationDeleteEvent, org)
 	return nil
 }

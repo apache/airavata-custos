@@ -37,17 +37,19 @@ func allocateAndCreateClusterUser(ctx context.Context, svc *service.Service, clu
 	base, truncated, err := posix.BuildBase(user, posix.Prefix())
 	if err != nil {
 		_, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-			EventType: "PosixUsernameUnbuildable",
-			EntityID:  userID,
-			Details:   err.Error(),
+			EventType:  "PosixUsernameUnbuildable",
+			EntityID:   userID,
+			EntityType: "user",
+			Details:    err.Error(),
 		})
 		return nil, err
 	}
 	if truncated {
 		_, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-			EventType: "PosixUsernameTruncated",
-			EntityID:  userID,
-			Details:   base,
+			EventType:  "PosixUsernameTruncated",
+			EntityID:   userID,
+			EntityType: "user",
+			Details:    base,
 		})
 	}
 
@@ -71,9 +73,10 @@ func allocateAndCreateClusterUser(ctx context.Context, svc *service.Service, clu
 	}
 
 	_, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-		EventType: "PosixUsernameAllocatorExhausted",
-		EntityID:  userID,
-		Details:   base,
+		EventType:  "PosixUsernameAllocatorExhausted",
+		EntityID:   userID,
+		EntityType: "user",
+		Details:    base,
 	})
 	return nil, fmt.Errorf("posix username allocator exhausted for base %q", base)
 }

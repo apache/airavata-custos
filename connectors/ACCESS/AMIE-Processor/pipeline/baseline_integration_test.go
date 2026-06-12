@@ -56,7 +56,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_allocations", 2},            // tables.compute_allocations.total_count
 		{"compute_allocation_diffs", 1},       // tables.compute_allocation_diffs.total_count
 		{"amie_user_dns", 2},                  // tables.amie_user_dns.total_count
-		{"amie_audit_log", 26},                // audit_log.total_count
+		{"amie_audit_extras", 35},             // audit_log.total_count. One extras row per AMIE audit_events row
 		{"compute_cluster_users", 1},          // tables.compute_cluster_users.total_count (survivor's PI CCU; merge dedups Sam's)
 		{"compute_allocation_memberships", 0}, // not_expected
 	}
@@ -69,11 +69,25 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		}
 	}
 
+	// AMIE audit rows now live in audit_events with source='amie'; the
+	// connector-specific (packet_id, event_id) lives in amie_audit_extras.
+	// The two row counts must match.
+	var amieAuditEvents int
+	if err := pipe.db.Get(&amieAuditEvents,
+		"SELECT COUNT(*) FROM audit_events WHERE source = 'amie'",
+	); err != nil {
+		t.Fatalf("count amie audit_events: %v", err)
+	}
+	if amieAuditEvents != 35 {
+		t.Errorf("audit_events source='amie': got %d, want 35", amieAuditEvents)
+	}
+
 	// Audit-by-action breakdown also per baseline.yaml audit_log.by_action.
 	actionCounts := []struct {
 		action string
 		want   int
 	}{
+		{"PACKET_RECEIVED", 9},
 		{"CREATE_PERSON", 3},
 		{"CREATE_ACCOUNT", 3},
 		{"CREATE_PROJECT", 3},
@@ -87,7 +101,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	for _, ac := range actionCounts {
 		var n int
 		if err := pipe.db.Get(&n,
-			"SELECT COUNT(*) FROM amie_audit_log WHERE action = ?", ac.action,
+			"SELECT COUNT(*) FROM audit_events WHERE source = 'amie' AND event_type = ?", ac.action,
 		); err != nil {
 			t.Fatalf("count audit action %s: %v", ac.action, err)
 		}

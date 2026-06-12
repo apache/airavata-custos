@@ -51,7 +51,7 @@ func (s *Service) CreateComputeCluster(ctx context.Context, cluster *models.Comp
 		return nil, fmt.Errorf("create compute cluster: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeClusterCreateEvent, cluster)
+	s.eventBus.Publish(ctx, events.ComputeClusterCreateEvent, cluster)
 	return cluster, nil
 }
 
@@ -103,7 +103,7 @@ func (s *Service) UpdateComputeCluster(ctx context.Context, cluster *models.Comp
 		return fmt.Errorf("update compute cluster: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeClusterUpdateEvent, cluster)
+	s.eventBus.Publish(ctx, events.ComputeClusterUpdateEvent, cluster)
 	return nil
 }
 
@@ -125,6 +125,6 @@ func (s *Service) DeleteComputeCluster(ctx context.Context, id string) error {
 		return fmt.Errorf("delete compute cluster: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeClusterDeleteEvent, cluster)
+	s.eventBus.Publish(ctx, events.ComputeClusterDeleteEvent, cluster)
 	return nil
 }

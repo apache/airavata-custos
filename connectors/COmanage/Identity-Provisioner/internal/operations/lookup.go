@@ -22,7 +22,10 @@ import (
 	"errors"
 	"fmt"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	_ "github.com/apache/airavata-custos/pkg/service"
 )
@@ -32,8 +35,12 @@ var ErrNotFoundShim = client.ErrNotFound
 const comanageIdentitySource = "comanage"
 
 func (o *Orchestrator) findStoredPersonID(ctx context.Context, userID string) (string, error) {
+	ctx, span := tracing.Start(ctx, "comanage.find_stored_person_id")
+	defer span.End()
 	idents, err := o.core.ListUserIdentitiesForUser(ctx, userID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return "", fmt.Errorf("list user identities: %w", err)
 	}
 	for _, id := range idents {
@@ -47,7 +54,11 @@ func (o *Orchestrator) findStoredPersonID(ctx context.Context, userID string) (s
 // storePersonID writes the COmanage CoPerson identifier into user_identities.
 // No-op if a row already exists.
 func (o *Orchestrator) storePersonID(ctx context.Context, userID, personID string) error {
+	ctx, span := tracing.Start(ctx, "comanage.store_person_id")
+	defer span.End()
 	if existing, err := o.findStoredPersonID(ctx, userID); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if existing != "" {
 		return nil
@@ -57,6 +68,10 @@ func (o *Orchestrator) storePersonID(ctx context.Context, userID, personID strin
 		Source:     comanageIdentitySource,
 		ExternalID: personID,
 	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
 	return err
 }
 
