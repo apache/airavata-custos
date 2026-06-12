@@ -18,6 +18,9 @@
 // Command server starts the Custos HTTP API.
 package main
 
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency
+//go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
+
 import (
 	"context"
 	"errors"
@@ -39,6 +42,15 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
+// @title	Apache Custos Core API
+// @version	0.2.0
+// @description	REST API for Apache Custos: organizations, users, projects, compute clusters and allocations, audit traces, and the privilege/role authorization layer. Authenticate every request with the X-Custos-User-Id header. Connector endpoints (/connectors/<name>/...) are documented in separate specs.
+// @host	localhost:8080
+// @BasePath	/
+// @securityDefinitions.apikey	CustosUserHeader
+// @in	header
+// @name	X-Custos-User-Id
+// @description.CustosUserHeader	Identifies the calling user. Dev: dev-admin, dev-operator, dev-auditor, dev-researcher (see dev-ops/compose/seeds/dev_users_and_roles.sql).
 func main() {
 	slog.SetDefault(slog.New(tracing.SlogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 

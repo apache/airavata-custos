@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Package server exposes the AMIE connector's HTTP read surface.
+// Package server exposes the AMIE connector's REST read endpoints.
 package server
 
 import (
@@ -40,8 +40,16 @@ func (h *Handlers) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /connectors/amie/packets/{packet_id}/audits", h.listPacketAudits)
 }
 
-// listPacketAudits returns every audit_events row written for one AMIE packet,
-// joined through amie_audit_extras.
+// @Summary	List audit events for an AMIE packet
+// @Tags	AMIE Audit
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	packet_id	path	string	true	"AMIE packet ID"
+// @Success	200	{object}	object{packet_id=string,events=[]object{span_id=string,parent_span_id=string,source=string,event_type=string,entity_type=string,entity_id=string,description=string,status=string,created_at=string}}
+// @Failure	400	{object}	object{error=string}	"packet_id is required"
+// @Failure	500	{object}	object{error=string}	"Store lookup failed"
+// @Failure	503	{object}	object{error=string}	"AMIE packet audit store not configured"
+// @Router	/connectors/amie/packets/{packet_id}/audits [get]
 func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 	if h.audits == nil {
 		writeError(w, http.StatusServiceUnavailable, errors.New("amie packet audit store not configured"))

@@ -45,8 +45,22 @@ func (s *Server) requireAuditStore(w http.ResponseWriter) (store.AuditTraceStore
 	return s.admin.AuditTraces, true
 }
 
-// `q` matches trace_id hex prefix OR action substring. `total` is
-// pre-status-filter so the response may have fewer rows than `total` indicates.
+// @Summary	List audit traces with filters
+// @Description	One row per distinct trace_id. `q` matches trace_id hex prefix or root-operation substring.
+// @Tags	Audit
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	source	query	[]string	false	"Restrict to listed sources (repeatable)"	collectionFormat(multi)
+// @Param	status	query	[]string	false	"ok | error | in_progress (repeatable)"	collectionFormat(multi)
+// @Param	from	query	string	false	"RFC3339 lower bound on started_at"
+// @Param	to	query	string	false	"RFC3339 upper bound on started_at"
+// @Param	q	query	string	false	"Substring match on trace_id hex or root operation"
+// @Param	limit	query	integer	false	"Page size (default 50, max 200)"
+// @Param	offset	query	integer	false	"Page offset (default 0)"
+// @Success	200	{object}	object{traces=[]models.TraceSummary,total=integer,limit=integer,offset=integer}
+// @Failure	400	{object}	object{error=string}	"Invalid filter value"
+// @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
+// @Router	/audit/traces [get]
 func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 	ts, ok := s.requireAuditStore(w)
 	if !ok {
@@ -70,6 +84,16 @@ func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary	Get a trace's nested span tree
+// @Tags	Audit
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	trace_id	path	string	true	"32-char lowercase hex"
+// @Success	200	{object}	object{trace_id=string,tree=[]models.TraceNode,truncated=boolean}
+// @Failure	400	{object}	object{error=string}	"Malformed trace_id"
+// @Failure	404	{object}	object{error=string}	"Trace not found"
+// @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
+// @Router	/audit/traces/{trace_id} [get]
 func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 	ts, ok := s.requireAuditStore(w)
 	if !ok {
@@ -98,6 +122,16 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// @Summary	List audit events for a trace (optionally one span)
+// @Tags	Audit
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	trace_id	query	string	true	"32-char lowercase hex"
+// @Param	span_id	query	string	false	"16-char lowercase hex"
+// @Success	200	{object}	object{events=[]models.TraceEvent}
+// @Failure	400	{object}	object{error=string}	"Malformed trace_id or span_id"
+// @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
+// @Router	/audit/events [get]
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	ts, ok := s.requireAuditStore(w)
 	if !ok {
@@ -128,6 +162,13 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"events": events})
 }
 
+// @Summary	List distinct audit-event sources
+// @Tags	Audit
+// @Security	CustosUserHeader
+// @Produce	json
+// @Success	200	{object}	object{sources=[]string}
+// @Failure	503	{object}	object{error=string}	"Audit trace store not configured"
+// @Router	/audit/sources [get]
 func (s *Server) handleListSources(w http.ResponseWriter, r *http.Request) {
 	ts, ok := s.requireAuditStore(w)
 	if !ok {
