@@ -67,6 +67,21 @@ func (s *mysqlComputeClusterUserStore) FindByPair(ctx context.Context, clusterID
 	return &c, nil
 }
 
+func (s *mysqlComputeClusterUserStore) FindByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error) {
+	var c models.ComputeClusterUser
+	err := s.db.GetContext(ctx, &c,
+		`SELECT `+computeClusterUserColumns+`
+           FROM compute_cluster_users
+          WHERE compute_cluster_id = ? AND local_username = ?`, clusterID, localUsername)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (s *mysqlComputeClusterUserStore) FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error) {
 	var users []models.ComputeClusterUser
 	err := s.db.SelectContext(ctx, &users,

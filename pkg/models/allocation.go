@@ -35,10 +35,11 @@ type ComputeAllocation struct {
 
 // Typically store the a paritition information
 type ComputeAllocationResource struct {
-	ID             string `json:"id"              db:"id"`
-	Name           string `json:"name"            db:"name"`            // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
-	ResourceType   string `json:"resource_type"   db:"resource_type"`   // cpu, gpu
-	ResourceAmount int64  `json:"resource_amount" db:"resource_amount"` // Number of CPUs, GPUs.
+	ID               string `json:"id"                 db:"id"`
+	Name             string `json:"name"               db:"name"`               // resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+	ResourceType     string `json:"resource_type"      db:"resource_type"`      // TRES: cpu, gres/gpu
+	ResourceAmount   int64  `json:"resource_amount"    db:"resource_amount"`    // Number of CPUs, GPUs.
+	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"` // The ID of the compute cluster the resource (partition) belongs to.
 }
 
 // Store the association amount for a parition and allocation
@@ -91,8 +92,8 @@ type ComputeAllocationChangeRequestEvent struct {
 type ComputeAllocationUsage struct { // Represents the usage of a compute allocation, e.g., when a job consumes some of the allocated SUs, etc.
 	ID                          string    `json:"id"                             db:"id"`
 	ComputeAllocationID         string    `json:"compute_allocation_id"          db:"compute_allocation_id"`
-	UsedRawAmount               int64     `json:"used_raw_amount"                db:"used_raw_amount"`                // The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours, etc.
-	UsedSUAmount                int64     `json:"used_su_amount"                 db:"used_su_amount"`                 // SUs used by the allocation, e.g., 200 SUs, etc.
+	UsedRawAmount               float64   `json:"used_raw_amount"                db:"used_raw_amount"`                // The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours, etc.
+	UsedSUAmount                float64   `json:"used_su_amount"                 db:"used_su_amount"`                 // SUs used by the allocation, e.g., 200 SUs, etc.
 	CalculatedTime              time.Time `json:"last_updated"                   db:"calculated_time"`                // The last time the usage was updated. SU should be calculated up to this point in time and charge rates should be applied based on the rates effective at this time.
 	UserID                      string    `json:"user_id"                        db:"user_id"`                        // The ID of the user who used the allocation.
 	JobID                       string    `json:"job_id"                         db:"job_id"`                         // The ID of the job that consumed the allocation.

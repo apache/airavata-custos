@@ -1,5 +1,5 @@
 // cli/internal/client/accounts.go
-package operations
+package client
 
 import "fmt"
 

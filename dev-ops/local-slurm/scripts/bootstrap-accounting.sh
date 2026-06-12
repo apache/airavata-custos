@@ -37,5 +37,11 @@ if ! sacctmgr -in show user format=user | grep -qw "root"; then
   sacctmgr -i add user root Account=root AdminLevel=Administrator
 fi
 
+#for u in testuser testuser2 testuser3; do
+#  if ! sacctmgr -in show user format=user | grep -qw "$u"; then
+#    sacctmgr -i add user "$u" Account=root
+#  fi
+#done
+
 touch "$SENTINEL"
 echo "[bootstrap] done"

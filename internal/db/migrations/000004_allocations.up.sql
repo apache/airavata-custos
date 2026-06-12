@@ -165,9 +165,7 @@ CREATE TABLE IF NOT EXISTS compute_allocation_usages
     KEY idx_compute_allocation_usages_allocation (compute_allocation_id, calculated_time),
     KEY idx_compute_allocation_usages_user (user_id),
     KEY idx_compute_allocation_usages_job (job_id),
-    KEY idx_compute_allocation_usages_resource (compute_allocation_resource_id),
-    CONSTRAINT fk_compute_allocation_usages_allocation FOREIGN KEY (compute_allocation_id)
-        REFERENCES compute_allocations (id) ON DELETE CASCADE
+    KEY idx_compute_allocation_usages_resource (compute_allocation_resource_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS compute_allocation_membership_resource_overrides

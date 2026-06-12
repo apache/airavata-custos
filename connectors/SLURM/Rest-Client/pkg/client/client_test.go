@@ -1,5 +1,5 @@
 // cli/internal/client/client_test.go
-package operations
+package client
 
 import (
 	"net/http"

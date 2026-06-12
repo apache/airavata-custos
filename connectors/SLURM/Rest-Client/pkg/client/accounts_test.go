@@ -1,5 +1,5 @@
 // cli/internal/client/accounts_test.go
-package operations
+package client
 
 import (
 	"encoding/json"

@@ -1,5 +1,5 @@
 // cli/internal/client/types.go
-package operations
+package client
 
 import "encoding/json"
 
@@ -52,22 +52,22 @@ type Association struct {
 	Limits AssocLimits `json:"-"`
 }
 
-// slurmNumber matches slurmrestd's {set, infinite, number} triple used for
+// SlurmNumber matches slurmrestd's {set, infinite, number} triple used for
 // all scalar limit values in the v0.0.41 accounting schema.
-type slurmNumber struct {
+type SlurmNumber struct {
 	Set      bool  `json:"set"`
 	Infinite bool  `json:"infinite"`
 	Number   int64 `json:"number"`
 }
 
-func numPtr(n *int64) *slurmNumber {
+func numPtr(n *int64) *SlurmNumber {
 	if n == nil {
 		return nil
 	}
-	return &slurmNumber{Set: true, Number: *n}
+	return &SlurmNumber{Set: true, Number: *n}
 }
 
-func ptrNum(n *slurmNumber) *int64 {
+func ptrNum(n *SlurmNumber) *int64 {
 	if n == nil || !n.Set || n.Infinite {
 		return nil
 	}
@@ -87,8 +87,8 @@ type assocMaxJobs struct {
 }
 
 type assocMaxJobsPer struct {
-	Count     *slurmNumber `json:"count,omitempty"`      // GrpJobs
-	WallClock *slurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
+	Count     *SlurmNumber `json:"count,omitempty"`      // GrpJobs
+	WallClock *SlurmNumber `json:"wall_clock,omitempty"` // MaxWallDurationPerJob (seconds)
 }
 
 type assocMaxTRES struct {
@@ -183,4 +183,62 @@ func (a *Association) UnmarshalJSON(data []byte) error {
 		}
 	}
 	return nil
+}
+
+type JobTime struct {
+	Elapsed    int64 `json:"elapsed"`
+	Eligible   int64 `json:"eligible"`
+	End        int64 `json:"end"`
+	Start      int64 `json:"start"`
+	Submission int64 `json:"submission"`
+	Suspended  int64 `json:"suspended"`
+}
+
+type JobTresInfo struct {
+	Allocated []TRES `json:"allocated,omitempty"`
+	Requested []TRES `json:"requested,omitempty"`
+}
+
+type JobExitInfo struct {
+	Status     []string    `json:"status"`
+	ReturnCode SlurmNumber `json:"return_code"`
+}
+
+type JobInfo struct {
+	Account         string      `json:"account"`
+	Cluster         string      `json:"cluster"`
+	Time            JobTime     `json:"time"`
+	JobID           int64       `json:"job_id"`
+	Name            string      `json:"name"`
+	Partition       string      `json:"partition"`
+	QoS             string      `json:"qos"`
+	User            string      `json:"user"`
+	Nodes           string      `json:"nodes"`
+	Tres            JobTresInfo `json:"tres"`
+	ExitCode        JobExitInfo `json:"exit_code"`
+	DerivedExitCode JobExitInfo `json:"derived_exit_code"`
+}
+
+type JobSubmitParam struct {
+	Account           string      `json:"account"`
+	Partition         string      `json:"partition,omitempty"`
+	QoS               string      `json:"qos,omitempty"`
+	Name              string      `json:"name,omitempty"`
+	Tasks             int64       `json:"tasks,omitempty"`
+	CurrentWorkingDir string      `json:"current_working_directory,omitempty"`
+	Environment       []string    `json:"environment,omitempty"`
+	CpusPerTask       int64       `json:"cpus_per_task,omitempty"`
+	Memory            int64       `json:"memory,omitempty"`
+	TimeLimit         SlurmNumber `json:"time_limit,omitempty"` // seconds
+}
+
+type JobSubmitRequest struct {
+	JobSubmitParam JobSubmitParam `json:"job"`
+	Script         string         `json:"script"`
+}
+
+type JobSubmitResponse struct {
+	JobID            int64  `json:"job_id"`
+	StepID           string `json:"step_id"`
+	JobSubmitUserMsg string `json:"job_submit_user_msg"`
 }

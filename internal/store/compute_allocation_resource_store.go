@@ -40,7 +40,7 @@ func NewComputeAllocationResourceStore(db *sqlx.DB) ComputeAllocationResourceSto
 func (s *mysqlComputeAllocationResourceStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
 	var r models.ComputeAllocationResource
 	err := s.db.GetContext(ctx, &r,
-		`SELECT id, name, resource_type, resource_amount FROM compute_allocation_resources WHERE id = ?`, id)
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -50,10 +50,38 @@ func (s *mysqlComputeAllocationResourceStore) FindByID(ctx context.Context, id s
 	return &r, nil
 }
 
+func (s *mysqlComputeAllocationResourceStore) FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
+	var r models.ComputeAllocationResource
+	err := s.db.GetContext(ctx, &r,
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
+		 FROM compute_allocation_resources
+		 WHERE name = ? AND compute_cluster_id = ?`, name, clusterID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &r, nil
+}
+
+func (s *mysqlComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
+	var resources []models.ComputeAllocationResource
+	err := s.db.SelectContext(ctx, &resources,
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
+		 FROM compute_allocation_resources
+		 WHERE resource_type = ? AND compute_cluster_id = ?
+		 ORDER BY name`, resourceType, clusterID)
+	if err != nil {
+		return nil, err
+	}
+	return resources, nil
+}
+
 func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
-		`SELECT id, name, resource_type, resource_amount FROM compute_allocation_resources ORDER BY name`)
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -62,18 +90,18 @@ func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]model
 
 func (s *mysqlComputeAllocationResourceStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount)
-		 VALUES (?, ?, ?, ?)`,
-		r.ID, r.Name, r.ResourceType, r.ResourceAmount)
+		`INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)
+		 VALUES (?, ?, ?, ?, ?)`,
+		r.ID, r.Name, r.ResourceType, r.ResourceAmount, r.ComputeClusterID)
 	return err
 }
 
 func (s *mysqlComputeAllocationResourceStore) Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_resources
-		 SET name = ?, resource_type = ?, resource_amount = ?
+		 SET name = ?, resource_type = ?, resource_amount = ?, compute_cluster_id = ?
 		 WHERE id = ?`,
-		r.Name, r.ResourceType, r.ResourceAmount, r.ID)
+		r.Name, r.ResourceType, r.ResourceAmount, r.ComputeClusterID, r.ID)
 	return err
 }
 

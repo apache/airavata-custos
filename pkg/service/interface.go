@@ -98,6 +98,7 @@ type ComputeClusterUserService interface {
 	CreateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error)
 	GetComputeClusterUser(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
+	GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	ListComputeClusterUsersByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	ListComputeClusterUsersByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
 	UpdateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) error
@@ -118,7 +119,9 @@ type ComputeAllocationService interface {
 type ComputeAllocationResourceService interface {
 	CreateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) (*models.ComputeAllocationResource, error)
 	GetComputeAllocationResource(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+	GetComputeAllocationResourceByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error)
 	ListComputeAllocationResources(ctx context.Context) ([]models.ComputeAllocationResource, error)
+	ListComputeAllocationResourcesByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error)
 	UpdateComputeAllocationResource(ctx context.Context, resource *models.ComputeAllocationResource) error
 	DeleteComputeAllocationResource(ctx context.Context, id string) error
 }
@@ -197,6 +200,7 @@ type ComputeAllocationMembershipResourceOverrideService interface {
 type ComputeAllocationUsageService interface {
 	CreateComputeAllocationUsage(ctx context.Context, u *models.ComputeAllocationUsage) (*models.ComputeAllocationUsage, error)
 	GetComputeAllocationUsage(ctx context.Context, id string) (*models.ComputeAllocationUsage, error)
+	GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	ListUsagesForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationUsage, error)
 	ListUsagesByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
 	GetTotalSUUsageForAllocation(ctx context.Context, allocationID string) (int64, error)

@@ -80,6 +80,8 @@ type ComputeClusterUserStore interface {
 	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
+	// FindByLocalUsernameAndCluster returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
+	FindByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	// FindByCluster returns every user mapping for the given compute cluster.
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.
@@ -158,6 +160,12 @@ type ComputeAllocationStore interface {
 type ComputeAllocationResourceStore interface {
 	// FindByID returns the resource with the given ID, or nil if not found.
 	FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error)
+	// FindByNameAndCluster returns the resource with the given name on the
+	// given compute cluster, or nil if not found.
+	FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error)
+	// FindByTypeAndCluster returns all resources of the given type on the
+	// given compute cluster.
+	FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error)
 	// List returns all compute allocation resources.
 	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
 	// Create inserts a new resource within the provided transaction.
@@ -390,6 +398,9 @@ type ComputeAllocationUsageStore interface {
 	// FindByUser returns every usage event attributed to the given user,
 	// ordered by calculated_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationUsage, error)
+	// FindByComputeAllocationIDAndJobID returns the usage event for the given
+	// compute allocation ID and job ID, or nil if it does not exist.
+	FindByComputeAllocationIDAndJobID(ctx context.Context, allocationID, jobID string) (*models.ComputeAllocationUsage, error)
 	// SumSUForAllocation returns the total SUs consumed against the given
 	// allocation across all usage events.
 	SumSUForAllocation(ctx context.Context, allocationID string) (int64, error)

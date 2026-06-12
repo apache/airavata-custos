@@ -1,5 +1,5 @@
 // cli/internal/client/tres_test.go
-package operations
+package client
 
 import (
 	"reflect"

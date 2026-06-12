@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	client "github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/internal/operations"
+	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 

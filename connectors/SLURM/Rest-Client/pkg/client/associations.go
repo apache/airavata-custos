@@ -1,5 +1,5 @@
 // cli/internal/client/associations.go
-package operations
+package client
 
 import (
 	"errors"

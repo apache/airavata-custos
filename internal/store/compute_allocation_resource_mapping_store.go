@@ -71,7 +71,7 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindByPair(ctx context.Cont
 func (s *mysqlComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
-		`SELECT r.id, r.name, r.resource_type, r.resource_amount
+		`SELECT r.id, r.name, r.resource_type, r.resource_amount, r.compute_cluster_id
 		 FROM compute_allocation_resources r
 		 JOIN compute_allocation_resource_mappings m
 		     ON m.compute_allocation_resource_id = r.id
