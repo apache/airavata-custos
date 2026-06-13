@@ -18,6 +18,9 @@
 // Package amie wires the ACCESS-AMIE connector into the core binary.
 package amie
 
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g loader.go -d .,../../server,../../store -o ../../api --outputTypes yaml --parseDependency
+//go:generate mv ../../api/swagger.yaml ../../api/amie.openapi.yaml
+
 import (
 	"context"
 	"log/slog"
@@ -54,6 +57,15 @@ const connectorName = "amie"
 // LoadConnector skips silently when AMIE_BASE_URL / AMIE_SITE_CODE /
 // AMIE_API_KEY are not all set. When enabled, it attaches /connectors/amie/*
 // endpoints to mux.
+//
+// @title	AMIE Connector API
+// @version	0.1.0
+// @description	REST endpoints for the ACCESS-CI AMIE connector, all under /connectors/amie/.
+// @host	localhost:8080
+// @BasePath	/
+// @securityDefinitions.apikey	CustosUserHeader
+// @in	header
+// @name	X-Custos-User-Id
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	cfg := loadConfig()
 	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {

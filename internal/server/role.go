@@ -24,6 +24,14 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+// @Summary	List all roles
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Produce	json
+// @Success	200	{array}	models.Role
+// @Failure	401	{object}	object{error=string}
+// @Failure	403	{object}	object{error=string}	"Caller lacks roles:manage"
+// @Router	/roles [get]
 func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListRoles(r.Context())
 	if err != nil {
@@ -33,7 +41,15 @@ func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rows)
 }
 
-// getRole returns the role plus its privilege bundle in one response.
+// @Summary	Get a role with its privilege bundle
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Role ID"
+// @Success	200	{object}	object{role=models.Role,privileges=[]models.PrivilegeKey}
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/roles/{id} [get]
 func (s *Server) getRole(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
@@ -57,10 +73,21 @@ func (s *Server) getRole(w http.ResponseWriter, r *http.Request) {
 }
 
 type createRoleRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `JSON:"name"`
+	Description string `JSON:"description"`
 }
 
+// @Summary	Create a role
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	createRoleRequest	true	"Role payload"
+// @Success	201	{object}	models.Role
+// @Failure	400	{object}	object{error=string}
+// @Failure	401	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"Role name collides"
+// @Router	/roles [post]
 func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 	actorID := r.Header.Get(callerHeader)
 	if actorID == "" {
@@ -81,10 +108,22 @@ func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateRoleRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `JSON:"name"`
+	Description string `JSON:"description"`
 }
 
+// @Summary	Update role name / description
+// @Description	System roles cannot be renamed.
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Role ID"
+// @Param	request	body	updateRoleRequest	true	"Role patch"
+// @Success	200	{object}	models.Role
+// @Failure	400	{object}	object{error=string}
+// @Failure	401	{object}	object{error=string}
+// @Router	/roles/{id} [put]
 func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
@@ -110,6 +149,15 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, role)
 }
 
+// @Summary	Delete a role
+// @Description	System roles cannot be deleted. CASCADE drops every assignment of this role.
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Role ID"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}	"System role / unknown role"
+// @Failure	401	{object}	object{error=string}
+// @Router	/roles/{id} [delete]
 func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
@@ -130,9 +178,21 @@ func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 }
 
 type rolePrivilegeRequest struct {
-	Privilege models.PrivilegeKey `json:"privilege"`
+	Privilege models.PrivilegeKey `JSON:"privilege"`
 }
 
+// @Summary	Add a privilege to a role
+// @Description	The new privilege propagates to every current holder.
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Accept	json
+// @Param	id	path	string	true	"Role ID"
+// @Param	request	body	rolePrivilegeRequest	true	"Privilege key"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}	"Unknown key"
+// @Failure	401	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"Role already carries that privilege"
+// @Router	/roles/{id}/privileges [post]
 func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
@@ -157,6 +217,17 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	Remove a privilege from a role
+// @Description	Removal propagates to every holder. Refuses to remove `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Role ID"
+// @Param	key	path	models.PrivilegeKey	true	"Privilege key"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}	"Last-source guard or unknown key"
+// @Failure	401	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}	"Role does not carry that privilege"
+// @Router	/roles/{id}/privileges/{key} [delete]
 func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	key := models.PrivilegeKey(r.PathValue("key"))
@@ -177,6 +248,14 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List roles a user holds
+// @Tags	Role Assignments
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.UserRole
+// @Failure	400	{object}	object{error=string}
+// @Router	/users/{id}/roles [get]
 func (s *Server) listUserRoles(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	if userID == "" {
@@ -191,6 +270,14 @@ func (s *Server) listUserRoles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	List users holding the role
+// @Tags	Roles
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Role ID"
+// @Success	200	{array}	models.UserRole
+// @Failure	400	{object}	object{error=string}
+// @Router	/roles/{id}/holders [get]
 func (s *Server) listRoleHolders(w http.ResponseWriter, r *http.Request) {
 	roleID := r.PathValue("id")
 	if roleID == "" {
@@ -206,10 +293,22 @@ func (s *Server) listRoleHolders(w http.ResponseWriter, r *http.Request) {
 }
 
 type grantRoleRequest struct {
-	RoleID string `json:"role_id"`
-	Reason string `json:"reason"`
+	RoleID string `JSON:"role_id"`
+	Reason string `JSON:"reason"`
 }
 
+// @Summary	Grant a role to a user
+// @Tags	Role Assignments
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Param	request	body	grantRoleRequest	true	"Role assignment payload"
+// @Success	201	{object}	models.UserRole
+// @Failure	400	{object}	object{error=string}
+// @Failure	401	{object}	object{error=string}
+// @Failure	409	{object}	object{error=string}	"User already holds that role"
+// @Router	/users/{id}/roles [post]
 func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	if userID == "" {
@@ -236,9 +335,22 @@ func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type revokeRoleRequest struct {
-	Reason string `json:"reason"`
+	Reason string `JSON:"reason"`
 }
 
+// @Summary	Revoke a role from a user
+// @Description	Refuses if revoking would leave no holder of `privileges:grant` or `roles:manage` anywhere (last-meta-holder guard).
+// @Tags	Role Assignments
+// @Security	CustosUserHeader
+// @Accept	json
+// @Param	id	path	string	true	"User ID"
+// @Param	roleId	path	string	true	"Role ID"
+// @Param	request	body	revokeRoleRequest	false	"Optional reason"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}	"Last-meta-holder guard"
+// @Failure	401	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}	"User does not hold that role"
+// @Router	/users/{id}/roles/{roleId} [delete]
 func (s *Server) revokeRoleFromUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	roleID := r.PathValue("roleId")
