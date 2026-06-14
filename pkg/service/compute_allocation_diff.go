@@ -63,7 +63,7 @@ func (s *Service) CreateComputeAllocationDiff(ctx context.Context, diff *models.
 		return nil, fmt.Errorf("create compute allocation diff: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationDiffCreateEvent, diff)
+	s.eventBus.Publish(ctx, events.ComputeAllocationDiffCreateEvent, diff)
 	return diff, nil
 }
 
@@ -129,6 +129,6 @@ func (s *Service) DeleteComputeAllocationDiff(ctx context.Context, id string) er
 		return fmt.Errorf("delete compute allocation diff: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationDiffDeleteEvent, diff)
+	s.eventBus.Publish(ctx, events.ComputeAllocationDiffDeleteEvent, diff)
 	return nil
 }

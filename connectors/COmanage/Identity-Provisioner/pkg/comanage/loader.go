@@ -22,6 +22,7 @@ package comanage
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -32,14 +33,19 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/client"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/internal/subscribers"
 	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
+func init() {
+	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
+}
+
 // LoadConnector wires the subscriber to the event bus. If any required env
 // var is missing, the loader logs and returns nil without registering.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, connectorConfig *config.ConnectorConfig) error {
-	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
+	cfg, ok := loadConfigFromEnv()
 	if !ok {
 		cfg, ok = loadConfigFromEnv()
 		if !ok {

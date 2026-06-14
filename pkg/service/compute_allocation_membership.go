@@ -71,7 +71,7 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 		return nil, fmt.Errorf("create compute allocation membership: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipCreateEvent, m)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipCreateEvent, m)
 	return m, nil
 }
 
@@ -150,7 +150,7 @@ func (s *Service) UpdateComputeAllocationMembership(ctx context.Context, m *mode
 		return nil, fmt.Errorf("update compute allocation membership: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipUpdateEvent, m)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipUpdateEvent, m)
 	return m, nil
 }
 
@@ -177,7 +177,7 @@ func (s *Service) UpdateMembershipStatus(ctx context.Context, id string, status 
 		return nil, fmt.Errorf("update compute allocation membership status: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipUpdateEvent, existing)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -199,6 +199,6 @@ func (s *Service) DeleteComputeAllocationMembership(ctx context.Context, id stri
 		return fmt.Errorf("delete compute allocation membership: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeAllocationMembershipDeleteEvent, existing)
+	s.eventBus.Publish(ctx, events.ComputeAllocationMembershipDeleteEvent, existing)
 	return nil
 }

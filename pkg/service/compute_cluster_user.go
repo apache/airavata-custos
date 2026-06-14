@@ -79,7 +79,7 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 		}
 	}
 
-	s.eventBus.Publish(events.ComputeClusterUserCreateEvent, cu)
+	s.eventBus.Publish(ctx, events.ComputeClusterUserCreateEvent, cu)
 	return cu, nil
 }
 
@@ -196,7 +196,7 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 		return fmt.Errorf("update compute cluster user: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeClusterUserUpdateEvent, cu)
+	s.eventBus.Publish(ctx, events.ComputeClusterUserUpdateEvent, cu)
 	return nil
 }
 
@@ -218,6 +218,6 @@ func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error
 		return fmt.Errorf("delete compute cluster user: %w", err)
 	}
 
-	s.eventBus.Publish(events.ComputeClusterUserDeleteEvent, cu)
+	s.eventBus.Publish(ctx, events.ComputeClusterUserDeleteEvent, cu)
 	return nil
 }

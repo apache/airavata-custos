@@ -92,7 +92,8 @@ func truncateAMIETables(t *testing.T, database *sqlx.DB) {
 		t.Fatalf("disable FK: %v", err)
 	}
 	for _, tbl := range []string{
-		"amie_audit_log",
+		"amie_audit_extras",
+		"audit_events",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",

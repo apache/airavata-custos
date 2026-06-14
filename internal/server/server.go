@@ -26,23 +26,34 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/httputil"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+// AdminDeps wires the /audit/* endpoints. A nil field makes its routes return 503.
+// Connector endpoints (/connectors/{name}/...) are registered by the connector.
+type AdminDeps struct {
+	AuditTraces store.AuditTraceStore
+}
 
 // Server is an HTTP handler that exposes the service API.
 type Server struct {
 	svc       *service.Service
 	mux       *http.ServeMux
 	authCache *authProfileCache
+	admin     *AdminDeps
 }
 
-// New builds an HTTP handler wired to the supplied service.
-func New(svc *service.Service) *Server {
+// New builds an HTTP handler wired to the supplied service. admin may be nil
+// to disable the admin routes.
+func New(svc *service.Service, admin *AdminDeps) *Server {
 	s := &Server{
 		svc:       svc,
 		mux:       http.NewServeMux(),
 		authCache: newAuthProfileCache(authProfileTTL),
+		admin:     admin,
 	}
 	s.routes()
 	return s
@@ -52,6 +63,9 @@ func New(svc *service.Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
+
+// Mux exposes the underlying mux so connectors can register their own routes.
+func (s *Server) Mux() *http.ServeMux { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.healthz)
@@ -166,12 +180,26 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.listUserRoles))
 	s.mux.HandleFunc("POST /users/{id}/roles", s.requirePrivilege(models.PrivilegeRolesManage, s.grantRoleToUser))
 	s.mux.HandleFunc("DELETE /users/{id}/roles/{roleId}", s.requirePrivilege(models.PrivilegeRolesManage, s.revokeRoleFromUser))
+
+	s.mux.HandleFunc("GET /audit/traces", s.handleListTraces)
+	s.mux.HandleFunc("GET /audit/traces/{trace_id}", s.handleGetTrace)
+	s.mux.HandleFunc("GET /audit/events", s.handleListEvents)
+	s.mux.HandleFunc("GET /audit/sources", s.handleListSources)
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// @Summary	Create an organization
+// @Tags	Organizations
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.Organization	true	"Organization payload"
+// @Success	201	{object}	models.Organization
+// @Failure	400	{object}	object{error=string}
+// @Router	/organizations [post]
 func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 	var org models.Organization
 	if err := decodeJSON(r, &org); err != nil {
@@ -186,6 +214,14 @@ func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get an organization by ID
+// @Tags	Organizations
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Organization ID"
+// @Success	200	{object}	models.Organization
+// @Failure	404	{object}	object{error=string}
+// @Router	/organizations/{id} [get]
 func (s *Server) getOrganization(w http.ResponseWriter, r *http.Request) {
 	org, err := s.svc.GetOrganization(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -195,6 +231,15 @@ func (s *Server) getOrganization(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, org)
 }
 
+// @Summary	Create a user
+// @Tags	Users
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.User	true	"User payload"
+// @Success	201	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Router	/users [post]
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	var u models.User
 	if err := decodeJSON(r, &u); err != nil {
@@ -209,6 +254,14 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a user by ID
+// @Tags	Users
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{object}	models.User
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id} [get]
 func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 	u, err := s.svc.GetUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -218,6 +271,15 @@ func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, u)
 }
 
+// @Summary	Create a project
+// @Tags	Projects
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.Project	true	"Project payload"
+// @Success	201	{object}	models.Project
+// @Failure	400	{object}	object{error=string}
+// @Router	/projects [post]
 func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 	var p models.Project
 	if err := decodeJSON(r, &p); err != nil {
@@ -232,6 +294,14 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a project by ID
+// @Tags	Projects
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Project ID"
+// @Success	200	{object}	models.Project
+// @Failure	404	{object}	object{error=string}
+// @Router	/projects/{id} [get]
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 	p, err := s.svc.GetProject(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -241,6 +311,15 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
+// @Summary	Create a compute cluster
+// @Tags	Compute Clusters
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeCluster	true	"Cluster payload"
+// @Success	201	{object}	models.ComputeCluster
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-clusters [post]
 func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
 	var c models.ComputeCluster
 	if err := decodeJSON(r, &c); err != nil {
@@ -255,6 +334,14 @@ func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute cluster by ID
+// @Tags	Compute Clusters
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Success	200	{object}	models.ComputeCluster
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-clusters/{id} [get]
 func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
 	c, err := s.svc.GetComputeCluster(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -264,6 +351,13 @@ func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, c)
 }
 
+// @Summary	List compute clusters
+// @Tags	Compute Clusters
+// @Security	CustosUserHeader
+// @Produce	json
+// @Success	200	{array}	models.ComputeCluster
+// @Failure	500	{object}	object{error=string}
+// @Router	/compute-clusters [get]
 func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 	clusters, err := s.svc.ListComputeClusters(r.Context())
 	if err != nil {
@@ -273,6 +367,15 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, clusters)
 }
 
+// @Summary	Create a compute cluster user
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeClusterUser	true	"Cluster user payload"
+// @Success	201	{object}	models.ComputeClusterUser
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-cluster-users [post]
 func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	var cu models.ComputeClusterUser
 	if err := decodeJSON(r, &cu); err != nil {
@@ -287,6 +390,14 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute cluster user by ID
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Success	200	{object}	models.ComputeClusterUser
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-cluster-users/{id} [get]
 func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	cu, err := s.svc.GetComputeClusterUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -296,6 +407,17 @@ func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, cu)
 }
 
+// @Summary	Update a compute cluster user
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Param	request	body	models.ComputeClusterUser	true	"Cluster user payload"
+// @Success	200	{object}	models.ComputeClusterUser
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-cluster-users/{id} [put]
 func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	var cu models.ComputeClusterUser
 	if err := decodeJSON(r, &cu); err != nil {
@@ -310,6 +432,13 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, &cu)
 }
 
+// @Summary	Delete a compute cluster user
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Compute cluster user ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-cluster-users/{id} [delete]
 func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -318,6 +447,14 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List users on a compute cluster
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Success	200	{array}	models.ComputeClusterUser
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/users [get]
 func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http.Request) {
 	users, err := s.svc.ListComputeClusterUsersByCluster(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -327,6 +464,15 @@ func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http
 	writeJSON(w, http.StatusOK, users)
 }
 
+// @Summary	Get a compute cluster user by (cluster, user) pair
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute cluster ID"
+// @Param	userId	path	string	true	"User ID"
+// @Success	200	{object}	models.ComputeClusterUser
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-clusters/{id}/users/{userId} [get]
 func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Request) {
 	cu, err := s.svc.GetComputeClusterUserByPair(r.Context(), r.PathValue("id"), r.PathValue("userId"))
 	if err != nil {
@@ -336,6 +482,14 @@ func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, cu)
 }
 
+// @Summary	List compute cluster users for a user
+// @Tags	Compute Cluster Users
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.ComputeClusterUser
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/compute-cluster-users [get]
 func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Request) {
 	users, err := s.svc.ListComputeClusterUsersByUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -345,6 +499,15 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, users)
 }
 
+// @Summary	Create a compute allocation
+// @Tags	Compute Allocations
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocation	true	"Compute allocation payload"
+// @Success	201	{object}	models.ComputeAllocation
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocations [post]
 func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	var a models.ComputeAllocation
 	if err := decodeJSON(r, &a); err != nil {
@@ -359,6 +522,14 @@ func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation by ID
+// @Tags	Compute Allocations
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{object}	models.ComputeAllocation
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id} [get]
 func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	a, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -368,6 +539,17 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, a)
 }
 
+// @Summary	Create a compute allocation resource
+// @Description	Defines a resource (partition) — e.g. a CPU or GPU partition that allocations can be attached to.
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationResource	true	"Resource payload"
+// @Success	201	{object}	models.ComputeAllocationResource
+// @Failure	400	{object}	object{error=string}
+// @Failure	401	{object}	object{error=string}
+// @Router	/compute-allocation-resources [post]
 func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
 	var res models.ComputeAllocationResource
 	if err := decodeJSON(r, &res); err != nil {
@@ -382,6 +564,14 @@ func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation resource
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Resource ID"
+// @Success	200	{object}	models.ComputeAllocationResource
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id} [get]
 func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
 	res, err := s.svc.GetComputeAllocationResource(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -391,6 +581,13 @@ func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, res)
 }
 
+// @Summary	List all compute allocation resources
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Produce	json
+// @Success	200	{array}	models.ComputeAllocationResource
+// @Failure	401	{object}	object{error=string}
+// @Router	/compute-allocation-resources [get]
 func (s *Server) listComputeAllocationResources(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.svc.ListComputeAllocationResources(r.Context())
 	if err != nil {
@@ -406,6 +603,18 @@ type attachResourceRequest struct {
 	ResourceTime                int64  `json:"resource_time"`
 }
 
+// @Summary	Attach a resource to a compute allocation
+// @Description	Creates a mapping between a compute allocation and a resource (partition) with a specific amount and wall-clock time grant.
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	request	body	attachResourceRequest	true	"Attach payload"
+// @Success	201	{object}	models.ComputeAllocationResourceMapping
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources [post]
 func (s *Server) attachResourceToAllocation(w http.ResponseWriter, r *http.Request) {
 	var body attachResourceRequest
 	if err := decodeJSON(r, &body); err != nil {
@@ -425,6 +634,18 @@ type updateAllocationResourceMappingRequest struct {
 	ResourceTime   int64 `json:"resource_time"`
 }
 
+// @Summary	Update a compute allocation -> resource mapping
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	resourceId	path	string	true	"Compute allocation resource ID"
+// @Param	request	body	updateAllocationResourceMappingRequest	true	"Mapping update payload"
+// @Success	200	{object}	models.ComputeAllocationResourceMapping
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources/{resourceId} [put]
 func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.Request) {
 	var body updateAllocationResourceMappingRequest
 	if err := decodeJSON(r, &body); err != nil {
@@ -439,6 +660,14 @@ func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, mapping)
 }
 
+// @Summary	Detach a resource from a compute allocation
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	resourceId	path	string	true	"Compute allocation resource ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources/{resourceId} [delete]
 func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DetachResourceFromAllocation(r.Context(), r.PathValue("id"), r.PathValue("resourceId")); err != nil {
 		writeServiceError(w, err)
@@ -447,6 +676,14 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List resources attached to a compute allocation
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/resources [get]
 func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.svc.ListResourcesForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -456,6 +693,14 @@ func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, resources)
 }
 
+// @Summary	List compute allocations attached to a resource
+// @Tags	Compute Allocation Resources
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation resource ID"
+// @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id}/allocations [get]
 func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Request) {
 	allocs, err := s.svc.ListAllocationsForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -465,6 +710,17 @@ func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, allocs)
 }
 
+// @Summary	Create a compute allocation resource rate
+// @Description	Records the SU rate (e.g. SU per CPU-hour) for a resource over a time window.
+// @Tags	Compute Allocation Resource Rates
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationResourceRate	true	"Rate payload"
+// @Success	201	{object}	models.ComputeAllocationResourceRate
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resource-rates [post]
 func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
 	var rate models.ComputeAllocationResourceRate
 	if err := decodeJSON(r, &rate); err != nil {
@@ -479,6 +735,14 @@ func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *h
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation resource rate
+// @Tags	Compute Allocation Resource Rates
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Rate ID"
+// @Success	200	{object}	models.ComputeAllocationResourceRate
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resource-rates/{id} [get]
 func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
 	rate, err := s.svc.GetComputeAllocationResourceRate(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -488,6 +752,14 @@ func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http
 	writeJSON(w, http.StatusOK, rate)
 }
 
+// @Summary	List rate history for a resource
+// @Tags	Compute Allocation Resource Rates
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation resource ID"
+// @Success	200	{array}	models.ComputeAllocationResourceRate
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id}/rates [get]
 func (s *Server) listRatesForResource(w http.ResponseWriter, r *http.Request) {
 	rates, err := s.svc.ListRatesForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -497,6 +769,17 @@ func (s *Server) listRatesForResource(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rates)
 }
 
+// @Summary	Get the effective rate for a resource at a given time
+// @Description	Returns the rate whose `[start_time, end_time)` window contains the `at` timestamp. Defaults to now when `at` is omitted.
+// @Tags	Compute Allocation Resource Rates
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation resource ID"
+// @Param	at	query	string	false	"RFC3339 time; defaults to now"
+// @Success	200	{object}	models.ComputeAllocationResourceRate
+// @Failure	400	{object}	object{error=string}	"Invalid 'at' query parameter"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id}/rates/effective [get]
 func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Request) {
 	var at time.Time
 	if raw := r.URL.Query().Get("at"); raw != "" {
@@ -515,6 +798,17 @@ func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, rate)
 }
 
+// @Summary	Create a compute allocation diff
+// @Description	Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
+// @Tags	Compute Allocation Diffs
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationDiff	true	"Diff payload"
+// @Success	201	{object}	models.ComputeAllocationDiff
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-diffs [post]
 func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	var diff models.ComputeAllocationDiff
 	if err := decodeJSON(r, &diff); err != nil {
@@ -529,6 +823,14 @@ func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation diff
+// @Tags	Compute Allocation Diffs
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Diff ID"
+// @Success	200	{object}	models.ComputeAllocationDiff
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-diffs/{id} [get]
 func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	diff, err := s.svc.GetComputeAllocationDiff(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -538,6 +840,13 @@ func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, diff)
 }
 
+// @Summary	Delete a compute allocation diff
+// @Tags	Compute Allocation Diffs
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Diff ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-diffs/{id} [delete]
 func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationDiff(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -546,6 +855,14 @@ func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List diffs for a compute allocation
+// @Tags	Compute Allocation Diffs
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeAllocationDiff
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/diffs [get]
 func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) {
 	diffs, err := s.svc.ListDiffsForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -555,6 +872,14 @@ func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, diffs)
 }
 
+// @Summary	Get the most recent diff for a compute allocation
+// @Tags	Compute Allocation Diffs
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{object}	models.ComputeAllocationDiff
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/diffs/latest [get]
 func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Request) {
 	diff, err := s.svc.GetLatestDiffForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -564,6 +889,15 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, diff)
 }
 
+// @Summary	Create a compute allocation change request
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationChangeRequest	true	"Change request payload"
+// @Success	201	{object}	models.ComputeAllocationChangeRequest
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests [post]
 func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	var req models.ComputeAllocationChangeRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -578,6 +912,14 @@ func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation change request
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Change request ID"
+// @Success	200	{object}	models.ComputeAllocationChangeRequest
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests/{id} [get]
 func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	req, err := s.svc.GetComputeAllocationChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -587,6 +929,17 @@ func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, req)
 }
 
+// @Summary	Update a compute allocation change request
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Change request ID"
+// @Param	request	body	models.ComputeAllocationChangeRequest	true	"Change request payload"
+// @Success	200	{object}	models.ComputeAllocationChangeRequest
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests/{id} [put]
 func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	var req models.ComputeAllocationChangeRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -602,6 +955,13 @@ func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *
 	writeJSON(w, http.StatusOK, updated)
 }
 
+// @Summary	Delete a compute allocation change request
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Change request ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests/{id} [delete]
 func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationChangeRequest(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -610,6 +970,14 @@ func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List change requests for a compute allocation
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeAllocationChangeRequest
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/change-requests [get]
 func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListChangeRequestsForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -619,6 +987,14 @@ func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	List change requests submitted by a user
+// @Tags	Compute Allocation Change Requests
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.ComputeAllocationChangeRequest
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/change-requests [get]
 func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListChangeRequestsByRequester(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -628,6 +1004,15 @@ func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	Create a change request event
+// @Tags	Change Request Events
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationChangeRequestEvent	true	"Event payload"
+// @Success	201	{object}	models.ComputeAllocationChangeRequestEvent
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocation-change-request-events [post]
 func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	var evt models.ComputeAllocationChangeRequestEvent
 	if err := decodeJSON(r, &evt); err != nil {
@@ -642,6 +1027,14 @@ func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a change request event
+// @Tags	Change Request Events
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Event ID"
+// @Success	200	{object}	models.ComputeAllocationChangeRequestEvent
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-request-events/{id} [get]
 func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	evt, err := s.svc.GetComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -651,6 +1044,13 @@ func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r
 	writeJSON(w, http.StatusOK, evt)
 }
 
+// @Summary	Delete a change request event
+// @Tags	Change Request Events
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Event ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-request-events/{id} [delete]
 func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -659,6 +1059,14 @@ func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List events for a change request
+// @Tags	Change Request Events
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Change request ID"
+// @Success	200	{array}	models.ComputeAllocationChangeRequestEvent
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests/{id}/events [get]
 func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListEventsForChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -668,6 +1076,14 @@ func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	Get the most recent event for a change request
+// @Tags	Change Request Events
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Change request ID"
+// @Success	200	{object}	models.ComputeAllocationChangeRequestEvent
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-change-requests/{id}/events/latest [get]
 func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.Request) {
 	evt, err := s.svc.GetLatestEventForChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -677,6 +1093,15 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, evt)
 }
 
+// @Summary	Create a compute allocation membership
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload"
+// @Success	201	{object}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocation-memberships [post]
 func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
 	if err := decodeJSON(r, &m); err != nil {
@@ -691,6 +1116,14 @@ func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation membership
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Membership ID"
+// @Success	200	{object}	models.ComputeAllocationMembership
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id} [get]
 func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	m, err := s.svc.GetComputeAllocationMembership(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -700,6 +1133,17 @@ func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, m)
 }
 
+// @Summary	Update a compute allocation membership
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Membership ID"
+// @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload"
+// @Success	200	{object}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id} [put]
 func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
 	if err := decodeJSON(r, &m); err != nil {
@@ -715,6 +1159,17 @@ func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, updated)
 }
 
+// @Summary	Update a membership's status
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Membership ID"
+// @Param	request	body	object{membership_status=models.AllocationStatus}	true	"Status patch"
+// @Success	200	{object}	models.ComputeAllocationMembership
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id}/status [put]
 func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		MembershipStatus models.AllocationStatus `json:"membership_status"`
@@ -731,6 +1186,13 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, updated)
 }
 
+// @Summary	Delete a compute allocation membership
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Membership ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id} [delete]
 func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembership(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -739,6 +1201,14 @@ func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List members of a compute allocation
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeAllocationMembership
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/memberships [get]
 func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListMembersForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -748,6 +1218,14 @@ func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	List a user's compute allocation memberships
+// @Tags	Compute Allocation Memberships
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.ComputeAllocationMembership
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/compute-allocation-memberships [get]
 func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListAllocationsForUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -757,6 +1235,15 @@ func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	Create a compute allocation usage record
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationUsage	true	"Usage payload"
+// @Success	201	{object}	models.ComputeAllocationUsage
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocation-usages [post]
 func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	var u models.ComputeAllocationUsage
 	if err := decodeJSON(r, &u); err != nil {
@@ -771,6 +1258,14 @@ func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a compute allocation usage record
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Usage ID"
+// @Success	200	{object}	models.ComputeAllocationUsage
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-usages/{id} [get]
 func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	u, err := s.svc.GetComputeAllocationUsage(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -780,6 +1275,13 @@ func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, u)
 }
 
+// @Summary	Delete a compute allocation usage record
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Usage ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-usages/{id} [delete]
 func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationUsage(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -788,6 +1290,14 @@ func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List usages for a compute allocation
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{array}	models.ComputeAllocationUsage
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/usages [get]
 func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListUsagesForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -797,6 +1307,14 @@ func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	List usages submitted by a user
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.ComputeAllocationUsage
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/compute-allocation-usages [get]
 func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListUsagesByUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -806,6 +1324,15 @@ func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	Create a membership resource override
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.ComputeAllocationMembershipResourceOverride	true	"Override payload"
+// @Success	201	{object}	models.ComputeAllocationMembershipResourceOverride
+// @Failure	400	{object}	object{error=string}
+// @Router	/compute-allocation-membership-resource-overrides [post]
 func (s *Server) createComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	var o models.ComputeAllocationMembershipResourceOverride
 	if err := decodeJSON(r, &o); err != nil {
@@ -820,6 +1347,14 @@ func (s *Server) createComputeAllocationMembershipResourceOverride(w http.Respon
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a membership resource override
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Override ID"
+// @Success	200	{object}	models.ComputeAllocationMembershipResourceOverride
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-membership-resource-overrides/{id} [get]
 func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	o, err := s.svc.GetComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -829,6 +1364,17 @@ func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseW
 	writeJSON(w, http.StatusOK, o)
 }
 
+// @Summary	Update a membership resource override
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Override ID"
+// @Param	request	body	models.ComputeAllocationMembershipResourceOverride	true	"Override payload"
+// @Success	200	{object}	models.ComputeAllocationMembershipResourceOverride
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-membership-resource-overrides/{id} [put]
 func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	var o models.ComputeAllocationMembershipResourceOverride
 	if err := decodeJSON(r, &o); err != nil {
@@ -844,6 +1390,13 @@ func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.Respon
 	writeJSON(w, http.StatusOK, updated)
 }
 
+// @Summary	Delete a membership resource override
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Override ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-membership-resource-overrides/{id} [delete]
 func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -852,6 +1405,14 @@ func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.Respon
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary	List resource overrides for a membership
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Membership ID"
+// @Success	200	{array}	models.ComputeAllocationMembershipResourceOverride
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-memberships/{id}/resource-overrides [get]
 func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListOverridesForMembership(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -861,6 +1422,14 @@ func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	List membership overrides referencing a resource
+// @Tags	Membership Resource Overrides
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation resource ID"
+// @Success	200	{array}	models.ComputeAllocationMembershipResourceOverride
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocation-resources/{id}/membership-overrides [get]
 func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListOverridesForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -870,6 +1439,14 @@ func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, rows)
 }
 
+// @Summary	Get total SU usage for a compute allocation
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Success	200	{object}	object{compute_allocation_id=string,total_su_amount=integer}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/usages/total [get]
 func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Request) {
 	total, err := s.svc.GetTotalSUUsageForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -882,6 +1459,15 @@ func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// @Summary	Get total SU usage for a user within a compute allocation
+// @Tags	Compute Allocation Usages
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Compute allocation ID"
+// @Param	userId	path	string	true	"User ID"
+// @Success	200	{object}	object{compute_allocation_id=string,user_id=string,total_su_amount=integer}
+// @Failure	404	{object}	object{error=string}
+// @Router	/compute-allocations/{id}/users/{userId}/usages/total [get]
 func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *http.Request) {
 	allocationID := r.PathValue("id")
 	userID := r.PathValue("userId")
@@ -901,6 +1487,17 @@ type statusUpdateRequest struct {
 	Status string `json:"status"`
 }
 
+// @Summary	Update a user's status
+// @Tags	Users
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Param	request	body	object{status=models.UserStatus}	true	"Status patch"
+// @Success	200	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/status [put]
 func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	var req statusUpdateRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -915,6 +1512,17 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, u)
 }
 
+// @Summary	Update a project's status
+// @Tags	Projects
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Project ID"
+// @Param	request	body	object{status=models.ProjectStatus}	true	"Status patch"
+// @Success	200	{object}	models.Project
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/projects/{id}/status [put]
 func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 	var req statusUpdateRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -929,6 +1537,15 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
+// @Summary	Create a user identity
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	models.UserIdentity	true	"Identity payload"
+// @Success	201	{object}	models.UserIdentity
+// @Failure	400	{object}	object{error=string}
+// @Router	/user-identities [post]
 func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
 	var e models.UserIdentity
 	if err := decodeJSON(r, &e); err != nil {
@@ -943,6 +1560,14 @@ func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	Get a user identity
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Identity ID"
+// @Success	200	{object}	models.UserIdentity
+// @Failure	404	{object}	object{error=string}
+// @Router	/user-identities/{id} [get]
 func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentity(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -952,6 +1577,15 @@ func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, e)
 }
 
+// @Summary	Get a user identity by source and external ID
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	source	path	string	true	"Identity source"
+// @Param	externalId	path	string	true	"Identity's external ID at that source"
+// @Success	200	{object}	models.UserIdentity
+// @Failure	404	{object}	object{error=string}
+// @Router	/user-identities/sources/{source}/external/{externalId} [get]
 func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentityBySourceAndExternalID(r.Context(), r.PathValue("source"), r.PathValue("externalId"))
 	if err != nil {
@@ -961,6 +1595,14 @@ func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *
 	writeJSON(w, http.StatusOK, e)
 }
 
+// @Summary	Get a user identity by its OIDC subject claim
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	oidcSub	path	string	true	"OIDC subject claim"
+// @Success	200	{object}	models.UserIdentity
+// @Failure	404	{object}	object{error=string}
+// @Router	/user-identities/oidc-subjects/{oidcSub} [get]
 func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentityByOIDCSub(r.Context(), r.PathValue("oidcSub"))
 	if err != nil {
@@ -970,6 +1612,14 @@ func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, e)
 }
 
+// @Summary	List a user's identities
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Success	200	{array}	models.UserIdentity
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id}/user-identities [get]
 func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Request) {
 	out, err := s.svc.ListUserIdentitiesForUser(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -979,6 +1629,17 @@ func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, out)
 }
 
+// @Summary	Update a user identity
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"Identity ID"
+// @Param	request	body	models.UserIdentity	true	"Identity payload"
+// @Success	200	{object}	models.UserIdentity
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/user-identities/{id} [put]
 func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
 	var e models.UserIdentity
 	if err := decodeJSON(r, &e); err != nil {
@@ -993,6 +1654,13 @@ func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, &e)
 }
 
+// @Summary	Delete a user identity
+// @Tags	User Identities
+// @Security	CustosUserHeader
+// @Param	id	path	string	true	"Identity ID"
+// @Success	204	"No Content"
+// @Failure	404	{object}	object{error=string}
+// @Router	/user-identities/{id} [delete]
 func (s *Server) deleteUserIdentity(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteUserIdentity(r.Context(), r.PathValue("id")); err != nil {
 		writeServiceError(w, err)
@@ -1006,6 +1674,17 @@ type mergeUsersRequest struct {
 	RetiringUserID  string `json:"retiring_user_id"`
 }
 
+// @Summary	Merge two users
+// @Description	Merges the retiring user into the surviving user; the surviving record is returned.
+// @Tags	Users
+// @Security	CustosUserHeader
+// @Accept	json
+// @Produce	json
+// @Param	request	body	mergeUsersRequest	true	"Merge payload"
+// @Success	200	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/merge [post]
 func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
 	var req mergeUsersRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -1020,29 +1699,26 @@ func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, survivor)
 }
 
-// LoggingMiddleware logs every request once it completes.
+// LoggingMiddleware logs every request once it completes. It wraps
+// tracing.Middleware (logging outer, tracing inner) and reads the trace_id
+// from the X-Trace-Id response header the inner span set, since the inner
+// request ctx is not visible at this scope after ServeHTTP returns.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		rw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		rw := &httputil.StatusRecorder{ResponseWriter: w, Status: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		slog.Info("http request",
+		attrs := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
-			"status", rw.status,
+			"status", rw.Status,
 			"duration", time.Since(start).String(),
-		)
+		}
+		if tid := rw.Header().Get("X-Trace-Id"); tid != "" {
+			attrs = append(attrs, "trace_id", tid)
+		}
+		slog.InfoContext(r.Context(), "http request", attrs...)
 	})
-}
-
-type statusRecorder struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *statusRecorder) WriteHeader(code int) {
-	r.status = code
-	r.ResponseWriter.WriteHeader(code)
 }
 
 func decodeJSON(r *http.Request, dst any) error {

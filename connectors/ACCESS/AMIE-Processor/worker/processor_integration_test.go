@@ -31,7 +31,9 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	corestore "github.com/apache/airavata-custos/internal/store"
 )
 
 // State machine under test (from processor.go):
@@ -90,6 +92,7 @@ func newProcessor(database *sqlx.DB, router processorRouter, met *stubMetrics) *
 		store.NewProcessingErrorStore(database),
 		router,
 		met,
+		service.NewAuditService(corestore.NewAuditEventStore(database), store.NewAuditExtrasStore(database)),
 		database,
 		cfg,
 	)

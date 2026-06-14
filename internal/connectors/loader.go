@@ -20,6 +20,7 @@ package connectors
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -33,28 +34,30 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
+// LoadConnectors brings every connector up at boot. Connectors register their
+// own HTTP routes on mux; core does not.
+func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	slog.Info("loading connectors")
 
 	slog.Info("loading SLURM Association Mapper connector")
-	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
+	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
 		slog.Error("failed to load SLURM Association Mapper connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading AMIE connector")
-	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
+	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
 		slog.Error("failed to load AMIE connector", "error", err)
 		return err
 	}
 	slog.Info("loading COmanage Identity-Provisioner connector")
-	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
+	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
 		slog.Error("failed to load COmanage Identity-Provisioner connector", "error", err)
 		return err
 	}
 
 	slog.Info("loading SLURM Usage Monitor connector")
-	if err := monitor.LoadConnector(ctx, database, eventBus, coreService, wg, nil); err != nil {
+	if err := monitor.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
 		slog.Error("failed to load SLURM Usage Monitor connector", "error", err)
 		return err
 	}
@@ -63,14 +66,14 @@ func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus
 	return nil
 }
 
-func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup) error {
+func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	slog.Info("loading connectors from config")
 
-	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *config.ConnectorConfig) error{
-		"slurm-association-mapper":     smapper.LoadConnector,
-		"amie-processor":               amie.LoadConnector,
+	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *http.ServeMux, *config.ConnectorConfig) error{
+		"slurm-association-mapper":      smapper.LoadConnector,
+		"amie-processor":                amie.LoadConnector,
 		"comanage-identity-provisioner": comanage.LoadConnector,
-		"slurm-usage-monitor":          monitor.LoadConnector,
+		"slurm-usage-monitor":           monitor.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {
@@ -91,7 +94,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		}
 
 		slog.Info("loading connector", "name", connectorName, "type", connectorCfg.Type)
-		if err := loader(ctx, database, eventBus, coreService, wg, connectorCfg); err != nil {
+		if err := loader(ctx, database, eventBus, coreService, wg, mux, connectorCfg); err != nil {
 			slog.Error("failed to load connector", "name", connectorName, "type", connectorCfg.Type, "error", err)
 			return err
 		}

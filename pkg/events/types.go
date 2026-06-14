@@ -20,6 +20,7 @@
 package events
 
 import (
+	"context"
 	"sync"
 )
 
@@ -126,7 +127,7 @@ type Event struct {
 }
 
 // EventSubscriberFunc is a function type that can be registered to receive events from the bus.
-type EventSubscriberFunc func(event Event, value interface{})
+type EventSubscriberFunc func(ctx context.Context, event Event, value interface{})
 
 // Bus is a lightweight, in-memory, topic-based pub/sub event bus.
 // Modules publish and subscribe by topic without knowing about each other.

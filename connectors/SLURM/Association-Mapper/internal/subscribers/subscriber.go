@@ -33,12 +33,13 @@ func (a *AssociationSubscriber) RegisterSubscribers() {
 	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(a.SubscribeToComputeAllocationResourceMappingCreation)
 }
 
-func (a *AssociationSubscriber) recordAuditEvent(eventType, entityId, message string) {
+func (a *AssociationSubscriber) recordAuditEvent(ctx context.Context, eventType, entityType, entityId, message string) {
 	auditEvent := &models.AuditEvent{
-		EventType: eventType,
-		EntityID:  entityId,
-		Details:   message,
-		EventTime: time.Now(),
+		EventType:  eventType,
+		EntityID:   entityId,
+		EntityType: entityType,
+		Details:    message,
+		EventTime:  time.Now(),
 	}
-	a.coreService.CreateAuditEvent(context.Background(), auditEvent)
+	a.coreService.CreateAuditEvent(ctx, auditEvent)
 }

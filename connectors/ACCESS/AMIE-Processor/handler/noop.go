@@ -23,6 +23,7 @@ import (
 	"log/slog"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/internal/tracing"
 )
 
 type NoOpHandler struct{}
@@ -36,6 +37,9 @@ func (h *NoOpHandler) SupportsType() string {
 }
 
 func (h *NoOpHandler) Handle(ctx context.Context, _ *sql.Tx, _ map[string]any, packet *model.Packet, _ string) error {
+	_, span := tracing.Start(ctx, "amie.handle:"+packet.Type)
+	defer span.End()
+
 	slog.WarnContext(ctx, "NoOp handler invoked for unknown packet type",
 		"packetID", packet.ID,
 		"packetType", packet.Type,

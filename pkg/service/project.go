@@ -69,7 +69,7 @@ func (s *Service) CreateProject(ctx context.Context, project *models.Project) (*
 		return nil, fmt.Errorf("create project: %w", err)
 	}
 
-	s.eventBus.Publish(events.ProjectCreateEvent, project)
+	s.eventBus.Publish(ctx, events.ProjectCreateEvent, project)
 	return project, nil
 }
 
@@ -143,7 +143,7 @@ func (s *Service) UpdateProject(ctx context.Context, project *models.Project) er
 		return fmt.Errorf("update project: %w", err)
 	}
 
-	s.eventBus.Publish(events.ProjectUpdateEvent, project)
+	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, project)
 	return nil
 }
 
@@ -170,7 +170,7 @@ func (s *Service) UpdateProjectStatus(ctx context.Context, id string, status mod
 	}
 	existing.Status = status
 
-	s.eventBus.Publish(events.ProjectUpdateEvent, existing)
+	s.eventBus.Publish(ctx, events.ProjectUpdateEvent, existing)
 	return existing, nil
 }
 
@@ -192,6 +192,6 @@ func (s *Service) DeleteProject(ctx context.Context, id string) error {
 		return fmt.Errorf("delete project: %w", err)
 	}
 
-	s.eventBus.Publish(events.ProjectDeleteEvent, project)
+	s.eventBus.Publish(ctx, events.ProjectDeleteEvent, project)
 	return nil
 }

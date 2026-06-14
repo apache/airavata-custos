@@ -36,6 +36,7 @@ import (
 	amieservice "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/internal/db"
+	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
@@ -102,7 +103,8 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 func truncateAll(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	tables := []string{
-		"amie_audit_log",
+		"amie_audit_extras",
+		"audit_events",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
@@ -155,7 +157,7 @@ func newTestCoreService(database *sqlx.DB) *coreservice.Service {
 }
 
 func newTestAuditService(database *sqlx.DB) *amieservice.AuditService {
-	return amieservice.NewAuditService(store.NewAuditStore(database))
+	return amieservice.NewAuditService(corestore.NewAuditEventStore(database), store.NewAuditExtrasStore(database))
 }
 
 type fakeReply struct {
@@ -258,7 +260,9 @@ func countAuditActions(t *testing.T, database *sqlx.DB, packetID string, action 
 	t.Helper()
 	var n int
 	if err := database.Get(&n,
-		"SELECT COUNT(*) FROM amie_audit_log WHERE packet_id = ? AND action = ?",
+		`SELECT COUNT(*) FROM audit_events ae
+		 JOIN amie_audit_extras x ON x.audit_event_id = ae.id
+		 WHERE x.packet_id = ? AND ae.event_type = ?`,
 		packetID, string(action),
 	); err != nil {
 		t.Fatalf("count audit %s: %v", action, err)

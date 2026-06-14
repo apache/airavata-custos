@@ -1,0 +1,3766 @@
+basePath: /
+definitions:
+  models.AllocationStatus:
+    enum:
+    - ACTIVE
+    - INACTIVE
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - ACTIVE
+    - INACTIVE
+    - DELETED
+  models.ComputeAllocation:
+    properties:
+      compute_cluster_id:
+        description: The ID of the compute cluster where the allocation is provisioned.
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      initial_su_amount:
+        description: SUs allocated at the time of allocation creation.
+        type: integer
+      name:
+        type: string
+      project_id:
+        type: string
+      start_time:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.AllocationStatus'
+        description: ACTIVE, INACTIVE, DELETED, etc.
+    type: object
+  models.ComputeAllocationChangeRequest:
+    properties:
+      approver_id:
+        description: The ID of the user who approved/rejected the change request,
+          if applicable.
+        type: string
+      change_status:
+        description: '"PENDING", "APPROVED", "REJECTED", etc.'
+        type: string
+      compute_allocation_id:
+        type: string
+      id:
+        type: string
+      reason:
+        description: The reason for the change request, e.g., "Need more SUs for upcoming
+          jobs", "Requesting reduction in SUs due to project completion", etc.
+        type: string
+      requested_status:
+        allOf:
+        - $ref: '#/definitions/models.AllocationStatus'
+        description: ACTIVE, INACTIVE, DELETED, etc.
+      requested_su_amount:
+        description: The requested allocation amount in SUs, e.g., 1200 SUs, etc.
+        type: integer
+      requester_id:
+        description: The ID of the user who made the change request.
+        type: string
+      timestamp:
+        description: The time when the change request was made.
+        type: string
+    type: object
+  models.ComputeAllocationChangeRequestEvent:
+    properties:
+      compute_allocation_change_request_id:
+        type: string
+      description:
+        description: Optional description of the event, e.g., "Change request created
+          by user", "Change request approved by admin", etc.
+        type: string
+      event_type:
+        description: '"CREATED", "APPROVED", "REJECTED", etc.'
+        type: string
+      id:
+        type: string
+      timestamp:
+        description: The time when the event occurred.
+        type: string
+    type: object
+  models.ComputeAllocationDiff:
+    properties:
+      compute_allocation_id:
+        type: string
+      description:
+        description: Optional description of the diff, e.g., "SU usage updated based
+          on job completion", "Allocation marked as INACTIVE due to end time reached",
+          etc.
+        type: string
+      diff_type:
+        description: '"USAGE_UPDATE", "ALLOCATION_STATUS_CHANGE", etc.'
+        type: string
+      id:
+        type: string
+      new_su_amount:
+        description: New allocation amount in SUs, e.g., 900 SUs, etc.
+        type: integer
+      status:
+        allOf:
+        - $ref: '#/definitions/models.AllocationStatus'
+        description: ACTIVE, INACTIVE, DELETED, etc.
+      timestamp:
+        description: The time when the diff was generated.
+        type: string
+    type: object
+  models.ComputeAllocationMembership:
+    properties:
+      compute_allocation_id:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      membership_status:
+        allOf:
+        - $ref: '#/definitions/models.AllocationStatus'
+        description: ACTIVE, INACTIVE, etc.
+      start_time:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.ComputeAllocationMembershipResourceOverride:
+    properties:
+      compute_allocation_membership_id:
+        type: string
+      compute_allocation_resource_id:
+        type: string
+      id:
+        type: string
+      override_resource_amount:
+        description: The overridden amount of the resource for the user (e.g., number
+          of CPUs, GPUs).
+        type: integer
+      override_resource_time:
+        description: The overridden wall-clock time in minutes that the resource amount
+          is granted for.
+        type: integer
+    type: object
+  models.ComputeAllocationResource:
+    properties:
+      compute_cluster_id:
+        description: The ID of the compute cluster the resource (partition) belongs
+          to.
+        type: string
+      id:
+        type: string
+      name:
+        description: resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive",
+          etc.
+        type: string
+      resource_amount:
+        description: Number of CPUs, GPUs.
+        type: integer
+      resource_type:
+        description: 'TRES: cpu, gres/gpu'
+        type: string
+    type: object
+  models.ComputeAllocationResourceMapping:
+    properties:
+      compute_allocation_id:
+        type: string
+      compute_allocation_resource_id:
+        type: string
+      id:
+        type: string
+      resource_amount:
+        description: Amount of the resource allocated to this allocation (e.g., number
+          of CPUs, GPUs).
+        type: integer
+      resource_time:
+        description: Wall-clock time in minutes that the allocated amount is granted
+          for.
+        type: integer
+    type: object
+  models.ComputeAllocationResourceRate:
+    properties:
+      compute_allocation_resource_id:
+        type: string
+      end_time:
+        description: The time when this rate expires.
+        type: string
+      id:
+        type: string
+      rate:
+        description: The rate for the resource in SUs per unit, e.g., 0.5 SU per CPU
+          hour, 2 SU per GPU hour, etc.
+        type: number
+      start_time:
+        description: The time when this rate becomes effective.
+        type: string
+    type: object
+  models.ComputeAllocationUsage:
+    properties:
+      compute_allocation_id:
+        type: string
+      compute_allocation_resource_id:
+        description: The specific resource consumed, e.g., 20 CPU hours, 10 GPU hours,
+          etc.
+        type: string
+      id:
+        type: string
+      job_id:
+        description: The ID of the job that consumed the allocation.
+        type: string
+      last_updated:
+        description: The last time the usage was updated. SU should be calculated
+          up to this point in time and charge rates should be applied based on the
+          rates effective at this time.
+        type: string
+      used_raw_amount:
+        description: The raw amount of resource used, e.g., 20 CPU hours, 10 GPU hours,
+          etc.
+        type: number
+      used_su_amount:
+        description: SUs used by the allocation, e.g., 200 SUs, etc.
+        type: number
+      user_id:
+        description: The ID of the user who used the allocation.
+        type: string
+    type: object
+  models.ComputeCluster:
+    properties:
+      id:
+        type: string
+      name:
+        description: A human-readable name for the compute cluster, e.g., "Cluster
+          A", "Cluster B", etc.
+        type: string
+    type: object
+  models.ComputeClusterUser:
+    properties:
+      compute_cluster_id:
+        type: string
+      id:
+        type: string
+      local_username:
+        description: The username of the user on the compute cluster, which may be
+          different from their Airavata Custos username.
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Organization:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      originated_id:
+        description: 'The ID of the organization in origination. For example: ACCESS
+          Record ID.'
+        type: string
+    type: object
+  models.PrivilegeKey:
+    enum:
+    - amie:read
+    - amie:write
+    - hpc:read
+    - hpc:write
+    - signer:read
+    - signer:write
+    - privileges:grant
+    - roles:manage
+    type: string
+    x-enum-varnames:
+    - PrivilegeAMIERead
+    - PrivilegeAMIEWrite
+    - PrivilegeHPCRead
+    - PrivilegeHPCWrite
+    - PrivilegeSignerRead
+    - PrivilegeSignerWrite
+    - PrivilegeGrant
+    - PrivilegeRolesManage
+  models.Project:
+    properties:
+      created_time:
+        type: string
+      id:
+        type: string
+      originated_id:
+        description: 'The ID of the project in origination. For example: ACCESS Record
+          ID.'
+        type: string
+      origination:
+        description: ACCESS, NAIRR, XRASS, etc.
+        type: string
+      project_pi_id:
+        type: string
+      status:
+        $ref: '#/definitions/models.ProjectStatus'
+      title:
+        type: string
+    type: object
+  models.ProjectStatus:
+    enum:
+    - ACTIVE
+    - INACTIVE
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - ProjectActive
+    - ProjectInactive
+    - ProjectDeleted
+  models.Role:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_system:
+        type: boolean
+      name:
+        type: string
+    type: object
+  models.TraceEvent:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      entity_id:
+        type: string
+      entity_type:
+        type: string
+      event_type:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        type: string
+      span_id:
+        type: string
+      status:
+        type: string
+    type: object
+  models.TraceNode:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/models.TraceNode'
+        type: array
+      created_at:
+        type: string
+      description:
+        type: string
+      entity_id:
+        type: string
+      entity_type:
+        type: string
+      event_type:
+        type: string
+      parent_span_id:
+        type: string
+      source:
+        type: string
+      span_id:
+        type: string
+      status:
+        type: string
+    type: object
+  models.TraceSummary:
+    properties:
+      ended_at:
+        type: string
+      event_count:
+        type: integer
+      root_operation:
+        type: string
+      source:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  models.User:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      organization_id:
+        type: string
+      status:
+        $ref: '#/definitions/models.UserStatus'
+    type: object
+  models.UserIdentity:
+    properties:
+      created_at:
+        type: string
+      email:
+        description: the email configured by the source
+        type: string
+      external_id:
+        description: the source's native identifier
+        type: string
+      id:
+        type: string
+      metadata:
+        description: JSON-encoded source-specific fields
+        type: string
+      oidc_sub:
+        description: OIDC subject when the source issues one
+        type: string
+      source:
+        description: e.g. access, nairr, cilogon
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.UserPrivilege:
+    properties:
+      granted_at:
+        type: string
+      granted_by:
+        type: string
+      id:
+        type: string
+      privilege:
+        $ref: '#/definitions/models.PrivilegeKey'
+      reason:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.UserRole:
+    properties:
+      granted_at:
+        type: string
+      granted_by:
+        type: string
+      reason:
+        type: string
+      role_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.UserStatus:
+    enum:
+    - ACTIVE
+    - INACTIVE
+    - SUSPENDED
+    - MERGED
+    type: string
+    x-enum-varnames:
+    - UserActive
+    - UserInactive
+    - UserSuspended
+    - UserMerged
+  server.attachResourceRequest:
+    properties:
+      compute_allocation_resource_id:
+        type: string
+      resource_amount:
+        type: integer
+      resource_time:
+        type: integer
+    type: object
+  server.createRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  server.grantPrivilegeRequest:
+    properties:
+      privilege:
+        $ref: '#/definitions/models.PrivilegeKey'
+      reason:
+        type: string
+    type: object
+  server.grantRoleRequest:
+    properties:
+      reason:
+        type: string
+      roleID:
+        type: string
+    type: object
+  server.mergeUsersRequest:
+    properties:
+      retiring_user_id:
+        type: string
+      surviving_user_id:
+        type: string
+    type: object
+  server.revokePrivilegeRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  server.revokeRoleRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  server.rolePrivilegeRequest:
+    properties:
+      privilege:
+        $ref: '#/definitions/models.PrivilegeKey'
+    type: object
+  server.updateAllocationResourceMappingRequest:
+    properties:
+      resource_amount:
+        type: integer
+      resource_time:
+        type: integer
+    type: object
+  server.updateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: 'REST API for Apache Custos: organizations, users, projects, compute
+    clusters and allocations, audit traces, and the privilege/role authorization layer.
+    Authenticate every request with the X-Custos-User-Id header. Connector endpoints
+    (/connectors/<name>/...) are documented in separate specs.'
+  title: Apache Custos Core API
+  version: 0.2.0
+paths:
+  /audit/events:
+    get:
+      parameters:
+      - description: 32-char lowercase hex
+        in: query
+        name: trace_id
+        required: true
+        type: string
+      - description: 16-char lowercase hex
+        in: query
+        name: span_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              events:
+                items:
+                  $ref: '#/definitions/models.TraceEvent'
+                type: array
+            type: object
+        "400":
+          description: Malformed trace_id or span_id
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Audit trace store not configured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List audit events for a trace (optionally one span)
+      tags:
+      - Audit
+  /audit/sources:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              sources:
+                items:
+                  type: string
+                type: array
+            type: object
+        "503":
+          description: Audit trace store not configured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List distinct audit-event sources
+      tags:
+      - Audit
+  /audit/traces:
+    get:
+      description: One row per distinct trace_id. `q` matches trace_id hex prefix
+        or root-operation substring.
+      parameters:
+      - collectionFormat: multi
+        description: Restrict to listed sources (repeatable)
+        in: query
+        items:
+          type: string
+        name: source
+        type: array
+      - collectionFormat: multi
+        description: ok | error | in_progress (repeatable)
+        in: query
+        items:
+          type: string
+        name: status
+        type: array
+      - description: RFC3339 lower bound on started_at
+        in: query
+        name: from
+        type: string
+      - description: RFC3339 upper bound on started_at
+        in: query
+        name: to
+        type: string
+      - description: Substring match on trace_id hex or root operation
+        in: query
+        name: q
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              limit:
+                type: integer
+              offset:
+                type: integer
+              total:
+                type: integer
+              traces:
+                items:
+                  $ref: '#/definitions/models.TraceSummary'
+                type: array
+            type: object
+        "400":
+          description: Invalid filter value
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Audit trace store not configured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List audit traces with filters
+      tags:
+      - Audit
+  /audit/traces/{trace_id}:
+    get:
+      parameters:
+      - description: 32-char lowercase hex
+        in: path
+        name: trace_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              trace_id:
+                type: string
+              tree:
+                items:
+                  $ref: '#/definitions/models.TraceNode'
+                type: array
+              truncated:
+                type: boolean
+            type: object
+        "400":
+          description: Malformed trace_id
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Trace not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Audit trace store not configured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a trace's nested span tree
+      tags:
+      - Audit
+  /compute-allocation-change-request-events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a change request event
+      tags:
+      - Change Request Events
+  /compute-allocation-change-request-events/{id}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a change request event
+      tags:
+      - Change Request Events
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a change request event
+      tags:
+      - Change Request Events
+  /compute-allocation-change-requests:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Change request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation change request
+      tags:
+      - Compute Allocation Change Requests
+  /compute-allocation-change-requests/{id}:
+    delete:
+      parameters:
+      - description: Change request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a compute allocation change request
+      tags:
+      - Compute Allocation Change Requests
+    get:
+      parameters:
+      - description: Change request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation change request
+      tags:
+      - Compute Allocation Change Requests
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Change request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Change request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a compute allocation change request
+      tags:
+      - Compute Allocation Change Requests
+  /compute-allocation-change-requests/{id}/events:
+    get:
+      parameters:
+      - description: Change request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List events for a change request
+      tags:
+      - Change Request Events
+  /compute-allocation-change-requests/{id}/events/latest:
+    get:
+      parameters:
+      - description: Change request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get the most recent event for a change request
+      tags:
+      - Change Request Events
+  /compute-allocation-diffs:
+    post:
+      consumes:
+      - application/json
+      description: Records a discrete change against a compute allocation (e.g. USAGE_UPDATE
+        or ALLOCATION_STATUS_CHANGE).
+      parameters:
+      - description: Diff payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationDiff'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationDiff'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation diff
+      tags:
+      - Compute Allocation Diffs
+  /compute-allocation-diffs/{id}:
+    delete:
+      parameters:
+      - description: Diff ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a compute allocation diff
+      tags:
+      - Compute Allocation Diffs
+    get:
+      parameters:
+      - description: Diff ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationDiff'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation diff
+      tags:
+      - Compute Allocation Diffs
+  /compute-allocation-membership-resource-overrides:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Override payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a membership resource override
+      tags:
+      - Membership Resource Overrides
+  /compute-allocation-membership-resource-overrides/{id}:
+    delete:
+      parameters:
+      - description: Override ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a membership resource override
+      tags:
+      - Membership Resource Overrides
+    get:
+      parameters:
+      - description: Override ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a membership resource override
+      tags:
+      - Membership Resource Overrides
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Override ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Override payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a membership resource override
+      tags:
+      - Membership Resource Overrides
+  /compute-allocation-memberships:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Membership payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationMembership'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembership'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
+  /compute-allocation-memberships/{id}:
+    delete:
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
+    get:
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembership'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Membership payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationMembership'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembership'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a compute allocation membership
+      tags:
+      - Compute Allocation Memberships
+  /compute-allocation-memberships/{id}/resource-overrides:
+    get:
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List resource overrides for a membership
+      tags:
+      - Membership Resource Overrides
+  /compute-allocation-memberships/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Membership ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status patch
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            membership_status:
+              $ref: '#/definitions/models.AllocationStatus'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationMembership'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a membership's status
+      tags:
+      - Compute Allocation Memberships
+  /compute-allocation-resource-rates:
+    post:
+      consumes:
+      - application/json
+      description: Records the SU rate (e.g. SU per CPU-hour) for a resource over
+        a time window.
+      parameters:
+      - description: Rate payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationResourceRate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation resource rate
+      tags:
+      - Compute Allocation Resource Rates
+  /compute-allocation-resource-rates/{id}:
+    get:
+      parameters:
+      - description: Rate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation resource rate
+      tags:
+      - Compute Allocation Resource Rates
+  /compute-allocation-resources:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationResource'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List all compute allocation resources
+      tags:
+      - Compute Allocation Resources
+    post:
+      consumes:
+      - application/json
+      description: Defines a resource (partition) — e.g. a CPU or GPU partition that
+        allocations can be attached to.
+      parameters:
+      - description: Resource payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationResource'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResource'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation resource
+      tags:
+      - Compute Allocation Resources
+  /compute-allocation-resources/{id}:
+    get:
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResource'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation resource
+      tags:
+      - Compute Allocation Resources
+  /compute-allocation-resources/{id}/allocations:
+    get:
+      parameters:
+      - description: Compute allocation resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List compute allocations attached to a resource
+      tags:
+      - Compute Allocation Resources
+  /compute-allocation-resources/{id}/membership-overrides:
+    get:
+      parameters:
+      - description: Compute allocation resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List membership overrides referencing a resource
+      tags:
+      - Membership Resource Overrides
+  /compute-allocation-resources/{id}/rates:
+    get:
+      parameters:
+      - description: Compute allocation resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationResourceRate'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List rate history for a resource
+      tags:
+      - Compute Allocation Resource Rates
+  /compute-allocation-resources/{id}/rates/effective:
+    get:
+      description: Returns the rate whose `[start_time, end_time)` window contains
+        the `at` timestamp. Defaults to now when `at` is omitted.
+      parameters:
+      - description: Compute allocation resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: RFC3339 time; defaults to now
+        in: query
+        name: at
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+        "400":
+          description: Invalid 'at' query parameter
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get the effective rate for a resource at a given time
+      tags:
+      - Compute Allocation Resource Rates
+  /compute-allocation-usages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Usage payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocationUsage'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationUsage'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation usage record
+      tags:
+      - Compute Allocation Usages
+  /compute-allocation-usages/{id}:
+    delete:
+      parameters:
+      - description: Usage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a compute allocation usage record
+      tags:
+      - Compute Allocation Usages
+    get:
+      parameters:
+      - description: Usage ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationUsage'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation usage record
+      tags:
+      - Compute Allocation Usages
+  /compute-allocations:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute allocation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeAllocation'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocation'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute allocation
+      tags:
+      - Compute Allocations
+  /compute-allocations/{id}:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocation'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute allocation by ID
+      tags:
+      - Compute Allocations
+  /compute-allocations/{id}/change-requests:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List change requests for a compute allocation
+      tags:
+      - Compute Allocation Change Requests
+  /compute-allocations/{id}/diffs:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationDiff'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List diffs for a compute allocation
+      tags:
+      - Compute Allocation Diffs
+  /compute-allocations/{id}/diffs/latest:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationDiff'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get the most recent diff for a compute allocation
+      tags:
+      - Compute Allocation Diffs
+  /compute-allocations/{id}/memberships:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationMembership'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List members of a compute allocation
+      tags:
+      - Compute Allocation Memberships
+  /compute-allocations/{id}/resources:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List resources attached to a compute allocation
+      tags:
+      - Compute Allocation Resources
+    post:
+      consumes:
+      - application/json
+      description: Creates a mapping between a compute allocation and a resource (partition)
+        with a specific amount and wall-clock time grant.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Attach payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.attachResourceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Attach a resource to a compute allocation
+      tags:
+      - Compute Allocation Resources
+  /compute-allocations/{id}/resources/{resourceId}:
+    delete:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compute allocation resource ID
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Detach a resource from a compute allocation
+      tags:
+      - Compute Allocation Resources
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compute allocation resource ID
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      - description: Mapping update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.updateAllocationResourceMappingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a compute allocation -> resource mapping
+      tags:
+      - Compute Allocation Resources
+  /compute-allocations/{id}/usages:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationUsage'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List usages for a compute allocation
+      tags:
+      - Compute Allocation Usages
+  /compute-allocations/{id}/usages/total:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              compute_allocation_id:
+                type: string
+              total_su_amount:
+                type: integer
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get total SU usage for a compute allocation
+      tags:
+      - Compute Allocation Usages
+  /compute-allocations/{id}/users/{userId}/usages/total:
+    get:
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              compute_allocation_id:
+                type: string
+              total_su_amount:
+                type: integer
+              user_id:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get total SU usage for a user within a compute allocation
+      tags:
+      - Compute Allocation Usages
+  /compute-cluster-users:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cluster user payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeClusterUser'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeClusterUser'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute cluster user
+      tags:
+      - Compute Cluster Users
+  /compute-cluster-users/{id}:
+    delete:
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a compute cluster user
+      tags:
+      - Compute Cluster Users
+    get:
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute cluster user by ID
+      tags:
+      - Compute Cluster Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Compute cluster user ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cluster user payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeClusterUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeClusterUser'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a compute cluster user
+      tags:
+      - Compute Cluster Users
+  /compute-clusters:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeCluster'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List compute clusters
+      tags:
+      - Compute Clusters
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cluster payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ComputeCluster'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ComputeCluster'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a compute cluster
+      tags:
+      - Compute Clusters
+  /compute-clusters/{id}:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeCluster'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute cluster by ID
+      tags:
+      - Compute Clusters
+  /compute-clusters/{id}/users:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeClusterUser'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List users on a compute cluster
+      tags:
+      - Compute Cluster Users
+  /compute-clusters/{id}/users/{userId}:
+    get:
+      parameters:
+      - description: Compute cluster ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ComputeClusterUser'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a compute cluster user by (cluster, user) pair
+      tags:
+      - Compute Cluster Users
+  /organizations:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Organization payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Organization'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Organization'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create an organization
+      tags:
+      - Organizations
+  /organizations/{id}:
+    get:
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Organization'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get an organization by ID
+      tags:
+      - Organizations
+  /privileges/{key}/holders:
+    get:
+      description: Role-derived holders are NOT listed here.
+      parameters:
+      - description: Privilege key
+        enum:
+        - amie:read
+        - amie:write
+        - hpc:read
+        - hpc:write
+        - signer:read
+        - signer:write
+        - privileges:grant
+        - roles:manage
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserPrivilege'
+            type: array
+        "400":
+          description: Unknown privilege key
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List direct holders of a privilege
+      tags:
+      - Privileges
+  /privileges/catalog:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.PrivilegeKey'
+            type: array
+        "401":
+          description: Missing caller header
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks privileges:grant
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List the declared privilege catalog
+      tags:
+      - Privileges
+  /projects:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Project'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Project'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a project
+      tags:
+      - Projects
+  /projects/{id}:
+    get:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Project'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a project by ID
+      tags:
+      - Projects
+  /projects/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status patch
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            status:
+              $ref: '#/definitions/models.ProjectStatus'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Project'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a project's status
+      tags:
+      - Projects
+  /roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Role'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks roles:manage
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List all roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.createRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Role name collides
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a role
+      tags:
+      - Roles
+  /roles/{id}:
+    delete:
+      description: System roles cannot be deleted. CASCADE drops every assignment
+        of this role.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: System role / unknown role
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a role
+      tags:
+      - Roles
+    get:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              privileges:
+                items:
+                  $ref: '#/definitions/models.PrivilegeKey'
+                type: array
+              role:
+                $ref: '#/definitions/models.Role'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a role with its privilege bundle
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: System roles cannot be renamed.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role patch
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.updateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update role name / description
+      tags:
+      - Roles
+  /roles/{id}/holders:
+    get:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserRole'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List users holding the role
+      tags:
+      - Roles
+  /roles/{id}/privileges:
+    post:
+      consumes:
+      - application/json
+      description: The new privilege propagates to every current holder.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Privilege key
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.rolePrivilegeRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Unknown key
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Role already carries that privilege
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Add a privilege to a role
+      tags:
+      - Roles
+  /roles/{id}/privileges/{key}:
+    delete:
+      description: Removal propagates to every holder. Refuses to remove `privileges:grant`
+        or `roles:manage` if that would leave no role anywhere carrying it.
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Privilege key
+        enum:
+        - amie:read
+        - amie:write
+        - hpc:read
+        - hpc:write
+        - signer:read
+        - signer:write
+        - privileges:grant
+        - roles:manage
+        in: path
+        name: key
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Last-source guard or unknown key
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Role does not carry that privilege
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Remove a privilege from a role
+      tags:
+      - Roles
+  /user-identities:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Identity payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserIdentity'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UserIdentity'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a user identity
+      tags:
+      - User Identities
+  /user-identities/{id}:
+    delete:
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Delete a user identity
+      tags:
+      - User Identities
+    get:
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserIdentity'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a user identity
+      tags:
+      - User Identities
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Identity payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserIdentity'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserIdentity'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a user identity
+      tags:
+      - User Identities
+  /user-identities/oidc-subjects/{oidcSub}:
+    get:
+      parameters:
+      - description: OIDC subject claim
+        in: path
+        name: oidcSub
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserIdentity'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a user identity by its OIDC subject claim
+      tags:
+      - User Identities
+  /user-identities/sources/{source}/external/{externalId}:
+    get:
+      parameters:
+      - description: Identity source
+        in: path
+        name: source
+        required: true
+        type: string
+      - description: Identity's external ID at that source
+        in: path
+        name: externalId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserIdentity'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a user identity by source and external ID
+      tags:
+      - User Identities
+  /user/privileges:
+    get:
+      description: Effective set is direct grants UNION every privilege carried by
+        every role the caller holds.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Effective privilege set
+          schema:
+            properties:
+              privileges:
+                items:
+                  $ref: '#/definitions/models.PrivilegeKey'
+                type: array
+            type: object
+        "401":
+          description: Missing X-Custos-User-Id header
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Auth lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get caller's effective privileges
+      tags:
+      - Caller
+  /users:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Create a user
+      tags:
+      - Users
+  /users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get a user by ID
+      tags:
+      - Users
+  /users/{id}/change-requests:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List change requests submitted by a user
+      tags:
+      - Compute Allocation Change Requests
+  /users/{id}/compute-allocation-memberships:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationMembership'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List a user's compute allocation memberships
+      tags:
+      - Compute Allocation Memberships
+  /users/{id}/compute-allocation-usages:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeAllocationUsage'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List usages submitted by a user
+      tags:
+      - Compute Allocation Usages
+  /users/{id}/compute-cluster-users:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ComputeClusterUser'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List compute cluster users for a user
+      tags:
+      - Compute Cluster Users
+  /users/{id}/privileges:
+    get:
+      description: Returns DIRECT grants only (not role-derived). Combine with `GET
+        /users/{id}/roles` for the full picture.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserPrivilege'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks privileges:grant
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List a user's direct privilege grants
+      tags:
+      - Privileges
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Grant payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.grantPrivilegeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UserPrivilege'
+        "400":
+          description: Bad request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing caller header
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks privileges:grant
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Privilege already active for user
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Grant a direct privilege to a user
+      tags:
+      - Privileges
+  /users/{id}/privileges/{key}:
+    delete:
+      consumes:
+      - application/json
+      description: '`privileges:grant` itself cannot be self-revoked or revoked from
+        the last holder.'
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Privilege key
+        enum:
+        - amie:read
+        - amie:write
+        - hpc:read
+        - hpc:write
+        - signer:read
+        - signer:write
+        - privileges:grant
+        - roles:manage
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Optional reason
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/server.revokePrivilegeRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Self-revoke meta, last-holder, or unknown key
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing caller header
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Caller lacks privileges:grant
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: No active grant for that key
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Revoke a direct privilege from a user
+      tags:
+      - Privileges
+  /users/{id}/roles:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserRole'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List roles a user holds
+      tags:
+      - Role Assignments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role assignment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.grantRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UserRole'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: User already holds that role
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Grant a role to a user
+      tags:
+      - Role Assignments
+  /users/{id}/roles/{roleId}:
+    delete:
+      consumes:
+      - application/json
+      description: Refuses if revoking would leave no holder of `privileges:grant`
+        or `roles:manage` anywhere (last-meta-holder guard).
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: string
+      - description: Optional reason
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/server.revokeRoleRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Last-meta-holder guard
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: User does not hold that role
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Revoke a role from a user
+      tags:
+      - Role Assignments
+  /users/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status patch
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            status:
+              $ref: '#/definitions/models.UserStatus'
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Update a user's status
+      tags:
+      - Users
+  /users/{id}/user-identities:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserIdentity'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List a user's identities
+      tags:
+      - User Identities
+  /users/merge:
+    post:
+      consumes:
+      - application/json
+      description: Merges the retiring user into the surviving user; the surviving
+        record is returned.
+      parameters:
+      - description: Merge payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.mergeUsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Merge two users
+      tags:
+      - Users
+securityDefinitions:
+  CustosUserHeader:
+    in: header
+    name: X-Custos-User-Id
+    type: apiKey
+swagger: "2.0"

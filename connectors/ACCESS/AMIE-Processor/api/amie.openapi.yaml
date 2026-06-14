@@ -1,0 +1,81 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: REST endpoints for the ACCESS-CI AMIE connector, all under /connectors/amie/.
+  title: AMIE Connector API
+  version: 0.1.0
+paths:
+  /connectors/amie/packets/{packet_id}/audits:
+    get:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: packet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              events:
+                items:
+                  properties:
+                    created_at:
+                      type: string
+                    description:
+                      type: string
+                    entity_id:
+                      type: string
+                    entity_type:
+                      type: string
+                    event_type:
+                      type: string
+                    parent_span_id:
+                      type: string
+                    source:
+                      type: string
+                    span_id:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              packet_id:
+                type: string
+            type: object
+        "400":
+          description: packet_id is required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Store lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: AMIE packet audit store not configured
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List audit events for an AMIE packet
+      tags:
+      - AMIE Audit
+securityDefinitions:
+  CustosUserHeader:
+    in: header
+    name: X-Custos-User-Id
+    type: apiKey
+swagger: "2.0"

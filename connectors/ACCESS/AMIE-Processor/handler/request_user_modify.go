@@ -26,8 +26,11 @@ import (
 	"log/slog"
 	"strings"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -52,7 +55,16 @@ func NewRequestUserModifyHandler(svc *service.Service, userDNStore store.UserDNS
 
 func (h *RequestUserModifyHandler) SupportsType() string { return "request_user_modify" }
 
-func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) error {
+func (h *RequestUserModifyHandler) Handle(ctx context.Context, tx *sql.Tx, packetJSON map[string]any, packet *model.Packet, eventID string) (err error) {
+	ctx, span := tracing.Start(ctx, "amie.handle:"+packet.Type)
+	defer span.End()
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+	}()
+
 	body, err := getBody(packetJSON)
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -25,7 +26,7 @@ import (
 
 // ComputeClusterUserHandler handles compute-cluster user lifecycle events
 // with a typed payload.
-type ComputeClusterUserHandler func(user models.ComputeClusterUser)
+type ComputeClusterUserHandler func(ctx context.Context, user models.ComputeClusterUser)
 
 // SubscribeComputeClusterUserCreated registers a typed handler invoked
 // whenever a compute_cluster_user::create event is published.
@@ -46,13 +47,13 @@ func (b *Bus) SubscribeComputeClusterUserDeleted(handler ComputeClusterUserHandl
 }
 
 func (b *Bus) subscribeComputeClusterUser(topic EventType, handler ComputeClusterUserHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch u := value.(type) {
 		case models.ComputeClusterUser:
-			handler(u)
+			handler(ctx, u)
 		case *models.ComputeClusterUser:
 			if u != nil {
-				handler(*u)
+				handler(ctx, *u)
 			}
 		default:
 			slog.Warn("compute cluster user event payload has unexpected type",

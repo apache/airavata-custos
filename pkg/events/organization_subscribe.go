@@ -1,13 +1,14 @@
 package events
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // OrganizationHandler handles organization lifecycle events with a typed payload.
-type OrganizationHandler func(organization models.Organization)
+type OrganizationHandler func(ctx context.Context, organization models.Organization)
 
 // SubscribeOrganizationCreated registers a typed handler invoked whenever an
 // organization::create event is published. Events with payloads that are not a
@@ -29,13 +30,13 @@ func (b *Bus) SubscribeOrganizationDeleted(handler OrganizationHandler) {
 }
 
 func (b *Bus) subscribeOrganization(topic EventType, handler OrganizationHandler) {
-	b.Subscribe(topic, func(event Event, value interface{}) {
+	b.Subscribe(topic, func(ctx context.Context, event Event, value interface{}) {
 		switch o := value.(type) {
 		case models.Organization:
-			handler(o)
+			handler(ctx, o)
 		case *models.Organization:
 			if o != nil {
-				handler(*o)
+				handler(ctx, *o)
 			}
 		default:
 			slog.Warn("organization event payload has unexpected type",

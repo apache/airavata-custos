@@ -18,6 +18,9 @@
 // Command server starts the Custos HTTP API.
 package main
 
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency
+//go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
+
 import (
 	"context"
 	"errors"
@@ -34,12 +37,23 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
+	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
+// @title	Apache Custos Core API
+// @version	0.2.0
+// @description	REST API for Apache Custos: organizations, users, projects, compute clusters and allocations, audit traces, and the privilege/role authorization layer. Authenticate every request with the X-Custos-User-Id header. Connector endpoints (/connectors/<name>/...) are documented in separate specs.
+// @host	localhost:8080
+// @BasePath	/
+// @securityDefinitions.apikey	CustosUserHeader
+// @in	header
+// @name	X-Custos-User-Id
+// @description.CustosUserHeader	Identifies the calling user. Dev: dev-admin, dev-operator, dev-auditor, dev-researcher (see dev-ops/compose/seeds/dev_users_and_roles.sql).
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	slog.SetDefault(slog.New(tracing.SlogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 
 	if err := run(); err != nil {
 		slog.Error("server exited with error", "error", err)
@@ -182,6 +196,26 @@ func runLegacy() error {
 		return err
 	}
 
+	tracingMode := tracing.ModeProduction
+	if os.Getenv("CUSTOS_TRACING_MODE") == "noop" {
+		tracingMode = tracing.ModeNoop
+	}
+	tracingShutdown, err := tracing.Init(tracing.InitConfig{
+		Mode:        tracingMode,
+		Logger:      slog.Default(),
+		ServiceName: "custos",
+	})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := tracingShutdown(shutdownCtx); err != nil {
+			slog.Warn("tracing shutdown returned error", "error", err)
+		}
+	}()
+
 	// Create a new event bus instance to async messaging between service and connectors
 	eventBus := events.New()
 	svc := service.New(database, eventBus)
@@ -191,14 +225,19 @@ func runLegacy() error {
 
 	tryBootstrap(ctx, svc)
 
+	adminDeps := &server.AdminDeps{
+		AuditTraces: store.NewAuditTraceStore(database),
+	}
+	srv := server.New(svc, adminDeps)
+
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG); err != nil {
+	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(server.New(svc))
+	handler := server.LoggingMiddleware(tracing.Middleware(srv))
 
 	httpServer := &http.Server{
 		Addr:              addr,

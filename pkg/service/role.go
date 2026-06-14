@@ -289,10 +289,11 @@ func (s *Service) writeRoleAuditTx(ctx context.Context, tx *sql.Tx, eventType st
 		return fmt.Errorf("marshal audit details: %w", err)
 	}
 	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
-		ID:        newID(),
-		EventType: eventType,
-		EventTime: nowUTC(),
-		EntityID:  entityID,
-		Details:   string(payload),
+		ID:         newID(),
+		EventType:  eventType,
+		EventTime:  nowUTC(),
+		EntityID:   entityID,
+		EntityType: "role",
+		Details:    string(payload),
 	})
 }
