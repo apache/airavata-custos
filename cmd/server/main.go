@@ -65,8 +65,7 @@ func run() error {
 	configPath := envDefault("CONFIG_PATH", "config/custos.yaml")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		slog.Warn("config file not found, falling back to environment variables", "config_path", configPath, "error", err)
-		return runLegacy()
+		return errors.New("failed to load config: " + err.Error())
 	}
 
 	slog.Info("loaded config", "path", configPath)
@@ -82,101 +81,6 @@ func run() error {
 	}
 	addr := ":" + strconv.Itoa(port)
 
-	maxOpen := envInt("DB_MAX_OPEN_CONNS", 25)
-	maxIdle := envInt("DB_MAX_IDLE_CONNS", 5)
-
-	database, err := db.Open(db.Config{
-		DSN:          dsn,
-		MaxOpenConns: maxOpen,
-		MaxIdleConns: maxIdle,
-	})
-	if err != nil {
-		return err
-	}
-	defer database.Close()
-
-	// Core schema must run before connector migrations because connector
-	// schemas may FK into core tables.
-	if err := db.MigrateEmbedded(database); err != nil {
-		return err
-	}
-
-	// Create a new event bus instance to async messaging between service and connectors
-	eventBus := events.New()
-	svc := service.New(database, eventBus)
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	tryBootstrap(ctx, svc)
-
-	// Tracks every background goroutine spawned by connectors so we can wait
-	// for them to drain on shutdown instead of killing them mid-flight.
-	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG); err != nil {
-		return err
-	}
-
-	handler := server.LoggingMiddleware(server.New(svc))
-
-	httpServer := &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       120 * time.Second,
-	}
-
-	serverErr := make(chan error, 1)
-	go func() {
-		slog.Info("http server listening", "addr", addr)
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			serverErr <- err
-		}
-		close(serverErr)
-	}()
-
-	select {
-	case <-ctx.Done():
-		slog.Info("shutdown signal received")
-	case err := <-serverErr:
-		if err != nil {
-			return err
-		}
-	}
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		return err
-	}
-
-	slog.Info("waiting for connectors to drain")
-	connectorsDone := make(chan struct{})
-	go func() {
-		connectorsWG.Wait()
-		close(connectorsDone)
-	}()
-	select {
-	case <-connectorsDone:
-		slog.Info("connectors drained cleanly")
-	case <-time.After(30 * time.Second):
-		slog.Warn("connector drain timed out; some workers may have leaked")
-	}
-
-	slog.Info("server stopped cleanly")
-	return nil
-}
-
-func runLegacy() error {
-	dsn := os.Getenv("DATABASE_DSN")
-	if dsn == "" {
-		return errors.New("DATABASE_DSN environment variable is required " +
-			"(e.g. user:pass@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4)")
-	}
-
-	addr := envDefault("HTTP_ADDR", ":8080")
 	maxOpen := envInt("DB_MAX_OPEN_CONNS", 25)
 	maxIdle := envInt("DB_MAX_IDLE_CONNS", 5)
 
@@ -233,11 +137,11 @@ func runLegacy() error {
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
+	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(tracing.Middleware(srv))
+	handler := server.LoggingMiddleware(srv)
 
 	httpServer := &http.Server{
 		Addr:              addr,

@@ -68,7 +68,7 @@ const connectorName = "amie"
 // @in	header
 // @name	X-Custos-User-Id
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux, connectorConfig *custosconfig.ConnectorConfig) error {
-	cfg := loadConfig()
+	cfg := loadConfig(connectorConfig)
 	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
 		return nil

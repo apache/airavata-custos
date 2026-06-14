@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"sync"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion, clusterID string
