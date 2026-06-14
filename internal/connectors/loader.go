@@ -34,38 +34,6 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// LoadConnectors brings every connector up at boot. Connectors register their
-// own HTTP routes on mux; core does not.
-func LoadConnectors(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
-	slog.Info("loading connectors")
-
-	slog.Info("loading SLURM Association Mapper connector")
-	if err := smapper.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
-		slog.Error("failed to load SLURM Association Mapper connector", "error", err)
-		return err
-	}
-
-	slog.Info("loading AMIE connector")
-	if err := amie.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
-		slog.Error("failed to load AMIE connector", "error", err)
-		return err
-	}
-	slog.Info("loading COmanage Identity-Provisioner connector")
-	if err := comanage.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
-		slog.Error("failed to load COmanage Identity-Provisioner connector", "error", err)
-		return err
-	}
-
-	slog.Info("loading SLURM Usage Monitor connector")
-	if err := monitor.LoadConnector(ctx, database, eventBus, coreService, wg, mux, nil); err != nil {
-		slog.Error("failed to load SLURM Usage Monitor connector", "error", err)
-		return err
-	}
-
-	slog.Info("finished loading connectors")
-	return nil
-}
-
 func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
 	slog.Info("loading connectors from config")
 
