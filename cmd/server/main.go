@@ -33,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
@@ -61,13 +62,25 @@ func main() {
 }
 
 func run() error {
-	dsn := os.Getenv("DATABASE_DSN")
-	if dsn == "" {
-		return errors.New("DATABASE_DSN environment variable is required " +
-			"(e.g. user:pass@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4)")
+	configPath := envDefault("CONFIG_PATH", "config/custos.yaml")
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return errors.New("failed to load config: " + err.Error())
 	}
 
-	addr := envDefault("HTTP_ADDR", ":8080")
+	slog.Info("loaded config", "path", configPath)
+
+	dsn := cfg.Core.Database.URL
+	if dsn == "" {
+		return errors.New("database.url in config is required")
+	}
+
+	port := cfg.Core.API.Port
+	if port == 0 {
+		port = 8080
+	}
+	addr := ":" + strconv.Itoa(port)
+
 	maxOpen := envInt("DB_MAX_OPEN_CONNS", 25)
 	maxIdle := envInt("DB_MAX_IDLE_CONNS", 5)
 
@@ -124,11 +137,11 @@ func run() error {
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectors(ctx, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
+	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(tracing.Middleware(srv))
+	handler := server.LoggingMiddleware(srv)
 
 	httpServer := &http.Server{
 		Addr:              addr,
