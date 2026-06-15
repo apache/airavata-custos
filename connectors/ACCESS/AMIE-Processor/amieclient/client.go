@@ -26,9 +26,19 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"time"
 )
+
+type Config struct {
+	BaseURL        string
+	SiteCode       string
+	APIKey         string
+	PollInterval   time.Duration
+	WorkerInterval time.Duration
+	ConnectTimeout time.Duration
+	ReadTimeout    time.Duration
+	PollerEnabled  bool
+}
 
 type Client struct {
 	httpClient *http.Client
@@ -37,7 +47,7 @@ type Client struct {
 	apiKey     string
 }
 
-func New(cfg config.AMIEConfig) *Client {
+func New(cfg Config) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: cfg.ReadTimeout,

@@ -29,7 +29,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/service"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
@@ -85,7 +85,7 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 }
 
 func newProcessor(database *sqlx.DB, router processorRouter, met *stubMetrics) *Processor {
-	cfg := config.AMIEConfig{WorkerInterval: 50 * time.Millisecond}
+	cfg := amieclient.Config{WorkerInterval: 50 * time.Millisecond}
 	return NewProcessor(
 		store.NewEventStore(database),
 		store.NewPacketStore(database),

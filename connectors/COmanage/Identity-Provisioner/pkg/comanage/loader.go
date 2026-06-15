@@ -42,10 +42,11 @@ func init() {
 	tracing.RegisterTerminalMarkers("comanage", "ComanageClusterAccountAttached")
 }
 
-// LoadConnector wires the subscriber to the event bus. If any required env
-// var is missing, the loader logs and returns nil without registering.
+// LoadConnector wires the subscriber to the event bus. Reads YAML config first
+// and falls back to environment variables. If neither yields a complete
+// config, it logs and returns nil without registering.
 func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
-	cfg, ok := loadConfigFromEnv()
+	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
 	if !ok {
 		cfg, ok = loadConfigFromEnv()
 		if !ok {
@@ -84,16 +85,12 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		if k, ok := registry["api_key"].(string); ok {
 			apiKey = k
 		}
-		if id, ok := registry["co_id"].(float64); ok {
-			coID = int(id)
-		}
+		coID = asInt(registry["co_id"])
 	}
 
 	// Load unix_cluster config
 	if unixCluster, err := connectorConfig.GetNestedConfig("unix_cluster"); err == nil {
-		if id, ok := unixCluster["id"].(float64); ok {
-			unixClusterID = int(id)
-		}
+		unixClusterID = asInt(unixCluster["id"])
 		if pType, ok := unixCluster["person_id_type"].(string); ok {
 			personIDType = pType
 		}
@@ -140,6 +137,19 @@ func loadConfigFromConnectorConfig(connectorConfig *config.ConnectorConfig) (cli
 		HomedirPrefix:   homedirPrefix,
 		HTTPTimeout:     timeout,
 	}, true
+}
+
+// asInt handles the int / int64 / float64 shapes yaml.v3 may produce.
+func asInt(v interface{}) int {
+	switch n := v.(type) {
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case float64:
+		return int(n)
+	}
+	return 0
 }
 
 func loadConfigFromEnv() (client.Config, bool) {

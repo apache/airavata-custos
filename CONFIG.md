@@ -10,7 +10,7 @@ Custos server can be configured using a YAML configuration file instead of envir
    ./custos
    ```
 
-The server will automatically load the configuration file. If the config file is not found, it falls back to legacy environment variable configuration.
+The server will automatically load the configuration file. If the config file is not found at the resolved path, the server exits with an error — make sure `config/custos.yaml` exists (or override `CONFIG_PATH`).
 
 ## Configuration File Location
 
@@ -29,13 +29,13 @@ The `core` section contains essential server settings:
 ```yaml
 core:
   database:
-    url: "postgresql://user:password@localhost:5432/custos_db?sslmode=disable"
+    url: "admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
   api:
     port: 8080
   log_level: "info"
 ```
 
-- **database.url**: PostgreSQL connection string (required)
+- **database.url**: MariaDB / MySQL DSN (the server uses the `go-sql-driver/mysql` driver). Required.
 - **api.port**: HTTP API port (default: 8080)
 - **log_level**: Logging level (info, debug, warn, error)
 
@@ -110,6 +110,7 @@ connectors:
       poller_enabled: true
     timeouts:
       connect_timeout: "5s"
+      read_timeout: "20s"
 ```
 
 ## Environment Variable Substitution
@@ -130,7 +131,7 @@ core:
 
 In your shell:
 ```bash
-export DATABASE_URL="postgresql://user:password@localhost:5432/custos_db"
+export DATABASE_URL="admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
 ./custos
 ```
 
@@ -179,14 +180,6 @@ New connector types can be added by:
 2. Adding the loader function to `internal/connectors/loader.go`
 3. Mapping the type to the loader in `connectorLoaders` map
 
-## Fallback to Environment Variables
-
-For backward compatibility, if the configuration file is not found, the server falls back to the legacy environment variable configuration:
-
-```bash
-DATABASE_DSN="..." HTTP_ADDR=":8080" ./custos
-```
-
 ## Configuration Validation
 
 The configuration is validated during parsing. Common issues:
@@ -227,7 +220,7 @@ To add a new connector type:
 3. Add the type-to-loader mapping in the `connectorLoaders` map:
 
 ```go
-connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup) error{
+connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *http.ServeMux, *config.ConnectorConfig) error{
     "my-new-connector": mynewconnector.LoadConnector,
     // ... existing connectors
 }

@@ -1,6 +1,6 @@
 core:
   database:
-    url: "postgresql://custos_user:password@localhost:5432/custos_db?sslmode=disable"
+    url: "admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
   api:
     port: 8080
   log_level: "info"
@@ -57,3 +57,4 @@ connectors:
       poller_enabled: true
     timeouts:
       connect_timeout: "5s"
+      read_timeout: "20s"
