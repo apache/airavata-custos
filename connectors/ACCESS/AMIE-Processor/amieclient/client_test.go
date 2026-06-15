@@ -26,14 +26,13 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // newTestClient builds a Client pointed at the given httptest.Server URL.
 func newTestClient(serverURL string) *amieclient.Client {
-	return amieclient.New(config.AMIEConfig{
+	return amieclient.New(amieclient.Config{
 		BaseURL:        serverURL,
 		SiteCode:       "TESTSITE",
 		APIKey:         "test-key",

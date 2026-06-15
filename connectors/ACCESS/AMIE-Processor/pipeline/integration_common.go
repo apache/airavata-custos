@@ -35,7 +35,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/handler"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/metrics"
@@ -182,7 +181,7 @@ func newTestPipeline(t *testing.T) *testPipeline {
 	t.Helper()
 	database := setupTestDB(t)
 
-	cfg := config.AMIEConfig{
+	cfg := amieclient.Config{
 		BaseURL:        os.Getenv("AMIE_BASE_URL"),
 		SiteCode:       os.Getenv("AMIE_SITE_CODE"),
 		APIKey:         os.Getenv("AMIE_API_KEY"),

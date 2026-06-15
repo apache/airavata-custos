@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 )
 
@@ -44,7 +44,7 @@ func newPoller(t *testing.T, client pollerAmieClient) (*Poller, *stubMetrics) {
 	t.Helper()
 	database := setupTestDB(t)
 	met := &stubMetrics{}
-	cfg := config.AMIEConfig{
+	cfg := amieclient.Config{
 		PollInterval:  10 * time.Millisecond,
 		PollerEnabled: true,
 	}
@@ -186,7 +186,7 @@ func TestPoller_DisabledRunReturnsImmediately(t *testing.T) {
 	database := setupTestDB(t)
 	stub := &stubAmieClient{responses: [][]map[string]any{{makePollerPacket(5001, "request_project_create")}}}
 	met := &stubMetrics{}
-	cfg := config.AMIEConfig{
+	cfg := amieclient.Config{
 		PollInterval:  10 * time.Millisecond,
 		PollerEnabled: false,
 	}

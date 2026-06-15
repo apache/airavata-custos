@@ -28,7 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 )
@@ -61,7 +61,7 @@ type Poller struct {
 	enabled      bool
 }
 
-func NewPoller(client pollerAmieClient, packetStore pollerPacketStore, eventStore pollerEventStore, metrics pollerMetrics, db *sqlx.DB, cfg config.AMIEConfig) *Poller {
+func NewPoller(client pollerAmieClient, packetStore pollerPacketStore, eventStore pollerEventStore, metrics pollerMetrics, db *sqlx.DB, cfg amieclient.Config) *Poller {
 	return &Poller{
 		client:       client,
 		packetStore:  packetStore,

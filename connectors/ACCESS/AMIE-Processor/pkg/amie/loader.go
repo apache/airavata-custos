@@ -33,7 +33,6 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
 	amiedb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/handler"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/metrics"
@@ -69,7 +68,7 @@ const connectorName = "amie"
 // @name	X-Custos-User-Id
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux, connectorConfig *custosconfig.ConnectorConfig) error {
 	cfg := loadConfig(connectorConfig)
-	if cfg.AMIE.APIKey == "" || cfg.AMIE.BaseURL == "" || cfg.AMIE.SiteCode == "" {
+	if cfg.APIKey == "" || cfg.BaseURL == "" || cfg.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
 		return nil
 	}
@@ -92,12 +91,12 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster
 	// identity is per-deployment configuration rather than per-packet.
-	clusterID := os.Getenv("AMIE_CLUSTER_ID")
+	clusterID := loadClusterID(connectorConfig)
 	if clusterID == "" {
-		slog.Warn("AMIE_CLUSTER_ID not set; account and project create handlers will fail")
+		slog.Warn("AMIE cluster id not set (cluster.id in YAML or AMIE_CLUSTER_ID env); account and project create handlers will fail")
 	}
 
-	amie := amieclient.New(cfg.AMIE)
+	amie := amieclient.New(cfg)
 
 	router := handler.NewRouter(
 		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc),
@@ -115,8 +114,8 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	)
 
 	met := metrics.New()
-	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg.AMIE)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg.AMIE)
+	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg)
 
 	wg.Add(2)
 	go func() {
@@ -130,77 +129,95 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 		slog.Info("AMIE processor stopped")
 	}()
 
-	slog.Info("AMIE connector started", "site", cfg.AMIE.SiteCode, "baseURL", cfg.AMIE.BaseURL)
+	slog.Info("AMIE connector started", "site", cfg.SiteCode, "baseURL", cfg.BaseURL)
 	return nil
 }
 
-func loadConfig(connectorConfig *custosconfig.ConnectorConfig) *config.Config {
-	cfg := &config.Config{}
+func loadConfig(connectorConfig *custosconfig.ConnectorConfig) amieclient.Config {
+	cfg := amieclient.Config{}
+	pollerEnabledSet := false
 
-	// Load from connector config if available
 	if connectorConfig != nil {
 		if credentials, err := connectorConfig.GetNestedConfig("credentials"); err == nil {
 			if url, ok := credentials["base_url"].(string); ok {
-				cfg.AMIE.BaseURL = url
+				cfg.BaseURL = url
 			}
 			if code, ok := credentials["site_code"].(string); ok {
-				cfg.AMIE.SiteCode = code
+				cfg.SiteCode = code
 			}
 			if key, ok := credentials["api_key"].(string); ok {
-				cfg.AMIE.APIKey = key
+				cfg.APIKey = key
 			}
 		}
 
 		if polling, err := connectorConfig.GetNestedConfig("polling"); err == nil {
 			if interval, ok := polling["poll_interval"].(string); ok {
 				if d, err := time.ParseDuration(interval); err == nil {
-					cfg.AMIE.PollInterval = d
+					cfg.PollInterval = d
 				}
 			}
 			if interval, ok := polling["worker_interval"].(string); ok {
 				if d, err := time.ParseDuration(interval); err == nil {
-					cfg.AMIE.WorkerInterval = d
+					cfg.WorkerInterval = d
 				}
 			}
 			if enabled, ok := polling["poller_enabled"].(bool); ok {
-				cfg.AMIE.PollerEnabled = enabled
+				cfg.PollerEnabled = enabled
+				pollerEnabledSet = true
 			}
 		}
 
 		if timeouts, err := connectorConfig.GetNestedConfig("timeouts"); err == nil {
 			if timeout, ok := timeouts["connect_timeout"].(string); ok {
 				if d, err := time.ParseDuration(timeout); err == nil {
-					cfg.AMIE.ConnectTimeout = d
+					cfg.ConnectTimeout = d
+				}
+			}
+			if timeout, ok := timeouts["read_timeout"].(string); ok {
+				if d, err := time.ParseDuration(timeout); err == nil {
+					cfg.ReadTimeout = d
 				}
 			}
 		}
 	}
 
-	// Fall back to environment variables
-	if cfg.AMIE.BaseURL == "" {
-		cfg.AMIE.BaseURL = os.Getenv("AMIE_BASE_URL")
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = os.Getenv("AMIE_BASE_URL")
 	}
-	if cfg.AMIE.SiteCode == "" {
-		cfg.AMIE.SiteCode = os.Getenv("AMIE_SITE_CODE")
+	if cfg.SiteCode == "" {
+		cfg.SiteCode = os.Getenv("AMIE_SITE_CODE")
 	}
-	if cfg.AMIE.APIKey == "" {
-		cfg.AMIE.APIKey = os.Getenv("AMIE_API_KEY")
+	if cfg.APIKey == "" {
+		cfg.APIKey = os.Getenv("AMIE_API_KEY")
 	}
-	if cfg.AMIE.PollInterval == 0 {
-		cfg.AMIE.PollInterval = durationEnv("AMIE_POLL_INTERVAL", 30*time.Second)
+	if cfg.PollInterval == 0 {
+		cfg.PollInterval = durationEnv("AMIE_POLL_INTERVAL", 30*time.Second)
 	}
-	if cfg.AMIE.WorkerInterval == 0 {
-		cfg.AMIE.WorkerInterval = durationEnv("AMIE_WORKER_INTERVAL", 5*time.Second)
+	if cfg.WorkerInterval == 0 {
+		cfg.WorkerInterval = durationEnv("AMIE_WORKER_INTERVAL", 5*time.Second)
 	}
-	if cfg.AMIE.ConnectTimeout == 0 {
-		cfg.AMIE.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
+	if cfg.ConnectTimeout == 0 {
+		cfg.ConnectTimeout = durationEnv("AMIE_CONNECT_TIMEOUT", 5*time.Second)
 	}
-	if cfg.AMIE.ReadTimeout == 0 {
-		cfg.AMIE.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
+	if cfg.ReadTimeout == 0 {
+		cfg.ReadTimeout = durationEnv("AMIE_READ_TIMEOUT", 20*time.Second)
 	}
-	cfg.AMIE.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", cfg.AMIE.PollerEnabled)
+	if !pollerEnabledSet {
+		cfg.PollerEnabled = boolEnv("AMIE_POLLER_ENABLED", true)
+	}
 
 	return cfg
+}
+
+func loadClusterID(connectorConfig *custosconfig.ConnectorConfig) string {
+	if connectorConfig != nil {
+		if cluster, err := connectorConfig.GetNestedConfig("cluster"); err == nil {
+			if id, ok := cluster["id"].(string); ok && id != "" {
+				return id
+			}
+		}
+	}
+	return os.Getenv("AMIE_CLUSTER_ID")
 }
 
 func durationEnv(key string, fallback time.Duration) time.Duration {
