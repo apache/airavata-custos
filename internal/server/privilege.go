@@ -21,6 +21,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -36,19 +37,19 @@ import (
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 	callerID := r.Header.Get(callerHeader)
 	if callerID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	profile, err := s.lookupAuthProfile(r.Context(), callerID)
 	if err != nil {
-		writeError(w, http.StatusServiceUnavailable, errors.New("auth lookup failed"))
+		common.WriteError(w, http.StatusServiceUnavailable, errors.New("auth lookup failed"))
 		return
 	}
 	keys := make([]models.PrivilegeKey, 0, len(profile.privileges))
 	for k := range profile.privileges {
 		keys = append(keys, k)
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"privileges": keys})
+	common.WriteJSON(w, http.StatusOK, map[string]any{"privileges": keys})
 }
 
 // @Summary	List the declared privilege catalog
@@ -60,7 +61,7 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Router	/privileges/catalog [get]
 func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, s.svc.PrivilegeCatalog())
+	common.WriteJSON(w, http.StatusOK, s.svc.PrivilegeCatalog())
 }
 
 // @Summary	List a user's direct privilege grants
@@ -76,15 +77,15 @@ func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) listUserPrivileges(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	if userID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
 	rows, err := s.svc.ListUserPrivileges(r.Context(), userID)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	List direct holders of a privilege
@@ -99,15 +100,15 @@ func (s *Server) listUserPrivileges(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listPrivilegeHolders(w http.ResponseWriter, r *http.Request) {
 	key := models.PrivilegeKey(r.PathValue("key"))
 	if !models.IsKnownPrivilege(key) {
-		writeError(w, http.StatusBadRequest, errors.New("unknown privilege key"))
+		common.WriteError(w, http.StatusBadRequest, errors.New("unknown privilege key"))
 		return
 	}
 	rows, err := s.svc.ListPrivilegeHolders(r.Context(), key)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 type grantPrivilegeRequest struct {
@@ -131,26 +132,26 @@ type grantPrivilegeRequest struct {
 func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	if userID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
 	granterID := r.Header.Get(callerHeader)
 	if granterID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req grantPrivilegeRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	grant, err := s.svc.GrantPrivilege(r.Context(), userID, req.Privilege, granterID, req.Reason)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	s.authCache.invalidate(userID)
-	writeJSON(w, http.StatusCreated, grant)
+	common.WriteJSON(w, http.StatusCreated, grant)
 }
 
 type revokePrivilegeRequest struct {
@@ -175,18 +176,18 @@ func (s *Server) revokePrivilege(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 	key := models.PrivilegeKey(r.PathValue("key"))
 	if userID == "" || key == "" {
-		writeError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
+		common.WriteError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
 		return
 	}
 	revokerID := r.Header.Get(callerHeader)
 	if revokerID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req revokePrivilegeRequest
-	_ = decodeJSON(r, &req)
+	_ = common.DecodeJSON(r, &req)
 	if err := s.svc.RevokePrivilege(r.Context(), userID, key, revokerID, req.Reason); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	s.authCache.invalidate(userID)

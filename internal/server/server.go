@@ -19,15 +19,14 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/httputil"
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -188,7 +187,7 @@ func (s *Server) routes() {
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	common.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // @Summary	Create an organization
@@ -202,16 +201,16 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 // @Router	/organizations [post]
 func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 	var org models.Organization
-	if err := decodeJSON(r, &org); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &org); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateOrganization(r.Context(), &org)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get an organization by ID
@@ -225,10 +224,10 @@ func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getOrganization(w http.ResponseWriter, r *http.Request) {
 	org, err := s.svc.GetOrganization(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, org)
+	common.WriteJSON(w, http.StatusOK, org)
 }
 
 // @Summary	Create a user
@@ -242,16 +241,16 @@ func (s *Server) getOrganization(w http.ResponseWriter, r *http.Request) {
 // @Router	/users [post]
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	var u models.User
-	if err := decodeJSON(r, &u); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &u); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateUser(r.Context(), &u)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a user by ID
@@ -265,10 +264,10 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 	u, err := s.svc.GetUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, u)
+	common.WriteJSON(w, http.StatusOK, u)
 }
 
 // @Summary	Create a project
@@ -282,16 +281,16 @@ func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 // @Router	/projects [post]
 func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 	var p models.Project
-	if err := decodeJSON(r, &p); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &p); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateProject(r.Context(), &p)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a project by ID
@@ -305,10 +304,10 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 	p, err := s.svc.GetProject(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, p)
+	common.WriteJSON(w, http.StatusOK, p)
 }
 
 // @Summary	Create a compute cluster
@@ -322,16 +321,16 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
 // @Router	/compute-clusters [post]
 func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
 	var c models.ComputeCluster
-	if err := decodeJSON(r, &c); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &c); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeCluster(r.Context(), &c)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute cluster by ID
@@ -345,10 +344,10 @@ func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
 	c, err := s.svc.GetComputeCluster(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, c)
+	common.WriteJSON(w, http.StatusOK, c)
 }
 
 // @Summary	List compute clusters
@@ -361,10 +360,10 @@ func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 	clusters, err := s.svc.ListComputeClusters(r.Context())
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, clusters)
+	common.WriteJSON(w, http.StatusOK, clusters)
 }
 
 // @Summary	Create a compute cluster user
@@ -378,16 +377,16 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 // @Router	/compute-cluster-users [post]
 func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	var cu models.ComputeClusterUser
-	if err := decodeJSON(r, &cu); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &cu); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeClusterUser(r.Context(), &cu)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute cluster user by ID
@@ -401,10 +400,10 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	cu, err := s.svc.GetComputeClusterUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, cu)
+	common.WriteJSON(w, http.StatusOK, cu)
 }
 
 // @Summary	Update a compute cluster user
@@ -420,16 +419,16 @@ func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 // @Router	/compute-cluster-users/{id} [put]
 func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	var cu models.ComputeClusterUser
-	if err := decodeJSON(r, &cu); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &cu); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	cu.ID = r.PathValue("id")
 	if err := s.svc.UpdateComputeClusterUser(r.Context(), &cu); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, &cu)
+	common.WriteJSON(w, http.StatusOK, &cu)
 }
 
 // @Summary	Delete a compute cluster user
@@ -441,7 +440,7 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 // @Router	/compute-cluster-users/{id} [delete]
 func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeClusterUser(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -458,10 +457,10 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http.Request) {
 	users, err := s.svc.ListComputeClusterUsersByCluster(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, users)
+	common.WriteJSON(w, http.StatusOK, users)
 }
 
 // @Summary	Get a compute cluster user by (cluster, user) pair
@@ -476,10 +475,10 @@ func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http
 func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Request) {
 	cu, err := s.svc.GetComputeClusterUserByPair(r.Context(), r.PathValue("id"), r.PathValue("userId"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, cu)
+	common.WriteJSON(w, http.StatusOK, cu)
 }
 
 // @Summary	List compute cluster users for a user
@@ -493,10 +492,10 @@ func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Requ
 func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Request) {
 	users, err := s.svc.ListComputeClusterUsersByUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, users)
+	common.WriteJSON(w, http.StatusOK, users)
 }
 
 // @Summary	Create a compute allocation
@@ -510,16 +509,16 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 // @Router	/compute-allocations [post]
 func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	var a models.ComputeAllocation
-	if err := decodeJSON(r, &a); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &a); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocation(r.Context(), &a)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation by ID
@@ -533,10 +532,10 @@ func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request)
 func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 	a, err := s.svc.GetComputeAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, a)
+	common.WriteJSON(w, http.StatusOK, a)
 }
 
 // @Summary	Create a compute allocation resource
@@ -552,16 +551,16 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 // @Router	/compute-allocation-resources [post]
 func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
 	var res models.ComputeAllocationResource
-	if err := decodeJSON(r, &res); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &res); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationResource(r.Context(), &res)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation resource
@@ -575,10 +574,10 @@ func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.
 func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Request) {
 	res, err := s.svc.GetComputeAllocationResource(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, res)
+	common.WriteJSON(w, http.StatusOK, res)
 }
 
 // @Summary	List all compute allocation resources
@@ -591,10 +590,10 @@ func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Req
 func (s *Server) listComputeAllocationResources(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.svc.ListComputeAllocationResources(r.Context())
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, resources)
+	common.WriteJSON(w, http.StatusOK, resources)
 }
 
 type attachResourceRequest struct {
@@ -617,16 +616,16 @@ type attachResourceRequest struct {
 // @Router	/compute-allocations/{id}/resources [post]
 func (s *Server) attachResourceToAllocation(w http.ResponseWriter, r *http.Request) {
 	var body attachResourceRequest
-	if err := decodeJSON(r, &body); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	mapping, err := s.svc.AttachResourceToAllocation(r.Context(), r.PathValue("id"), body.ComputeAllocationResourceID, body.ResourceAmount, body.ResourceTime)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, mapping)
+	common.WriteJSON(w, http.StatusCreated, mapping)
 }
 
 type updateAllocationResourceMappingRequest struct {
@@ -648,16 +647,16 @@ type updateAllocationResourceMappingRequest struct {
 // @Router	/compute-allocations/{id}/resources/{resourceId} [put]
 func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.Request) {
 	var body updateAllocationResourceMappingRequest
-	if err := decodeJSON(r, &body); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	mapping, err := s.svc.UpdateAllocationResourceMapping(r.Context(), r.PathValue("id"), r.PathValue("resourceId"), body.ResourceAmount, body.ResourceTime)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, mapping)
+	common.WriteJSON(w, http.StatusOK, mapping)
 }
 
 // @Summary	Detach a resource from a compute allocation
@@ -670,7 +669,7 @@ func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.
 // @Router	/compute-allocations/{id}/resources/{resourceId} [delete]
 func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DetachResourceFromAllocation(r.Context(), r.PathValue("id"), r.PathValue("resourceId")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -687,10 +686,10 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.svc.ListResourcesForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, resources)
+	common.WriteJSON(w, http.StatusOK, resources)
 }
 
 // @Summary	List compute allocations attached to a resource
@@ -704,10 +703,10 @@ func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Reque
 func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Request) {
 	allocs, err := s.svc.ListAllocationsForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, allocs)
+	common.WriteJSON(w, http.StatusOK, allocs)
 }
 
 // @Summary	Create a compute allocation resource rate
@@ -723,16 +722,16 @@ func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Reque
 // @Router	/compute-allocation-resource-rates [post]
 func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
 	var rate models.ComputeAllocationResourceRate
-	if err := decodeJSON(r, &rate); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &rate); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationResourceRate(r.Context(), &rate)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation resource rate
@@ -746,10 +745,10 @@ func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *h
 func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http.Request) {
 	rate, err := s.svc.GetComputeAllocationResourceRate(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rate)
+	common.WriteJSON(w, http.StatusOK, rate)
 }
 
 // @Summary	List rate history for a resource
@@ -763,10 +762,10 @@ func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http
 func (s *Server) listRatesForResource(w http.ResponseWriter, r *http.Request) {
 	rates, err := s.svc.ListRatesForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rates)
+	common.WriteJSON(w, http.StatusOK, rates)
 }
 
 // @Summary	Get the effective rate for a resource at a given time
@@ -785,17 +784,17 @@ func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Requ
 	if raw := r.URL.Query().Get("at"); raw != "" {
 		parsed, err := time.Parse(time.RFC3339Nano, raw)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, errors.New("invalid 'at' query parameter; expected RFC 3339"))
+			common.WriteError(w, http.StatusBadRequest, errors.New("invalid 'at' query parameter; expected RFC 3339"))
 			return
 		}
 		at = parsed
 	}
 	rate, err := s.svc.GetEffectiveRateForResource(r.Context(), r.PathValue("id"), at)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rate)
+	common.WriteJSON(w, http.StatusOK, rate)
 }
 
 // @Summary	Create a compute allocation diff
@@ -811,16 +810,16 @@ func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Requ
 // @Router	/compute-allocation-diffs [post]
 func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	var diff models.ComputeAllocationDiff
-	if err := decodeJSON(r, &diff); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &diff); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationDiff(r.Context(), &diff)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation diff
@@ -834,10 +833,10 @@ func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	diff, err := s.svc.GetComputeAllocationDiff(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, diff)
+	common.WriteJSON(w, http.StatusOK, diff)
 }
 
 // @Summary	Delete a compute allocation diff
@@ -849,7 +848,7 @@ func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request
 // @Router	/compute-allocation-diffs/{id} [delete]
 func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationDiff(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -866,10 +865,10 @@ func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) {
 	diffs, err := s.svc.ListDiffsForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, diffs)
+	common.WriteJSON(w, http.StatusOK, diffs)
 }
 
 // @Summary	Get the most recent diff for a compute allocation
@@ -883,10 +882,10 @@ func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) 
 func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Request) {
 	diff, err := s.svc.GetLatestDiffForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, diff)
+	common.WriteJSON(w, http.StatusOK, diff)
 }
 
 // @Summary	Create a compute allocation change request
@@ -900,16 +899,16 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 // @Router	/compute-allocation-change-requests [post]
 func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	var req models.ComputeAllocationChangeRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationChangeRequest(r.Context(), &req)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation change request
@@ -923,10 +922,10 @@ func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *
 func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	req, err := s.svc.GetComputeAllocationChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, req)
+	common.WriteJSON(w, http.StatusOK, req)
 }
 
 // @Summary	Update a compute allocation change request
@@ -942,17 +941,17 @@ func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *htt
 // @Router	/compute-allocation-change-requests/{id} [put]
 func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	var req models.ComputeAllocationChangeRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	req.ID = r.PathValue("id")
 	updated, err := s.svc.UpdateComputeAllocationChangeRequest(r.Context(), &req)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, updated)
+	common.WriteJSON(w, http.StatusOK, updated)
 }
 
 // @Summary	Delete a compute allocation change request
@@ -964,7 +963,7 @@ func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *
 // @Router	/compute-allocation-change-requests/{id} [delete]
 func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationChangeRequest(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -981,10 +980,10 @@ func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *
 func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListChangeRequestsForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	List change requests submitted by a user
@@ -998,10 +997,10 @@ func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.
 func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListChangeRequestsByRequester(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	Create a change request event
@@ -1015,16 +1014,16 @@ func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Re
 // @Router	/compute-allocation-change-request-events [post]
 func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	var evt models.ComputeAllocationChangeRequestEvent
-	if err := decodeJSON(r, &evt); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &evt); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationChangeRequestEvent(r.Context(), &evt)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a change request event
@@ -1038,10 +1037,10 @@ func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter
 func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	evt, err := s.svc.GetComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, evt)
+	common.WriteJSON(w, http.StatusOK, evt)
 }
 
 // @Summary	Delete a change request event
@@ -1053,7 +1052,7 @@ func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r
 // @Router	/compute-allocation-change-request-events/{id} [delete]
 func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationChangeRequestEvent(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1070,10 +1069,10 @@ func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter
 func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListEventsForChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	Get the most recent event for a change request
@@ -1087,10 +1086,10 @@ func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Reque
 func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.Request) {
 	evt, err := s.svc.GetLatestEventForChangeRequest(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, evt)
+	common.WriteJSON(w, http.StatusOK, evt)
 }
 
 // @Summary	Create a compute allocation membership
@@ -1104,16 +1103,16 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 // @Router	/compute-allocation-memberships [post]
 func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
-	if err := decodeJSON(r, &m); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &m); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationMembership(r.Context(), &m)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation membership
@@ -1127,10 +1126,10 @@ func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *htt
 func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	m, err := s.svc.GetComputeAllocationMembership(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, m)
+	common.WriteJSON(w, http.StatusOK, m)
 }
 
 // @Summary	Update a compute allocation membership
@@ -1146,17 +1145,17 @@ func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.R
 // @Router	/compute-allocation-memberships/{id} [put]
 func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	var m models.ComputeAllocationMembership
-	if err := decodeJSON(r, &m); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &m); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	m.ID = r.PathValue("id")
 	updated, err := s.svc.UpdateComputeAllocationMembership(r.Context(), &m)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, updated)
+	common.WriteJSON(w, http.StatusOK, updated)
 }
 
 // @Summary	Update a membership's status
@@ -1174,16 +1173,16 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 	var body struct {
 		MembershipStatus models.AllocationStatus `json:"membership_status"`
 	}
-	if err := decodeJSON(r, &body); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	updated, err := s.svc.UpdateMembershipStatus(r.Context(), r.PathValue("id"), body.MembershipStatus)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, updated)
+	common.WriteJSON(w, http.StatusOK, updated)
 }
 
 // @Summary	Delete a compute allocation membership
@@ -1195,7 +1194,7 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 // @Router	/compute-allocation-memberships/{id} [delete]
 func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembership(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1212,10 +1211,10 @@ func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *htt
 func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListMembersForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	List a user's compute allocation memberships
@@ -1229,10 +1228,10 @@ func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request
 func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListAllocationsForUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	Create a compute allocation usage record
@@ -1246,16 +1245,16 @@ func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) 
 // @Router	/compute-allocation-usages [post]
 func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	var u models.ComputeAllocationUsage
-	if err := decodeJSON(r, &u); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &u); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationUsage(r.Context(), &u)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a compute allocation usage record
@@ -1269,10 +1268,10 @@ func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	u, err := s.svc.GetComputeAllocationUsage(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, u)
+	common.WriteJSON(w, http.StatusOK, u)
 }
 
 // @Summary	Delete a compute allocation usage record
@@ -1284,7 +1283,7 @@ func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Reques
 // @Router	/compute-allocation-usages/{id} [delete]
 func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationUsage(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1301,10 +1300,10 @@ func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListUsagesForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	List usages submitted by a user
@@ -1318,10 +1317,10 @@ func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request)
 func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListUsagesByUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	Create a membership resource override
@@ -1335,16 +1334,16 @@ func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 // @Router	/compute-allocation-membership-resource-overrides [post]
 func (s *Server) createComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	var o models.ComputeAllocationMembershipResourceOverride
-	if err := decodeJSON(r, &o); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &o); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateComputeAllocationMembershipResourceOverride(r.Context(), &o)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a membership resource override
@@ -1358,10 +1357,10 @@ func (s *Server) createComputeAllocationMembershipResourceOverride(w http.Respon
 func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	o, err := s.svc.GetComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, o)
+	common.WriteJSON(w, http.StatusOK, o)
 }
 
 // @Summary	Update a membership resource override
@@ -1377,17 +1376,17 @@ func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseW
 // @Router	/compute-allocation-membership-resource-overrides/{id} [put]
 func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	var o models.ComputeAllocationMembershipResourceOverride
-	if err := decodeJSON(r, &o); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &o); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	o.ID = r.PathValue("id")
 	updated, err := s.svc.UpdateComputeAllocationMembershipResourceOverride(r.Context(), &o)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, updated)
+	common.WriteJSON(w, http.StatusOK, updated)
 }
 
 // @Summary	Delete a membership resource override
@@ -1399,7 +1398,7 @@ func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.Respon
 // @Router	/compute-allocation-membership-resource-overrides/{id} [delete]
 func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteComputeAllocationMembershipResourceOverride(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1416,10 +1415,10 @@ func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.Respon
 func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListOverridesForMembership(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	List membership overrides referencing a resource
@@ -1433,10 +1432,10 @@ func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Reque
 func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.svc.ListOverridesForResource(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, rows)
 }
 
 // @Summary	Get total SU usage for a compute allocation
@@ -1450,10 +1449,10 @@ func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request
 func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Request) {
 	total, err := s.svc.GetTotalSUUsageForAllocation(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	common.WriteJSON(w, http.StatusOK, map[string]any{
 		"compute_allocation_id": r.PathValue("id"),
 		"total_su_amount":       total,
 	})
@@ -1473,10 +1472,10 @@ func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *ht
 	userID := r.PathValue("userId")
 	total, err := s.svc.GetTotalSUUsageForUserInAllocation(r.Context(), allocationID, userID)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	common.WriteJSON(w, http.StatusOK, map[string]any{
 		"compute_allocation_id": allocationID,
 		"user_id":               userID,
 		"total_su_amount":       total,
@@ -1500,16 +1499,16 @@ type statusUpdateRequest struct {
 // @Router	/users/{id}/status [put]
 func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	var req statusUpdateRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	u, err := s.svc.UpdateUserStatus(r.Context(), r.PathValue("id"), models.UserStatus(req.Status))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, u)
+	common.WriteJSON(w, http.StatusOK, u)
 }
 
 // @Summary	Update a project's status
@@ -1525,16 +1524,16 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 // @Router	/projects/{id}/status [put]
 func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 	var req statusUpdateRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	p, err := s.svc.UpdateProjectStatus(r.Context(), r.PathValue("id"), models.ProjectStatus(req.Status))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, p)
+	common.WriteJSON(w, http.StatusOK, p)
 }
 
 // @Summary	Create a user identity
@@ -1548,16 +1547,16 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 // @Router	/user-identities [post]
 func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
 	var e models.UserIdentity
-	if err := decodeJSON(r, &e); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &e); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.svc.CreateUserIdentity(r.Context(), &e)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	common.WriteJSON(w, http.StatusCreated, created)
 }
 
 // @Summary	Get a user identity
@@ -1571,10 +1570,10 @@ func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentity(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, e)
+	common.WriteJSON(w, http.StatusOK, e)
 }
 
 // @Summary	Get a user identity by source and external ID
@@ -1589,10 +1588,10 @@ func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentityBySourceAndExternalID(r.Context(), r.PathValue("source"), r.PathValue("externalId"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, e)
+	common.WriteJSON(w, http.StatusOK, e)
 }
 
 // @Summary	Get a user identity by its OIDC subject claim
@@ -1606,10 +1605,10 @@ func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *
 func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request) {
 	e, err := s.svc.GetUserIdentityByOIDCSub(r.Context(), r.PathValue("oidcSub"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, e)
+	common.WriteJSON(w, http.StatusOK, e)
 }
 
 // @Summary	List a user's identities
@@ -1623,10 +1622,10 @@ func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request
 func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Request) {
 	out, err := s.svc.ListUserIdentitiesForUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, out)
+	common.WriteJSON(w, http.StatusOK, out)
 }
 
 // @Summary	Update a user identity
@@ -1642,16 +1641,16 @@ func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Reques
 // @Router	/user-identities/{id} [put]
 func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
 	var e models.UserIdentity
-	if err := decodeJSON(r, &e); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &e); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	e.ID = r.PathValue("id")
 	if err := s.svc.UpdateUserIdentity(r.Context(), &e); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, &e)
+	common.WriteJSON(w, http.StatusOK, &e)
 }
 
 // @Summary	Delete a user identity
@@ -1663,7 +1662,7 @@ func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
 // @Router	/user-identities/{id} [delete]
 func (s *Server) deleteUserIdentity(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteUserIdentity(r.Context(), r.PathValue("id")); err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1687,16 +1686,16 @@ type mergeUsersRequest struct {
 // @Router	/users/merge [post]
 func (s *Server) mergeUsers(w http.ResponseWriter, r *http.Request) {
 	var req mergeUsersRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	survivor, err := s.svc.MergeUsers(r.Context(), req.SurvivingUserID, req.RetiringUserID)
 	if err != nil {
-		writeServiceError(w, err)
+		common.WriteServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, survivor)
+	common.WriteJSON(w, http.StatusOK, survivor)
 }
 
 // LoggingMiddleware logs every request once it completes. It wraps
@@ -1719,38 +1718,4 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		}
 		slog.InfoContext(r.Context(), "http request", attrs...)
 	})
-}
-
-func decodeJSON(r *http.Request, dst any) error {
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	return dec.Decode(dst)
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if body == nil {
-		return
-	}
-	_ = json.NewEncoder(w).Encode(body)
-}
-
-func writeError(w http.ResponseWriter, status int, err error) {
-	writeJSON(w, status, map[string]string{"error": err.Error()})
-}
-
-func writeServiceError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, service.ErrNotFound):
-		writeError(w, http.StatusNotFound, err)
-	case errors.Is(err, service.ErrAlreadyExists):
-		writeError(w, http.StatusConflict, err)
-	case errors.Is(err, service.ErrInvalidInput):
-		writeError(w, http.StatusBadRequest, err)
-	default:
-		// Avoid leaking driver messages to clients; log the full error.
-		slog.Error("internal server error", "error", err.Error())
-		writeError(w, http.StatusInternalServerError, errors.New(strings.TrimSpace("internal server error")))
-	}
 }

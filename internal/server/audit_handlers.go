@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -39,7 +40,7 @@ const (
 
 func (s *Server) requireAuditStore(w http.ResponseWriter) (store.AuditTraceStore, bool) {
 	if s.admin == nil || s.admin.AuditTraces == nil {
-		writeError(w, http.StatusServiceUnavailable, errors.New("audit trace store not configured"))
+		common.WriteError(w, http.StatusServiceUnavailable, errors.New("audit trace store not configured"))
 		return nil, false
 	}
 	return s.admin.AuditTraces, true
@@ -68,15 +69,15 @@ func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 	}
 	f, err := parseTraceFilter(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	rows, total, err := ts.ListTraces(r.Context(), f)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	common.WriteJSON(w, http.StatusOK, map[string]any{
 		"traces": rows,
 		"total":  total,
 		"limit":  f.Limit,
@@ -101,16 +102,16 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 	}
 	traceID, err := validateHexID(r.PathValue("trace_id"), traceIDHexLen)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	tree, truncated, err := ts.GetTraceTree(r.Context(), traceID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	if tree == nil {
-		writeError(w, http.StatusNotFound, errors.New("trace not found"))
+		common.WriteError(w, http.StatusNotFound, errors.New("trace not found"))
 		return
 	}
 
@@ -119,7 +120,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 		"tree":      tree.Children,
 		"truncated": truncated,
 	}
-	writeJSON(w, http.StatusOK, resp)
+	common.WriteJSON(w, http.StatusOK, resp)
 }
 
 // @Summary	List audit events for a trace (optionally one span)
@@ -140,26 +141,26 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	traceID, err := validateHexID(q.Get("trace_id"), traceIDHexLen)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	var spanID string
 	if raw := q.Get("span_id"); raw != "" {
 		spanID, err = validateHexID(raw, spanIDHexLen)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
+			common.WriteError(w, http.StatusBadRequest, err)
 			return
 		}
 	}
 	events, err := ts.ListEvents(r.Context(), traceID, spanID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	if events == nil {
 		events = []models.TraceEvent{}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"events": events})
+	common.WriteJSON(w, http.StatusOK, map[string]any{"events": events})
 }
 
 // @Summary	List distinct audit-event sources
@@ -176,10 +177,10 @@ func (s *Server) handleListSources(w http.ResponseWriter, r *http.Request) {
 	}
 	sources, err := ts.ListSources(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"sources": sources})
+	common.WriteJSON(w, http.StatusOK, map[string]any{"sources": sources})
 }
 
 func parseTraceFilter(r *http.Request) (store.TraceFilter, error) {
