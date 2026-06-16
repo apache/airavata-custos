@@ -73,6 +73,7 @@ function initialsFrom(name: string): string {
 const ROLE_LABELS: Record<ProjectMemberRole, string> = {
   PI: "PI",
   CO_PI: "Co-PI",
+  ALLOCATION_MANAGER: "Allocation Manager",
   MEMBER: "Member",
 };
 
@@ -223,6 +224,7 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
             >
               <option value="PI">PI</option>
               <option value="CO_PI">Co-PI</option>
+              <option value="ALLOCATION_MANAGER">Allocation Manager</option>
               <option value="MEMBER">Member</option>
             </select>
           </div>

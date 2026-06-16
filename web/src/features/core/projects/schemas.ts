@@ -42,7 +42,7 @@ export const projectListEnvelopeSchema = z.object({
 });
 export type ProjectListEnvelope = z.infer<typeof projectListEnvelopeSchema>;
 
-export const projectMemberRoleSchema = z.enum(["PI", "CO_PI", "MEMBER"]);
+export const projectMemberRoleSchema = z.enum(["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"]);
 export type ProjectMemberRole = z.infer<typeof projectMemberRoleSchema>;
 
 // Portal-side aggregation. No backend ProjectMember model yet; in practice
