@@ -38,6 +38,7 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
+	"github.com/apache/airavata-custos/internal/server/middleware"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -143,7 +144,14 @@ func run() error {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(srv)
+	userIdentityStore := store.NewUserIdentityStore(database)
+	auth, err := middleware.NewAuth(cfg.Core.Auth, resolveUserBySub(userIdentityStore),
+		middleware.WithSkipPrefixes("/healthz"))
+	if err != nil {
+		return err
+	}
+	cors := middleware.NewCORS(cfg.Core.CORS)
+	handler := server.LoggingMiddleware(cors.Wrap(auth.Wrap(srv)))
 
 	httpServer := &http.Server{
 		Addr:              addr,
@@ -213,6 +221,19 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func resolveUserBySub(userIdentityStore store.UserIdentityStore) middleware.UserResolver {
+	return func(ctx context.Context, sub string) (string, error) {
+		ui, err := userIdentityStore.FindByOIDCSub(ctx, sub)
+		if err != nil {
+			return "", err
+		}
+		if ui == nil {
+			return "", nil
+		}
+		return ui.UserID, nil
+	}
 }
 
 func applyLogLevel(level string) {
