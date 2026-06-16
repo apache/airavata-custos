@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -149,13 +150,17 @@ func (a *Auth) shouldSkip(path string) bool {
 }
 
 // verify validates the token signature, issuer, audience, and expiry, then
-// resolves the OIDC sub to a Custos user. Any failure collapses to a single
-// 401 message for the client; the specific reason is intentionally generic
-// so callers cannot distinguish "bad signature" from "unknown sub".
+// resolves the OIDC sub to a Custos user. Every failure path collapses to
+// the same 401 + "invalid token" message; reasons that matter for operators
+// are logged. Hiding the reason from clients prevents enumeration of which
+// rejection branch fired.
 func (a *Auth) verify(ctx context.Context, tokenString string) (*identity.Caller, error) {
+	const reject = "invalid token"
+
 	keys, err := a.getJWKS(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("token verification unavailable")
+		slog.Error("auth: JWKS unavailable", "error", err)
+		return nil, errors.New(reject)
 	}
 
 	tok, err := jwt.Parse([]byte(tokenString),
@@ -165,20 +170,21 @@ func (a *Auth) verify(ctx context.Context, tokenString string) (*identity.Caller
 		jwt.WithAudience(a.audience),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.New(reject)
 	}
 
 	sub := tok.Subject()
 	if sub == "" {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.New(reject)
 	}
 
 	userID, err := a.resolveUser(ctx, sub)
 	if err != nil {
-		return nil, fmt.Errorf("identity lookup failed")
+		slog.Error("auth: identity resolver failed", "error", err)
+		return nil, errors.New(reject)
 	}
 	if userID == "" {
-		return nil, fmt.Errorf("unknown caller")
+		return nil, errors.New(reject)
 	}
 
 	email, _ := tok.Get("email")
