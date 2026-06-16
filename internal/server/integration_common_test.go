@@ -20,6 +20,7 @@
 package server
 
 import (
+	"net/http"
 	"os"
 	"sync"
 	"testing"
@@ -29,9 +30,18 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
+
+// asCaller returns a copy of req with the verified caller attached to its
+// context. Integration tests construct requests against the server's mux
+// directly and rely on this helper to stand in for the auth middleware that
+// would attach identity in production.
+func asCaller(req *http.Request, userID string) *http.Request {
+	return req.WithContext(identity.WithCaller(req.Context(), &identity.Caller{UserID: userID}))
+}
 
 var (
 	sharedDB     *sqlx.DB
@@ -69,7 +79,7 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 	}
 	truncateAll(t, sharedDB)
 	svc := service.New(sharedDB, events.New())
-	return sharedDB, svc, New(svc)
+	return sharedDB, svc, New(svc, nil)
 }
 
 func truncateAll(t *testing.T, database *sqlx.DB) {

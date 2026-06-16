@@ -44,7 +44,7 @@ func TestGetCallerPrivileges_NoGrants_ReturnsEmpty(t *testing.T) {
 	user := seedUser(t, database, "plain@example.edu")
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
-	req.Header.Set(callerHeader, user)
+	req = asCaller(req, user)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200", rr.Code)
@@ -67,7 +67,7 @@ func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
-	req.Header.Set(callerHeader, user)
+	req = asCaller(req, user)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200", rr.Code)
@@ -88,7 +88,7 @@ func TestRequirePrivilege_NoGrants_403(t *testing.T) {
 	user := seedUser(t, database, "user@example.edu")
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
-	req.Header.Set(callerHeader, user)
+	req = asCaller(req, user)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("status: got %d, want 403", rr.Code)
@@ -101,7 +101,7 @@ func TestRequirePrivilege_WithGrant_200(t *testing.T) {
 	seedPrivilegeGrant(t, database, user)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
-	req.Header.Set(callerHeader, user)
+	req = asCaller(req, user)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Errorf("status: got %d, want 200", rr.Code)
@@ -124,7 +124,7 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{"privilege": "amie:read", "reason": "ops view"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
-	req.Header.Set(callerHeader, granter)
+	req = asCaller(req, granter)
 	req.Header.Set("Content-Type", "application/json")
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -143,7 +143,7 @@ func TestGrantPrivilegeEndpoint_GranterWithoutMeta_403(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{"privilege": "amie:read"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
-	req.Header.Set(callerHeader, plain)
+	req = asCaller(req, plain)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("status: got %d, want 403 (granter lacks privileges:grant)", rr.Code)
@@ -161,7 +161,7 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{"reason": "rotated"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+target+"/privileges/amie:read", bytes.NewReader(body))
-	req.Header.Set(callerHeader, granter)
+	req = asCaller(req, granter)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("status: got %d, want 204, body=%s", rr.Code, rr.Body.String())
@@ -177,7 +177,7 @@ func TestRevokePrivilegeEndpoint_SelfRevokeMeta_400(t *testing.T) {
 	seedPrivilegeGrant(t, database, user)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/users/"+user+"/privileges/privileges:grant", nil)
-	req.Header.Set(callerHeader, user)
+	req = asCaller(req, user)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status: got %d, want 400 (self-revoke of meta)", rr.Code)
@@ -194,7 +194,7 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/users/"+target+"/privileges", nil)
-	req.Header.Set(callerHeader, granter)
+	req = asCaller(req, granter)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200, body=%s", rr.Code, rr.Body.String())
@@ -218,7 +218,7 @@ func TestListPrivilegeHoldersEndpoint(t *testing.T) {
 	}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/privileges/amie:read/holders", nil)
-	req.Header.Set(callerHeader, granter)
+	req = asCaller(req, granter)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200, body=%s", rr.Code, rr.Body.String())
@@ -242,7 +242,7 @@ func TestRequirePrivilege_StaleCacheStillReturns403AfterRevoke(t *testing.T) {
 	// b warms the cache.
 	warm := httptest.NewRecorder()
 	warmReq := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
-	warmReq.Header.Set(callerHeader, b)
+	warmReq = asCaller(warmReq, b)
 	srv.ServeHTTP(warm, warmReq)
 	if warm.Code != http.StatusOK {
 		t.Fatalf("warm-up: got %d, want 200", warm.Code)
@@ -259,7 +259,7 @@ func TestRequirePrivilege_StaleCacheStillReturns403AfterRevoke(t *testing.T) {
 	// b retries and now gets 403.
 	again := httptest.NewRecorder()
 	againReq := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
-	againReq.Header.Set(callerHeader, b)
+	againReq = asCaller(againReq, b)
 	srv.ServeHTTP(again, againReq)
 	if again.Code != http.StatusForbidden {
 		t.Errorf("post-revoke status for b: got %d, want 403", again.Code)
