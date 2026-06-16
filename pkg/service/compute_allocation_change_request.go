@@ -22,8 +22,19 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// ListChangeRequests returns change requests filtered by the supplied
+// criteria. Used by the portal's admin change-request queue.
+func (s *Service) ListChangeRequests(ctx context.Context, f store.ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error) {
+	rows, err := s.changeRequests.List(ctx, f)
+	if err != nil {
+		return nil, fmt.Errorf("list change requests: %w", err)
+	}
+	return rows, nil
+}
 
 // CreateComputeAllocationChangeRequest records a new change request against a
 // compute allocation. The referenced allocation must exist and a requester

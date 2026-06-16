@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"sync"
 	"time"
@@ -296,8 +297,11 @@ var _ CoreService = &CoreServiceMock{}
 //			ListEventsForChangeRequestFunc: func(ctx context.Context, changeRequestID string) ([]models.ComputeAllocationChangeRequestEvent, error) {
 //				panic("mock out the ListEventsForChangeRequest method")
 //			},
-//			ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
+//			ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 //				panic("mock out the ListMembersForAllocation method")
+//			},
+//			ListMembersForProjectFunc: func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+//				panic("mock out the ListMembersForProject method")
 //			},
 //			ListOverridesForMembershipFunc: func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error) {
 //				panic("mock out the ListOverridesForMembership method")
@@ -694,7 +698,10 @@ type CoreServiceMock struct {
 	ListEventsForChangeRequestFunc func(ctx context.Context, changeRequestID string) ([]models.ComputeAllocationChangeRequestEvent, error)
 
 	// ListMembersForAllocationFunc mocks the ListMembersForAllocation method.
-	ListMembersForAllocationFunc func(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
+	ListMembersForAllocationFunc func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
+
+	// ListMembersForProjectFunc mocks the ListMembersForProject method.
+	ListMembersForProjectFunc func(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
 
 	// ListOverridesForMembershipFunc mocks the ListOverridesForMembership method.
 	ListOverridesForMembershipFunc func(ctx context.Context, membershipID string) ([]models.ComputeAllocationMembershipResourceOverride, error)
@@ -1508,6 +1515,13 @@ type CoreServiceMock struct {
 			// AllocationID is the allocationID argument value.
 			AllocationID string
 		}
+		// ListMembersForProject holds details about calls to the ListMembersForProject method.
+		ListMembersForProject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ProjectID is the projectID argument value.
+			ProjectID string
+		}
 		// ListOverridesForMembership holds details about calls to the ListOverridesForMembership method.
 		ListOverridesForMembership []struct {
 			// Ctx is the ctx argument value.
@@ -1891,6 +1905,7 @@ type CoreServiceMock struct {
 	lockListDiffsForAllocation                                 sync.RWMutex
 	lockListEventsForChangeRequest                             sync.RWMutex
 	lockListMembersForAllocation                               sync.RWMutex
+	lockListMembersForProject                                  sync.RWMutex
 	lockListOverridesForMembership                             sync.RWMutex
 	lockListOverridesForResource                               sync.RWMutex
 	lockListPrivilegeHolders                                   sync.RWMutex
@@ -5339,7 +5354,7 @@ func (mock *CoreServiceMock) ListEventsForChangeRequestCalls() []struct {
 }
 
 // ListMembersForAllocation calls ListMembersForAllocationFunc.
-func (mock *CoreServiceMock) ListMembersForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
+func (mock *CoreServiceMock) ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 	if mock.ListMembersForAllocationFunc == nil {
 		panic("CoreServiceMock.ListMembersForAllocationFunc: method is nil but CoreService.ListMembersForAllocation was just called")
 	}
@@ -5371,6 +5386,42 @@ func (mock *CoreServiceMock) ListMembersForAllocationCalls() []struct {
 	mock.lockListMembersForAllocation.RLock()
 	calls = mock.calls.ListMembersForAllocation
 	mock.lockListMembersForAllocation.RUnlock()
+	return calls
+}
+
+// ListMembersForProject calls ListMembersForProjectFunc.
+func (mock *CoreServiceMock) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+	if mock.ListMembersForProjectFunc == nil {
+		panic("CoreServiceMock.ListMembersForProjectFunc: method is nil but CoreService.ListMembersForProject was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		ProjectID string
+	}{
+		Ctx:       ctx,
+		ProjectID: projectID,
+	}
+	mock.lockListMembersForProject.Lock()
+	mock.calls.ListMembersForProject = append(mock.calls.ListMembersForProject, callInfo)
+	mock.lockListMembersForProject.Unlock()
+	return mock.ListMembersForProjectFunc(ctx, projectID)
+}
+
+// ListMembersForProjectCalls gets all the calls that were made to ListMembersForProject.
+// Check the length with:
+//
+//	len(mockedCoreService.ListMembersForProjectCalls())
+func (mock *CoreServiceMock) ListMembersForProjectCalls() []struct {
+	Ctx       context.Context
+	ProjectID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		ProjectID string
+	}
+	mock.lockListMembersForProject.RLock()
+	calls = mock.calls.ListMembersForProject
+	mock.lockListMembersForProject.RUnlock()
 	return calls
 }
 

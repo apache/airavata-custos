@@ -18,7 +18,7 @@
 // Command server starts the Custos HTTP API.
 package main
 
-//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency --useStructName
 //go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
 
 import (

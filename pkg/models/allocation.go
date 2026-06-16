@@ -115,4 +115,5 @@ type ComputeAllocationMembership struct {
 	StartTime           time.Time        `json:"start_time"            db:"start_time"`
 	EndTime             time.Time        `json:"end_time"              db:"end_time"`
 	MembershipStatus    AllocationStatus `json:"membership_status"     db:"membership_status"` // ACTIVE, INACTIVE, etc.
+	Role                string           `json:"role"                  db:"role"`              // PI, CO_PI, ALLOCATION_MANAGER, MEMBER
 }

@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -57,6 +58,17 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 	} else if existing != nil {
 		return nil, fmt.Errorf("%w: user %q already has a membership on allocation %q", ErrAlreadyExists, m.UserID, m.ComputeAllocationID)
 	}
+	if m.Role == "PI" {
+		if rows, err := s.memberships.FindByAllocation(ctx, m.ComputeAllocationID); err != nil {
+			return nil, fmt.Errorf("check PI uniqueness: %w", err)
+		} else {
+			for _, x := range rows {
+				if x.Role == "PI" {
+					return nil, fmt.Errorf("%w: allocation %q already has a PI (%q)", ErrAlreadyExists, m.ComputeAllocationID, x.UserID)
+				}
+			}
+		}
+	}
 
 	if m.ID == "" {
 		m.ID = newID()
@@ -88,15 +100,30 @@ func (s *Service) GetComputeAllocationMembership(ctx context.Context, id string)
 	return m, nil
 }
 
-// ListMembersForAllocation returns every membership recorded against the
-// given allocation, ordered by start_time ascending.
-func (s *Service) ListMembersForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
+// ListMembersForAllocation returns memberships for an allocation joined with
+// users so each row carries display_name and email. Display fields live on
+// store.MembershipWithUser, not on the core entity.
+func (s *Service) ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
 	if allocationID == "" {
 		return nil, fmt.Errorf("%w: compute_allocation_id is required", ErrInvalidInput)
 	}
-	rows, err := s.memberships.FindByAllocation(ctx, allocationID)
+	rows, err := s.memberships.FindByAllocationWithUser(ctx, allocationID)
 	if err != nil {
 		return nil, fmt.Errorf("list members for allocation: %w", err)
+	}
+	return rows, nil
+}
+
+// ListMembersForProject derives project members from allocation memberships:
+// one row per distinct user with a membership on any of the project's
+// allocations. The project's PI is always asserted with role=PI.
+func (s *Service) ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error) {
+	if projectID == "" {
+		return nil, fmt.Errorf("%w: project_id is required", ErrInvalidInput)
+	}
+	rows, err := s.memberships.FindByProjectWithUser(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("list members for project: %w", err)
 	}
 	return rows, nil
 }

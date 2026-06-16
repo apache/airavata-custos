@@ -22,22 +22,35 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 )
 
 type Handlers struct {
-	audits store.PacketAuditStore
+	audits  store.PacketAuditStore
+	packets store.PacketStore
 }
 
-func NewHandlers(audits store.PacketAuditStore) *Handlers {
-	return &Handlers{audits: audits}
+func NewHandlers(audits store.PacketAuditStore, packets store.PacketStore) *Handlers {
+	return &Handlers{audits: audits, packets: packets}
 }
 
 // RegisterRoutes attaches the AMIE connector's HTTP endpoints to mux.
 func (h *Handlers) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /connectors/amie/packets", h.listPackets)
+	mux.HandleFunc("GET /connectors/amie/packets/{id}", h.getPacket)
+	mux.HandleFunc("GET /connectors/amie/packets/{id}/events", h.listPacketEvents)
 	mux.HandleFunc("GET /connectors/amie/packets/{packet_id}/audits", h.listPacketAudits)
+	mux.HandleFunc("GET /connectors/amie/stats", h.getStats)
+	mux.HandleFunc("GET /connectors/amie/replies", h.listReplies)
+	mux.HandleFunc("GET /connectors/amie/unmapped", h.listUnmapped)
+	mux.HandleFunc("POST /connectors/amie/packets/{id}/retry", h.retryPacket)
+	mux.HandleFunc("POST /connectors/amie/packets/{id}/resolve", h.resolvePacket)
+	mux.HandleFunc("POST /connectors/amie/replies/{id}/retry", h.retryReply)
+	mux.HandleFunc("POST /connectors/amie/unmapped/{id}/link", h.linkUnmapped)
 }
 
 // @Summary	List audit events for an AMIE packet
@@ -69,6 +82,198 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 		"packet_id": packetID,
 		"events":    events,
 	})
+}
+
+func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
+	if h.packets == nil {
+		writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+		return
+	}
+	f, err := parsePacketFilter(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	rows, total, err := h.packets.ListPackets(r.Context(), f)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	items := make([]PacketResponse, 0, len(rows))
+	for _, p := range rows {
+		items = append(items, packetResponseFrom(p))
+	}
+	writeJSON(w, http.StatusOK, PacketListResponse{
+		Packets: items,
+		Total:   total,
+		Limit:   effectiveLimit(f.Limit),
+		Offset:  f.Offset,
+	})
+}
+
+func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
+	if h.packets == nil {
+		writeError(w, http.StatusNotFound, errors.New("not found"))
+		return
+	}
+	p, err := h.packets.FindByID(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if p == nil {
+		writeError(w, http.StatusNotFound, errors.New("not found"))
+		return
+	}
+	writeJSON(w, http.StatusOK, packetResponseFrom(*p))
+}
+
+func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
+	if h.packets == nil {
+		writeJSON(w, http.StatusOK, []PacketEventResponse{})
+		return
+	}
+	rows, err := h.packets.ListPacketEvents(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	out := make([]PacketEventResponse, 0, len(rows))
+	for _, e := range rows {
+		out = append(out, packetEventResponseFrom(e))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (h *Handlers) getStats(w http.ResponseWriter, r *http.Request) {
+	if h.packets == nil {
+		writeJSON(w, http.StatusOK, PacketStatsResponse{ByDay: []PacketStatBucketResponse{}})
+		return
+	}
+	window := parseWindow(r.URL.Query().Get("window"))
+	buckets, err := h.packets.GetStats(r.Context(), window)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, packetStatsResponseFrom(buckets))
+}
+
+// ReplyListResponse is the paginated list envelope for connector replies.
+type ReplyListResponse struct {
+	Replies []any `json:"replies"`
+	Total   int   `json:"total"`
+	Limit   int   `json:"limit"`
+	Offset  int   `json:"offset"`
+}
+
+func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, ReplyListResponse{
+		Replies: []any{},
+		Total:   0,
+		Limit:   effectiveLimit(parseLimit(r)),
+		Offset:  parseOffset(r),
+	})
+}
+
+func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+}
+
+func (h *Handlers) retryPacket(w http.ResponseWriter, _ *http.Request) {
+	writeNotImplemented(w, "packet retry")
+}
+func (h *Handlers) resolvePacket(w http.ResponseWriter, _ *http.Request) {
+	writeNotImplemented(w, "packet resolve")
+}
+func (h *Handlers) retryReply(w http.ResponseWriter, _ *http.Request) {
+	writeNotImplemented(w, "reply retry")
+}
+func (h *Handlers) linkUnmapped(w http.ResponseWriter, _ *http.Request) {
+	writeNotImplemented(w, "unmapped link")
+}
+
+func writeNotImplemented(w http.ResponseWriter, op string) {
+	writeJSON(w, http.StatusNotImplemented, map[string]string{
+		"error":   "not_implemented",
+		"message": op + " not supported on this branch",
+	})
+}
+
+func emptyPacketPage(limit, offset int) PacketListResponse {
+	return PacketListResponse{
+		Packets: []PacketResponse{},
+		Total:   0,
+		Limit:   effectiveLimit(limit),
+		Offset:  offset,
+	}
+}
+
+func parsePacketFilter(r *http.Request) (store.PacketListFilter, error) {
+	q := r.URL.Query()
+	f := store.PacketListFilter{
+		Status: q.Get("status"),
+		Type:   q.Get("type"),
+		Query:  q.Get("q"),
+		Limit:  parseLimit(r),
+		Offset: parseOffset(r),
+	}
+	if v := q.Get("from"); v != "" {
+		t, err := time.Parse(time.RFC3339Nano, v)
+		if err != nil {
+			return f, errors.New("invalid 'from' query parameter; expected RFC 3339")
+		}
+		f.From = t
+	}
+	if v := q.Get("to"); v != "" {
+		t, err := time.Parse(time.RFC3339Nano, v)
+		if err != nil {
+			return f, errors.New("invalid 'to' query parameter; expected RFC 3339")
+		}
+		f.To = t
+	}
+	return f, nil
+}
+
+func parseLimit(r *http.Request) int {
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			return n
+		}
+	}
+	return 0
+}
+
+func parseOffset(r *http.Request) int {
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			return n
+		}
+	}
+	return 0
+}
+
+func effectiveLimit(l int) int {
+	if l <= 0 || l > 200 {
+		return 50
+	}
+	return l
+}
+
+func parseWindow(v string) time.Duration {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return 30 * 24 * time.Hour
+	}
+	if strings.HasSuffix(v, "d") {
+		if n, err := strconv.Atoi(strings.TrimSuffix(v, "d")); err == nil && n > 0 {
+			return time.Duration(n) * 24 * time.Hour
+		}
+	}
+	if d, err := time.ParseDuration(v); err == nil && d > 0 {
+		return d
+	}
+	return 30 * 24 * time.Hour
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -23,6 +23,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -177,7 +178,8 @@ type ComputeAllocationChangeRequestEventService interface {
 type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	GetComputeAllocationMembership(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
-	ListMembersForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
+	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
+	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error)

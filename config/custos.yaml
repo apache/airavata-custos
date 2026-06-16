@@ -1,6 +1,6 @@
 core:
   database:
-    url: "admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
+    url: "${DATABASE_DSN}"
   api:
     port: 8080
   log_level: "info"
@@ -29,15 +29,15 @@ connectors:
     type: "comanage-identity-provisioner"
     enabled: true
     registry:
-      url: "https://comanage.example.org"
-      co_id: 1
-      api_user: "comanage_api_user"
-      api_key: "${COMANAGE_API_KEY}" # Reference to environment variable
+      url: "${COMANAGE_REGISTRY_URL}"
+      co_id: ${COMANAGE_CO_ID}
+      api_user: "${COMANAGE_API_USER}"
+      api_key: "${COMANAGE_API_KEY}"
     unix_cluster:
-      id: 10
-      person_id_type: "eppn" # Educational Person Principal Name
+      id: ${COMANAGE_UNIX_CLUSTER_ID}
+      person_id_type: "${COMANAGE_PERSON_ID_TYPE}"
     provisioning:
-      custos_cluster_id: "cluster-001"
+      custos_cluster_id: "${CUSTOS_CLUSTER_ID}"
       default_shell: "/bin/bash"
       homedir_prefix: "/home/"
       http_timeout: "30s"
@@ -46,11 +46,11 @@ connectors:
     type: "amie-processor"
     enabled: true
     credentials:
-      base_url: "https://amie.xsede.org"
-      site_code: "XSEDE"
-      api_key: "${AMIE_API_KEY}" # Reference to environment variable
+      base_url: "${AMIE_BASE_URL}"
+      site_code: "${AMIE_SITE_CODE}"
+      api_key: "${AMIE_API_KEY}"
     cluster:
-      id: "cluster-001" # Must match a cluster registered in Custos
+      id: "${AMIE_CLUSTER_ID}"
     polling:
       poll_interval: "30s"
       worker_interval: "5s"

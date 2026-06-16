@@ -1,6 +1,37 @@
 basePath: /
 definitions:
-  models.AllocationStatus:
+  AllocationMembershipResponse:
+    properties:
+      compute_allocation_id:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: string
+      membership_status:
+        allOf:
+        - $ref: '#/definitions/AllocationStatus'
+        description: ACTIVE, INACTIVE, etc.
+      role:
+        description: PI, CO_PI, ALLOCATION_MANAGER, MEMBER
+        type: string
+      start_time:
+        type: string
+      user_id:
+        type: string
+    type: object
+  AllocationSUTotalResponse:
+    properties:
+      compute_allocation_id:
+        type: string
+      total_su_amount:
+        type: integer
+    type: object
+  AllocationStatus:
     enum:
     - ACTIVE
     - INACTIVE
@@ -10,7 +41,7 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
-  models.ComputeAllocation:
+  ComputeAllocation:
     properties:
       compute_cluster_id:
         description: The ID of the compute cluster where the allocation is provisioned.
@@ -30,10 +61,10 @@ definitions:
         type: string
       status:
         allOf:
-        - $ref: '#/definitions/models.AllocationStatus'
+        - $ref: '#/definitions/AllocationStatus'
         description: ACTIVE, INACTIVE, DELETED, etc.
     type: object
-  models.ComputeAllocationChangeRequest:
+  ComputeAllocationChangeRequest:
     properties:
       approver_id:
         description: The ID of the user who approved/rejected the change request,
@@ -52,7 +83,7 @@ definitions:
         type: string
       requested_status:
         allOf:
-        - $ref: '#/definitions/models.AllocationStatus'
+        - $ref: '#/definitions/AllocationStatus'
         description: ACTIVE, INACTIVE, DELETED, etc.
       requested_su_amount:
         description: The requested allocation amount in SUs, e.g., 1200 SUs, etc.
@@ -64,7 +95,7 @@ definitions:
         description: The time when the change request was made.
         type: string
     type: object
-  models.ComputeAllocationChangeRequestEvent:
+  ComputeAllocationChangeRequestEvent:
     properties:
       compute_allocation_change_request_id:
         type: string
@@ -81,7 +112,7 @@ definitions:
         description: The time when the event occurred.
         type: string
     type: object
-  models.ComputeAllocationDiff:
+  ComputeAllocationDiff:
     properties:
       compute_allocation_id:
         type: string
@@ -100,13 +131,22 @@ definitions:
         type: integer
       status:
         allOf:
-        - $ref: '#/definitions/models.AllocationStatus'
+        - $ref: '#/definitions/AllocationStatus'
         description: ACTIVE, INACTIVE, DELETED, etc.
       timestamp:
         description: The time when the diff was generated.
         type: string
     type: object
-  models.ComputeAllocationMembership:
+  ComputeAllocationListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ComputeAllocation'
+        type: array
+      total:
+        type: integer
+    type: object
+  ComputeAllocationMembership:
     properties:
       compute_allocation_id:
         type: string
@@ -116,14 +156,17 @@ definitions:
         type: string
       membership_status:
         allOf:
-        - $ref: '#/definitions/models.AllocationStatus'
+        - $ref: '#/definitions/AllocationStatus'
         description: ACTIVE, INACTIVE, etc.
+      role:
+        description: PI, CO_PI, ALLOCATION_MANAGER, MEMBER
+        type: string
       start_time:
         type: string
       user_id:
         type: string
     type: object
-  models.ComputeAllocationMembershipResourceOverride:
+  ComputeAllocationMembershipResourceOverride:
     properties:
       compute_allocation_membership_id:
         type: string
@@ -140,7 +183,7 @@ definitions:
           is granted for.
         type: integer
     type: object
-  models.ComputeAllocationResource:
+  ComputeAllocationResource:
     properties:
       compute_cluster_id:
         description: The ID of the compute cluster the resource (partition) belongs
@@ -159,7 +202,7 @@ definitions:
         description: 'TRES: cpu, gres/gpu'
         type: string
     type: object
-  models.ComputeAllocationResourceMapping:
+  ComputeAllocationResourceMapping:
     properties:
       compute_allocation_id:
         type: string
@@ -176,7 +219,7 @@ definitions:
           for.
         type: integer
     type: object
-  models.ComputeAllocationResourceRate:
+  ComputeAllocationResourceRate:
     properties:
       compute_allocation_resource_id:
         type: string
@@ -193,7 +236,7 @@ definitions:
         description: The time when this rate becomes effective.
         type: string
     type: object
-  models.ComputeAllocationUsage:
+  ComputeAllocationUsage:
     properties:
       compute_allocation_id:
         type: string
@@ -222,7 +265,7 @@ definitions:
         description: The ID of the user who used the allocation.
         type: string
     type: object
-  models.ComputeCluster:
+  ComputeCluster:
     properties:
       id:
         type: string
@@ -231,7 +274,7 @@ definitions:
           A", "Cluster B", etc.
         type: string
     type: object
-  models.ComputeClusterUser:
+  ComputeClusterUser:
     properties:
       compute_cluster_id:
         type: string
@@ -244,7 +287,7 @@ definitions:
       user_id:
         type: string
     type: object
-  models.Organization:
+  Organization:
     properties:
       id:
         type: string
@@ -255,7 +298,7 @@ definitions:
           Record ID.'
         type: string
     type: object
-  models.PrivilegeKey:
+  PrivilegeKey:
     enum:
     - amie:read
     - amie:write
@@ -275,7 +318,7 @@ definitions:
     - PrivilegeSignerWrite
     - PrivilegeGrant
     - PrivilegeRolesManage
-  models.Project:
+  Project:
     properties:
       created_time:
         type: string
@@ -291,11 +334,76 @@ definitions:
       project_pi_id:
         type: string
       status:
-        $ref: '#/definitions/models.ProjectStatus'
+        $ref: '#/definitions/ProjectStatus'
       title:
         type: string
     type: object
-  models.ProjectStatus:
+  ProjectListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/ProjectResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  ProjectMemberAllocationRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  ProjectMemberResponse:
+    properties:
+      added_time:
+        type: string
+      allocations:
+        items:
+          $ref: '#/definitions/ProjectMemberAllocationRef'
+        type: array
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: string
+    type: object
+  ProjectResponse:
+    properties:
+      created_time:
+        type: string
+      id:
+        type: string
+      originated_id:
+        description: 'The ID of the project in origination. For example: ACCESS Record
+          ID.'
+        type: string
+      origination:
+        description: ACCESS, NAIRR, XRASS, etc.
+        type: string
+      project_pi_display_name:
+        type: string
+      project_pi_email:
+        type: string
+      project_pi_id:
+        type: string
+      status:
+        $ref: '#/definitions/ProjectStatus'
+      title:
+        type: string
+    type: object
+  ProjectStatus:
     enum:
     - ACTIVE
     - INACTIVE
@@ -305,7 +413,7 @@ definitions:
     - ProjectActive
     - ProjectInactive
     - ProjectDeleted
-  models.Role:
+  Role:
     properties:
       created_at:
         type: string
@@ -318,7 +426,7 @@ definitions:
       name:
         type: string
     type: object
-  models.TraceEvent:
+  TraceEvent:
     properties:
       created_at:
         type: string
@@ -339,11 +447,11 @@ definitions:
       status:
         type: string
     type: object
-  models.TraceNode:
+  TraceNode:
     properties:
       children:
         items:
-          $ref: '#/definitions/models.TraceNode'
+          $ref: '#/definitions/TraceNode'
         type: array
       created_at:
         type: string
@@ -364,7 +472,7 @@ definitions:
       status:
         type: string
     type: object
-  models.TraceSummary:
+  TraceSummary:
     properties:
       ended_at:
         type: string
@@ -381,7 +489,7 @@ definitions:
       trace_id:
         type: string
     type: object
-  models.User:
+  User:
     properties:
       email:
         type: string
@@ -396,9 +504,18 @@ definitions:
       organization_id:
         type: string
       status:
-        $ref: '#/definitions/models.UserStatus'
+        $ref: '#/definitions/UserStatus'
     type: object
-  models.UserIdentity:
+  UserAllocationSUTotalResponse:
+    properties:
+      compute_allocation_id:
+        type: string
+      total_su_amount:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  UserIdentity:
     properties:
       created_at:
         type: string
@@ -422,7 +539,7 @@ definitions:
       user_id:
         type: string
     type: object
-  models.UserPrivilege:
+  UserPrivilege:
     properties:
       granted_at:
         type: string
@@ -431,13 +548,13 @@ definitions:
       id:
         type: string
       privilege:
-        $ref: '#/definitions/models.PrivilegeKey'
+        $ref: '#/definitions/PrivilegeKey'
       reason:
         type: string
       user_id:
         type: string
     type: object
-  models.UserRole:
+  UserRole:
     properties:
       granted_at:
         type: string
@@ -450,7 +567,7 @@ definitions:
       user_id:
         type: string
     type: object
-  models.UserStatus:
+  UserStatus:
     enum:
     - ACTIVE
     - INACTIVE
@@ -462,7 +579,7 @@ definitions:
     - UserInactive
     - UserSuspended
     - UserMerged
-  server.attachResourceRequest:
+  attachResourceRequest:
     properties:
       compute_allocation_resource_id:
         type: string
@@ -471,57 +588,57 @@ definitions:
       resource_time:
         type: integer
     type: object
-  server.createRoleRequest:
+  createRoleRequest:
     properties:
       description:
         type: string
       name:
         type: string
     type: object
-  server.grantPrivilegeRequest:
+  grantPrivilegeRequest:
     properties:
       privilege:
-        $ref: '#/definitions/models.PrivilegeKey'
+        $ref: '#/definitions/PrivilegeKey'
       reason:
         type: string
     type: object
-  server.grantRoleRequest:
+  grantRoleRequest:
     properties:
       reason:
         type: string
       roleID:
         type: string
     type: object
-  server.mergeUsersRequest:
+  mergeUsersRequest:
     properties:
       retiring_user_id:
         type: string
       surviving_user_id:
         type: string
     type: object
-  server.revokePrivilegeRequest:
+  revokePrivilegeRequest:
     properties:
       reason:
         type: string
     type: object
-  server.revokeRoleRequest:
+  revokeRoleRequest:
     properties:
       reason:
         type: string
     type: object
-  server.rolePrivilegeRequest:
+  rolePrivilegeRequest:
     properties:
       privilege:
-        $ref: '#/definitions/models.PrivilegeKey'
+        $ref: '#/definitions/PrivilegeKey'
     type: object
-  server.updateAllocationResourceMappingRequest:
+  updateAllocationResourceMappingRequest:
     properties:
       resource_amount:
         type: integer
       resource_time:
         type: integer
     type: object
-  server.updateRoleRequest:
+  updateRoleRequest:
     properties:
       description:
         type: string
@@ -559,7 +676,7 @@ paths:
             properties:
               events:
                 items:
-                  $ref: '#/definitions/models.TraceEvent'
+                  $ref: '#/definitions/TraceEvent'
                 type: array
             type: object
         "400":
@@ -661,7 +778,7 @@ paths:
                 type: integer
               traces:
                 items:
-                  $ref: '#/definitions/models.TraceSummary'
+                  $ref: '#/definitions/TraceSummary'
                 type: array
             type: object
         "400":
@@ -702,7 +819,7 @@ paths:
                 type: string
               tree:
                 items:
-                  $ref: '#/definitions/models.TraceNode'
+                  $ref: '#/definitions/TraceNode'
                 type: array
               truncated:
                 type: boolean
@@ -743,14 +860,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+          $ref: '#/definitions/ComputeAllocationChangeRequestEvent'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+            $ref: '#/definitions/ComputeAllocationChangeRequestEvent'
         "400":
           description: Bad Request
           schema:
@@ -799,7 +916,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+            $ref: '#/definitions/ComputeAllocationChangeRequestEvent'
         "404":
           description: Not Found
           schema:
@@ -822,14 +939,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+          $ref: '#/definitions/ComputeAllocationChangeRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+            $ref: '#/definitions/ComputeAllocationChangeRequest'
         "400":
           description: Bad Request
           schema:
@@ -878,7 +995,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+            $ref: '#/definitions/ComputeAllocationChangeRequest'
         "404":
           description: Not Found
           schema:
@@ -905,14 +1022,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+          $ref: '#/definitions/ComputeAllocationChangeRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+            $ref: '#/definitions/ComputeAllocationChangeRequest'
         "400":
           description: Bad Request
           schema:
@@ -947,7 +1064,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+              $ref: '#/definitions/ComputeAllocationChangeRequestEvent'
             type: array
         "404":
           description: Not Found
@@ -975,7 +1092,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationChangeRequestEvent'
+            $ref: '#/definitions/ComputeAllocationChangeRequestEvent'
         "404":
           description: Not Found
           schema:
@@ -1000,14 +1117,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationDiff'
+          $ref: '#/definitions/ComputeAllocationDiff'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationDiff'
+            $ref: '#/definitions/ComputeAllocationDiff'
         "400":
           description: Bad Request
           schema:
@@ -1063,7 +1180,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationDiff'
+            $ref: '#/definitions/ComputeAllocationDiff'
         "404":
           description: Not Found
           schema:
@@ -1086,14 +1203,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+          $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+            $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
         "400":
           description: Bad Request
           schema:
@@ -1142,7 +1259,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+            $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
         "404":
           description: Not Found
           schema:
@@ -1169,14 +1286,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+          $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+            $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
         "400":
           description: Bad Request
           schema:
@@ -1206,14 +1323,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationMembership'
+          $ref: '#/definitions/ComputeAllocationMembership'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembership'
+            $ref: '#/definitions/ComputeAllocationMembership'
         "400":
           description: Bad Request
           schema:
@@ -1262,7 +1379,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembership'
+            $ref: '#/definitions/ComputeAllocationMembership'
         "404":
           description: Not Found
           schema:
@@ -1289,14 +1406,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationMembership'
+          $ref: '#/definitions/ComputeAllocationMembership'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembership'
+            $ref: '#/definitions/ComputeAllocationMembership'
         "400":
           description: Bad Request
           schema:
@@ -1331,7 +1448,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+              $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
             type: array
         "404":
           description: Not Found
@@ -1362,7 +1479,7 @@ paths:
         schema:
           properties:
             membership_status:
-              $ref: '#/definitions/models.AllocationStatus'
+              $ref: '#/definitions/AllocationStatus'
           type: object
       produces:
       - application/json
@@ -1370,7 +1487,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationMembership'
+            $ref: '#/definitions/ComputeAllocationMembership'
         "400":
           description: Bad Request
           schema:
@@ -1402,14 +1519,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationResourceRate'
+          $ref: '#/definitions/ComputeAllocationResourceRate'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+            $ref: '#/definitions/ComputeAllocationResourceRate'
         "400":
           description: Bad Request
           schema:
@@ -1443,7 +1560,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+            $ref: '#/definitions/ComputeAllocationResourceRate'
         "404":
           description: Not Found
           schema:
@@ -1465,7 +1582,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationResource'
+              $ref: '#/definitions/ComputeAllocationResource'
             type: array
         "401":
           description: Unauthorized
@@ -1490,14 +1607,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationResource'
+          $ref: '#/definitions/ComputeAllocationResource'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResource'
+            $ref: '#/definitions/ComputeAllocationResource'
         "400":
           description: Bad Request
           schema:
@@ -1531,7 +1648,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResource'
+            $ref: '#/definitions/ComputeAllocationResource'
         "404":
           description: Not Found
           schema:
@@ -1559,7 +1676,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocationResourceMapping'
             type: array
         "404":
           description: Not Found
@@ -1588,7 +1705,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationMembershipResourceOverride'
+              $ref: '#/definitions/ComputeAllocationMembershipResourceOverride'
             type: array
         "404":
           description: Not Found
@@ -1617,7 +1734,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationResourceRate'
+              $ref: '#/definitions/ComputeAllocationResourceRate'
             type: array
         "404":
           description: Not Found
@@ -1651,7 +1768,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResourceRate'
+            $ref: '#/definitions/ComputeAllocationResourceRate'
         "400":
           description: Invalid 'at' query parameter
           schema:
@@ -1681,14 +1798,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocationUsage'
+          $ref: '#/definitions/ComputeAllocationUsage'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationUsage'
+            $ref: '#/definitions/ComputeAllocationUsage'
         "400":
           description: Bad Request
           schema:
@@ -1737,7 +1854,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationUsage'
+            $ref: '#/definitions/ComputeAllocationUsage'
         "404":
           description: Not Found
           schema:
@@ -1751,6 +1868,40 @@ paths:
       tags:
       - Compute Allocation Usages
   /compute-allocations:
+    get:
+      parameters:
+      - description: Filter by project ID
+        in: query
+        name: project_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search name
+        in: query
+        name: q
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ComputeAllocationListResponse'
+      security:
+      - CustosUserHeader: []
+      summary: List compute allocations (filtered + paginated)
+      tags:
+      - Compute Allocations
     post:
       consumes:
       - application/json
@@ -1760,14 +1911,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeAllocation'
+          $ref: '#/definitions/ComputeAllocation'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocation'
+            $ref: '#/definitions/ComputeAllocation'
         "400":
           description: Bad Request
           schema:
@@ -1794,7 +1945,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocation'
+            $ref: '#/definitions/ComputeAllocation'
         "404":
           description: Not Found
           schema:
@@ -1822,7 +1973,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+              $ref: '#/definitions/ComputeAllocationChangeRequest'
             type: array
         "404":
           description: Not Found
@@ -1851,7 +2002,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationDiff'
+              $ref: '#/definitions/ComputeAllocationDiff'
             type: array
         "404":
           description: Not Found
@@ -1879,7 +2030,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationDiff'
+            $ref: '#/definitions/ComputeAllocationDiff'
         "404":
           description: Not Found
           schema:
@@ -1907,7 +2058,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationMembership'
+              $ref: '#/definitions/AllocationMembershipResponse'
             type: array
         "404":
           description: Not Found
@@ -1936,7 +2087,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+              $ref: '#/definitions/ComputeAllocationResourceMapping'
             type: array
         "404":
           description: Not Found
@@ -1966,14 +2117,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.attachResourceRequest'
+          $ref: '#/definitions/attachResourceRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+            $ref: '#/definitions/ComputeAllocationResourceMapping'
         "400":
           description: Bad Request
           schema:
@@ -2040,14 +2191,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.updateAllocationResourceMappingRequest'
+          $ref: '#/definitions/updateAllocationResourceMappingRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeAllocationResourceMapping'
+            $ref: '#/definitions/ComputeAllocationResourceMapping'
         "400":
           description: Bad Request
           schema:
@@ -2082,7 +2233,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationUsage'
+              $ref: '#/definitions/ComputeAllocationUsage'
             type: array
         "404":
           description: Not Found
@@ -2110,12 +2261,7 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              compute_allocation_id:
-                type: string
-              total_su_amount:
-                type: integer
-            type: object
+            $ref: '#/definitions/AllocationSUTotalResponse'
         "404":
           description: Not Found
           schema:
@@ -2147,14 +2293,7 @@ paths:
         "200":
           description: OK
           schema:
-            properties:
-              compute_allocation_id:
-                type: string
-              total_su_amount:
-                type: integer
-              user_id:
-                type: string
-            type: object
+            $ref: '#/definitions/UserAllocationSUTotalResponse'
         "404":
           description: Not Found
           schema:
@@ -2177,14 +2316,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeClusterUser'
+          $ref: '#/definitions/ComputeClusterUser'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeClusterUser'
+            $ref: '#/definitions/ComputeClusterUser'
         "400":
           description: Bad Request
           schema:
@@ -2233,7 +2372,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeClusterUser'
+            $ref: '#/definitions/ComputeClusterUser'
         "404":
           description: Not Found
           schema:
@@ -2260,14 +2399,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeClusterUser'
+          $ref: '#/definitions/ComputeClusterUser'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeClusterUser'
+            $ref: '#/definitions/ComputeClusterUser'
         "400":
           description: Bad Request
           schema:
@@ -2296,7 +2435,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeCluster'
+              $ref: '#/definitions/ComputeCluster'
             type: array
         "500":
           description: Internal Server Error
@@ -2319,14 +2458,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ComputeCluster'
+          $ref: '#/definitions/ComputeCluster'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ComputeCluster'
+            $ref: '#/definitions/ComputeCluster'
         "400":
           description: Bad Request
           schema:
@@ -2353,7 +2492,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeCluster'
+            $ref: '#/definitions/ComputeCluster'
         "404":
           description: Not Found
           schema:
@@ -2381,7 +2520,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeClusterUser'
+              $ref: '#/definitions/ComputeClusterUser'
             type: array
         "404":
           description: Not Found
@@ -2414,7 +2553,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ComputeClusterUser'
+            $ref: '#/definitions/ComputeClusterUser'
         "404":
           description: Not Found
           schema:
@@ -2437,14 +2576,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.Organization'
+          $ref: '#/definitions/Organization'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Organization'
+            $ref: '#/definitions/Organization'
         "400":
           description: Bad Request
           schema:
@@ -2471,7 +2610,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Organization'
+            $ref: '#/definitions/Organization'
         "404":
           description: Not Found
           schema:
@@ -2509,7 +2648,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserPrivilege'
+              $ref: '#/definitions/UserPrivilege'
             type: array
         "400":
           description: Unknown privilege key
@@ -2532,7 +2671,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.PrivilegeKey'
+              $ref: '#/definitions/PrivilegeKey'
             type: array
         "401":
           description: Missing caller header
@@ -2554,6 +2693,40 @@ paths:
       tags:
       - Privileges
   /projects:
+    get:
+      parameters:
+      - description: Filter by PI user ID
+        in: query
+        name: pi_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search title / originated_id
+        in: query
+        name: q
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ProjectListResponse'
+      security:
+      - CustosUserHeader: []
+      summary: List projects (filtered + paginated, PI joined)
+      tags:
+      - Projects
     post:
       consumes:
       - application/json
@@ -2563,14 +2736,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.Project'
+          $ref: '#/definitions/Project'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Project'
+            $ref: '#/definitions/Project'
         "400":
           description: Bad Request
           schema:
@@ -2597,7 +2770,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Project'
+            $ref: '#/definitions/ProjectResponse'
         "404":
           description: Not Found
           schema:
@@ -2608,6 +2781,35 @@ paths:
       security:
       - CustosUserHeader: []
       summary: Get a project by ID
+      tags:
+      - Projects
+  /projects/{id}/members:
+    get:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ProjectMemberResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List project members (one row per distinct user, with allocations)
       tags:
       - Projects
   /projects/{id}/status:
@@ -2627,7 +2829,7 @@ paths:
         schema:
           properties:
             status:
-              $ref: '#/definitions/models.ProjectStatus'
+              $ref: '#/definitions/ProjectStatus'
           type: object
       produces:
       - application/json
@@ -2635,7 +2837,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Project'
+            $ref: '#/definitions/Project'
         "400":
           description: Bad Request
           schema:
@@ -2664,7 +2866,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Role'
+              $ref: '#/definitions/Role'
             type: array
         "401":
           description: Unauthorized
@@ -2694,14 +2896,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.createRoleRequest'
+          $ref: '#/definitions/createRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Role'
+            $ref: '#/definitions/Role'
         "400":
           description: Bad Request
           schema:
@@ -2776,10 +2978,10 @@ paths:
             properties:
               privileges:
                 items:
-                  $ref: '#/definitions/models.PrivilegeKey'
+                  $ref: '#/definitions/PrivilegeKey'
                 type: array
               role:
-                $ref: '#/definitions/models.Role'
+                $ref: '#/definitions/Role'
             type: object
         "400":
           description: Bad Request
@@ -2815,14 +3017,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.updateRoleRequest'
+          $ref: '#/definitions/updateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Role'
+            $ref: '#/definitions/Role'
         "400":
           description: Bad Request
           schema:
@@ -2857,7 +3059,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserRole'
+              $ref: '#/definitions/UserRole'
             type: array
         "400":
           description: Bad Request
@@ -2887,7 +3089,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.rolePrivilegeRequest'
+          $ref: '#/definitions/rolePrivilegeRequest'
       responses:
         "204":
           description: No Content
@@ -2980,14 +3182,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UserIdentity'
+          $ref: '#/definitions/UserIdentity'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.UserIdentity'
+            $ref: '#/definitions/UserIdentity'
         "400":
           description: Bad Request
           schema:
@@ -3036,7 +3238,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.UserIdentity'
+            $ref: '#/definitions/UserIdentity'
         "404":
           description: Not Found
           schema:
@@ -3063,14 +3265,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UserIdentity'
+          $ref: '#/definitions/UserIdentity'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.UserIdentity'
+            $ref: '#/definitions/UserIdentity'
         "400":
           description: Bad Request
           schema:
@@ -3104,7 +3306,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.UserIdentity'
+            $ref: '#/definitions/UserIdentity'
         "404":
           description: Not Found
           schema:
@@ -3136,7 +3338,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.UserIdentity'
+            $ref: '#/definitions/UserIdentity'
         "404":
           description: Not Found
           schema:
@@ -3162,7 +3364,7 @@ paths:
             properties:
               privileges:
                 items:
-                  $ref: '#/definitions/models.PrivilegeKey'
+                  $ref: '#/definitions/PrivilegeKey'
                 type: array
             type: object
         "401":
@@ -3194,14 +3396,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/User'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/User'
         "400":
           description: Bad Request
           schema:
@@ -3228,7 +3430,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/User'
         "404":
           description: Not Found
           schema:
@@ -3256,7 +3458,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationChangeRequest'
+              $ref: '#/definitions/ComputeAllocationChangeRequest'
             type: array
         "404":
           description: Not Found
@@ -3285,7 +3487,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationMembership'
+              $ref: '#/definitions/ComputeAllocationMembership'
             type: array
         "404":
           description: Not Found
@@ -3314,7 +3516,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeAllocationUsage'
+              $ref: '#/definitions/ComputeAllocationUsage'
             type: array
         "404":
           description: Not Found
@@ -3343,7 +3545,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ComputeClusterUser'
+              $ref: '#/definitions/ComputeClusterUser'
             type: array
         "404":
           description: Not Found
@@ -3374,7 +3576,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserPrivilege'
+              $ref: '#/definitions/UserPrivilege'
             type: array
         "400":
           description: Bad Request
@@ -3409,14 +3611,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.grantPrivilegeRequest'
+          $ref: '#/definitions/grantPrivilegeRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.UserPrivilege'
+            $ref: '#/definitions/UserPrivilege'
         "400":
           description: Bad request
           schema:
@@ -3480,7 +3682,7 @@ paths:
         in: body
         name: request
         schema:
-          $ref: '#/definitions/server.revokePrivilegeRequest'
+          $ref: '#/definitions/revokePrivilegeRequest'
       responses:
         "204":
           description: No Content
@@ -3532,7 +3734,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserRole'
+              $ref: '#/definitions/UserRole'
             type: array
         "400":
           description: Bad Request
@@ -3560,14 +3762,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.grantRoleRequest'
+          $ref: '#/definitions/grantRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.UserRole'
+            $ref: '#/definitions/UserRole'
         "400":
           description: Bad Request
           schema:
@@ -3615,7 +3817,7 @@ paths:
         in: body
         name: request
         schema:
-          $ref: '#/definitions/server.revokeRoleRequest'
+          $ref: '#/definitions/revokeRoleRequest'
       responses:
         "204":
           description: No Content
@@ -3662,7 +3864,7 @@ paths:
         schema:
           properties:
             status:
-              $ref: '#/definitions/models.UserStatus'
+              $ref: '#/definitions/UserStatus'
           type: object
       produces:
       - application/json
@@ -3670,7 +3872,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/User'
         "400":
           description: Bad Request
           schema:
@@ -3705,7 +3907,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserIdentity'
+              $ref: '#/definitions/UserIdentity'
             type: array
         "404":
           description: Not Found
@@ -3731,14 +3933,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.mergeUsersRequest'
+          $ref: '#/definitions/mergeUsersRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/User'
         "400":
           description: Bad Request
           schema:

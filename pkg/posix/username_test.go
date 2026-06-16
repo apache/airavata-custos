@@ -62,8 +62,8 @@ func TestBuildBase(t *testing.T) {
 		},
 		{
 			name:  "prefix swap",
-			first: "Alice", last: "Smith", prefix: "nexus",
-			wantBase: "nexus-asmith", wantTrunc: false,
+			first: "Alice", last: "Smith", prefix: "alt",
+			wantBase: "alt-asmith", wantTrunc: false,
 		},
 		{
 			name:  "truncation at 32-char limit",
@@ -149,8 +149,8 @@ func TestPrefix(t *testing.T) {
 	if got := Prefix(); got != "custos" {
 		t.Errorf("default = %q, want %q", got, "custos")
 	}
-	t.Setenv("POSIX_USERNAME_PREFIX", "nexus")
-	if got := Prefix(); got != "nexus" {
-		t.Errorf("override = %q, want %q", got, "nexus")
+	t.Setenv("POSIX_USERNAME_PREFIX", "alt")
+	if got := Prefix(); got != "alt" {
+		t.Errorf("override = %q, want %q", got, "alt")
 	}
 }

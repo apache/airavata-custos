@@ -111,7 +111,7 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 
 	role := normalizeRole(getString(body, "UserRole"))
-	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID)
+	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID, role)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure membership: %w", err)
 	}
@@ -189,18 +189,33 @@ func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Conte
 
 // ensureMembership returns the existing (allocation, user) membership or
 // creates a new one. Idempotent for re-delivered packets.
-func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
+func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allocationID, userID, role string) (*models.ComputeAllocationMembership, error) {
 	existing, err := h.svc.ListMembersForAllocation(ctx, allocationID)
 	if err != nil {
 		return nil, fmt.Errorf("list memberships: %w", err)
 	}
 	for _, m := range existing {
 		if m.UserID == userID {
-			return &m, nil
+			cm := m.ComputeAllocationMembership
+			return &cm, nil
 		}
 	}
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
 		ComputeAllocationID: allocationID,
 		UserID:              userID,
+		Role:                normalizeAMIERole(role),
 	})
+}
+
+// normalizeAMIERole maps the AMIE role enum to the persisted role column. Any
+// unrecognized value collapses to MEMBER.
+func normalizeAMIERole(amieRole string) string {
+	switch amieRole {
+	case "PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER":
+		return amieRole
+	case "USER":
+		return "MEMBER"
+	default:
+		return "MEMBER"
+	}
 }

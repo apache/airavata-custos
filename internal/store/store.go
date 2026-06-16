@@ -137,6 +137,24 @@ type ProjectStore interface {
 	ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 	// Delete removes a project by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// List returns a paginated, filtered slice of projects plus the total
+	// count matching the filter (ignoring limit/offset).
+	List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error)
+	// FindByIDWithPI is FindByID joined with the PI user, so a single query
+	// returns everything the portal needs to render a project header.
+	FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error)
+	// ListWithPI is List joined with the PI user, replacing the per-row
+	// GetUser fan-out the handler would otherwise need.
+	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
+}
+
+// ProjectListFilter selects which projects ProjectStore.List returns.
+type ProjectListFilter struct {
+	PIID   string
+	Status string
+	Query  string
+	Limit  int
+	Offset int
 }
 
 // ComputeAllocationStore defines persistence operations for compute allocations.
@@ -153,6 +171,18 @@ type ComputeAllocationStore interface {
 	Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error
 	// Delete removes an allocation by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// List returns a paginated, filtered slice of allocations plus the total
+	// count matching the filter (ignoring limit/offset).
+	List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error)
+}
+
+// AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
+type AllocationListFilter struct {
+	ProjectID string
+	Status    string
+	Query     string
+	Limit     int
+	Offset    int
 }
 
 // ComputeAllocationResourceStore defines persistence operations for compute
@@ -251,6 +281,15 @@ type ComputeAllocationChangeRequestStore interface {
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error
 	// Delete removes a change request by ID within the provided transaction.
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
+	// List returns change requests filtered by the supplied criteria.
+	List(ctx context.Context, f ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error)
+}
+
+// ChangeRequestListFilter selects which change request
+// ComputeAllocationChangeRequestStore.List returns.
+type ChangeRequestListFilter struct {
+	Status string
+	Limit  int
 }
 
 // ComputeAllocationChangeRequestEventStore defines persistence operations
@@ -285,6 +324,14 @@ type ComputeAllocationMembershipStore interface {
 	// FindByUser returns every membership held by the given user, ordered by
 	// start_time ascending.
 	FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+	// FindByAllocationWithUser is FindByAllocation joined with user so each
+	// row carries display_name and email. Display fields live on
+	// MembershipWithUser, not on the core entity.
+	FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error)
+	// FindByProjectWithUser returns memberships across every allocation in
+	// the project joined with users and allocation name. The caller dedups
+	// per user and collapses role for the project-level view.
+	FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error)
 	// Create inserts a new membership within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error
 	// Update replaces mutable fields of an existing membership within the provided transaction.
