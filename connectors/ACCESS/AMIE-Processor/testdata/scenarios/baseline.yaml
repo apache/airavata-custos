@@ -1,28 +1,17 @@
-# Mock scenario: baseline
+# Baseline scenario expectations. Packets are defined in
+# mock-server.py::gen_baseline_scenario. Portal dev rows that AMIE cannot
+# produce (resources, rates, usage, change requests) come from
+# dev_portal_data.sql, applied after this scenario drains.
 #
-# Hardcoded values in mock-server.py::gen_baseline_scenario. Used as the
-# canonical integration-test fixture for the connector.
-#
-# Covers: request_project_create (initial + supplement), request_user_modify,
-# request_person_merge, data_project_create, data_account_create,
-# inform_transaction_complete.
-#
-# NOT covered (handlers need the Custos-assigned project UUID, which the mock
-# can't supply): request_account_create, request_account_inactivate,
-# request_account_reactivate, request_project_inactivate, request_project_reactivate.
-# Tables left empty as a result: compute_allocation_memberships.
-# Status-flip code paths on projects/allocations/memberships are also unexercised.
-# compute_cluster_users IS populated because request_project_create provisions
-# a PI cluster user via the POSIX allocator.
+# request_account_create packets use ProjectID="__GRANT__<GN>" placeholders.
+# The mock fills them in with the Custos UUID returned by notify_project_create.
 
 scenario:
   name: baseline
-  description: 9 hardcoded packets exercising every handler the mock can drive without reply sequencing.
+  description: 12 hardcoded packets covering the AMIE handlers the mock can drive.
   determinism: full
-  # Expectations assume packets are decoded and handled in mock-emission order.
-  # The connector's worker is single-threaded today; if that changes, the
-  # post-merge counts (amie_user_dns=3, projects.project_pi_id, survivor column
-  # values) all become race-dependent.
+  # Counts assume packets are decoded in mock-emission order. The worker is
+  # single-threaded, so post-merge counts depend on this ordering.
   ordering: strict
 
 trigger:
@@ -44,13 +33,14 @@ trigger:
 expectations:
 
   packets:
-    total_count: 9
+    total_count: 12
     by_type_status:
       - { type: request_project_create,      status: DECODED, count: 3 }
       - { type: data_project_create,         status: DECODED, count: 1 }
       - { type: data_account_create,         status: DECODED, count: 1 }
       - { type: request_user_modify,         status: DECODED, count: 2 }
       - { type: request_person_merge,        status: DECODED, count: 1 }
+      - { type: request_account_create,      status: DECODED, count: 3 }
       - { type: inform_transaction_complete, status: DECODED, count: 1 }
 
   tables:
@@ -61,40 +51,41 @@ expectations:
         - { originated_id: BASELINE, name: Baseline Org }
 
     users:
-      total_count: 2
+      # Pat is the merge survivor; Sam was MERGED into Pat.
+      total_count: 5
       rows:
-        - { first_name: Pat, last_name: First-Updated, email: pat.first.updated@baseline.example.edu, status: ACTIVE,
-            organization_id: { from: "organizations.id where originated_id=BASELINE" } }
-        - { first_name: Sam, last_name: Second, email: sam.second@baseline.example.edu, status: MERGED,
-            organization_id: { from: "organizations.id where originated_id=BASELINE" } }
+        - { first_name: Pat,    last_name: Madison, email: pat.madison@baseline.example.edu, status: ACTIVE }
+        - { first_name: Sam,    last_name: Second,        email: sam.second@baseline.example.edu,        status: MERGED }
+        - { first_name: Casey,  last_name: Collaborator,  email: casey.collab@baseline.example.edu,      status: ACTIVE }
+        - { first_name: Riley,  last_name: Researcher,    email: riley.research@baseline.example.edu,    status: ACTIVE }
+        - { first_name: Morgan, last_name: Manager,       email: morgan.manager@baseline.example.edu,    status: ACTIVE }
 
     user_identities:
-      total_count: 2
+      total_count: 5
       rows:
         - { source: access, external_id: bl-pi-001,
-            email: pat.first.updated@baseline.example.edu,
-            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" },
+            email: pat.madison@baseline.example.edu,
+            user_id: { from: "users.id where email=pat.madison@baseline.example.edu" },
             metadata: { regex: '.*"org_code":"BASELINE".*' } }
-        # bl-pi-002's row is reassigned to the survivor by MergeUsers.ReassignUser.
+        # Sam's identity row was reassigned to Pat by the merge.
         - { source: access, external_id: bl-pi-002,
             email: sam.second@baseline.example.edu,
-            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
+            user_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
 
     projects:
       total_count: 2
       rows:
-        # Handler sets project.title = GrantNumber (NOT ProjectTitle from packet).
+        # Handler uses GrantNumber as project.title, not ProjectTitle.
         - { originated_id: BL-001, title: BL-001, origination: access, status: ACTIVE,
-            project_pi_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
-        # BL-002's PI was bl-pi-002 originally; merge reassigned project_pi_id to the survivor.
+            project_pi_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
+        # BL-002 PI was reassigned to Pat by the merge.
         - { originated_id: BL-002, title: BL-002, origination: access, status: ACTIVE,
-            project_pi_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
+            project_pi_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
 
     compute_allocations:
       total_count: 2
       rows:
-        # initial_su_amount stays at first-delivery value; supplement writes a diff row
-        # instead of updating this column. Effective budget = initial_su_amount + SUM(diffs.new_su_amount).
+        # Supplement deltas go into compute_allocation_diffs, not into initial_su_amount.
         - { name: BL-001, status: ACTIVE, compute_cluster_id: "${AMIE_CLUSTER_ID}",
             initial_su_amount: 10000,
             start_time: "2026-01-01 00:00:00", end_time: "2026-12-31 00:00:00",
@@ -112,50 +103,58 @@ expectations:
             description: "AMIE SUPPLEMENT of 5000 SUs" }
 
     amie_user_dns:
-      # 3 DNs land on the survivor after merge; the trailing ActionType=delete
-      # request_user_modify removes "/DC=EDU/CN=patfirst", leaving 2.
-      # Connector-local table; user_id references core users.id by value.
+      # 3 DNs end up on the survivor; the trailing request_user_modify (delete)
+      # removes "/DC=EDU/CN=patfirst", leaving 2.
       total_count: 2
       rows:
         - { dn: "/C=US/O=Baseline Org/CN=Pat First Extra",
-            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
-        # data_account_create added this DN to bl-pi-002; merge reassigned it to survivor.
+            user_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
+        # Originally Sam's DN; reassigned to Pat by the merge.
         - { dn: "/C=US/O=Baseline Org/CN=Sam Second",
-            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
+            user_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
 
     compute_cluster_users:
-      # request_project_create now provisions a CCU for the PI via the POSIX
-      # allocator. BL-001 (#1 + supplement) creates Pat's CCU once. BL-002
-      # (#3) creates Sam's CCU. The merge then deletes Sam's CCU on Pat's
-      # cluster (cluster overlap dedup), leaving Pat's row only.
-      total_count: 1
+      # PI CCUs come from request_project_create; the merge dedups Sam's against
+      # Pat's. request_account_create packets add CCUs for Casey, Riley, Morgan.
+      total_count: 4
       rows:
         - { compute_cluster_id: "${AMIE_CLUSTER_ID}",
             local_username: custos-pfirst,
-            user_id: { from: "users.id where email=pat.first.updated@baseline.example.edu" } }
+            user_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
+
+    compute_allocation_memberships:
+      # PI memberships come from request_project_create; non-PI roles from
+      # request_account_create.
+      #   BL-001: Pat (PI), Casey (CO_PI), Riley (MEMBER)
+      #   BL-002: Pat (PI, post-merge), Morgan (ALLOCATION_MANAGER)
+      total_count: 5
+      by_role:
+        PI: 2
+        CO_PI: 1
+        ALLOCATION_MANAGER: 1
+        MEMBER: 1
 
   audit_log:
-    # AMIE audit rows live in audit_events (source='amie'); the connector-specific
-    # (packet_id, event_id) refs live in amie_audit_extras joined on audit_event_id.
-    # `total_count` here = count over audit_events WHERE source='amie'
-    #                    = count over amie_audit_extras.
-    total_count: 35
+    # audit_events (source='amie') and amie_audit_extras carry the same count;
+    # one row each per AMIE audit.
+    total_count: 52
     by_action:
-      PACKET_RECEIVED: 9      # worker writes one root structural marker per packet so the trace tree has a root anchor
-      CREATE_PERSON: 3        # all 3 request_project_create packets audit CREATE_PERSON (re-use audited too)
-      CREATE_ACCOUNT: 3       # PI CCU provisioning audited on every request_project_create (re-use audited too)
+      PACKET_RECEIVED: 12     # one per packet
+      CREATE_PERSON: 6        # 3 project_create + 3 account_create
+      CREATE_ACCOUNT: 6       # 3 project_create + 3 account_create
       CREATE_PROJECT: 3
-      CREATE_ALLOCATION: 3    # supplement-delivery still audits CREATE_ALLOCATION (known M1: diff is the actual write)
-      REPLY_SENT: 8           # inform_transaction_complete does not reply
-      PERSIST_DNS: 3          # 2 from data_*, 1 from request_user_modify delete (DN delete: -1)
+      CREATE_ALLOCATION: 3    # supplement-delivery still audits CREATE_ALLOCATION
+      CREATE_MEMBERSHIP: 5    # 2 PIs + 3 account_create
+      REPLY_SENT: 11          # everything except inform_transaction_complete
+      PERSIST_DNS: 3          # 2 from data_*, 1 delete from request_user_modify
       UPDATE_PERSON: 1
       MERGE_PERSONS: 1
       TRANSACTION_COMPLETE: 1
 
   processing_events:
-    total_count: 9
+    total_count: 12
     by_status:
-      SUCCEEDED: 9
+      SUCCEEDED: 12
     not_expected_statuses:
       - RUNNING
       - NEW
@@ -164,8 +163,77 @@ expectations:
       - PERMANENTLY_FAILED
 
   not_expected:
-    - compute_allocation_memberships
     - amie_processing_errors
+
+# ---------------------------------------------------------------------------
+# Seed rows from dev_portal_data.sql, applied after baseline drains. These
+# tables aren't reachable from AMIE handlers; the seed exists so portal pages
+# render meaningful content. Counts are lower bounds.
+# ---------------------------------------------------------------------------
+
+seed_rows:
+
+  compute_allocation_resources:
+    minimum_count: 2        # CPU + GPU, cluster-scoped
+    rows:
+      - { id: res-cpu, name: "CPU Service Units", resource_type: CPU_HOURS,
+          compute_cluster_id: "${AMIE_CLUSTER_ID}" }
+      - { id: res-gpu, name: "GPU Service Units", resource_type: GPU_HOURS,
+          compute_cluster_id: "${AMIE_CLUSTER_ID}" }
+
+  compute_allocation_resource_mappings:
+    minimum_count: 3        # CPU on both allocations, GPU on BL-001
+    rows:
+      - { compute_allocation_id: { from: "compute_allocations.id where name=BL-001" },
+          compute_allocation_resource_id: res-cpu, resource_amount: 10000 }
+      - { compute_allocation_id: { from: "compute_allocations.id where name=BL-002" },
+          compute_allocation_resource_id: res-cpu, resource_amount: 10000 }
+      - { compute_allocation_id: { from: "compute_allocations.id where name=BL-001" },
+          compute_allocation_resource_id: res-gpu, resource_amount: 200 }
+
+  compute_allocation_resource_rates:
+    minimum_count: 2
+    rows:
+      - { id: rate-cpu, compute_allocation_resource_id: res-cpu, rate: 1.0 }
+      - { id: rate-gpu, compute_allocation_resource_id: res-gpu, rate: 10.0 }
+
+  compute_allocation_usages:
+    minimum_count: 2        # one sample job per baseline allocation
+    rows:
+      - { compute_allocation_id: { from: "compute_allocations.id where name=BL-001" },
+          used_su_amount: 250.5, compute_allocation_resource_id: res-cpu }
+      - { compute_allocation_id: { from: "compute_allocations.id where name=BL-002" },
+          used_su_amount: 250.5, compute_allocation_resource_id: res-cpu }
+
+  compute_allocation_change_requests:
+    minimum_count: 1        # one PENDING request on BL-001
+    rows:
+      - { id: chreq-bl001, change_status: PENDING, requested_su_amount: 25000,
+          requested_status: ACTIVE,
+          compute_allocation_id: { from: "compute_allocations.id where name=BL-001" },
+          requester_id: dev-researcher }
+
+  compute_allocation_change_request_events:
+    minimum_count: 2        # CREATED + COMMENTED
+    rows:
+      - { compute_allocation_change_request_id: chreq-bl001, event_type: CREATED }
+      - { compute_allocation_change_request_id: chreq-bl001, event_type: COMMENTED }
+
+  compute_allocation_membership_resource_overrides:
+    minimum_count: 1
+    rows:
+      - { compute_allocation_resource_id: res-gpu, override_resource_amount: 50,
+          compute_allocation_membership_id: { from: "compute_allocation_memberships.id where compute_allocation_id=(compute_allocations.id where name=BL-001)" } }
+
+  user_privileges:
+    minimum_count: 6        # dev-admin gets all 6 portal privileges via seed
+    rows:
+      - { user_id: dev-admin, privilege: "amie:read" }
+      - { user_id: dev-admin, privilege: "amie:write" }
+      - { user_id: dev-admin, privilege: "hpc:read" }
+      - { user_id: dev-admin, privilege: "hpc:write" }
+      - { user_id: dev-admin, privilege: "signer:read" }
+      - { user_id: dev-admin, privilege: "signer:write" }
 
 verification_queries:
 
@@ -182,7 +250,7 @@ verification_queries:
   - name: survivor + retiring user state
     sql: SELECT email, status FROM users ORDER BY email;
     expect: |
-      pat.first.updated@baseline.example.edu, ACTIVE
+      pat.madison@baseline.example.edu, ACTIVE
       sam.second@baseline.example.edu,        MERGED
 
   - name: supplement recorded as diff (not new allocation)
@@ -195,14 +263,14 @@ verification_queries:
 
   - name: merge consolidated identity-forward state to survivor
     sql: |
-      SELECT 'user_identities' AS t, COUNT(*) AS n_on_survivor FROM user_identities WHERE user_id = (SELECT id FROM users WHERE email='pat.first.updated@baseline.example.edu')
+      SELECT 'user_identities' AS t, COUNT(*) AS n_on_survivor FROM user_identities WHERE user_id = (SELECT id FROM users WHERE email='pat.madison@baseline.example.edu')
       UNION ALL
-      SELECT 'amie_user_dns',   COUNT(*)                       FROM amie_user_dns   WHERE user_id = (SELECT id FROM users WHERE email='pat.first.updated@baseline.example.edu')
+      SELECT 'amie_user_dns',   COUNT(*)                       FROM amie_user_dns   WHERE user_id = (SELECT id FROM users WHERE email='pat.madison@baseline.example.edu')
       UNION ALL
-      SELECT 'projects_as_pi',  COUNT(*)                       FROM projects        WHERE project_pi_id = (SELECT id FROM users WHERE email='pat.first.updated@baseline.example.edu');
+      SELECT 'projects_as_pi',  COUNT(*)                       FROM projects        WHERE project_pi_id = (SELECT id FROM users WHERE email='pat.madison@baseline.example.edu');
     expect: user_identities=2, amie_user_dns=2, projects_as_pi=2
 
-  - name: merge recorded in audit log (no user_merges table; audit is source of truth)
+  - name: merge recorded in audit log
     sql: |
       SELECT event_type, entity_type, entity_id, details
       FROM audit_events
