@@ -26,7 +26,7 @@ import (
 
 // @Summary	List all roles
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.Role
 // @Failure	401	{object}	object{error=string}
@@ -43,7 +43,7 @@ func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a role with its privilege bundle
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
 // @Success	200	{object}	object{role=models.Role,privileges=[]models.PrivilegeKey}
@@ -79,7 +79,7 @@ type createRoleRequest struct {
 
 // @Summary	Create a role
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	createRoleRequest	true	"Role payload"
@@ -89,9 +89,8 @@ type createRoleRequest struct {
 // @Failure	409	{object}	object{error=string}	"Role name collides"
 // @Router	/roles [post]
 func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
-	actorID := r.Header.Get(callerHeader)
+	actorID := callerOrUnauthorized(w, r)
 	if actorID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req createRoleRequest
@@ -115,7 +114,7 @@ type updateRoleRequest struct {
 // @Summary	Update role name / description
 // @Description	System roles cannot be renamed.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
@@ -130,9 +129,8 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
+	actorID := callerOrUnauthorized(w, r)
 	if actorID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req updateRoleRequest
@@ -152,7 +150,7 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 // @Summary	Delete a role
 // @Description	System roles cannot be deleted. CASCADE drops every assignment of this role.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Role ID"
 // @Success	204	"No Content"
 // @Failure	400	{object}	object{error=string}	"System role / unknown role"
@@ -164,9 +162,8 @@ func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
+	actorID := callerOrUnauthorized(w, r)
 	if actorID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	if err := s.svc.DeleteRole(r.Context(), roleID, actorID); err != nil {
@@ -184,7 +181,7 @@ type rolePrivilegeRequest struct {
 // @Summary	Add a privilege to a role
 // @Description	The new privilege propagates to every current holder.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"Role ID"
 // @Param	request	body	rolePrivilegeRequest	true	"Privilege key"
@@ -199,9 +196,8 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
+	actorID := callerOrUnauthorized(w, r)
 	if actorID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req rolePrivilegeRequest
@@ -220,7 +216,7 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 // @Summary	Remove a privilege from a role
 // @Description	Removal propagates to every holder. Refuses to remove `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Role ID"
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Success	204	"No Content"
@@ -235,9 +231,8 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("role id and privilege key are required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
+	actorID := callerOrUnauthorized(w, r)
 	if actorID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	if err := s.svc.RemovePrivilegeFromRole(r.Context(), roleID, key, actorID); err != nil {
@@ -250,7 +245,7 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List roles a user holds
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.UserRole
@@ -272,7 +267,7 @@ func (s *Server) listUserRoles(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List users holding the role
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
 // @Success	200	{array}	models.UserRole
@@ -299,7 +294,7 @@ type grantRoleRequest struct {
 
 // @Summary	Grant a role to a user
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
@@ -315,9 +310,8 @@ func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	granterID := r.Header.Get(callerHeader)
+	granterID := callerOrUnauthorized(w, r)
 	if granterID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req grantRoleRequest
@@ -341,7 +335,7 @@ type revokeRoleRequest struct {
 // @Summary	Revoke a role from a user
 // @Description	Refuses if revoking would leave no holder of `privileges:grant` or `roles:manage` anywhere (last-meta-holder guard).
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"User ID"
 // @Param	roleId	path	string	true	"Role ID"
@@ -358,9 +352,8 @@ func (s *Server) revokeRoleFromUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id and role id are required"))
 		return
 	}
-	revokerID := r.Header.Get(callerHeader)
+	revokerID := callerOrUnauthorized(w, r)
 	if revokerID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req revokeRoleRequest

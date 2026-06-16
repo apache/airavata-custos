@@ -24,14 +24,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-// callerHeader identifies the caller. TODO A JWT-verification middleware should set
-// this header from the verified `sub` claim after validating the token
-// against the IdP's JWKS endpoint. Until that lands, the value
-// is supplied directly by the caller.
-const callerHeader = "X-Custos-User-Id"
+// callerOrUnauthorized returns the verified caller's user ID, writing a 401
+// response if the request is unauthenticated. Returns "" on rejection;
+// the caller must return immediately when it sees an empty string.
+func callerOrUnauthorized(w http.ResponseWriter, r *http.Request) string {
+	caller := identity.CallerFromContext(r.Context())
+	if caller == nil {
+		writeError(w, http.StatusUnauthorized, errors.New("unauthenticated"))
+		return ""
+	}
+	return caller.UserID
+}
 
 // authProfileTTL bounds how long the middleware will trust a cached
 // privilege set before re-reading the DB.
@@ -110,19 +117,18 @@ func (c *authProfileCache) invalidateAll() {
 }
 
 // requirePrivilege returns a middleware that admits the request only if the
-// caller (identified by callerHeader) holds the named active privilege.
+// verified caller holds the named active privilege.
 //
 // Responses:
-//   - 401 Unauthorized - no caller header
+//   - 401 Unauthorized - caller not on context (middleware should have set it)
 //   - 403 Forbidden - caller is identified but does not hold the privilege
 //   - 503 Service Unavailable - auth-profile lookup failed
 //
 // Fail-closed: a DB failure NEVER reads as 403
 func (s *Server) requirePrivilege(p models.PrivilegeKey, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		callerID := r.Header.Get(callerHeader)
+		callerID := callerOrUnauthorized(w, r)
 		if callerID == "" {
-			writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 			return
 		}
 		profile, err := s.lookupAuthProfile(r.Context(), callerID)

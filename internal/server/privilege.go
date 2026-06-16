@@ -27,16 +27,15 @@ import (
 // @Summary	Get caller's effective privileges
 // @Description	Effective set is direct grants UNION every privilege carried by every role the caller holds.
 // @Tags	Caller
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{object}	object{privileges=[]models.PrivilegeKey}	"Effective privilege set"
-// @Failure	401	{object}	object{error=string}	"Missing X-Custos-User-Id header"
+// @Failure	401	{object}	object{error=string}	"Unauthenticated"
 // @Failure	503	{object}	object{error=string}	"Auth lookup failed"
 // @Router	/user/privileges [get]
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
-	callerID := r.Header.Get(callerHeader)
+	callerID := callerOrUnauthorized(w, r)
 	if callerID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	profile, err := s.lookupAuthProfile(r.Context(), callerID)
@@ -117,14 +116,14 @@ type grantPrivilegeRequest struct {
 
 // @Summary	Grant a direct privilege to a user
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Param	request	body	grantPrivilegeRequest	true	"Grant payload"
 // @Success	201	{object}	models.UserPrivilege
 // @Failure	400	{object}	object{error=string}	"Bad request"
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Unauthenticated"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Failure	409	{object}	object{error=string}	"Privilege already active for user"
 // @Router	/users/{id}/privileges [post]
@@ -134,9 +133,8 @@ func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	granterID := r.Header.Get(callerHeader)
+	granterID := callerOrUnauthorized(w, r)
 	if granterID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req grantPrivilegeRequest
@@ -160,14 +158,14 @@ type revokePrivilegeRequest struct {
 // @Summary	Revoke a direct privilege from a user
 // @Description	`privileges:grant` itself cannot be self-revoked or revoked from the last holder.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"User ID"
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Param	request	body	revokePrivilegeRequest	false	"Optional reason"
 // @Success	204	"No Content"
 // @Failure	400	{object}	object{error=string}	"Self-revoke meta, last-holder, or unknown key"
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Unauthenticated"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Failure	404	{object}	object{error=string}	"No active grant for that key"
 // @Router	/users/{id}/privileges/{key} [delete]
@@ -178,9 +176,8 @@ func (s *Server) revokePrivilege(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
 		return
 	}
-	revokerID := r.Header.Get(callerHeader)
+	revokerID := callerOrUnauthorized(w, r)
 	if revokerID == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 		return
 	}
 	var req revokePrivilegeRequest
