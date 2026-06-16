@@ -1,0 +1,52 @@
+"use client";
+
+import { Calendar, Server, UserSquare } from "lucide-react";
+import { MetaItem, MetaRow } from "@/shared/ui/MetaRow";
+import type { ComputeAllocation } from "../schemas";
+
+export type AllocationDetailHeaderProps = {
+  allocation: ComputeAllocation;
+  memberCount: number;
+};
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function isExpired(endTime: string, now = new Date()): boolean {
+  const t = new Date(endTime).getTime();
+  return Number.isFinite(t) && t < now.getTime();
+}
+
+export function AllocationDetailHeader({ allocation, memberCount }: AllocationDetailHeaderProps) {
+  const expired = allocation.status === "ACTIVE" && isExpired(allocation.end_time);
+  const tone: "success" | "warning" | "danger" =
+    allocation.status === "ACTIVE" && !expired
+      ? "success"
+      : allocation.status === "ACTIVE" && expired
+        ? "warning"
+        : "danger";
+  const label = expired ? "EXPIRED" : allocation.status;
+
+  return (
+    <header className="space-y-4">
+      <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
+        {allocation.name}
+      </h1>
+      <MetaRow>
+        <MetaItem variant="status" tone={tone} value={label} />
+        <MetaItem icon={Server} label="Cluster" value={allocation.compute_cluster_id} />
+        <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
+        <MetaItem icon={UserSquare} label="Members" value={memberCount} />
+      </MetaRow>
+    </header>
+  );
+}

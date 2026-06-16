@@ -1,0 +1,16 @@
+{
+  "trace_id": "d6e4fc5062716c7d8e9f02345678abcd",
+  "tree": [
+    {
+      "span_id": "ee11ff22aabbccdd",
+      "source": "comanage",
+      "event_type": "comanage.ensure_posix",
+      "entity_type": "co_person",
+      "entity_id": "CO-777",
+      "status": "in_progress",
+      "created_at": "2026-06-08T14:10:00.000Z",
+      "children": []
+    }
+  ],
+  "truncated": false
+}

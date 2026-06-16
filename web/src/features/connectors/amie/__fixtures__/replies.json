@@ -1,0 +1,47 @@
+{
+  "replies": [
+    {
+      "id": "rply-001",
+      "amie_id": "9000001",
+      "type": "inform_transaction_complete",
+      "status": "ACKED",
+      "in_reply_to_packet_id": "pkt-001",
+      "sent_at": "2026-06-08T12:01:10Z",
+      "acked_at": "2026-06-08T12:01:14Z",
+      "retries": 0,
+      "created_at": "2026-06-08T12:01:08Z"
+    },
+    {
+      "id": "rply-002",
+      "amie_id": "9000002",
+      "type": "notify_project_create",
+      "status": "SENT",
+      "in_reply_to_packet_id": "pkt-001",
+      "sent_at": "2026-06-08T12:01:12Z",
+      "retries": 0,
+      "created_at": "2026-06-08T12:01:08Z"
+    },
+    {
+      "id": "rply-003",
+      "amie_id": "9000003",
+      "type": "inform_transaction_complete",
+      "status": "FAILED",
+      "in_reply_to_packet_id": "pkt-002",
+      "retries": 2,
+      "last_error": "ACCESS gateway 502",
+      "created_at": "2026-06-08T09:30:00Z"
+    },
+    {
+      "id": "rply-004",
+      "amie_id": "9000004",
+      "type": "inform_transaction_complete",
+      "status": "PENDING",
+      "in_reply_to_packet_id": "pkt-100",
+      "retries": 0,
+      "created_at": "2026-06-08T14:22:00Z"
+    }
+  ],
+  "total": 4,
+  "limit": 200,
+  "offset": 0
+}

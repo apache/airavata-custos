@@ -1,0 +1,11 @@
+:root {
+  --custos-radius-none: 0;
+  --custos-radius-sm: 0.375rem;
+  --custos-radius-md: 0.5rem;
+  --custos-radius-lg: 0.75rem;
+  --custos-radius-xl: 1rem;
+  --custos-radius-2xl: 1.5rem;
+  --custos-radius-pill: 9999px;
+
+  --radius: var(--custos-radius-md);
+}

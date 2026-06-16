@@ -1,0 +1,75 @@
+{
+  "alloc-001": [
+    {
+      "id": "mem-001",
+      "compute_allocation_id": "alloc-001",
+      "user_id": "user-pi-001",
+      "start_time": "2026-04-01T00:00:00.000Z",
+      "end_time": "2027-03-31T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "PI",
+      "display_name": "Ada Lovelace",
+      "email": "ada.lovelace@custos.local"
+    },
+    {
+      "id": "mem-002",
+      "compute_allocation_id": "alloc-001",
+      "user_id": "user-002",
+      "start_time": "2026-04-05T00:00:00.000Z",
+      "end_time": "2027-03-31T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "CO_PI",
+      "display_name": "Grace Hopper",
+      "email": "grace.hopper@custos.local"
+    },
+    {
+      "id": "mem-003",
+      "compute_allocation_id": "alloc-001",
+      "user_id": "user-003",
+      "start_time": "2026-04-08T00:00:00.000Z",
+      "end_time": "2027-03-31T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "MEMBER",
+      "display_name": "Katherine Johnson",
+      "email": "katherine.johnson@custos.local"
+    }
+  ],
+  "alloc-002": [
+    {
+      "id": "mem-010",
+      "compute_allocation_id": "alloc-002",
+      "user_id": "user-pi-001",
+      "start_time": "2026-04-01T00:00:00.000Z",
+      "end_time": "2027-03-31T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "PI",
+      "display_name": "Ada Lovelace",
+      "email": "ada.lovelace@custos.local"
+    }
+  ],
+  "alloc-003": [
+    {
+      "id": "mem-020",
+      "compute_allocation_id": "alloc-003",
+      "user_id": "user-pi-002",
+      "start_time": "2026-04-12T00:00:00.000Z",
+      "end_time": "2027-04-11T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "PI",
+      "display_name": "Alan Turing",
+      "email": "alan.turing@custos.local"
+    },
+    {
+      "id": "mem-021",
+      "compute_allocation_id": "alloc-003",
+      "user_id": "user-004",
+      "start_time": "2026-04-15T00:00:00.000Z",
+      "end_time": "2027-04-11T00:00:00.000Z",
+      "membership_status": "ACTIVE",
+      "role": "MEMBER",
+      "display_name": "Marie Curie",
+      "email": "marie.curie@custos.local"
+    }
+  ],
+  "alloc-004": []
+}

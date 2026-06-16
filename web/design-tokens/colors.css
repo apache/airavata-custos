@@ -1,0 +1,200 @@
+:root {
+  --custos-blue-50: #e9f0f8;
+  --custos-blue-100: #d2e1f1;
+  --custos-blue-200: #a6c3e4;
+  --custos-blue-300: #79a4d6;
+  --custos-blue-400: #4d86c9;
+  --custos-blue-500: #2361b8;
+  --custos-blue-600: #1c4e93;
+  --custos-blue-700: #153b6e;
+  --custos-blue-800: #0e274a;
+
+  --custos-red-50: #fef2f2;
+  --custos-red-100: #fee2e2;
+  --custos-red-200: #fecaca;
+  --custos-red-300: #fca5a5;
+  --custos-red-400: #f87171;
+  --custos-red-500: #ef4444;
+  --custos-red-600: #dc2626;
+  --custos-red-700: #b91c1c;
+  --custos-red-800: #991b1b;
+
+  --custos-green-50: #f0fdf4;
+  --custos-green-100: #dcfce7;
+  --custos-green-200: #bbf7d0;
+  --custos-green-300: #86efac;
+  --custos-green-400: #4ade80;
+  --custos-green-500: #22c55e;
+  --custos-green-600: #16a34a;
+  --custos-green-700: #15803d;
+  --custos-green-800: #166534;
+
+  --custos-gray-50: #f4f5f7;
+  --custos-gray-100: #f1f1f1;
+  --custos-gray-200: #e5e7eb;
+  --custos-gray-300: #d4d4d4;
+  --custos-gray-400: #9aa1ae;
+  --custos-gray-500: #6b7280;
+  --custos-gray-600: #4b5563;
+  --custos-gray-700: #404040;
+  --custos-gray-800: #262626;
+  --custos-gray-900: #111111;
+
+  --custos-amber-50: #fef3c7;
+  --custos-amber-100: #fde68a;
+  --custos-amber-200: #fcd34d;
+  --custos-amber-500: #f59e0b;
+  --custos-amber-600: #d97706;
+  --custos-amber-700: #b45309;
+  /* amber-800/900 add darker stops so warn bands can clear WCAG AA at 12px
+     against amber-100 — amber-700/100 only hits 4.03:1, amber-800/100 reaches 6.28:1. */
+  --custos-amber-800: #92400e;
+  --custos-amber-900: #78350f;
+
+  --custos-purple-50: #f5f3ff;
+  --custos-purple-500: #8b5cf6;
+  --custos-purple-700: #6d28d9;
+
+  --custos-white: #ffffff;
+
+  --custos-primary: var(--custos-blue-500);
+  --custos-primary-foreground: var(--custos-white);
+  --custos-action: var(--custos-blue-500);
+  --custos-error: var(--custos-red-600);
+  --custos-success: var(--custos-green-600);
+  --custos-warning: #f59e0b;
+
+  /* Brand semantic — distinct from --primary; reserved for active states,
+     links, brand wordmark, progress bar default fill. */
+  --brand: var(--custos-blue-500);
+  --brand-foreground: #ffffff;
+  --brand-tint: var(--custos-blue-50);
+
+  /* Semantic tone tokens — paired bg/fg used by pills, chips, banners. */
+  --banner-error-bg: var(--custos-red-50);
+  --banner-error-border: var(--custos-red-100);
+  --banner-error-fg: var(--custos-red-700);
+  --banner-error-icon: var(--custos-red-600);
+
+  --tone-ok-bg: var(--custos-green-50);
+  --tone-ok-fg: var(--custos-green-700);
+  --tone-error-bg: var(--custos-red-50);
+  --tone-error-fg: var(--custos-red-700);
+  --tone-warn-bg: var(--custos-amber-50);
+  --tone-warn-fg: var(--custos-amber-700);
+  --tone-info-bg: var(--custos-blue-50);
+  --tone-info-fg: var(--custos-blue-700);
+  --tone-accent-bg: var(--custos-purple-50);
+  --tone-accent-fg: var(--custos-purple-700);
+
+  --syntax-key: var(--custos-purple-700);
+  --syntax-str: var(--custos-green-700);
+  --syntax-bool: var(--custos-amber-700);
+  --syntax-num: var(--custos-blue-700);
+
+  --drawer-scrim: rgba(15, 23, 42, 0.32);
+
+  --muted-2: #f8fafc;
+  --border-strong: #d6dce4;
+  --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.14), -2px 0 8px rgba(15, 23, 42, 0.06);
+
+  --background: #ffffff;
+  --foreground: var(--custos-gray-900);
+  --card: #ffffff;
+  --card-foreground: var(--custos-gray-900);
+  --popover: var(--custos-white);
+  --popover-foreground: var(--custos-gray-900);
+  /* Near-black primary; blue moves to --brand for active states and links. */
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: var(--custos-gray-100);
+  --secondary-foreground: var(--custos-gray-900);
+  --muted: var(--custos-gray-100);
+  /* Pinned to gray-600 — gray-500 on bg-muted is 4.28:1 and fails WCAG AA. */
+  --muted-foreground: var(--custos-gray-600);
+  --accent: var(--custos-blue-50);
+  --accent-foreground: var(--custos-blue-700);
+  --destructive: var(--custos-red-600);
+  --destructive-foreground: var(--custos-white);
+  --border: var(--custos-gray-200);
+  --input: var(--custos-gray-200);
+  --ring: var(--custos-blue-500);
+
+  --sidebar: var(--custos-gray-50);
+  --sidebar-active: #ffffff;
+  --sidebar-hover: var(--custos-gray-200);
+  --sidebar-foreground: var(--custos-gray-900);
+  --sidebar-primary: var(--custos-blue-500);
+  --sidebar-primary-foreground: var(--custos-white);
+  --sidebar-accent: var(--brand-tint);
+  --sidebar-accent-foreground: var(--brand);
+  --sidebar-border: var(--custos-gray-200);
+  --sidebar-ring: var(--custos-blue-500);
+
+  --chart-1: var(--custos-blue-500);
+  --chart-2: var(--custos-green-500);
+  --chart-3: var(--custos-red-500);
+  --chart-4: var(--custos-blue-700);
+  --chart-5: var(--custos-gray-500);
+}
+
+/* Dark theme. Re-points the shadcn-style semantic tokens at the Custos palette
+   so contrast stays Figma-aligned without re-extracting tokens. */
+.dark {
+  --background: var(--custos-gray-900);
+  --foreground: var(--custos-gray-50);
+  --card: var(--custos-gray-800);
+  --card-foreground: var(--custos-gray-50);
+  --popover: var(--custos-gray-800);
+  --popover-foreground: var(--custos-gray-50);
+  --primary: var(--custos-blue-400);
+  --primary-foreground: var(--custos-gray-900);
+  --secondary: var(--custos-gray-800);
+  --secondary-foreground: var(--custos-gray-50);
+  --muted: var(--custos-gray-800);
+  --muted-foreground: var(--custos-gray-300);
+  --accent: var(--custos-blue-800);
+  --accent-foreground: var(--custos-blue-100);
+  --destructive: var(--custos-red-500);
+  --destructive-foreground: var(--custos-white);
+  --border: var(--custos-gray-700);
+  --input: var(--custos-gray-700);
+  --ring: var(--custos-blue-400);
+
+  --sidebar: var(--custos-gray-800);
+  --sidebar-active: var(--custos-gray-900);
+  --sidebar-hover: var(--custos-gray-700);
+  --sidebar-foreground: var(--custos-gray-50);
+  --sidebar-primary: var(--custos-blue-400);
+  --sidebar-primary-foreground: var(--custos-gray-900);
+  --sidebar-accent: var(--custos-gray-800);
+  --sidebar-accent-foreground: var(--custos-gray-50);
+  --sidebar-border: var(--custos-gray-700);
+  --sidebar-ring: var(--custos-blue-400);
+
+  --brand: var(--custos-blue-400);
+  --brand-foreground: #ffffff;
+  --brand-tint: rgba(77, 134, 201, 0.22);
+
+  --muted-2: var(--custos-gray-700);
+  --border-strong: var(--custos-gray-600);
+  --shadow-drawer: -12px 0 40px rgba(0, 0, 0, 0.55), -2px 0 8px rgba(0, 0, 0, 0.4);
+
+  --banner-error-bg: rgba(220, 38, 38, 0.12);
+  --banner-error-border: rgba(220, 38, 38, 0.32);
+  --banner-error-fg: var(--custos-red-300);
+  --banner-error-icon: var(--custos-red-400);
+
+  --tone-ok-bg: rgba(34, 197, 94, 0.16);     --tone-ok-fg: var(--custos-green-300);
+  --tone-error-bg: rgba(239, 68, 68, 0.16);  --tone-error-fg: var(--custos-red-300);
+  --tone-warn-bg: rgba(245, 158, 11, 0.18);  --tone-warn-fg: var(--custos-amber-200);
+  --tone-info-bg: rgba(77, 134, 201, 0.22);  --tone-info-fg: var(--custos-blue-300);
+  --tone-accent-bg: rgba(139, 92, 246, 0.2); --tone-accent-fg: #c4b5fd;
+
+  --syntax-key: #c4b5fd;
+  --syntax-str: var(--custos-green-300);
+  --syntax-bool: var(--custos-amber-200);
+  --syntax-num: var(--custos-blue-300);
+
+  --drawer-scrim: rgba(0, 0, 0, 0.6);
+}
