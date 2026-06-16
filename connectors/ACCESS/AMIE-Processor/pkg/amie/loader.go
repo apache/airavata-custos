@@ -63,9 +63,10 @@ const connectorName = "amie"
 // @description	REST endpoints for the ACCESS-CI AMIE connector, all under /connectors/amie/.
 // @host	localhost:8080
 // @BasePath	/
-// @securityDefinitions.apikey	CustosUserHeader
+// @securityDefinitions.apikey	BearerAuth
 // @in	header
-// @name	X-Custos-User-Id
+// @name	Authorization
+// @description.BearerAuth	OIDC bearer access token issued by the configured IdP. Prefix the value with "Bearer ".
 func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux, connectorConfig *custosconfig.ConnectorConfig) error {
 	cfg := loadConfig(connectorConfig)
 	if cfg.APIKey == "" || cfg.BaseURL == "" || cfg.SiteCode == "" {
