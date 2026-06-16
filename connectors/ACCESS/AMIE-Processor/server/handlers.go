@@ -84,6 +84,21 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary	List AMIE packets
+// @Tags	AMIE Packets
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	status	query	string	false	"Filter by status (NEW, DECODED, PROCESSED, FAILED, all)"
+// @Param	type	query	string	false	"Filter by packet type"
+// @Param	q	query	string	false	"Search by packet id or AMIE id"
+// @Param	from	query	string	false	"RFC3339 lower bound on received_at"
+// @Param	to	query	string	false	"RFC3339 upper bound on received_at"
+// @Param	limit	query	int	false	"Page size (default 50, max 200)"
+// @Param	offset	query	int	false	"Pagination offset"
+// @Success	200	{object}	PacketListResponse
+// @Failure	400	{object}	object{error=string}	"Invalid query parameter"
+// @Failure	500	{object}	object{error=string}	"Store lookup failed"
+// @Router	/connectors/amie/packets [get]
 func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
 		writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
@@ -111,6 +126,15 @@ func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary	Get an AMIE packet by ID
+// @Tags	AMIE Packets
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE packet ID"
+// @Success	200	{object}	PacketResponse
+// @Failure	404	{object}	object{error=string}	"Packet not found"
+// @Failure	500	{object}	object{error=string}	"Store lookup failed"
+// @Router	/connectors/amie/packets/{id} [get]
 func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
 		writeError(w, http.StatusNotFound, errors.New("not found"))
@@ -128,6 +152,14 @@ func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, packetResponseFrom(*p))
 }
 
+// @Summary	List processing events for an AMIE packet
+// @Tags	AMIE Packets
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE packet ID"
+// @Success	200	{array}	PacketEventResponse
+// @Failure	500	{object}	object{error=string}	"Store lookup failed"
+// @Router	/connectors/amie/packets/{id}/events [get]
 func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
 		writeJSON(w, http.StatusOK, []PacketEventResponse{})
@@ -145,6 +177,14 @@ func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// @Summary	Per-day packet stats grouped by status and type
+// @Tags	AMIE Stats
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	window	query	string	false	"Lookback window (e.g. 30d, 24h); default 30d"
+// @Success	200	{object}	PacketStatsResponse
+// @Failure	500	{object}	object{error=string}	"Store lookup failed"
+// @Router	/connectors/amie/stats [get]
 func (h *Handlers) getStats(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
 		writeJSON(w, http.StatusOK, PacketStatsResponse{ByDay: []PacketStatBucketResponse{}})
@@ -167,6 +207,14 @@ type ReplyListResponse struct {
 	Offset  int   `json:"offset"`
 }
 
+// @Summary	List replies sent to AMIE
+// @Tags	AMIE Replies
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	limit	query	int	false	"Page size (default 50, max 200)"
+// @Param	offset	query	int	false	"Pagination offset"
+// @Success	200	{object}	ReplyListResponse
+// @Router	/connectors/amie/replies [get]
 func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ReplyListResponse{
 		Replies: []any{},
@@ -176,19 +224,58 @@ func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary	List AMIE packets that could not be mapped to a Custos entity
+// @Tags	AMIE Unmapped
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	limit	query	int	false	"Page size (default 50, max 200)"
+// @Param	offset	query	int	false	"Pagination offset"
+// @Success	200	{object}	PacketListResponse
+// @Router	/connectors/amie/unmapped [get]
 func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
 }
 
+// @Summary	Retry an AMIE packet (not yet implemented)
+// @Tags	AMIE Packets
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE packet ID"
+// @Failure	501	{object}	object{error=string,message=string}
+// @Router	/connectors/amie/packets/{id}/retry [post]
 func (h *Handlers) retryPacket(w http.ResponseWriter, _ *http.Request) {
 	writeNotImplemented(w, "packet retry")
 }
+
+// @Summary	Resolve an AMIE packet (not yet implemented)
+// @Tags	AMIE Packets
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE packet ID"
+// @Failure	501	{object}	object{error=string,message=string}
+// @Router	/connectors/amie/packets/{id}/resolve [post]
 func (h *Handlers) resolvePacket(w http.ResponseWriter, _ *http.Request) {
 	writeNotImplemented(w, "packet resolve")
 }
+
+// @Summary	Retry an AMIE reply (not yet implemented)
+// @Tags	AMIE Replies
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE reply ID"
+// @Failure	501	{object}	object{error=string,message=string}
+// @Router	/connectors/amie/replies/{id}/retry [post]
 func (h *Handlers) retryReply(w http.ResponseWriter, _ *http.Request) {
 	writeNotImplemented(w, "reply retry")
 }
+
+// @Summary	Link an unmapped packet to a Custos entity (not yet implemented)
+// @Tags	AMIE Unmapped
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"AMIE packet ID"
+// @Failure	501	{object}	object{error=string,message=string}
+// @Router	/connectors/amie/unmapped/{id}/link [post]
 func (h *Handlers) linkUnmapped(w http.ResponseWriter, _ *http.Request) {
 	writeNotImplemented(w, "unmapped link")
 }
