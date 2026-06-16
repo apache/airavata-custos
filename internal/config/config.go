@@ -35,7 +35,15 @@ type CoreConfig struct {
 	Database DatabaseConfig `yaml:"database"`
 	API      APIConfig      `yaml:"api"`
 	Auth     AuthConfig     `yaml:"auth"`
+	CORS     CORSConfig     `yaml:"cors"`
 	LogLevel string         `yaml:"log_level"`
+}
+
+// CORSConfig drives the origin allowlist for browser callers. An empty
+// AllowedOrigins makes the middleware a no-op pass-through, which is the
+// right behaviour for server-to-server deployments.
+type CORSConfig struct {
+	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 type DatabaseConfig struct {

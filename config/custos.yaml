@@ -6,6 +6,10 @@ core:
   auth:
     issuer: "${OIDC_ISSUER_URL}"
     audience: "${OIDC_AUDIENCE}"
+  cors:
+    allowed_origins:
+      - "http://localhost:3000"
+      - "https://portal.dev.nexus.cybershuttle.org"
   log_level: "info"
 
 connectors:

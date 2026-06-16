@@ -13,6 +13,9 @@ core:
     issuer: "${OIDC_ISSUER_URL}"    # OIDC IdP issuer URL
     audience: "${OIDC_AUDIENCE}"    # JWT audience claim the IdP issues for this server
     # jwks_url: ""                  # optional override; leave empty to discover via issuer
+  cors:
+    allowed_origins:                # browser callers; empty list disables CORS
+      - "http://localhost:3000"
   log_level: "info"
 
 connectors:
