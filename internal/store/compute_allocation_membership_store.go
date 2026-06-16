@@ -27,13 +27,15 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status, role"
+const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
 
-// MembershipWithUser is the result shape of the join-based list methods. It
-// keeps the joined user + allocation fields off the core
+// MembershipWithUser is the result shape of the join-based list methods. Role
+// is project-level and comes from project_memberships (COALESCE'd to MEMBER
+// when no row exists). Joined user + allocation fields stay off the core
 // ComputeAllocationMembership entity.
 type MembershipWithUser struct {
 	models.ComputeAllocationMembership
+	Role           string
 	DisplayName    string
 	Email          string
 	AllocationName string
@@ -104,33 +106,24 @@ func (s *mysqlComputeAllocationMembershipStore) FindByUser(ctx context.Context, 
 }
 
 func (s *mysqlComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
-	role := m.Role
-	if role == "" {
-		role = "MEMBER"
-	}
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships
-		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status, role)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		m.ID, m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus), role)
+		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		m.ID, m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus))
 	return err
 }
 
 func (s *mysqlComputeAllocationMembershipStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
-	role := m.Role
-	if role == "" {
-		role = "MEMBER"
-	}
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_memberships
 		    SET compute_allocation_id = ?,
 		        user_id               = ?,
 		        start_time            = ?,
 		        end_time              = ?,
-		        membership_status     = ?,
-		        role                  = ?
+		        membership_status     = ?
 		  WHERE id = ?`,
-		m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus), role, m.ID)
+		m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus), m.ID)
 	return err
 }
 
@@ -158,11 +151,13 @@ func (s *mysqlComputeAllocationMembershipStore) Delete(ctx context.Context, tx *
 }
 
 // FindByAllocationWithUser returns memberships for an allocation joined with
-// user so each row carries display_name and email. Display fields stay on
-// MembershipWithUser, not on the core entity.
+// users + project_memberships so each row carries display_name, email, and
+// the project-level role (defaulted to MEMBER when no project_memberships
+// row exists).
 func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
 	type row struct {
 		models.ComputeAllocationMembership
+		Role      string `db:"role"`
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 		UserEmail string `db:"user_email"`
@@ -170,10 +165,14 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx con
 	var rows []row
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
-		        m.membership_status, m.role,
+		        m.membership_status,
+		        COALESCE(pm.role, 'MEMBER') AS role,
 		        u.first_name, u.last_name, u.email AS user_email
 		   FROM compute_allocation_memberships m
-		   JOIN users u ON u.id = m.user_id
+		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
+		   JOIN users u                  ON u.id = m.user_id
+		   LEFT JOIN project_memberships pm
+		         ON pm.project_id = a.project_id AND pm.user_id = m.user_id
 		  WHERE m.compute_allocation_id = ?
 		  ORDER BY m.start_time`, allocationID)
 	if err != nil {
@@ -183,6 +182,7 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx con
 	for _, r := range rows {
 		out = append(out, MembershipWithUser{
 			ComputeAllocationMembership: r.ComputeAllocationMembership,
+			Role:                        r.Role,
 			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
 			Email:                       r.UserEmail,
 		})
@@ -191,11 +191,13 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx con
 }
 
 // FindByProjectWithUser returns every membership across every allocation in
-// the project, joined with the user and the owning allocation name. Caller
-// aggregates per-user (the project-members view dedups + collapses role).
+// the project, joined with the user, the owning allocation name, and the
+// project-level role. Returned rows are ordered by user; callers aggregate it
+// per-user (collapsing into the response's allocation list).
 func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error) {
 	type row struct {
 		models.ComputeAllocationMembership
+		Role           string `db:"role"`
 		FirstName      string `db:"first_name"`
 		LastName       string `db:"last_name"`
 		UserEmail      string `db:"user_email"`
@@ -204,12 +206,15 @@ func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx contex
 	var rows []row
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
-		        m.membership_status, m.role,
+		        m.membership_status,
+		        COALESCE(pm.role, 'MEMBER') AS role,
 		        u.first_name, u.last_name, u.email AS user_email,
 		        ca.name AS allocation_name
 		   FROM compute_allocation_memberships m
-		   JOIN compute_allocations ca ON ca.id = m.compute_allocation_id
-		   JOIN users u ON u.id = m.user_id
+		   JOIN compute_allocations ca   ON ca.id = m.compute_allocation_id
+		   JOIN users u                  ON u.id = m.user_id
+		   LEFT JOIN project_memberships pm
+		         ON pm.project_id = ca.project_id AND pm.user_id = m.user_id
 		  WHERE ca.project_id = ?
 		  ORDER BY u.email, ca.name`, projectID)
 	if err != nil {
@@ -219,6 +224,7 @@ func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx contex
 	for _, r := range rows {
 		out = append(out, MembershipWithUser{
 			ComputeAllocationMembership: r.ComputeAllocationMembership,
+			Role:                        r.Role,
 			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
 			Email:                       r.UserEmail,
 			AllocationName:              r.AllocationName,

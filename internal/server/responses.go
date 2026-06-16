@@ -62,9 +62,11 @@ type ProjectMemberResponse struct {
 }
 
 // AllocationMembershipResponse embeds the persisted membership and surfaces
-// the joined user display fields without putting them on the core entity.
+// the joined user display fields plus the project-level role (defaulted to
+// MEMBER when no project_memberships row exists).
 type AllocationMembershipResponse struct {
 	models.ComputeAllocationMembership
+	Role        string `json:"role"`
 	DisplayName string `json:"display_name,omitempty"`
 	Email       string `json:"email,omitempty"`
 }

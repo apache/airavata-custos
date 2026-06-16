@@ -32,3 +32,8 @@ var ErrAlreadyExists = errors.New("record already exists")
 
 // ErrInvalidInput is returned when required fields are missing or invalid.
 var ErrInvalidInput = errors.New("invalid input")
+
+// ErrPIChange is returned when an operation would change a project's PI to a
+// different user. PI is set once at project creation and cannot be reassigned
+// through normal flows.
+var ErrPIChange = errors.New("project PI cannot be changed")

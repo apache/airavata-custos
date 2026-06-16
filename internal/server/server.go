@@ -1235,6 +1235,7 @@ func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request
 	for _, m := range rows {
 		out = append(out, AllocationMembershipResponse{
 			ComputeAllocationMembership: m.ComputeAllocationMembership,
+			Role:                        m.Role,
 			DisplayName:                 m.DisplayName,
 			Email:                       m.Email,
 		})
@@ -1827,22 +1828,20 @@ func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Role is project-level (single value per user), so the dedup just
+	// collects the user's allocations.
 	type aggregate struct {
 		base        store.MembershipWithUser
 		allocations []ProjectMemberAllocationRef
-		bestRank    int
 	}
 	byUser := map[string]*aggregate{}
 	order := []string{}
 	for _, m := range rows {
 		agg, ok := byUser[m.UserID]
 		if !ok {
-			agg = &aggregate{base: m, bestRank: roleRank(m.Role)}
+			agg = &aggregate{base: m}
 			byUser[m.UserID] = agg
 			order = append(order, m.UserID)
-		} else if r := roleRank(m.Role); r > agg.bestRank {
-			agg.base = m
-			agg.bestRank = r
 		}
 		agg.allocations = append(agg.allocations, ProjectMemberAllocationRef{
 			ID:   m.ComputeAllocationID,
@@ -1860,39 +1859,13 @@ func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
 			UserID:      agg.base.UserID,
 			Email:       agg.base.Email,
 			DisplayName: agg.base.DisplayName,
-			Role:        projectRole(agg.base.Role),
+			Role:        agg.base.Role,
 			Status:      string(agg.base.MembershipStatus),
 			AddedTime:   agg.base.StartTime.UTC(),
 			Allocations: agg.allocations,
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
-}
-
-// projectRole collapses the four allocation-level role values to the three
-// the project-members surface needs (ALLOCATION_MANAGER → MEMBER).
-func projectRole(r string) string {
-	switch r {
-	case "PI", "CO_PI":
-		return r
-	default:
-		return "MEMBER"
-	}
-}
-
-// roleRank ranks allocation roles for "strongest role across allocations".
-func roleRank(r string) int {
-	switch r {
-	case "PI":
-		return 4
-	case "CO_PI":
-		return 3
-	case "ALLOCATION_MANAGER":
-		return 2
-	case "MEMBER":
-		return 1
-	}
-	return 0
 }
 
 // @Summary	List compute allocations (filtered + paginated)

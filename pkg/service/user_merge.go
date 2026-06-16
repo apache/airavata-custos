@@ -91,6 +91,9 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 		if err := s.memberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
 			return fmt.Errorf("reassign memberships: %w", err)
 		}
+		if err := s.projMemberships.ReassignUser(ctx, tx, retiringID, survivingID); err != nil {
+			return fmt.Errorf("reassign project memberships: %w", err)
+		}
 		return s.users.UpdateStatus(ctx, tx, retiringID, models.UserMerged)
 	}); err != nil {
 		return nil, fmt.Errorf("merge users: %w", err)

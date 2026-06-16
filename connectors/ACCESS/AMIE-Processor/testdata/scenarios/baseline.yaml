@@ -123,16 +123,20 @@ expectations:
             user_id: { from: "users.id where email=pat.madison@baseline.example.edu" } }
 
     compute_allocation_memberships:
-      # PI memberships come from request_project_create; non-PI roles from
-      # request_account_create.
-      #   BL-001: Pat (PI), Casey (CO_PI), Riley (MEMBER)
-      #   BL-002: Pat (PI, post-merge), Morgan (ALLOCATION_MANAGER)
+      # Compute-access rows only (no role column). PI rows come from
+      # request_project_create; the rest from request_account_create.
       total_count: 5
+
+    project_memberships:
+      # PI/CO_PI/ALLOCATION_MANAGER. MEMBER is derived from
+      # compute_allocation_memberships and not stored here.
+      #   BL-001: Pat (PI), Casey (CO_PI)
+      #   BL-002: Pat (PI, post-merge), Morgan (ALLOCATION_MANAGER)
+      total_count: 4
       by_role:
         PI: 2
         CO_PI: 1
         ALLOCATION_MANAGER: 1
-        MEMBER: 1
 
   audit_log:
     # audit_events (source='amie') and amie_audit_extras carry the same count;

@@ -51,6 +51,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"amie_audit_extras", 52},
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
+		{"project_memberships", 4},
 	}
 	if decoded != 12 {
 		t.Errorf("decoded packets: got %d, want 12", decoded)

@@ -174,6 +174,12 @@ type ComputeAllocationChangeRequestEventService interface {
 	DeleteComputeAllocationChangeRequestEvent(ctx context.Context, id string) error
 }
 
+// ProjectMembershipService exposes project-level governance roles.
+type ProjectMembershipService interface {
+	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
+	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
+}
+
 // ComputeAllocationMembershipService exposes allocation memberships.
 type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
@@ -273,6 +279,7 @@ type CoreService interface {
 	ComputeAllocationChangeRequestService
 	ComputeAllocationChangeRequestEventService
 	ComputeAllocationMembershipService
+	ProjectMembershipService
 	ComputeAllocationMembershipResourceOverrideService
 	ComputeAllocationUsageService
 	AuditEventService

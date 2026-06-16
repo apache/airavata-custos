@@ -58,17 +58,6 @@ func (s *Service) CreateComputeAllocationMembership(ctx context.Context, m *mode
 	} else if existing != nil {
 		return nil, fmt.Errorf("%w: user %q already has a membership on allocation %q", ErrAlreadyExists, m.UserID, m.ComputeAllocationID)
 	}
-	if m.Role == "PI" {
-		if rows, err := s.memberships.FindByAllocation(ctx, m.ComputeAllocationID); err != nil {
-			return nil, fmt.Errorf("check PI uniqueness: %w", err)
-		} else {
-			for _, x := range rows {
-				if x.Role == "PI" {
-					return nil, fmt.Errorf("%w: allocation %q already has a PI (%q)", ErrAlreadyExists, m.ComputeAllocationID, x.UserID)
-				}
-			}
-		}
-	}
 
 	if m.ID == "" {
 		m.ID = newID()

@@ -118,6 +118,9 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	if err != nil {
 		return fmt.Errorf("request_project_create: ensure PI membership: %w", err)
 	}
+	if err := h.svc.EnsureProjectMembership(ctx, project.ID, pi.ID, "PI"); err != nil {
+		return fmt.Errorf("request_project_create: ensure PI project membership: %w", err)
+	}
 	if created {
 		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", piMembership.ID, "PI"); err != nil {
 			return fmt.Errorf("request_project_create: audit CREATE_MEMBERSHIP (PI): %w", err)
@@ -254,7 +257,6 @@ func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, al
 	created, err := h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
 		ComputeAllocationID: allocation.ID,
 		UserID:              piID,
-		Role:                "PI",
 		StartTime:           allocation.StartTime,
 		EndTime:             allocation.EndTime,
 		MembershipStatus:    models.ACTIVE,

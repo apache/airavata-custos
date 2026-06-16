@@ -127,6 +127,7 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"amie_user_dns",
 		"compute_allocation_membership_resource_overrides",
 		"compute_allocation_usages",
+		"project_memberships",
 		"compute_allocation_memberships",
 		"compute_allocation_change_request_events",
 		"compute_allocation_change_requests",
