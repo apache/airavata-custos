@@ -34,6 +34,7 @@ type Config struct {
 type CoreConfig struct {
 	Database DatabaseConfig `yaml:"database"`
 	API      APIConfig      `yaml:"api"`
+	Auth     AuthConfig     `yaml:"auth"`
 	LogLevel string         `yaml:"log_level"`
 }
 
@@ -43,6 +44,15 @@ type DatabaseConfig struct {
 
 type APIConfig struct {
 	Port int `yaml:"port"`
+}
+
+// AuthConfig drives OIDC bearer token verification at the HTTP boundary.
+// Issuer + Audience are required at runtime; JWKSURL is an override the
+// HTTP-layer integration tests use to point at an in-process JWKS server.
+type AuthConfig struct {
+	Issuer   string `yaml:"issuer"`
+	Audience string `yaml:"audience"`
+	JWKSURL  string `yaml:"jwks_url"`
 }
 
 type ConnectorConfig struct {

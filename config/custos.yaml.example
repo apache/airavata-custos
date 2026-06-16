@@ -1,11 +1,18 @@
+# Custos configuration template. Copy to config/custos.yaml and either
+# replace the ${ENV_VAR} placeholders with literal values or export them
+# in the runtime environment. Anything secret-shaped (DSN passwords,
+# API keys, OIDC client secrets) must come from the environment, never
+# from a committed YAML.
+
 core:
   database:
-    url: "${DATABASE_DSN}"
+    url: "${DATABASE_DSN}"          # MariaDB DSN
   api:
     port: 8080
   auth:
-    issuer: "${OIDC_ISSUER_URL}"
-    audience: "${OIDC_AUDIENCE}"
+    issuer: "${OIDC_ISSUER_URL}"    # OIDC IdP issuer URL
+    audience: "${OIDC_AUDIENCE}"    # JWT audience claim the IdP issues for this server
+    # jwks_url: ""                  # optional override; leave empty to discover via issuer
   log_level: "info"
 
 connectors:
@@ -16,7 +23,7 @@ connectors:
       url: "https://slurm-api.example.com"
       version: "0.0.38"
       username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
+      token: "${SLURM_TOKEN}"
 
   slurm-usage-monitor:
     type: "slurm-usage-monitor"
@@ -25,7 +32,7 @@ connectors:
       url: "https://slurm-api.example.com"
       version: "0.0.38"
       username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
+      token: "${SLURM_TOKEN}"
     cluster_id: "slurm-cluster"
 
   comanage-provisioner:
