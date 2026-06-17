@@ -10,14 +10,25 @@ export function SignInForm() {
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async () => {
+  const onClick = async () => {
     setSubmitting(true);
-    await signIn("oidc", { callbackUrl });
+    try {
+      await signIn("oidc", { callbackUrl });
+    } catch {
+      // signIn normally redirects on success; reset on failure so the button
+      // doesn't stay disabled forever.
+      setSubmitting(false);
+    }
   };
 
   return (
-    <Button onClick={onSubmit} disabled={submitting} className="w-full">
-      Sign in
+    <Button
+      onClick={onClick}
+      disabled={submitting}
+      aria-busy={submitting}
+      className="w-full"
+    >
+      {submitting ? "Signing in…" : "Sign in"}
     </Button>
   );
 }
