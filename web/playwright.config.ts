@@ -28,10 +28,14 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       PORT: String(port),
-      PORTAL_AUTH_MODE: "dev",
       NEXT_PUBLIC_PORTAL_USE_MSW: "true",
-      NEXTAUTH_SECRET: "dev-secret-do-not-use-in-prod",
+      // 32-char filler so the schema accepts boot; MSW intercepts every
+      // /api/v1 call, so OIDC values are placeholders the IdP never sees.
+      NEXTAUTH_SECRET: "test-secret-test-secret-test-secret",
       NEXTAUTH_URL: baseURL,
+      OIDC_ISSUER_URL: "https://issuer.test",
+      OIDC_CLIENT_ID: "test-client",
+      OIDC_CLIENT_SECRET: "test-secret",
     },
   },
 });
