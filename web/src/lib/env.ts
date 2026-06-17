@@ -1,40 +1,22 @@
 import { z } from "zod";
 
-export const serverSchema = z
-  .object({
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    PORTAL_AUTH_MODE: z.enum(["dev", "oidc"]).default("dev"),
-    NEXTAUTH_SECRET: z.string().min(8).default("dev-secret-do-not-use-in-prod"),
-    NEXTAUTH_URL: z.string().url().optional(),
+export const serverSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NEXTAUTH_SECRET: z.string().min(8).default("dev-secret-do-not-use-in-prod"),
+  NEXTAUTH_URL: z.string().url().optional(),
 
-    CUSTOS_CORE_API_BASE_URL: z.string().url().default("http://localhost:8080"),
-    CUSTOS_ADMIN_CLIENT_ID: z.string().optional(),
-    CUSTOS_ADMIN_CLIENT_SECRET: z.string().optional(),
+  CUSTOS_CORE_API_BASE_URL: z.string().url().default("http://localhost:8080"),
+  CUSTOS_ADMIN_CLIENT_ID: z.string().optional(),
+  CUSTOS_ADMIN_CLIENT_SECRET: z.string().optional(),
 
-    OIDC_ISSUER_URL: z.string().url().optional(),
-    OIDC_CLIENT_ID: z.string().optional(),
-    OIDC_CLIENT_SECRET: z.string().optional(),
-  })
-  .superRefine((env, ctx) => {
-    // OIDC mode demands these — otherwise NextAuth boots a misconfigured
-    // provider that silently fails at sign-in.
-    if (env.PORTAL_AUTH_MODE === "oidc") {
-      const required: Array<["OIDC_ISSUER_URL" | "OIDC_CLIENT_ID" | "OIDC_CLIENT_SECRET", string | undefined]> = [
-        ["OIDC_ISSUER_URL", env.OIDC_ISSUER_URL],
-        ["OIDC_CLIENT_ID", env.OIDC_CLIENT_ID],
-        ["OIDC_CLIENT_SECRET", env.OIDC_CLIENT_SECRET],
-      ];
-      for (const [name, value] of required) {
-        if (!value || value.trim().length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [name],
-            message: `${name} is required when PORTAL_AUTH_MODE='oidc'`,
-          });
-        }
-      }
-    }
-  });
+  OIDC_ISSUER_URL: z.string().url(),
+  OIDC_CLIENT_ID: z.string().min(1),
+  OIDC_CLIENT_SECRET: z.string().min(1),
+  OIDC_SCOPES: z
+    .string()
+    .min(1)
+    .default("openid profile email org.cilogon.userinfo"),
+});
 
 const clientSchema = z.object({
   NEXT_PUBLIC_PORTAL_USE_MSW: z.enum(["true", "false"]).default("false"),
