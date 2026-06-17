@@ -6,6 +6,7 @@ core:
   auth:
     issuer: "${OIDC_ISSUER_URL}"
     audience: "${OIDC_AUDIENCE}"
+    # jwks_url: ""   # optional; leave unset to discover via issuer's .well-known
   cors:
     allowed_origins:
       - "http://localhost:3000"
