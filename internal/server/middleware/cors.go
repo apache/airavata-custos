@@ -57,12 +57,14 @@ func (c *CORS) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		if origin != "" {
+			// Vary on every cross-origin response so caches don't serve the
+			// allowlisted response to a different origin.
+			w.Header().Add("Vary", "Origin")
 			if _, ok := c.allowed[origin]; ok {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Access-Control-Allow-Methods", c.methods)
 				w.Header().Set("Access-Control-Allow-Headers", c.headers)
-				w.Header().Add("Vary", "Origin")
 			}
 		}
 		if r.Method == http.MethodOptions {
