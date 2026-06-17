@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"golang.org/x/sync/singleflight"
 
@@ -59,11 +60,17 @@ type Auth struct {
 	httpClient   *http.Client
 	jwksCacheTTL time.Duration
 
-	mu      sync.RWMutex
-	jwksURL string
-	cache   *jwksEntry
-	sfGroup singleflight.Group
+	mu               sync.RWMutex
+	jwksURL          string
+	cache            *jwksEntry
+	sfGroup          singleflight.Group
+	lastForceRefresh time.Time
 }
+
+// forceRefreshCooldown caps how often a kid-miss can trigger an unscheduled
+// JWKS refresh. Bounds the work a malicious client can induce by sending
+// tokens with random kid headers.
+const forceRefreshCooldown = time.Minute
 
 type jwksEntry struct {
 	set       jwk.Set
@@ -169,6 +176,17 @@ func (a *Auth) verify(ctx context.Context, tokenString string) (*identity.Caller
 		jwt.WithIssuer(a.issuer),
 		jwt.WithAudience(a.audience),
 	)
+	if err != nil && a.shouldRefreshForKidMiss(tokenString, keys) {
+		fresh, refreshErr := a.refreshJWKS(ctx)
+		if refreshErr == nil {
+			tok, err = jwt.Parse([]byte(tokenString),
+				jwt.WithKeySet(fresh),
+				jwt.WithValidate(true),
+				jwt.WithIssuer(a.issuer),
+				jwt.WithAudience(a.audience),
+			)
+		}
+	}
 	if err != nil {
 		return nil, errors.New(reject)
 	}
@@ -195,6 +213,54 @@ func (a *Auth) verify(ctx context.Context, tokenString string) (*identity.Caller
 		OIDCSub: sub,
 		Email:   emailStr,
 	}, nil
+}
+
+// shouldRefreshForKidMiss reports whether a parse failure was caused by an
+// unknown signing key, which happens after the IdP rotates and the cached set
+// hasn't expired yet. Gated by a cooldown so a malicious client can't drive
+// JWKS fetches by sending tokens with random kids.
+func (a *Auth) shouldRefreshForKidMiss(tokenString string, current jwk.Set) bool {
+	parsed, err := jws.Parse([]byte(tokenString))
+	if err != nil {
+		return false
+	}
+	sigs := parsed.Signatures()
+	if len(sigs) == 0 {
+		return false
+	}
+	kid := sigs[0].ProtectedHeaders().KeyID()
+	if kid == "" {
+		return false
+	}
+	if _, ok := current.LookupKeyID(kid); ok {
+		return false
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if time.Since(a.lastForceRefresh) < forceRefreshCooldown {
+		return false
+	}
+	a.lastForceRefresh = time.Now()
+	return true
+}
+
+// refreshJWKS bypasses the TTL and fetches a fresh keyset. Single-flighted
+// so concurrent kid-miss requests collapse to one fetch.
+func (a *Auth) refreshJWKS(ctx context.Context) (jwk.Set, error) {
+	result, err, _ := a.sfGroup.Do("jwks-refresh", func() (interface{}, error) {
+		set, err := a.fetchJWKS(ctx)
+		if err != nil {
+			return nil, err
+		}
+		a.mu.Lock()
+		a.cache = &jwksEntry{set: set, fetchedAt: time.Now()}
+		a.mu.Unlock()
+		return set, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(jwk.Set), nil
 }
 
 func (a *Auth) getJWKS(ctx context.Context) (jwk.Set, error) {
@@ -234,16 +300,21 @@ func (a *Auth) fetchJWKS(ctx context.Context) (jwk.Set, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.httpClient.Timeout)
 	defer cancel()
 
-	if a.jwksURL == "" {
-		url, err := a.discoverJWKSURL(ctx)
+	a.mu.RLock()
+	url := a.jwksURL
+	a.mu.RUnlock()
+
+	if url == "" {
+		discovered, err := a.discoverJWKSURL(ctx)
 		if err != nil {
 			return nil, err
 		}
 		a.mu.Lock()
-		a.jwksURL = url
+		a.jwksURL = discovered
+		url = discovered
 		a.mu.Unlock()
 	}
-	return jwk.Fetch(ctx, a.jwksURL, jwk.WithHTTPClient(a.httpClient))
+	return jwk.Fetch(ctx, url, jwk.WithHTTPClient(a.httpClient))
 }
 
 func (a *Auth) discoverJWKSURL(ctx context.Context) (string, error) {

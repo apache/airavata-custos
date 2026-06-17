@@ -25,6 +25,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -359,5 +360,111 @@ func TestAuth_DiscoversJWKSURLFromIssuer(t *testing.T) {
 
 	if !called || rec.Code != http.StatusOK {
 		t.Fatalf("discovery path failed: code=%d called=%v", rec.Code, called)
+	}
+}
+
+func newRSAKey(t *testing.T, kid string) (priv jwk.Key, pub jwk.Key) {
+	t.Helper()
+	raw, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa: %v", err)
+	}
+	priv, err = jwk.FromRaw(raw)
+	if err != nil {
+		t.Fatalf("priv from raw: %v", err)
+	}
+	if err := priv.Set(jwk.KeyIDKey, kid); err != nil {
+		t.Fatalf("set kid: %v", err)
+	}
+	if err := priv.Set(jwk.AlgorithmKey, jwa.RS256); err != nil {
+		t.Fatalf("set alg: %v", err)
+	}
+	pub, err = priv.PublicKey()
+	if err != nil {
+		t.Fatalf("public from priv: %v", err)
+	}
+	return priv, pub
+}
+
+func mintWith(t *testing.T, key jwk.Key, o tokenOpts) string {
+	t.Helper()
+	builder := jwt.NewBuilder().
+		Issuer(o.issuer).
+		Audience([]string{o.audience}).
+		Subject(o.subject).
+		Expiration(o.expiresAt).
+		IssuedAt(time.Now())
+	tok, err := builder.Build()
+	if err != nil {
+		t.Fatalf("build token: %v", err)
+	}
+	signed, err := jwt.Sign(tok, jwt.WithKey(jwa.RS256, key))
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+	return string(signed)
+}
+
+// TestAuth_ForceRefreshesOnKidMiss simulates IdP key rotation: the cache
+// holds keyA but the next token is signed by keyB. The middleware must
+// detect the kid miss, refresh the JWKS, and accept the token without
+// waiting for the cache TTL.
+func TestAuth_ForceRefreshesOnKidMiss(t *testing.T) {
+	privA, pubA := newRSAKey(t, "key-a")
+	privB, pubB := newRSAKey(t, "key-b")
+
+	setA := jwk.NewSet()
+	if err := setA.AddKey(pubA); err != nil {
+		t.Fatalf("add A: %v", err)
+	}
+	setB := jwk.NewSet()
+	if err := setB.AddKey(pubB); err != nil {
+		t.Fatalf("add B: %v", err)
+	}
+
+	var mu sync.Mutex
+	served := setA
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		current := served
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(current)
+	}))
+	t.Cleanup(srv.Close)
+
+	a, err := middleware.NewAuth(
+		config.AuthConfig{Issuer: testIssuer, Audience: testAudience},
+		resolverAlways("user-1"),
+		middleware.WithJWKSURL(srv.URL),
+	)
+	if err != nil {
+		t.Fatalf("new auth: %v", err)
+	}
+
+	good := tokenOpts{issuer: testIssuer, audience: testAudience, subject: "sub-1", expiresAt: time.Now().Add(time.Minute)}
+
+	// Warm the cache with a keyA-signed token; auth should accept it.
+	rec := httptest.NewRecorder()
+	a.Wrap(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).ServeHTTP(rec, newRequest(mintWith(t, privA, good)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("warmup with key-a should succeed: code=%d body=%q", rec.Code, rec.Body.String())
+	}
+
+	// Rotate: server now serves only keyB. Cached set still has keyA.
+	mu.Lock()
+	served = setB
+	mu.Unlock()
+
+	// keyB-signed token: middleware should kid-miss, force-refresh, retry.
+	rec = httptest.NewRecorder()
+	called := false
+	a.Wrap(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		called = true
+	})).ServeHTTP(rec, newRequest(mintWith(t, privB, good)))
+
+	if rec.Code != http.StatusOK || !called {
+		t.Fatalf("kid-miss force-refresh did not recover: code=%d called=%v body=%q",
+			rec.Code, called, rec.Body.String())
 	}
 }
