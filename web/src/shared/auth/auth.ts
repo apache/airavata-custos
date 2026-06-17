@@ -10,6 +10,10 @@ const oidcProvider = {
   clientId: serverEnv.OIDC_CLIENT_ID,
   clientSecret: serverEnv.OIDC_CLIENT_SECRET,
   authorization: { params: { scope: serverEnv.OIDC_SCOPES } },
+  // PKCE protects code interception, state binds the response to this browser
+  // session, nonce binds the id_token. id_token is the bearer the backend
+  // accepts, so replay protection matters here.
+  checks: ["pkce", "state", "nonce"] as ("pkce" | "state" | "nonce")[],
 };
 
 // Privileges aren't an OIDC claim — fetch from the backend so the layout gate sees them.
@@ -19,10 +23,14 @@ async function fetchPrivileges(bearer: string): Promise<Privilege[]> {
       headers: { Authorization: `Bearer ${bearer}` },
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("fetchPrivileges: backend returned", res.status, res.statusText);
+      return [];
+    }
     const data = (await res.json()) as { privileges?: Privilege[] };
     return data.privileges ?? [];
-  } catch {
+  } catch (err) {
+    console.error("fetchPrivileges: request failed", err);
     return [];
   }
 }
