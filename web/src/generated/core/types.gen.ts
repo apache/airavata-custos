@@ -4,6 +4,26 @@ export type ClientOptions = {
     baseUrl: 'localhost:8080/' | (string & {});
 };
 
+export type AllocationMembershipResponse = {
+    compute_allocation_id?: string;
+    display_name?: string;
+    email?: string;
+    end_time?: string;
+    id?: string;
+    /**
+     * ACTIVE, INACTIVE, etc.
+     */
+    membership_status?: AllocationStatus;
+    role?: string;
+    start_time?: string;
+    user_id?: string;
+};
+
+export type AllocationSuTotalResponse = {
+    compute_allocation_id?: string;
+    total_su_amount?: number;
+};
+
 export type AllocationStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
 export type ComputeAllocation = {
@@ -99,6 +119,11 @@ export type ComputeAllocationDiff = {
      * The time when the diff was generated.
      */
     timestamp?: string;
+};
+
+export type ComputeAllocationListResponse = {
+    items?: Array<ComputeAllocation>;
+    total?: number;
 };
 
 export type ComputeAllocationMembership = {
@@ -252,6 +277,47 @@ export type Project = {
     title?: string;
 };
 
+export type ProjectListResponse = {
+    items?: Array<ProjectResponse>;
+    total?: number;
+};
+
+export type ProjectMemberAllocationRef = {
+    id?: string;
+    name?: string;
+    role?: string;
+};
+
+export type ProjectMemberResponse = {
+    added_time?: string;
+    allocations?: Array<ProjectMemberAllocationRef>;
+    display_name?: string;
+    email?: string;
+    id?: string;
+    project_id?: string;
+    role?: string;
+    status?: string;
+    user_id?: string;
+};
+
+export type ProjectResponse = {
+    created_time?: string;
+    id?: string;
+    /**
+     * The ID of the project in origination. For example: ACCESS Record ID.
+     */
+    originated_id?: string;
+    /**
+     * ACCESS, NAIRR, XRASS, etc.
+     */
+    origination?: string;
+    project_pi_display_name?: string;
+    project_pi_email?: string;
+    project_pi_id?: string;
+    status?: ProjectStatus;
+    title?: string;
+};
+
 export type ProjectStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
 export type Role = {
@@ -305,6 +371,12 @@ export type User = {
     middle_name?: string;
     organization_id?: string;
     status?: UserStatus;
+};
+
+export type UserAllocationSuTotalResponse = {
+    compute_allocation_id?: string;
+    total_su_amount?: number;
+    user_id?: string;
 };
 
 export type UserIdentity = {
@@ -1710,6 +1782,43 @@ export type GetComputeAllocationUsagesByIdResponses = {
 
 export type GetComputeAllocationUsagesByIdResponse = GetComputeAllocationUsagesByIdResponses[keyof GetComputeAllocationUsagesByIdResponses];
 
+export type GetComputeAllocationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by project ID
+         */
+        project_id?: string;
+        /**
+         * Filter by status
+         */
+        status?: string;
+        /**
+         * Search name
+         */
+        q?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/compute-allocations';
+};
+
+export type GetComputeAllocationsResponses = {
+    /**
+     * OK
+     */
+    200: ComputeAllocationListResponse;
+};
+
+export type GetComputeAllocationsResponse = GetComputeAllocationsResponses[keyof GetComputeAllocationsResponses];
+
 export type PostComputeAllocationsData = {
     /**
      * Compute allocation payload
@@ -1895,7 +2004,7 @@ export type GetComputeAllocationsByIdMembershipsResponses = {
     /**
      * OK
      */
-    200: Array<ComputeAllocationMembership>;
+    200: Array<AllocationMembershipResponse>;
 };
 
 export type GetComputeAllocationsByIdMembershipsResponse = GetComputeAllocationsByIdMembershipsResponses[keyof GetComputeAllocationsByIdMembershipsResponses];
@@ -2111,10 +2220,7 @@ export type GetComputeAllocationsByIdUsagesTotalResponses = {
     /**
      * OK
      */
-    200: {
-        compute_allocation_id?: string;
-        total_su_amount?: number;
-    };
+    200: AllocationSuTotalResponse;
 };
 
 export type GetComputeAllocationsByIdUsagesTotalResponse = GetComputeAllocationsByIdUsagesTotalResponses[keyof GetComputeAllocationsByIdUsagesTotalResponses];
@@ -2150,11 +2256,7 @@ export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses = {
     /**
      * OK
      */
-    200: {
-        compute_allocation_id?: string;
-        total_su_amount?: number;
-        user_id?: string;
-    };
+    200: UserAllocationSuTotalResponse;
 };
 
 export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses[keyof GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses];
@@ -2576,6 +2678,43 @@ export type GetPrivilegesCatalogResponses = {
 
 export type GetPrivilegesCatalogResponse = GetPrivilegesCatalogResponses[keyof GetPrivilegesCatalogResponses];
 
+export type GetProjectsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by PI user ID
+         */
+        pi_id?: string;
+        /**
+         * Filter by status
+         */
+        status?: string;
+        /**
+         * Search title / originated_id
+         */
+        q?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/projects';
+};
+
+export type GetProjectsResponses = {
+    /**
+     * OK
+     */
+    200: ProjectListResponse;
+};
+
+export type GetProjectsResponse = GetProjectsResponses[keyof GetProjectsResponses];
+
 export type PostProjectsData = {
     /**
      * Project payload
@@ -2633,10 +2772,42 @@ export type GetProjectsByIdResponses = {
     /**
      * OK
      */
-    200: Project;
+    200: ProjectResponse;
 };
 
 export type GetProjectsByIdResponse = GetProjectsByIdResponses[keyof GetProjectsByIdResponses];
+
+export type GetProjectsByIdMembersData = {
+    body?: never;
+    path: {
+        /**
+         * Project ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/projects/{id}/members';
+};
+
+export type GetProjectsByIdMembersErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetProjectsByIdMembersError = GetProjectsByIdMembersErrors[keyof GetProjectsByIdMembersErrors];
+
+export type GetProjectsByIdMembersResponses = {
+    /**
+     * OK
+     */
+    200: Array<ProjectMemberResponse>;
+};
+
+export type GetProjectsByIdMembersResponse = GetProjectsByIdMembersResponses[keyof GetProjectsByIdMembersResponses];
 
 export type PutProjectsByIdStatusData = {
     /**
@@ -3207,7 +3378,7 @@ export type GetUserPrivilegesData = {
 
 export type GetUserPrivilegesErrors = {
     /**
-     * Missing X-Custos-User-Id header
+     * Unauthenticated
      */
     401: {
         error?: string;
@@ -3484,7 +3655,7 @@ export type PostUsersByIdPrivilegesErrors = {
         error?: string;
     };
     /**
-     * Missing caller header
+     * Unauthenticated
      */
     401: {
         error?: string;
@@ -3541,7 +3712,7 @@ export type DeleteUsersByIdPrivilegesByKeyErrors = {
         error?: string;
     };
     /**
-     * Missing caller header
+     * Unauthenticated
      */
     401: {
         error?: string;

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteComputeAllocationChangeRequestEventsByIdData, DeleteComputeAllocationChangeRequestEventsByIdErrors, DeleteComputeAllocationChangeRequestEventsByIdResponses, DeleteComputeAllocationChangeRequestsByIdData, DeleteComputeAllocationChangeRequestsByIdErrors, DeleteComputeAllocationChangeRequestsByIdResponses, DeleteComputeAllocationDiffsByIdData, DeleteComputeAllocationDiffsByIdErrors, DeleteComputeAllocationDiffsByIdResponses, DeleteComputeAllocationMembershipResourceOverridesByIdData, DeleteComputeAllocationMembershipResourceOverridesByIdErrors, DeleteComputeAllocationMembershipResourceOverridesByIdResponses, DeleteComputeAllocationMembershipsByIdData, DeleteComputeAllocationMembershipsByIdErrors, DeleteComputeAllocationMembershipsByIdResponses, DeleteComputeAllocationsByIdResourcesByResourceIdData, DeleteComputeAllocationsByIdResourcesByResourceIdErrors, DeleteComputeAllocationsByIdResourcesByResourceIdResponses, DeleteComputeAllocationUsagesByIdData, DeleteComputeAllocationUsagesByIdErrors, DeleteComputeAllocationUsagesByIdResponses, DeleteComputeClusterUsersByIdData, DeleteComputeClusterUsersByIdErrors, DeleteComputeClusterUsersByIdResponses, DeleteRolesByIdData, DeleteRolesByIdErrors, DeleteRolesByIdPrivilegesByKeyData, DeleteRolesByIdPrivilegesByKeyErrors, DeleteRolesByIdPrivilegesByKeyResponses, DeleteRolesByIdResponses, DeleteUserIdentitiesByIdData, DeleteUserIdentitiesByIdErrors, DeleteUserIdentitiesByIdResponses, DeleteUsersByIdPrivilegesByKeyData, DeleteUsersByIdPrivilegesByKeyErrors, DeleteUsersByIdPrivilegesByKeyResponses, DeleteUsersByIdRolesByRoleIdData, DeleteUsersByIdRolesByRoleIdErrors, DeleteUsersByIdRolesByRoleIdResponses, GetAuditEventsData, GetAuditEventsErrors, GetAuditEventsResponses, GetAuditSourcesData, GetAuditSourcesErrors, GetAuditSourcesResponses, GetAuditTracesByTraceIdData, GetAuditTracesByTraceIdErrors, GetAuditTracesByTraceIdResponses, GetAuditTracesData, GetAuditTracesErrors, GetAuditTracesResponses, GetComputeAllocationChangeRequestEventsByIdData, GetComputeAllocationChangeRequestEventsByIdErrors, GetComputeAllocationChangeRequestEventsByIdResponses, GetComputeAllocationChangeRequestsByIdData, GetComputeAllocationChangeRequestsByIdErrors, GetComputeAllocationChangeRequestsByIdEventsData, GetComputeAllocationChangeRequestsByIdEventsErrors, GetComputeAllocationChangeRequestsByIdEventsLatestData, GetComputeAllocationChangeRequestsByIdEventsLatestErrors, GetComputeAllocationChangeRequestsByIdEventsLatestResponses, GetComputeAllocationChangeRequestsByIdEventsResponses, GetComputeAllocationChangeRequestsByIdResponses, GetComputeAllocationDiffsByIdData, GetComputeAllocationDiffsByIdErrors, GetComputeAllocationDiffsByIdResponses, GetComputeAllocationMembershipResourceOverridesByIdData, GetComputeAllocationMembershipResourceOverridesByIdErrors, GetComputeAllocationMembershipResourceOverridesByIdResponses, GetComputeAllocationMembershipsByIdData, GetComputeAllocationMembershipsByIdErrors, GetComputeAllocationMembershipsByIdResourceOverridesData, GetComputeAllocationMembershipsByIdResourceOverridesErrors, GetComputeAllocationMembershipsByIdResourceOverridesResponses, GetComputeAllocationMembershipsByIdResponses, GetComputeAllocationResourceRatesByIdData, GetComputeAllocationResourceRatesByIdErrors, GetComputeAllocationResourceRatesByIdResponses, GetComputeAllocationResourcesByIdAllocationsData, GetComputeAllocationResourcesByIdAllocationsErrors, GetComputeAllocationResourcesByIdAllocationsResponses, GetComputeAllocationResourcesByIdData, GetComputeAllocationResourcesByIdErrors, GetComputeAllocationResourcesByIdMembershipOverridesData, GetComputeAllocationResourcesByIdMembershipOverridesErrors, GetComputeAllocationResourcesByIdMembershipOverridesResponses, GetComputeAllocationResourcesByIdRatesData, GetComputeAllocationResourcesByIdRatesEffectiveData, GetComputeAllocationResourcesByIdRatesEffectiveErrors, GetComputeAllocationResourcesByIdRatesEffectiveResponses, GetComputeAllocationResourcesByIdRatesErrors, GetComputeAllocationResourcesByIdRatesResponses, GetComputeAllocationResourcesByIdResponses, GetComputeAllocationResourcesData, GetComputeAllocationResourcesErrors, GetComputeAllocationResourcesResponses, GetComputeAllocationsByIdChangeRequestsData, GetComputeAllocationsByIdChangeRequestsErrors, GetComputeAllocationsByIdChangeRequestsResponses, GetComputeAllocationsByIdData, GetComputeAllocationsByIdDiffsData, GetComputeAllocationsByIdDiffsErrors, GetComputeAllocationsByIdDiffsLatestData, GetComputeAllocationsByIdDiffsLatestErrors, GetComputeAllocationsByIdDiffsLatestResponses, GetComputeAllocationsByIdDiffsResponses, GetComputeAllocationsByIdErrors, GetComputeAllocationsByIdMembershipsData, GetComputeAllocationsByIdMembershipsErrors, GetComputeAllocationsByIdMembershipsResponses, GetComputeAllocationsByIdResourcesData, GetComputeAllocationsByIdResourcesErrors, GetComputeAllocationsByIdResourcesResponses, GetComputeAllocationsByIdResponses, GetComputeAllocationsByIdUsagesData, GetComputeAllocationsByIdUsagesErrors, GetComputeAllocationsByIdUsagesResponses, GetComputeAllocationsByIdUsagesTotalData, GetComputeAllocationsByIdUsagesTotalErrors, GetComputeAllocationsByIdUsagesTotalResponses, GetComputeAllocationsByIdUsersByUserIdUsagesTotalData, GetComputeAllocationsByIdUsersByUserIdUsagesTotalErrors, GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses, GetComputeAllocationUsagesByIdData, GetComputeAllocationUsagesByIdErrors, GetComputeAllocationUsagesByIdResponses, GetComputeClustersByIdData, GetComputeClustersByIdErrors, GetComputeClustersByIdResponses, GetComputeClustersByIdUsersByUserIdData, GetComputeClustersByIdUsersByUserIdErrors, GetComputeClustersByIdUsersByUserIdResponses, GetComputeClustersByIdUsersData, GetComputeClustersByIdUsersErrors, GetComputeClustersByIdUsersResponses, GetComputeClustersData, GetComputeClustersErrors, GetComputeClustersResponses, GetComputeClusterUsersByIdData, GetComputeClusterUsersByIdErrors, GetComputeClusterUsersByIdResponses, GetOrganizationsByIdData, GetOrganizationsByIdErrors, GetOrganizationsByIdResponses, GetPrivilegesByKeyHoldersData, GetPrivilegesByKeyHoldersErrors, GetPrivilegesByKeyHoldersResponses, GetPrivilegesCatalogData, GetPrivilegesCatalogErrors, GetPrivilegesCatalogResponses, GetProjectsByIdData, GetProjectsByIdErrors, GetProjectsByIdResponses, GetRolesByIdData, GetRolesByIdErrors, GetRolesByIdHoldersData, GetRolesByIdHoldersErrors, GetRolesByIdHoldersResponses, GetRolesByIdResponses, GetRolesData, GetRolesErrors, GetRolesResponses, GetUserIdentitiesByIdData, GetUserIdentitiesByIdErrors, GetUserIdentitiesByIdResponses, GetUserIdentitiesOidcSubjectsByOidcSubData, GetUserIdentitiesOidcSubjectsByOidcSubErrors, GetUserIdentitiesOidcSubjectsByOidcSubResponses, GetUserIdentitiesSourcesBySourceExternalByExternalIdData, GetUserIdentitiesSourcesBySourceExternalByExternalIdErrors, GetUserIdentitiesSourcesBySourceExternalByExternalIdResponses, GetUserPrivilegesData, GetUserPrivilegesErrors, GetUserPrivilegesResponses, GetUsersByIdChangeRequestsData, GetUsersByIdChangeRequestsErrors, GetUsersByIdChangeRequestsResponses, GetUsersByIdComputeAllocationMembershipsData, GetUsersByIdComputeAllocationMembershipsErrors, GetUsersByIdComputeAllocationMembershipsResponses, GetUsersByIdComputeAllocationUsagesData, GetUsersByIdComputeAllocationUsagesErrors, GetUsersByIdComputeAllocationUsagesResponses, GetUsersByIdComputeClusterUsersData, GetUsersByIdComputeClusterUsersErrors, GetUsersByIdComputeClusterUsersResponses, GetUsersByIdData, GetUsersByIdErrors, GetUsersByIdPrivilegesData, GetUsersByIdPrivilegesErrors, GetUsersByIdPrivilegesResponses, GetUsersByIdResponses, GetUsersByIdRolesData, GetUsersByIdRolesErrors, GetUsersByIdRolesResponses, GetUsersByIdUserIdentitiesData, GetUsersByIdUserIdentitiesErrors, GetUsersByIdUserIdentitiesResponses, PostComputeAllocationChangeRequestEventsData, PostComputeAllocationChangeRequestEventsErrors, PostComputeAllocationChangeRequestEventsResponses, PostComputeAllocationChangeRequestsData, PostComputeAllocationChangeRequestsErrors, PostComputeAllocationChangeRequestsResponses, PostComputeAllocationDiffsData, PostComputeAllocationDiffsErrors, PostComputeAllocationDiffsResponses, PostComputeAllocationMembershipResourceOverridesData, PostComputeAllocationMembershipResourceOverridesErrors, PostComputeAllocationMembershipResourceOverridesResponses, PostComputeAllocationMembershipsData, PostComputeAllocationMembershipsErrors, PostComputeAllocationMembershipsResponses, PostComputeAllocationResourceRatesData, PostComputeAllocationResourceRatesErrors, PostComputeAllocationResourceRatesResponses, PostComputeAllocationResourcesData, PostComputeAllocationResourcesErrors, PostComputeAllocationResourcesResponses, PostComputeAllocationsByIdResourcesData, PostComputeAllocationsByIdResourcesErrors, PostComputeAllocationsByIdResourcesResponses, PostComputeAllocationsData, PostComputeAllocationsErrors, PostComputeAllocationsResponses, PostComputeAllocationUsagesData, PostComputeAllocationUsagesErrors, PostComputeAllocationUsagesResponses, PostComputeClustersData, PostComputeClustersErrors, PostComputeClustersResponses, PostComputeClusterUsersData, PostComputeClusterUsersErrors, PostComputeClusterUsersResponses, PostOrganizationsData, PostOrganizationsErrors, PostOrganizationsResponses, PostProjectsData, PostProjectsErrors, PostProjectsResponses, PostRolesByIdPrivilegesData, PostRolesByIdPrivilegesErrors, PostRolesByIdPrivilegesResponses, PostRolesData, PostRolesErrors, PostRolesResponses, PostUserIdentitiesData, PostUserIdentitiesErrors, PostUserIdentitiesResponses, PostUsersByIdPrivilegesData, PostUsersByIdPrivilegesErrors, PostUsersByIdPrivilegesResponses, PostUsersByIdRolesData, PostUsersByIdRolesErrors, PostUsersByIdRolesResponses, PostUsersData, PostUsersErrors, PostUsersMergeData, PostUsersMergeErrors, PostUsersMergeResponses, PostUsersResponses, PutComputeAllocationChangeRequestsByIdData, PutComputeAllocationChangeRequestsByIdErrors, PutComputeAllocationChangeRequestsByIdResponses, PutComputeAllocationMembershipResourceOverridesByIdData, PutComputeAllocationMembershipResourceOverridesByIdErrors, PutComputeAllocationMembershipResourceOverridesByIdResponses, PutComputeAllocationMembershipsByIdData, PutComputeAllocationMembershipsByIdErrors, PutComputeAllocationMembershipsByIdResponses, PutComputeAllocationMembershipsByIdStatusData, PutComputeAllocationMembershipsByIdStatusErrors, PutComputeAllocationMembershipsByIdStatusResponses, PutComputeAllocationsByIdResourcesByResourceIdData, PutComputeAllocationsByIdResourcesByResourceIdErrors, PutComputeAllocationsByIdResourcesByResourceIdResponses, PutComputeClusterUsersByIdData, PutComputeClusterUsersByIdErrors, PutComputeClusterUsersByIdResponses, PutProjectsByIdStatusData, PutProjectsByIdStatusErrors, PutProjectsByIdStatusResponses, PutRolesByIdData, PutRolesByIdErrors, PutRolesByIdResponses, PutUserIdentitiesByIdData, PutUserIdentitiesByIdErrors, PutUserIdentitiesByIdResponses, PutUsersByIdStatusData, PutUsersByIdStatusErrors, PutUsersByIdStatusResponses } from './types.gen';
+import type { DeleteComputeAllocationChangeRequestEventsByIdData, DeleteComputeAllocationChangeRequestEventsByIdErrors, DeleteComputeAllocationChangeRequestEventsByIdResponses, DeleteComputeAllocationChangeRequestsByIdData, DeleteComputeAllocationChangeRequestsByIdErrors, DeleteComputeAllocationChangeRequestsByIdResponses, DeleteComputeAllocationDiffsByIdData, DeleteComputeAllocationDiffsByIdErrors, DeleteComputeAllocationDiffsByIdResponses, DeleteComputeAllocationMembershipResourceOverridesByIdData, DeleteComputeAllocationMembershipResourceOverridesByIdErrors, DeleteComputeAllocationMembershipResourceOverridesByIdResponses, DeleteComputeAllocationMembershipsByIdData, DeleteComputeAllocationMembershipsByIdErrors, DeleteComputeAllocationMembershipsByIdResponses, DeleteComputeAllocationsByIdResourcesByResourceIdData, DeleteComputeAllocationsByIdResourcesByResourceIdErrors, DeleteComputeAllocationsByIdResourcesByResourceIdResponses, DeleteComputeAllocationUsagesByIdData, DeleteComputeAllocationUsagesByIdErrors, DeleteComputeAllocationUsagesByIdResponses, DeleteComputeClusterUsersByIdData, DeleteComputeClusterUsersByIdErrors, DeleteComputeClusterUsersByIdResponses, DeleteRolesByIdData, DeleteRolesByIdErrors, DeleteRolesByIdPrivilegesByKeyData, DeleteRolesByIdPrivilegesByKeyErrors, DeleteRolesByIdPrivilegesByKeyResponses, DeleteRolesByIdResponses, DeleteUserIdentitiesByIdData, DeleteUserIdentitiesByIdErrors, DeleteUserIdentitiesByIdResponses, DeleteUsersByIdPrivilegesByKeyData, DeleteUsersByIdPrivilegesByKeyErrors, DeleteUsersByIdPrivilegesByKeyResponses, DeleteUsersByIdRolesByRoleIdData, DeleteUsersByIdRolesByRoleIdErrors, DeleteUsersByIdRolesByRoleIdResponses, GetAuditEventsData, GetAuditEventsErrors, GetAuditEventsResponses, GetAuditSourcesData, GetAuditSourcesErrors, GetAuditSourcesResponses, GetAuditTracesByTraceIdData, GetAuditTracesByTraceIdErrors, GetAuditTracesByTraceIdResponses, GetAuditTracesData, GetAuditTracesErrors, GetAuditTracesResponses, GetComputeAllocationChangeRequestEventsByIdData, GetComputeAllocationChangeRequestEventsByIdErrors, GetComputeAllocationChangeRequestEventsByIdResponses, GetComputeAllocationChangeRequestsByIdData, GetComputeAllocationChangeRequestsByIdErrors, GetComputeAllocationChangeRequestsByIdEventsData, GetComputeAllocationChangeRequestsByIdEventsErrors, GetComputeAllocationChangeRequestsByIdEventsLatestData, GetComputeAllocationChangeRequestsByIdEventsLatestErrors, GetComputeAllocationChangeRequestsByIdEventsLatestResponses, GetComputeAllocationChangeRequestsByIdEventsResponses, GetComputeAllocationChangeRequestsByIdResponses, GetComputeAllocationDiffsByIdData, GetComputeAllocationDiffsByIdErrors, GetComputeAllocationDiffsByIdResponses, GetComputeAllocationMembershipResourceOverridesByIdData, GetComputeAllocationMembershipResourceOverridesByIdErrors, GetComputeAllocationMembershipResourceOverridesByIdResponses, GetComputeAllocationMembershipsByIdData, GetComputeAllocationMembershipsByIdErrors, GetComputeAllocationMembershipsByIdResourceOverridesData, GetComputeAllocationMembershipsByIdResourceOverridesErrors, GetComputeAllocationMembershipsByIdResourceOverridesResponses, GetComputeAllocationMembershipsByIdResponses, GetComputeAllocationResourceRatesByIdData, GetComputeAllocationResourceRatesByIdErrors, GetComputeAllocationResourceRatesByIdResponses, GetComputeAllocationResourcesByIdAllocationsData, GetComputeAllocationResourcesByIdAllocationsErrors, GetComputeAllocationResourcesByIdAllocationsResponses, GetComputeAllocationResourcesByIdData, GetComputeAllocationResourcesByIdErrors, GetComputeAllocationResourcesByIdMembershipOverridesData, GetComputeAllocationResourcesByIdMembershipOverridesErrors, GetComputeAllocationResourcesByIdMembershipOverridesResponses, GetComputeAllocationResourcesByIdRatesData, GetComputeAllocationResourcesByIdRatesEffectiveData, GetComputeAllocationResourcesByIdRatesEffectiveErrors, GetComputeAllocationResourcesByIdRatesEffectiveResponses, GetComputeAllocationResourcesByIdRatesErrors, GetComputeAllocationResourcesByIdRatesResponses, GetComputeAllocationResourcesByIdResponses, GetComputeAllocationResourcesData, GetComputeAllocationResourcesErrors, GetComputeAllocationResourcesResponses, GetComputeAllocationsByIdChangeRequestsData, GetComputeAllocationsByIdChangeRequestsErrors, GetComputeAllocationsByIdChangeRequestsResponses, GetComputeAllocationsByIdData, GetComputeAllocationsByIdDiffsData, GetComputeAllocationsByIdDiffsErrors, GetComputeAllocationsByIdDiffsLatestData, GetComputeAllocationsByIdDiffsLatestErrors, GetComputeAllocationsByIdDiffsLatestResponses, GetComputeAllocationsByIdDiffsResponses, GetComputeAllocationsByIdErrors, GetComputeAllocationsByIdMembershipsData, GetComputeAllocationsByIdMembershipsErrors, GetComputeAllocationsByIdMembershipsResponses, GetComputeAllocationsByIdResourcesData, GetComputeAllocationsByIdResourcesErrors, GetComputeAllocationsByIdResourcesResponses, GetComputeAllocationsByIdResponses, GetComputeAllocationsByIdUsagesData, GetComputeAllocationsByIdUsagesErrors, GetComputeAllocationsByIdUsagesResponses, GetComputeAllocationsByIdUsagesTotalData, GetComputeAllocationsByIdUsagesTotalErrors, GetComputeAllocationsByIdUsagesTotalResponses, GetComputeAllocationsByIdUsersByUserIdUsagesTotalData, GetComputeAllocationsByIdUsersByUserIdUsagesTotalErrors, GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses, GetComputeAllocationsData, GetComputeAllocationsResponses, GetComputeAllocationUsagesByIdData, GetComputeAllocationUsagesByIdErrors, GetComputeAllocationUsagesByIdResponses, GetComputeClustersByIdData, GetComputeClustersByIdErrors, GetComputeClustersByIdResponses, GetComputeClustersByIdUsersByUserIdData, GetComputeClustersByIdUsersByUserIdErrors, GetComputeClustersByIdUsersByUserIdResponses, GetComputeClustersByIdUsersData, GetComputeClustersByIdUsersErrors, GetComputeClustersByIdUsersResponses, GetComputeClustersData, GetComputeClustersErrors, GetComputeClustersResponses, GetComputeClusterUsersByIdData, GetComputeClusterUsersByIdErrors, GetComputeClusterUsersByIdResponses, GetOrganizationsByIdData, GetOrganizationsByIdErrors, GetOrganizationsByIdResponses, GetPrivilegesByKeyHoldersData, GetPrivilegesByKeyHoldersErrors, GetPrivilegesByKeyHoldersResponses, GetPrivilegesCatalogData, GetPrivilegesCatalogErrors, GetPrivilegesCatalogResponses, GetProjectsByIdData, GetProjectsByIdErrors, GetProjectsByIdMembersData, GetProjectsByIdMembersErrors, GetProjectsByIdMembersResponses, GetProjectsByIdResponses, GetProjectsData, GetProjectsResponses, GetRolesByIdData, GetRolesByIdErrors, GetRolesByIdHoldersData, GetRolesByIdHoldersErrors, GetRolesByIdHoldersResponses, GetRolesByIdResponses, GetRolesData, GetRolesErrors, GetRolesResponses, GetUserIdentitiesByIdData, GetUserIdentitiesByIdErrors, GetUserIdentitiesByIdResponses, GetUserIdentitiesOidcSubjectsByOidcSubData, GetUserIdentitiesOidcSubjectsByOidcSubErrors, GetUserIdentitiesOidcSubjectsByOidcSubResponses, GetUserIdentitiesSourcesBySourceExternalByExternalIdData, GetUserIdentitiesSourcesBySourceExternalByExternalIdErrors, GetUserIdentitiesSourcesBySourceExternalByExternalIdResponses, GetUserPrivilegesData, GetUserPrivilegesErrors, GetUserPrivilegesResponses, GetUsersByIdChangeRequestsData, GetUsersByIdChangeRequestsErrors, GetUsersByIdChangeRequestsResponses, GetUsersByIdComputeAllocationMembershipsData, GetUsersByIdComputeAllocationMembershipsErrors, GetUsersByIdComputeAllocationMembershipsResponses, GetUsersByIdComputeAllocationUsagesData, GetUsersByIdComputeAllocationUsagesErrors, GetUsersByIdComputeAllocationUsagesResponses, GetUsersByIdComputeClusterUsersData, GetUsersByIdComputeClusterUsersErrors, GetUsersByIdComputeClusterUsersResponses, GetUsersByIdData, GetUsersByIdErrors, GetUsersByIdPrivilegesData, GetUsersByIdPrivilegesErrors, GetUsersByIdPrivilegesResponses, GetUsersByIdResponses, GetUsersByIdRolesData, GetUsersByIdRolesErrors, GetUsersByIdRolesResponses, GetUsersByIdUserIdentitiesData, GetUsersByIdUserIdentitiesErrors, GetUsersByIdUserIdentitiesResponses, PostComputeAllocationChangeRequestEventsData, PostComputeAllocationChangeRequestEventsErrors, PostComputeAllocationChangeRequestEventsResponses, PostComputeAllocationChangeRequestsData, PostComputeAllocationChangeRequestsErrors, PostComputeAllocationChangeRequestsResponses, PostComputeAllocationDiffsData, PostComputeAllocationDiffsErrors, PostComputeAllocationDiffsResponses, PostComputeAllocationMembershipResourceOverridesData, PostComputeAllocationMembershipResourceOverridesErrors, PostComputeAllocationMembershipResourceOverridesResponses, PostComputeAllocationMembershipsData, PostComputeAllocationMembershipsErrors, PostComputeAllocationMembershipsResponses, PostComputeAllocationResourceRatesData, PostComputeAllocationResourceRatesErrors, PostComputeAllocationResourceRatesResponses, PostComputeAllocationResourcesData, PostComputeAllocationResourcesErrors, PostComputeAllocationResourcesResponses, PostComputeAllocationsByIdResourcesData, PostComputeAllocationsByIdResourcesErrors, PostComputeAllocationsByIdResourcesResponses, PostComputeAllocationsData, PostComputeAllocationsErrors, PostComputeAllocationsResponses, PostComputeAllocationUsagesData, PostComputeAllocationUsagesErrors, PostComputeAllocationUsagesResponses, PostComputeClustersData, PostComputeClustersErrors, PostComputeClustersResponses, PostComputeClusterUsersData, PostComputeClusterUsersErrors, PostComputeClusterUsersResponses, PostOrganizationsData, PostOrganizationsErrors, PostOrganizationsResponses, PostProjectsData, PostProjectsErrors, PostProjectsResponses, PostRolesByIdPrivilegesData, PostRolesByIdPrivilegesErrors, PostRolesByIdPrivilegesResponses, PostRolesData, PostRolesErrors, PostRolesResponses, PostUserIdentitiesData, PostUserIdentitiesErrors, PostUserIdentitiesResponses, PostUsersByIdPrivilegesData, PostUsersByIdPrivilegesErrors, PostUsersByIdPrivilegesResponses, PostUsersByIdRolesData, PostUsersByIdRolesErrors, PostUsersByIdRolesResponses, PostUsersData, PostUsersErrors, PostUsersMergeData, PostUsersMergeErrors, PostUsersMergeResponses, PostUsersResponses, PutComputeAllocationChangeRequestsByIdData, PutComputeAllocationChangeRequestsByIdErrors, PutComputeAllocationChangeRequestsByIdResponses, PutComputeAllocationMembershipResourceOverridesByIdData, PutComputeAllocationMembershipResourceOverridesByIdErrors, PutComputeAllocationMembershipResourceOverridesByIdResponses, PutComputeAllocationMembershipsByIdData, PutComputeAllocationMembershipsByIdErrors, PutComputeAllocationMembershipsByIdResponses, PutComputeAllocationMembershipsByIdStatusData, PutComputeAllocationMembershipsByIdStatusErrors, PutComputeAllocationMembershipsByIdStatusResponses, PutComputeAllocationsByIdResourcesByResourceIdData, PutComputeAllocationsByIdResourcesByResourceIdErrors, PutComputeAllocationsByIdResourcesByResourceIdResponses, PutComputeClusterUsersByIdData, PutComputeClusterUsersByIdErrors, PutComputeClusterUsersByIdResponses, PutProjectsByIdStatusData, PutProjectsByIdStatusErrors, PutProjectsByIdStatusResponses, PutRolesByIdData, PutRolesByIdErrors, PutRolesByIdResponses, PutUserIdentitiesByIdData, PutUserIdentitiesByIdErrors, PutUserIdentitiesByIdResponses, PutUsersByIdStatusData, PutUsersByIdStatusErrors, PutUsersByIdStatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -22,7 +22,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  * List audit events for a trace (optionally one span)
  */
 export const getAuditEvents = <ThrowOnError extends boolean = false>(options: Options<GetAuditEventsData, ThrowOnError>): RequestResult<GetAuditEventsResponses, GetAuditEventsErrors, ThrowOnError> => (options.client ?? client).get<GetAuditEventsResponses, GetAuditEventsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/audit/events',
     ...options
 });
@@ -31,7 +31,7 @@ export const getAuditEvents = <ThrowOnError extends boolean = false>(options: Op
  * List distinct audit-event sources
  */
 export const getAuditSources = <ThrowOnError extends boolean = false>(options?: Options<GetAuditSourcesData, ThrowOnError>): RequestResult<GetAuditSourcesResponses, GetAuditSourcesErrors, ThrowOnError> => (options?.client ?? client).get<GetAuditSourcesResponses, GetAuditSourcesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/audit/sources',
     ...options
 });
@@ -42,7 +42,7 @@ export const getAuditSources = <ThrowOnError extends boolean = false>(options?: 
  * One row per distinct trace_id. `q` matches trace_id hex prefix or root-operation substring.
  */
 export const getAuditTraces = <ThrowOnError extends boolean = false>(options?: Options<GetAuditTracesData, ThrowOnError>): RequestResult<GetAuditTracesResponses, GetAuditTracesErrors, ThrowOnError> => (options?.client ?? client).get<GetAuditTracesResponses, GetAuditTracesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/audit/traces',
     ...options
 });
@@ -51,7 +51,7 @@ export const getAuditTraces = <ThrowOnError extends boolean = false>(options?: O
  * Get a trace's nested span tree
  */
 export const getAuditTracesByTraceId = <ThrowOnError extends boolean = false>(options: Options<GetAuditTracesByTraceIdData, ThrowOnError>): RequestResult<GetAuditTracesByTraceIdResponses, GetAuditTracesByTraceIdErrors, ThrowOnError> => (options.client ?? client).get<GetAuditTracesByTraceIdResponses, GetAuditTracesByTraceIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/audit/traces/{trace_id}',
     ...options
 });
@@ -60,7 +60,7 @@ export const getAuditTracesByTraceId = <ThrowOnError extends boolean = false>(op
  * Create a change request event
  */
 export const postComputeAllocationChangeRequestEvents = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationChangeRequestEventsData, ThrowOnError>): RequestResult<PostComputeAllocationChangeRequestEventsResponses, PostComputeAllocationChangeRequestEventsErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationChangeRequestEventsResponses, PostComputeAllocationChangeRequestEventsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-request-events',
     ...options,
     headers: {
@@ -73,7 +73,7 @@ export const postComputeAllocationChangeRequestEvents = <ThrowOnError extends bo
  * Delete a change request event
  */
 export const deleteComputeAllocationChangeRequestEventsById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationChangeRequestEventsByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationChangeRequestEventsByIdResponses, DeleteComputeAllocationChangeRequestEventsByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationChangeRequestEventsByIdResponses, DeleteComputeAllocationChangeRequestEventsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-request-events/{id}',
     ...options
 });
@@ -82,7 +82,7 @@ export const deleteComputeAllocationChangeRequestEventsById = <ThrowOnError exte
  * Get a change request event
  */
 export const getComputeAllocationChangeRequestEventsById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationChangeRequestEventsByIdData, ThrowOnError>): RequestResult<GetComputeAllocationChangeRequestEventsByIdResponses, GetComputeAllocationChangeRequestEventsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationChangeRequestEventsByIdResponses, GetComputeAllocationChangeRequestEventsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-request-events/{id}',
     ...options
 });
@@ -91,7 +91,7 @@ export const getComputeAllocationChangeRequestEventsById = <ThrowOnError extends
  * Create a compute allocation change request
  */
 export const postComputeAllocationChangeRequests = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationChangeRequestsData, ThrowOnError>): RequestResult<PostComputeAllocationChangeRequestsResponses, PostComputeAllocationChangeRequestsErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationChangeRequestsResponses, PostComputeAllocationChangeRequestsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests',
     ...options,
     headers: {
@@ -104,7 +104,7 @@ export const postComputeAllocationChangeRequests = <ThrowOnError extends boolean
  * Delete a compute allocation change request
  */
 export const deleteComputeAllocationChangeRequestsById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationChangeRequestsByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationChangeRequestsByIdResponses, DeleteComputeAllocationChangeRequestsByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationChangeRequestsByIdResponses, DeleteComputeAllocationChangeRequestsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests/{id}',
     ...options
 });
@@ -113,7 +113,7 @@ export const deleteComputeAllocationChangeRequestsById = <ThrowOnError extends b
  * Get a compute allocation change request
  */
 export const getComputeAllocationChangeRequestsById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationChangeRequestsByIdData, ThrowOnError>): RequestResult<GetComputeAllocationChangeRequestsByIdResponses, GetComputeAllocationChangeRequestsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationChangeRequestsByIdResponses, GetComputeAllocationChangeRequestsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests/{id}',
     ...options
 });
@@ -122,7 +122,7 @@ export const getComputeAllocationChangeRequestsById = <ThrowOnError extends bool
  * Update a compute allocation change request
  */
 export const putComputeAllocationChangeRequestsById = <ThrowOnError extends boolean = false>(options: Options<PutComputeAllocationChangeRequestsByIdData, ThrowOnError>): RequestResult<PutComputeAllocationChangeRequestsByIdResponses, PutComputeAllocationChangeRequestsByIdErrors, ThrowOnError> => (options.client ?? client).put<PutComputeAllocationChangeRequestsByIdResponses, PutComputeAllocationChangeRequestsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests/{id}',
     ...options,
     headers: {
@@ -135,7 +135,7 @@ export const putComputeAllocationChangeRequestsById = <ThrowOnError extends bool
  * List events for a change request
  */
 export const getComputeAllocationChangeRequestsByIdEvents = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationChangeRequestsByIdEventsData, ThrowOnError>): RequestResult<GetComputeAllocationChangeRequestsByIdEventsResponses, GetComputeAllocationChangeRequestsByIdEventsErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationChangeRequestsByIdEventsResponses, GetComputeAllocationChangeRequestsByIdEventsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests/{id}/events',
     ...options
 });
@@ -144,7 +144,7 @@ export const getComputeAllocationChangeRequestsByIdEvents = <ThrowOnError extend
  * Get the most recent event for a change request
  */
 export const getComputeAllocationChangeRequestsByIdEventsLatest = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationChangeRequestsByIdEventsLatestData, ThrowOnError>): RequestResult<GetComputeAllocationChangeRequestsByIdEventsLatestResponses, GetComputeAllocationChangeRequestsByIdEventsLatestErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationChangeRequestsByIdEventsLatestResponses, GetComputeAllocationChangeRequestsByIdEventsLatestErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-change-requests/{id}/events/latest',
     ...options
 });
@@ -155,7 +155,7 @@ export const getComputeAllocationChangeRequestsByIdEventsLatest = <ThrowOnError 
  * Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
  */
 export const postComputeAllocationDiffs = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationDiffsData, ThrowOnError>): RequestResult<PostComputeAllocationDiffsResponses, PostComputeAllocationDiffsErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationDiffsResponses, PostComputeAllocationDiffsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-diffs',
     ...options,
     headers: {
@@ -168,7 +168,7 @@ export const postComputeAllocationDiffs = <ThrowOnError extends boolean = false>
  * Delete a compute allocation diff
  */
 export const deleteComputeAllocationDiffsById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationDiffsByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationDiffsByIdResponses, DeleteComputeAllocationDiffsByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationDiffsByIdResponses, DeleteComputeAllocationDiffsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-diffs/{id}',
     ...options
 });
@@ -177,7 +177,7 @@ export const deleteComputeAllocationDiffsById = <ThrowOnError extends boolean = 
  * Get a compute allocation diff
  */
 export const getComputeAllocationDiffsById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationDiffsByIdData, ThrowOnError>): RequestResult<GetComputeAllocationDiffsByIdResponses, GetComputeAllocationDiffsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationDiffsByIdResponses, GetComputeAllocationDiffsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-diffs/{id}',
     ...options
 });
@@ -186,7 +186,7 @@ export const getComputeAllocationDiffsById = <ThrowOnError extends boolean = fal
  * Create a membership resource override
  */
 export const postComputeAllocationMembershipResourceOverrides = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationMembershipResourceOverridesData, ThrowOnError>): RequestResult<PostComputeAllocationMembershipResourceOverridesResponses, PostComputeAllocationMembershipResourceOverridesErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationMembershipResourceOverridesResponses, PostComputeAllocationMembershipResourceOverridesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-membership-resource-overrides',
     ...options,
     headers: {
@@ -199,7 +199,7 @@ export const postComputeAllocationMembershipResourceOverrides = <ThrowOnError ex
  * Delete a membership resource override
  */
 export const deleteComputeAllocationMembershipResourceOverridesById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationMembershipResourceOverridesByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationMembershipResourceOverridesByIdResponses, DeleteComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationMembershipResourceOverridesByIdResponses, DeleteComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-membership-resource-overrides/{id}',
     ...options
 });
@@ -208,7 +208,7 @@ export const deleteComputeAllocationMembershipResourceOverridesById = <ThrowOnEr
  * Get a membership resource override
  */
 export const getComputeAllocationMembershipResourceOverridesById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationMembershipResourceOverridesByIdData, ThrowOnError>): RequestResult<GetComputeAllocationMembershipResourceOverridesByIdResponses, GetComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationMembershipResourceOverridesByIdResponses, GetComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-membership-resource-overrides/{id}',
     ...options
 });
@@ -217,7 +217,7 @@ export const getComputeAllocationMembershipResourceOverridesById = <ThrowOnError
  * Update a membership resource override
  */
 export const putComputeAllocationMembershipResourceOverridesById = <ThrowOnError extends boolean = false>(options: Options<PutComputeAllocationMembershipResourceOverridesByIdData, ThrowOnError>): RequestResult<PutComputeAllocationMembershipResourceOverridesByIdResponses, PutComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError> => (options.client ?? client).put<PutComputeAllocationMembershipResourceOverridesByIdResponses, PutComputeAllocationMembershipResourceOverridesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-membership-resource-overrides/{id}',
     ...options,
     headers: {
@@ -230,7 +230,7 @@ export const putComputeAllocationMembershipResourceOverridesById = <ThrowOnError
  * Create a compute allocation membership
  */
 export const postComputeAllocationMemberships = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationMembershipsData, ThrowOnError>): RequestResult<PostComputeAllocationMembershipsResponses, PostComputeAllocationMembershipsErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationMembershipsResponses, PostComputeAllocationMembershipsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships',
     ...options,
     headers: {
@@ -243,7 +243,7 @@ export const postComputeAllocationMemberships = <ThrowOnError extends boolean = 
  * Delete a compute allocation membership
  */
 export const deleteComputeAllocationMembershipsById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationMembershipsByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationMembershipsByIdResponses, DeleteComputeAllocationMembershipsByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationMembershipsByIdResponses, DeleteComputeAllocationMembershipsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships/{id}',
     ...options
 });
@@ -252,7 +252,7 @@ export const deleteComputeAllocationMembershipsById = <ThrowOnError extends bool
  * Get a compute allocation membership
  */
 export const getComputeAllocationMembershipsById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationMembershipsByIdData, ThrowOnError>): RequestResult<GetComputeAllocationMembershipsByIdResponses, GetComputeAllocationMembershipsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationMembershipsByIdResponses, GetComputeAllocationMembershipsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships/{id}',
     ...options
 });
@@ -261,7 +261,7 @@ export const getComputeAllocationMembershipsById = <ThrowOnError extends boolean
  * Update a compute allocation membership
  */
 export const putComputeAllocationMembershipsById = <ThrowOnError extends boolean = false>(options: Options<PutComputeAllocationMembershipsByIdData, ThrowOnError>): RequestResult<PutComputeAllocationMembershipsByIdResponses, PutComputeAllocationMembershipsByIdErrors, ThrowOnError> => (options.client ?? client).put<PutComputeAllocationMembershipsByIdResponses, PutComputeAllocationMembershipsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships/{id}',
     ...options,
     headers: {
@@ -274,7 +274,7 @@ export const putComputeAllocationMembershipsById = <ThrowOnError extends boolean
  * List resource overrides for a membership
  */
 export const getComputeAllocationMembershipsByIdResourceOverrides = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationMembershipsByIdResourceOverridesData, ThrowOnError>): RequestResult<GetComputeAllocationMembershipsByIdResourceOverridesResponses, GetComputeAllocationMembershipsByIdResourceOverridesErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationMembershipsByIdResourceOverridesResponses, GetComputeAllocationMembershipsByIdResourceOverridesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships/{id}/resource-overrides',
     ...options
 });
@@ -283,7 +283,7 @@ export const getComputeAllocationMembershipsByIdResourceOverrides = <ThrowOnErro
  * Update a membership's status
  */
 export const putComputeAllocationMembershipsByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PutComputeAllocationMembershipsByIdStatusData, ThrowOnError>): RequestResult<PutComputeAllocationMembershipsByIdStatusResponses, PutComputeAllocationMembershipsByIdStatusErrors, ThrowOnError> => (options.client ?? client).put<PutComputeAllocationMembershipsByIdStatusResponses, PutComputeAllocationMembershipsByIdStatusErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-memberships/{id}/status',
     ...options,
     headers: {
@@ -298,7 +298,7 @@ export const putComputeAllocationMembershipsByIdStatus = <ThrowOnError extends b
  * Records the SU rate (e.g. SU per CPU-hour) for a resource over a time window.
  */
 export const postComputeAllocationResourceRates = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationResourceRatesData, ThrowOnError>): RequestResult<PostComputeAllocationResourceRatesResponses, PostComputeAllocationResourceRatesErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationResourceRatesResponses, PostComputeAllocationResourceRatesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resource-rates',
     ...options,
     headers: {
@@ -311,7 +311,7 @@ export const postComputeAllocationResourceRates = <ThrowOnError extends boolean 
  * Get a compute allocation resource rate
  */
 export const getComputeAllocationResourceRatesById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourceRatesByIdData, ThrowOnError>): RequestResult<GetComputeAllocationResourceRatesByIdResponses, GetComputeAllocationResourceRatesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourceRatesByIdResponses, GetComputeAllocationResourceRatesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resource-rates/{id}',
     ...options
 });
@@ -320,7 +320,7 @@ export const getComputeAllocationResourceRatesById = <ThrowOnError extends boole
  * List all compute allocation resources
  */
 export const getComputeAllocationResources = <ThrowOnError extends boolean = false>(options?: Options<GetComputeAllocationResourcesData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesResponses, GetComputeAllocationResourcesErrors, ThrowOnError> => (options?.client ?? client).get<GetComputeAllocationResourcesResponses, GetComputeAllocationResourcesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources',
     ...options
 });
@@ -331,7 +331,7 @@ export const getComputeAllocationResources = <ThrowOnError extends boolean = fal
  * Defines a resource (partition) — e.g. a CPU or GPU partition that allocations can be attached to.
  */
 export const postComputeAllocationResources = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationResourcesData, ThrowOnError>): RequestResult<PostComputeAllocationResourcesResponses, PostComputeAllocationResourcesErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationResourcesResponses, PostComputeAllocationResourcesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources',
     ...options,
     headers: {
@@ -344,7 +344,7 @@ export const postComputeAllocationResources = <ThrowOnError extends boolean = fa
  * Get a compute allocation resource
  */
 export const getComputeAllocationResourcesById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourcesByIdData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesByIdResponses, GetComputeAllocationResourcesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourcesByIdResponses, GetComputeAllocationResourcesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources/{id}',
     ...options
 });
@@ -353,7 +353,7 @@ export const getComputeAllocationResourcesById = <ThrowOnError extends boolean =
  * List compute allocations attached to a resource
  */
 export const getComputeAllocationResourcesByIdAllocations = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourcesByIdAllocationsData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesByIdAllocationsResponses, GetComputeAllocationResourcesByIdAllocationsErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourcesByIdAllocationsResponses, GetComputeAllocationResourcesByIdAllocationsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources/{id}/allocations',
     ...options
 });
@@ -362,7 +362,7 @@ export const getComputeAllocationResourcesByIdAllocations = <ThrowOnError extend
  * List membership overrides referencing a resource
  */
 export const getComputeAllocationResourcesByIdMembershipOverrides = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourcesByIdMembershipOverridesData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesByIdMembershipOverridesResponses, GetComputeAllocationResourcesByIdMembershipOverridesErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourcesByIdMembershipOverridesResponses, GetComputeAllocationResourcesByIdMembershipOverridesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources/{id}/membership-overrides',
     ...options
 });
@@ -371,7 +371,7 @@ export const getComputeAllocationResourcesByIdMembershipOverrides = <ThrowOnErro
  * List rate history for a resource
  */
 export const getComputeAllocationResourcesByIdRates = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourcesByIdRatesData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesByIdRatesResponses, GetComputeAllocationResourcesByIdRatesErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourcesByIdRatesResponses, GetComputeAllocationResourcesByIdRatesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources/{id}/rates',
     ...options
 });
@@ -382,7 +382,7 @@ export const getComputeAllocationResourcesByIdRates = <ThrowOnError extends bool
  * Returns the rate whose `[start_time, end_time)` window contains the `at` timestamp. Defaults to now when `at` is omitted.
  */
 export const getComputeAllocationResourcesByIdRatesEffective = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationResourcesByIdRatesEffectiveData, ThrowOnError>): RequestResult<GetComputeAllocationResourcesByIdRatesEffectiveResponses, GetComputeAllocationResourcesByIdRatesEffectiveErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationResourcesByIdRatesEffectiveResponses, GetComputeAllocationResourcesByIdRatesEffectiveErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-resources/{id}/rates/effective',
     ...options
 });
@@ -391,7 +391,7 @@ export const getComputeAllocationResourcesByIdRatesEffective = <ThrowOnError ext
  * Create a compute allocation usage record
  */
 export const postComputeAllocationUsages = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationUsagesData, ThrowOnError>): RequestResult<PostComputeAllocationUsagesResponses, PostComputeAllocationUsagesErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationUsagesResponses, PostComputeAllocationUsagesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-usages',
     ...options,
     headers: {
@@ -404,7 +404,7 @@ export const postComputeAllocationUsages = <ThrowOnError extends boolean = false
  * Delete a compute allocation usage record
  */
 export const deleteComputeAllocationUsagesById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationUsagesByIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationUsagesByIdResponses, DeleteComputeAllocationUsagesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationUsagesByIdResponses, DeleteComputeAllocationUsagesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-usages/{id}',
     ...options
 });
@@ -413,8 +413,17 @@ export const deleteComputeAllocationUsagesById = <ThrowOnError extends boolean =
  * Get a compute allocation usage record
  */
 export const getComputeAllocationUsagesById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationUsagesByIdData, ThrowOnError>): RequestResult<GetComputeAllocationUsagesByIdResponses, GetComputeAllocationUsagesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationUsagesByIdResponses, GetComputeAllocationUsagesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocation-usages/{id}',
+    ...options
+});
+
+/**
+ * List compute allocations (filtered + paginated)
+ */
+export const getComputeAllocations = <ThrowOnError extends boolean = false>(options?: Options<GetComputeAllocationsData, ThrowOnError>): RequestResult<GetComputeAllocationsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetComputeAllocationsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/compute-allocations',
     ...options
 });
 
@@ -422,7 +431,7 @@ export const getComputeAllocationUsagesById = <ThrowOnError extends boolean = fa
  * Create a compute allocation
  */
 export const postComputeAllocations = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationsData, ThrowOnError>): RequestResult<PostComputeAllocationsResponses, PostComputeAllocationsErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationsResponses, PostComputeAllocationsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations',
     ...options,
     headers: {
@@ -435,7 +444,7 @@ export const postComputeAllocations = <ThrowOnError extends boolean = false>(opt
  * Get a compute allocation by ID
  */
 export const getComputeAllocationsById = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdResponses, GetComputeAllocationsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdResponses, GetComputeAllocationsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}',
     ...options
 });
@@ -444,7 +453,7 @@ export const getComputeAllocationsById = <ThrowOnError extends boolean = false>(
  * List change requests for a compute allocation
  */
 export const getComputeAllocationsByIdChangeRequests = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdChangeRequestsData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdChangeRequestsResponses, GetComputeAllocationsByIdChangeRequestsErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdChangeRequestsResponses, GetComputeAllocationsByIdChangeRequestsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/change-requests',
     ...options
 });
@@ -453,7 +462,7 @@ export const getComputeAllocationsByIdChangeRequests = <ThrowOnError extends boo
  * List diffs for a compute allocation
  */
 export const getComputeAllocationsByIdDiffs = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdDiffsData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdDiffsResponses, GetComputeAllocationsByIdDiffsErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdDiffsResponses, GetComputeAllocationsByIdDiffsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/diffs',
     ...options
 });
@@ -462,7 +471,7 @@ export const getComputeAllocationsByIdDiffs = <ThrowOnError extends boolean = fa
  * Get the most recent diff for a compute allocation
  */
 export const getComputeAllocationsByIdDiffsLatest = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdDiffsLatestData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdDiffsLatestResponses, GetComputeAllocationsByIdDiffsLatestErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdDiffsLatestResponses, GetComputeAllocationsByIdDiffsLatestErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/diffs/latest',
     ...options
 });
@@ -471,7 +480,7 @@ export const getComputeAllocationsByIdDiffsLatest = <ThrowOnError extends boolea
  * List members of a compute allocation
  */
 export const getComputeAllocationsByIdMemberships = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdMembershipsData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdMembershipsResponses, GetComputeAllocationsByIdMembershipsErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdMembershipsResponses, GetComputeAllocationsByIdMembershipsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/memberships',
     ...options
 });
@@ -480,7 +489,7 @@ export const getComputeAllocationsByIdMemberships = <ThrowOnError extends boolea
  * List resources attached to a compute allocation
  */
 export const getComputeAllocationsByIdResources = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdResourcesData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdResourcesResponses, GetComputeAllocationsByIdResourcesErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdResourcesResponses, GetComputeAllocationsByIdResourcesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/resources',
     ...options
 });
@@ -491,7 +500,7 @@ export const getComputeAllocationsByIdResources = <ThrowOnError extends boolean 
  * Creates a mapping between a compute allocation and a resource (partition) with a specific amount and wall-clock time grant.
  */
 export const postComputeAllocationsByIdResources = <ThrowOnError extends boolean = false>(options: Options<PostComputeAllocationsByIdResourcesData, ThrowOnError>): RequestResult<PostComputeAllocationsByIdResourcesResponses, PostComputeAllocationsByIdResourcesErrors, ThrowOnError> => (options.client ?? client).post<PostComputeAllocationsByIdResourcesResponses, PostComputeAllocationsByIdResourcesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/resources',
     ...options,
     headers: {
@@ -504,7 +513,7 @@ export const postComputeAllocationsByIdResources = <ThrowOnError extends boolean
  * Detach a resource from a compute allocation
  */
 export const deleteComputeAllocationsByIdResourcesByResourceId = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeAllocationsByIdResourcesByResourceIdData, ThrowOnError>): RequestResult<DeleteComputeAllocationsByIdResourcesByResourceIdResponses, DeleteComputeAllocationsByIdResourcesByResourceIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeAllocationsByIdResourcesByResourceIdResponses, DeleteComputeAllocationsByIdResourcesByResourceIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/resources/{resourceId}',
     ...options
 });
@@ -513,7 +522,7 @@ export const deleteComputeAllocationsByIdResourcesByResourceId = <ThrowOnError e
  * Update a compute allocation -> resource mapping
  */
 export const putComputeAllocationsByIdResourcesByResourceId = <ThrowOnError extends boolean = false>(options: Options<PutComputeAllocationsByIdResourcesByResourceIdData, ThrowOnError>): RequestResult<PutComputeAllocationsByIdResourcesByResourceIdResponses, PutComputeAllocationsByIdResourcesByResourceIdErrors, ThrowOnError> => (options.client ?? client).put<PutComputeAllocationsByIdResourcesByResourceIdResponses, PutComputeAllocationsByIdResourcesByResourceIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/resources/{resourceId}',
     ...options,
     headers: {
@@ -526,7 +535,7 @@ export const putComputeAllocationsByIdResourcesByResourceId = <ThrowOnError exte
  * List usages for a compute allocation
  */
 export const getComputeAllocationsByIdUsages = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdUsagesData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdUsagesResponses, GetComputeAllocationsByIdUsagesErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdUsagesResponses, GetComputeAllocationsByIdUsagesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/usages',
     ...options
 });
@@ -535,7 +544,7 @@ export const getComputeAllocationsByIdUsages = <ThrowOnError extends boolean = f
  * Get total SU usage for a compute allocation
  */
 export const getComputeAllocationsByIdUsagesTotal = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdUsagesTotalData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdUsagesTotalResponses, GetComputeAllocationsByIdUsagesTotalErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdUsagesTotalResponses, GetComputeAllocationsByIdUsagesTotalErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/usages/total',
     ...options
 });
@@ -544,7 +553,7 @@ export const getComputeAllocationsByIdUsagesTotal = <ThrowOnError extends boolea
  * Get total SU usage for a user within a compute allocation
  */
 export const getComputeAllocationsByIdUsersByUserIdUsagesTotal = <ThrowOnError extends boolean = false>(options: Options<GetComputeAllocationsByIdUsersByUserIdUsagesTotalData, ThrowOnError>): RequestResult<GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses, GetComputeAllocationsByIdUsersByUserIdUsagesTotalErrors, ThrowOnError> => (options.client ?? client).get<GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses, GetComputeAllocationsByIdUsersByUserIdUsagesTotalErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-allocations/{id}/users/{userId}/usages/total',
     ...options
 });
@@ -553,7 +562,7 @@ export const getComputeAllocationsByIdUsersByUserIdUsagesTotal = <ThrowOnError e
  * Create a compute cluster user
  */
 export const postComputeClusterUsers = <ThrowOnError extends boolean = false>(options: Options<PostComputeClusterUsersData, ThrowOnError>): RequestResult<PostComputeClusterUsersResponses, PostComputeClusterUsersErrors, ThrowOnError> => (options.client ?? client).post<PostComputeClusterUsersResponses, PostComputeClusterUsersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-cluster-users',
     ...options,
     headers: {
@@ -566,7 +575,7 @@ export const postComputeClusterUsers = <ThrowOnError extends boolean = false>(op
  * Delete a compute cluster user
  */
 export const deleteComputeClusterUsersById = <ThrowOnError extends boolean = false>(options: Options<DeleteComputeClusterUsersByIdData, ThrowOnError>): RequestResult<DeleteComputeClusterUsersByIdResponses, DeleteComputeClusterUsersByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteComputeClusterUsersByIdResponses, DeleteComputeClusterUsersByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-cluster-users/{id}',
     ...options
 });
@@ -575,7 +584,7 @@ export const deleteComputeClusterUsersById = <ThrowOnError extends boolean = fal
  * Get a compute cluster user by ID
  */
 export const getComputeClusterUsersById = <ThrowOnError extends boolean = false>(options: Options<GetComputeClusterUsersByIdData, ThrowOnError>): RequestResult<GetComputeClusterUsersByIdResponses, GetComputeClusterUsersByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeClusterUsersByIdResponses, GetComputeClusterUsersByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-cluster-users/{id}',
     ...options
 });
@@ -584,7 +593,7 @@ export const getComputeClusterUsersById = <ThrowOnError extends boolean = false>
  * Update a compute cluster user
  */
 export const putComputeClusterUsersById = <ThrowOnError extends boolean = false>(options: Options<PutComputeClusterUsersByIdData, ThrowOnError>): RequestResult<PutComputeClusterUsersByIdResponses, PutComputeClusterUsersByIdErrors, ThrowOnError> => (options.client ?? client).put<PutComputeClusterUsersByIdResponses, PutComputeClusterUsersByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-cluster-users/{id}',
     ...options,
     headers: {
@@ -597,7 +606,7 @@ export const putComputeClusterUsersById = <ThrowOnError extends boolean = false>
  * List compute clusters
  */
 export const getComputeClusters = <ThrowOnError extends boolean = false>(options?: Options<GetComputeClustersData, ThrowOnError>): RequestResult<GetComputeClustersResponses, GetComputeClustersErrors, ThrowOnError> => (options?.client ?? client).get<GetComputeClustersResponses, GetComputeClustersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-clusters',
     ...options
 });
@@ -606,7 +615,7 @@ export const getComputeClusters = <ThrowOnError extends boolean = false>(options
  * Create a compute cluster
  */
 export const postComputeClusters = <ThrowOnError extends boolean = false>(options: Options<PostComputeClustersData, ThrowOnError>): RequestResult<PostComputeClustersResponses, PostComputeClustersErrors, ThrowOnError> => (options.client ?? client).post<PostComputeClustersResponses, PostComputeClustersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-clusters',
     ...options,
     headers: {
@@ -619,7 +628,7 @@ export const postComputeClusters = <ThrowOnError extends boolean = false>(option
  * Get a compute cluster by ID
  */
 export const getComputeClustersById = <ThrowOnError extends boolean = false>(options: Options<GetComputeClustersByIdData, ThrowOnError>): RequestResult<GetComputeClustersByIdResponses, GetComputeClustersByIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeClustersByIdResponses, GetComputeClustersByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-clusters/{id}',
     ...options
 });
@@ -628,7 +637,7 @@ export const getComputeClustersById = <ThrowOnError extends boolean = false>(opt
  * List users on a compute cluster
  */
 export const getComputeClustersByIdUsers = <ThrowOnError extends boolean = false>(options: Options<GetComputeClustersByIdUsersData, ThrowOnError>): RequestResult<GetComputeClustersByIdUsersResponses, GetComputeClustersByIdUsersErrors, ThrowOnError> => (options.client ?? client).get<GetComputeClustersByIdUsersResponses, GetComputeClustersByIdUsersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-clusters/{id}/users',
     ...options
 });
@@ -637,7 +646,7 @@ export const getComputeClustersByIdUsers = <ThrowOnError extends boolean = false
  * Get a compute cluster user by (cluster, user) pair
  */
 export const getComputeClustersByIdUsersByUserId = <ThrowOnError extends boolean = false>(options: Options<GetComputeClustersByIdUsersByUserIdData, ThrowOnError>): RequestResult<GetComputeClustersByIdUsersByUserIdResponses, GetComputeClustersByIdUsersByUserIdErrors, ThrowOnError> => (options.client ?? client).get<GetComputeClustersByIdUsersByUserIdResponses, GetComputeClustersByIdUsersByUserIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/compute-clusters/{id}/users/{userId}',
     ...options
 });
@@ -646,7 +655,7 @@ export const getComputeClustersByIdUsersByUserId = <ThrowOnError extends boolean
  * Create an organization
  */
 export const postOrganizations = <ThrowOnError extends boolean = false>(options: Options<PostOrganizationsData, ThrowOnError>): RequestResult<PostOrganizationsResponses, PostOrganizationsErrors, ThrowOnError> => (options.client ?? client).post<PostOrganizationsResponses, PostOrganizationsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/organizations',
     ...options,
     headers: {
@@ -659,7 +668,7 @@ export const postOrganizations = <ThrowOnError extends boolean = false>(options:
  * Get an organization by ID
  */
 export const getOrganizationsById = <ThrowOnError extends boolean = false>(options: Options<GetOrganizationsByIdData, ThrowOnError>): RequestResult<GetOrganizationsByIdResponses, GetOrganizationsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetOrganizationsByIdResponses, GetOrganizationsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/organizations/{id}',
     ...options
 });
@@ -670,7 +679,7 @@ export const getOrganizationsById = <ThrowOnError extends boolean = false>(optio
  * Role-derived holders are NOT listed here.
  */
 export const getPrivilegesByKeyHolders = <ThrowOnError extends boolean = false>(options: Options<GetPrivilegesByKeyHoldersData, ThrowOnError>): RequestResult<GetPrivilegesByKeyHoldersResponses, GetPrivilegesByKeyHoldersErrors, ThrowOnError> => (options.client ?? client).get<GetPrivilegesByKeyHoldersResponses, GetPrivilegesByKeyHoldersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/privileges/{key}/holders',
     ...options
 });
@@ -679,8 +688,17 @@ export const getPrivilegesByKeyHolders = <ThrowOnError extends boolean = false>(
  * List the declared privilege catalog
  */
 export const getPrivilegesCatalog = <ThrowOnError extends boolean = false>(options?: Options<GetPrivilegesCatalogData, ThrowOnError>): RequestResult<GetPrivilegesCatalogResponses, GetPrivilegesCatalogErrors, ThrowOnError> => (options?.client ?? client).get<GetPrivilegesCatalogResponses, GetPrivilegesCatalogErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/privileges/catalog',
+    ...options
+});
+
+/**
+ * List projects (filtered + paginated, PI joined)
+ */
+export const getProjects = <ThrowOnError extends boolean = false>(options?: Options<GetProjectsData, ThrowOnError>): RequestResult<GetProjectsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetProjectsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/projects',
     ...options
 });
 
@@ -688,7 +706,7 @@ export const getPrivilegesCatalog = <ThrowOnError extends boolean = false>(optio
  * Create a project
  */
 export const postProjects = <ThrowOnError extends boolean = false>(options: Options<PostProjectsData, ThrowOnError>): RequestResult<PostProjectsResponses, PostProjectsErrors, ThrowOnError> => (options.client ?? client).post<PostProjectsResponses, PostProjectsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/projects',
     ...options,
     headers: {
@@ -701,8 +719,17 @@ export const postProjects = <ThrowOnError extends boolean = false>(options: Opti
  * Get a project by ID
  */
 export const getProjectsById = <ThrowOnError extends boolean = false>(options: Options<GetProjectsByIdData, ThrowOnError>): RequestResult<GetProjectsByIdResponses, GetProjectsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetProjectsByIdResponses, GetProjectsByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/projects/{id}',
+    ...options
+});
+
+/**
+ * List project members (one row per distinct user, with allocations)
+ */
+export const getProjectsByIdMembers = <ThrowOnError extends boolean = false>(options: Options<GetProjectsByIdMembersData, ThrowOnError>): RequestResult<GetProjectsByIdMembersResponses, GetProjectsByIdMembersErrors, ThrowOnError> => (options.client ?? client).get<GetProjectsByIdMembersResponses, GetProjectsByIdMembersErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/projects/{id}/members',
     ...options
 });
 
@@ -710,7 +737,7 @@ export const getProjectsById = <ThrowOnError extends boolean = false>(options: O
  * Update a project's status
  */
 export const putProjectsByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PutProjectsByIdStatusData, ThrowOnError>): RequestResult<PutProjectsByIdStatusResponses, PutProjectsByIdStatusErrors, ThrowOnError> => (options.client ?? client).put<PutProjectsByIdStatusResponses, PutProjectsByIdStatusErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/projects/{id}/status',
     ...options,
     headers: {
@@ -723,7 +750,7 @@ export const putProjectsByIdStatus = <ThrowOnError extends boolean = false>(opti
  * List all roles
  */
 export const getRoles = <ThrowOnError extends boolean = false>(options?: Options<GetRolesData, ThrowOnError>): RequestResult<GetRolesResponses, GetRolesErrors, ThrowOnError> => (options?.client ?? client).get<GetRolesResponses, GetRolesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles',
     ...options
 });
@@ -732,7 +759,7 @@ export const getRoles = <ThrowOnError extends boolean = false>(options?: Options
  * Create a role
  */
 export const postRoles = <ThrowOnError extends boolean = false>(options: Options<PostRolesData, ThrowOnError>): RequestResult<PostRolesResponses, PostRolesErrors, ThrowOnError> => (options.client ?? client).post<PostRolesResponses, PostRolesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles',
     ...options,
     headers: {
@@ -747,7 +774,7 @@ export const postRoles = <ThrowOnError extends boolean = false>(options: Options
  * System roles cannot be deleted. CASCADE drops every assignment of this role.
  */
 export const deleteRolesById = <ThrowOnError extends boolean = false>(options: Options<DeleteRolesByIdData, ThrowOnError>): RequestResult<DeleteRolesByIdResponses, DeleteRolesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteRolesByIdResponses, DeleteRolesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}',
     ...options
 });
@@ -756,7 +783,7 @@ export const deleteRolesById = <ThrowOnError extends boolean = false>(options: O
  * Get a role with its privilege bundle
  */
 export const getRolesById = <ThrowOnError extends boolean = false>(options: Options<GetRolesByIdData, ThrowOnError>): RequestResult<GetRolesByIdResponses, GetRolesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetRolesByIdResponses, GetRolesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}',
     ...options
 });
@@ -767,7 +794,7 @@ export const getRolesById = <ThrowOnError extends boolean = false>(options: Opti
  * System roles cannot be renamed.
  */
 export const putRolesById = <ThrowOnError extends boolean = false>(options: Options<PutRolesByIdData, ThrowOnError>): RequestResult<PutRolesByIdResponses, PutRolesByIdErrors, ThrowOnError> => (options.client ?? client).put<PutRolesByIdResponses, PutRolesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}',
     ...options,
     headers: {
@@ -780,7 +807,7 @@ export const putRolesById = <ThrowOnError extends boolean = false>(options: Opti
  * List users holding the role
  */
 export const getRolesByIdHolders = <ThrowOnError extends boolean = false>(options: Options<GetRolesByIdHoldersData, ThrowOnError>): RequestResult<GetRolesByIdHoldersResponses, GetRolesByIdHoldersErrors, ThrowOnError> => (options.client ?? client).get<GetRolesByIdHoldersResponses, GetRolesByIdHoldersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}/holders',
     ...options
 });
@@ -791,7 +818,7 @@ export const getRolesByIdHolders = <ThrowOnError extends boolean = false>(option
  * The new privilege propagates to every current holder.
  */
 export const postRolesByIdPrivileges = <ThrowOnError extends boolean = false>(options: Options<PostRolesByIdPrivilegesData, ThrowOnError>): RequestResult<PostRolesByIdPrivilegesResponses, PostRolesByIdPrivilegesErrors, ThrowOnError> => (options.client ?? client).post<PostRolesByIdPrivilegesResponses, PostRolesByIdPrivilegesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}/privileges',
     ...options,
     headers: {
@@ -806,7 +833,7 @@ export const postRolesByIdPrivileges = <ThrowOnError extends boolean = false>(op
  * Removal propagates to every holder. Refuses to remove `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
  */
 export const deleteRolesByIdPrivilegesByKey = <ThrowOnError extends boolean = false>(options: Options<DeleteRolesByIdPrivilegesByKeyData, ThrowOnError>): RequestResult<DeleteRolesByIdPrivilegesByKeyResponses, DeleteRolesByIdPrivilegesByKeyErrors, ThrowOnError> => (options.client ?? client).delete<DeleteRolesByIdPrivilegesByKeyResponses, DeleteRolesByIdPrivilegesByKeyErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/roles/{id}/privileges/{key}',
     ...options
 });
@@ -815,7 +842,7 @@ export const deleteRolesByIdPrivilegesByKey = <ThrowOnError extends boolean = fa
  * Create a user identity
  */
 export const postUserIdentities = <ThrowOnError extends boolean = false>(options: Options<PostUserIdentitiesData, ThrowOnError>): RequestResult<PostUserIdentitiesResponses, PostUserIdentitiesErrors, ThrowOnError> => (options.client ?? client).post<PostUserIdentitiesResponses, PostUserIdentitiesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities',
     ...options,
     headers: {
@@ -828,7 +855,7 @@ export const postUserIdentities = <ThrowOnError extends boolean = false>(options
  * Delete a user identity
  */
 export const deleteUserIdentitiesById = <ThrowOnError extends boolean = false>(options: Options<DeleteUserIdentitiesByIdData, ThrowOnError>): RequestResult<DeleteUserIdentitiesByIdResponses, DeleteUserIdentitiesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteUserIdentitiesByIdResponses, DeleteUserIdentitiesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities/{id}',
     ...options
 });
@@ -837,7 +864,7 @@ export const deleteUserIdentitiesById = <ThrowOnError extends boolean = false>(o
  * Get a user identity
  */
 export const getUserIdentitiesById = <ThrowOnError extends boolean = false>(options: Options<GetUserIdentitiesByIdData, ThrowOnError>): RequestResult<GetUserIdentitiesByIdResponses, GetUserIdentitiesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetUserIdentitiesByIdResponses, GetUserIdentitiesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities/{id}',
     ...options
 });
@@ -846,7 +873,7 @@ export const getUserIdentitiesById = <ThrowOnError extends boolean = false>(opti
  * Update a user identity
  */
 export const putUserIdentitiesById = <ThrowOnError extends boolean = false>(options: Options<PutUserIdentitiesByIdData, ThrowOnError>): RequestResult<PutUserIdentitiesByIdResponses, PutUserIdentitiesByIdErrors, ThrowOnError> => (options.client ?? client).put<PutUserIdentitiesByIdResponses, PutUserIdentitiesByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities/{id}',
     ...options,
     headers: {
@@ -859,7 +886,7 @@ export const putUserIdentitiesById = <ThrowOnError extends boolean = false>(opti
  * Get a user identity by its OIDC subject claim
  */
 export const getUserIdentitiesOidcSubjectsByOidcSub = <ThrowOnError extends boolean = false>(options: Options<GetUserIdentitiesOidcSubjectsByOidcSubData, ThrowOnError>): RequestResult<GetUserIdentitiesOidcSubjectsByOidcSubResponses, GetUserIdentitiesOidcSubjectsByOidcSubErrors, ThrowOnError> => (options.client ?? client).get<GetUserIdentitiesOidcSubjectsByOidcSubResponses, GetUserIdentitiesOidcSubjectsByOidcSubErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities/oidc-subjects/{oidcSub}',
     ...options
 });
@@ -868,7 +895,7 @@ export const getUserIdentitiesOidcSubjectsByOidcSub = <ThrowOnError extends bool
  * Get a user identity by source and external ID
  */
 export const getUserIdentitiesSourcesBySourceExternalByExternalId = <ThrowOnError extends boolean = false>(options: Options<GetUserIdentitiesSourcesBySourceExternalByExternalIdData, ThrowOnError>): RequestResult<GetUserIdentitiesSourcesBySourceExternalByExternalIdResponses, GetUserIdentitiesSourcesBySourceExternalByExternalIdErrors, ThrowOnError> => (options.client ?? client).get<GetUserIdentitiesSourcesBySourceExternalByExternalIdResponses, GetUserIdentitiesSourcesBySourceExternalByExternalIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user-identities/sources/{source}/external/{externalId}',
     ...options
 });
@@ -879,7 +906,7 @@ export const getUserIdentitiesSourcesBySourceExternalByExternalId = <ThrowOnErro
  * Effective set is direct grants UNION every privilege carried by every role the caller holds.
  */
 export const getUserPrivileges = <ThrowOnError extends boolean = false>(options?: Options<GetUserPrivilegesData, ThrowOnError>): RequestResult<GetUserPrivilegesResponses, GetUserPrivilegesErrors, ThrowOnError> => (options?.client ?? client).get<GetUserPrivilegesResponses, GetUserPrivilegesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/user/privileges',
     ...options
 });
@@ -888,7 +915,7 @@ export const getUserPrivileges = <ThrowOnError extends boolean = false>(options?
  * Create a user
  */
 export const postUsers = <ThrowOnError extends boolean = false>(options: Options<PostUsersData, ThrowOnError>): RequestResult<PostUsersResponses, PostUsersErrors, ThrowOnError> => (options.client ?? client).post<PostUsersResponses, PostUsersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users',
     ...options,
     headers: {
@@ -901,7 +928,7 @@ export const postUsers = <ThrowOnError extends boolean = false>(options: Options
  * Get a user by ID
  */
 export const getUsersById = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdData, ThrowOnError>): RequestResult<GetUsersByIdResponses, GetUsersByIdErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdResponses, GetUsersByIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}',
     ...options
 });
@@ -910,7 +937,7 @@ export const getUsersById = <ThrowOnError extends boolean = false>(options: Opti
  * List change requests submitted by a user
  */
 export const getUsersByIdChangeRequests = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdChangeRequestsData, ThrowOnError>): RequestResult<GetUsersByIdChangeRequestsResponses, GetUsersByIdChangeRequestsErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdChangeRequestsResponses, GetUsersByIdChangeRequestsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/change-requests',
     ...options
 });
@@ -919,7 +946,7 @@ export const getUsersByIdChangeRequests = <ThrowOnError extends boolean = false>
  * List a user's compute allocation memberships
  */
 export const getUsersByIdComputeAllocationMemberships = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdComputeAllocationMembershipsData, ThrowOnError>): RequestResult<GetUsersByIdComputeAllocationMembershipsResponses, GetUsersByIdComputeAllocationMembershipsErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdComputeAllocationMembershipsResponses, GetUsersByIdComputeAllocationMembershipsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/compute-allocation-memberships',
     ...options
 });
@@ -928,7 +955,7 @@ export const getUsersByIdComputeAllocationMemberships = <ThrowOnError extends bo
  * List usages submitted by a user
  */
 export const getUsersByIdComputeAllocationUsages = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdComputeAllocationUsagesData, ThrowOnError>): RequestResult<GetUsersByIdComputeAllocationUsagesResponses, GetUsersByIdComputeAllocationUsagesErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdComputeAllocationUsagesResponses, GetUsersByIdComputeAllocationUsagesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/compute-allocation-usages',
     ...options
 });
@@ -937,7 +964,7 @@ export const getUsersByIdComputeAllocationUsages = <ThrowOnError extends boolean
  * List compute cluster users for a user
  */
 export const getUsersByIdComputeClusterUsers = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdComputeClusterUsersData, ThrowOnError>): RequestResult<GetUsersByIdComputeClusterUsersResponses, GetUsersByIdComputeClusterUsersErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdComputeClusterUsersResponses, GetUsersByIdComputeClusterUsersErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/compute-cluster-users',
     ...options
 });
@@ -948,7 +975,7 @@ export const getUsersByIdComputeClusterUsers = <ThrowOnError extends boolean = f
  * Returns DIRECT grants only (not role-derived). Combine with `GET /users/{id}/roles` for the full picture.
  */
 export const getUsersByIdPrivileges = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdPrivilegesData, ThrowOnError>): RequestResult<GetUsersByIdPrivilegesResponses, GetUsersByIdPrivilegesErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdPrivilegesResponses, GetUsersByIdPrivilegesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/privileges',
     ...options
 });
@@ -957,7 +984,7 @@ export const getUsersByIdPrivileges = <ThrowOnError extends boolean = false>(opt
  * Grant a direct privilege to a user
  */
 export const postUsersByIdPrivileges = <ThrowOnError extends boolean = false>(options: Options<PostUsersByIdPrivilegesData, ThrowOnError>): RequestResult<PostUsersByIdPrivilegesResponses, PostUsersByIdPrivilegesErrors, ThrowOnError> => (options.client ?? client).post<PostUsersByIdPrivilegesResponses, PostUsersByIdPrivilegesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/privileges',
     ...options,
     headers: {
@@ -972,7 +999,7 @@ export const postUsersByIdPrivileges = <ThrowOnError extends boolean = false>(op
  * `privileges:grant` itself cannot be self-revoked or revoked from the last holder.
  */
 export const deleteUsersByIdPrivilegesByKey = <ThrowOnError extends boolean = false>(options: Options<DeleteUsersByIdPrivilegesByKeyData, ThrowOnError>): RequestResult<DeleteUsersByIdPrivilegesByKeyResponses, DeleteUsersByIdPrivilegesByKeyErrors, ThrowOnError> => (options.client ?? client).delete<DeleteUsersByIdPrivilegesByKeyResponses, DeleteUsersByIdPrivilegesByKeyErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/privileges/{key}',
     ...options,
     headers: {
@@ -985,7 +1012,7 @@ export const deleteUsersByIdPrivilegesByKey = <ThrowOnError extends boolean = fa
  * List roles a user holds
  */
 export const getUsersByIdRoles = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdRolesData, ThrowOnError>): RequestResult<GetUsersByIdRolesResponses, GetUsersByIdRolesErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdRolesResponses, GetUsersByIdRolesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/roles',
     ...options
 });
@@ -994,7 +1021,7 @@ export const getUsersByIdRoles = <ThrowOnError extends boolean = false>(options:
  * Grant a role to a user
  */
 export const postUsersByIdRoles = <ThrowOnError extends boolean = false>(options: Options<PostUsersByIdRolesData, ThrowOnError>): RequestResult<PostUsersByIdRolesResponses, PostUsersByIdRolesErrors, ThrowOnError> => (options.client ?? client).post<PostUsersByIdRolesResponses, PostUsersByIdRolesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/roles',
     ...options,
     headers: {
@@ -1009,7 +1036,7 @@ export const postUsersByIdRoles = <ThrowOnError extends boolean = false>(options
  * Refuses if revoking would leave no holder of `privileges:grant` or `roles:manage` anywhere (last-meta-holder guard).
  */
 export const deleteUsersByIdRolesByRoleId = <ThrowOnError extends boolean = false>(options: Options<DeleteUsersByIdRolesByRoleIdData, ThrowOnError>): RequestResult<DeleteUsersByIdRolesByRoleIdResponses, DeleteUsersByIdRolesByRoleIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteUsersByIdRolesByRoleIdResponses, DeleteUsersByIdRolesByRoleIdErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/roles/{roleId}',
     ...options,
     headers: {
@@ -1022,7 +1049,7 @@ export const deleteUsersByIdRolesByRoleId = <ThrowOnError extends boolean = fals
  * Update a user's status
  */
 export const putUsersByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PutUsersByIdStatusData, ThrowOnError>): RequestResult<PutUsersByIdStatusResponses, PutUsersByIdStatusErrors, ThrowOnError> => (options.client ?? client).put<PutUsersByIdStatusResponses, PutUsersByIdStatusErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/status',
     ...options,
     headers: {
@@ -1035,7 +1062,7 @@ export const putUsersByIdStatus = <ThrowOnError extends boolean = false>(options
  * List a user's identities
  */
 export const getUsersByIdUserIdentities = <ThrowOnError extends boolean = false>(options: Options<GetUsersByIdUserIdentitiesData, ThrowOnError>): RequestResult<GetUsersByIdUserIdentitiesResponses, GetUsersByIdUserIdentitiesErrors, ThrowOnError> => (options.client ?? client).get<GetUsersByIdUserIdentitiesResponses, GetUsersByIdUserIdentitiesErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/{id}/user-identities',
     ...options
 });
@@ -1046,7 +1073,7 @@ export const getUsersByIdUserIdentities = <ThrowOnError extends boolean = false>
  * Merges the retiring user into the surviving user; the surviving record is returned.
  */
 export const postUsersMerge = <ThrowOnError extends boolean = false>(options: Options<PostUsersMergeData, ThrowOnError>): RequestResult<PostUsersMergeResponses, PostUsersMergeErrors, ThrowOnError> => (options.client ?? client).post<PostUsersMergeResponses, PostUsersMergeErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/users/merge',
     ...options,
     headers: {
