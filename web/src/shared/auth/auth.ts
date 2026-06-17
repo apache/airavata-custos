@@ -12,6 +12,21 @@ const oidcProvider = {
   authorization: { params: { scope: serverEnv.OIDC_SCOPES } },
 };
 
+// Privileges aren't an OIDC claim — fetch from the backend so the layout gate sees them.
+async function fetchPrivileges(bearer: string): Promise<Privilege[]> {
+  try {
+    const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/user/privileges`, {
+      headers: { Authorization: `Bearer ${bearer}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { privileges?: Privilege[] };
+    return data.privileges ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export const authConfig: NextAuthConfig = {
   trustHost: true,
   secret: serverEnv.NEXTAUTH_SECRET,
@@ -25,6 +40,7 @@ export const authConfig: NextAuthConfig = {
       }
       if (account?.id_token) {
         (token as { accessToken?: string }).accessToken = account.id_token;
+        (token as { privileges?: Privilege[] }).privileges = await fetchPrivileges(account.id_token);
       }
       return token;
     },
