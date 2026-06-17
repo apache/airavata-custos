@@ -2654,7 +2654,7 @@ export type GetPrivilegesCatalogData = {
 
 export type GetPrivilegesCatalogErrors = {
     /**
-     * Missing caller header
+     * Unauthenticated
      */
     401: {
         error?: string;
