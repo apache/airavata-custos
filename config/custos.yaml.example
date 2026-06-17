@@ -16,6 +16,7 @@ core:
   cors:
     allowed_origins:                # browser callers; empty list disables CORS
       - "http://localhost:3000"
+      - "${CUSTOS_PORTAL_ORIGIN}"   # deployed portal URL, set per environment
   log_level: "info"
 
 connectors:

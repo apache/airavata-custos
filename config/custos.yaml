@@ -9,7 +9,7 @@ core:
   cors:
     allowed_origins:
       - "http://localhost:3000"
-      - "https://portal.dev.nexus.cybershuttle.org"
+      - "${CUSTOS_PORTAL_ORIGIN}"
   log_level: "info"
 
 connectors:
