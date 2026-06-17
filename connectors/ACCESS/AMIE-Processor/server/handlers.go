@@ -55,7 +55,7 @@ func (h *Handlers) RegisterRoutes(mux *http.ServeMux) {
 
 // @Summary	List audit events for an AMIE packet
 // @Tags	AMIE Audit
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	packet_id	path	string	true	"AMIE packet ID"
 // @Success	200	{object}	object{packet_id=string,events=[]object{span_id=string,parent_span_id=string,source=string,event_type=string,entity_type=string,entity_id=string,description=string,status=string,created_at=string}}
@@ -86,7 +86,7 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List AMIE packets
 // @Tags	AMIE Packets
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	status	query	string	false	"Filter by status (NEW, DECODED, PROCESSED, FAILED, all)"
 // @Param	type	query	string	false	"Filter by packet type"
@@ -128,7 +128,7 @@ func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get an AMIE packet by ID
 // @Tags	AMIE Packets
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
 // @Success	200	{object}	PacketResponse
@@ -154,7 +154,7 @@ func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List processing events for an AMIE packet
 // @Tags	AMIE Packets
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
 // @Success	200	{array}	PacketEventResponse
@@ -179,7 +179,7 @@ func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Per-day packet stats grouped by status and type
 // @Tags	AMIE Stats
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	window	query	string	false	"Lookback window (e.g. 30d, 24h); default 30d"
 // @Success	200	{object}	PacketStatsResponse
@@ -209,7 +209,7 @@ type ReplyListResponse struct {
 
 // @Summary	List replies sent to AMIE
 // @Tags	AMIE Replies
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	limit	query	int	false	"Page size (default 50, max 200)"
 // @Param	offset	query	int	false	"Pagination offset"
@@ -226,7 +226,7 @@ func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List AMIE packets that could not be mapped to a Custos entity
 // @Tags	AMIE Unmapped
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	limit	query	int	false	"Page size (default 50, max 200)"
 // @Param	offset	query	int	false	"Pagination offset"
@@ -238,7 +238,7 @@ func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Retry an AMIE packet (not yet implemented)
 // @Tags	AMIE Packets
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
 // @Failure	501	{object}	object{error=string,message=string}
@@ -249,7 +249,7 @@ func (h *Handlers) retryPacket(w http.ResponseWriter, _ *http.Request) {
 
 // @Summary	Resolve an AMIE packet (not yet implemented)
 // @Tags	AMIE Packets
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
 // @Failure	501	{object}	object{error=string,message=string}
@@ -260,7 +260,7 @@ func (h *Handlers) resolvePacket(w http.ResponseWriter, _ *http.Request) {
 
 // @Summary	Retry an AMIE reply (not yet implemented)
 // @Tags	AMIE Replies
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE reply ID"
 // @Failure	501	{object}	object{error=string,message=string}
@@ -271,7 +271,7 @@ func (h *Handlers) retryReply(w http.ResponseWriter, _ *http.Request) {
 
 // @Summary	Link an unmapped packet to a Custos entity (not yet implemented)
 // @Tags	AMIE Unmapped
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"AMIE packet ID"
 // @Failure	501	{object}	object{error=string,message=string}

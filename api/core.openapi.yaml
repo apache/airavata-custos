@@ -646,8 +646,8 @@ info:
   contact: {}
   description: 'REST API for Apache Custos: organizations, users, projects, compute
     clusters and allocations, audit traces, and the privilege/role authorization layer.
-    Authenticate every request with the X-Custos-User-Id header. Connector endpoints
-    (/connectors/<name>/...) are documented in separate specs.'
+    Authenticate every request with an OIDC bearer token in the Authorization header.
+    Connector endpoints (/connectors/<name>/...) are documented in separate specs.'
   title: Apache Custos Core API
   version: 0.2.0
 paths:
@@ -690,7 +690,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List audit events for a trace (optionally one span)
       tags:
       - Audit
@@ -716,7 +716,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List distinct audit-event sources
       tags:
       - Audit
@@ -792,7 +792,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List audit traces with filters
       tags:
       - Audit
@@ -842,7 +842,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a trace's nested span tree
       tags:
       - Audit
@@ -872,7 +872,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a change request event
       tags:
       - Change Request Events
@@ -895,7 +895,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a change request event
       tags:
       - Change Request Events
@@ -921,7 +921,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a change request event
       tags:
       - Change Request Events
@@ -951,7 +951,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation change request
       tags:
       - Compute Allocation Change Requests
@@ -974,7 +974,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a compute allocation change request
       tags:
       - Compute Allocation Change Requests
@@ -1000,7 +1000,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation change request
       tags:
       - Compute Allocation Change Requests
@@ -1041,7 +1041,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a compute allocation change request
       tags:
       - Compute Allocation Change Requests
@@ -1070,7 +1070,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List events for a change request
       tags:
       - Change Request Events
@@ -1097,7 +1097,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get the most recent event for a change request
       tags:
       - Change Request Events
@@ -1136,7 +1136,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation diff
       tags:
       - Compute Allocation Diffs
@@ -1159,7 +1159,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a compute allocation diff
       tags:
       - Compute Allocation Diffs
@@ -1185,7 +1185,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation diff
       tags:
       - Compute Allocation Diffs
@@ -1215,7 +1215,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a membership resource override
       tags:
       - Membership Resource Overrides
@@ -1238,7 +1238,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a membership resource override
       tags:
       - Membership Resource Overrides
@@ -1264,7 +1264,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a membership resource override
       tags:
       - Membership Resource Overrides
@@ -1305,7 +1305,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a membership resource override
       tags:
       - Membership Resource Overrides
@@ -1335,7 +1335,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation membership
       tags:
       - Compute Allocation Memberships
@@ -1358,7 +1358,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a compute allocation membership
       tags:
       - Compute Allocation Memberships
@@ -1384,7 +1384,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation membership
       tags:
       - Compute Allocation Memberships
@@ -1425,7 +1425,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a compute allocation membership
       tags:
       - Compute Allocation Memberships
@@ -1454,7 +1454,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List resource overrides for a membership
       tags:
       - Membership Resource Overrides
@@ -1499,7 +1499,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a membership's status
       tags:
       - Compute Allocation Memberships
@@ -1538,7 +1538,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation resource rate
       tags:
       - Compute Allocation Resource Rates
@@ -1565,7 +1565,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation resource rate
       tags:
       - Compute Allocation Resource Rates
@@ -1588,7 +1588,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List all compute allocation resources
       tags:
       - Compute Allocation Resources
@@ -1626,7 +1626,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation resource
       tags:
       - Compute Allocation Resources
@@ -1653,7 +1653,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation resource
       tags:
       - Compute Allocation Resources
@@ -1682,7 +1682,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List compute allocations attached to a resource
       tags:
       - Compute Allocation Resources
@@ -1711,7 +1711,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List membership overrides referencing a resource
       tags:
       - Membership Resource Overrides
@@ -1740,7 +1740,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List rate history for a resource
       tags:
       - Compute Allocation Resource Rates
@@ -1780,7 +1780,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get the effective rate for a resource at a given time
       tags:
       - Compute Allocation Resource Rates
@@ -1810,7 +1810,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation usage record
       tags:
       - Compute Allocation Usages
@@ -1833,7 +1833,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a compute allocation usage record
       tags:
       - Compute Allocation Usages
@@ -1859,7 +1859,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation usage record
       tags:
       - Compute Allocation Usages
@@ -1894,7 +1894,7 @@ paths:
           schema:
             $ref: '#/definitions/ComputeAllocationListResponse'
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List compute allocations (filtered + paginated)
       tags:
       - Compute Allocations
@@ -1923,7 +1923,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute allocation
       tags:
       - Compute Allocations
@@ -1950,7 +1950,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute allocation by ID
       tags:
       - Compute Allocations
@@ -1979,7 +1979,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List change requests for a compute allocation
       tags:
       - Compute Allocation Change Requests
@@ -2008,7 +2008,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List diffs for a compute allocation
       tags:
       - Compute Allocation Diffs
@@ -2035,7 +2035,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get the most recent diff for a compute allocation
       tags:
       - Compute Allocation Diffs
@@ -2064,7 +2064,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List members of a compute allocation
       tags:
       - Compute Allocation Memberships
@@ -2093,7 +2093,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List resources attached to a compute allocation
       tags:
       - Compute Allocation Resources
@@ -2136,7 +2136,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Attach a resource to a compute allocation
       tags:
       - Compute Allocation Resources
@@ -2164,7 +2164,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Detach a resource from a compute allocation
       tags:
       - Compute Allocation Resources
@@ -2210,7 +2210,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a compute allocation -> resource mapping
       tags:
       - Compute Allocation Resources
@@ -2239,7 +2239,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List usages for a compute allocation
       tags:
       - Compute Allocation Usages
@@ -2266,7 +2266,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get total SU usage for a compute allocation
       tags:
       - Compute Allocation Usages
@@ -2298,7 +2298,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get total SU usage for a user within a compute allocation
       tags:
       - Compute Allocation Usages
@@ -2328,7 +2328,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute cluster user
       tags:
       - Compute Cluster Users
@@ -2351,7 +2351,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a compute cluster user
       tags:
       - Compute Cluster Users
@@ -2377,7 +2377,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute cluster user by ID
       tags:
       - Compute Cluster Users
@@ -2418,7 +2418,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a compute cluster user
       tags:
       - Compute Cluster Users
@@ -2441,7 +2441,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List compute clusters
       tags:
       - Compute Clusters
@@ -2470,7 +2470,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a compute cluster
       tags:
       - Compute Clusters
@@ -2497,7 +2497,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute cluster by ID
       tags:
       - Compute Clusters
@@ -2526,7 +2526,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List users on a compute cluster
       tags:
       - Compute Cluster Users
@@ -2558,7 +2558,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
@@ -2588,7 +2588,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create an organization
       tags:
       - Organizations
@@ -2615,7 +2615,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get an organization by ID
       tags:
       - Organizations
@@ -2654,7 +2654,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List direct holders of a privilege
       tags:
       - Privileges
@@ -2684,7 +2684,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List the declared privilege catalog
       tags:
       - Privileges
@@ -2719,7 +2719,7 @@ paths:
           schema:
             $ref: '#/definitions/ProjectListResponse'
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List projects (filtered + paginated, PI joined)
       tags:
       - Projects
@@ -2748,7 +2748,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a project
       tags:
       - Projects
@@ -2775,7 +2775,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a project by ID
       tags:
       - Projects
@@ -2804,7 +2804,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List project members (one row per distinct user, with allocations)
       tags:
       - Projects
@@ -2849,7 +2849,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a project's status
       tags:
       - Projects
@@ -2879,7 +2879,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List all roles
       tags:
       - Roles
@@ -2922,7 +2922,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a role
       tags:
       - Roles
@@ -2954,7 +2954,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a role
       tags:
       - Roles
@@ -2994,7 +2994,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a role with its privilege bundle
       tags:
       - Roles
@@ -3036,7 +3036,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update role name / description
       tags:
       - Roles
@@ -3065,7 +3065,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List users holding the role
       tags:
       - Roles
@@ -3111,7 +3111,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Add a privilege to a role
       tags:
       - Roles
@@ -3164,7 +3164,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Remove a privilege from a role
       tags:
       - Roles
@@ -3194,7 +3194,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a user identity
       tags:
       - User Identities
@@ -3217,7 +3217,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Delete a user identity
       tags:
       - User Identities
@@ -3243,7 +3243,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a user identity
       tags:
       - User Identities
@@ -3284,7 +3284,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a user identity
       tags:
       - User Identities
@@ -3311,7 +3311,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a user identity by its OIDC subject claim
       tags:
       - User Identities
@@ -3343,7 +3343,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a user identity by source and external ID
       tags:
       - User Identities
@@ -3364,7 +3364,7 @@ paths:
                 type: array
             type: object
         "401":
-          description: Missing X-Custos-User-Id header
+          description: Unauthenticated
           schema:
             properties:
               error:
@@ -3378,7 +3378,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get caller's effective privileges
       tags:
       - Caller
@@ -3408,7 +3408,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Create a user
       tags:
       - Users
@@ -3435,7 +3435,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get a user by ID
       tags:
       - Users
@@ -3464,7 +3464,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List change requests submitted by a user
       tags:
       - Compute Allocation Change Requests
@@ -3493,7 +3493,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List a user's compute allocation memberships
       tags:
       - Compute Allocation Memberships
@@ -3522,7 +3522,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List usages submitted by a user
       tags:
       - Compute Allocation Usages
@@ -3551,7 +3551,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List compute cluster users for a user
       tags:
       - Compute Cluster Users
@@ -3589,7 +3589,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List a user's direct privilege grants
       tags:
       - Privileges
@@ -3623,7 +3623,7 @@ paths:
                 type: string
             type: object
         "401":
-          description: Missing caller header
+          description: Unauthenticated
           schema:
             properties:
               error:
@@ -3644,7 +3644,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Grant a direct privilege to a user
       tags:
       - Privileges
@@ -3690,7 +3690,7 @@ paths:
                 type: string
             type: object
         "401":
-          description: Missing caller header
+          description: Unauthenticated
           schema:
             properties:
               error:
@@ -3711,7 +3711,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Revoke a direct privilege from a user
       tags:
       - Privileges
@@ -3740,7 +3740,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List roles a user holds
       tags:
       - Role Assignments
@@ -3788,7 +3788,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Grant a role to a user
       tags:
       - Role Assignments
@@ -3839,7 +3839,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Revoke a role from a user
       tags:
       - Role Assignments
@@ -3884,7 +3884,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Update a user's status
       tags:
       - Users
@@ -3913,7 +3913,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List a user's identities
       tags:
       - User Identities
@@ -3952,13 +3952,13 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Merge two users
       tags:
       - Users
 securityDefinitions:
-  CustosUserHeader:
+  BearerAuth:
     in: header
-    name: X-Custos-User-Id
+    name: Authorization
     type: apiKey
 swagger: "2.0"

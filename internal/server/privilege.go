@@ -52,7 +52,7 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List the declared privilege catalog
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.PrivilegeKey
 // @Failure	401	{object}	object{error=string}	"Missing caller header"
@@ -65,7 +65,7 @@ func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
 // @Summary	List a user's direct privilege grants
 // @Description	Returns DIRECT grants only (not role-derived). Combine with `GET /users/{id}/roles` for the full picture.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.UserPrivilege
@@ -89,7 +89,7 @@ func (s *Server) listUserPrivileges(w http.ResponseWriter, r *http.Request) {
 // @Summary	List direct holders of a privilege
 // @Description	Role-derived holders are NOT listed here.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Success	200	{array}	models.UserPrivilege

@@ -198,7 +198,7 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 
 // @Summary	Create an organization
 // @Tags	Organizations
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.Organization	true	"Organization payload"
@@ -221,7 +221,7 @@ func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get an organization by ID
 // @Tags	Organizations
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Organization ID"
 // @Success	200	{object}	models.Organization
@@ -238,7 +238,7 @@ func (s *Server) getOrganization(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Create a user
 // @Tags	Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.User	true	"User payload"
@@ -261,7 +261,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a user by ID
 // @Tags	Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{object}	models.User
@@ -278,7 +278,7 @@ func (s *Server) getUser(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Create a project
 // @Tags	Projects
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.Project	true	"Project payload"
@@ -301,7 +301,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a project by ID
 // @Tags	Projects
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
 // @Success	200	{object}	ProjectResponse
@@ -329,7 +329,7 @@ func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
 
 // @Summary	Create a compute cluster
 // @Tags	Compute Clusters
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeCluster	true	"Cluster payload"
@@ -352,7 +352,7 @@ func (s *Server) createComputeCluster(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a compute cluster by ID
 // @Tags	Compute Clusters
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster ID"
 // @Success	200	{object}	models.ComputeCluster
@@ -369,7 +369,7 @@ func (s *Server) getComputeCluster(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List compute clusters
 // @Tags	Compute Clusters
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.ComputeCluster
 // @Failure	500	{object}	object{error=string}
@@ -385,7 +385,7 @@ func (s *Server) listComputeClusters(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Create a compute cluster user
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeClusterUser	true	"Cluster user payload"
@@ -408,7 +408,7 @@ func (s *Server) createComputeClusterUser(w http.ResponseWriter, r *http.Request
 
 // @Summary	Get a compute cluster user by ID
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster user ID"
 // @Success	200	{object}	models.ComputeClusterUser
@@ -425,7 +425,7 @@ func (s *Server) getComputeClusterUser(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Update a compute cluster user
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster user ID"
@@ -450,7 +450,7 @@ func (s *Server) updateComputeClusterUser(w http.ResponseWriter, r *http.Request
 
 // @Summary	Delete a compute cluster user
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Compute cluster user ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -465,7 +465,7 @@ func (s *Server) deleteComputeClusterUser(w http.ResponseWriter, r *http.Request
 
 // @Summary	List users on a compute cluster
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster ID"
 // @Success	200	{array}	models.ComputeClusterUser
@@ -482,7 +482,7 @@ func (s *Server) listComputeClusterUsersByCluster(w http.ResponseWriter, r *http
 
 // @Summary	Get a compute cluster user by (cluster, user) pair
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute cluster ID"
 // @Param	userId	path	string	true	"User ID"
@@ -500,7 +500,7 @@ func (s *Server) getComputeClusterUserByPair(w http.ResponseWriter, r *http.Requ
 
 // @Summary	List compute cluster users for a user
 // @Tags	Compute Cluster Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.ComputeClusterUser
@@ -517,7 +517,7 @@ func (s *Server) listComputeClusterUsersByUser(w http.ResponseWriter, r *http.Re
 
 // @Summary	Create a compute allocation
 // @Tags	Compute Allocations
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocation	true	"Compute allocation payload"
@@ -540,7 +540,7 @@ func (s *Server) createComputeAllocation(w http.ResponseWriter, r *http.Request)
 
 // @Summary	Get a compute allocation by ID
 // @Tags	Compute Allocations
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{object}	models.ComputeAllocation
@@ -558,7 +558,7 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 // @Summary	Create a compute allocation resource
 // @Description	Defines a resource (partition) — e.g. a CPU or GPU partition that allocations can be attached to.
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationResource	true	"Resource payload"
@@ -582,7 +582,7 @@ func (s *Server) createComputeAllocationResource(w http.ResponseWriter, r *http.
 
 // @Summary	Get a compute allocation resource
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Resource ID"
 // @Success	200	{object}	models.ComputeAllocationResource
@@ -599,7 +599,7 @@ func (s *Server) getComputeAllocationResource(w http.ResponseWriter, r *http.Req
 
 // @Summary	List all compute allocation resources
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.ComputeAllocationResource
 // @Failure	401	{object}	object{error=string}
@@ -622,7 +622,7 @@ type attachResourceRequest struct {
 // @Summary	Attach a resource to a compute allocation
 // @Description	Creates a mapping between a compute allocation and a resource (partition) with a specific amount and wall-clock time grant.
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
@@ -652,7 +652,7 @@ type updateAllocationResourceMappingRequest struct {
 
 // @Summary	Update a compute allocation -> resource mapping
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
@@ -678,7 +678,7 @@ func (s *Server) updateAllocationResourceMapping(w http.ResponseWriter, r *http.
 
 // @Summary	Detach a resource from a compute allocation
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Param	resourceId	path	string	true	"Compute allocation resource ID"
 // @Success	204	"No Content"
@@ -694,7 +694,7 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 
 // @Summary	List resources attached to a compute allocation
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationResourceMapping
@@ -711,7 +711,7 @@ func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Reque
 
 // @Summary	List compute allocations attached to a resource
 // @Tags	Compute Allocation Resources
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
 // @Success	200	{array}	models.ComputeAllocationResourceMapping
@@ -729,7 +729,7 @@ func (s *Server) listAllocationsForResource(w http.ResponseWriter, r *http.Reque
 // @Summary	Create a compute allocation resource rate
 // @Description	Records the SU rate (e.g. SU per CPU-hour) for a resource over a time window.
 // @Tags	Compute Allocation Resource Rates
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationResourceRate	true	"Rate payload"
@@ -753,7 +753,7 @@ func (s *Server) createComputeAllocationResourceRate(w http.ResponseWriter, r *h
 
 // @Summary	Get a compute allocation resource rate
 // @Tags	Compute Allocation Resource Rates
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Rate ID"
 // @Success	200	{object}	models.ComputeAllocationResourceRate
@@ -770,7 +770,7 @@ func (s *Server) getComputeAllocationResourceRate(w http.ResponseWriter, r *http
 
 // @Summary	List rate history for a resource
 // @Tags	Compute Allocation Resource Rates
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
 // @Success	200	{array}	models.ComputeAllocationResourceRate
@@ -788,7 +788,7 @@ func (s *Server) listRatesForResource(w http.ResponseWriter, r *http.Request) {
 // @Summary	Get the effective rate for a resource at a given time
 // @Description	Returns the rate whose `[start_time, end_time)` window contains the `at` timestamp. Defaults to now when `at` is omitted.
 // @Tags	Compute Allocation Resource Rates
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
 // @Param	at	query	string	false	"RFC3339 time; defaults to now"
@@ -817,7 +817,7 @@ func (s *Server) getEffectiveRateForResource(w http.ResponseWriter, r *http.Requ
 // @Summary	Create a compute allocation diff
 // @Description	Records a discrete change against a compute allocation (e.g. USAGE_UPDATE or ALLOCATION_STATUS_CHANGE).
 // @Tags	Compute Allocation Diffs
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationDiff	true	"Diff payload"
@@ -841,7 +841,7 @@ func (s *Server) createComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 
 // @Summary	Get a compute allocation diff
 // @Tags	Compute Allocation Diffs
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Diff ID"
 // @Success	200	{object}	models.ComputeAllocationDiff
@@ -858,7 +858,7 @@ func (s *Server) getComputeAllocationDiff(w http.ResponseWriter, r *http.Request
 
 // @Summary	Delete a compute allocation diff
 // @Tags	Compute Allocation Diffs
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Diff ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -873,7 +873,7 @@ func (s *Server) deleteComputeAllocationDiff(w http.ResponseWriter, r *http.Requ
 
 // @Summary	List diffs for a compute allocation
 // @Tags	Compute Allocation Diffs
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationDiff
@@ -890,7 +890,7 @@ func (s *Server) listDiffsForAllocation(w http.ResponseWriter, r *http.Request) 
 
 // @Summary	Get the most recent diff for a compute allocation
 // @Tags	Compute Allocation Diffs
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{object}	models.ComputeAllocationDiff
@@ -907,7 +907,7 @@ func (s *Server) getLatestDiffForAllocation(w http.ResponseWriter, r *http.Reque
 
 // @Summary	Create a compute allocation change request
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationChangeRequest	true	"Change request payload"
@@ -930,7 +930,7 @@ func (s *Server) createComputeAllocationChangeRequest(w http.ResponseWriter, r *
 
 // @Summary	Get a compute allocation change request
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Change request ID"
 // @Success	200	{object}	models.ComputeAllocationChangeRequest
@@ -947,7 +947,7 @@ func (s *Server) getComputeAllocationChangeRequest(w http.ResponseWriter, r *htt
 
 // @Summary	Update a compute allocation change request
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Change request ID"
@@ -973,7 +973,7 @@ func (s *Server) updateComputeAllocationChangeRequest(w http.ResponseWriter, r *
 
 // @Summary	Delete a compute allocation change request
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Change request ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -988,7 +988,7 @@ func (s *Server) deleteComputeAllocationChangeRequest(w http.ResponseWriter, r *
 
 // @Summary	List change requests for a compute allocation
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationChangeRequest
@@ -1005,7 +1005,7 @@ func (s *Server) listChangeRequestsForAllocation(w http.ResponseWriter, r *http.
 
 // @Summary	List change requests submitted by a user
 // @Tags	Compute Allocation Change Requests
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.ComputeAllocationChangeRequest
@@ -1022,7 +1022,7 @@ func (s *Server) listChangeRequestsByRequester(w http.ResponseWriter, r *http.Re
 
 // @Summary	Create a change request event
 // @Tags	Change Request Events
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationChangeRequestEvent	true	"Event payload"
@@ -1045,7 +1045,7 @@ func (s *Server) createComputeAllocationChangeRequestEvent(w http.ResponseWriter
 
 // @Summary	Get a change request event
 // @Tags	Change Request Events
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Event ID"
 // @Success	200	{object}	models.ComputeAllocationChangeRequestEvent
@@ -1062,7 +1062,7 @@ func (s *Server) getComputeAllocationChangeRequestEvent(w http.ResponseWriter, r
 
 // @Summary	Delete a change request event
 // @Tags	Change Request Events
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Event ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -1077,7 +1077,7 @@ func (s *Server) deleteComputeAllocationChangeRequestEvent(w http.ResponseWriter
 
 // @Summary	List events for a change request
 // @Tags	Change Request Events
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Change request ID"
 // @Success	200	{array}	models.ComputeAllocationChangeRequestEvent
@@ -1094,7 +1094,7 @@ func (s *Server) listEventsForChangeRequest(w http.ResponseWriter, r *http.Reque
 
 // @Summary	Get the most recent event for a change request
 // @Tags	Change Request Events
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Change request ID"
 // @Success	200	{object}	models.ComputeAllocationChangeRequestEvent
@@ -1111,7 +1111,7 @@ func (s *Server) getLatestEventForChangeRequest(w http.ResponseWriter, r *http.R
 
 // @Summary	Create a compute allocation membership
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationMembership	true	"Membership payload"
@@ -1134,7 +1134,7 @@ func (s *Server) createComputeAllocationMembership(w http.ResponseWriter, r *htt
 
 // @Summary	Get a compute allocation membership
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Membership ID"
 // @Success	200	{object}	models.ComputeAllocationMembership
@@ -1151,7 +1151,7 @@ func (s *Server) getComputeAllocationMembership(w http.ResponseWriter, r *http.R
 
 // @Summary	Update a compute allocation membership
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Membership ID"
@@ -1177,7 +1177,7 @@ func (s *Server) updateComputeAllocationMembership(w http.ResponseWriter, r *htt
 
 // @Summary	Update a membership's status
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Membership ID"
@@ -1204,7 +1204,7 @@ func (s *Server) updateMembershipStatus(w http.ResponseWriter, r *http.Request) 
 
 // @Summary	Delete a compute allocation membership
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Membership ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -1219,7 +1219,7 @@ func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *htt
 
 // @Summary	List members of a compute allocation
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	AllocationMembershipResponse
@@ -1245,7 +1245,7 @@ func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request
 
 // @Summary	List a user's compute allocation memberships
 // @Tags	Compute Allocation Memberships
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.ComputeAllocationMembership
@@ -1262,7 +1262,7 @@ func (s *Server) listAllocationsForUser(w http.ResponseWriter, r *http.Request) 
 
 // @Summary	Create a compute allocation usage record
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationUsage	true	"Usage payload"
@@ -1285,7 +1285,7 @@ func (s *Server) createComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 
 // @Summary	Get a compute allocation usage record
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Usage ID"
 // @Success	200	{object}	models.ComputeAllocationUsage
@@ -1302,7 +1302,7 @@ func (s *Server) getComputeAllocationUsage(w http.ResponseWriter, r *http.Reques
 
 // @Summary	Delete a compute allocation usage record
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Usage ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -1317,7 +1317,7 @@ func (s *Server) deleteComputeAllocationUsage(w http.ResponseWriter, r *http.Req
 
 // @Summary	List usages for a compute allocation
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationUsage
@@ -1334,7 +1334,7 @@ func (s *Server) listUsagesForAllocation(w http.ResponseWriter, r *http.Request)
 
 // @Summary	List usages submitted by a user
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.ComputeAllocationUsage
@@ -1351,7 +1351,7 @@ func (s *Server) listUsagesByUser(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Create a membership resource override
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.ComputeAllocationMembershipResourceOverride	true	"Override payload"
@@ -1374,7 +1374,7 @@ func (s *Server) createComputeAllocationMembershipResourceOverride(w http.Respon
 
 // @Summary	Get a membership resource override
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Override ID"
 // @Success	200	{object}	models.ComputeAllocationMembershipResourceOverride
@@ -1391,7 +1391,7 @@ func (s *Server) getComputeAllocationMembershipResourceOverride(w http.ResponseW
 
 // @Summary	Update a membership resource override
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Override ID"
@@ -1417,7 +1417,7 @@ func (s *Server) updateComputeAllocationMembershipResourceOverride(w http.Respon
 
 // @Summary	Delete a membership resource override
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Override ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -1432,7 +1432,7 @@ func (s *Server) deleteComputeAllocationMembershipResourceOverride(w http.Respon
 
 // @Summary	List resource overrides for a membership
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Membership ID"
 // @Success	200	{array}	models.ComputeAllocationMembershipResourceOverride
@@ -1449,7 +1449,7 @@ func (s *Server) listOverridesForMembership(w http.ResponseWriter, r *http.Reque
 
 // @Summary	List membership overrides referencing a resource
 // @Tags	Membership Resource Overrides
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation resource ID"
 // @Success	200	{array}	models.ComputeAllocationMembershipResourceOverride
@@ -1466,7 +1466,7 @@ func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request
 
 // @Summary	Get total SU usage for a compute allocation
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{object}	AllocationSUTotalResponse
@@ -1486,7 +1486,7 @@ func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Req
 
 // @Summary	Get total SU usage for a user within a compute allocation
 // @Tags	Compute Allocation Usages
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Param	userId	path	string	true	"User ID"
@@ -1514,7 +1514,7 @@ type statusUpdateRequest struct {
 
 // @Summary	Update a user's status
 // @Tags	Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
@@ -1539,7 +1539,7 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Update a project's status
 // @Tags	Projects
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
@@ -1564,7 +1564,7 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Create a user identity
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	models.UserIdentity	true	"Identity payload"
@@ -1587,7 +1587,7 @@ func (s *Server) createUserIdentity(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a user identity
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Identity ID"
 // @Success	200	{object}	models.UserIdentity
@@ -1604,7 +1604,7 @@ func (s *Server) getUserIdentity(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a user identity by source and external ID
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	source	path	string	true	"Identity source"
 // @Param	externalId	path	string	true	"Identity's external ID at that source"
@@ -1622,7 +1622,7 @@ func (s *Server) getUserIdentityBySourceAndExternalID(w http.ResponseWriter, r *
 
 // @Summary	Get a user identity by its OIDC subject claim
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	oidcSub	path	string	true	"OIDC subject claim"
 // @Success	200	{object}	models.UserIdentity
@@ -1639,7 +1639,7 @@ func (s *Server) getUserIdentityByOIDCSub(w http.ResponseWriter, r *http.Request
 
 // @Summary	List a user's identities
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.UserIdentity
@@ -1656,7 +1656,7 @@ func (s *Server) listUserIdentitiesForUser(w http.ResponseWriter, r *http.Reques
 
 // @Summary	Update a user identity
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Identity ID"
@@ -1681,7 +1681,7 @@ func (s *Server) updateUserIdentity(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Delete a user identity
 // @Tags	User Identities
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Identity ID"
 // @Success	204	"No Content"
 // @Failure	404	{object}	object{error=string}
@@ -1702,7 +1702,7 @@ type mergeUsersRequest struct {
 // @Summary	Merge two users
 // @Description	Merges the retiring user into the surviving user; the surviving record is returned.
 // @Tags	Users
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	mergeUsersRequest	true	"Merge payload"
@@ -1782,7 +1782,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 
 // @Summary	List projects (filtered + paginated, PI joined)
 // @Tags	Projects
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	pi_id	query	string	false	"Filter by PI user ID"
 // @Param	status	query	string	false	"Filter by status"
@@ -1814,7 +1814,7 @@ func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List project members (one row per distinct user, with allocations)
 // @Tags	Projects
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
 // @Success	200	{array}	ProjectMemberResponse
@@ -1870,7 +1870,7 @@ func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List compute allocations (filtered + paginated)
 // @Tags	Compute Allocations
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	project_id	query	string	false	"Filter by project ID"
 // @Param	status	query	string	false	"Filter by status"
