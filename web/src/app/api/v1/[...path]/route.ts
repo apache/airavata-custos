@@ -47,9 +47,6 @@ async function proxy(request: NextRequest, ctx: Context) {
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
     headers.set("authorization", `Bearer ${session.accessToken}`);
-    // Backend reads caller identity from this header until a JWT-verifying
-    // middleware lands; harmless when ignored.
-    if (session.userId) headers.set("x-custos-user-id", session.userId);
   }
 
   const method = request.method;
