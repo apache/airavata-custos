@@ -32,7 +32,15 @@ async function proxy(request: NextRequest, ctx: Context) {
   const accept = request.headers.get("accept");
   if (accept) headers.set("accept", accept);
 
+  const session = await getPortalSession();
+  if (!session?.accessToken) {
+    return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+  }
+
   if (isAdminPath(path)) {
+    if (!session.privileges.includes("roles:manage")) {
+      return NextResponse.json({ message: "Not authorized" }, { status: 403 });
+    }
     if (!serverEnv.CUSTOS_ADMIN_CLIENT_ID || !serverEnv.CUSTOS_ADMIN_CLIENT_SECRET) {
       return NextResponse.json(
         { message: "Admin proxy not configured", path: path.join("/") },
@@ -42,10 +50,6 @@ async function proxy(request: NextRequest, ctx: Context) {
     headers.set("X-Client-Id", serverEnv.CUSTOS_ADMIN_CLIENT_ID);
     headers.set("X-Client-Secret", serverEnv.CUSTOS_ADMIN_CLIENT_SECRET);
   } else {
-    const session = await getPortalSession();
-    if (!session?.accessToken) {
-      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
-    }
     headers.set("authorization", `Bearer ${session.accessToken}`);
   }
 
