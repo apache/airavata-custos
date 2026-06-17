@@ -2670,7 +2670,7 @@ paths:
               $ref: '#/definitions/PrivilegeKey'
             type: array
         "401":
-          description: Missing caller header
+          description: Unauthenticated
           schema:
             properties:
               error:

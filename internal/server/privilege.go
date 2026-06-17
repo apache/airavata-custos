@@ -55,7 +55,7 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 // @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.PrivilegeKey
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Unauthenticated"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Router	/privileges/catalog [get]
 func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
