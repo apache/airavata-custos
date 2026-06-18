@@ -16,6 +16,7 @@ gen-api:
 	go generate ./...
 
 build: gen-api
+	go build -o custos ./cmd/server
 	go build ./...
 
 verify-no-drift: gen-api

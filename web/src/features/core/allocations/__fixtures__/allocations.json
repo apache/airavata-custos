@@ -1,0 +1,42 @@
+[
+  {
+    "id": "alloc-001",
+    "project_id": "project-001",
+    "name": "Genomic Sequencing - GPU Pool",
+    "status": "ACTIVE",
+    "compute_cluster_id": "cluster-001",
+    "initial_su_amount": 250000,
+    "start_time": "2026-04-01T00:00:00.000Z",
+    "end_time": "2027-03-31T00:00:00.000Z"
+  },
+  {
+    "id": "alloc-002",
+    "project_id": "project-001",
+    "name": "Genomic Sequencing - CPU Pool",
+    "status": "ACTIVE",
+    "compute_cluster_id": "cluster-002",
+    "initial_su_amount": 80000,
+    "start_time": "2026-04-01T00:00:00.000Z",
+    "end_time": "2027-03-31T00:00:00.000Z"
+  },
+  {
+    "id": "alloc-003",
+    "project_id": "project-002",
+    "name": "Plasma Simulation - GPU",
+    "status": "ACTIVE",
+    "compute_cluster_id": "cluster-001",
+    "initial_su_amount": 150000,
+    "start_time": "2026-04-12T00:00:00.000Z",
+    "end_time": "2027-04-11T00:00:00.000Z"
+  },
+  {
+    "id": "alloc-004",
+    "project_id": "project-003",
+    "name": "Catalyst Discovery - Legacy",
+    "status": "INACTIVE",
+    "compute_cluster_id": "cluster-002",
+    "initial_su_amount": 50000,
+    "start_time": "2026-02-09T00:00:00.000Z",
+    "end_time": "2026-08-09T00:00:00.000Z"
+  }
+]

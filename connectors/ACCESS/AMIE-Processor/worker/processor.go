@@ -29,7 +29,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/config"
+	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/amieclient"
 	custosdb "github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/db"
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
 	"github.com/apache/airavata-custos/internal/tracing"
@@ -90,7 +90,7 @@ type Processor struct {
 	workerInterval time.Duration
 }
 
-func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, auditSvc processorAuditService, db *sqlx.DB, cfg config.AMIEConfig) *Processor {
+func NewProcessor(eventStore processorEventStore, packetStore processorPacketStore, errorStore processorErrorStore, router processorRouter, metrics processorMetrics, auditSvc processorAuditService, db *sqlx.DB, cfg amieclient.Config) *Processor {
 	return &Processor{
 		eventStore:     eventStore,
 		packetStore:    packetStore,

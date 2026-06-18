@@ -22,6 +22,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/httputil"
@@ -77,9 +79,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /users/{id}/status", s.updateUserStatus)
 	s.mux.HandleFunc("POST /users/merge", s.mergeUsers)
 
+	s.mux.HandleFunc("GET /projects", s.listProjects)
 	s.mux.HandleFunc("POST /projects", s.createProject)
 	s.mux.HandleFunc("GET /projects/{id}", s.getProject)
 	s.mux.HandleFunc("PUT /projects/{id}/status", s.updateProjectStatus)
+	s.mux.HandleFunc("GET /projects/{id}/members", s.listProjectMembers)
 
 	s.mux.HandleFunc("POST /compute-clusters", s.createComputeCluster)
 	s.mux.HandleFunc("GET /compute-clusters", s.listComputeClusters)
@@ -93,6 +97,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-clusters/{id}/users/{userId}", s.getComputeClusterUserByPair)
 	s.mux.HandleFunc("GET /users/{id}/compute-cluster-users", s.listComputeClusterUsersByUser)
 
+	s.mux.HandleFunc("GET /compute-allocations", s.listComputeAllocations)
 	s.mux.HandleFunc("POST /compute-allocations", s.createComputeAllocation)
 	s.mux.HandleFunc("GET /compute-allocations/{id}", s.getComputeAllocation)
 
@@ -117,6 +122,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs", s.listDiffsForAllocation)
 	s.mux.HandleFunc("GET /compute-allocations/{id}/diffs/latest", s.getLatestDiffForAllocation)
 
+	s.mux.HandleFunc("GET /compute-allocation-change-requests", s.listChangeRequests)
 	s.mux.HandleFunc("POST /compute-allocation-change-requests", s.createComputeAllocationChangeRequest)
 	s.mux.HandleFunc("GET /compute-allocation-change-requests/{id}", s.getComputeAllocationChangeRequest)
 	s.mux.HandleFunc("PUT /compute-allocation-change-requests/{id}", s.updateComputeAllocationChangeRequest)
@@ -298,16 +304,27 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 // @Security	CustosUserHeader
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
-// @Success	200	{object}	models.Project
+// @Success	200	{object}	ProjectResponse
 // @Failure	404	{object}	object{error=string}
 // @Router	/projects/{id} [get]
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
-	p, err := s.svc.GetProject(r.Context(), r.PathValue("id"))
+	p, err := s.svc.GetProjectWithPI(r.Context(), r.PathValue("id"))
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, p)
+	common.WriteJSON(w, http.StatusOK, projectResponseFrom(p))
+}
+
+// projectResponseFrom builds the API response shape from a JOIN-fetched row.
+func projectResponseFrom(p *store.ProjectWithPI) ProjectResponse {
+	v := ProjectResponse{Project: p.Project, ProjectPIEmail: p.PIEmail}
+	if full := strings.TrimSpace(p.PIFirstName + " " + p.PILastName); full != "" {
+		v.ProjectPIDisplayName = full
+	} else if p.PIEmail != "" {
+		v.ProjectPIDisplayName = p.PIEmail
+	}
+	return v
 }
 
 // @Summary	Create a compute cluster
@@ -1205,7 +1222,7 @@ func (s *Server) deleteComputeAllocationMembership(w http.ResponseWriter, r *htt
 // @Security	CustosUserHeader
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
-// @Success	200	{array}	models.ComputeAllocationMembership
+// @Success	200	{array}	AllocationMembershipResponse
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/memberships [get]
 func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request) {
@@ -1214,7 +1231,16 @@ func (s *Server) listMembersForAllocation(w http.ResponseWriter, r *http.Request
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, rows)
+	out := make([]AllocationMembershipResponse, 0, len(rows))
+	for _, m := range rows {
+		out = append(out, AllocationMembershipResponse{
+			ComputeAllocationMembership: m.ComputeAllocationMembership,
+			Role:                        m.Role,
+			DisplayName:                 m.DisplayName,
+			Email:                       m.Email,
+		})
+	}
+	common.WriteJSON(w, http.StatusOK, out)
 }
 
 // @Summary	List a user's compute allocation memberships
@@ -1443,7 +1469,7 @@ func (s *Server) listOverridesForResource(w http.ResponseWriter, r *http.Request
 // @Security	CustosUserHeader
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
-// @Success	200	{object}	object{compute_allocation_id=string,total_su_amount=integer}
+// @Success	200	{object}	AllocationSUTotalResponse
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/usages/total [get]
 func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Request) {
@@ -1452,9 +1478,9 @@ func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Req
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, map[string]any{
-		"compute_allocation_id": r.PathValue("id"),
-		"total_su_amount":       total,
+	common.WriteJSON(w, http.StatusOK, AllocationSUTotalResponse{
+		ComputeAllocationID: r.PathValue("id"),
+		TotalSUAmount:       total,
 	})
 }
 
@@ -1464,7 +1490,7 @@ func (s *Server) getTotalSUUsageForAllocation(w http.ResponseWriter, r *http.Req
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Param	userId	path	string	true	"User ID"
-// @Success	200	{object}	object{compute_allocation_id=string,user_id=string,total_su_amount=integer}
+// @Success	200	{object}	UserAllocationSUTotalResponse
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/users/{userId}/usages/total [get]
 func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *http.Request) {
@@ -1475,10 +1501,10 @@ func (s *Server) getTotalSUUsageForUserInAllocation(w http.ResponseWriter, r *ht
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, map[string]any{
-		"compute_allocation_id": allocationID,
-		"user_id":               userID,
-		"total_su_amount":       total,
+	common.WriteJSON(w, http.StatusOK, UserAllocationSUTotalResponse{
+		ComputeAllocationID: allocationID,
+		UserID:              userID,
+		TotalSUAmount:       total,
 	})
 }
 
@@ -1718,4 +1744,151 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		}
 		slog.InfoContext(r.Context(), "http request", attrs...)
 	})
+}
+
+// @Summary	List projects (filtered + paginated, PI joined)
+// @Tags	Projects
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	pi_id	query	string	false	"Filter by PI user ID"
+// @Param	status	query	string	false	"Filter by status"
+// @Param	q	query	string	false	"Search title / originated_id"
+// @Param	limit	query	integer	false	"Page size"
+// @Param	offset	query	integer	false	"Page offset"
+// @Success	200	{object}	ProjectListResponse
+// @Router	/projects [get]
+func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	f := store.ProjectListFilter{
+		PIID:   q.Get("pi_id"),
+		Status: q.Get("status"),
+		Query:  q.Get("q"),
+		Limit:  atoiOr(q.Get("limit"), 50),
+		Offset: atoiOr(q.Get("offset"), 0),
+	}
+	rows, total, err := s.svc.ListProjectsWithPI(r.Context(), f)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	items := make([]ProjectResponse, 0, len(rows))
+	for i := range rows {
+		items = append(items, projectResponseFrom(&rows[i]))
+	}
+	common.WriteJSON(w, http.StatusOK, ProjectListResponse{Items: items, Total: total})
+}
+
+// @Summary	List project members (one row per distinct user, with allocations)
+// @Tags	Projects
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	id	path	string	true	"Project ID"
+// @Success	200	{array}	ProjectMemberResponse
+// @Failure	404	{object}	object{error=string}
+// @Router	/projects/{id}/members [get]
+func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("id")
+	rows, err := s.svc.ListMembersForProject(r.Context(), projectID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+
+	// Role is project-level (single value per user), so the dedup just
+	// collects the user's allocations.
+	type aggregate struct {
+		base        store.MembershipWithUser
+		allocations []ProjectMemberAllocationRef
+	}
+	byUser := map[string]*aggregate{}
+	order := []string{}
+	for _, m := range rows {
+		agg, ok := byUser[m.UserID]
+		if !ok {
+			agg = &aggregate{base: m}
+			byUser[m.UserID] = agg
+			order = append(order, m.UserID)
+		}
+		agg.allocations = append(agg.allocations, ProjectMemberAllocationRef{
+			ID:   m.ComputeAllocationID,
+			Name: m.AllocationName,
+			Role: m.Role,
+		})
+	}
+
+	out := make([]ProjectMemberResponse, 0, len(order))
+	for _, uid := range order {
+		agg := byUser[uid]
+		out = append(out, ProjectMemberResponse{
+			ID:          agg.base.ID,
+			ProjectID:   projectID,
+			UserID:      agg.base.UserID,
+			Email:       agg.base.Email,
+			DisplayName: agg.base.DisplayName,
+			Role:        agg.base.Role,
+			Status:      string(agg.base.MembershipStatus),
+			AddedTime:   agg.base.StartTime.UTC(),
+			Allocations: agg.allocations,
+		})
+	}
+	common.WriteJSON(w, http.StatusOK, out)
+}
+
+// @Summary	List compute allocations (filtered + paginated)
+// @Tags	Compute Allocations
+// @Security	CustosUserHeader
+// @Produce	json
+// @Param	project_id	query	string	false	"Filter by project ID"
+// @Param	status	query	string	false	"Filter by status"
+// @Param	q	query	string	false	"Search name"
+// @Param	limit	query	integer	false	"Page size"
+// @Param	offset	query	integer	false	"Page offset"
+// @Success	200	{object}	ComputeAllocationListResponse
+// @Router	/compute-allocations [get]
+func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	f := store.AllocationListFilter{
+		ProjectID: q.Get("project_id"),
+		Status:    q.Get("status"),
+		Query:     q.Get("q"),
+		Limit:     atoiOr(q.Get("limit"), 50),
+		Offset:    atoiOr(q.Get("offset"), 0),
+	}
+	rows, total, err := s.svc.ListComputeAllocations(r.Context(), f)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	if rows == nil {
+		rows = []models.ComputeAllocation{}
+	}
+	common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: rows, Total: total})
+}
+
+func (s *Server) listChangeRequests(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	f := store.ChangeRequestListFilter{
+		Status: q.Get("status"),
+		Limit:  atoiOr(q.Get("limit"), 50),
+	}
+	rows, err := s.svc.ListChangeRequests(r.Context(), f)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	if rows == nil {
+		rows = []models.ComputeAllocationChangeRequest{}
+	}
+	common.WriteJSON(w, http.StatusOK, rows)
+}
+
+func atoiOr(s string, def int) int {
+	if s == "" {
+		return def
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	return n
 }

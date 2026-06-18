@@ -23,6 +23,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -173,11 +174,18 @@ type ComputeAllocationChangeRequestEventService interface {
 	DeleteComputeAllocationChangeRequestEvent(ctx context.Context, id string) error
 }
 
+// ProjectMembershipService exposes project-level governance roles.
+type ProjectMembershipService interface {
+	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
+	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
+}
+
 // ComputeAllocationMembershipService exposes allocation memberships.
 type ComputeAllocationMembershipService interface {
 	CreateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	GetComputeAllocationMembership(ctx context.Context, id string) (*models.ComputeAllocationMembership, error)
-	ListMembersForAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error)
+	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
+	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error)
@@ -271,6 +279,7 @@ type CoreService interface {
 	ComputeAllocationChangeRequestService
 	ComputeAllocationChangeRequestEventService
 	ComputeAllocationMembershipService
+	ProjectMembershipService
 	ComputeAllocationMembershipResourceOverrideService
 	ComputeAllocationUsageService
 	AuditEventService

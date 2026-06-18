@@ -107,3 +107,27 @@ func (s *mysqlComputeAllocationChangeRequestStore) Delete(ctx context.Context, t
 	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_change_requests WHERE id = ?`, id)
 	return err
 }
+
+func (s *mysqlComputeAllocationChangeRequestStore) List(ctx context.Context, f ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error) {
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if f.Status != "" {
+		var rows []models.ComputeAllocationChangeRequest
+		err := s.db.SelectContext(ctx, &rows,
+			`SELECT `+computeAllocationChangeRequestColumns+
+				` FROM compute_allocation_change_requests WHERE change_status = ?`+
+				` ORDER BY timestamp DESC LIMIT ?`, f.Status, limit)
+		return rows, err
+	}
+	var rows []models.ComputeAllocationChangeRequest
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT `+computeAllocationChangeRequestColumns+
+			` FROM compute_allocation_change_requests`+
+			` ORDER BY timestamp DESC LIMIT ?`, limit)
+	return rows, err
+}

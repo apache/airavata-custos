@@ -48,9 +48,9 @@ func newTestServer(t *testing.T, store *fakePacketAuditStore) *httptest.Server {
 	mux := http.NewServeMux()
 	var h *Handlers
 	if store == nil {
-		h = NewHandlers(nil)
+		h = NewHandlers(nil, nil)
 	} else {
-		h = NewHandlers(store)
+		h = NewHandlers(store, nil)
 	}
 	h.RegisterRoutes(mux)
 	srv := httptest.NewServer(mux)

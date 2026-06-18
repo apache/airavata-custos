@@ -29,6 +29,18 @@ import (
 
 const computeAllocationMembershipColumns = "id, compute_allocation_id, user_id, start_time, end_time, membership_status"
 
+// MembershipWithUser is the result shape of the join-based list methods. Role
+// is project-level and comes from project_memberships (COALESCE'd to MEMBER
+// when no row exists). Joined user + allocation fields stay off the core
+// ComputeAllocationMembership entity.
+type MembershipWithUser struct {
+	models.ComputeAllocationMembership
+	Role           string
+	DisplayName    string
+	Email          string
+	AllocationName string
+}
+
 type mysqlComputeAllocationMembershipStore struct {
 	db *sqlx.DB
 }
@@ -136,4 +148,102 @@ func (s *mysqlComputeAllocationMembershipStore) ReassignUser(ctx context.Context
 func (s *mysqlComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_memberships WHERE id = ?`, id)
 	return err
+}
+
+// FindByAllocationWithUser returns memberships for an allocation joined with
+// users + project_memberships so each row carries display_name, email, and
+// the project-level role (defaulted to MEMBER when no project_memberships
+// row exists).
+func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
+	type row struct {
+		models.ComputeAllocationMembership
+		Role      string `db:"role"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+		UserEmail string `db:"user_email"`
+	}
+	var rows []row
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
+		        m.membership_status,
+		        COALESCE(pm.role, 'MEMBER') AS role,
+		        u.first_name, u.last_name, u.email AS user_email
+		   FROM compute_allocation_memberships m
+		   JOIN compute_allocations a    ON a.id = m.compute_allocation_id
+		   JOIN users u                  ON u.id = m.user_id
+		   LEFT JOIN project_memberships pm
+		         ON pm.project_id = a.project_id AND pm.user_id = m.user_id
+		  WHERE m.compute_allocation_id = ?
+		  ORDER BY m.start_time`, allocationID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]MembershipWithUser, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, MembershipWithUser{
+			ComputeAllocationMembership: r.ComputeAllocationMembership,
+			Role:                        r.Role,
+			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
+			Email:                       r.UserEmail,
+		})
+	}
+	return out, nil
+}
+
+// FindByProjectWithUser returns every membership across every allocation in
+// the project, joined with the user, the owning allocation name, and the
+// project-level role. Returned rows are ordered by user; callers aggregate it
+// per-user (collapsing into the response's allocation list).
+func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error) {
+	type row struct {
+		models.ComputeAllocationMembership
+		Role           string `db:"role"`
+		FirstName      string `db:"first_name"`
+		LastName       string `db:"last_name"`
+		UserEmail      string `db:"user_email"`
+		AllocationName string `db:"allocation_name"`
+	}
+	var rows []row
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT m.id, m.compute_allocation_id, m.user_id, m.start_time, m.end_time,
+		        m.membership_status,
+		        COALESCE(pm.role, 'MEMBER') AS role,
+		        u.first_name, u.last_name, u.email AS user_email,
+		        ca.name AS allocation_name
+		   FROM compute_allocation_memberships m
+		   JOIN compute_allocations ca   ON ca.id = m.compute_allocation_id
+		   JOIN users u                  ON u.id = m.user_id
+		   LEFT JOIN project_memberships pm
+		         ON pm.project_id = ca.project_id AND pm.user_id = m.user_id
+		  WHERE ca.project_id = ?
+		  ORDER BY u.email, ca.name`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]MembershipWithUser, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, MembershipWithUser{
+			ComputeAllocationMembership: r.ComputeAllocationMembership,
+			Role:                        r.Role,
+			DisplayName:                 displayName(r.FirstName, r.LastName, r.UserEmail),
+			Email:                       r.UserEmail,
+			AllocationName:              r.AllocationName,
+		})
+	}
+	return out, nil
+}
+
+func displayName(first, last, email string) string {
+	full := ""
+	if first != "" || last != "" {
+		full = first
+		if first != "" && last != "" {
+			full += " "
+		}
+		full += last
+	}
+	if full == "" {
+		return email
+	}
+	return full
 }

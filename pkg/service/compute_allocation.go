@@ -22,9 +22,20 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// ListComputeAllocations returns a paginated, filterable slice of compute
+// allocations plus a total count.
+func (s *Service) ListComputeAllocations(ctx context.Context, f store.AllocationListFilter) ([]models.ComputeAllocation, int, error) {
+	rows, total, err := s.allocs.List(ctx, f)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list compute allocations: %w", err)
+	}
+	return rows, total, nil
+}
 
 // CreateComputeAllocation persists a new compute allocation. The referenced
 // project and compute cluster must already exist. If alloc.ID is empty a new

@@ -1,0 +1,147 @@
+{
+  "pkt-001": [
+    {
+      "id": "evt-001-1",
+      "packet_id": "pkt-001",
+      "event_type": "RECEIVED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T12:00:00Z",
+      "duration_ms": 12
+    },
+    {
+      "id": "evt-001-2",
+      "packet_id": "pkt-001",
+      "event_type": "DECODED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T12:00:02Z",
+      "duration_ms": 38
+    },
+    {
+      "id": "evt-001-3",
+      "packet_id": "pkt-001",
+      "event_type": "HANDLED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T12:01:05Z",
+      "duration_ms": 412,
+      "message": "Project BIO130001 created",
+      "trace_id": "c2d3c92d3f4e5a6b7c8d9e0f12345678"
+    }
+  ],
+  "pkt-002": [
+    {
+      "id": "evt-002-1",
+      "packet_id": "pkt-002",
+      "event_type": "RECEIVED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-07T08:00:00Z",
+      "duration_ms": 9
+    },
+    {
+      "id": "evt-002-2",
+      "packet_id": "pkt-002",
+      "event_type": "DECODED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-07T08:00:03Z",
+      "duration_ms": 33
+    },
+    {
+      "id": "evt-002-3",
+      "packet_id": "pkt-002",
+      "event_type": "FAILED",
+      "actor": "amie-worker",
+      "status": "FAILED",
+      "timestamp": "2026-06-07T08:00:09Z",
+      "duration_ms": 220,
+      "message": "create account failed: cluster not reachable",
+      "trace_id": "a3b1c92d3f4e5a6b7c8d9e0f12345678"
+    },
+    {
+      "id": "evt-002-4",
+      "packet_id": "pkt-002",
+      "event_type": "RETRY",
+      "actor": "amie-worker",
+      "status": "FAILED",
+      "timestamp": "2026-06-07T18:00:09Z",
+      "duration_ms": 240,
+      "message": "retry 1/3: cluster still not reachable"
+    },
+    {
+      "id": "evt-002-5",
+      "packet_id": "pkt-002",
+      "event_type": "RETRY",
+      "actor": "amie-worker",
+      "status": "FAILED",
+      "timestamp": "2026-06-08T04:00:09Z",
+      "duration_ms": 250,
+      "message": "retry 2/3: cluster still not reachable"
+    }
+  ],
+  "pkt-003": [
+    {
+      "id": "evt-003-1",
+      "packet_id": "pkt-003",
+      "event_type": "RECEIVED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T14:21:30Z",
+      "duration_ms": 7
+    }
+  ],
+  "pkt-004": [
+    {
+      "id": "evt-004-1",
+      "packet_id": "pkt-004",
+      "event_type": "RECEIVED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T13:00:00Z",
+      "duration_ms": 10
+    },
+    {
+      "id": "evt-004-2",
+      "packet_id": "pkt-004",
+      "event_type": "DECODED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T13:00:05Z",
+      "duration_ms": 28,
+      "message": "GrantNumber UNKNOWN999 not found in projects — needs manual reconciliation"
+    }
+  ],
+  "pkt-100": [
+    {
+      "id": "evt-100-1",
+      "packet_id": "pkt-100",
+      "event_type": "RECEIVED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T14:21:32Z",
+      "duration_ms": 8
+    },
+    {
+      "id": "evt-100-2",
+      "packet_id": "pkt-100",
+      "event_type": "DECODED",
+      "actor": "amie-worker",
+      "status": "SUCCEEDED",
+      "timestamp": "2026-06-08T14:21:32Z",
+      "duration_ms": 41
+    },
+    {
+      "id": "evt-100-3",
+      "packet_id": "pkt-100",
+      "event_type": "FAILED",
+      "actor": "amie-worker",
+      "status": "FAILED",
+      "timestamp": "2026-06-08T14:21:34Z",
+      "duration_ms": 612,
+      "message": "create account failed: cluster not reachable",
+      "trace_id": "a3b1c92d3f4e5a6b7c8d9e0f12345678"
+    }
+  ]
+}

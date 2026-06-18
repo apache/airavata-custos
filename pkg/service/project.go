@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -104,6 +105,39 @@ func (s *Service) ListProjectsByPI(ctx context.Context, piUserID string) ([]mode
 		return nil, fmt.Errorf("list projects by PI: %w", err)
 	}
 	return projects, nil
+}
+
+// ListProjects returns a paginated, filterable slice of projects plus a total
+// count.
+func (s *Service) ListProjects(ctx context.Context, f store.ProjectListFilter) ([]models.Project, int, error) {
+	rows, total, err := s.projs.List(ctx, f)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list projects: %w", err)
+	}
+	return rows, total, nil
+}
+
+// GetProjectWithPI returns the project joined with its PI's display fields,
+// so handlers don't fan a separate GetUser per row.
+func (s *Service) GetProjectWithPI(ctx context.Context, id string) (*store.ProjectWithPI, error) {
+	p, err := s.projs.FindByIDWithPI(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get project: %w", err)
+	}
+	if p == nil {
+		return nil, ErrNotFound
+	}
+	return p, nil
+}
+
+// ListProjectsWithPI is ListProjects with the PI user joined in a single
+// query.
+func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFilter) ([]store.ProjectWithPI, int, error) {
+	rows, total, err := s.projs.ListWithPI(ctx, f)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list projects: %w", err)
+	}
+	return rows, total, nil
 }
 
 // UpdateProject persists changes to an existing project. Fields left

@@ -1,0 +1,52 @@
+{
+  "cr-001": [
+    {
+      "id": "evt-001",
+      "compute_allocation_change_request_id": "cr-001",
+      "event_type": "CREATED",
+      "description": "Change request created by user-pi-001",
+      "timestamp": "2026-06-01T10:00:00.000Z"
+    }
+  ],
+  "cr-002": [
+    {
+      "id": "evt-010",
+      "compute_allocation_change_request_id": "cr-002",
+      "event_type": "CREATED",
+      "description": "Change request created by user-pi-001",
+      "timestamp": "2026-06-03T14:22:00.000Z"
+    }
+  ],
+  "cr-003": [
+    {
+      "id": "evt-020",
+      "compute_allocation_change_request_id": "cr-003",
+      "event_type": "CREATED",
+      "description": "Change request created by user-pi-002",
+      "timestamp": "2026-05-20T09:15:00.000Z"
+    },
+    {
+      "id": "evt-021",
+      "compute_allocation_change_request_id": "cr-003",
+      "event_type": "APPROVED",
+      "description": "Approved by user-admin-001",
+      "timestamp": "2026-05-21T12:00:00.000Z"
+    }
+  ],
+  "cr-004": [
+    {
+      "id": "evt-030",
+      "compute_allocation_change_request_id": "cr-004",
+      "event_type": "CREATED",
+      "description": "Change request created by user-pi-001",
+      "timestamp": "2026-05-05T11:30:00.000Z"
+    },
+    {
+      "id": "evt-031",
+      "compute_allocation_change_request_id": "cr-004",
+      "event_type": "REJECTED",
+      "description": "Rejected by user-admin-001",
+      "timestamp": "2026-05-06T08:45:00.000Z"
+    }
+  ]
+}

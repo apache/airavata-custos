@@ -114,6 +114,19 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_project_create: audit CREATE_ALLOCATION: %w", err)
 	}
 
+	piMembership, created, err := h.ensurePIMembership(ctx, allocation, pi.ID)
+	if err != nil {
+		return fmt.Errorf("request_project_create: ensure PI membership: %w", err)
+	}
+	if err := h.svc.EnsureProjectMembership(ctx, project.ID, pi.ID, "PI"); err != nil {
+		return fmt.Errorf("request_project_create: ensure PI project membership: %w", err)
+	}
+	if created {
+		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", piMembership.ID, "PI"); err != nil {
+			return fmt.Errorf("request_project_create: audit CREATE_MEMBERSHIP (PI): %w", err)
+		}
+	}
+
 	replyBody := map[string]any{
 		"ProjectID":         project.ID,
 		"GrantNumber":       grantNumber,
@@ -224,6 +237,34 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 		StartTime:        start,
 		EndTime:          end,
 	})
+}
+
+// ensurePIMembership asserts the PI as a role=PI membership on the allocation.
+// Returns (membership, created=true) when it inserted a new row, or
+// (existing, created=false) on redelivery. The service rejects a second
+// distinct PI on the same allocation.
+func (h *RequestProjectCreateHandler) ensurePIMembership(ctx context.Context, allocation *models.ComputeAllocation, piID string) (*models.ComputeAllocationMembership, bool, error) {
+	existing, err := h.svc.ListMembersForAllocation(ctx, allocation.ID)
+	if err != nil {
+		return nil, false, fmt.Errorf("list memberships: %w", err)
+	}
+	for _, m := range existing {
+		if m.UserID == piID {
+			cm := m.ComputeAllocationMembership
+			return &cm, false, nil
+		}
+	}
+	created, err := h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
+		ComputeAllocationID: allocation.ID,
+		UserID:              piID,
+		StartTime:           allocation.StartTime,
+		EndTime:             allocation.EndTime,
+		MembershipStatus:    models.ACTIVE,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return created, true, nil
 }
 
 // recordAllocationDiff writes a ComputeAllocationDiff for a re-delivered

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "cr-001",
+    "compute_allocation_id": "alloc-001",
+    "requested_su_amount": 350000,
+    "requested_status": "ACTIVE",
+    "reason": "Milestone push - need additional SUs for the final GPU-heavy training run before paper submission.",
+    "change_status": "PENDING",
+    "requester_id": "user-pi-001",
+    "timestamp": "2026-06-01T10:00:00.000Z"
+  },
+  {
+    "id": "cr-002",
+    "compute_allocation_id": "alloc-002",
+    "requested_su_amount": 80000,
+    "requested_status": "ACTIVE",
+    "reason": "[EXTEND_END_DATE → 2027-09-30] Project timeline slipped, need three more months of CPU access for QC.",
+    "change_status": "PENDING",
+    "requester_id": "user-pi-001",
+    "timestamp": "2026-06-03T14:22:00.000Z"
+  },
+  {
+    "id": "cr-003",
+    "compute_allocation_id": "alloc-003",
+    "requested_su_amount": 200000,
+    "requested_status": "ACTIVE",
+    "reason": "Onboarded new collaborators, current allocation insufficient for shared workload.",
+    "change_status": "APPROVED",
+    "requester_id": "user-pi-002",
+    "approver_id": "user-admin-001",
+    "timestamp": "2026-05-20T09:15:00.000Z"
+  },
+  {
+    "id": "cr-004",
+    "compute_allocation_id": "alloc-004",
+    "requested_su_amount": 75000,
+    "requested_status": "ACTIVE",
+    "reason": "[OTHER] Request to reactivate legacy allocation for archival reprocessing.",
+    "change_status": "REJECTED",
+    "requester_id": "user-pi-001",
+    "approver_id": "user-admin-001",
+    "timestamp": "2026-05-05T11:30:00.000Z"
+  }
+]

@@ -18,7 +18,7 @@
 // Command server starts the Custos HTTP API.
 package main
 
-//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g main.go -d .,../../internal/server,../../pkg/models -o ../../api --outputTypes yaml --parseDependency --useStructName
 //go:generate mv ../../api/swagger.yaml ../../api/core.openapi.yaml
 
 import (
@@ -29,6 +29,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -68,6 +69,7 @@ func run() error {
 		return errors.New("failed to load config: " + err.Error())
 	}
 
+	applyLogLevel(cfg.Core.LogLevel)
 	slog.Info("loaded config", "path", configPath)
 
 	dsn := cfg.Core.Database.URL
@@ -211,4 +213,19 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func applyLogLevel(level string) {
+	var lvl slog.Level
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		lvl = slog.LevelDebug
+	case "warn", "warning":
+		lvl = slog.LevelWarn
+	case "error":
+		lvl = slog.LevelError
+	default:
+		lvl = slog.LevelInfo
+	}
+	slog.SetDefault(slog.New(tracing.SlogHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl}))))
 }

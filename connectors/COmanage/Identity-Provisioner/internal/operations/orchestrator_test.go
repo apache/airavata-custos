@@ -150,6 +150,8 @@ func mockComanageServer(t *testing.T) *httptest.Server {
 			_, _ = io.WriteString(w, `{"ResponseType":"CoGroupMembers","Version":"1.0","CoGroupMembers":[]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_group_members.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroupMember","Id":"11"}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"UnixClusterGroup","Id":"3"}`)
 		default:
@@ -199,7 +201,7 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 		"comanage.find_or_create_co_group",
 		"comanage.find_or_create_identifier",
 		"comanage.find_or_create_co_group_member",
-		"comanage.create_unix_cluster_group",
+		"comanage.find_or_create_unix_cluster_group",
 		"comanage.get_person_composite",
 		"comanage.update_person",
 	}

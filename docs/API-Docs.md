@@ -3,7 +3,7 @@
 HTTP/JSON API exposed by `cmd/server`. All endpoints accept and return
 `application/json` and use UTF-8.
 
-- **Base URL:** `http://<host>:<port>` (default port `8080`, configurable via `HTTP_ADDR`)
+- **Base URL:** `http://<host>:<port>` (default port `8080`, configurable via `core.api.port` in `config/custos.yaml`)
 - **Auth:** none currently enforced (deploy behind a trusted ingress / auth proxy)
 - **Content-Type:** `application/json` is required on every request that has a body
 - **Unknown fields:** request bodies with unknown JSON fields are rejected with `400`
@@ -1415,22 +1415,37 @@ curl -s $BASE/projects/$PROJ_ID | jq
 
 ## Running the server
 
-```bash
-export DATABASE_DSN='custos:secret@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4'
-# optional
-export HTTP_ADDR=:8080
-export DB_MAX_OPEN_CONNS=25
-export DB_MAX_IDLE_CONNS=5
+The server is configured by a YAML file (default `config/custos.yaml`, override
+with `CONFIG_PATH`). See [CONFIG.md](../CONFIG.md) for the full schema.
 
+```bash
 go run ./cmd/server
 ```
 
-| Environment variable | Default | Purpose |
-|----------------------|---------|---------|
-| `DATABASE_DSN` | *(required)* | MySQL/MariaDB DSN. `parseTime=true` is mandatory. |
-| `HTTP_ADDR` | `:8080` | Address the HTTP server binds to. |
-| `DB_MAX_OPEN_CONNS` | `25` | Maximum open database connections. |
-| `DB_MAX_IDLE_CONNS` | `5` | Maximum idle database connections. |
+A minimal `config/custos.yaml`:
+
+```yaml
+core:
+  database:
+    url: "custos:secret@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4"
+  api:
+    port: 8080
+  log_level: "info"
+
+connectors: {}
+```
+
+Secrets can stay out of the file via `${VAR}` substitution — e.g.
+`url: "${CUSTOS_DB_DSN}"` reads the DSN from the environment at startup.
+
+| Setting | Source | Default | Purpose |
+|---------|--------|---------|---------|
+| `core.database.url` | YAML | *(required)* | MariaDB / MySQL DSN. `parseTime=true` is mandatory. |
+| `core.api.port` | YAML | `8080` | HTTP API port. |
+| `core.log_level` | YAML | `info` | One of `debug`, `info`, `warn`, `error`. |
+| `DB_MAX_OPEN_CONNS` | env | `25` | Maximum open database connections. |
+| `DB_MAX_IDLE_CONNS` | env | `5` | Maximum idle database connections. |
+| `CONFIG_PATH` | env | `config/custos.yaml` | Override the config file location. |
 
 Migrations from `internal/db/migrations/` are applied automatically on startup.
 

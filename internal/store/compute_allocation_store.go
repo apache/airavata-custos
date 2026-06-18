@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 
@@ -93,4 +94,48 @@ func (s *mysqlComputeAllocationStore) Update(ctx context.Context, tx *sql.Tx, a 
 func (s *mysqlComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocations WHERE id = ?`, id)
 	return err
+}
+
+func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {
+	where := []string{}
+	args := []any{}
+	if f.ProjectID != "" {
+		where = append(where, `project_id = ?`)
+		args = append(args, f.ProjectID)
+	}
+	if f.Status != "" {
+		where = append(where, `status = ?`)
+		args = append(args, f.Status)
+	}
+	if f.Query != "" {
+		where = append(where, `name LIKE ?`)
+		args = append(args, "%"+f.Query+"%")
+	}
+	clause := ""
+	if len(where) > 0 {
+		clause = " WHERE " + strings.Join(where, " AND ")
+	}
+	var total int
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM compute_allocations`+clause, args...); err != nil {
+		return nil, 0, err
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	offset := f.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	query := `SELECT ` + computeAllocationColumns + ` FROM compute_allocations` + clause +
+		` ORDER BY start_time DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
+	var rows []models.ComputeAllocation
+	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
 }

@@ -23,7 +23,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -99,7 +101,7 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	if err := o.findOrCreateCoGroupMember(ctx, cu, coGroupID, coPersonID); err != nil {
 		return err
 	}
-	if err := o.createUnixClusterGroup(ctx, cu, coGroupID, log); err != nil {
+	if err := o.findOrCreateUnixClusterGroup(ctx, cu, coGroupID, log); err != nil {
 		return err
 	}
 
@@ -218,21 +220,38 @@ func (o *Orchestrator) findOrCreateCoGroupMember(ctx context.Context, cu *models
 	return nil
 }
 
-// createUnixClusterGroup re-attempts the bind; 4xx is treated as
-// already-attached and swallowed (idempotency mechanism).
-func (o *Orchestrator) createUnixClusterGroup(ctx context.Context, cu *models.ComputeClusterUser, coGroupID int, log *slog.Logger) error {
-	_, span := tracing.Start(ctx, "comanage.create_unix_cluster_group")
+// findOrCreateUnixClusterGroup binds the CoGroup to the configured UnixCluster
+// idempotently. The UnixCluster plugin returns 500 on duplicate POSTs, so we
+// GET first; on a 500 from POST we re-GET to recover from races.
+func (o *Orchestrator) findOrCreateUnixClusterGroup(ctx context.Context, cu *models.ComputeClusterUser, coGroupID int, log *slog.Logger) error {
+	ctx, span := tracing.Start(ctx, "comanage.find_or_create_unix_cluster_group")
 	defer span.End()
 	span.SetAttributes(attribute.Int("comanage.co_group_id", coGroupID))
+
+	if existing, err := o.c.FindUnixClusterGroup(coGroupID); err == nil && existing != 0 {
+		span.SetAttributes(attribute.Int("comanage.unix_cluster_group_id", existing))
+		return nil
+	} else if err != nil {
+		log.Debug("comanage: FindUnixClusterGroup failed; attempting POST", "err", err)
+	}
+
 	if _, err := o.c.CreateUnixClusterGroup(coGroupID); err != nil {
 		var httpErr *client.HTTPError
-		if !errors.As(err, &httpErr) || httpErr.StatusCode < 400 || httpErr.StatusCode >= 500 {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			o.dlq(ctx, cu, "create_unix_cluster_group", err)
-			return err
+		if errors.As(err, &httpErr) && httpErr.StatusCode >= 400 && httpErr.StatusCode < 500 {
+			log.Info("comanage: UnixClusterGroup attach returned 4xx (already attached)", "status", httpErr.StatusCode)
+			return nil
 		}
-		log.Info("comanage: UnixClusterGroup attach returned 4xx (already attached)", "status", httpErr.StatusCode)
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusInternalServerError {
+			if existing, gerr := o.c.FindUnixClusterGroup(coGroupID); gerr == nil && existing != 0 {
+				log.Info("comanage: UnixClusterGroup POST returned 500 but binding exists", "binding_id", existing)
+				span.SetAttributes(attribute.Int("comanage.unix_cluster_group_id", existing))
+				return nil
+			}
+		}
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		o.dlq(ctx, cu, "create_unix_cluster_group", err)
+		return err
 	}
 	return nil
 }
@@ -282,23 +301,29 @@ func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.
 			return "", nil, false, fmt.Errorf("email search: %w", err)
 		}
 		if coPersonID != 0 {
-			composite, err := o.c.GetPersonComposite(strconv.Itoa(coPersonID))
+			// COmanage's /people/{identifier} endpoint expects an Identifier
+			// *value* (e.g. "Custos100022"), not a numeric CoPerson ID. Resolve
+			// the identifier value by listing the CoPerson's Identifiers first.
+			personID, err := o.c.FindIdentifierValueOnPerson(coPersonID, personIDType)
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())
-				return "", nil, false, fmt.Errorf("get composite by numeric id: %w", err)
-			}
-			personID, err := extractIdentifier(composite, personIDType)
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
-				return "", nil, false, fmt.Errorf("extract %s from composite: %w", personIDType, err)
+				return "", nil, false, fmt.Errorf("find %s on CoPerson %d: %w", personIDType, coPersonID, err)
 			}
 			if personID == "" {
-				return "", nil, false, fmt.Errorf("CoPerson %d has no %s identifier", coPersonID, personIDType)
+				// CoPerson exists but the identifier-assignment plugin hasn't
+				// run yet; fall through to POST /people (idempotent against
+				// repeat creation since COmanage dedups on the CoPersonRole).
+			} else {
+				composite, err := o.c.GetPersonComposite(personID)
+				if err != nil {
+					span.RecordError(err)
+					span.SetStatus(codes.Error, err.Error())
+					return "", nil, false, fmt.Errorf("get composite by %s %s: %w", personIDType, personID, err)
+				}
+				span.SetAttributes(attribute.String("comanage.person_id", personID))
+				return personID, composite, false, nil
 			}
-			span.SetAttributes(attribute.String("comanage.person_id", personID))
-			return personID, composite, false, nil
 		}
 	}
 
@@ -323,7 +348,46 @@ func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.
 			return r.Identifier, nil, true, nil
 		}
 	}
+	// COmanage's identifier-assignment plugin runs asynchronously, so
+	// POST /people sometimes returns an empty identifier
+	// list even though the CoPerson was created. Refetch by email with a short
+	// backoff and pull the identifier from the eventually consistent composite.
+	if user.Email != "" {
+		personID, composite, ok := o.waitForCreatedPersonID(user.Email, personIDType)
+		if ok {
+			span.SetAttributes(
+				attribute.String("comanage.person_id", personID),
+				attribute.Bool("comanage.created", true),
+				attribute.Bool("comanage.eventually_consistent", true),
+			)
+			return personID, composite, true, nil
+		}
+	}
 	return "", nil, false, fmt.Errorf("POST /people returned no %s identifier: %+v", personIDType, resp)
+}
+
+// waitForCreatedPersonID polls findByEmailExact then the Identifiers list a
+// few times, since COmanage's identifier-assignment plugin runs asynchronously
+// after POST /people. Returns the assigned person_id once present.
+func (o *Orchestrator) waitForCreatedPersonID(email, personIDType string) (string, json.RawMessage, bool) {
+	delays := []time.Duration{300 * time.Millisecond, 700 * time.Millisecond, 1500 * time.Millisecond, 3 * time.Second}
+	for _, d := range delays {
+		time.Sleep(d)
+		coPersonID, err := o.findByEmailExact(email)
+		if err != nil || coPersonID == 0 {
+			continue
+		}
+		personID, err := o.c.FindIdentifierValueOnPerson(coPersonID, personIDType)
+		if err != nil || personID == "" {
+			continue
+		}
+		composite, err := o.c.GetPersonComposite(personID)
+		if err != nil {
+			continue
+		}
+		return personID, composite, true
+	}
+	return "", nil, false
 }
 
 func buildCreatePersonBody(coID int, user *models.User) ([]byte, error) {

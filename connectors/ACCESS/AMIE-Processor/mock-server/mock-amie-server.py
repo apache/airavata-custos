@@ -38,6 +38,11 @@ replied_packets = {}
 packet_counter = 900000
 stats = {"created": 0, "fetched": 0, "replied": 0}
 
+# Maps GrantNumber → Custos project UUID, populated as notify_project_create
+# replies arrive. Packets carrying a "__GRANT__<GN>" placeholder for ProjectID
+# are held back from /packets until the GrantNumber resolves here.
+grant_to_project_id = {}
+
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
 DEV_EMAIL = os.getenv("DEV_EMAIL", "").strip()
 
@@ -534,8 +539,8 @@ def gen_baseline_scenario():
             "UserPersonID": "bl-pi-001-user",
             "UserGlobalID": "bl-pi-001",
             "UserFirstName": "Pat",
-            "UserLastName": "First-Updated",
-            "UserEmail": "pat.first.updated@baseline.example.edu",
+            "UserLastName": "Madison",
+            "UserEmail": "pat.madison@baseline.example.edu",
             "UserOrganization": "Baseline Org",
             "UserOrgCode": "BASELINE",
             "NsfStatusCode": "AC",
@@ -556,6 +561,58 @@ def gen_baseline_scenario():
                 "/DC=EDU/CN=patfirst",
             ],
         }),
+        # request_account_create packets. ProjectID is a placeholder filled
+        # in from the matching notify_project_create reply. PI memberships
+        # come from request_project_create; these cover the non-PI roles.
+
+        # BL-001 CO_PI
+        make_packet("request_account_create", {
+            "ProjectID": "__GRANT__BL-001",
+            "GrantNumber": "BL-001",
+            "UserPersonID": "bl-copi-001-person",
+            "UserGlobalID": "bl-copi-001",
+            "UserFirstName": "Casey",
+            "UserLastName": "Collaborator",
+            "UserEmail": "casey.collab@baseline.example.edu",
+            "UserOrganization": "Baseline Org",
+            "UserOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "UserDnList": ["/C=US/O=Baseline Org/CN=Casey Collaborator"],
+            "UserRole": "CO_PI",
+            "ResourceList": ["baseline-cluster.example.edu"],
+        }),
+        # BL-001 MEMBER
+        make_packet("request_account_create", {
+            "ProjectID": "__GRANT__BL-001",
+            "GrantNumber": "BL-001",
+            "UserPersonID": "bl-user-001-person",
+            "UserGlobalID": "bl-user-001",
+            "UserFirstName": "Riley",
+            "UserLastName": "Researcher",
+            "UserEmail": "riley.research@baseline.example.edu",
+            "UserOrganization": "Baseline Org",
+            "UserOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "UserDnList": ["/C=US/O=Baseline Org/CN=Riley Researcher"],
+            "UserRole": "MEMBER",
+            "ResourceList": ["baseline-cluster.example.edu"],
+        }),
+        # BL-002 ALLOCATION_MANAGER
+        make_packet("request_account_create", {
+            "ProjectID": "__GRANT__BL-002",
+            "GrantNumber": "BL-002",
+            "UserPersonID": "bl-mgr-002-person",
+            "UserGlobalID": "bl-mgr-002",
+            "UserFirstName": "Morgan",
+            "UserLastName": "Manager",
+            "UserEmail": "morgan.manager@baseline.example.edu",
+            "UserOrganization": "Baseline Org",
+            "UserOrgCode": "BASELINE",
+            "NsfStatusCode": "AC",
+            "UserDnList": ["/C=US/O=Baseline Org/CN=Morgan Manager"],
+            "UserRole": "ALLOCATION_MANAGER",
+            "ResourceList": ["baseline-cluster.example.edu"],
+        }),
         make_packet("inform_transaction_complete", {
             "StatusCode": "Success",
             "Message": "Baseline complete",
@@ -570,17 +627,41 @@ def gen_baseline_scenario():
 def get_packets(site):
     if not pending_packets:
         return jsonify([])
-    batch = list(pending_packets)
-    pending_packets.clear()
-    stats["fetched"] += len(batch)
-    app.logger.info(f"Serving {len(batch)} packets to site {site}")
-    return jsonify(batch)
+    ready, holdback = [], []
+    for pkt in pending_packets:
+        pid = pkt.get("body", {}).get("ProjectID", "")
+        if isinstance(pid, str) and pid.startswith("__GRANT__"):
+            gn = pid[len("__GRANT__"):]
+            resolved = grant_to_project_id.get(gn)
+            if resolved:
+                pkt["body"]["ProjectID"] = resolved
+                ready.append(pkt)
+            else:
+                holdback.append(pkt)
+        else:
+            ready.append(pkt)
+    pending_packets[:] = holdback
+    if not ready:
+        return jsonify([])
+    stats["fetched"] += len(ready)
+    app.logger.info(f"Serving {len(ready)} packets to site {site}")
+    return jsonify(ready)
 
 
 @app.route("/packets/<site>/<int:packet_rec_id>/reply", methods=["POST"])
 def reply_to_packet(site, packet_rec_id):
-    replied_packets[packet_rec_id] = request.get_json(silent=True)
+    payload = request.get_json(silent=True) or {}
+    replied_packets[packet_rec_id] = payload
     stats["replied"] += 1
+    # Capture the Custos UUID from notify_project_create so the holdback
+    # packets carrying "__GRANT__<GN>" can resolve.
+    if payload.get("type") == "notify_project_create":
+        body = payload.get("body", {}) or {}
+        gn = body.get("GrantNumber")
+        pid = body.get("ProjectID")
+        if gn and pid:
+            grant_to_project_id[gn] = pid
+            app.logger.info(f"Captured GrantNumber {gn} -> ProjectID {pid}")
     return jsonify({"message": "Reply accepted"}), 200
 
 
@@ -588,6 +669,7 @@ def reply_to_packet(site, packet_rec_id):
 def reset(site):
     pending_packets.clear()
     replied_packets.clear()
+    grant_to_project_id.clear()
     stats["created"] = 0
     stats["fetched"] = 0
     stats["replied"] = 0
