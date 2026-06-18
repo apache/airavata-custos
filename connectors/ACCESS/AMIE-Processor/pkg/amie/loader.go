@@ -18,7 +18,7 @@
 // Package amie wires the ACCESS-AMIE connector into the core binary.
 package amie
 
-//go:generate go run github.com/swaggo/swag/cmd/swag init -g loader.go -d .,../../server,../../store -o ../../api --outputTypes yaml --parseDependency
+//go:generate go run github.com/swaggo/swag/cmd/swag init -g loader.go -d .,../../server,../../store -o ../../api --outputTypes yaml --parseDependency --useStructName
 //go:generate mv ../../api/swagger.yaml ../../api/amie.openapi.yaml
 
 import (
@@ -86,7 +86,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	auditSvc := service.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 	packetAuditStore := store.NewPacketAuditStore(database)
 	if mux != nil {
-		amieserver.NewHandlers(packetAuditStore).RegisterRoutes(mux)
+		amieserver.NewHandlers(packetAuditStore, packetStore).RegisterRoutes(mux)
 	}
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster

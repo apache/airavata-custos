@@ -1,0 +1,3 @@
+{
+  "sources": ["amie", "comanage", "core", "http", "slurm"]
+}

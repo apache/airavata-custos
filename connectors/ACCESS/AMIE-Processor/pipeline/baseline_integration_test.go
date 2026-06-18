@@ -24,44 +24,37 @@ import (
 	"time"
 )
 
-// TestPipeline_BaselineDeterminism, runs the canonical baseline scenario
-// end-to-end against the real mock-amie server, drains, and asserts every
-// total_count from
-// `connectors/ACCESS/AMIE-Processor/testdata/scenarios/baseline.yaml`.
-//
-// This is a *determinism* test, not a *correctness* test. It locks
-// in "same packets in → same row counts out" so future handler / scenario
-// changes get caught. If baseline.yaml changes, this test changes with it ,
-// the YAML is the source of truth here.
+// TestPipeline_BaselineDeterminism runs the baseline scenario end-to-end and
+// asserts the row counts from baseline.yaml. If baseline.yaml changes, this
+// test changes with it.
 func TestPipeline_BaselineDeterminism(t *testing.T) {
 	pipe := newTestPipeline(t)
 	defer pipe.stop()
 
 	pipe.fireScenario(t, "baseline")
-	decoded := pipe.waitForDrain(t, 9, 90*time.Second)
+	decoded := pipe.waitForDrain(t, 12, 90*time.Second)
 
-	// Expected totals come straight from
-	// connectors/ACCESS/AMIE-Processor/testdata/scenarios/baseline.yaml.
-	// Field references in comments are the YAML section.
+	// Counts match baseline.yaml.
 	expectations := []struct {
 		table string
 		want  int
 	}{
-		{"amie_packets", 9},                   // packets.total_count
-		{"amie_processing_errors", 0},         // not_expected
-		{"organizations", 1},                  // tables.organizations.total_count
-		{"users", 2},                          // tables.users.total_count
-		{"user_identities", 2},                // tables.user_identities.total_count
-		{"projects", 2},                       // tables.projects.total_count
-		{"compute_allocations", 2},            // tables.compute_allocations.total_count
-		{"compute_allocation_diffs", 1},       // tables.compute_allocation_diffs.total_count
-		{"amie_user_dns", 2},                  // tables.amie_user_dns.total_count
-		{"amie_audit_extras", 35},             // audit_log.total_count. One extras row per AMIE audit_events row
-		{"compute_cluster_users", 1},          // tables.compute_cluster_users.total_count (survivor's PI CCU; merge dedups Sam's)
-		{"compute_allocation_memberships", 0}, // not_expected
+		{"amie_packets", 12},
+		{"amie_processing_errors", 0},
+		{"organizations", 1},
+		{"users", 5},
+		{"user_identities", 5},
+		{"projects", 2},
+		{"compute_allocations", 2},
+		{"compute_allocation_diffs", 1},
+		{"amie_user_dns", 2},
+		{"amie_audit_extras", 52},
+		{"compute_cluster_users", 4},
+		{"compute_allocation_memberships", 5},
+		{"project_memberships", 4},
 	}
-	if decoded != 9 {
-		t.Errorf("decoded packets: got %d, want 9", decoded)
+	if decoded != 12 {
+		t.Errorf("decoded packets: got %d, want 12", decoded)
 	}
 	for _, e := range expectations {
 		if got := countRows(t, pipe.db, e.table); got != e.want {
@@ -69,30 +62,29 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		}
 	}
 
-	// AMIE audit rows now live in audit_events with source='amie'; the
-	// connector-specific (packet_id, event_id) lives in amie_audit_extras.
-	// The two row counts must match.
+	// audit_events (source='amie') and amie_audit_extras carry equal counts.
 	var amieAuditEvents int
 	if err := pipe.db.Get(&amieAuditEvents,
 		"SELECT COUNT(*) FROM audit_events WHERE source = 'amie'",
 	); err != nil {
 		t.Fatalf("count amie audit_events: %v", err)
 	}
-	if amieAuditEvents != 35 {
-		t.Errorf("audit_events source='amie': got %d, want 35", amieAuditEvents)
+	if amieAuditEvents != 52 {
+		t.Errorf("audit_events source='amie': got %d, want 52", amieAuditEvents)
 	}
 
-	// Audit-by-action breakdown also per baseline.yaml audit_log.by_action.
+	// audit_log.by_action.
 	actionCounts := []struct {
 		action string
 		want   int
 	}{
-		{"PACKET_RECEIVED", 9},
-		{"CREATE_PERSON", 3},
-		{"CREATE_ACCOUNT", 3},
+		{"PACKET_RECEIVED", 12},
+		{"CREATE_PERSON", 6},
+		{"CREATE_ACCOUNT", 6},
 		{"CREATE_PROJECT", 3},
 		{"CREATE_ALLOCATION", 3},
-		{"REPLY_SENT", 8},
+		{"CREATE_MEMBERSHIP", 5},
+		{"REPLY_SENT", 11},
 		{"PERSIST_DNS", 3},
 		{"UPDATE_PERSON", 1},
 		{"MERGE_PERSONS", 1},
@@ -110,7 +102,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		}
 	}
 
-	// Every processing event ended SUCCEEDED per baseline.yaml processing_events.
+	// processing_events.by_status: all SUCCEEDED.
 	var nonSucceeded int
 	if err := pipe.db.Get(&nonSucceeded,
 		"SELECT COUNT(*) FROM amie_processing_events WHERE status != 'SUCCEEDED'",

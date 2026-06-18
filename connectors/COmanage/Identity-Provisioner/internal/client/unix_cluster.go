@@ -35,6 +35,50 @@ type UnixClusterGroupCreateOne struct {
 	CoGroupId     int    `json:"CoGroupId"`
 }
 
+type UnixClusterGroupListResponse struct {
+	ResponseType      string                    `json:"ResponseType"`
+	Version           string                    `json:"Version"`
+	UnixClusterGroups []UnixClusterGroupReadOne `json:"UnixClusterGroups"`
+}
+
+type UnixClusterGroupReadOne struct {
+	Version       string `json:"Version"`
+	Id            int    `json:"Id"`
+	UnixClusterId int    `json:"UnixClusterId"`
+	CoGroupId     int    `json:"CoGroupId"`
+}
+
+// FindUnixClusterGroup returns the existing UnixClusterGroup binding id for the
+// configured UnixCluster + given CoGroup, or 0 if none. Used to make the
+// attached call idempotent: COmanage's UnixCluster plugin returns 500 (not 4xx)
+// on duplicate binding attempts.
+func (c *Client) FindUnixClusterGroup(coGroupId int) (int, error) {
+	u := c.restAPI(fmt.Sprintf("/unix_cluster/unix_cluster_groups.json?cogroupid=%d", coGroupId))
+	resp, respBody, err := c.Do(http.MethodGet, u, nil)
+	if err != nil {
+		return 0, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var out UnixClusterGroupListResponse
+		if err := json.Unmarshal(respBody, &out); err != nil {
+			return 0, fmt.Errorf("decode unix_cluster_groups list: %w", err)
+		}
+		for _, g := range out.UnixClusterGroups {
+			if g.UnixClusterId == c.cfg.UnixClusterID {
+				return g.Id, nil
+			}
+		}
+		return 0, nil
+	case http.StatusNoContent:
+		return 0, nil
+	case http.StatusUnauthorized:
+		return 0, ErrAuth401
+	default:
+		return 0, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}
+
 // CreateUnixClusterGroup binds a CoGroup to a UnixCluster. The URL takes no
 // named params for POST.
 func (c *Client) CreateUnixClusterGroup(coGroupId int) (int, error) {

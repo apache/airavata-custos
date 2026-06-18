@@ -50,7 +50,7 @@ services:
     ports:
       - "8181:8180"
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8180/packets/TESTSITE').read()" ]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8180/stats').read()" ]
       interval: 2s
       timeout: 5s
       retries: 30

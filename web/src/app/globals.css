@@ -1,0 +1,151 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@import "../../design-tokens/colors.css";
+@import "../../design-tokens/typography.css";
+@import "../../design-tokens/spacing.css";
+@import "../../design-tokens/radii.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-tint: var(--brand-tint);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-custos-blue-50: var(--custos-blue-50);
+  --color-custos-blue-100: var(--custos-blue-100);
+  --color-custos-blue-200: var(--custos-blue-200);
+  --color-custos-blue-300: var(--custos-blue-300);
+  --color-custos-blue-400: var(--custos-blue-400);
+  --color-custos-blue-500: var(--custos-blue-500);
+  --color-custos-blue-600: var(--custos-blue-600);
+  --color-custos-blue-700: var(--custos-blue-700);
+  --color-custos-blue-800: var(--custos-blue-800);
+
+  --color-custos-red-50: var(--custos-red-50);
+  --color-custos-red-100: var(--custos-red-100);
+  --color-custos-red-200: var(--custos-red-200);
+  --color-custos-red-300: var(--custos-red-300);
+  --color-custos-red-400: var(--custos-red-400);
+  --color-custos-red-500: var(--custos-red-500);
+  --color-custos-red-600: var(--custos-red-600);
+  --color-custos-red-700: var(--custos-red-700);
+  --color-custos-red-800: var(--custos-red-800);
+
+  --color-custos-green-50: var(--custos-green-50);
+  --color-custos-green-100: var(--custos-green-100);
+  --color-custos-green-200: var(--custos-green-200);
+  --color-custos-green-300: var(--custos-green-300);
+  --color-custos-green-400: var(--custos-green-400);
+  --color-custos-green-500: var(--custos-green-500);
+  --color-custos-green-600: var(--custos-green-600);
+  --color-custos-green-700: var(--custos-green-700);
+  --color-custos-green-800: var(--custos-green-800);
+
+  --color-custos-amber-50: var(--custos-amber-50);
+  --color-custos-amber-100: var(--custos-amber-100);
+  --color-custos-amber-200: var(--custos-amber-200);
+  --color-custos-amber-500: var(--custos-amber-500);
+  --color-custos-amber-600: var(--custos-amber-600);
+  --color-custos-amber-700: var(--custos-amber-700);
+  --color-custos-amber-800: var(--custos-amber-800);
+  --color-custos-amber-900: var(--custos-amber-900);
+
+  --color-custos-gray-50: var(--custos-gray-50);
+  --color-custos-gray-100: var(--custos-gray-100);
+  --color-custos-gray-200: var(--custos-gray-200);
+  --color-custos-gray-300: var(--custos-gray-300);
+  --color-custos-gray-400: var(--custos-gray-400);
+  --color-custos-gray-500: var(--custos-gray-500);
+  --color-custos-gray-600: var(--custos-gray-600);
+  --color-custos-gray-700: var(--custos-gray-700);
+  --color-custos-gray-800: var(--custos-gray-800);
+  --color-custos-gray-900: var(--custos-gray-900);
+
+  --font-sans: var(--custos-font-sans);
+  --font-display: var(--custos-font-display);
+  --font-mono: var(--custos-font-mono);
+
+  --radius-sm: var(--custos-radius-sm);
+  --radius-md: var(--custos-radius-md);
+  --radius-lg: var(--custos-radius-lg);
+  --radius-xl: var(--custos-radius-xl);
+  --radius-2xl: var(--custos-radius-2xl);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--custos-font-sans);
+  }
+  html {
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--custos-font-display);
+  }
+}
+
+@keyframes custos-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.custos-pulse-dot {
+  animation: custos-pulse-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .custos-pulse-dot {
+    animation: none !important;
+  }
+}

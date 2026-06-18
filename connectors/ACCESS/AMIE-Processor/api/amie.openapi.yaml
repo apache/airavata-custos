@@ -1,4 +1,94 @@
 basePath: /
+definitions:
+  PacketEventResponse:
+    properties:
+      actor:
+        type: string
+      duration_ms:
+        type: integer
+      event_type:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      packet_id:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  PacketListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      packets:
+        items:
+          $ref: '#/definitions/PacketResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  PacketResponse:
+    properties:
+      amie_id:
+        type: string
+      decoded_at:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      processed_at:
+        type: string
+      raw_json:
+        type: string
+      received_at:
+        type: string
+      retries:
+        type: integer
+      source:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  PacketStatBucketResponse:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+  PacketStatsResponse:
+    properties:
+      byDay:
+        items:
+          $ref: '#/definitions/PacketStatBucketResponse'
+        type: array
+    type: object
+  ReplyListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      replies:
+        items: {}
+        type: array
+      total:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -6,6 +96,176 @@ info:
   title: AMIE Connector API
   version: 0.1.0
 paths:
+  /connectors/amie/packets:
+    get:
+      parameters:
+      - description: Filter by status (NEW, DECODED, PROCESSED, FAILED, all)
+        in: query
+        name: status
+        type: string
+      - description: Filter by packet type
+        in: query
+        name: type
+        type: string
+      - description: Search by packet id or AMIE id
+        in: query
+        name: q
+        type: string
+      - description: RFC3339 lower bound on received_at
+        in: query
+        name: from
+        type: string
+      - description: RFC3339 upper bound on received_at
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PacketListResponse'
+        "400":
+          description: Invalid query parameter
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Store lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List AMIE packets
+      tags:
+      - AMIE Packets
+  /connectors/amie/packets/{id}:
+    get:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PacketResponse'
+        "404":
+          description: Packet not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Store lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Get an AMIE packet by ID
+      tags:
+      - AMIE Packets
+  /connectors/amie/packets/{id}/events:
+    get:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PacketEventResponse'
+            type: array
+        "500":
+          description: Store lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: List processing events for an AMIE packet
+      tags:
+      - AMIE Packets
+  /connectors/amie/packets/{id}/resolve:
+    post:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "501":
+          description: Not Implemented
+          schema:
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Resolve an AMIE packet (not yet implemented)
+      tags:
+      - AMIE Packets
+  /connectors/amie/packets/{id}/retry:
+    post:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "501":
+          description: Not Implemented
+          schema:
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Retry an AMIE packet (not yet implemented)
+      tags:
+      - AMIE Packets
   /connectors/amie/packets/{packet_id}/audits:
     get:
       parameters:
@@ -73,6 +333,128 @@ paths:
       summary: List audit events for an AMIE packet
       tags:
       - AMIE Audit
+  /connectors/amie/replies:
+    get:
+      parameters:
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ReplyListResponse'
+      security:
+      - CustosUserHeader: []
+      summary: List replies sent to AMIE
+      tags:
+      - AMIE Replies
+  /connectors/amie/replies/{id}/retry:
+    post:
+      parameters:
+      - description: AMIE reply ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "501":
+          description: Not Implemented
+          schema:
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Retry an AMIE reply (not yet implemented)
+      tags:
+      - AMIE Replies
+  /connectors/amie/stats:
+    get:
+      parameters:
+      - description: Lookback window (e.g. 30d, 24h); default 30d
+        in: query
+        name: window
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PacketStatsResponse'
+        "500":
+          description: Store lookup failed
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Per-day packet stats grouped by status and type
+      tags:
+      - AMIE Stats
+  /connectors/amie/unmapped:
+    get:
+      parameters:
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PacketListResponse'
+      security:
+      - CustosUserHeader: []
+      summary: List AMIE packets that could not be mapped to a Custos entity
+      tags:
+      - AMIE Unmapped
+  /connectors/amie/unmapped/{id}/link:
+    post:
+      parameters:
+      - description: AMIE packet ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "501":
+          description: Not Implemented
+          schema:
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            type: object
+      security:
+      - CustosUserHeader: []
+      summary: Link an unmapped packet to a Custos entity (not yet implemented)
+      tags:
+      - AMIE Unmapped
 securityDefinitions:
   CustosUserHeader:
     in: header

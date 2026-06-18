@@ -1,0 +1,74 @@
+{
+  "packets": [
+    {
+      "id": "pkt-001",
+      "amie_id": "1234567",
+      "type": "request_project_create",
+      "status": "PROCESSED",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_project_create\",\"body\":{\"GrantNumber\":\"BIO130001\",\"PiPersonID\":\"alice\"}}",
+      "decoded_payload": { "GrantNumber": "BIO130001", "PiPersonID": "alice" },
+      "received_at": "2026-06-08T12:00:00Z",
+      "updated_at": "2026-06-08T12:01:05Z",
+      "decoded_at": "2026-06-08T12:00:02Z",
+      "processed_at": "2026-06-08T12:01:05Z",
+      "retries": 0,
+      "linked_entity": { "type": "project", "id": "prj-001", "display_id": "BIO130001" }
+    },
+    {
+      "id": "pkt-002",
+      "amie_id": "1234568",
+      "type": "request_account_create",
+      "status": "FAILED",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_account_create\",\"body\":{\"GrantNumber\":\"BIO130001\",\"UserPersonID\":\"bob\"}}",
+      "decoded_payload": { "GrantNumber": "BIO130001", "UserPersonID": "bob" },
+      "received_at": "2026-06-07T08:00:00Z",
+      "updated_at": "2026-06-08T09:30:00Z",
+      "decoded_at": "2026-06-07T08:00:03Z",
+      "retries": 3,
+      "last_error": "create account failed: cluster not reachable"
+    },
+    {
+      "id": "pkt-003",
+      "amie_id": "1234569",
+      "type": "request_person_merge",
+      "status": "NEW",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_person_merge\",\"body\":{\"KeepPersonID\":\"alice\",\"DeletePersonID\":\"alice2\"}}",
+      "received_at": "2026-06-08T14:21:30Z",
+      "updated_at": "2026-06-08T14:21:30Z",
+      "retries": 0
+    },
+    {
+      "id": "pkt-004",
+      "amie_id": "1234570",
+      "type": "request_account_create",
+      "status": "DECODED",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_account_create\",\"body\":{\"GrantNumber\":\"UNKNOWN999\",\"UserPersonID\":\"carol\"}}",
+      "decoded_payload": { "GrantNumber": "UNKNOWN999", "UserPersonID": "carol" },
+      "received_at": "2026-06-08T13:00:00Z",
+      "updated_at": "2026-06-08T13:00:05Z",
+      "decoded_at": "2026-06-08T13:00:05Z",
+      "retries": 0
+    },
+    {
+      "id": "pkt-100",
+      "amie_id": "1234600",
+      "type": "request_account_create",
+      "status": "FAILED",
+      "source": "access",
+      "raw_json": "{\"packet_type\":\"request_account_create\",\"body\":{\"GrantNumber\":\"BIO130001\",\"UserPersonID\":\"alice\"}}",
+      "decoded_payload": { "GrantNumber": "BIO130001", "UserPersonID": "alice" },
+      "received_at": "2026-06-08T14:21:32Z",
+      "updated_at": "2026-06-08T14:21:34Z",
+      "decoded_at": "2026-06-08T14:21:32.412Z",
+      "retries": 1,
+      "last_error": "create account failed: cluster not reachable"
+    }
+  ],
+  "total": 5,
+  "limit": 100,
+  "offset": 0
+}

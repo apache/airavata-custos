@@ -1,0 +1,29 @@
+[
+  {
+    "id": "project-001",
+    "originated_id": "BIO130000",
+    "title": "Genomic Sequencing Pipeline",
+    "origination": "ACCESS",
+    "project_pi_id": "user-pi-001",
+    "status": "ACTIVE",
+    "created_time": "2026-04-01T00:00:00.000Z"
+  },
+  {
+    "id": "project-002",
+    "originated_id": "PHY220001",
+    "title": "Plasma Simulation Workbench",
+    "origination": "ACCESS",
+    "project_pi_id": "user-pi-002",
+    "status": "ACTIVE",
+    "created_time": "2026-04-12T00:00:00.000Z"
+  },
+  {
+    "id": "project-003",
+    "originated_id": "CHM310045",
+    "title": "Catalyst Discovery (Archived)",
+    "origination": "NAIRR",
+    "project_pi_id": "user-pi-001",
+    "status": "INACTIVE",
+    "created_time": "2026-02-09T00:00:00.000Z"
+  }
+]

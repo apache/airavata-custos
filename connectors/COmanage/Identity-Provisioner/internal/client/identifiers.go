@@ -128,3 +128,32 @@ func (c *Client) FindIdentifierOnGroup(coGroupId int, identifierType string) (in
 		return 0, &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 }
+
+// FindIdentifierValueOnPerson returns the Identifier *value* (e.g. "Custos100022")
+// of the given type on a CoPerson, or "" if none is assigned yet.
+func (c *Client) FindIdentifierValueOnPerson(coPersonID int, identifierType string) (string, error) {
+	u := c.restAPI(fmt.Sprintf("/identifiers.json?copersonid=%d", coPersonID))
+	resp, respBody, err := c.Do(http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var out IdentifierListResponse
+		if err := json.Unmarshal(respBody, &out); err != nil {
+			return "", fmt.Errorf("decode identifiers list: %w", err)
+		}
+		for _, ident := range out.Identifiers {
+			if ident.Type == identifierType {
+				return ident.Identifier, nil
+			}
+		}
+		return "", nil
+	case http.StatusNoContent:
+		return "", nil
+	case http.StatusUnauthorized:
+		return "", ErrAuth401
+	default:
+		return "", &HTTPError{Method: "GET", URL: u, StatusCode: resp.StatusCode, Body: string(respBody)}
+	}
+}

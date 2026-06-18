@@ -1,0 +1,33 @@
+{
+  "alloc-001": [
+    {
+      "id": "res-001",
+      "name": "gpu-a100",
+      "resource_type": "gpu",
+      "resource_amount": 32
+    },
+    {
+      "id": "res-002",
+      "name": "gpu-h100",
+      "resource_type": "gpu",
+      "resource_amount": 16
+    }
+  ],
+  "alloc-002": [
+    {
+      "id": "res-003",
+      "name": "cpu-standard",
+      "resource_type": "cpu",
+      "resource_amount": 256
+    }
+  ],
+  "alloc-003": [
+    {
+      "id": "res-004",
+      "name": "gpu-a100",
+      "resource_type": "gpu",
+      "resource_amount": 24
+    }
+  ],
+  "alloc-004": []
+}

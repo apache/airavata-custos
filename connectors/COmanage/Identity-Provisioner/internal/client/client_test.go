@@ -190,6 +190,51 @@ func TestCreateUnixClusterGroup_URLAndBody(t *testing.T) {
 	}
 }
 
+func TestFindUnixClusterGroup_MatchesConfiguredCluster(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("cogroupid") != "25" {
+			t.Errorf("missing cogroupid filter: %s", r.URL.RawQuery)
+		}
+		_, _ = io.WriteString(w, `{
+            "ResponseType":"UnixClusterGroups","Version":"1.0",
+            "UnixClusterGroups":[
+                {"Version":"1.0","Id":7,"UnixClusterId":9,"CoGroupId":25},
+                {"Version":"1.0","Id":8,"UnixClusterId":1,"CoGroupId":25}
+            ]
+        }`)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	c.cfg.RegistryURL = srv.URL
+
+	id, err := c.FindUnixClusterGroup(25)
+	if err != nil {
+		t.Fatalf("FindUnixClusterGroup: %v", err)
+	}
+	if id != 8 {
+		t.Errorf("id: got %d, want 8 (UnixClusterId=1 matches configured cluster)", id)
+	}
+}
+
+func TestFindUnixClusterGroup_NoMatchReturnsZero(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL)
+	c.cfg.RegistryURL = srv.URL
+
+	id, err := c.FindUnixClusterGroup(99)
+	if err != nil {
+		t.Fatalf("FindUnixClusterGroup: %v", err)
+	}
+	if id != 0 {
+		t.Errorf("id: got %d, want 0", id)
+	}
+}
+
 func TestGetPersonComposite_PreservesRawJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || !strings.Contains(r.URL.Path, "/api/co/2/core/v1/people/Person100099") {

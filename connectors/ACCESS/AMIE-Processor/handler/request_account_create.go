@@ -110,10 +110,13 @@ func (h *RequestAccountCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 		return fmt.Errorf("request_account_create: audit CREATE_ACCOUNT: %w", err)
 	}
 
-	role := normalizeRole(getString(body, "UserRole"))
+	role := normalizeAMIERole(normalizeRole(getString(body, "UserRole")))
 	membership, err := h.ensureMembership(ctx, allocation.ID, user.ID)
 	if err != nil {
 		return fmt.Errorf("request_account_create: ensure membership: %w", err)
+	}
+	if err := h.svc.EnsureProjectMembership(ctx, project.ID, user.ID, role); err != nil {
+		return fmt.Errorf("request_account_create: ensure project membership: %w", err)
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateMembership, "compute_allocation_membership", membership.ID,
 		fmt.Sprintf("allocation=%s user=%s role=%s", allocation.ID, user.ID, role)); err != nil {
@@ -196,11 +199,26 @@ func (h *RequestAccountCreateHandler) ensureMembership(ctx context.Context, allo
 	}
 	for _, m := range existing {
 		if m.UserID == userID {
-			return &m, nil
+			cm := m.ComputeAllocationMembership
+			return &cm, nil
 		}
 	}
 	return h.svc.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
 		ComputeAllocationID: allocationID,
 		UserID:              userID,
 	})
+}
+
+// normalizeAMIERole maps the AMIE role enum to the persisted project role
+// vocabulary. Unrecognized values collapse to MEMBER (which the project
+// membership service interprets as "derived membership only").
+func normalizeAMIERole(amieRole string) string {
+	switch amieRole {
+	case "PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER":
+		return amieRole
+	case "USER":
+		return "MEMBER"
+	default:
+		return "MEMBER"
+	}
 }
