@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
-	tempaccount "github.com/apache/airavata-custos/connectors/TempAccount/pkg"
+	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
