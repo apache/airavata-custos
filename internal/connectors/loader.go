@@ -23,15 +23,15 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
+	tempaccount "github.com/apache/airavata-custos/connectors/TempAccount/pkg"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/service"
+	"github.com/jmoiron/sqlx"
 )
 
 func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
@@ -42,6 +42,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		"amie-processor":                amie.LoadConnector,
 		"comanage-identity-provisioner": comanage.LoadConnector,
 		"slurm-usage-monitor":           monitor.LoadConnector,
+		"temp-account":                  tempaccount.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

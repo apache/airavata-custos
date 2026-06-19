@@ -58,3 +58,7 @@ connectors:
     timeouts:
       connect_timeout: "5s"
       read_timeout: "20s"
+
+  temp-account:
+    type: "temp-account"
+    enabled: true
