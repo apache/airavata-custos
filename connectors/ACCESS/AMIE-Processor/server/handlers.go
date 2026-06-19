@@ -19,7 +19,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
+	"github.com/apache/airavata-custos/pkg/common"
 )
 
 type Handlers struct {
@@ -65,20 +65,20 @@ func (h *Handlers) RegisterRoutes(mux *http.ServeMux) {
 // @Router	/connectors/amie/packets/{packet_id}/audits [get]
 func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 	if h.audits == nil {
-		writeError(w, http.StatusServiceUnavailable, errors.New("amie packet audit store not configured"))
+		common.WriteError(w, http.StatusServiceUnavailable, errors.New("amie packet audit store not configured"))
 		return
 	}
 	packetID := strings.TrimSpace(r.PathValue("packet_id"))
 	if packetID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("packet_id is required"))
+		common.WriteError(w, http.StatusBadRequest, errors.New("packet_id is required"))
 		return
 	}
 	events, err := h.audits.ListAuditsForPacket(r.Context(), packetID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	common.WriteJSON(w, http.StatusOK, map[string]any{
 		"packet_id": packetID,
 		"events":    events,
 	})
@@ -101,24 +101,24 @@ func (h *Handlers) listPacketAudits(w http.ResponseWriter, r *http.Request) {
 // @Router	/connectors/amie/packets [get]
 func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
-		writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+		common.WriteJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
 		return
 	}
 	f, err := parsePacketFilter(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 	rows, total, err := h.packets.ListPackets(r.Context(), f)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	items := make([]PacketResponse, 0, len(rows))
 	for _, p := range rows {
 		items = append(items, packetResponseFrom(p))
 	}
-	writeJSON(w, http.StatusOK, PacketListResponse{
+	common.WriteJSON(w, http.StatusOK, PacketListResponse{
 		Packets: items,
 		Total:   total,
 		Limit:   effectiveLimit(f.Limit),
@@ -137,19 +137,19 @@ func (h *Handlers) listPackets(w http.ResponseWriter, r *http.Request) {
 // @Router	/connectors/amie/packets/{id} [get]
 func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
-		writeError(w, http.StatusNotFound, errors.New("not found"))
+		common.WriteError(w, http.StatusNotFound, errors.New("not found"))
 		return
 	}
 	p, err := h.packets.FindByID(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	if p == nil {
-		writeError(w, http.StatusNotFound, errors.New("not found"))
+		common.WriteError(w, http.StatusNotFound, errors.New("not found"))
 		return
 	}
-	writeJSON(w, http.StatusOK, packetResponseFrom(*p))
+	common.WriteJSON(w, http.StatusOK, packetResponseFrom(*p))
 }
 
 // @Summary	List processing events for an AMIE packet
@@ -162,19 +162,19 @@ func (h *Handlers) getPacket(w http.ResponseWriter, r *http.Request) {
 // @Router	/connectors/amie/packets/{id}/events [get]
 func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
-		writeJSON(w, http.StatusOK, []PacketEventResponse{})
+		common.WriteJSON(w, http.StatusOK, []PacketEventResponse{})
 		return
 	}
 	rows, err := h.packets.ListPacketEvents(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 	out := make([]PacketEventResponse, 0, len(rows))
 	for _, e := range rows {
 		out = append(out, packetEventResponseFrom(e))
 	}
-	writeJSON(w, http.StatusOK, out)
+	common.WriteJSON(w, http.StatusOK, out)
 }
 
 // @Summary	Per-day packet stats grouped by status and type
@@ -187,16 +187,16 @@ func (h *Handlers) listPacketEvents(w http.ResponseWriter, r *http.Request) {
 // @Router	/connectors/amie/stats [get]
 func (h *Handlers) getStats(w http.ResponseWriter, r *http.Request) {
 	if h.packets == nil {
-		writeJSON(w, http.StatusOK, PacketStatsResponse{ByDay: []PacketStatBucketResponse{}})
+		common.WriteJSON(w, http.StatusOK, PacketStatsResponse{ByDay: []PacketStatBucketResponse{}})
 		return
 	}
 	window := parseWindow(r.URL.Query().Get("window"))
 	buckets, err := h.packets.GetStats(r.Context(), window)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		common.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, packetStatsResponseFrom(buckets))
+	common.WriteJSON(w, http.StatusOK, packetStatsResponseFrom(buckets))
 }
 
 // ReplyListResponse is the paginated list envelope for connector replies.
@@ -216,7 +216,7 @@ type ReplyListResponse struct {
 // @Success	200	{object}	ReplyListResponse
 // @Router	/connectors/amie/replies [get]
 func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, ReplyListResponse{
+	common.WriteJSON(w, http.StatusOK, ReplyListResponse{
 		Replies: []any{},
 		Total:   0,
 		Limit:   effectiveLimit(parseLimit(r)),
@@ -233,7 +233,7 @@ func (h *Handlers) listReplies(w http.ResponseWriter, r *http.Request) {
 // @Success	200	{object}	PacketListResponse
 // @Router	/connectors/amie/unmapped [get]
 func (h *Handlers) listUnmapped(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
+	common.WriteJSON(w, http.StatusOK, emptyPacketPage(parseLimit(r), parseOffset(r)))
 }
 
 // @Summary	Retry an AMIE packet (not yet implemented)
@@ -281,7 +281,7 @@ func (h *Handlers) linkUnmapped(w http.ResponseWriter, _ *http.Request) {
 }
 
 func writeNotImplemented(w http.ResponseWriter, op string) {
-	writeJSON(w, http.StatusNotImplemented, map[string]string{
+	common.WriteJSON(w, http.StatusNotImplemented, map[string]string{
 		"error":   "not_implemented",
 		"message": op + " not supported on this branch",
 	})
@@ -361,16 +361,4 @@ func parseWindow(v string) time.Duration {
 		return d
 	}
 	return 30 * 24 * time.Hour
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-func writeError(w http.ResponseWriter, status int, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
