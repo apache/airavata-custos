@@ -57,6 +57,9 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	if user.Status == "" {
 		user.Status = models.UserActive
 	}
+	if user.Type == "" {
+		user.Type = models.UserTypeClusterLocal
+	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
 		return s.users.Create(ctx, tx, user)
@@ -159,6 +162,9 @@ func (s *Service) UpdateUser(ctx context.Context, user *models.User) error {
 	}
 	if user.Status == "" {
 		user.Status = existing.Status
+	}
+	if user.Type == "" {
+		user.Type = existing.Type
 	}
 
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {

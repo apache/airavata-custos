@@ -37,6 +37,14 @@ type Organization struct {
 	Name         string `json:"name"          db:"name"`
 }
 
+// UserType enumerates the types of users.
+type UserType string
+
+const (
+	UserTypeClusterLocal UserType = "CLUSTER_LOCAL"
+	UserTypeVirtual      UserType = "VIRTUAL"
+)
+
 type User struct {
 	ID             string     `json:"id"              db:"id"`
 	OrganizationID string     `json:"organization_id" db:"organization_id"`
@@ -45,4 +53,5 @@ type User struct {
 	MiddleName     string     `json:"middle_name,omitempty" db:"middle_name"`
 	Email          string     `json:"email"           db:"email"`
 	Status         UserStatus `json:"status"          db:"status"`
+	Type           UserType   `json:"type"            db:"type"`
 }

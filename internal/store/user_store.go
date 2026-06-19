@@ -36,7 +36,7 @@ func NewUserStore(db *sqlx.DB) UserStore {
 	return &mysqlUserStore{db: db}
 }
 
-const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status`
+const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type`
 
 func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
@@ -76,17 +76,17 @@ func (s *mysqlUserStore) FindByOrganization(ctx context.Context, organizationID 
 
 func (s *mysqlUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status)
+		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type)
 	return err
 }
 
 func (s *mysqlUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE users SET organization_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, status = ?
+		`UPDATE users SET organization_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, status = ?, type = ?
 		 WHERE id = ?`,
-		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.ID)
+		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type, u.ID)
 	return err
 }
 
