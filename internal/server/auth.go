@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -122,16 +123,16 @@ func (s *Server) requirePrivilege(p models.PrivilegeKey, next http.HandlerFunc) 
 	return func(w http.ResponseWriter, r *http.Request) {
 		callerID := r.Header.Get(callerHeader)
 		if callerID == "" {
-			writeError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+			common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
 			return
 		}
 		profile, err := s.lookupAuthProfile(r.Context(), callerID)
 		if err != nil {
-			writeError(w, http.StatusServiceUnavailable, errors.New("auth lookup failed"))
+			common.WriteError(w, http.StatusServiceUnavailable, errors.New("auth lookup failed"))
 			return
 		}
 		if !profile.has(p) {
-			writeError(w, http.StatusForbidden, errors.New("insufficient privilege"))
+			common.WriteError(w, http.StatusForbidden, errors.New("insufficient privilege"))
 			return
 		}
 		next(w, r)

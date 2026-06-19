@@ -121,8 +121,8 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	orgID := seedOrg(t, database)
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		userID, orgID, "Test", "User", "", email, string(models.UserActive),
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		userID, orgID, "Test", "User", "", email, string(models.UserActive), string(models.UserTypeClusterLocal),
 	); err != nil {
 		t.Fatalf("seed user %s: %v", email, err)
 	}
