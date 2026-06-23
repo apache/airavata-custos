@@ -83,6 +83,20 @@ func HasPrivilege(ctx context.Context, privilege models.PrivilegeKey) bool {
 	return ok
 }
 
+// PrivilegesFromContext returns the caller's effective privilege set. Returns
+// nil for both the absent and the empty-set cases.
+func PrivilegesFromContext(ctx context.Context) []models.PrivilegeKey {
+	set, _ := ctx.Value(privilegesKey).(privilegeSet)
+	if len(set) == 0 {
+		return nil
+	}
+	keys := make([]models.PrivilegeKey, 0, len(set))
+	for k := range set {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // WithPrivilegesForTest is the test-only entry point to seed privileges on ctx.
 func WithPrivilegesForTest(ctx context.Context, keys []models.PrivilegeKey) context.Context {
 	return withPrivileges(ctx, keys)

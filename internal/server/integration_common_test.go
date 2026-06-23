@@ -20,6 +20,7 @@
 package server
 
 import (
+	"net/http"
 	"os"
 	"sync"
 	"testing"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -69,7 +71,8 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 	}
 	truncateAll(t, sharedDB)
 	svc := service.New(sharedDB, events.New())
-	return sharedDB, svc, New(svc)
+	router := identity.NewRouter(http.NewServeMux())
+	return sharedDB, svc, New(svc, router, nil)
 }
 
 func truncateAll(t *testing.T, database *sqlx.DB) {

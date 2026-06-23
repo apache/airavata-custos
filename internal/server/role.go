@@ -27,7 +27,7 @@ import (
 
 // @Summary	List all roles
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.Role
 // @Failure	401	{object}	object{error=string}
@@ -44,7 +44,7 @@ func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a role with its privilege bundle
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
 // @Success	200	{object}	object{role=models.Role,privileges=[]models.PrivilegeKey}
@@ -74,13 +74,13 @@ func (s *Server) getRole(w http.ResponseWriter, r *http.Request) {
 }
 
 type createRoleRequest struct {
-	Name        string `JSON:"name"`
-	Description string `JSON:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // @Summary	Create a role
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	request	body	createRoleRequest	true	"Role payload"
@@ -90,9 +90,8 @@ type createRoleRequest struct {
 // @Failure	409	{object}	object{error=string}	"Role name collides"
 // @Router	/roles [post]
 func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
-	actorID := r.Header.Get(callerHeader)
-	if actorID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req createRoleRequest
@@ -100,7 +99,7 @@ func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	role, err := s.svc.CreateRole(r.Context(), req.Name, req.Description, actorID)
+	role, err := s.svc.CreateRole(r.Context(), req.Name, req.Description, caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
@@ -109,14 +108,14 @@ func (s *Server) createRole(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateRoleRequest struct {
-	Name        string `JSON:"name"`
-	Description string `JSON:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // @Summary	Update role name / description
 // @Description	System roles cannot be renamed.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
@@ -131,9 +130,8 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
-	if actorID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req updateRoleRequest
@@ -141,19 +139,19 @@ func (s *Server) updateRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	role, err := s.svc.UpdateRole(r.Context(), roleID, req.Name, req.Description, actorID)
+	role, err := s.svc.UpdateRole(r.Context(), roleID, req.Name, req.Description, caller.UserID)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidateAll()
+	s.svc.InvalidateAllIdentities()
 	common.WriteJSON(w, http.StatusOK, role)
 }
 
 // @Summary	Delete a role
 // @Description	System roles cannot be deleted. CASCADE drops every assignment of this role.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Role ID"
 // @Success	204	"No Content"
 // @Failure	400	{object}	object{error=string}	"System role / unknown role"
@@ -165,27 +163,26 @@ func (s *Server) deleteRole(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
-	if actorID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
-	if err := s.svc.DeleteRole(r.Context(), roleID, actorID); err != nil {
+	if err := s.svc.DeleteRole(r.Context(), roleID, caller.UserID); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidateAll()
+	s.svc.InvalidateAllIdentities()
 	w.WriteHeader(http.StatusNoContent)
 }
 
 type rolePrivilegeRequest struct {
-	Privilege models.PrivilegeKey `JSON:"privilege"`
+	Privilege models.PrivilegeKey `json:"privilege"`
 }
 
 // @Summary	Add a privilege to a role
 // @Description	The new privilege propagates to every current holder.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"Role ID"
 // @Param	request	body	rolePrivilegeRequest	true	"Privilege key"
@@ -200,9 +197,8 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id is required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
-	if actorID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req rolePrivilegeRequest
@@ -210,18 +206,18 @@ func (s *Server) addRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := s.svc.AddPrivilegeToRole(r.Context(), roleID, req.Privilege, actorID); err != nil {
+	if err := s.svc.AddPrivilegeToRole(r.Context(), roleID, req.Privilege, caller.UserID); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidateAll()
+	s.svc.InvalidateAllIdentities()
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // @Summary	Remove a privilege from a role
 // @Description	Removal propagates to every holder. Refuses to remove `privileges:grant` or `roles:manage` if that would leave no role anywhere carrying it.
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Param	id	path	string	true	"Role ID"
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Success	204	"No Content"
@@ -236,22 +232,21 @@ func (s *Server) removeRolePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("role id and privilege key are required"))
 		return
 	}
-	actorID := r.Header.Get(callerHeader)
-	if actorID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
-	if err := s.svc.RemovePrivilegeFromRole(r.Context(), roleID, key, actorID); err != nil {
+	if err := s.svc.RemovePrivilegeFromRole(r.Context(), roleID, key, caller.UserID); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidateAll()
+	s.svc.InvalidateAllIdentities()
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // @Summary	List roles a user holds
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.UserRole
@@ -273,7 +268,7 @@ func (s *Server) listUserRoles(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List users holding the role
 // @Tags	Roles
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Role ID"
 // @Success	200	{array}	models.UserRole
@@ -294,13 +289,13 @@ func (s *Server) listRoleHolders(w http.ResponseWriter, r *http.Request) {
 }
 
 type grantRoleRequest struct {
-	RoleID string `JSON:"role_id"`
-	Reason string `JSON:"reason"`
+	RoleID string `json:"role_id"`
+	Reason string `json:"reason"`
 }
 
 // @Summary	Grant a role to a user
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
@@ -316,9 +311,8 @@ func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	granterID := r.Header.Get(callerHeader)
-	if granterID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req grantRoleRequest
@@ -326,23 +320,23 @@ func (s *Server) grantRoleToUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	assignment, err := s.svc.GrantRoleToUser(r.Context(), userID, req.RoleID, granterID, req.Reason)
+	assignment, err := s.svc.GrantRoleToUser(r.Context(), userID, req.RoleID, caller.UserID, req.Reason)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidate(userID)
+	s.svc.InvalidateAllIdentities()
 	common.WriteJSON(w, http.StatusCreated, assignment)
 }
 
 type revokeRoleRequest struct {
-	Reason string `JSON:"reason"`
+	Reason string `json:"reason"`
 }
 
 // @Summary	Revoke a role from a user
 // @Description	Refuses if revoking would leave no holder of `privileges:grant` or `roles:manage` anywhere (last-meta-holder guard).
 // @Tags	Role Assignments
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"User ID"
 // @Param	roleId	path	string	true	"Role ID"
@@ -359,18 +353,16 @@ func (s *Server) revokeRoleFromUser(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id and role id are required"))
 		return
 	}
-	revokerID := r.Header.Get(callerHeader)
-	if revokerID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req revokeRoleRequest
 	_ = common.DecodeJSON(r, &req)
-	if err := s.svc.RevokeRoleFromUser(r.Context(), userID, roleID, revokerID, req.Reason); err != nil {
+	if err := s.svc.RevokeRoleFromUser(r.Context(), userID, roleID, caller.UserID, req.Reason); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidate(userID)
-	s.authCache.invalidate(revokerID)
+	s.svc.InvalidateAllIdentities()
 	w.WriteHeader(http.StatusNoContent)
 }
