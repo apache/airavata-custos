@@ -9,9 +9,6 @@ core:
       issuer:   "${OIDC_ISSUER_URL}"
       audience: "${OIDC_AUDIENCE}"
     cache_ttl: "30s"
-    public_paths:
-      - "/healthz"
-      - "/ready"
 
 connectors:
   slurm-mapper:

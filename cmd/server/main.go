@@ -41,18 +41,19 @@ import (
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // @title	Apache Custos Core API
 // @version	0.2.0
-// @description	REST API for Apache Custos: organizations, users, projects, compute clusters and allocations, audit traces, and the privilege/role authorization layer. Authenticate every request with the X-Custos-User-Id header. Connector endpoints (/connectors/<name>/...) are documented in separate specs.
+// @description	REST API for Apache Custos: organizations, users, projects, compute clusters, allocations, audit traces, and the privilege/role authorization layer. OIDC bearer auth required. Connector endpoints live under /connectors/<name>/.
 // @host	localhost:8080
 // @BasePath	/
-// @securityDefinitions.apikey	CustosUserHeader
+// @securityDefinitions.apikey	BearerAuth
 // @in	header
-// @name	X-Custos-User-Id
-// @description.CustosUserHeader	Identifies the calling user. Dev: dev-admin, dev-operator, dev-auditor, dev-researcher (see dev-ops/compose/seeds/dev_users_and_roles.sql).
+// @name	Authorization
+// @description.BearerAuth	OIDC bearer token. Header value: `Bearer <jwt>`.
 func main() {
 	slog.SetDefault(slog.New(tracing.SlogHandler(slog.NewJSONHandler(os.Stdout, nil))))
 
@@ -134,16 +135,26 @@ func run() error {
 	adminDeps := &server.AdminDeps{
 		AuditTraces: store.NewAuditTraceStore(database),
 	}
-	srv := server.New(svc, adminDeps)
+	router := identity.NewRouter(http.NewServeMux())
+	srv := server.New(svc, router, adminDeps)
 
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.
 	var connectorsWG sync.WaitGroup
-	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, srv.Mux()); err != nil {
+	if err := connectors.LoadConnectorsFromConfig(ctx, cfg, database, eventBus, svc, &connectorsWG, router); err != nil {
 		return err
 	}
 
-	handler := server.LoggingMiddleware(srv)
+	verifier, err := identity.NewJWTVerifier(ctx, cfg.Core.Auth.OIDC.Issuer, cfg.Core.Auth.OIDC.Audience)
+	if err != nil {
+		return err
+	}
+	svc.SetIdentityCacheTTL(cfg.Core.Auth.CacheTTL)
+
+	// identity.Middleware sits in front of the router-backed server, so every
+	// gated route sees a verified caller + privilege set on ctx.
+	authed := identity.Middleware(verifier, svc, router.PublicPaths(), srv)
+	handler := server.LoggingMiddleware(authed)
 
 	httpServer := &http.Server{
 		Addr:              addr,

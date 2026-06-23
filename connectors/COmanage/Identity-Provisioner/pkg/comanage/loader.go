@@ -22,7 +22,6 @@ package comanage
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -35,6 +34,7 @@ import (
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -45,7 +45,7 @@ func init() {
 // LoadConnector wires the subscriber to the event bus. Reads YAML config first
 // and falls back to environment variables. If neither yields a complete
 // config, it logs and returns nil without registering.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
 	if !ok {
 		cfg, ok = loadConfigFromEnv()

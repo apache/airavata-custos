@@ -35,7 +35,7 @@ import (
 )
 
 // AdminDeps wires the /audit/* endpoints. A nil field makes its routes return 503.
-// TODO(server): fold AuditTraces onto *Service and drop AdminDeps (see followups.md).
+// TODO(server): fold AuditTraces onto *Service and drop AdminDeps.
 type AdminDeps struct {
 	AuditTraces store.AuditTraceStore
 }
@@ -74,7 +74,6 @@ func requireCaller(w http.ResponseWriter, r *http.Request) *identity.Caller {
 // TODO(auth): tighten RequireAuth routes to RequirePrivilege as new keys land.
 func (s *Server) routes() {
 	s.router.Public("GET /healthz", s.healthz)
-	// TODO: /ready endpoint not implemented; add router.Public("GET /ready", ...) when it lands.
 
 	s.router.RequireAuth("POST /organizations", s.createOrganization)
 	s.router.RequireAuth("GET /organizations/{id}", s.getOrganization)

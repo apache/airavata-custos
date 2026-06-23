@@ -19,18 +19,18 @@ package tempaccount
 
 import (
 	"context"
-	"net/http"
 	"sync"
 
 	"github.com/apache/airavata-custos/connectors/TempAccount/internal"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	handlers := internal.NewHandlers(coreService)
-	handlers.RegisterRoutes(mux)
+	handlers.RegisterRoutes(router)
 	return nil
 }

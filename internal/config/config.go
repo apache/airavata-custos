@@ -56,9 +56,8 @@ type APIConfig struct {
 }
 
 type AuthConfig struct {
-	OIDC        OIDCConfig    `yaml:"oidc"`
-	CacheTTL    time.Duration `yaml:"cache_ttl"`
-	PublicPaths []string      `yaml:"public_paths"`
+	OIDC     OIDCConfig    `yaml:"oidc"`
+	CacheTTL time.Duration `yaml:"cache_ttl"`
 }
 
 type OIDCConfig struct {

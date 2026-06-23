@@ -119,7 +119,6 @@ func TestLoadConfig_AuthDefaults(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 30*time.Second, cfg.Core.Auth.CacheTTL)
-	assert.Equal(t, []string{"/healthz", "/ready"}, cfg.Core.Auth.PublicPaths)
 	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Issuer, "issuer should not be empty (env-unset stays as ${...} literal)")
 	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Audience)
 }
