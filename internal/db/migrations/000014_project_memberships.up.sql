@@ -28,7 +28,7 @@ CREATE TABLE project_memberships (
     CONSTRAINT fk_project_memberships_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     CONSTRAINT fk_project_memberships_user    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
     CONSTRAINT chk_project_memberships_role   CHECK (role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
-);
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Carry forward existing special roles that 000013 wrote onto
 -- compute_allocation_memberships. The same user can appear on multiple
