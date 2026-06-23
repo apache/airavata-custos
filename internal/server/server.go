@@ -34,23 +34,16 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-// AdminDeps wires the /audit/* endpoints. A nil field makes its routes return 503.
-// TODO(server): fold AuditTraces onto *Service and drop AdminDeps.
-type AdminDeps struct {
-	AuditTraces store.AuditTraceStore
-}
-
 // Server is an HTTP handler that exposes the service API.
 type Server struct {
 	svc    *service.Service
 	router *identity.Router
-	admin  *AdminDeps
 }
 
 // New builds an HTTP handler wired to the supplied service. The router owns the mux
 // and gates every authenticated route.
-func New(svc *service.Service, router *identity.Router, admin *AdminDeps) *Server {
-	s := &Server{svc: svc, router: router, admin: admin}
+func New(svc *service.Service, router *identity.Router) *Server {
+	s := &Server{svc: svc, router: router}
 	s.routes()
 	return s
 }

@@ -41,7 +41,7 @@ func TestLoggingWrapsTracingProducesTraceIdHeader(t *testing.T) {
 	t.Cleanup(func() { otel.SetTracerProvider(prev) })
 
 	router := identity.NewRouter(http.NewServeMux())
-	handler := LoggingMiddleware(tracing.Middleware(New(nil, router, nil)))
+	handler := LoggingMiddleware(tracing.Middleware(New(nil, router)))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

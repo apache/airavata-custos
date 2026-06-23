@@ -39,11 +39,16 @@ const (
 )
 
 func (s *Server) requireAuditStore(w http.ResponseWriter) (store.AuditTraceStore, bool) {
-	if s.admin == nil || s.admin.AuditTraces == nil {
+	if s.svc == nil {
 		common.WriteError(w, http.StatusServiceUnavailable, errors.New("audit trace store not configured"))
 		return nil, false
 	}
-	return s.admin.AuditTraces, true
+	ts := s.svc.AuditTraces()
+	if ts == nil {
+		common.WriteError(w, http.StatusServiceUnavailable, errors.New("audit trace store not configured"))
+		return nil, false
+	}
+	return ts, true
 }
 
 // @Summary	List audit traces with filters

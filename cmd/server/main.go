@@ -38,7 +38,6 @@ import (
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
 	"github.com/apache/airavata-custos/internal/server"
-	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -132,11 +131,8 @@ func run() error {
 
 	tryBootstrap(ctx, svc)
 
-	adminDeps := &server.AdminDeps{
-		AuditTraces: store.NewAuditTraceStore(database),
-	}
 	router := identity.NewRouter(http.NewServeMux())
-	srv := server.New(svc, router, adminDeps)
+	srv := server.New(svc, router)
 
 	// Tracks every background goroutine spawned by connectors so we can wait
 	// for them to drain on shutdown instead of killing them mid-flight.

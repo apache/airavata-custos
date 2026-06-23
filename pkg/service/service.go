@@ -57,6 +57,7 @@ type Service struct {
 	privileges          store.UserPrivilegeStore
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
+	auditTraces         store.AuditTraceStore
 	identityCache       *identityCache
 }
 
@@ -87,6 +88,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		privileges:          store.NewUserPrivilegeStore(database),
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
+		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
 	}
 }
@@ -143,8 +145,17 @@ func NewWithStores(
 		privileges:          privileges,
 		roles:               roles,
 		userRoles:           userRoles,
+		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
 	}
+}
+
+func (s *Service) AuditTraces() store.AuditTraceStore {
+	return s.auditTraces
+}
+
+func (s *Service) SetAuditTraces(ts store.AuditTraceStore) {
+	s.auditTraces = ts
 }
 
 // inTx runs fn inside a database transaction managed by the Service.
