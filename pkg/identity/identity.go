@@ -29,9 +29,7 @@ import (
 
 // Caller is the verified identity behind an HTTP request.
 type Caller struct {
-	UserID  string
-	OIDCSub string
-	Email   string
+	UserID string
 }
 
 // ErrNotLinked is returned by a UserResolver when the OIDC sub has no row in

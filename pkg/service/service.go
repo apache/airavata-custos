@@ -57,6 +57,7 @@ type Service struct {
 	privileges          store.UserPrivilegeStore
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
+	identityCache       *identityCache
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -86,6 +87,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		privileges:          store.NewUserPrivilegeStore(database),
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
+		identityCache:       newIdentityCache(),
 	}
 }
 
@@ -141,6 +143,7 @@ func NewWithStores(
 		privileges:          privileges,
 		roles:               roles,
 		userRoles:           userRoles,
+		identityCache:       newIdentityCache(),
 	}
 }
 

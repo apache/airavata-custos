@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 
@@ -62,6 +63,38 @@ func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models
 		return nil, err
 	}
 	return &u, nil
+}
+
+// GetUserByOIDCSub returns the user owning the user_identities row whose
+// oidc_sub matches. Returns nil when the OIDC subject is empty or no row
+// links it to a Custos user.
+func (s *mysqlUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error) {
+	if oidcSub == "" {
+		return nil, nil
+	}
+	var u models.User
+	err := s.db.GetContext(ctx, &u,
+		`SELECT `+prefixed("u", userColumns)+`
+		 FROM users u
+		 JOIN user_identities ui ON ui.user_id = u.id
+		 WHERE ui.oidc_sub = ?`, oidcSub)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
+// prefixed returns the comma-separated column list with each bare column
+// prefixed by alias. Used to disambiguate joined queries.
+func prefixed(alias, columns string) string {
+	parts := strings.Split(columns, ", ")
+	for i, p := range parts {
+		parts[i] = alias + "." + p
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (s *mysqlUserStore) FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
