@@ -67,3 +67,7 @@ config.yaml
 
 # Binaries
 bin/
+
+# Python virtualenvs (e.g. AMIE mock-server)
+venv/
+.venv/
