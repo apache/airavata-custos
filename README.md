@@ -79,14 +79,6 @@ See [INSTALL.md](INSTALL.md) to bring up the dev stack and run the server. See e
 - [docs/Allocation-Data-Models.md](docs/Allocation-Data-Models.md): domain model overview
 - [docs/ACCESS-HPC-Reference.md](docs/ACCESS-HPC-Reference.md): ACCESS-CI integration reference
 
-## Documentation
-
-- [INSTALL.md](INSTALL.md): run the server locally against the dev compose stack
-- [CONTRIBUTING.md](CONTRIBUTING.md): coding conventions, build, and test workflow
-- [docs/API-Docs.md](docs/API-Docs.md): REST API reference
-- [docs/Allocation-Data-Models.md](docs/Allocation-Data-Models.md): domain model overview
-- [docs/ACCESS-HPC-Reference.md](docs/ACCESS-HPC-Reference.md): ACCESS-CI integration reference
-
 ## Questions or Need Help?
 
 * Open a [GitHub issue](https://github.com/apache/airavata-custos/issues)
