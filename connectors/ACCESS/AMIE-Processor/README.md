@@ -4,18 +4,13 @@ ACCESS-CI AMIE packet processing service for Apache Airavata Custos.
 
 This Go service polls the [ACCESS-CI](https://access-ci.org/) AMIE (Account Management Information Exchange) API for allocation packets, processes them through typed handlers, manages person/project/account lifecycle, and replies to AMIE. It is the ACCESS allocation source adapter within the Custos allocations platform.
 
-## Prerequisites
-
-- Go 1.22+
-- MariaDB — use the shared dev stack: `docker compose -f compose/docker-compose.yml up db` (creates the `access_ci` database automatically via `compose/dbinit/init-db.sh`)
-
 ## Quick Start
 
 ### 1. Start the database
 
 ```bash
 # From the repo root
-docker compose -f compose/docker-compose.yml up db -d
+docker compose -f dev-ops/compose/docker-compose.yml up db -d
 ```
 
 ### 2. Configure
@@ -28,7 +23,7 @@ export AMIE_API_KEY="your-api-key"
 
 The default `config.yaml` works for local development with the Docker Compose MariaDB defaults.
 
-For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [`devtools/amie/`](../devtools/amie/README.md)
+For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [`mock-server/`](./mock-server/README.md)
 
 ```bash
 export AMIE_BASE_URL="http://localhost:8180"
@@ -39,7 +34,7 @@ export AMIE_API_KEY="dev"
 ### 3. Build
 
 ```bash
-cd allocations/access-amie
+cd connectors/ACCESS/AMIE-Processor
 go build -o bin/access-amie .
 ```
 
@@ -135,7 +130,7 @@ For sustained traffic at a configurable rate, use k6 with `mock-server/amie-traf
 
 ## Observability
 
-The service exports Prometheus metrics at `/metrics`. A pre-built Grafana dashboard is available at `compose/grafana/dashboards/amie-service.json` showing packet processing stats, failures, retries, and processing duration percentiles.
+The service exports Prometheus metrics at `/metrics`. A pre-built Grafana dashboard is available at `dev-ops/compose/grafana/dashboards/amie-service.json` showing packet processing stats, failures, retries, and processing duration percentiles.
 
 To run the metrics stack:
 
@@ -208,20 +203,3 @@ AMIE API ──poll──> Poller ──persist──> DB (packets + events)
 | Log level | `log.level` | `LOG_LEVEL` | `info` |
 | Log format | `log.format` | `LOG_FORMAT` | `text` |
 | Provisioner type | `provisioner.type` | — | `noop` |
-
-## Go Workspace
-
-This module is part of a Go workspace defined in `allocations/go.work`:
-
-```
-allocations/
-  go.work              Workspace root
-  provisioner/         Shared HPC provisioner interface (zero deps)
-  access-amie/         This module (ACCESS-CI AMIE adapter)
-```
-
-The `provisioner/` module defines the `Provisioner` interface for HPC cluster account and project provisioning. Currently using a no-op stub; a future SLURM provisioner will implement it.
-
-## License
-
-Licensed under the Apache License, Version 2.0. See [LICENSE](../../LICENSE) for details.

@@ -35,7 +35,6 @@ From the repository root:
 
 ```bash
 export DATABASE_DSN='admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true'
-export HTTP_ADDR=':8080'
 go run ./cmd/server
 ```
 
@@ -44,20 +43,30 @@ On startup, the server:
 1. Opens the database connection (`internal/db`).
 2. Runs the embedded migrations (`internal/db/migrations/`).
 3. Wires the event bus, service layer, and HTTP router.
-4. Listens on `HTTP_ADDR`.
+4. Listens on the port from `config/custos.yaml` (`core.api.port`, default `8080`).
+
+### 3. Seed dev users (optional)
+
+The schema is created by the server's migrations on first run. After that, apply
+the dev seed to populate sample identity data (org, users, roles, privileges):
+
+```bash
+docker exec -i custos_db mariadb -uadmin -padmin custos \
+  < dev-ops/compose/seeds/dev_users_and_roles.sql
+```
+
+The seed uses `INSERT IGNORE`, so re-running is safe. See the seed file for
+exactly what it inserts.
 
 ### Environment variables
 
-| Variable             | Default                                                            | Description                                  |
-|----------------------|--------------------------------------------------------------------|----------------------------------------------|
-| `DATABASE_DSN`       | _(required)_                                                       | Go MySQL DSN; must allow multi-statements    |
-| `HTTP_ADDR`          | `:8080`                                                            | Listen address for the HTTP API              |
-| `DB_MAX_OPEN_CONNS`  | `25`                                                               | Max open DB connections                      |
-| `DB_MAX_IDLE_CONNS`  | `5`                                                                | Max idle DB connections                      |
+See [.env.example](.env.example) for the template. Copy it to `.env`, fill in
+the required values (`DATABASE_DSN`, `OIDC_ISSUER_URL`, `OIDC_AUDIENCE`), and
+source it before running the server.
 
 ### Optional services
 
-The Compose file also defines Keycloak, Vault, Adminer, Prometheus, and Grafana. Start them as needed, for example:
+The Compose file also defines Adminer, Prometheus, Grafana, and Vault. Start them as needed, for example:
 
 ```bash
 docker compose up -d adminer       # DB UI at http://localhost:18080
