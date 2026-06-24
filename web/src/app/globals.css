@@ -110,6 +110,14 @@
   --radius-2xl: var(--custos-radius-2xl);
 }
 
+/* Sidebar — hide native scrollbar entirely so the custom thumb overlays items */
+.sidebar-scroll-hidden {
+  scrollbar-width: none;
+}
+.sidebar-scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
