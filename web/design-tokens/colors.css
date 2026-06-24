@@ -29,16 +29,57 @@
   --custos-green-700: #15803d;
   --custos-green-800: #166534;
 
-  --custos-gray-50: #f4f5f7;
-  --custos-gray-100: #f1f1f1;
-  --custos-gray-200: #e5e7eb;
-  --custos-gray-300: #d4d4d4;
-  --custos-gray-400: #9aa1ae;
-  --custos-gray-500: #6b7280;
-  --custos-gray-600: #4b5563;
-  --custos-gray-700: #404040;
-  --custos-gray-800: #262626;
-  --custos-gray-900: #111111;
+  --custos-gray-50: #f9f9f9;
+  --custos-gray-100: #f2f2f2;
+  --custos-gray-200: #ebebeb;
+  --custos-gray-300: #d9d9d9;
+  --custos-gray-400: #bdbdbd;
+  --custos-gray-500: #9e9e9e;
+  --custos-gray-600: #757575;
+  --custos-gray-700: #424242;
+  --custos-gray-800: #212121;
+  --custos-gray-900: #121212;
+
+  --custos-slate-50: #f8fafc;
+  --custos-slate-100: #f1f5f9;
+  --custos-slate-200: #e2e8f0;
+  --custos-slate-300: #cbd5e1;
+  --custos-slate-400: #94a3b8;
+  --custos-slate-500: #64748b;
+  --custos-slate-600: #475569;
+  --custos-slate-700: #334155;
+  --custos-slate-800: #1e293b;
+  --custos-slate-900: #0f172a;
+
+  --custos-orange-50: #fff7ed;
+  --custos-orange-100: #ffedd5;
+  --custos-orange-200: #fed7aa;
+  --custos-orange-300: #fdba74;
+  --custos-orange-400: #fb923c;
+  --custos-orange-500: #f97316;
+  --custos-orange-600: #ea580c;
+  --custos-orange-700: #c2410c;
+  --custos-orange-800: #9a3412;
+
+  --custos-teal-50: #f0fdfa;
+  --custos-teal-100: #ccfbf1;
+  --custos-teal-200: #99f6e4;
+  --custos-teal-300: #5eead4;
+  --custos-teal-400: #2dd4bf;
+  --custos-teal-500: #14b8a6;
+  --custos-teal-600: #0d9488;
+  --custos-teal-700: #0f766e;
+  --custos-teal-800: #115e59;
+
+  --custos-indigo-50: #eef2ff;
+  --custos-indigo-100: #e0e7ff;
+  --custos-indigo-200: #c7d2fe;
+  --custos-indigo-300: #a5b4fc;
+  --custos-indigo-400: #818cf8;
+  --custos-indigo-500: #6366f1;
+  --custos-indigo-600: #4f46e5;
+  --custos-indigo-700: #4338ca;
+  --custos-indigo-800: #3730a3;
 
   --custos-amber-50: #fef3c7;
   --custos-amber-100: #fde68a;
@@ -120,9 +161,10 @@
   --input: var(--custos-gray-200);
   --ring: var(--custos-blue-500);
 
-  --sidebar: var(--custos-gray-50);
+  --sidebar: var(--custos-gray-100);
   --sidebar-active: #ffffff;
   --sidebar-hover: var(--custos-gray-200);
+  --sidebar-item-fg: var(--custos-gray-700);
   --sidebar-foreground: var(--custos-gray-900);
   --sidebar-primary: var(--custos-blue-500);
   --sidebar-primary-foreground: var(--custos-white);
@@ -164,6 +206,7 @@
   --sidebar: var(--custos-gray-800);
   --sidebar-active: var(--custos-gray-900);
   --sidebar-hover: var(--custos-gray-700);
+  --sidebar-item-fg: var(--custos-gray-400);
   --sidebar-foreground: var(--custos-gray-50);
   --sidebar-primary: var(--custos-blue-400);
   --sidebar-primary-foreground: var(--custos-gray-900);

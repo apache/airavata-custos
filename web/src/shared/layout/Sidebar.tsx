@@ -24,7 +24,7 @@ export function Sidebar() {
 
   return (
     <aside className="flex w-[240px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
-      <div className="px-6 pt-8 pb-6">
+      <div className="px-6 pt-5 pb-4">
         <Link
           href="/"
           className="font-display text-2xl font-extrabold uppercase tracking-tight text-brand"
@@ -63,7 +63,7 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
         "relative flex h-11 items-center gap-3 px-6 text-sm font-medium transition",
         active
           ? "bg-[var(--sidebar-active)] font-semibold text-brand"
-          : "text-muted-foreground hover:bg-[var(--sidebar-hover)] hover:text-foreground",
+          : "text-[var(--sidebar-item-fg)] hover:bg-[var(--sidebar-hover)] hover:text-foreground",
       )}
     >
       <Icon className="h-5 w-5 stroke-[1.75]" />
