@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package client
 
 /*
@@ -25,13 +42,13 @@ type jobsResponse struct {
 }
 
 type JobFilter struct {
-	Users     []string     `json:"users,omitempty"`
-	StartTime int64        `json:"start_time,omitempty"`
-	EndTime   int64 		`json:"end_time,omitempty"`
+	Users     []string `json:"users,omitempty"`
+	StartTime int64    `json:"start_time,omitempty"`
+	EndTime   int64    `json:"end_time,omitempty"`
 }
 
 type internalJobFilter struct {
-	Users     []string `json:"users,omitempty"`
+	Users     []string     `json:"users,omitempty"`
 	StartTime *SlurmNumber `json:"start_time,omitempty"`
 	EndTime   *SlurmNumber `json:"end_time,omitempty"`
 }
@@ -39,7 +56,7 @@ type internalJobFilter struct {
 func (c *Client) ListJobs(filter JobFilter) ([]JobInfo, error) {
 	var out jobsResponse
 	internalFilter := internalJobFilter{
-		Users:     filter.Users,
+		Users: filter.Users,
 	}
 	if filter.StartTime > 0 {
 		internalFilter.StartTime = &SlurmNumber{Set: true, Infinite: false, Number: filter.StartTime}
