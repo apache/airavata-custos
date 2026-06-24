@@ -8,6 +8,7 @@ import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { ChevronDown } from "lucide-react";
 import { PACKET_TYPES, type Packet, type PacketStatus } from "../types";
 import { ageHoursOf, formatDate } from "../utils";
 import { PacketStatusBadge } from "./PacketStatusBadge";
@@ -201,53 +202,62 @@ export function PacketInboxTable({
       >
         <div className="flex flex-col gap-1">
           <Label htmlFor="amie-status">Status</Label>
-          <select
-            id="amie-status"
-            value={filters.status}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                status: e.currentTarget.value as PacketStatus | "all",
-              })
-            }
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All</option>
-            <option value="NEW">NEW</option>
-            <option value="DECODED">DECODED</option>
-            <option value="PROCESSED">PROCESSED</option>
-            <option value="FAILED">FAILED</option>
-          </select>
+          <div className="relative">
+            <select
+              id="amie-status"
+              value={filters.status}
+              onChange={(e) =>
+                onFiltersChange({
+                  ...filters,
+                  status: e.currentTarget.value as PacketStatus | "all",
+                })
+              }
+              className="appearance-none rounded-md border bg-background pl-3 pr-8 py-1.5 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="NEW">NEW</option>
+              <option value="DECODED">DECODED</option>
+              <option value="PROCESSED">PROCESSED</option>
+              <option value="FAILED">FAILED</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
           <Label htmlFor="amie-type">Type</Label>
-          <select
-            id="amie-type"
-            value={filters.type}
-            onChange={(e) => onFiltersChange({ ...filters, type: e.currentTarget.value })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All types</option>
-            {PACKET_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id="amie-type"
+              value={filters.type}
+              onChange={(e) => onFiltersChange({ ...filters, type: e.currentTarget.value })}
+              className="appearance-none rounded-md border bg-background pl-3 pr-8 py-1.5 text-sm"
+            >
+              <option value="all">All types</option>
+              {PACKET_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
           <Label htmlFor="amie-source">Source</Label>
-          <select
-            id="amie-source"
-            value={filters.source}
-            onChange={(e) => onFiltersChange({ ...filters, source: e.currentTarget.value })}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All sources</option>
-            <option value="access">access</option>
-          </select>
+          <div className="relative">
+            <select
+              id="amie-source"
+              value={filters.source}
+              onChange={(e) => onFiltersChange({ ...filters, source: e.currentTarget.value })}
+              className="appearance-none rounded-md border bg-background pl-3 pr-8 py-1.5 text-sm"
+            >
+              <option value="all">All sources</option>
+              <option value="access">access</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">

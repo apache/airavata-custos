@@ -11,6 +11,7 @@ import {
   StatusBadge,
   statusBadgeVariantFromAllocationStatus,
 } from "@/shared/ui/StatusBadge";
+import { ChevronDown } from "lucide-react";
 import type { AllocationStatus, ComputeAllocation } from "../schemas";
 
 function formatDate(iso: string): string {
@@ -148,19 +149,22 @@ export function AllocationsList({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Search allocations"
-          className="sm:w-72"
+          className="sm:w-72 h-9 rounded-md"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value as AllocationStatus | "all")}
-          aria-label="Filter by status"
-          className="h-9 rounded-md border bg-background px-3 text-sm"
-        >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="DELETED">Deleted</option>
-        </select>
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value as AllocationStatus | "all")}
+            aria-label="Filter by status"
+            className="h-9 appearance-none rounded-md border bg-background pl-3 pr-8 text-sm"
+          >
+            <option value="all">All statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="DELETED">Deleted</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+        </div>
       </div>
 
       {isLoading ? (

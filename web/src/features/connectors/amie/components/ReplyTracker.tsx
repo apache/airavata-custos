@@ -6,6 +6,7 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
+import { ChevronDown } from "lucide-react";
 import type { Reply, ReplyStatus } from "../types";
 import { formatDate } from "../utils";
 import { ReplyStatusBadge } from "./PacketStatusBadge";
@@ -94,18 +95,21 @@ export function ReplyTracker({
       <div className="flex flex-wrap items-end gap-3 rounded-md border bg-card p-4">
         <div className="flex flex-col gap-1">
           <Label htmlFor="reply-status">Status</Label>
-          <select
-            id="reply-status"
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.currentTarget.value as ReplyStatus | "all")}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="all">All</option>
-            <option value="PENDING">PENDING</option>
-            <option value="SENT">SENT</option>
-            <option value="ACKED">ACKED</option>
-            <option value="FAILED">FAILED</option>
-          </select>
+          <div className="relative">
+            <select
+              id="reply-status"
+              value={statusFilter}
+              onChange={(e) => onStatusChange(e.currentTarget.value as ReplyStatus | "all")}
+              className="appearance-none rounded-md border bg-background pl-3 pr-8 py-1.5 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="PENDING">PENDING</option>
+              <option value="SENT">SENT</option>
+              <option value="ACKED">ACKED</option>
+              <option value="FAILED">FAILED</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+          </div>
         </div>
         <p className="ml-auto text-xs text-muted-foreground">
           {total} reply{total === 1 ? "" : "s"} in scope
