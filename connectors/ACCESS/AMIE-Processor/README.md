@@ -40,7 +40,7 @@ export AMIE_SITE_CODE="YOUR_SITE"
 export AMIE_API_KEY="your-api-key"
 ```
 
-The default `config.yaml` works for local development with the Docker Compose MariaDB defaults.
+AMIE reads its config from the `connectors.amie-processor` block in `config/custos.yaml`. The defaults work against the Docker Compose MariaDB.
 
 For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [`mock-server/`](./mock-server/README.md)
 
@@ -50,28 +50,11 @@ export AMIE_SITE_CODE="TESTSITE"
 export AMIE_API_KEY="dev"
 ```
 
-### 3. Build
+### 3. Run
 
-```bash
-cd connectors/ACCESS/AMIE-Processor
-go build -o bin/access-amie .
-```
+AMIE loads in-process via `cmd/server` when the `amie-processor` block in `config/custos.yaml` is enabled. See [INSTALL.md](../../../INSTALL.md) to bring up the server. Once it is running, AMIE starts its poller (every 30s) and event processor (every 5s), and exposes admin routes under `/connectors/amie/*` on the shared API port (default `:8080`).
 
-### 4. Run
-
-```bash
-./bin/access-amie
-```
-
-The service will connect to MariaDB, run migrations automatically, start the HTTP server on port 8083, the AMIE poller (every 30s), and the event processor (every 5s).
-
-### 5. Verify
-
-```bash
-curl http://localhost:8083/health     # Health check (includes AMIE API status)
-curl http://localhost:8083/ready      # Readiness check (DB ping)
-curl http://localhost:8083/metrics    # Prometheus metrics
-```
+There is no standalone AMIE binary. Per-connector binaries are not the deployment model.
 
 ## Testing
 
@@ -80,8 +63,9 @@ Three layers, used for different things:
 ### 1. Unit tests (correctness, no external services)
 
 ```bash
-make test           # all tests, verbose
-make test-short     # short mode
+# from repo root
+go test ./connectors/ACCESS/AMIE-Processor/...
+go test -short ./connectors/ACCESS/AMIE-Processor/...
 ```
 
 Every package under this connector ships unit tests against `testify/mock`. No DB, no AMIE server, no network. Run on every commit.
