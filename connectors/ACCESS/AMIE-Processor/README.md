@@ -21,7 +21,9 @@
 
 ACCESS-CI AMIE packet processing service for Apache Airavata Custos.
 
-This Go service polls the [ACCESS-CI](https://access-ci.org/) AMIE (Account Management Information Exchange) API for allocation packets, processes them through typed handlers, manages person/project/account lifecycle, and replies to AMIE. It is the ACCESS allocation source adapter within the Custos allocations platform.
+AMIE (Account Management Information Exchange) is the protocol [ACCESS-CI](https://access-ci.org/) uses to move allocation, project, and user state between sites. A *packet* is one unit of state in that protocol: a typed message such as "create this project", "merge these two people", or "inactivate this account". This connector polls the AMIE API for packets, dispatches each one to a handler that mutates the matching Custos records (users, projects, allocations), and replies with the corresponding `notify_*` or `inform_*` packet so AMIE knows the work landed.
+
+For domain terms (PI, DN, survivor/retiree, site code, etc.), see the [glossary](../../../docs/glossary.md).
 
 ## Quick Start
 
@@ -53,8 +55,6 @@ export AMIE_API_KEY="dev"
 ### 3. Run
 
 AMIE loads in-process via `cmd/server` when the `amie-processor` block in `config/custos.yaml` is enabled. See [INSTALL.md](../../../INSTALL.md) to bring up the server. Once it is running, AMIE starts its poller (every 30s) and event processor (every 5s), and exposes admin routes under `/connectors/amie/*` on the shared API port (default `:8080`).
-
-There is no standalone AMIE binary. Per-connector binaries are not the deployment model.
 
 ## Testing
 
