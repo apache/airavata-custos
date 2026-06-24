@@ -15,22 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tempaccount
+package server
 
 import (
-	"context"
-	"sync"
+	"net/http"
 
-	"github.com/apache/airavata-custos/connectors/TempAccount/internal"
-	"github.com/apache/airavata-custos/internal/config"
-	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/identity"
-	"github.com/apache/airavata-custos/pkg/service"
-	"github.com/jmoiron/sqlx"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *config.ConnectorConfig) error {
-	handlers := internal.NewHandlers(coreService)
-	handlers.RegisterRoutes(router)
-	return nil
+// withTestCaller installs a *identity.Caller plus a privilege set onto the
+// request context for handler tests that run without the auth middleware.
+func withTestCaller(r *http.Request, userID string, privs ...models.PrivilegeKey) *http.Request {
+	ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: userID})
+	ctx = identity.WithPrivilegesForTest(ctx, privs)
+	return r.WithContext(ctx)
 }

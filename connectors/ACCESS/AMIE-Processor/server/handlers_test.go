@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -46,14 +47,21 @@ func (f *fakePacketAuditStore) ListAuditsForPacket(_ context.Context, packetID s
 func newTestServer(t *testing.T, store *fakePacketAuditStore) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
+	router := identity.NewRouter(mux)
 	var h *Handlers
 	if store == nil {
 		h = NewHandlers(nil, nil)
 	} else {
 		h = NewHandlers(store, nil)
 	}
-	h.RegisterRoutes(mux)
-	srv := httptest.NewServer(mux)
+	h.RegisterRoutes(router)
+	// Attach the caller and required privileges to ctx since the auth middleware isn't running here.
+	wrap := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: "test-user"})
+		ctx = identity.WithPrivilegesForTest(ctx, []models.PrivilegeKey{models.PrivilegeAMIERead, models.PrivilegeAMIEWrite})
+		mux.ServeHTTP(w, r.WithContext(ctx))
+	})
+	srv := httptest.NewServer(wrap)
 	t.Cleanup(srv.Close)
 	return srv
 }

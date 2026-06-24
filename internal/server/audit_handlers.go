@@ -49,7 +49,7 @@ func (s *Server) requireAuditStore(w http.ResponseWriter) (store.AuditTraceStore
 // @Summary	List audit traces with filters
 // @Description	One row per distinct trace_id. `q` matches trace_id hex prefix or root-operation substring.
 // @Tags	Audit
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	source	query	[]string	false	"Restrict to listed sources (repeatable)"	collectionFormat(multi)
 // @Param	status	query	[]string	false	"ok | error | in_progress (repeatable)"	collectionFormat(multi)
@@ -87,7 +87,7 @@ func (s *Server) handleListTraces(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	Get a trace's nested span tree
 // @Tags	Audit
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	trace_id	path	string	true	"32-char lowercase hex"
 // @Success	200	{object}	object{trace_id=string,tree=[]models.TraceNode,truncated=boolean}
@@ -125,7 +125,7 @@ func (s *Server) handleGetTrace(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List audit events for a trace (optionally one span)
 // @Tags	Audit
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	trace_id	query	string	true	"32-char lowercase hex"
 // @Param	span_id	query	string	false	"16-char lowercase hex"
@@ -165,7 +165,7 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 
 // @Summary	List distinct audit-event sources
 // @Tags	Audit
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{object}	object{sources=[]string}
 // @Failure	503	{object}	object{error=string}	"Audit trace store not configured"

@@ -20,7 +20,6 @@ package connectors
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"sync"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
@@ -30,14 +29,15 @@ import (
 	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
-func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, mux *http.ServeMux) error {
+func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, router *identity.Router) error {
 	slog.Info("loading connectors from config")
 
-	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *http.ServeMux, *config.ConnectorConfig) error{
+	connectorLoaders := map[string]func(context.Context, *sqlx.DB, *events.Bus, *service.Service, *sync.WaitGroup, *identity.Router, *config.ConnectorConfig) error{
 		"slurm-association-mapper":      smapper.LoadConnector,
 		"amie-processor":                amie.LoadConnector,
 		"comanage-identity-provisioner": comanage.LoadConnector,
@@ -63,7 +63,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		}
 
 		slog.Info("loading connector", "name", connectorName, "type", connectorCfg.Type)
-		if err := loader(ctx, database, eventBus, coreService, wg, mux, connectorCfg); err != nil {
+		if err := loader(ctx, database, eventBus, coreService, wg, router, connectorCfg); err != nil {
 			slog.Error("failed to load connector", "name", connectorName, "type", connectorCfg.Type, "error", err)
 			return err
 		}

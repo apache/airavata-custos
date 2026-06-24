@@ -38,7 +38,8 @@ INSERT IGNORE INTO organizations (id, originated_id, name)
 VALUES ('dev-org', 'DEV-ORG', 'Custos Dev Org');
 
 -- ---------------------------------------------------------------------------
--- Users (deterministic IDs so callers can paste them into the X-Custos-User-Id header)
+-- Users (deterministic IDs so the portal dev-credentials provider can map each
+-- dev level to a known backend user; OIDC mode resolves sub via user_identities)
 -- ---------------------------------------------------------------------------
 INSERT IGNORE INTO users (id, organization_id, first_name, last_name, middle_name, email, status)
 VALUES

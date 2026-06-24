@@ -149,7 +149,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List AMIE packets
       tags:
       - AMIE Packets
@@ -183,7 +183,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Get an AMIE packet by ID
       tags:
       - AMIE Packets
@@ -212,7 +212,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List processing events for an AMIE packet
       tags:
       - AMIE Packets
@@ -237,7 +237,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Resolve an AMIE packet (not yet implemented)
       tags:
       - AMIE Packets
@@ -262,7 +262,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Retry an AMIE packet (not yet implemented)
       tags:
       - AMIE Packets
@@ -329,7 +329,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List audit events for an AMIE packet
       tags:
       - AMIE Audit
@@ -352,7 +352,7 @@ paths:
           schema:
             $ref: '#/definitions/ReplyListResponse'
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List replies sent to AMIE
       tags:
       - AMIE Replies
@@ -377,7 +377,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Retry an AMIE reply (not yet implemented)
       tags:
       - AMIE Replies
@@ -403,7 +403,7 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Per-day packet stats grouped by status and type
       tags:
       - AMIE Stats
@@ -426,7 +426,7 @@ paths:
           schema:
             $ref: '#/definitions/PacketListResponse'
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: List AMIE packets that could not be mapped to a Custos entity
       tags:
       - AMIE Unmapped
@@ -451,13 +451,13 @@ paths:
                 type: string
             type: object
       security:
-      - CustosUserHeader: []
+      - BearerAuth: []
       summary: Link an unmapped packet to a Custos entity (not yet implemented)
       tags:
       - AMIE Unmapped
 securityDefinitions:
-  CustosUserHeader:
+  BearerAuth:
     in: header
-    name: X-Custos-User-Id
+    name: Authorization
     type: apiKey
 swagger: "2.0"

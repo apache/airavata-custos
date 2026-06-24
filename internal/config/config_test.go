@@ -19,11 +19,24 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// writeTempYAML writes contents to a temp file and returns its path.
+func writeTempYAML(t *testing.T, contents string) string {
+	t.Helper()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "custos.yaml")
+	if err := os.WriteFile(p, []byte(contents), 0o600); err != nil {
+		t.Fatalf("write temp yaml: %v", err)
+	}
+	return p
+}
 
 func TestLoadConfig(t *testing.T) {
 	cfg, err := LoadConfig("../../config/custos.yaml")
@@ -99,4 +112,86 @@ func TestConnectorConfigGetters(t *testing.T) {
 			assert.NotNil(t, nested)
 		}
 	})
+}
+
+func TestLoadConfig_AuthDefaults(t *testing.T) {
+	cfg, err := LoadConfig("../../config/custos.yaml")
+	require.NoError(t, err)
+
+	assert.Equal(t, 30*time.Second, cfg.Core.Auth.CacheTTL)
+	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Issuer, "issuer should not be empty (env-unset stays as ${...} literal)")
+	assert.NotEmpty(t, cfg.Core.Auth.OIDC.Audience)
+}
+
+func TestLoadConfig_AuthRejectsEmptyIssuer(t *testing.T) {
+	yaml := `core:
+  database:
+    url: "dsn"
+  api:
+    port: 8080
+  log_level: "info"
+  auth:
+    oidc:
+      issuer: ""
+      audience: "aud"
+`
+	_, err := LoadConfig(writeTempYAML(t, yaml))
+	if err == nil {
+		t.Fatal("expected error for empty issuer, got nil")
+	}
+	assert.Contains(t, err.Error(), "core.auth.oidc.issuer")
+}
+
+func TestLoadConfig_AuthRejectsEmptyAudience(t *testing.T) {
+	yaml := `core:
+  database:
+    url: "dsn"
+  api:
+    port: 8080
+  log_level: "info"
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: ""
+`
+	_, err := LoadConfig(writeTempYAML(t, yaml))
+	if err == nil {
+		t.Fatal("expected error for empty audience, got nil")
+	}
+	assert.Contains(t, err.Error(), "core.auth.oidc.audience")
+}
+
+func TestLoadConfig_AuthClampsTTLAboveMax(t *testing.T) {
+	yaml := `core:
+  database:
+    url: "dsn"
+  api:
+    port: 8080
+  log_level: "info"
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: "aud"
+    cache_ttl: "5m"
+`
+	cfg, err := LoadConfig(writeTempYAML(t, yaml))
+	require.NoError(t, err)
+	assert.Equal(t, IdentityCacheMaxTTL, cfg.Core.Auth.CacheTTL)
+}
+
+func TestLoadConfig_AuthDefaultsTTLWhenZero(t *testing.T) {
+	yaml := `core:
+  database:
+    url: "dsn"
+  api:
+    port: 8080
+  log_level: "info"
+  auth:
+    oidc:
+      issuer: "https://idp.example"
+      audience: "aud"
+`
+	cfg, err := LoadConfig(writeTempYAML(t, yaml))
+	require.NoError(t, err)
+	assert.Equal(t, IdentityCacheDefaultTTL, cfg.Core.Auth.CacheTTL)
 }

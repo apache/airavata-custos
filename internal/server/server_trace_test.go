@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"github.com/apache/airavata-custos/internal/tracing"
+	"github.com/apache/airavata-custos/pkg/identity"
 )
 
 // TestLoggingWrapsTracingProducesTraceIdHeader verifies the cmd/server stack
@@ -39,7 +40,8 @@ func TestLoggingWrapsTracingProducesTraceIdHeader(t *testing.T) {
 	otel.SetTracerProvider(tp)
 	t.Cleanup(func() { otel.SetTracerProvider(prev) })
 
-	handler := LoggingMiddleware(tracing.Middleware(New(nil, nil)))
+	router := identity.NewRouter(http.NewServeMux())
+	handler := LoggingMiddleware(tracing.Middleware(New(nil, router, nil)))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

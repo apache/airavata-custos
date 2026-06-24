@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/internal/store"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -85,9 +86,16 @@ func mustHexTraceID(t *testing.T) string {
 	return strings.Repeat("ab", 16)
 }
 
+// newAuditServer boots an httptest.Server around the audit handlers with a
+// fake AuditTraceStore. svc is nil, audit handlers don't reach into *Service.
 func newAuditServer(t *testing.T, deps *AdminDeps) *httptest.Server {
 	t.Helper()
-	srv := httptest.NewServer(New(nil, deps))
+	router := identity.NewRouter(http.NewServeMux())
+	inner := New(nil, router, deps)
+	wrap := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		inner.ServeHTTP(w, withTestCaller(r, "test-user"))
+	})
+	srv := httptest.NewServer(wrap)
 	t.Cleanup(srv.Close)
 	return srv
 }

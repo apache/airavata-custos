@@ -24,7 +24,6 @@ package amie
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -45,6 +44,7 @@ import (
 	corestore "github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	coreservice "github.com/apache/airavata-custos/pkg/service"
 )
 
@@ -63,10 +63,11 @@ const connectorName = "amie"
 // @description	REST endpoints for the ACCESS-CI AMIE connector, all under /connectors/amie/.
 // @host	localhost:8080
 // @BasePath	/
-// @securityDefinitions.apikey	CustosUserHeader
+// @securityDefinitions.apikey	BearerAuth
 // @in	header
-// @name	X-Custos-User-Id
-func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, mux *http.ServeMux, connectorConfig *custosconfig.ConnectorConfig) error {
+// @name	Authorization
+// @description.BearerAuth	OIDC bearer token. Header value: `Bearer <jwt>`.
+func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus, coreService *coreservice.Service, wg *sync.WaitGroup, router *identity.Router, connectorConfig *custosconfig.ConnectorConfig) error {
 	cfg := loadConfig(connectorConfig)
 	if cfg.APIKey == "" || cfg.BaseURL == "" || cfg.SiteCode == "" {
 		slog.Warn("AMIE credentials not fully provided, skipping AMIE connector")
@@ -85,8 +86,8 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 	userDNStore := store.NewUserDNStore(database)
 	auditSvc := service.NewAuditService(corestore.NewAuditEventStore(database), auditExtras)
 	packetAuditStore := store.NewPacketAuditStore(database)
-	if mux != nil {
-		amieserver.NewHandlers(packetAuditStore, packetStore).RegisterRoutes(mux)
+	if router != nil {
+		amieserver.NewHandlers(packetAuditStore, packetStore).RegisterRoutes(router)
 	}
 
 	// One AMIE site is tied to one downstream cluster by protocol, so cluster
@@ -98,7 +99,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	amie := amieclient.New(cfg)
 
-	router := handler.NewRouter(
+	dispatcher := handler.NewRouter(
 		handler.NewRequestProjectCreateHandler(coreService, clusterID, amie, auditSvc),
 		handler.NewRequestAccountCreateHandler(coreService, clusterID, amie, auditSvc),
 		handler.NewRequestProjectInactivateHandler(coreService, amie, auditSvc),
@@ -115,7 +116,7 @@ func LoadConnector(ctx context.Context, database *sqlx.DB, eventBus *events.Bus,
 
 	met := metrics.New()
 	poller := worker.NewPoller(amie, packetStore, eventStore, met, database, cfg)
-	processor := worker.NewProcessor(eventStore, packetStore, errorStore, router, met, auditSvc, database, cfg)
+	processor := worker.NewProcessor(eventStore, packetStore, errorStore, dispatcher, met, auditSvc, database, cfg)
 
 	wg.Add(2)
 	go func() {

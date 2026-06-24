@@ -22,42 +22,35 @@ import (
 	"net/http"
 
 	"github.com/apache/airavata-custos/pkg/common"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // @Summary	Get caller's effective privileges
 // @Description	Effective set is direct grants UNION every privilege carried by every role the caller holds.
 // @Tags	Caller
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{object}	object{privileges=[]models.PrivilegeKey}	"Effective privilege set"
-// @Failure	401	{object}	object{error=string}	"Missing X-Custos-User-Id header"
-// @Failure	503	{object}	object{error=string}	"Auth lookup failed"
+// @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
 // @Router	/user/privileges [get]
 func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
-	callerID := r.Header.Get(callerHeader)
-	if callerID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	if requireCaller(w, r) == nil {
 		return
 	}
-	profile, err := s.lookupAuthProfile(r.Context(), callerID)
-	if err != nil {
-		common.WriteError(w, http.StatusServiceUnavailable, errors.New("auth lookup failed"))
-		return
-	}
-	keys := make([]models.PrivilegeKey, 0, len(profile.privileges))
-	for k := range profile.privileges {
-		keys = append(keys, k)
+	keys := identity.PrivilegesFromContext(r.Context())
+	if keys == nil {
+		keys = []models.PrivilegeKey{}
 	}
 	common.WriteJSON(w, http.StatusOK, map[string]any{"privileges": keys})
 }
 
 // @Summary	List the declared privilege catalog
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Success	200	{array}	models.PrivilegeKey
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Missing or invalid bearer token"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Router	/privileges/catalog [get]
 func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
@@ -67,7 +60,7 @@ func (s *Server) getPrivilegeCatalog(w http.ResponseWriter, _ *http.Request) {
 // @Summary	List a user's direct privilege grants
 // @Description	Returns DIRECT grants only (not role-derived). Combine with `GET /users/{id}/roles` for the full picture.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Success	200	{array}	models.UserPrivilege
@@ -91,7 +84,7 @@ func (s *Server) listUserPrivileges(w http.ResponseWriter, r *http.Request) {
 // @Summary	List direct holders of a privilege
 // @Description	Role-derived holders are NOT listed here.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Produce	json
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Success	200	{array}	models.UserPrivilege
@@ -118,14 +111,14 @@ type grantPrivilegeRequest struct {
 
 // @Summary	Grant a direct privilege to a user
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Produce	json
 // @Param	id	path	string	true	"User ID"
 // @Param	request	body	grantPrivilegeRequest	true	"Grant payload"
 // @Success	201	{object}	models.UserPrivilege
 // @Failure	400	{object}	object{error=string}	"Bad request"
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Missing or invalid bearer token"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Failure	409	{object}	object{error=string}	"Privilege already active for user"
 // @Router	/users/{id}/privileges [post]
@@ -135,9 +128,8 @@ func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-	granterID := r.Header.Get(callerHeader)
-	if granterID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req grantPrivilegeRequest
@@ -145,12 +137,12 @@ func (s *Server) grantPrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	grant, err := s.svc.GrantPrivilege(r.Context(), userID, req.Privilege, granterID, req.Reason)
+	grant, err := s.svc.GrantPrivilege(r.Context(), userID, req.Privilege, caller.UserID, req.Reason)
 	if err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidate(userID)
+	s.svc.InvalidateAllIdentities()
 	common.WriteJSON(w, http.StatusCreated, grant)
 }
 
@@ -161,14 +153,14 @@ type revokePrivilegeRequest struct {
 // @Summary	Revoke a direct privilege from a user
 // @Description	`privileges:grant` itself cannot be self-revoked or revoked from the last holder.
 // @Tags	Privileges
-// @Security	CustosUserHeader
+// @Security	BearerAuth
 // @Accept	json
 // @Param	id	path	string	true	"User ID"
 // @Param	key	path	models.PrivilegeKey	true	"Privilege key"
 // @Param	request	body	revokePrivilegeRequest	false	"Optional reason"
 // @Success	204	"No Content"
 // @Failure	400	{object}	object{error=string}	"Self-revoke meta, last-holder, or unknown key"
-// @Failure	401	{object}	object{error=string}	"Missing caller header"
+// @Failure	401	{object}	object{error=string}	"Missing or invalid bearer token"
 // @Failure	403	{object}	object{error=string}	"Caller lacks privileges:grant"
 // @Failure	404	{object}	object{error=string}	"No active grant for that key"
 // @Router	/users/{id}/privileges/{key} [delete]
@@ -179,18 +171,16 @@ func (s *Server) revokePrivilege(w http.ResponseWriter, r *http.Request) {
 		common.WriteError(w, http.StatusBadRequest, errors.New("user id and privilege key are required"))
 		return
 	}
-	revokerID := r.Header.Get(callerHeader)
-	if revokerID == "" {
-		common.WriteError(w, http.StatusUnauthorized, errors.New("missing "+callerHeader+" header"))
+	caller := requireCaller(w, r)
+	if caller == nil {
 		return
 	}
 	var req revokePrivilegeRequest
 	_ = common.DecodeJSON(r, &req)
-	if err := s.svc.RevokePrivilege(r.Context(), userID, key, revokerID, req.Reason); err != nil {
+	if err := s.svc.RevokePrivilege(r.Context(), userID, key, caller.UserID, req.Reason); err != nil {
 		common.WriteServiceError(w, err)
 		return
 	}
-	s.authCache.invalidate(userID)
-	s.authCache.invalidate(revokerID)
+	s.svc.InvalidateAllIdentities()
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/apache/airavata-custos/pkg/common"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -34,13 +35,14 @@ func NewHandlers(coreService *service.Service) *Handlers {
 	return &Handlers{coreService: coreService}
 }
 
-// RegisterRoutes attaches the TempAccount connector's HTTP endpoints to mux.
-func (h *Handlers) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/connectors/temp-account/create", h.createTempAccount)
-	mux.HandleFunc("/connectors/temp-account/assign-allocation", h.assignAllocationToTempAccount)
-	mux.HandleFunc("/connectors/temp-account/update-allocation", h.updateAllocationToTempAccount)
-	mux.HandleFunc("/connectors/temp-account/remove/{user_id}", h.removeTempAccount)
-	mux.HandleFunc("/connectors/temp-account/membership/{user_id}", h.getAllocationMembershipForTempUser)
+// RegisterRoutes attaches the TempAccount connector's HTTP endpoints to router.
+// TODO(auth) - introduce sepecific privileges and switch to router.RequirePrivilege.
+func (h *Handlers) RegisterRoutes(router *identity.Router) {
+	router.RequireAuth("POST /connectors/temp-account/create", h.createTempAccount)
+	router.RequireAuth("POST /connectors/temp-account/assign-allocation", h.assignAllocationToTempAccount)
+	router.RequireAuth("POST /connectors/temp-account/update-allocation", h.updateAllocationToTempAccount)
+	router.RequireAuth("DELETE /connectors/temp-account/remove/{user_id}", h.removeTempAccount)
+	router.RequireAuth("GET /connectors/temp-account/membership/{user_id}", h.getAllocationMembershipForTempUser)
 }
 
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {

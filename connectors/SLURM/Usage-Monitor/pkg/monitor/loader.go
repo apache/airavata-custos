@@ -3,7 +3,6 @@ package monitor
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 	"sync"
 
@@ -11,11 +10,12 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/internal/smonitor"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 	"github.com/jmoiron/sqlx"
 )
 
-func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion, clusterID string

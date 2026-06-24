@@ -3,7 +3,6 @@ package smapper
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 	"sync"
 
@@ -13,10 +12,11 @@ import (
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *http.ServeMux, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion string
