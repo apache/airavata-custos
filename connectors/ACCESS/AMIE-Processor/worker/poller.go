@@ -171,17 +171,11 @@ func (p *Poller) processIndividualPacket(ctx context.Context, packetNode map[str
 
 		// Create processing event.
 		eventID := uuid.NewString()
-		payload, err := CreateDecodeStartedEvent(eventID, newPacket.ID, amiePacketRecID)
-		if err != nil {
-			return fmt.Errorf("create protobuf payload: %w", err)
-		}
-
 		event := &model.ProcessingEvent{
 			ID:        eventID,
 			PacketID:  newPacket.ID,
 			Type:      model.EventTypeDecodePacket,
 			Status:    model.ProcessingStatusNew,
-			Payload:   payload,
 			CreatedAt: now,
 		}
 		if err := p.eventStore.Save(ctx, tx, event); err != nil {

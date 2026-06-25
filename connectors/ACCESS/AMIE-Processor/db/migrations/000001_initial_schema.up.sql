@@ -43,7 +43,6 @@ CREATE TABLE IF NOT EXISTS amie_processing_events
     type          VARCHAR(64)  NOT NULL,
     status        VARCHAR(32)  NOT NULL,
     attempts      INT          NOT NULL DEFAULT 0,
-    payload       LONGBLOB     NOT NULL,
     created_at    TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     started_at    TIMESTAMP(6) NULL,
     finished_at   TIMESTAMP(6) NULL,

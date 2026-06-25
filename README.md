@@ -61,7 +61,6 @@ The shape generalizes: a new connector that needs to record connector-specific r
 
 * Go 1.24+
 * Docker and Docker Compose
-* `protoc` and `protoc-gen-go` (only needed when regenerating proto sources)
 
 ## Quick Start
 

@@ -45,7 +45,7 @@ func NewEventStore(db *sqlx.DB) EventStore {
 func (s *mariaDBEventStore) FindByID(ctx context.Context, id string) (*model.ProcessingEvent, error) {
 	var e model.ProcessingEvent
 	err := s.db.GetContext(ctx, &e,
-		`SELECT id, packet_id, type, status, attempts, payload, created_at, started_at, finished_at, last_error, next_retry_at
+		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
 		 FROM amie_processing_events WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -57,7 +57,7 @@ func (s *mariaDBEventStore) FindByID(ctx context.Context, id string) (*model.Pro
 }
 
 func (s *mariaDBEventStore) FindTop50EventsToProcess(ctx context.Context, statuses []model.ProcessingStatus, now time.Time) ([]model.EventWithPacket, error) {
-	query := `SELECT e.id, e.packet_id, e.type, e.status, e.attempts, e.payload, e.created_at, e.started_at, e.finished_at, e.last_error, e.next_retry_at,
+	query := `SELECT e.id, e.packet_id, e.type, e.status, e.attempts, e.created_at, e.started_at, e.finished_at, e.last_error, e.next_retry_at,
 	                  p.amie_id AS packet_amie_id, p.type AS packet_type, p.raw_json AS packet_raw_json
 	           FROM amie_processing_events e
 	           JOIN amie_packets p ON e.packet_id = p.id
@@ -84,9 +84,9 @@ func (s *mariaDBEventStore) FindTop50EventsToProcess(ctx context.Context, status
 
 func (s *mariaDBEventStore) Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, payload, created_at, started_at, finished_at, last_error, next_retry_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		e.ID, e.PacketID, e.Type, e.Status, e.Attempts, e.Payload,
+		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		e.ID, e.PacketID, e.Type, e.Status, e.Attempts,
 		e.CreatedAt, e.StartedAt, e.FinishedAt,
 		e.LastError, e.NextRetryAt)
 	return err
@@ -94,9 +94,9 @@ func (s *mariaDBEventStore) Save(ctx context.Context, tx *sql.Tx, e *model.Proce
 
 func (s *mariaDBEventStore) Update(ctx context.Context, tx *sql.Tx, e *model.ProcessingEvent) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE amie_processing_events SET status = ?, attempts = ?, payload = ?, started_at = ?, finished_at = ?, last_error = ?, next_retry_at = ?
+		`UPDATE amie_processing_events SET status = ?, attempts = ?, started_at = ?, finished_at = ?, last_error = ?, next_retry_at = ?
 		 WHERE id = ?`,
-		e.Status, e.Attempts, e.Payload,
+		e.Status, e.Attempts,
 		e.StartedAt, e.FinishedAt,
 		e.LastError, e.NextRetryAt, e.ID)
 	return err
