@@ -451,7 +451,7 @@ type UserPrivilegeStore interface {
 	// ListByPrivilege returns every active holder of the given privilege.
 	ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
 	// CountByPrivilege returns the number of active holders inside a tx.
-	// Used to enforce the last-meta-holder guard when revoking PrivilegeGrant.
+	// Used to enforce the last-meta-holder guard when revoking PrivilegesGrant.
 	CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
 	// Create inserts a new grant inside the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error

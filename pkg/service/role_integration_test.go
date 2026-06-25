@@ -33,7 +33,7 @@ func TestCreateRole_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 
 	role, err := svc.CreateRole(ctx(), "operator", "view AMIE + HPC", actor)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestCreateRole_RejectsDuplicateName(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	if _, err := svc.CreateRole(ctx(), "operator", "", actor); err != nil {
 		t.Fatalf("first: %v", err)
 	}
@@ -76,21 +76,21 @@ func TestAddPrivilegeToRole_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	role, err := svc.CreateRole(ctx(), "amie-viewer", "", actor)
 	if err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, actor); err != nil {
 		t.Fatalf("AddPrivilegeToRole: %v", err)
 	}
 	keys, err := svc.ListRolePrivileges(ctx(), role.ID)
 	if err != nil {
 		t.Fatalf("ListRolePrivileges: %v", err)
 	}
-	if len(keys) != 1 || keys[0] != models.PrivilegeHPCRead {
-		t.Errorf("role privileges: got %v, want [hpc:read]", keys)
+	if len(keys) != 1 || keys[0] != models.ClustersRead {
+		t.Errorf("role privileges: got %v, update [core:clusters:read]", keys)
 	}
 	if got := countAuditEventsOfType(t, database, "ROLE_PRIVILEGE_ADDED", role.ID); got != 1 {
 		t.Errorf("audit ROLE_PRIVILEGE_ADDED: got %d, want 1", got)
@@ -101,12 +101,12 @@ func TestAddPrivilegeToRole_RejectsDuplicate(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", actor)
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, actor); err != nil {
 		t.Fatalf("first add: %v", err)
 	}
-	err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor)
+	err := svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, actor)
 	if !errors.Is(err, ErrAlreadyExists) {
 		t.Errorf("expected ErrAlreadyExists, got %v", err)
 	}
@@ -116,11 +116,11 @@ func TestRemovePrivilegeFromRole_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", actor)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, actor)
 
-	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
+	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.ClustersRead, actor); err != nil {
 		t.Fatalf("RemovePrivilegeFromRole: %v", err)
 	}
 	keys, _ := svc.ListRolePrivileges(ctx(), role.ID)
@@ -133,13 +133,13 @@ func TestRemovePrivilegeFromRole_RejectsRemovingLastMetaSource(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "controllers", "", actor)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeGrant, actor)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegesGrant, actor)
 	// `actor`'s privileges:grant is via direct seed; the role we just added it
 	// to is the ONLY role carrying it. Removing from the role would leave 0
 	// roles carrying privileges:grant — guard refuses.
-	err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeGrant, actor)
+	err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegesGrant, actor)
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Errorf("expected ErrInvalidInput (last source), got %v", err)
 	}
@@ -149,7 +149,7 @@ func TestDeleteRole_HappyPath(t *testing.T) {
 	database := setupTestDB(t)
 	svc := newTestService(database)
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, actor, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "tmp", "", actor)
 	if err := svc.DeleteRole(ctx(), role.ID, actor); err != nil {
 		t.Fatalf("DeleteRole: %v", err)

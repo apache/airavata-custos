@@ -20,10 +20,18 @@ package server
 import "github.com/apache/airavata-custos/pkg/models"
 
 const (
-	AMIERead  models.PrivilegeKey = "amie:read"
-	AMIEWrite models.PrivilegeKey = "amie:write"
+	PacketsRead   models.PrivilegeKey = "amie:packets:read"
+	PacketsWrite  models.PrivilegeKey = "amie:packets:write"
+	RepliesRead   models.PrivilegeKey = "amie:replies:read"
+	RepliesWrite  models.PrivilegeKey = "amie:replies:write"
+	UnmappedRead  models.PrivilegeKey = "amie:unmapped:read"
+	UnmappedWrite models.PrivilegeKey = "amie:unmapped:write"
 )
 
 func init() {
-	models.Register(AMIERead, AMIEWrite)
+	models.Register(
+		PacketsRead, PacketsWrite,
+		RepliesRead, RepliesWrite,
+		UnmappedRead, UnmappedWrite,
+	)
 }

@@ -296,16 +296,16 @@ definitions:
     type: object
   PrivilegeKey:
     enum:
-    - hpc:read
-    - hpc:write
-    - privileges:grant
-    - roles:manage
+    - core:clusters:read
+    - core:clusters:write
+    - core:privileges:grant
+    - core:roles:manage
     type: string
     x-enum-varnames:
-    - PrivilegeHPCRead
-    - PrivilegeHPCWrite
-    - PrivilegeGrant
-    - PrivilegeRolesManage
+    - ClustersRead
+    - ClustersWrite
+    - PrivilegesGrant
+    - RolesManage
   Project:
     properties:
       created_time:
@@ -2626,10 +2626,10 @@ paths:
       parameters:
       - description: Privilege key
         enum:
-        - hpc:read
-        - hpc:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3124,10 +3124,10 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - hpc:read
-        - hpc:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3648,10 +3648,10 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - hpc:read
-        - hpc:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true

@@ -51,7 +51,7 @@ func (s *Service) GrantRoleToUser(ctx context.Context, userID, roleID, granterID
 		Reason:    stringPtrOrNil(reason),
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, granterID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, granterID, models.RolesManage); err != nil {
 			return err
 		}
 		role, err := s.roles.FindByID(ctx, roleID)
@@ -96,7 +96,7 @@ func (s *Service) RevokeRoleFromUser(ctx context.Context, userID, roleID, revoke
 		return fmt.Errorf("%w: revoker_id is required", ErrInvalidInput)
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, revokerID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, revokerID, models.RolesManage); err != nil {
 			return err
 		}
 		role, err := s.roles.FindByID(ctx, roleID)
@@ -219,7 +219,7 @@ func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*mode
 			return nil, fmt.Errorf("create super_admin role: %w", err)
 		}
 	}
-	for _, key := range []models.PrivilegeKey{models.PrivilegeGrant, models.PrivilegeRolesManage} {
+	for _, key := range []models.PrivilegeKey{models.PrivilegesGrant, models.RolesManage} {
 		has, err := s.roles.HasPrivilege(ctx, tx, role.ID, key)
 		if err != nil {
 			return nil, fmt.Errorf("check super_admin privilege %s: %w", key, err)
@@ -236,7 +236,7 @@ func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*mode
 // assertNotLastMetaHolderTx refuses revoke if it would leave no holder of
 // privileges:grant or roles:manage anywhere in the system.
 func (s *Service) assertNotLastMetaHolderTx(ctx context.Context, tx *sql.Tx, userID, roleID string) error {
-	for _, key := range []models.PrivilegeKey{models.PrivilegeGrant, models.PrivilegeRolesManage} {
+	for _, key := range []models.PrivilegeKey{models.PrivilegesGrant, models.RolesManage} {
 		rolePrivs, err := s.roles.ListPrivileges(ctx, roleID)
 		if err != nil {
 			return fmt.Errorf("list role privileges: %w", err)

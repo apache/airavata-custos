@@ -55,20 +55,25 @@ VALUES
 INSERT IGNORE INTO roles (id, name, description, is_system)
 VALUES
     ('11111111-1111-1111-1111-111111111111', 'operator', 'Day-to-day AMIE and HPC operations (read + write)', 0),
-    ('22222222-2222-2222-2222-222222222222', 'auditor', 'Read-only access across AMIE, HPC, and signer surfaces', 0);
+    ('22222222-2222-2222-2222-222222222222', 'auditor', 'Read-only access across AMIE and HPC surfaces', 0);
 
 -- operator privileges
 INSERT IGNORE INTO role_privileges (role_id, privilege) VALUES
-    ('11111111-1111-1111-1111-111111111111', 'amie:read'),
-    ('11111111-1111-1111-1111-111111111111', 'amie:write'),
-    ('11111111-1111-1111-1111-111111111111', 'hpc:read'),
-    ('11111111-1111-1111-1111-111111111111', 'hpc:write');
+    ('11111111-1111-1111-1111-111111111111', 'amie:packets:read'),
+    ('11111111-1111-1111-1111-111111111111', 'amie:packets:write'),
+    ('11111111-1111-1111-1111-111111111111', 'amie:replies:read'),
+    ('11111111-1111-1111-1111-111111111111', 'amie:replies:write'),
+    ('11111111-1111-1111-1111-111111111111', 'amie:unmapped:read'),
+    ('11111111-1111-1111-1111-111111111111', 'amie:unmapped:write'),
+    ('11111111-1111-1111-1111-111111111111', 'core:clusters:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:clusters:write');
 
 -- auditor privileges
 INSERT IGNORE INTO role_privileges (role_id, privilege) VALUES
-    ('22222222-2222-2222-2222-222222222222', 'amie:read'),
-    ('22222222-2222-2222-2222-222222222222', 'hpc:read'),
-    ('22222222-2222-2222-2222-222222222222', 'signer:read');
+    ('22222222-2222-2222-2222-222222222222', 'amie:packets:read'),
+    ('22222222-2222-2222-2222-222222222222', 'amie:replies:read'),
+    ('22222222-2222-2222-2222-222222222222', 'amie:unmapped:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:clusters:read');
 
 -- ---------------------------------------------------------------------------
 -- Role assignments

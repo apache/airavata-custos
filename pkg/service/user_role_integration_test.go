@@ -31,15 +31,15 @@ func TestGrantRoleToUser_HappyPath(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, "ops"); err != nil {
 		t.Fatalf("GrantRoleToUser: %v", err)
 	}
 	// target should now have hpc:read via the role
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || !has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || !has {
 		t.Errorf("HasPrivilege hpc:read via role: has=%v err=%v", has, err)
 	}
 }
@@ -49,7 +49,7 @@ func TestGrantRoleToUser_RejectsDuplicate(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "viewer", "", granter)
 
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
@@ -66,16 +66,16 @@ func TestRevokeRoleFromUser_HappyPath(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	if err := svc.RevokeRoleFromUser(ctx(), target, role.ID, granter, "rotated"); err != nil {
 		t.Fatalf("RevokeRoleFromUser: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || has {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
@@ -108,21 +108,21 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
-	seedPrivilege(t, database, granter, models.PrivilegeGrant)
+	seedPrivilege(t, database, granter, models.RolesManage)
+	seedPrivilege(t, database, granter, models.PrivilegesGrant)
 
 	// Grant direct hpc:write
-	if _, err := svc.GrantPrivilege(ctx(), target, models.PrivilegeHPCWrite, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(ctx(), target, models.ClustersWrite, granter, ""); err != nil {
 		t.Fatalf("direct grant: %v", err)
 	}
 	// Grant role with hpc:read
 	role, _ := svc.CreateRole(ctx(), "hpc-viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("role grant: %v", err)
 	}
 	// Target should have BOTH hpc:write (direct) and hpc:read (via role)
-	for _, key := range []models.PrivilegeKey{models.PrivilegeHPCWrite, models.PrivilegeHPCRead} {
+	for _, key := range []models.PrivilegeKey{models.ClustersWrite, models.ClustersRead} {
 		has, err := svc.HasPrivilege(ctx(), target, key)
 		if err != nil || !has {
 			t.Errorf("HasPrivilege %s: has=%v err=%v", key, has, err)
@@ -137,7 +137,7 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	for _, k := range keys {
 		seen[k] = true
 	}
-	if !seen[models.PrivilegeHPCWrite] || !seen[models.PrivilegeHPCRead] {
+	if !seen[models.ClustersWrite] || !seen[models.ClustersRead] {
 		t.Errorf("effective set missing keys: %v", keys)
 	}
 }
@@ -147,27 +147,27 @@ func TestUpdateRolePrivileges_PropagatesToHolders(t *testing.T) {
 	svc := newTestService(database)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
+	seedPrivilege(t, database, granter, models.RolesManage)
 	role, _ := svc.CreateRole(ctx(), "evolving", "", granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("grant role: %v", err)
 	}
 	// Target holds the role but no privilege yet.
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || has {
 		t.Errorf("pre-add HasPrivilege: has=%v err=%v", has, err)
 	}
 	// Add a privilege to the role — target should gain it transparently.
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
 		t.Fatalf("add: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || !has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || !has {
 		t.Errorf("post-add HasPrivilege: has=%v err=%v", has, err)
 	}
 	// Remove it — target loses it transparently.
-	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeHPCRead, granter); err != nil {
+	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.ClustersRead, granter); err != nil {
 		t.Fatalf("remove: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.ClustersRead); err != nil || has {
 		t.Errorf("post-remove HasPrivilege: has=%v err=%v", has, err)
 	}
 }
@@ -177,7 +177,7 @@ func TestRolesManageRequiredForRoleOps(t *testing.T) {
 	svc := newTestService(database)
 	// Actor has privileges:grant but NOT roles:manage — role ops must refuse.
 	actor := seedUser(t, database, "actor@example.edu")
-	seedPrivilege(t, database, actor, models.PrivilegeGrant)
+	seedPrivilege(t, database, actor, models.PrivilegesGrant)
 
 	_, err := svc.CreateRole(ctx(), "x", "", actor)
 	if !errors.Is(err, ErrInvalidInput) {

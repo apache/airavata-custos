@@ -49,7 +49,7 @@ func (s *Service) CreateRole(ctx context.Context, name, description, actorID str
 		IsSystem:    false,
 	}
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.RolesManage); err != nil {
 			return err
 		}
 		if existing, err := s.roles.FindByName(ctx, name); err != nil {
@@ -81,7 +81,7 @@ func (s *Service) UpdateRole(ctx context.Context, roleID, name, description, act
 	}
 	var updated *models.Role
 	if err := s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.RolesManage); err != nil {
 			return err
 		}
 		existing, err := s.roles.FindByID(ctx, roleID)
@@ -124,7 +124,7 @@ func (s *Service) DeleteRole(ctx context.Context, roleID, actorID string) error 
 		return fmt.Errorf("%w: actor_id is required", ErrInvalidInput)
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.RolesManage); err != nil {
 			return err
 		}
 		existing, err := s.roles.FindByID(ctx, roleID)
@@ -182,7 +182,7 @@ func (s *Service) AddPrivilegeToRole(ctx context.Context, roleID string, privile
 		return fmt.Errorf("%w: actor_id is required", ErrInvalidInput)
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.RolesManage); err != nil {
 			return err
 		}
 		existing, err := s.roles.FindByID(ctx, roleID)
@@ -224,7 +224,7 @@ func (s *Service) RemovePrivilegeFromRole(ctx context.Context, roleID string, pr
 		return fmt.Errorf("%w: actor_id is required", ErrInvalidInput)
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
-		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeRolesManage); err != nil {
+		if err := s.assertHasPrivilegeTx(ctx, tx, actorID, models.RolesManage); err != nil {
 			return err
 		}
 		existing, err := s.roles.FindByID(ctx, roleID)
@@ -241,7 +241,7 @@ func (s *Service) RemovePrivilegeFromRole(ctx context.Context, roleID string, pr
 		if !has {
 			return fmt.Errorf("%w: role %q does not carry %q", ErrNotFound, existing.Name, privilege)
 		}
-		if privilege == models.PrivilegeGrant || privilege == models.PrivilegeRolesManage {
+		if privilege == models.PrivilegesGrant || privilege == models.RolesManage {
 			count, err := s.roles.CountRolesGrantingPrivilege(ctx, tx, privilege)
 			if err != nil {
 				return fmt.Errorf("count roles granting privilege: %w", err)

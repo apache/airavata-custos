@@ -247,14 +247,16 @@ seed_rows:
           compute_allocation_membership_id: { from: "compute_allocation_memberships.id where compute_allocation_id=(compute_allocations.id where name=BL-001)" } }
 
   user_privileges:
-    minimum_count: 6        # dev-admin gets all 6 portal privileges via seed
+    minimum_count: 8        # dev-admin gets all portal privileges via seed
     rows:
-      - { user_id: dev-admin, privilege: "amie:read" }
-      - { user_id: dev-admin, privilege: "amie:write" }
-      - { user_id: dev-admin, privilege: "hpc:read" }
-      - { user_id: dev-admin, privilege: "hpc:write" }
-      - { user_id: dev-admin, privilege: "signer:read" }
-      - { user_id: dev-admin, privilege: "signer:write" }
+      - { user_id: dev-admin, privilege: "amie:packets:read" }
+      - { user_id: dev-admin, privilege: "amie:packets:write" }
+      - { user_id: dev-admin, privilege: "amie:replies:read" }
+      - { user_id: dev-admin, privilege: "amie:replies:write" }
+      - { user_id: dev-admin, privilege: "amie:unmapped:read" }
+      - { user_id: dev-admin, privilege: "amie:unmapped:write" }
+      - { user_id: dev-admin, privilege: "core:clusters:read" }
+      - { user_id: dev-admin, privilege: "core:clusters:write" }
 
 verification_queries:
 

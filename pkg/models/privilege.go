@@ -27,10 +27,10 @@ import (
 type PrivilegeKey string
 
 const (
-	PrivilegeHPCRead     PrivilegeKey = "hpc:read"
-	PrivilegeHPCWrite    PrivilegeKey = "hpc:write"
-	PrivilegeGrant       PrivilegeKey = "privileges:grant"
-	PrivilegeRolesManage PrivilegeKey = "roles:manage"
+	ClustersRead    PrivilegeKey = "core:clusters:read"
+	ClustersWrite   PrivilegeKey = "core:clusters:write"
+	PrivilegesGrant PrivilegeKey = "core:privileges:grant"
+	RolesManage     PrivilegeKey = "core:roles:manage"
 )
 
 var (
@@ -40,10 +40,10 @@ var (
 
 func init() {
 	Register(
-		PrivilegeHPCRead,
-		PrivilegeHPCWrite,
-		PrivilegeGrant,
-		PrivilegeRolesManage,
+		ClustersRead,
+		ClustersWrite,
+		PrivilegesGrant,
+		RolesManage,
 	)
 }
 
