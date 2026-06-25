@@ -122,7 +122,7 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegeGrant(t, database, granter)
 
-	body, _ := json.Marshal(map[string]any{"privilege": "amie:read", "reason": "ops view"})
+	body, _ := json.Marshal(map[string]any{"privilege": "hpc:read", "reason": "ops view"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -131,7 +131,7 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201, body=%s", rr.Code, rr.Body.String())
 	}
-	has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeAMIERead)
+	has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeHPCRead)
 	if err != nil || !has {
 		t.Errorf("HasPrivilege after grant endpoint: has=%v err=%v", has, err)
 	}
@@ -141,7 +141,7 @@ func TestGrantPrivilegeEndpoint_GranterWithoutMeta_403(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	plain := seedUser(t, database, "plain@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	body, _ := json.Marshal(map[string]any{"privilege": "amie:read"})
+	body, _ := json.Marshal(map[string]any{"privilege": "hpc:read"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
 	// Caller does NOT carry privileges:grant in its ctx set → gate denies.
@@ -157,18 +157,18 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeHPCRead, granter, ""); err != nil {
 		t.Fatalf("seed grant: %v", err)
 	}
 	body, _ := json.Marshal(map[string]any{"reason": "rotated"})
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+target+"/privileges/amie:read", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+target+"/privileges/hpc:read", bytes.NewReader(body))
 	req = withTestCaller(req, granter, models.PrivilegeGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("status: got %d, want 204, body=%s", rr.Code, rr.Body.String())
 	}
-	if has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeAMIERead); err != nil || has {
+	if has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeHPCRead); err != nil || has {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
@@ -191,7 +191,7 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeHPCRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()
@@ -205,8 +205,8 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&rows); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(rows) != 1 || rows[0].Privilege != models.PrivilegeAMIERead {
-		t.Errorf("rows: got %v, want [amie:read]", rows)
+	if len(rows) != 1 || rows[0].Privilege != models.PrivilegeHPCRead {
+		t.Errorf("rows: got %v, want [hpc:read]", rows)
 	}
 }
 
@@ -215,11 +215,11 @@ func TestListPrivilegeHoldersEndpoint(t *testing.T) {
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeHPCRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/privileges/amie:read/holders", nil)
+	req := httptest.NewRequest(http.MethodGet, "/privileges/hpc:read/holders", nil)
 	req = withTestCaller(req, granter, models.PrivilegeGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {

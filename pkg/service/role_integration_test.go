@@ -82,15 +82,15 @@ func TestAddPrivilegeToRole_HappyPath(t *testing.T) {
 		t.Fatalf("CreateRole: %v", err)
 	}
 
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, actor); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
 		t.Fatalf("AddPrivilegeToRole: %v", err)
 	}
 	keys, err := svc.ListRolePrivileges(ctx(), role.ID)
 	if err != nil {
 		t.Fatalf("ListRolePrivileges: %v", err)
 	}
-	if len(keys) != 1 || keys[0] != models.PrivilegeAMIERead {
-		t.Errorf("role privileges: got %v, want [amie:read]", keys)
+	if len(keys) != 1 || keys[0] != models.PrivilegeHPCRead {
+		t.Errorf("role privileges: got %v, want [hpc:read]", keys)
 	}
 	if got := countAuditEventsOfType(t, database, "ROLE_PRIVILEGE_ADDED", role.ID); got != 1 {
 		t.Errorf("audit ROLE_PRIVILEGE_ADDED: got %d, want 1", got)
@@ -103,10 +103,10 @@ func TestAddPrivilegeToRole_RejectsDuplicate(t *testing.T) {
 	actor := seedUser(t, database, "actor@example.edu")
 	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", actor)
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, actor); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
 		t.Fatalf("first add: %v", err)
 	}
-	err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, actor)
+	err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor)
 	if !errors.Is(err, ErrAlreadyExists) {
 		t.Errorf("expected ErrAlreadyExists, got %v", err)
 	}
@@ -118,9 +118,9 @@ func TestRemovePrivilegeFromRole_HappyPath(t *testing.T) {
 	actor := seedUser(t, database, "actor@example.edu")
 	seedPrivilege(t, database, actor, models.PrivilegeRolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", actor)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, actor)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, actor)
 
-	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeAMIERead, actor); err != nil {
+	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeHPCRead, actor); err != nil {
 		t.Fatalf("RemovePrivilegeFromRole: %v", err)
 	}
 	keys, _ := svc.ListRolePrivileges(ctx(), role.ID)

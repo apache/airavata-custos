@@ -58,7 +58,7 @@ func newTestServer(t *testing.T, store *fakePacketAuditStore) *httptest.Server {
 	// Attach the caller and required privileges to ctx since the auth middleware isn't running here.
 	wrap := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := identity.WithCaller(r.Context(), &identity.Caller{UserID: "test-user"})
-		ctx = identity.WithPrivilegesForTest(ctx, []models.PrivilegeKey{models.PrivilegeAMIERead, models.PrivilegeAMIEWrite})
+		ctx = identity.WithPrivilegesForTest(ctx, []models.PrivilegeKey{AMIERead, AMIEWrite})
 		mux.ServeHTTP(w, r.WithContext(ctx))
 	})
 	srv := httptest.NewServer(wrap)

@@ -296,22 +296,14 @@ definitions:
     type: object
   PrivilegeKey:
     enum:
-    - amie:read
-    - amie:write
     - hpc:read
     - hpc:write
-    - signer:read
-    - signer:write
     - privileges:grant
     - roles:manage
     type: string
     x-enum-varnames:
-    - PrivilegeAMIERead
-    - PrivilegeAMIEWrite
     - PrivilegeHPCRead
     - PrivilegeHPCWrite
-    - PrivilegeSignerRead
-    - PrivilegeSignerWrite
     - PrivilegeGrant
     - PrivilegeRolesManage
   Project:
@@ -2634,12 +2626,8 @@ paths:
       parameters:
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
         - hpc:read
         - hpc:write
-        - signer:read
-        - signer:write
         - privileges:grant
         - roles:manage
         in: path
@@ -3136,12 +3124,8 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
         - hpc:read
         - hpc:write
-        - signer:read
-        - signer:write
         - privileges:grant
         - roles:manage
         in: path
@@ -3664,12 +3648,8 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
         - hpc:read
         - hpc:write
-        - signer:read
-        - signer:write
         - privileges:grant
         - roles:manage
         in: path

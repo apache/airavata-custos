@@ -17,46 +17,63 @@
 
 package models
 
-import "time"
+import (
+	"sort"
+	"sync"
+	"time"
+)
 
-// PrivilegeKey names a fine-grained admin capability. The set is closed and
-// declared in code; service-layer validation rejects grants of any key not
-// returned by KnownPrivileges.
+// PrivilegeKey names a fine-grained admin capability.
 type PrivilegeKey string
 
 const (
-	PrivilegeAMIERead    PrivilegeKey = "amie:read"
-	PrivilegeAMIEWrite   PrivilegeKey = "amie:write"
 	PrivilegeHPCRead     PrivilegeKey = "hpc:read"
 	PrivilegeHPCWrite    PrivilegeKey = "hpc:write"
-	PrivilegeSignerRead  PrivilegeKey = "signer:read"
-	PrivilegeSignerWrite PrivilegeKey = "signer:write"
 	PrivilegeGrant       PrivilegeKey = "privileges:grant"
 	PrivilegeRolesManage PrivilegeKey = "roles:manage"
 )
 
-// KnownPrivileges returns the static catalog of declared privilege keys.
-func KnownPrivileges() []PrivilegeKey {
-	return []PrivilegeKey{
-		PrivilegeAMIERead,
-		PrivilegeAMIEWrite,
+var (
+	registryMu sync.RWMutex
+	registry   = map[PrivilegeKey]struct{}{}
+)
+
+func init() {
+	Register(
 		PrivilegeHPCRead,
 		PrivilegeHPCWrite,
-		PrivilegeSignerRead,
-		PrivilegeSignerWrite,
 		PrivilegeGrant,
 		PrivilegeRolesManage,
+	)
+}
+
+// Register adds privilege keys to the catalog. Idempotent.
+func Register(keys ...PrivilegeKey) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	for _, k := range keys {
+		registry[k] = struct{}{}
 	}
 }
 
-// IsKnownPrivilege reports whether p is in the declared catalog.
-func IsKnownPrivilege(p PrivilegeKey) bool {
-	for _, k := range KnownPrivileges() {
-		if k == p {
-			return true
-		}
+// KnownPrivileges returns the registered keys, sorted.
+func KnownPrivileges() []PrivilegeKey {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	keys := make([]PrivilegeKey, 0, len(registry))
+	for k := range registry {
+		keys = append(keys, k)
 	}
-	return false
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	return keys
+}
+
+// IsKnownPrivilege reports whether p is registered.
+func IsKnownPrivilege(p PrivilegeKey) bool {
+	registryMu.RLock()
+	defer registryMu.RUnlock()
+	_, ok := registry[p]
+	return ok
 }
 
 // UserPrivilege is one active grant in user_privileges. Revoked grants are

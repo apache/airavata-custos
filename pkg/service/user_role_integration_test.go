@@ -33,14 +33,14 @@ func TestGrantRoleToUser_HappyPath(t *testing.T) {
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
 	role, _ := svc.CreateRole(ctx(), "amie-viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, granter)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter)
 
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, "ops"); err != nil {
 		t.Fatalf("GrantRoleToUser: %v", err)
 	}
-	// target should now have amie:read via the role
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeAMIERead); err != nil || !has {
-		t.Errorf("HasPrivilege amie:read via role: has=%v err=%v", has, err)
+	// target should now have hpc:read via the role
+	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || !has {
+		t.Errorf("HasPrivilege hpc:read via role: has=%v err=%v", has, err)
 	}
 }
 
@@ -68,14 +68,14 @@ func TestRevokeRoleFromUser_HappyPath(t *testing.T) {
 	target := seedUser(t, database, "target@example.edu")
 	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
 	role, _ := svc.CreateRole(ctx(), "viewer", "", granter)
-	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, granter)
+	_ = svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter)
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	if err := svc.RevokeRoleFromUser(ctx(), target, role.ID, granter, "rotated"); err != nil {
 		t.Fatalf("RevokeRoleFromUser: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeAMIERead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
@@ -111,8 +111,8 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	seedPrivilege(t, database, granter, models.PrivilegeRolesManage)
 	seedPrivilege(t, database, granter, models.PrivilegeGrant)
 
-	// Grant direct amie:read
-	if _, err := svc.GrantPrivilege(ctx(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	// Grant direct hpc:write
+	if _, err := svc.GrantPrivilege(ctx(), target, models.PrivilegeHPCWrite, granter, ""); err != nil {
 		t.Fatalf("direct grant: %v", err)
 	}
 	// Grant role with hpc:read
@@ -121,8 +121,8 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	if _, err := svc.GrantRoleToUser(ctx(), target, role.ID, granter, ""); err != nil {
 		t.Fatalf("role grant: %v", err)
 	}
-	// Target should have BOTH amie:read (direct) and hpc:read (via role)
-	for _, key := range []models.PrivilegeKey{models.PrivilegeAMIERead, models.PrivilegeHPCRead} {
+	// Target should have BOTH hpc:write (direct) and hpc:read (via role)
+	for _, key := range []models.PrivilegeKey{models.PrivilegeHPCWrite, models.PrivilegeHPCRead} {
 		has, err := svc.HasPrivilege(ctx(), target, key)
 		if err != nil || !has {
 			t.Errorf("HasPrivilege %s: has=%v err=%v", key, has, err)
@@ -137,7 +137,7 @@ func TestHasPrivilege_UnionsDirectAndRole(t *testing.T) {
 	for _, k := range keys {
 		seen[k] = true
 	}
-	if !seen[models.PrivilegeAMIERead] || !seen[models.PrivilegeHPCRead] {
+	if !seen[models.PrivilegeHPCWrite] || !seen[models.PrivilegeHPCRead] {
 		t.Errorf("effective set missing keys: %v", keys)
 	}
 }
@@ -153,21 +153,21 @@ func TestUpdateRolePrivileges_PropagatesToHolders(t *testing.T) {
 		t.Fatalf("grant role: %v", err)
 	}
 	// Target holds the role but no privilege yet.
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeAMIERead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
 		t.Errorf("pre-add HasPrivilege: has=%v err=%v", has, err)
 	}
 	// Add a privilege to the role — target should gain it transparently.
-	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeAMIERead, granter); err != nil {
+	if err := svc.AddPrivilegeToRole(ctx(), role.ID, models.PrivilegeHPCRead, granter); err != nil {
 		t.Fatalf("add: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeAMIERead); err != nil || !has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || !has {
 		t.Errorf("post-add HasPrivilege: has=%v err=%v", has, err)
 	}
 	// Remove it — target loses it transparently.
-	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeAMIERead, granter); err != nil {
+	if err := svc.RemovePrivilegeFromRole(ctx(), role.ID, models.PrivilegeHPCRead, granter); err != nil {
 		t.Fatalf("remove: %v", err)
 	}
-	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeAMIERead); err != nil || has {
+	if has, err := svc.HasPrivilege(ctx(), target, models.PrivilegeHPCRead); err != nil || has {
 		t.Errorf("post-remove HasPrivilege: has=%v err=%v", has, err)
 	}
 }
