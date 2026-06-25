@@ -65,34 +65,25 @@ The shape generalizes: a new connector that needs to record connector-specific r
 
 ## Quick Start
 
-Clone the repository:
-
 ```sh
 git clone https://github.com/apache/airavata-custos.git
 cd airavata-custos
 ```
 
-Start the backing services (MariaDB, Prometheus, Grafana, Vault):
+See [INSTALL.md](INSTALL.md) to bring up the dev stack and run the server. See each connector's and extension's README for run and configuration details.
 
-```sh
-cd dev-ops/compose
-docker compose up -d
-```
+## Documentation
 
-Build and test a connector, e.g. ACCESS-CI AMIE:
-
-```sh
-cd connectors/ACCESS/AMIE-Processor
-go build ./...
-go test ./...
-```
-
-See each connector's and extension's README for run and configuration details.
+- [INSTALL.md](INSTALL.md): run the server locally against the dev compose stack
+- [CONTRIBUTING.md](CONTRIBUTING.md): coding conventions, build, and test workflow
+- [docs/API-Docs.md](docs/API-Docs.md): REST API reference
+- [docs/Allocation-Data-Models.md](docs/Allocation-Data-Models.md): domain model overview
+- [docs/ACCESS-HPC-Reference.md](docs/ACCESS-HPC-Reference.md): ACCESS-CI integration reference
 
 ## Questions or Need Help?
 
 * Open a [GitHub issue](https://github.com/apache/airavata-custos/issues)
-* Subscribe to the Custos mailing list: `custos-subscribe@airavata.apache.org`
+* Join the [Airavata dev mailing list](https://airavata.apache.org/mailing-list.html)
 
 ## Publications
 
