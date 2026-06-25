@@ -72,7 +72,7 @@ func setupTestStack(t *testing.T) (*sqlx.DB, *service.Service, *Server) {
 	truncateAll(t, sharedDB)
 	svc := service.New(sharedDB, events.New())
 	router := identity.NewRouter(http.NewServeMux())
-	return sharedDB, svc, New(svc, router, nil)
+	return sharedDB, svc, New(svc, router)
 }
 
 func truncateAll(t *testing.T, database *sqlx.DB) {

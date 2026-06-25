@@ -29,6 +29,7 @@ import (
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 // fakeAuditStore implements AuditTraceStore for handler tests.
@@ -86,12 +87,14 @@ func mustHexTraceID(t *testing.T) string {
 	return strings.Repeat("ab", 16)
 }
 
-// newAuditServer boots an httptest.Server around the audit handlers with a
-// fake AuditTraceStore. svc is nil, audit handlers don't reach into *Service.
-func newAuditServer(t *testing.T, deps *AdminDeps) *httptest.Server {
+// newAuditServer boots an httptest.Server around the audit handlers with the
+// given fake AuditTraceStore (nil exercises the 503 path).
+func newAuditServer(t *testing.T, audit store.AuditTraceStore) *httptest.Server {
 	t.Helper()
 	router := identity.NewRouter(http.NewServeMux())
-	inner := New(nil, router, deps)
+	svc := service.New(nil, nil)
+	svc.SetAuditTraces(audit)
+	inner := New(svc, router)
 	wrap := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inner.ServeHTTP(w, withTestCaller(r, "test-user"))
 	})
@@ -114,7 +117,7 @@ func TestListTracesReturnsRowsAndEcho(t *testing.T) {
 		}},
 		total: 1,
 	}
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
+	srv := newAuditServer(t, fs)
 
 	resp, err := http.Get(srv.URL + "/audit/traces?source=amie&status=ok&limit=25")
 	if err != nil {
@@ -148,7 +151,7 @@ func TestListTracesReturnsRowsAndEcho(t *testing.T) {
 }
 
 func TestListTracesRejectsBadStatus(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/traces?status=garbage")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -161,7 +164,7 @@ func TestListTracesRejectsBadStatus(t *testing.T) {
 
 func TestListTracesAppliesDefaultLimit(t *testing.T) {
 	fs := &fakeAuditStore{}
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
+	srv := newAuditServer(t, fs)
 	resp, err := http.Get(srv.URL + "/audit/traces")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -177,7 +180,7 @@ func TestListTracesAppliesDefaultLimit(t *testing.T) {
 
 func TestListTracesCapsLimitAt200(t *testing.T) {
 	fs := &fakeAuditStore{}
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
+	srv := newAuditServer(t, fs)
 	resp, err := http.Get(srv.URL + "/audit/traces?limit=5000")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -189,7 +192,7 @@ func TestListTracesCapsLimitAt200(t *testing.T) {
 }
 
 func TestListTracesRejectsOversizeOffset(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/traces?offset=99999999")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -201,7 +204,7 @@ func TestListTracesRejectsOversizeOffset(t *testing.T) {
 }
 
 func TestListTracesRejectsOversizeWindow(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/traces?from=2024-01-01T00:00:00Z&to=2026-01-02T00:00:00Z")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -213,7 +216,7 @@ func TestListTracesRejectsOversizeWindow(t *testing.T) {
 }
 
 func TestGetTraceBadHex(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/traces/not-hex")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -226,7 +229,7 @@ func TestGetTraceBadHex(t *testing.T) {
 
 func TestGetTraceNotFound(t *testing.T) {
 	raw := mustHexTraceID(t)
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/traces/" + raw)
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -268,7 +271,7 @@ func TestGetTraceReturnsTree(t *testing.T) {
 		},
 	}
 	fs := &fakeAuditStore{tree: tree}
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
+	srv := newAuditServer(t, fs)
 
 	resp, err := http.Get(srv.URL + "/audit/traces/" + raw)
 	if err != nil {
@@ -320,7 +323,7 @@ func TestListEventsFlat(t *testing.T) {
 		Status:    "ok",
 		CreatedAt: time.Unix(1700000000, 0).UTC(),
 	}}}
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: fs})
+	srv := newAuditServer(t, fs)
 
 	resp, err := http.Get(srv.URL + "/audit/events?trace_id=" + raw + "&span_id=" + span)
 	if err != nil {
@@ -351,7 +354,7 @@ func TestListEventsFlat(t *testing.T) {
 }
 
 func TestListEventsRejectsMissingTraceID(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/events")
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -363,7 +366,7 @@ func TestListEventsRejectsMissingTraceID(t *testing.T) {
 }
 
 func TestListSources(t *testing.T) {
-	srv := newAuditServer(t, &AdminDeps{AuditTraces: &fakeAuditStore{}})
+	srv := newAuditServer(t, &fakeAuditStore{})
 	resp, err := http.Get(srv.URL + "/audit/sources")
 	if err != nil {
 		t.Fatalf("get: %v", err)
