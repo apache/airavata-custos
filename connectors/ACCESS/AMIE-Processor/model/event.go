@@ -45,7 +45,6 @@ type ProcessingEvent struct {
 	Type        ProcessingEventType `db:"type" json:"type"`
 	Status      ProcessingStatus    `db:"status" json:"status"`
 	Attempts    int                 `db:"attempts" json:"attempts"`
-	Payload     []byte              `db:"payload" json:"-"`
 	CreatedAt   time.Time           `db:"created_at" json:"created_at"`
 	StartedAt   *time.Time          `db:"started_at" json:"started_at,omitempty"`
 	FinishedAt  *time.Time          `db:"finished_at" json:"finished_at,omitempty"`
