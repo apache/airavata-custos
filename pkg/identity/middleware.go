@@ -41,21 +41,21 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 		}
 		rawToken, ok := bearer(req.Header.Get("Authorization"))
 		if !ok {
-			writeJSONError(w, http.StatusUnauthorized, "missing_bearer")
+			writeJSONError(w, http.StatusUnauthorized, "missing_bearer", "Missing bearer token")
 			return
 		}
 		claims, err := verifier.Verify(req.Context(), rawToken)
 		if err != nil {
-			writeJSONError(w, http.StatusUnauthorized, "invalid_token")
+			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid or expired bearer token")
 			return
 		}
 		caller, privileges, err := resolver.ResolveCaller(req.Context(), claims.Sub)
 		if errors.Is(err, ErrNotLinked) {
-			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked")
+			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
 		if err != nil {
-			writeJSONError(w, http.StatusServiceUnavailable, "auth lookup failed")
+			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
 		ctx := WithCaller(req.Context(), caller)
@@ -79,7 +79,7 @@ func NewRouter(mux *http.ServeMux) *Router { return &Router{mux: mux} }
 func (r *Router) RequirePrivilege(pattern string, privilege models.PrivilegeKey, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		if !HasPrivilege(req.Context(), privilege) {
-			writeJSONError(w, http.StatusForbidden, "insufficient privilege")
+			writeJSONError(w, http.StatusForbidden, "insufficient_privilege", "Caller lacks required privilege")
 			return
 		}
 		handler(w, req)
@@ -124,10 +124,11 @@ func methodPath(pattern string) string {
 	return pattern
 }
 
-// writeJSONError emits a {"error":"..."} body to keep pkg/identity free of
-// any pkg/common dependency.
-func writeJSONError(w http.ResponseWriter, status int, msg string) {
+// TODO: use pkg/common.WriteJSON once its import cycle is broken.
+//
+//	Cycle: pkg/identity → pkg/common → pkg/service → pkg/identity.
+func writeJSONError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
 }

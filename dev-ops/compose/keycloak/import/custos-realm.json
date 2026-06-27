@@ -1,0 +1,125 @@
+{
+  "_comment": "Use only for the local dev environment.",
+  "realm": "custos",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "accessTokenLifespan": 1800,
+  "clients": [
+    {
+      "clientId": "portal",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "portal-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/api/auth/callback/oidc"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "custos-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "custos-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "a8f3c52d-7b1e-4d9a-8c3f-2e5b9d8a1c47",
+      "username": "admin",
+      "email": "admin@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "b6e2f841-9c5d-4a3b-8f7e-1d6c3b9e8f25",
+      "username": "operator",
+      "email": "operator@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Operator",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "operator",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "c4d9e3f7-8b2a-4f5d-9e1c-3a8b7d6e2f14",
+      "username": "auditor",
+      "email": "auditor@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Auditor",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "auditor",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "e7b4c1a2-6d8f-4e9b-8a5c-7d3f9e2b1c08",
+      "username": "pi",
+      "email": "pi@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "PI",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pi",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "d5a8b2e6-4f9c-4d1a-9b3e-9f2c6e1b8d54",
+      "username": "researcher",
+      "email": "researcher@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Researcher",
+      "lastName": "Dev",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "researcher",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

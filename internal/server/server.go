@@ -90,8 +90,8 @@ func (s *Server) routes() {
 	s.router.RequireAuth("GET /compute-cluster-users/{id}", s.getComputeClusterUser)
 	s.router.RequireAuth("PUT /compute-cluster-users/{id}", s.updateComputeClusterUser)
 	s.router.RequireAuth("DELETE /compute-cluster-users/{id}", s.deleteComputeClusterUser)
-	s.router.RequireAuth("GET /compute-clusters/{id}/users", s.listComputeClusterUsersByCluster)
-	s.router.RequireAuth("GET /compute-clusters/{id}/users/{userId}", s.getComputeClusterUserByPair)
+	s.router.RequirePrivilege("GET /compute-clusters/{id}/users", models.ClustersRead, s.listComputeClusterUsersByCluster)
+	s.router.RequirePrivilege("GET /compute-clusters/{id}/users/{userId}", models.ClustersRead, s.getComputeClusterUserByPair)
 	s.router.RequireAuth("GET /users/{id}/compute-cluster-users", s.listComputeClusterUsersByUser)
 
 	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
