@@ -45,6 +45,37 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, map[string]any{"privileges": keys})
 }
 
+// CallerProfileResponse bundles the caller's user row with the effective
+// privilege set.
+type CallerProfileResponse struct {
+	User       *models.User          `json:"user"`
+	Privileges []models.PrivilegeKey `json:"privileges"`
+}
+
+// @Summary	Get the caller's user record and effective privileges
+// @Tags	Caller
+// @Security	BearerAuth
+// @Produce	json
+// @Success	200	{object}	CallerProfileResponse
+// @Failure	401	{object}	object{error=string}	"Missing authenticated caller"
+// @Router	/me [get]
+func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	user, err := s.svc.GetUser(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	keys := identity.PrivilegesFromContext(r.Context())
+	if keys == nil {
+		keys = []models.PrivilegeKey{}
+	}
+	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{User: user, Privileges: keys})
+}
+
 // @Summary	List the declared privilege catalog
 // @Tags	Privileges
 // @Security	BearerAuth

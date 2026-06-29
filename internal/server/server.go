@@ -164,8 +164,9 @@ func (s *Server) routes() {
 	s.router.RequireAuth("GET /user-identities/oidc-subjects/{oidcSub}", s.getUserIdentityByOIDCSub)
 	s.router.RequireAuth("GET /users/{id}/user-identities", s.listUserIdentitiesForUser)
 
-	// Any authenticated caller may read their own effective privilege set with no privilege check.
+	// Any authenticated caller may read their own profile and effective privilege set with no privilege check.
 	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
+	s.router.RequireAuth("GET /me", s.getCallerProfile)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)
 	s.router.RequirePrivilege("GET /users/{id}/privileges", models.PrivilegesGrant, s.listUserPrivileges)
 	s.router.RequirePrivilege("GET /privileges/{key}/holders", models.PrivilegesGrant, s.listPrivilegeHolders)
