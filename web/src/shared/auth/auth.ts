@@ -63,21 +63,26 @@ export const authConfig: NextAuthConfig = {
       if (account?.access_token) {
         (token as { accessToken?: string }).accessToken = account.access_token;
         // Some IdPs (CILogon) hand out opaque access tokens; use the JWT-shaped
-        // bearer for the backend privilege fetch so the verifier accepts it.
+        // bearer for the backend call so the verifier accepts it.
         const bearer = looksLikeJwt(account.access_token)
           ? account.access_token
           : (account.id_token ?? account.access_token);
         try {
-          const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/user/privileges`, {
+          const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/me`, {
             headers: { authorization: `Bearer ${bearer}` },
             cache: "no-store",
           });
           if (res.ok) {
-            const body = (await res.json()) as { privileges?: Privilege[] };
-            (token as { privileges?: Privilege[] }).privileges = body.privileges ?? [];
+            const body = (await res.json()) as {
+              user?: { id?: string };
+              privileges?: Privilege[];
+            };
+            const t = token as { custosUserId?: string; privileges?: Privilege[] };
+            t.custosUserId = body.user?.id;
+            t.privileges = body.privileges ?? [];
           }
         } catch {
-          // Leave privileges as-is; /no-access handles the empty case.
+          // Leave token as-is; /no-access handles the empty case.
         }
       }
       if (account?.id_token) {
@@ -92,12 +97,15 @@ export const authConfig: NextAuthConfig = {
         idToken?: string | null;
         privileges?: Privilege[];
         sub?: string;
+        custosUserId?: string;
       };
       if (t.accessToken) session.accessToken = t.accessToken;
       if (t.idToken) session.idToken = t.idToken;
       session.privileges = t.privileges ?? [];
       if (session.user) {
-        if (typeof t.sub === "string") session.user.id = t.sub;
+        // Prefer the backend-resolved Custos user_id over the OIDC sub so
+        // downstream API callers get a value that matches users.id.
+        session.user.id = t.custosUserId ?? t.sub ?? session.user.id;
         session.user.privileges = t.privileges ?? [];
       }
       return session;
