@@ -15,8 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from amie.openapi.yaml.
-
 export type PacketStatus = "NEW" | "DECODED" | "PROCESSED" | "FAILED";
 
 export const PACKET_TYPES = [

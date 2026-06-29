@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from amie.openapi.yaml.
+// TODO(openapi): adopt zPacket* / zReply* from generated/amie/zod.gen.
 
 import { z } from "zod";
 

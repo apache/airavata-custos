@@ -15,10 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from allocations.openapi.yaml
 import { z } from "zod";
+import { zAllocationStatus } from "@/generated/core/zod.gen";
 
-export const allocationStatusSchema = z.enum(["ACTIVE", "INACTIVE", "DELETED"]);
+export const allocationStatusSchema = zAllocationStatus;
 export type AllocationStatus = z.infer<typeof allocationStatusSchema>;
 
 export const changeRequestStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);

@@ -16,86 +16,65 @@
 // under the License.
 
 import NextAuth, { type NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
 import Keycloak from "next-auth/providers/keycloak";
-import { z } from "zod";
 import { serverEnv } from "@/lib/env";
 import type { Privilege } from "@/features/core/identity/types";
-import { DEV_LEVEL_NAMES, DEV_LEVEL_PRIVILEGES } from "./devLevels";
 
-export { DEV_LEVEL_PRIVILEGES, DEV_LEVEL_NAMES, type DevLevel } from "./devLevels";
-
-const credentialsSchema = z.object({
-  level: z.enum(["viewer", "manager", "admin"]),
-});
-
-const oidcEnabled = serverEnv.PORTAL_AUTH_MODE === "oidc";
-const devEnabled = serverEnv.PORTAL_AUTH_MODE === "dev";
-
-// Map dev levels to the seeded backend user IDs in
-// dev-ops/compose/seeds/dev_users_and_roles.sql so X-Custos-User-Id resolves.
-const DEV_LEVEL_BACKEND_USER_ID: Record<"viewer" | "manager" | "admin", string> = {
-  viewer: "dev-researcher",
-  manager: "dev-operator",
-  admin: "dev-admin",
-};
-
-const credentialsProvider = Credentials({
-  id: "credentials",
-  name: "Dev credentials",
-  credentials: { level: { label: "Level", type: "text" } },
-  authorize: async (raw) => {
-    const parsed = credentialsSchema.safeParse(raw);
-    if (!parsed.success) return null;
-    const level = parsed.data.level;
-    const email = `${level}@custos.local`;
-    return {
-      id: DEV_LEVEL_BACKEND_USER_ID[level],
-      email,
-      name: DEV_LEVEL_NAMES[level],
-      privileges: DEV_LEVEL_PRIVILEGES[level],
-    };
-  },
-});
-
-const providers: NextAuthConfig["providers"] = [
-  ...(devEnabled ? [credentialsProvider] : []),
-  ...(oidcEnabled
-    ? [
-        Keycloak({
-          id: "oidc",
-          issuer: serverEnv.OIDC_ISSUER_URL ?? "",
-          clientId: serverEnv.OIDC_CLIENT_ID ?? "",
-          clientSecret: serverEnv.OIDC_CLIENT_SECRET ?? "",
-          authorization: { params: { scope: "openid email profile" } },
-        }),
-      ]
-    : []),
-];
+function looksLikeJwt(token: string | null | undefined): boolean {
+  return typeof token === "string" && token.split(".").length === 3;
+}
 
 export const authConfig: NextAuthConfig = {
   trustHost: true,
   secret: serverEnv.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: { signIn: "/sign-in" },
-  providers,
+  providers: [
+    Keycloak({
+      id: "oidc",
+      issuer: serverEnv.OIDC_ISSUER_URL,
+      clientId: serverEnv.OIDC_CLIENT_ID,
+      clientSecret: serverEnv.OIDC_CLIENT_SECRET,
+      authorization: { params: { scope: "openid email profile" } },
+    }),
+  ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        (token as { privileges?: Privilege[] }).privileges = user.privileges ?? [];
-      }
+    async jwt({ token, account }) {
       if (account?.access_token) {
         (token as { accessToken?: string }).accessToken = account.access_token;
-      } else if (!token.accessToken && devEnabled) {
-        // Dev mode has no upstream token; the proxy uses this as a sentinel
-        // so user-path forwarding succeeds without an IdP.
-        (token as { accessToken?: string }).accessToken = "dev-token";
+        // Some IdPs (CILogon) hand out opaque access tokens; use the JWT-shaped
+        // bearer for the backend privilege fetch so the verifier accepts it.
+        const bearer = looksLikeJwt(account.access_token)
+          ? account.access_token
+          : (account.id_token ?? account.access_token);
+        try {
+          const res = await fetch(`${serverEnv.CUSTOS_CORE_API_BASE_URL}/user/privileges`, {
+            headers: { authorization: `Bearer ${bearer}` },
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const body = (await res.json()) as { privileges?: Privilege[] };
+            (token as { privileges?: Privilege[] }).privileges = body.privileges ?? [];
+          }
+        } catch {
+          // Leave privileges as-is; /no-access handles the empty case.
+        }
+      }
+      if (account?.id_token) {
+        // Needed for the Keycloak end-session endpoint's id_token_hint.
+        (token as { idToken?: string }).idToken = account.id_token;
       }
       return token;
     },
     async session({ session, token }) {
-      const t = token as { accessToken?: string | null; privileges?: Privilege[]; sub?: string };
+      const t = token as {
+        accessToken?: string | null;
+        idToken?: string | null;
+        privileges?: Privilege[];
+        sub?: string;
+      };
       if (t.accessToken) session.accessToken = t.accessToken;
+      if (t.idToken) session.idToken = t.idToken;
       session.privileges = t.privileges ?? [];
       if (session.user) {
         if (typeof t.sub === "string") session.user.id = t.sub;

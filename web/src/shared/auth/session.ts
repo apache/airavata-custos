@@ -18,13 +18,32 @@
 import "server-only";
 import { auth } from "./auth";
 
-export type PortalSession = { accessToken?: string | null; userId?: string | null } | null;
+export type PortalSession = {
+  accessToken?: string | null;
+  idToken?: string | null;
+  userId?: string | null;
+} | null;
 
 export async function getPortalSession(): Promise<PortalSession> {
   const session = await auth();
   if (!session) return null;
   return {
     accessToken: session.accessToken ?? null,
+    idToken: session.idToken ?? null,
     userId: session.user?.id ?? null,
   };
+}
+
+// Some IdPs (CILogon) hand out opaque access tokens while their id_tokens are
+// JWTs; the backend only verifies JWTs, so prefer whichever bearer actually
+// has the JWT shape. Keycloak access_tokens are JWTs so they win there.
+export function pickBackendBearer(session: PortalSession): string | null {
+  if (!session) return null;
+  if (looksLikeJwt(session.accessToken)) return session.accessToken ?? null;
+  if (looksLikeJwt(session.idToken)) return session.idToken ?? null;
+  return session.accessToken ?? session.idToken ?? null;
+}
+
+function looksLikeJwt(token: string | null | undefined): boolean {
+  return typeof token === "string" && token.split(".").length === 3;
 }
