@@ -16,12 +16,23 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
-import { DEV_LEVEL_PRIVILEGES } from "@/shared/auth/devLevels";
+import type { Privilege } from "@/features/core/identity/types";
 
 // Default to admin-grade so MSW-only browsing exercises the full UI; tests
 // override per-case via server.use().
+const ALL_PRIVILEGES: Privilege[] = [
+  "amie:read",
+  "amie:write",
+  "hpc:read",
+  "hpc:write",
+  "signer:read",
+  "signer:write",
+  "privileges:grant",
+  "roles:manage",
+];
+
 export const privilegesHandlers = [
   http.get("*/api/v1/user/privileges", () =>
-    HttpResponse.json({ privileges: DEV_LEVEL_PRIVILEGES.admin }),
+    HttpResponse.json({ privileges: ALL_PRIVILEGES }),
   ),
 ];

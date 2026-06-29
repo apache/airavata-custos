@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from audit.openapi.yaml.
+// TODO(openapi): adopt zTrace* from generated/core/zod.gen.
 
 import { z } from "zod";
 
