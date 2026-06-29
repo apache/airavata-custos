@@ -20,6 +20,7 @@
 import Link from "next/link";
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import {
@@ -124,7 +125,14 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
             <AvatarFallback>{initialsFrom(row.display_name)}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium text-foreground">{row.display_name}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">{row.display_name}</span>
+              {row.type === "VIRTUAL" && (
+                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                  Virtual
+                </Badge>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground">{row.email}</div>
           </div>
         </div>

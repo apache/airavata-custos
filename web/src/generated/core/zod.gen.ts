@@ -2,6 +2,13 @@
 
 import * as z from 'zod';
 
+export const zAllocationSuTotalResponse = z.object({
+    compute_allocation_id: z.string().optional(),
+    total_su_amount: z.int().optional()
+});
+
+export type allocationSuTotalResponseZodType = z.infer<typeof zAllocationSuTotalResponse>;
+
 export const zAllocationStatus = z.enum([
     'ACTIVE',
     'INACTIVE',
@@ -9,6 +16,20 @@ export const zAllocationStatus = z.enum([
 ]);
 
 export type allocationStatusZodType = z.infer<typeof zAllocationStatus>;
+
+export const zAllocationMembershipResponse = z.object({
+    compute_allocation_id: z.string().optional(),
+    display_name: z.string().optional(),
+    email: z.string().optional(),
+    end_time: z.string().optional(),
+    id: z.string().optional(),
+    membership_status: zAllocationStatus.optional(),
+    role: z.string().optional(),
+    start_time: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type allocationMembershipResponseZodType = z.infer<typeof zAllocationMembershipResponse>;
 
 export const zComputeAllocation = z.object({
     compute_cluster_id: z.string().optional(),
@@ -58,6 +79,13 @@ export const zComputeAllocationDiff = z.object({
 });
 
 export type computeAllocationDiffZodType = z.infer<typeof zComputeAllocationDiff>;
+
+export const zComputeAllocationListResponse = z.object({
+    items: z.array(zComputeAllocation).optional(),
+    total: z.int().optional()
+});
+
+export type computeAllocationListResponseZodType = z.infer<typeof zComputeAllocationListResponse>;
 
 export const zComputeAllocationMembership = z.object({
     compute_allocation_id: z.string().optional(),
@@ -160,6 +188,28 @@ export const zPrivilegeKey = z.enum([
 
 export type privilegeKeyZodType = z.infer<typeof zPrivilegeKey>;
 
+export const zProjectMemberAllocationRef = z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    role: z.string().optional()
+});
+
+export type projectMemberAllocationRefZodType = z.infer<typeof zProjectMemberAllocationRef>;
+
+export const zProjectMemberResponse = z.object({
+    added_time: z.string().optional(),
+    allocations: z.array(zProjectMemberAllocationRef).optional(),
+    display_name: z.string().optional(),
+    email: z.string().optional(),
+    id: z.string().optional(),
+    project_id: z.string().optional(),
+    role: z.string().optional(),
+    status: z.string().optional(),
+    user_id: z.string().optional()
+});
+
+export type projectMemberResponseZodType = z.infer<typeof zProjectMemberResponse>;
+
 export const zProjectStatus = z.enum([
     'ACTIVE',
     'INACTIVE',
@@ -179,6 +229,27 @@ export const zProject = z.object({
 });
 
 export type projectZodType = z.infer<typeof zProject>;
+
+export const zProjectResponse = z.object({
+    created_time: z.string().optional(),
+    id: z.string().optional(),
+    originated_id: z.string().optional(),
+    origination: z.string().optional(),
+    project_pi_display_name: z.string().optional(),
+    project_pi_email: z.string().optional(),
+    project_pi_id: z.string().optional(),
+    status: zProjectStatus.optional(),
+    title: z.string().optional()
+});
+
+export type projectResponseZodType = z.infer<typeof zProjectResponse>;
+
+export const zProjectListResponse = z.object({
+    items: z.array(zProjectResponse).optional(),
+    total: z.int().optional()
+});
+
+export type projectListResponseZodType = z.infer<typeof zProjectListResponse>;
 
 export const zRole = z.object({
     created_at: z.string().optional(),
@@ -231,6 +302,14 @@ export const zTraceSummary = z.object({
 
 export type traceSummaryZodType = z.infer<typeof zTraceSummary>;
 
+export const zUserAllocationSuTotalResponse = z.object({
+    compute_allocation_id: z.string().optional(),
+    total_su_amount: z.int().optional(),
+    user_id: z.string().optional()
+});
+
+export type userAllocationSuTotalResponseZodType = z.infer<typeof zUserAllocationSuTotalResponse>;
+
 export const zUserIdentity = z.object({
     created_at: z.string().optional(),
     email: z.string().optional(),
@@ -274,6 +353,10 @@ export const zUserStatus = z.enum([
 
 export type userStatusZodType = z.infer<typeof zUserStatus>;
 
+export const zUserType = z.enum(['CLUSTER_LOCAL', 'VIRTUAL']);
+
+export type userTypeZodType = z.infer<typeof zUserType>;
+
 export const zUser = z.object({
     email: z.string().optional(),
     first_name: z.string().optional(),
@@ -281,7 +364,8 @@ export const zUser = z.object({
     last_name: z.string().optional(),
     middle_name: z.string().optional(),
     organization_id: z.string().optional(),
-    status: zUserStatus.optional()
+    status: zUserStatus.optional(),
+    type: zUserType.optional()
 });
 
 export type userZodType = z.infer<typeof zUser>;
@@ -310,7 +394,7 @@ export type grantPrivilegeRequestZodType = z.infer<typeof zGrantPrivilegeRequest
 
 export const zGrantRoleRequest = z.object({
     reason: z.string().optional(),
-    roleID: z.string().optional()
+    role_id: z.string().optional()
 });
 
 export type grantRoleRequestZodType = z.infer<typeof zGrantRoleRequest>;
@@ -712,6 +796,19 @@ export const zGetComputeAllocationUsagesByIdPath = z.object({
  */
 export const zGetComputeAllocationUsagesByIdResponse = zComputeAllocationUsage;
 
+export const zGetComputeAllocationsQuery = z.object({
+    project_id: z.string().optional(),
+    status: z.string().optional(),
+    q: z.string().optional(),
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetComputeAllocationsResponse = zComputeAllocationListResponse;
+
 /**
  * Compute allocation payload
  */
@@ -765,7 +862,7 @@ export const zGetComputeAllocationsByIdMembershipsPath = z.object({
 /**
  * OK
  */
-export const zGetComputeAllocationsByIdMembershipsResponse = z.array(zComputeAllocationMembership);
+export const zGetComputeAllocationsByIdMembershipsResponse = z.array(zAllocationMembershipResponse);
 
 export const zGetComputeAllocationsByIdResourcesPath = z.object({
     id: z.string()
@@ -826,10 +923,7 @@ export const zGetComputeAllocationsByIdUsagesTotalPath = z.object({
 /**
  * OK
  */
-export const zGetComputeAllocationsByIdUsagesTotalResponse = z.object({
-    compute_allocation_id: z.string().optional(),
-    total_su_amount: z.int().optional()
-});
+export const zGetComputeAllocationsByIdUsagesTotalResponse = zAllocationSuTotalResponse;
 
 export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalPath = z.object({
     id: z.string(),
@@ -839,11 +933,7 @@ export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalPath = z.object({
 /**
  * OK
  */
-export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = z.object({
-    compute_allocation_id: z.string().optional(),
-    total_su_amount: z.int().optional(),
-    user_id: z.string().optional()
-});
+export const zGetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = zUserAllocationSuTotalResponse;
 
 /**
  * Cluster user payload
@@ -967,6 +1057,19 @@ export const zGetPrivilegesByKeyHoldersResponse = z.array(zUserPrivilege);
  */
 export const zGetPrivilegesCatalogResponse = z.array(zPrivilegeKey);
 
+export const zGetProjectsQuery = z.object({
+    pi_id: z.string().optional(),
+    status: z.string().optional(),
+    q: z.string().optional(),
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetProjectsResponse = zProjectListResponse;
+
 /**
  * Project payload
  */
@@ -984,7 +1087,16 @@ export const zGetProjectsByIdPath = z.object({
 /**
  * OK
  */
-export const zGetProjectsByIdResponse = zProject;
+export const zGetProjectsByIdResponse = zProjectResponse;
+
+export const zGetProjectsByIdMembersPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetProjectsByIdMembersResponse = z.array(zProjectMemberResponse);
 
 /**
  * Status patch
