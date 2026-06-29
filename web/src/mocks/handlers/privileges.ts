@@ -31,8 +31,21 @@ const ALL_PRIVILEGES: Privilege[] = [
   "roles:manage",
 ];
 
+const MOCK_USER = {
+  id: "msw-user",
+  organization_id: "msw-org",
+  first_name: "MSW",
+  last_name: "User",
+  email: "msw@custos.local",
+  status: "ACTIVE",
+  type: "CLUSTER_LOCAL",
+};
+
 export const privilegesHandlers = [
   http.get("*/api/v1/user/privileges", () =>
     HttpResponse.json({ privileges: ALL_PRIVILEGES }),
+  ),
+  http.get("*/api/v1/me", () =>
+    HttpResponse.json({ user: MOCK_USER, privileges: ALL_PRIVILEGES }),
   ),
 ];
