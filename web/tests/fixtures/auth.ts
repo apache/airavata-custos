@@ -51,7 +51,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
   }
 
   const token = await encode({
-    salt: "authjs.session-token",
+    salt: "custos.session-token",
     secret,
     token: {
       sub: `test-${persona}`,
@@ -65,7 +65,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
   const port = process.env.PORT ?? "3217";
   await page.context().addCookies([
     {
-      name: "authjs.session-token",
+      name: "custos.session-token",
       value: token,
       url: `http://localhost:${port}`,
       httpOnly: true,

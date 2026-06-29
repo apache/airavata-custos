@@ -24,11 +24,31 @@ function looksLikeJwt(token: string | null | undefined): boolean {
   return typeof token === "string" && token.split(".").length === 3;
 }
 
+const isProduction = serverEnv.NODE_ENV === "production";
+const sessionCookieName = isProduction
+  ? "__Secure-custos.session-token"
+  : "custos.session-token";
+
+// Match the access_token's natural lifetime; without refresh-token handling a
+// longer session is misleading — the inner bearer dies first.
+const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
 export const authConfig: NextAuthConfig = {
   trustHost: true,
   secret: serverEnv.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: "/sign-in" },
+  cookies: {
+    sessionToken: {
+      name: sessionCookieName,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+  },
   providers: [
     Keycloak({
       id: "oidc",
