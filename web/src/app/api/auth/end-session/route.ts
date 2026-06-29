@@ -21,15 +21,15 @@ import { auth } from "@/shared/auth/auth";
 
 export const runtime = "nodejs";
 
-// next-auth v5 session cookie names — cleared inline so the redirect lands on
-// /sign-in already-signed-out, regardless of whether Keycloak round-trips.
-const NEXT_AUTH_COOKIES = [
-  "authjs.session-token",
-  "__Secure-authjs.session-token",
+// Cleared inline so the redirect lands on /sign-in already-signed-out,
+// regardless of whether the IdP round-trips.
+const SESSION_COOKIES = [
+  "custos.session-token",
+  "__Secure-custos.session-token",
 ];
 
 function clearAuthCookies(res: NextResponse) {
-  for (const name of NEXT_AUTH_COOKIES) {
+  for (const name of SESSION_COOKIES) {
     res.cookies.set({ name, value: "", path: "/", maxAge: 0 });
   }
 }
