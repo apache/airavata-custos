@@ -19,8 +19,8 @@
 -- status is derived from compute_allocation_memberships, so it is not stored
 -- here. One row per (project, user).
 CREATE TABLE project_memberships (
-    project_id CHAR(36) NOT NULL,
-    user_id    CHAR(36) NOT NULL,
+    project_id VARCHAR(255) NOT NULL,
+    user_id    VARCHAR(255) NOT NULL,
     role       VARCHAR(32) NOT NULL,
     added_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id, user_id),
