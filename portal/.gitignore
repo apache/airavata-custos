@@ -1,0 +1,19 @@
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+debug.log
+*.log
+test-results/
+playwright-report/
+.playwright/
+.env
+.env.local
+.env.*.local
+
+# Playwright/test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Local scratch/output files
+summary.txt
