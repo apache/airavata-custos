@@ -27,9 +27,11 @@ import (
 // issuer, audience, and expiry.
 type JWTVerifier struct{ inner *oidc.IDTokenVerifier }
 
-// Claims are the minimal subset the middleware needs after verification.
+// Claims are the subset the middleware needs after verification.
 type Claims struct {
-	Sub string `json:"sub"`
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
 }
 
 // NewJWTVerifier resolves the provider's discovery doc and builds a verifier

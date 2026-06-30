@@ -20,6 +20,7 @@ package identity
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -49,12 +50,13 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid or expired bearer token")
 			return
 		}
-		caller, privileges, err := resolver.ResolveCaller(req.Context(), claims.Sub)
+		caller, privileges, err := resolver.ResolveCaller(req.Context(), claims)
 		if errors.Is(err, ErrNotLinked) {
 			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
 		if err != nil {
+			slog.Error("identity resolution failed", "sub", claims.Sub, "email", claims.Email, "error", err.Error())
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}

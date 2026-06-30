@@ -112,6 +112,8 @@ type UserIdentityStore interface {
 	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error)
 	// FindByUser returns every user identity bound to the given user, ordered by created_at.
 	FindByUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	// FindByUserAndSource returns the binding for (user, source), or nil if absent.
+	FindByUserAndSource(ctx context.Context, userID, source string) (*models.UserIdentity, error)
 	// Create inserts a new user identity within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error
 	// Update replaces mutable fields of an existing user identity within the provided transaction.

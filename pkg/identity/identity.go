@@ -23,6 +23,7 @@ package identity
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -32,15 +33,20 @@ type Caller struct {
 	UserID string
 }
 
-// ErrNotLinked is returned by a UserResolver when the OIDC sub has no row in
-// the Custos user table. The middleware translates this into 401
-// identity_not_linked.
-var ErrNotLinked = errors.New("identity not linked")
+// Wrap the ErrNotLinked to keep the specific cause in the log while the middleware
+// returns a single 401 identity_not_linked to clients.
+var (
+	ErrNotLinked             = errors.New("identity not linked")
+	ErrEmailNotVerified      = fmt.Errorf("%w: verified email claim missing", ErrNotLinked)
+	ErrNoUserMatchesEmail    = fmt.Errorf("%w: no user matches email", ErrNotLinked)
+	ErrUserNotPending        = fmt.Errorf("%w: user is not pending", ErrNotLinked)
+	ErrUserAlreadyOIDCLinked = fmt.Errorf("%w: user already has an OIDC binding", ErrNotLinked)
+)
 
-// UserResolver maps a verified OIDC sub to a Caller and the effective
+// UserResolver maps verified OIDC claims to a Caller and the effective
 // privilege set.
 type UserResolver interface {
-	ResolveCaller(ctx context.Context, oidcSub string) (*Caller, []models.PrivilegeKey, error)
+	ResolveCaller(ctx context.Context, claims *Claims) (*Caller, []models.PrivilegeKey, error)
 }
 
 type ctxKey string
