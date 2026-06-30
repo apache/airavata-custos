@@ -13,17 +13,15 @@ SET
 time_zone = '+00:00';
 
 -- ---------------------------------------------------------------------------
--- dev-admin direct privilege grants (bypasses the bootstrap super_admin →
--- API-grant flow that would otherwise need a separate per-privilege POST).
+-- Extend super_admin with the six operational privileges. No-op until the
+-- role is created by the Go bootstrap path; re-apply after first server start.
 -- ---------------------------------------------------------------------------
-INSERT
-IGNORE INTO user_privileges (id, user_id, privilege, granted_by) VALUES
-  (UUID(), 'dev-admin', 'amie:read',    'dev-admin'),
-  (UUID(), 'dev-admin', 'amie:write',   'dev-admin'),
-  (UUID(), 'dev-admin', 'hpc:read',     'dev-admin'),
-  (UUID(), 'dev-admin', 'hpc:write',    'dev-admin'),
-  (UUID(), 'dev-admin', 'signer:read',  'dev-admin'),
-  (UUID(), 'dev-admin', 'signer:write', 'dev-admin');
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'amie:read'    FROM roles WHERE name = 'super_admin';
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'amie:write'   FROM roles WHERE name = 'super_admin';
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'hpc:read'     FROM roles WHERE name = 'super_admin';
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'hpc:write'    FROM roles WHERE name = 'super_admin';
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'signer:read'  FROM roles WHERE name = 'super_admin';
+INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'signer:write' FROM roles WHERE name = 'super_admin';
 
 -- ---------------------------------------------------------------------------
 -- Resources (cluster-scoped resource catalog)

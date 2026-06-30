@@ -55,7 +55,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		user.ID = newID()
 	}
 	if user.Status == "" {
-		user.Status = models.UserActive
+		user.Status = models.UserPending
 	}
 	if user.Type == "" {
 		user.Type = models.UserTypeClusterLocal
