@@ -273,14 +273,14 @@ func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*mode
 		role = &models.Role{
 			ID:          newID(),
 			Name:        models.SystemRoleSuperAdmin,
-			Description: stringPtrOrNil("bootstrap role carrying privileges:grant and roles:manage"),
+			Description: stringPtrOrNil("bootstrap role carrying every registered privilege"),
 			IsSystem:    true,
 		}
 		if err := s.roles.Create(ctx, tx, role); err != nil {
 			return nil, fmt.Errorf("create super_admin role: %w", err)
 		}
 	}
-	for _, key := range []models.PrivilegeKey{models.PrivilegesGrant, models.RolesManage} {
+	for _, key := range models.KnownPrivileges() {
 		has, err := s.roles.HasPrivilege(ctx, tx, role.ID, key)
 		if err != nil {
 			return nil, fmt.Errorf("check super_admin privilege %s: %w", key, err)
