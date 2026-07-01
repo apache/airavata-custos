@@ -40,6 +40,15 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  CallerProfileResponse:
+    properties:
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      user:
+        $ref: '#/definitions/User'
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -2563,6 +2572,27 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/CallerProfileResponse'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the caller's user record and effective privileges
+      tags:
+      - Caller
   /organizations:
     post:
       consumes:
