@@ -59,8 +59,8 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	if survivor == nil {
 		return nil, fmt.Errorf("%w: surviving user %q does not exist", ErrInvalidInput, survivingID)
 	}
-	if survivor.Status != models.UserActive {
-		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE (got %s)",
+	if !canBeMerged(survivor.Status) {
+		return nil, fmt.Errorf("%w: surviving user %q must be ACTIVE or PENDING (got %s)",
 			ErrInvalidInput, survivingID, survivor.Status)
 	}
 	retiring, err := s.users.FindByID(ctx, retiringID)
@@ -73,8 +73,8 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	if retiring.Status == models.UserMerged {
 		return nil, fmt.Errorf("%w: retiring user %q is already merged", ErrAlreadyExists, retiringID)
 	}
-	if retiring.Status != models.UserActive {
-		return nil, fmt.Errorf("%w: retiring user %q must be ACTIVE (got %s)",
+	if !canBeMerged(retiring.Status) {
+		return nil, fmt.Errorf("%w: retiring user %q must be ACTIVE or PENDING (got %s)",
 			ErrInvalidInput, retiringID, retiring.Status)
 	}
 
@@ -103,4 +103,11 @@ func (s *Service) MergeUsers(ctx context.Context, survivingID, retiringID string
 	s.eventBus.Publish(ctx, events.UserUpdateEvent, retiring)
 	s.eventBus.Publish(ctx, events.UserUpdateEvent, survivor)
 	return survivor, nil
+}
+
+// canBeMerged returns true for the user statuses eligible for merging:
+// ACTIVE (already linked) or PENDING (provisioned upstream, not yet linked).
+// INACTIVE, SUSPENDED, and MERGED are intentionally excluded.
+func canBeMerged(s models.UserStatus) bool {
+	return s == models.UserActive || s == models.UserPending
 }
