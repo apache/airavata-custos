@@ -244,7 +244,7 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 	if got := countAuditEventsOfType(t, database, "USER_BOOTSTRAPPED", userID); got != 1 {
 		t.Errorf("audit USER_BOOTSTRAPPED: got %d, want 1", got)
 	}
-	if has, err := svc.HasPrivilege(ctx(), userID, models.PrivilegeGrant); err != nil || !has {
+	if has, err := svc.HasPrivilege(ctx(), userID, models.PrivilegesGrant); err != nil || !has {
 		t.Errorf("super_admin grant after bootstrap: has=%v err=%v", has, err)
 	}
 }
