@@ -20,6 +20,7 @@ import type { Privilege } from "@/features/core/identity/types";
 declare module "next-auth" {
   interface Session {
     accessToken?: string | null;
+    idToken?: string | null;
     privileges?: Privilege[];
   }
   interface User {

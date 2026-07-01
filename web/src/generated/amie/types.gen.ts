@@ -4,6 +4,237 @@ export type ClientOptions = {
     baseUrl: 'localhost:8080/' | (string & {});
 };
 
+export type PacketEventResponse = {
+    actor?: string;
+    duration_ms?: number;
+    event_type?: string;
+    id?: string;
+    message?: string;
+    packet_id?: string;
+    status?: string;
+    timestamp?: string;
+};
+
+export type PacketListResponse = {
+    limit?: number;
+    offset?: number;
+    packets?: Array<PacketResponse>;
+    total?: number;
+};
+
+export type PacketResponse = {
+    amie_id?: string;
+    decoded_at?: string;
+    id?: string;
+    last_error?: string;
+    processed_at?: string;
+    raw_json?: string;
+    received_at?: string;
+    retries?: number;
+    source?: string;
+    status?: string;
+    type?: string;
+    updated_at?: string;
+};
+
+export type PacketStatBucketResponse = {
+    count?: number;
+    date?: string;
+    status?: string;
+    type?: string;
+};
+
+export type PacketStatsResponse = {
+    byDay?: Array<PacketStatBucketResponse>;
+};
+
+export type ReplyListResponse = {
+    limit?: number;
+    offset?: number;
+    replies?: Array<unknown>;
+    total?: number;
+};
+
+export type GetConnectorsAmiePacketsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by status (NEW, DECODED, PROCESSED, FAILED, all)
+         */
+        status?: string;
+        /**
+         * Filter by packet type
+         */
+        type?: string;
+        /**
+         * Search by packet id or AMIE id
+         */
+        q?: string;
+        /**
+         * RFC3339 lower bound on received_at
+         */
+        from?: string;
+        /**
+         * RFC3339 upper bound on received_at
+         */
+        to?: string;
+        /**
+         * Page size (default 50, max 200)
+         */
+        limit?: number;
+        /**
+         * Pagination offset
+         */
+        offset?: number;
+    };
+    url: '/connectors/amie/packets';
+};
+
+export type GetConnectorsAmiePacketsErrors = {
+    /**
+     * Invalid query parameter
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Store lookup failed
+     */
+    500: {
+        error?: string;
+    };
+};
+
+export type GetConnectorsAmiePacketsError = GetConnectorsAmiePacketsErrors[keyof GetConnectorsAmiePacketsErrors];
+
+export type GetConnectorsAmiePacketsResponses = {
+    /**
+     * OK
+     */
+    200: PacketListResponse;
+};
+
+export type GetConnectorsAmiePacketsResponse = GetConnectorsAmiePacketsResponses[keyof GetConnectorsAmiePacketsResponses];
+
+export type GetConnectorsAmiePacketsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE packet ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/packets/{id}';
+};
+
+export type GetConnectorsAmiePacketsByIdErrors = {
+    /**
+     * Packet not found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Store lookup failed
+     */
+    500: {
+        error?: string;
+    };
+};
+
+export type GetConnectorsAmiePacketsByIdError = GetConnectorsAmiePacketsByIdErrors[keyof GetConnectorsAmiePacketsByIdErrors];
+
+export type GetConnectorsAmiePacketsByIdResponses = {
+    /**
+     * OK
+     */
+    200: PacketResponse;
+};
+
+export type GetConnectorsAmiePacketsByIdResponse = GetConnectorsAmiePacketsByIdResponses[keyof GetConnectorsAmiePacketsByIdResponses];
+
+export type GetConnectorsAmiePacketsByIdEventsData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE packet ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/packets/{id}/events';
+};
+
+export type GetConnectorsAmiePacketsByIdEventsErrors = {
+    /**
+     * Store lookup failed
+     */
+    500: {
+        error?: string;
+    };
+};
+
+export type GetConnectorsAmiePacketsByIdEventsError = GetConnectorsAmiePacketsByIdEventsErrors[keyof GetConnectorsAmiePacketsByIdEventsErrors];
+
+export type GetConnectorsAmiePacketsByIdEventsResponses = {
+    /**
+     * OK
+     */
+    200: Array<PacketEventResponse>;
+};
+
+export type GetConnectorsAmiePacketsByIdEventsResponse = GetConnectorsAmiePacketsByIdEventsResponses[keyof GetConnectorsAmiePacketsByIdEventsResponses];
+
+export type PostConnectorsAmiePacketsByIdResolveData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE packet ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/packets/{id}/resolve';
+};
+
+export type PostConnectorsAmiePacketsByIdResolveErrors = {
+    /**
+     * Not Implemented
+     */
+    501: {
+        error?: string;
+        message?: string;
+    };
+};
+
+export type PostConnectorsAmiePacketsByIdResolveError = PostConnectorsAmiePacketsByIdResolveErrors[keyof PostConnectorsAmiePacketsByIdResolveErrors];
+
+export type PostConnectorsAmiePacketsByIdRetryData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE packet ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/packets/{id}/retry';
+};
+
+export type PostConnectorsAmiePacketsByIdRetryErrors = {
+    /**
+     * Not Implemented
+     */
+    501: {
+        error?: string;
+        message?: string;
+    };
+};
+
+export type PostConnectorsAmiePacketsByIdRetryError = PostConnectorsAmiePacketsByIdRetryErrors[keyof PostConnectorsAmiePacketsByIdRetryErrors];
+
 export type GetConnectorsAmiePacketsByPacketIdAuditsData = {
     body?: never;
     path: {
@@ -60,3 +291,133 @@ export type GetConnectorsAmiePacketsByPacketIdAuditsResponses = {
 };
 
 export type GetConnectorsAmiePacketsByPacketIdAuditsResponse = GetConnectorsAmiePacketsByPacketIdAuditsResponses[keyof GetConnectorsAmiePacketsByPacketIdAuditsResponses];
+
+export type GetConnectorsAmieRepliesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size (default 50, max 200)
+         */
+        limit?: number;
+        /**
+         * Pagination offset
+         */
+        offset?: number;
+    };
+    url: '/connectors/amie/replies';
+};
+
+export type GetConnectorsAmieRepliesResponses = {
+    /**
+     * OK
+     */
+    200: ReplyListResponse;
+};
+
+export type GetConnectorsAmieRepliesResponse = GetConnectorsAmieRepliesResponses[keyof GetConnectorsAmieRepliesResponses];
+
+export type PostConnectorsAmieRepliesByIdRetryData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE reply ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/replies/{id}/retry';
+};
+
+export type PostConnectorsAmieRepliesByIdRetryErrors = {
+    /**
+     * Not Implemented
+     */
+    501: {
+        error?: string;
+        message?: string;
+    };
+};
+
+export type PostConnectorsAmieRepliesByIdRetryError = PostConnectorsAmieRepliesByIdRetryErrors[keyof PostConnectorsAmieRepliesByIdRetryErrors];
+
+export type GetConnectorsAmieStatsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Lookback window (e.g. 30d, 24h); default 30d
+         */
+        window?: string;
+    };
+    url: '/connectors/amie/stats';
+};
+
+export type GetConnectorsAmieStatsErrors = {
+    /**
+     * Store lookup failed
+     */
+    500: {
+        error?: string;
+    };
+};
+
+export type GetConnectorsAmieStatsError = GetConnectorsAmieStatsErrors[keyof GetConnectorsAmieStatsErrors];
+
+export type GetConnectorsAmieStatsResponses = {
+    /**
+     * OK
+     */
+    200: PacketStatsResponse;
+};
+
+export type GetConnectorsAmieStatsResponse = GetConnectorsAmieStatsResponses[keyof GetConnectorsAmieStatsResponses];
+
+export type GetConnectorsAmieUnmappedData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size (default 50, max 200)
+         */
+        limit?: number;
+        /**
+         * Pagination offset
+         */
+        offset?: number;
+    };
+    url: '/connectors/amie/unmapped';
+};
+
+export type GetConnectorsAmieUnmappedResponses = {
+    /**
+     * OK
+     */
+    200: PacketListResponse;
+};
+
+export type GetConnectorsAmieUnmappedResponse = GetConnectorsAmieUnmappedResponses[keyof GetConnectorsAmieUnmappedResponses];
+
+export type PostConnectorsAmieUnmappedByIdLinkData = {
+    body?: never;
+    path: {
+        /**
+         * AMIE packet ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/connectors/amie/unmapped/{id}/link';
+};
+
+export type PostConnectorsAmieUnmappedByIdLinkErrors = {
+    /**
+     * Not Implemented
+     */
+    501: {
+        error?: string;
+        message?: string;
+    };
+};
+
+export type PostConnectorsAmieUnmappedByIdLinkError = PostConnectorsAmieUnmappedByIdLinkErrors[keyof PostConnectorsAmieUnmappedByIdLinkErrors];

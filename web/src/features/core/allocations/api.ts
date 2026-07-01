@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from allocations.openapi.yaml
 import { apiFetch } from "@/shared/api/client";
 import {
   type AllocationMembership,

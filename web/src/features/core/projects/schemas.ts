@@ -15,13 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO(openapi): replace with generated from projects.openapi.yaml
 import { z } from "zod";
+import { zProjectStatus, zUserStatus, zUserType } from "@/generated/core/zod.gen";
 
-export const projectStatusSchema = z.enum(["ACTIVE", "INACTIVE", "DELETED"]);
+export const projectStatusSchema = zProjectStatus;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
-export const userStatusSchema = z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "MERGED"]);
+export const userStatusSchema = zUserStatus;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
 // Mirrors pkg/models/project.go#Project. The backend only exposes
@@ -72,6 +72,9 @@ export const projectMemberAllocationSchema = z.object({
 });
 export type ProjectMemberAllocation = z.infer<typeof projectMemberAllocationSchema>;
 
+export const userTypeSchema = zUserType;
+export type UserType = z.infer<typeof userTypeSchema>;
+
 export const projectMemberSchema = z.object({
   id: z.string(),
   project_id: z.string(),
@@ -80,6 +83,7 @@ export const projectMemberSchema = z.object({
   display_name: z.string(),
   role: projectMemberRoleSchema,
   status: projectStatusSchema,
+  type: userTypeSchema.optional(),
   added_time: z.string(),
   allocations: z.array(projectMemberAllocationSchema).default([]),
 });
