@@ -129,15 +129,15 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	return userID
 }
 
-// seedPrivilegeGrant directly inserts an active grant of privileges:grant for
+// seedPrivilegesGrant directly inserts an active grant of privileges:grant for
 // userID. Bypasses the service guards so tests can stand up a granter without
 // a chicken-and-egg dependency.
-func seedPrivilegeGrant(t *testing.T, database *sqlx.DB, userID string) {
+func seedPrivilegesGrant(t *testing.T, database *sqlx.DB, userID string) {
 	t.Helper()
 	if _, err := database.Exec(
 		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
 		 VALUES (?, ?, ?, NOW(6), 'seed')`,
-		uuid.NewString(), userID, string(models.PrivilegeGrant),
+		uuid.NewString(), userID, string(models.PrivilegesGrant),
 	); err != nil {
 		t.Fatalf("seed privileges:grant for %s: %v", userID, err)
 	}

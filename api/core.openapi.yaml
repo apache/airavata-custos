@@ -296,24 +296,16 @@ definitions:
     type: object
   PrivilegeKey:
     enum:
-    - amie:read
-    - amie:write
-    - hpc:read
-    - hpc:write
-    - signer:read
-    - signer:write
-    - privileges:grant
-    - roles:manage
+    - core:clusters:read
+    - core:clusters:write
+    - core:privileges:grant
+    - core:roles:manage
     type: string
     x-enum-varnames:
-    - PrivilegeAMIERead
-    - PrivilegeAMIEWrite
-    - PrivilegeHPCRead
-    - PrivilegeHPCWrite
-    - PrivilegeSignerRead
-    - PrivilegeSignerWrite
-    - PrivilegeGrant
-    - PrivilegeRolesManage
+    - ClustersRead
+    - ClustersWrite
+    - PrivilegesGrant
+    - RolesManage
   Project:
     properties:
       created_time:
@@ -2634,14 +2626,10 @@ paths:
       parameters:
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3136,14 +3124,10 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3664,14 +3648,10 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true

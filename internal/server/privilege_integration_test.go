@@ -67,7 +67,7 @@ func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 	_, _, srv := setupTestStack(t)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/user/privileges", nil)
-	req = withTestCaller(req, "u-1", models.PrivilegeGrant)
+	req = withTestCaller(req, "u-1", models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200", rr.Code)
@@ -78,8 +78,8 @@ func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(body.Privileges) != 1 || body.Privileges[0] != string(models.PrivilegeGrant) {
-		t.Errorf("privileges: got %v, want [%s]", body.Privileges, models.PrivilegeGrant)
+	if len(body.Privileges) != 1 || body.Privileges[0] != string(models.PrivilegesGrant) {
+		t.Errorf("privileges: got %v, want [%s]", body.Privileges, models.PrivilegesGrant)
 	}
 }
 
@@ -99,10 +99,10 @@ func TestRequirePrivilege_NoGrants_403(t *testing.T) {
 func TestRequirePrivilege_WithGrant_200(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
-	seedPrivilegeGrant(t, database, user)
+	seedPrivilegesGrant(t, database, user)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/privileges/catalog", nil)
-	req = withTestCaller(req, user, models.PrivilegeGrant)
+	req = withTestCaller(req, user, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Errorf("status: got %d, want 200", rr.Code)
@@ -120,18 +120,18 @@ func TestGrantPrivilegeEndpoint_HappyPath(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegeGrant(t, database, granter)
+	seedPrivilegesGrant(t, database, granter)
 
-	body, _ := json.Marshal(map[string]any{"privilege": "amie:read", "reason": "ops view"})
+	body, _ := json.Marshal(map[string]any{"privilege": "core:clusters:read", "reason": "ops view"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req = withTestCaller(req, granter, models.PrivilegeGrant)
+	req = withTestCaller(req, granter, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status: got %d, want 201, body=%s", rr.Code, rr.Body.String())
 	}
-	has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeAMIERead)
+	has, err := svc.HasPrivilege(context.Background(), target, models.ClustersRead)
 	if err != nil || !has {
 		t.Errorf("HasPrivilege after grant endpoint: has=%v err=%v", has, err)
 	}
@@ -141,7 +141,7 @@ func TestGrantPrivilegeEndpoint_GranterWithoutMeta_403(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	plain := seedUser(t, database, "plain@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	body, _ := json.Marshal(map[string]any{"privilege": "amie:read"})
+	body, _ := json.Marshal(map[string]any{"privilege": "core:clusters:read"})
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/users/"+target+"/privileges", bytes.NewReader(body))
 	// Caller does NOT carry privileges:grant in its ctx set → gate denies.
@@ -156,19 +156,19 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	seedPrivilegesGrant(t, database, granter)
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("seed grant: %v", err)
 	}
 	body, _ := json.Marshal(map[string]any{"reason": "rotated"})
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+target+"/privileges/amie:read", bytes.NewReader(body))
-	req = withTestCaller(req, granter, models.PrivilegeGrant)
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+target+"/privileges/core:clusters:read", bytes.NewReader(body))
+	req = withTestCaller(req, granter, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("status: got %d, want 204, body=%s", rr.Code, rr.Body.String())
 	}
-	if has, err := svc.HasPrivilege(context.Background(), target, models.PrivilegeAMIERead); err != nil || has {
+	if has, err := svc.HasPrivilege(context.Background(), target, models.ClustersRead); err != nil || has {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
@@ -176,10 +176,10 @@ func TestRevokePrivilegeEndpoint_HappyPath(t *testing.T) {
 func TestRevokePrivilegeEndpoint_SelfRevokeMeta_400(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
-	seedPrivilegeGrant(t, database, user)
+	seedPrivilegesGrant(t, database, user)
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+user+"/privileges/privileges:grant", nil)
-	req = withTestCaller(req, user, models.PrivilegeGrant)
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+user+"/privileges/core:privileges:grant", nil)
+	req = withTestCaller(req, user, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status: got %d, want 400 (self-revoke of meta)", rr.Code)
@@ -190,13 +190,13 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	seedPrivilegesGrant(t, database, granter)
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/users/"+target+"/privileges", nil)
-	req = withTestCaller(req, granter, models.PrivilegeGrant)
+	req = withTestCaller(req, granter, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200, body=%s", rr.Code, rr.Body.String())
@@ -205,8 +205,8 @@ func TestListUserPrivilegesEndpoint(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&rows); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(rows) != 1 || rows[0].Privilege != models.PrivilegeAMIERead {
-		t.Errorf("rows: got %v, want [amie:read]", rows)
+	if len(rows) != 1 || rows[0].Privilege != models.ClustersRead {
+		t.Errorf("rows: got %v, want [core:clusters:read]", rows)
 	}
 }
 
@@ -214,13 +214,13 @@ func TestListPrivilegeHoldersEndpoint(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	granter := seedUser(t, database, "granter@example.edu")
 	target := seedUser(t, database, "target@example.edu")
-	seedPrivilegeGrant(t, database, granter)
-	if _, err := svc.GrantPrivilege(context.Background(), target, models.PrivilegeAMIERead, granter, ""); err != nil {
+	seedPrivilegesGrant(t, database, granter)
+	if _, err := svc.GrantPrivilege(context.Background(), target, models.ClustersRead, granter, ""); err != nil {
 		t.Fatalf("grant: %v", err)
 	}
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/privileges/amie:read/holders", nil)
-	req = withTestCaller(req, granter, models.PrivilegeGrant)
+	req := httptest.NewRequest(http.MethodGet, "/privileges/core:clusters:read/holders", nil)
+	req = withTestCaller(req, granter, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200, body=%s", rr.Code, rr.Body.String())
@@ -238,19 +238,19 @@ func TestRevokePropagatesCacheInvalidation(t *testing.T) {
 	database, svc, srv := setupTestStack(t)
 	a := seedUser(t, database, "a@example.edu")
 	b := seedUser(t, database, "b@example.edu")
-	seedPrivilegeGrant(t, database, a)
-	seedPrivilegeGrant(t, database, b)
+	seedPrivilegesGrant(t, database, a)
+	seedPrivilegesGrant(t, database, b)
 
 	// Drive the revoke and confirm a subsequent service lookup reflects it.
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, "/users/"+b+"/privileges/privileges:grant", nil)
-	req = withTestCaller(req, a, models.PrivilegeGrant)
+	req := httptest.NewRequest(http.MethodDelete, "/users/"+b+"/privileges/core:privileges:grant", nil)
+	req = withTestCaller(req, a, models.PrivilegesGrant)
 	srv.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("revoke: got %d, want 204, body=%s", rr.Code, rr.Body.String())
 	}
 
-	if has, err := svc.HasPrivilege(context.Background(), b, models.PrivilegeGrant); err != nil || has {
+	if has, err := svc.HasPrivilege(context.Background(), b, models.PrivilegesGrant); err != nil || has {
 		t.Errorf("HasPrivilege after revoke: has=%v err=%v", has, err)
 	}
 }
