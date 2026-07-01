@@ -13,17 +13,6 @@ SET
 time_zone = '+00:00';
 
 -- ---------------------------------------------------------------------------
--- Extend super_admin with the six operational privileges. No-op until the
--- role is created by the Go bootstrap path; re-apply after first server start.
--- ---------------------------------------------------------------------------
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'amie:read'    FROM roles WHERE name = 'super_admin';
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'amie:write'   FROM roles WHERE name = 'super_admin';
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'hpc:read'     FROM roles WHERE name = 'super_admin';
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'hpc:write'    FROM roles WHERE name = 'super_admin';
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'signer:read'  FROM roles WHERE name = 'super_admin';
-INSERT IGNORE INTO role_privileges (role_id, privilege) SELECT id, 'signer:write' FROM roles WHERE name = 'super_admin';
-
--- ---------------------------------------------------------------------------
 -- Resources (cluster-scoped resource catalog)
 -- ---------------------------------------------------------------------------
 INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)
