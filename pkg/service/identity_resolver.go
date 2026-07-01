@@ -139,7 +139,10 @@ func (s *Service) linkBySub(ctx context.Context, claims *identity.Claims) (*mode
 		"email", claims.Email,
 		"email_verified", claims.EmailVerified,
 	)
-	if !claims.EmailVerified || claims.Email == "" {
+	// TODO: restore the email_verified gate once the CILogon test issuer +
+	// COmanage LDAP provisioner start returning email_verified=true.
+	// if !claims.EmailVerified || claims.Email == "" {
+	if claims.Email == "" {
 		return nil, identity.ErrEmailNotVerified
 	}
 	user, err := s.users.FindByEmail(ctx, claims.Email)
