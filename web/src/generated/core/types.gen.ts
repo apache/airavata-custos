@@ -26,6 +26,11 @@ export type AllocationSuTotalResponse = {
 
 export type AllocationStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
+export type CallerProfileResponse = {
+    privileges?: Array<PrivilegeKey>;
+    user?: User;
+};
+
 export type ComputeAllocation = {
     /**
      * The ID of the compute cluster where the allocation is provisioned.
@@ -259,7 +264,7 @@ export type Organization = {
     originated_id?: string;
 };
 
-export type PrivilegeKey = 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
 
 export type Project = {
     created_time?: string;
@@ -423,9 +428,9 @@ export type UserRole = {
     user_id?: string;
 };
 
-export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'MERGED';
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'MERGED';
 
-export type UserType = 'CLUSTER_LOCAL' | 'VIRTUAL';
+export type UserType = 'CLUSTER_LOCAL' | 'VIRTUAL' | 'SYSTEM';
 
 export type AttachResourceRequest = {
     compute_allocation_resource_id?: string;
@@ -2554,6 +2559,33 @@ export type GetComputeClustersByIdUsersByUserIdResponses = {
 
 export type GetComputeClustersByIdUsersByUserIdResponse = GetComputeClustersByIdUsersByUserIdResponses[keyof GetComputeClustersByIdUsersByUserIdResponses];
 
+export type GetMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/me';
+};
+
+export type GetMeErrors = {
+    /**
+     * Missing authenticated caller
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetMeError = GetMeErrors[keyof GetMeErrors];
+
+export type GetMeResponses = {
+    /**
+     * OK
+     */
+    200: CallerProfileResponse;
+};
+
+export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
 export type PostOrganizationsData = {
     /**
      * Organization payload
@@ -2622,7 +2654,7 @@ export type GetPrivilegesByKeyHoldersData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/privileges/{key}/holders';
@@ -3135,7 +3167,7 @@ export type DeleteRolesByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/roles/{id}/privileges/{key}';
@@ -3695,7 +3727,7 @@ export type DeleteUsersByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/users/{id}/privileges/{key}';

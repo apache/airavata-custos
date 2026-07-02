@@ -17,24 +17,25 @@
 
 import { z } from "zod";
 import {
-  zPrivilegeKey,
   zRole,
   zUserPrivilege,
   zUserRole,
 } from "@/generated/core/zod.gen";
 
-export const privilegeKeySchema = zPrivilegeKey;
+// Any non-empty string. Connector registries extend the catalog at runtime,
+// so the generated core-only enum can't be a tight bound.
+export const privilegeKeySchema = z.string().min(1);
 export const userPrivilegeSchema = zUserPrivilege;
 export const userRoleSchema = zUserRole;
 export const roleSchema = zRole;
 
 export const roleWithPrivilegesSchema = z.object({
   role: zRole,
-  privileges: z.array(zPrivilegeKey),
+  privileges: z.array(privilegeKeySchema),
 });
 
 export const callerPrivilegesSchema = z.object({
-  privileges: z.array(zPrivilegeKey).optional(),
+  privileges: z.array(privilegeKeySchema).optional(),
 });
 
 export const privilegesResponseSchema = callerPrivilegesSchema.transform(
