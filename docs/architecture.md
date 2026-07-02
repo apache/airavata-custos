@@ -81,9 +81,7 @@ The router exposes three modes:
 - **`router.RequireAuth(pattern, handler)`** — verified caller required, no privilege check. Use for "any authenticated user can call".
 - **`router.RequirePrivilege(pattern, key, handler)`** — verified caller plus the named privilege. 403 if absent.
 
-Privilege keys live in `pkg/models/privilege.go` as a closed catalog today (`amie:read`, `amie:write`, `hpc:read`, `hpc:write`, `signer:read`, `signer:write`, `privileges:grant`, `roles:manage`). Privileges can be attached to a user directly or via roles in `roles` / `role_privileges` / `user_roles`. `coreService.EffectivePrivileges` unions the two views.
-
-A queued cleanup will move connector-specific keys out of core into a runtime registry; the current closed catalog is transitional.
+Privilege keys use the `<owner>:<scope>:<action>` shape and live in a runtime registry. Core keys are declared in `pkg/models/privilege.go`; each connector registers its own keys (for example `connectors/ACCESS/AMIE-Processor/server/privileges.go`) via `models.Register(...)` at startup. See [docs/privileges.md](privileges.md) for the full catalog. Privileges can be attached to a user directly or via roles in `roles` / `role_privileges` / `user_roles`. `coreService.EffectivePrivileges` unions the two views.
 
 ## Audit conventions
 

@@ -25,12 +25,22 @@ should be migrated.
 |---|---|
 | `core:clusters:read` | `GET /compute-clusters`, `GET /compute-clusters/{id}` |
 | `core:clusters:write` | `POST /compute-clusters`, `PUT /compute-clusters/{id}`, `DELETE /compute-clusters/{id}` |
+| `core:allocations:read` | _(catalog only; allocation routes still run on plain auth)_ |
+| `core:allocations:write` | _(catalog only; allocation routes still run on plain auth)_ |
+| `core:projects:read` | _(catalog only; project routes still run on plain auth)_ |
+| `core:projects:write` | _(catalog only; project routes still run on plain auth)_ |
+| `core:traces:read` | _(catalog only; `/audit/*` routes still run on plain auth)_ |
 | `core:privileges:grant` | `GET /privileges/catalog`, `GET /users/{id}/privileges`, `GET /privileges/{key}/holders`, `POST /users/{id}/privileges`, `DELETE /users/{id}/privileges/{key}` |
 | `core:roles:manage` | `GET /roles`, `POST /roles`, `PUT /roles/{id}`, `DELETE /roles/{id}`, and the role-assignment endpoints under `/users/{id}/roles` |
 
-The two meta privileges (`core:privileges:grant`, `core:roles:manage`) are
-the only ones the bootstrap super_admin role carries by default. Everything
-else is granted by an admin holding one of them.
+Keys marked _catalog only_ are registered and granted like any other and
+callers use them to decide what to show, but the matching routes have not
+been switched from `RequireAuth` to `RequirePrivilege` yet. That switch is
+tracked as a follow-up.
+
+The bootstrap super_admin role carries every privilege registered at
+startup, core and connector alike. Individual grants beyond that are made
+by an admin holding `core:privileges:grant`.
 
 ## AMIE connector (`connectors/ACCESS/AMIE-Processor/server/privileges.go`)
 
@@ -50,7 +60,7 @@ when defining roles in your deployment.
 
 | Role | Privileges |
 |---|---|
-| `super_admin` (bootstrap) | `core:privileges:grant`, `core:roles:manage`. Plus the operational set if the dev seed is applied. |
+| `super_admin` (bootstrap) | Every key registered at startup. |
 
 ## Adding a new privilege
 
