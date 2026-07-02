@@ -83,6 +83,37 @@ func TestGetCallerPrivileges_WithGrants(t *testing.T) {
 	}
 }
 
+func TestGetCallerProfile_NoCaller_401(t *testing.T) {
+	_, _, srv := setupTestStack(t)
+	rr := httptest.NewRecorder()
+	srv.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/me", nil))
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("status: got %d, want 401", rr.Code)
+	}
+}
+
+func TestGetCallerProfile_ReturnsUserAndPrivileges(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	user := seedUser(t, database, "user@example.edu")
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req = withTestCaller(req, user, models.PrivilegesGrant)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var body CallerProfileResponse
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.User == nil || body.User.ID != user {
+		t.Errorf("user.id: got %+v, want %s", body.User, user)
+	}
+	if len(body.Privileges) != 1 || body.Privileges[0] != models.PrivilegesGrant {
+		t.Errorf("privileges: got %v, want [%s]", body.Privileges, models.PrivilegesGrant)
+	}
+}
+
 func TestRequirePrivilege_NoGrants_403(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
