@@ -20,11 +20,28 @@ import { zPrivilegeKey } from "@/generated/core/zod.gen";
 import type { Privilege } from "@/features/core/identity/types";
 import { PRIVILEGE_ABILITY_MAP, defineAbilitiesFor } from "../abilities";
 
+// Update alongside each connector's privileges.go registry.
+const KNOWN_CONNECTOR_KEYS = [
+  "amie:packets:read",
+  "amie:packets:write",
+  "amie:replies:read",
+  "amie:replies:write",
+  "amie:unmapped:read",
+  "amie:unmapped:write",
+] as const;
+
 describe("PRIVILEGE_ABILITY_MAP", () => {
-  it("covers every PrivilegeKey the OpenAPI enum declares", () => {
+  it("covers every core PrivilegeKey the OpenAPI enum declares", () => {
     const declared = zPrivilegeKey.options;
-    const mapped = Object.keys(PRIVILEGE_ABILITY_MAP).sort();
-    expect(mapped).toEqual([...declared].sort());
+    for (const key of declared) {
+      expect(PRIVILEGE_ABILITY_MAP[key], `${key} unmapped`).toBeDefined();
+    }
+  });
+
+  it("covers every known connector privilege key", () => {
+    for (const key of KNOWN_CONNECTOR_KEYS) {
+      expect(PRIVILEGE_ABILITY_MAP[key], `${key} unmapped`).toBeDefined();
+    }
   });
 
   it("declares at least one rule per privilege", () => {
@@ -36,63 +53,95 @@ describe("PRIVILEGE_ABILITY_MAP", () => {
 
 const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
   [
-    "amie:read",
+    "core:clusters:read",
     [
-      ["read", "AMIE", true],
-      ["manage", "AMIE", false],
+      ["read", "Cluster", true],
+      ["manage", "Cluster", false],
     ],
   ],
   [
-    "amie:write",
+    "core:clusters:write",
     [
-      ["read", "AMIE", true],
-      ["manage", "AMIE", true],
+      ["read", "Cluster", true],
+      ["manage", "Cluster", true],
     ],
   ],
   [
-    "hpc:read",
+    "core:allocations:read",
     [
       ["read", "Allocation", true],
-      ["read", "Project", true],
-      ["read", "Trace", true],
-      ["read", "AuditEvent", true],
       ["manage", "Allocation", false],
     ],
   ],
   [
-    "hpc:write",
+    "core:allocations:write",
     [
-      ["manage", "Allocation", true],
-      ["manage", "Project", true],
       ["read", "Allocation", true],
+      ["manage", "Allocation", true],
     ],
   ],
   [
-    "signer:read",
+    "core:projects:read",
     [
-      ["read", "Signer", true],
-      ["manage", "Signer", false],
+      ["read", "Project", true],
+      ["manage", "Project", false],
     ],
   ],
   [
-    "signer:write",
+    "core:projects:write",
     [
-      ["read", "Signer", true],
-      ["manage", "Signer", true],
+      ["read", "Project", true],
+      ["manage", "Project", true],
     ],
   ],
   [
-    "privileges:grant",
+    "core:traces:read",
+    [
+      ["read", "Trace", true],
+      ["read", "AuditEvent", true],
+      ["manage", "Trace", false],
+    ],
+  ],
+  [
+    "core:privileges:grant",
     [
       ["manage", "PrivilegeGrant", true],
       ["read", "Allocation", false],
     ],
   ],
   [
-    "roles:manage",
+    "core:roles:manage",
     [
       ["manage", "Role", true],
       ["read", "AMIE", false],
+    ],
+  ],
+  [
+    "amie:packets:read",
+    [
+      ["read", "AMIE", true],
+      ["manage", "AMIE", false],
+    ],
+  ],
+  [
+    "amie:packets:write",
+    [
+      ["read", "AMIE", true],
+      ["manage", "AMIE", true],
+    ],
+  ],
+  [
+    "amie:replies:read",
+    [
+      ["read", "AMIE", true],
+      ["manage", "AMIE", false],
+    ],
+  ],
+  [
+    "amie:unmapped:write",
+    [
+      ["read", "AMIE", true],
+      ["manage", "AMIE", true],
     ],
   ],
 ];
@@ -115,10 +164,18 @@ describe("defineAbilitiesFor (table-driven)", () => {
     expect(ability.can("manage", "AMIE")).toBe(false);
   });
 
+  it("returns no rules for unknown keys and does not throw", () => {
+    const ability = defineAbilitiesFor(["not:a:real:key"]);
+    expect(ability.can("read", "Allocation")).toBe(false);
+  });
+
   it("composes rules across multiple privileges", () => {
-    const ability = defineAbilitiesFor(["hpc:read", "amie:write"]);
+    const ability = defineAbilitiesFor([
+      "core:allocations:read",
+      "amie:packets:write",
+    ]);
     expect(ability.can("read", "Allocation")).toBe(true);
     expect(ability.can("manage", "AMIE")).toBe(true);
-    expect(ability.can("manage", "Signer")).toBe(false);
+    expect(ability.can("manage", "Cluster")).toBe(false);
   });
 });

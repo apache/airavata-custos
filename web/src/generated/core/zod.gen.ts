@@ -176,14 +176,15 @@ export const zOrganization = z.object({
 export type organizationZodType = z.infer<typeof zOrganization>;
 
 export const zPrivilegeKey = z.enum([
-    'amie:read',
-    'amie:write',
-    'hpc:read',
-    'hpc:write',
-    'signer:read',
-    'signer:write',
-    'privileges:grant',
-    'roles:manage'
+    'core:clusters:read',
+    'core:clusters:write',
+    'core:allocations:read',
+    'core:allocations:write',
+    'core:projects:read',
+    'core:projects:write',
+    'core:traces:read',
+    'core:privileges:grant',
+    'core:roles:manage'
 ]);
 
 export type privilegeKeyZodType = z.infer<typeof zPrivilegeKey>;
@@ -345,6 +346,7 @@ export const zUserRole = z.object({
 export type userRoleZodType = z.infer<typeof zUserRole>;
 
 export const zUserStatus = z.enum([
+    'PENDING',
     'ACTIVE',
     'INACTIVE',
     'SUSPENDED',
@@ -353,7 +355,11 @@ export const zUserStatus = z.enum([
 
 export type userStatusZodType = z.infer<typeof zUserStatus>;
 
-export const zUserType = z.enum(['CLUSTER_LOCAL', 'VIRTUAL']);
+export const zUserType = z.enum([
+    'CLUSTER_LOCAL',
+    'VIRTUAL',
+    'SYSTEM'
+]);
 
 export type userTypeZodType = z.infer<typeof zUserType>;
 
@@ -369,6 +375,13 @@ export const zUser = z.object({
 });
 
 export type userZodType = z.infer<typeof zUser>;
+
+export const zCallerProfileResponse = z.object({
+    privileges: z.array(zPrivilegeKey).optional(),
+    user: zUser.optional()
+});
+
+export type callerProfileResponseZodType = z.infer<typeof zCallerProfileResponse>;
 
 export const zAttachResourceRequest = z.object({
     compute_allocation_resource_id: z.string().optional(),
@@ -1016,6 +1029,11 @@ export const zGetComputeClustersByIdUsersByUserIdPath = z.object({
 export const zGetComputeClustersByIdUsersByUserIdResponse = zComputeClusterUser;
 
 /**
+ * OK
+ */
+export const zGetMeResponse = zCallerProfileResponse;
+
+/**
  * Organization payload
  */
 export const zPostOrganizationsBody = zOrganization;
@@ -1036,14 +1054,15 @@ export const zGetOrganizationsByIdResponse = zOrganization;
 
 export const zGetPrivilegesByKeyHoldersPath = z.object({
     key: z.enum([
-        'amie:read',
-        'amie:write',
-        'hpc:read',
-        'hpc:write',
-        'signer:read',
-        'signer:write',
-        'privileges:grant',
-        'roles:manage'
+        'core:clusters:read',
+        'core:clusters:write',
+        'core:allocations:read',
+        'core:allocations:write',
+        'core:projects:read',
+        'core:projects:write',
+        'core:traces:read',
+        'core:privileges:grant',
+        'core:roles:manage'
     ])
 });
 
@@ -1180,14 +1199,15 @@ export const zPostRolesByIdPrivilegesPath = z.object({
 export const zDeleteRolesByIdPrivilegesByKeyPath = z.object({
     id: z.string(),
     key: z.enum([
-        'amie:read',
-        'amie:write',
-        'hpc:read',
-        'hpc:write',
-        'signer:read',
-        'signer:write',
-        'privileges:grant',
-        'roles:manage'
+        'core:clusters:read',
+        'core:clusters:write',
+        'core:allocations:read',
+        'core:allocations:write',
+        'core:projects:read',
+        'core:projects:write',
+        'core:traces:read',
+        'core:privileges:grant',
+        'core:roles:manage'
     ])
 });
 
@@ -1340,14 +1360,15 @@ export const zDeleteUsersByIdPrivilegesByKeyBody = zRevokePrivilegeRequest;
 export const zDeleteUsersByIdPrivilegesByKeyPath = z.object({
     id: z.string(),
     key: z.enum([
-        'amie:read',
-        'amie:write',
-        'hpc:read',
-        'hpc:write',
-        'signer:read',
-        'signer:write',
-        'privileges:grant',
-        'roles:manage'
+        'core:clusters:read',
+        'core:clusters:write',
+        'core:allocations:read',
+        'core:allocations:write',
+        'core:projects:read',
+        'core:projects:write',
+        'core:traces:read',
+        'core:privileges:grant',
+        'core:roles:manage'
     ])
 });
 
