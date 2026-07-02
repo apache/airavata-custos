@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -30,6 +31,8 @@ const (
 	userRoleAuditGranted   = "ROLE_GRANTED"
 	userRoleAuditRevoked   = "ROLE_REVOKED"
 	userRoleAuditBootstrap = "ROLE_BOOTSTRAPPED"
+	userAuditBootstrapped  = "USER_BOOTSTRAPPED"
+	bootstrapSystemOrgID   = "system"
 )
 
 // GrantRoleToUser requires granterID to hold roles:manage.
@@ -143,8 +146,8 @@ func (s *Service) ListRoleHolders(ctx context.Context, roleID string) ([]models.
 }
 
 // BootstrapSuperAdmin ensures the super_admin role exists and grants it to
-// the user with the named email. Idempotent — returns nil on every no-op
-// case so a failed bootstrap never blocks server start.
+// the user with the named email, creating a PENDING SYSTEM user if missing.
+// Idempotent.
 func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string) error {
 	if email == "" {
 		return nil
@@ -154,8 +157,10 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 		return fmt.Errorf("lookup bootstrap user: %w", err)
 	}
 	if user == nil {
-		slog.Warn("bootstrap: user not found, skipping", "email", email)
-		return nil
+		user, err = s.createBootstrapUser(ctx, email, source)
+		if err != nil {
+			return fmt.Errorf("create bootstrap user: %w", err)
+		}
 	}
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		role, err := s.ensureSuperAdminRoleTx(ctx, tx)
@@ -201,6 +206,62 @@ func (s *Service) BootstrapSuperAdmin(ctx context.Context, email, source string)
 	})
 }
 
+// createBootstrapUser provisions the bootstrap admin row and the system org
+// it belongs to, both PENDING until the first matching OIDC sign-in.
+func (s *Service) createBootstrapUser(ctx context.Context, email, source string) (*models.User, error) {
+	var created *models.User
+	err := s.inTx(ctx, func(tx *sql.Tx) error {
+		org, err := s.orgs.FindByID(ctx, bootstrapSystemOrgID)
+		if err != nil {
+			return fmt.Errorf("lookup system org: %w", err)
+		}
+		if org == nil {
+			org = &models.Organization{
+				ID:           bootstrapSystemOrgID,
+				OriginatedID: bootstrapSystemOrgID,
+				Name:         "System",
+			}
+			if err := s.orgs.Create(ctx, tx, org); err != nil {
+				return fmt.Errorf("create system org: %w", err)
+			}
+		}
+		created = &models.User{
+			ID:             newID(),
+			OrganizationID: org.ID,
+			Email:          email,
+			Status:         models.UserPending,
+			Type:           models.UserTypeSystem,
+		}
+		if err := s.users.Create(ctx, tx, created); err != nil {
+			return fmt.Errorf("insert bootstrap user: %w", err)
+		}
+		return s.writeUserBootstrappedAuditTx(ctx, tx, created.ID, map[string]any{
+			"email":  email,
+			"source": source,
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("bootstrap: created PENDING super_admin user", "user_id", created.ID, "email", email)
+	return created, nil
+}
+
+func (s *Service) writeUserBootstrappedAuditTx(ctx context.Context, tx *sql.Tx, userID string, details map[string]any) error {
+	payload, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("marshal audit details: %w", err)
+	}
+	return s.auditEvents.Create(ctx, tx, &models.AuditEvent{
+		ID:         newID(),
+		EventType:  userAuditBootstrapped,
+		EventTime:  nowUTC(),
+		EntityID:   userID,
+		EntityType: "user",
+		Details:    string(payload),
+	})
+}
+
 // ensureSuperAdminRoleTx creates the super_admin role with the meta
 // privileges if it doesn't exist, otherwise returns the existing row.
 func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*models.Role, error) {
@@ -212,14 +273,14 @@ func (s *Service) ensureSuperAdminRoleTx(ctx context.Context, tx *sql.Tx) (*mode
 		role = &models.Role{
 			ID:          newID(),
 			Name:        models.SystemRoleSuperAdmin,
-			Description: stringPtrOrNil("bootstrap role carrying privileges:grant and roles:manage"),
+			Description: stringPtrOrNil("bootstrap role carrying every registered privilege"),
 			IsSystem:    true,
 		}
 		if err := s.roles.Create(ctx, tx, role); err != nil {
 			return nil, fmt.Errorf("create super_admin role: %w", err)
 		}
 	}
-	for _, key := range []models.PrivilegeKey{models.PrivilegesGrant, models.RolesManage} {
+	for _, key := range models.KnownPrivileges() {
 		has, err := s.roles.HasPrivilege(ctx, tx, role.ID, key)
 		if err != nil {
 			return nil, fmt.Errorf("check super_admin privilege %s: %w", key, err)

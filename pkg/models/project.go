@@ -23,6 +23,7 @@ import "time"
 type UserStatus string
 
 const (
+	UserPending   UserStatus = "PENDING"
 	UserActive    UserStatus = "ACTIVE"
 	UserInactive  UserStatus = "INACTIVE"
 	UserSuspended UserStatus = "SUSPENDED"
@@ -60,6 +61,7 @@ type UserType string
 const (
 	UserTypeClusterLocal UserType = "CLUSTER_LOCAL"
 	UserTypeVirtual      UserType = "VIRTUAL"
+	UserTypeSystem       UserType = "SYSTEM"
 )
 
 type User struct {

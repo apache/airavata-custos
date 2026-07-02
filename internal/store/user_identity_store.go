@@ -102,6 +102,19 @@ func (s *mysqlUserIdentityStore) FindByUser(ctx context.Context, userID string) 
 	return out, nil
 }
 
+func (s *mysqlUserIdentityStore) FindByUserAndSource(ctx context.Context, userID, source string) (*models.UserIdentity, error) {
+	var e models.UserIdentity
+	err := s.db.GetContext(ctx, &e,
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE user_id = ? AND source = ? LIMIT 1`, userID, source)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
 func (s *mysqlUserIdentityStore) Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO user_identities (id, user_id, source, external_id, email, oidc_sub, metadata)

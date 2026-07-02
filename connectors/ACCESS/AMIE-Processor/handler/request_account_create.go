@@ -160,6 +160,7 @@ func (h *RequestAccountCreateHandler) ensureUser(ctx context.Context, body map[s
 		FirstName:      getString(body, "UserFirstName"),
 		LastName:       getString(body, "UserLastName"),
 		Email:          email,
+		Status:         models.UserPending,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
