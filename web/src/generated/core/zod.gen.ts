@@ -182,6 +182,10 @@ export const zPrivilegeKey = z.enum([
     'core:allocations:write',
     'core:projects:read',
     'core:projects:write',
+    'core:users:read',
+    'core:users:write',
+    'core:organizations:read',
+    'core:organizations:write',
     'core:traces:read',
     'core:privileges:grant',
     'core:roles:manage'
@@ -1060,6 +1064,10 @@ export const zGetPrivilegesByKeyHoldersPath = z.object({
         'core:allocations:write',
         'core:projects:read',
         'core:projects:write',
+        'core:users:read',
+        'core:users:write',
+        'core:organizations:read',
+        'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
         'core:roles:manage'
@@ -1205,6 +1213,10 @@ export const zDeleteRolesByIdPrivilegesByKeyPath = z.object({
         'core:allocations:write',
         'core:projects:read',
         'core:projects:write',
+        'core:users:read',
+        'core:users:write',
+        'core:organizations:read',
+        'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
         'core:roles:manage'
@@ -1366,6 +1378,10 @@ export const zDeleteUsersByIdPrivilegesByKeyPath = z.object({
         'core:allocations:write',
         'core:projects:read',
         'core:projects:write',
+        'core:users:read',
+        'core:users:write',
+        'core:organizations:read',
+        'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
         'core:roles:manage'

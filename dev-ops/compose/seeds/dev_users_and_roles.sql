@@ -72,21 +72,37 @@ INSERT IGNORE INTO role_privileges (role_id, privilege) VALUES
     ('11111111-1111-1111-1111-111111111111', 'amie:unmapped:read'),
     ('11111111-1111-1111-1111-111111111111', 'amie:unmapped:write'),
     ('11111111-1111-1111-1111-111111111111', 'core:clusters:read'),
-    ('11111111-1111-1111-1111-111111111111', 'core:clusters:write');
+    ('11111111-1111-1111-1111-111111111111', 'core:clusters:write'),
+    ('11111111-1111-1111-1111-111111111111', 'core:allocations:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:allocations:write'),
+    ('11111111-1111-1111-1111-111111111111', 'core:projects:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:projects:write'),
+    ('11111111-1111-1111-1111-111111111111', 'core:users:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:users:write'),
+    ('11111111-1111-1111-1111-111111111111', 'core:organizations:read'),
+    ('11111111-1111-1111-1111-111111111111', 'core:traces:read');
 
 -- auditor privileges
 INSERT IGNORE INTO role_privileges (role_id, privilege) VALUES
     ('22222222-2222-2222-2222-222222222222', 'amie:packets:read'),
     ('22222222-2222-2222-2222-222222222222', 'amie:replies:read'),
     ('22222222-2222-2222-2222-222222222222', 'amie:unmapped:read'),
-    ('22222222-2222-2222-2222-222222222222', 'core:clusters:read');
+    ('22222222-2222-2222-2222-222222222222', 'core:clusters:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:allocations:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:projects:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:users:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:organizations:read'),
+    ('22222222-2222-2222-2222-222222222222', 'core:traces:read');
 
 -- pi privileges
 INSERT IGNORE INTO role_privileges (role_id, privilege) VALUES
     ('33333333-3333-3333-3333-333333333333', 'amie:packets:read'),
     ('33333333-3333-3333-3333-333333333333', 'amie:replies:read'),
     ('33333333-3333-3333-3333-333333333333', 'core:clusters:read'),
-    ('33333333-3333-3333-3333-333333333333', 'core:clusters:write');
+    ('33333333-3333-3333-3333-333333333333', 'core:clusters:write'),
+    ('33333333-3333-3333-3333-333333333333', 'core:allocations:read'),
+    ('33333333-3333-3333-3333-333333333333', 'core:allocations:write'),
+    ('33333333-3333-3333-3333-333333333333', 'core:projects:read');
 
 -- ---------------------------------------------------------------------------
 -- Role assignments
