@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetConnectorsAmiePacketsByPacketIdAuditsData, GetConnectorsAmiePacketsByPacketIdAuditsErrors, GetConnectorsAmiePacketsByPacketIdAuditsResponses } from './types.gen';
+import type { GetConnectorsAmiePacketsByIdData, GetConnectorsAmiePacketsByIdErrors, GetConnectorsAmiePacketsByIdEventsData, GetConnectorsAmiePacketsByIdEventsErrors, GetConnectorsAmiePacketsByIdEventsResponses, GetConnectorsAmiePacketsByIdResponses, GetConnectorsAmiePacketsByPacketIdAuditsData, GetConnectorsAmiePacketsByPacketIdAuditsErrors, GetConnectorsAmiePacketsByPacketIdAuditsResponses, GetConnectorsAmiePacketsData, GetConnectorsAmiePacketsErrors, GetConnectorsAmiePacketsResponses, GetConnectorsAmieRepliesData, GetConnectorsAmieRepliesResponses, GetConnectorsAmieStatsData, GetConnectorsAmieStatsErrors, GetConnectorsAmieStatsResponses, GetConnectorsAmieUnmappedData, GetConnectorsAmieUnmappedResponses, PostConnectorsAmiePacketsByIdResolveData, PostConnectorsAmiePacketsByIdResolveErrors, PostConnectorsAmiePacketsByIdRetryData, PostConnectorsAmiePacketsByIdRetryErrors, PostConnectorsAmieRepliesByIdRetryData, PostConnectorsAmieRepliesByIdRetryErrors, PostConnectorsAmieUnmappedByIdLinkData, PostConnectorsAmieUnmappedByIdLinkErrors } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,10 +19,100 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * List AMIE packets
+ */
+export const getConnectorsAmiePackets = <ThrowOnError extends boolean = false>(options?: Options<GetConnectorsAmiePacketsData, ThrowOnError>): RequestResult<GetConnectorsAmiePacketsResponses, GetConnectorsAmiePacketsErrors, ThrowOnError> => (options?.client ?? client).get<GetConnectorsAmiePacketsResponses, GetConnectorsAmiePacketsErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/packets',
+    ...options
+});
+
+/**
+ * Get an AMIE packet by ID
+ */
+export const getConnectorsAmiePacketsById = <ThrowOnError extends boolean = false>(options: Options<GetConnectorsAmiePacketsByIdData, ThrowOnError>): RequestResult<GetConnectorsAmiePacketsByIdResponses, GetConnectorsAmiePacketsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetConnectorsAmiePacketsByIdResponses, GetConnectorsAmiePacketsByIdErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/packets/{id}',
+    ...options
+});
+
+/**
+ * List processing events for an AMIE packet
+ */
+export const getConnectorsAmiePacketsByIdEvents = <ThrowOnError extends boolean = false>(options: Options<GetConnectorsAmiePacketsByIdEventsData, ThrowOnError>): RequestResult<GetConnectorsAmiePacketsByIdEventsResponses, GetConnectorsAmiePacketsByIdEventsErrors, ThrowOnError> => (options.client ?? client).get<GetConnectorsAmiePacketsByIdEventsResponses, GetConnectorsAmiePacketsByIdEventsErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/packets/{id}/events',
+    ...options
+});
+
+/**
+ * Resolve an AMIE packet (not yet implemented)
+ */
+export const postConnectorsAmiePacketsByIdResolve = <ThrowOnError extends boolean = false>(options: Options<PostConnectorsAmiePacketsByIdResolveData, ThrowOnError>): RequestResult<unknown, PostConnectorsAmiePacketsByIdResolveErrors, ThrowOnError> => (options.client ?? client).post<unknown, PostConnectorsAmiePacketsByIdResolveErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/packets/{id}/resolve',
+    ...options
+});
+
+/**
+ * Retry an AMIE packet (not yet implemented)
+ */
+export const postConnectorsAmiePacketsByIdRetry = <ThrowOnError extends boolean = false>(options: Options<PostConnectorsAmiePacketsByIdRetryData, ThrowOnError>): RequestResult<unknown, PostConnectorsAmiePacketsByIdRetryErrors, ThrowOnError> => (options.client ?? client).post<unknown, PostConnectorsAmiePacketsByIdRetryErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/packets/{id}/retry',
+    ...options
+});
+
+/**
  * List audit events for an AMIE packet
  */
 export const getConnectorsAmiePacketsByPacketIdAudits = <ThrowOnError extends boolean = false>(options: Options<GetConnectorsAmiePacketsByPacketIdAuditsData, ThrowOnError>): RequestResult<GetConnectorsAmiePacketsByPacketIdAuditsResponses, GetConnectorsAmiePacketsByPacketIdAuditsErrors, ThrowOnError> => (options.client ?? client).get<GetConnectorsAmiePacketsByPacketIdAuditsResponses, GetConnectorsAmiePacketsByPacketIdAuditsErrors, ThrowOnError>({
-    security: [{ name: 'X-Custos-User-Id', type: 'apiKey' }],
+    security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/connectors/amie/packets/{packet_id}/audits',
+    ...options
+});
+
+/**
+ * List replies sent to AMIE
+ */
+export const getConnectorsAmieReplies = <ThrowOnError extends boolean = false>(options?: Options<GetConnectorsAmieRepliesData, ThrowOnError>): RequestResult<GetConnectorsAmieRepliesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetConnectorsAmieRepliesResponses, unknown, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/replies',
+    ...options
+});
+
+/**
+ * Retry an AMIE reply (not yet implemented)
+ */
+export const postConnectorsAmieRepliesByIdRetry = <ThrowOnError extends boolean = false>(options: Options<PostConnectorsAmieRepliesByIdRetryData, ThrowOnError>): RequestResult<unknown, PostConnectorsAmieRepliesByIdRetryErrors, ThrowOnError> => (options.client ?? client).post<unknown, PostConnectorsAmieRepliesByIdRetryErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/replies/{id}/retry',
+    ...options
+});
+
+/**
+ * Per-day packet stats grouped by status and type
+ */
+export const getConnectorsAmieStats = <ThrowOnError extends boolean = false>(options?: Options<GetConnectorsAmieStatsData, ThrowOnError>): RequestResult<GetConnectorsAmieStatsResponses, GetConnectorsAmieStatsErrors, ThrowOnError> => (options?.client ?? client).get<GetConnectorsAmieStatsResponses, GetConnectorsAmieStatsErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/stats',
+    ...options
+});
+
+/**
+ * List AMIE packets that could not be mapped to a Custos entity
+ */
+export const getConnectorsAmieUnmapped = <ThrowOnError extends boolean = false>(options?: Options<GetConnectorsAmieUnmappedData, ThrowOnError>): RequestResult<GetConnectorsAmieUnmappedResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetConnectorsAmieUnmappedResponses, unknown, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/unmapped',
+    ...options
+});
+
+/**
+ * Link an unmapped packet to a Custos entity (not yet implemented)
+ */
+export const postConnectorsAmieUnmappedByIdLink = <ThrowOnError extends boolean = false>(options: Options<PostConnectorsAmieUnmappedByIdLinkData, ThrowOnError>): RequestResult<unknown, PostConnectorsAmieUnmappedByIdLinkErrors, ThrowOnError> => (options.client ?? client).post<unknown, PostConnectorsAmieUnmappedByIdLinkErrors, ThrowOnError>({
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/connectors/amie/unmapped/{id}/link',
     ...options
 });

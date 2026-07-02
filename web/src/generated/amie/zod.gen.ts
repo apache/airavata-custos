@@ -2,6 +2,110 @@
 
 import * as z from 'zod';
 
+export const zPacketEventResponse = z.object({
+    actor: z.string().optional(),
+    duration_ms: z.int().optional(),
+    event_type: z.string().optional(),
+    id: z.string().optional(),
+    message: z.string().optional(),
+    packet_id: z.string().optional(),
+    status: z.string().optional(),
+    timestamp: z.string().optional()
+});
+
+export type packetEventResponseZodType = z.infer<typeof zPacketEventResponse>;
+
+export const zPacketResponse = z.object({
+    amie_id: z.string().optional(),
+    decoded_at: z.string().optional(),
+    id: z.string().optional(),
+    last_error: z.string().optional(),
+    processed_at: z.string().optional(),
+    raw_json: z.string().optional(),
+    received_at: z.string().optional(),
+    retries: z.int().optional(),
+    source: z.string().optional(),
+    status: z.string().optional(),
+    type: z.string().optional(),
+    updated_at: z.string().optional()
+});
+
+export type packetResponseZodType = z.infer<typeof zPacketResponse>;
+
+export const zPacketListResponse = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional(),
+    packets: z.array(zPacketResponse).optional(),
+    total: z.int().optional()
+});
+
+export type packetListResponseZodType = z.infer<typeof zPacketListResponse>;
+
+export const zPacketStatBucketResponse = z.object({
+    count: z.int().optional(),
+    date: z.string().optional(),
+    status: z.string().optional(),
+    type: z.string().optional()
+});
+
+export type packetStatBucketResponseZodType = z.infer<typeof zPacketStatBucketResponse>;
+
+export const zPacketStatsResponse = z.object({
+    byDay: z.array(zPacketStatBucketResponse).optional()
+});
+
+export type packetStatsResponseZodType = z.infer<typeof zPacketStatsResponse>;
+
+export const zReplyListResponse = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional(),
+    replies: z.array(z.unknown()).optional(),
+    total: z.int().optional()
+});
+
+export type replyListResponseZodType = z.infer<typeof zReplyListResponse>;
+
+export const zGetConnectorsAmiePacketsQuery = z.object({
+    status: z.string().optional(),
+    type: z.string().optional(),
+    q: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmiePacketsResponse = zPacketListResponse;
+
+export const zGetConnectorsAmiePacketsByIdPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmiePacketsByIdResponse = zPacketResponse;
+
+export const zGetConnectorsAmiePacketsByIdEventsPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmiePacketsByIdEventsResponse = z.array(zPacketEventResponse);
+
+export const zPostConnectorsAmiePacketsByIdResolvePath = z.object({
+    id: z.string()
+});
+
+export const zPostConnectorsAmiePacketsByIdRetryPath = z.object({
+    id: z.string()
+});
+
 export const zGetConnectorsAmiePacketsByPacketIdAuditsPath = z.object({
     packet_id: z.string()
 });
@@ -22,4 +126,41 @@ export const zGetConnectorsAmiePacketsByPacketIdAuditsResponse = z.object({
         status: z.string().optional()
     })).optional(),
     packet_id: z.string().optional()
+});
+
+export const zGetConnectorsAmieRepliesQuery = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmieRepliesResponse = zReplyListResponse;
+
+export const zPostConnectorsAmieRepliesByIdRetryPath = z.object({
+    id: z.string()
+});
+
+export const zGetConnectorsAmieStatsQuery = z.object({
+    window: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmieStatsResponse = zPacketStatsResponse;
+
+export const zGetConnectorsAmieUnmappedQuery = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetConnectorsAmieUnmappedResponse = zPacketListResponse;
+
+export const zPostConnectorsAmieUnmappedByIdLinkPath = z.object({
+    id: z.string()
 });

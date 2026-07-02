@@ -19,6 +19,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PORT ?? 3217);
 const baseURL = `http://localhost:${port}`;
+const sharedSecret = "test-secret-for-playwright-cookie-fixture-only-32chars";
 
 export default defineConfig({
   testDir: "./tests",
@@ -45,10 +46,19 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       PORT: String(port),
-      PORTAL_AUTH_MODE: "dev",
       NEXT_PUBLIC_PORTAL_USE_MSW: "true",
-      NEXTAUTH_SECRET: "dev-secret-do-not-use-in-prod",
+      NEXTAUTH_SECRET: sharedSecret,
       NEXTAUTH_URL: baseURL,
+      // Required by env schema. Tests inject session cookies directly so this
+      // OIDC config is never actually invoked — the real OIDC flow is in the
+      // live config against the compose Keycloak.
+      OIDC_ISSUER_URL: "http://localhost:8081/realms/custos",
+      OIDC_CLIENT_ID: "playwright-cookie-fixture",
+      OIDC_CLIENT_SECRET: "playwright-cookie-fixture",
     },
   },
 });
+
+// The fixture reads NEXTAUTH_SECRET from process.env, but Playwright workers
+// run in their own process — propagate it explicitly here.
+process.env.NEXTAUTH_SECRET = sharedSecret;

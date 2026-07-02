@@ -25,10 +25,12 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { useSignOut } from "@/shared/auth/useSignOut";
 
 export function UserPill() {
   const { data: session, status } = useSession();
+  const { signOut, isPending } = useSignOut();
   const loading = status === "loading";
   const user = session?.user;
   const name = user?.name ?? user?.email ?? "Signed out";
@@ -57,9 +59,12 @@ export function UserPill() {
           )}
         />
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => void signOut({ callbackUrl: "/sign-in" })}>
+          <DropdownMenuItem
+            disabled={isPending}
+            onClick={() => void signOut({ callbackUrl: "/sign-in" })}
+          >
             <LogOut className="mr-2 h-4 w-4" />
-            Sign out
+            {isPending ? "Signing out…" : "Sign out"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

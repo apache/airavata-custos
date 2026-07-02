@@ -1,5 +1,4 @@
 {
-  "_comment": "Use only for the local dev environment.",
   "realm": "custos",
   "enabled": true,
   "sslRequired": "none",

@@ -15,29 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { Privilege } from "@/features/core/identity/types";
+"use client";
 
-export type DevLevel = "viewer" | "manager" | "admin";
+import { useCallback, useState } from "react";
 
-// Dev-mode privilege bundles. Levels are coarser than the spec roles so the
-// dropdown stays simple; admin covers the full PrivilegeKey enum.
-export const DEV_LEVEL_PRIVILEGES: Record<DevLevel, Privilege[]> = {
-  viewer: ["hpc:read"],
-  manager: ["hpc:read", "hpc:write", "amie:read"],
-  admin: [
-    "amie:read",
-    "amie:write",
-    "hpc:read",
-    "hpc:write",
-    "signer:read",
-    "signer:write",
-    "privileges:grant",
-    "roles:manage",
-  ],
-};
+export type SignOutOptions = { callbackUrl?: string };
 
-export const DEV_LEVEL_NAMES: Record<DevLevel, string> = {
-  viewer: "Dev Viewer",
-  manager: "Dev Manager",
-  admin: "Dev Admin",
-};
+export function useSignOut() {
+  const [isPending, setIsPending] = useState(false);
+  const signOut = useCallback((opts?: SignOutOptions) => {
+    const callbackUrl = opts?.callbackUrl ?? "/sign-in";
+    setIsPending(true);
+    // The end-session route reads idToken from the session before clearing
+    // the cookie, so it can build a Keycloak logout URL with id_token_hint
+    // (otherwise Keycloak skips the SSO invalidation).
+    window.location.assign(
+      `/api/auth/end-session?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+    );
+  }, []);
+  return { signOut, isPending };
+}

@@ -17,13 +17,22 @@
 
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
+import { useAuthErrorHandler } from "@/shared/auth/useAuthErrorHandler";
 
 export function QueryProvider({ children }: { children: ReactNode }) {
+  const handleAuthError = useAuthErrorHandler();
   const [client] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({ onError: handleAuthError }),
+        mutationCache: new MutationCache({ onError: handleAuthError }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,
