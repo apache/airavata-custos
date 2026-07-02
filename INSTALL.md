@@ -161,3 +161,17 @@ Open <http://localhost:3000> and sign in:
 - **External OIDC:** sign in with your provider. On first sign-in your OIDC
   `sub` is linked to the PENDING super_admin user created in step 3, and the
   user is promoted to ACTIVE.
+
+## 8. (Optional) Load sample data
+
+After first sign-in the sidebar renders but every screen is empty. That's the
+correct state on a fresh DB, no allocation or project data has been produced
+yet. To populate it:
+
+- **AMIE baseline scenario** ingests projects, allocations, users, cluster
+  accounts, and memberships. Follow the "Mock-server REST scenarios" section
+  of [`connectors/ACCESS/AMIE-Processor/README.md`](connectors/ACCESS/AMIE-Processor/README.md).
+- **Portal-only extras** (resources, rates, usage records, a pending change
+  request, a membership override) live in
+  [`dev-ops/compose/seeds/dev_portal_data.sql`](dev-ops/compose/seeds/dev_portal_data.sql).
+  Apply after AMIE has run so the referenced allocation IDs exist.
