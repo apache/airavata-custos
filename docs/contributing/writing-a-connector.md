@@ -39,12 +39,12 @@ process and no remote call between the connector and core.
 
 The common shapes are:
 
-| Shape | Example | What it does |
-|---|---|---|
-| HTTP-only | `connectors/TempAccount` | Mounts a few `/connectors/<name>/*` endpoints that call into `pkg/service`. |
-| Event-subscriber | `connectors/COmanage/Identity-Provisioner`, `connectors/SLURM/Association-Mapper` | Subscribes to core events on `pkg/events.Bus`. Reacts by talking to an external system. No HTTP routes, no goroutine of its own. |
-| Background worker | `connectors/SLURM/Usage-Monitor` | Runs a long-lived goroutine that polls an external system on an interval and publishes domain events. No HTTP routes; does not subscribe. |
-| Mixed (HTTP + workers + own schema) | `connectors/ACCESS/AMIE-Processor` | All of the above plus its own embedded migrations and an external API client. |
+| Shape                               | Example                                                                           | What it does                                                                                                                              |
+|-------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| HTTP-only                           | `connectors/TempAccount`                                                          | Mounts a few `/connectors/<name>/*` endpoints that call into `pkg/service`.                                                               |
+| Event-subscriber                    | `connectors/COmanage/Identity-Provisioner`, `connectors/SLURM/Association-Mapper` | Subscribes to core events on `pkg/events.Bus`. Reacts by talking to an external system. No HTTP routes, no goroutine of its own.          |
+| Background worker                   | `connectors/SLURM/Usage-Monitor`                                                  | Runs a long-lived goroutine that polls an external system on an interval and publishes domain events. No HTTP routes; does not subscribe. |
+| Mixed (HTTP + workers + own schema) | `connectors/ACCESS/AMIE-Processor`                                                | All of the above plus its own embedded migrations and an external API client.                                                             |
 
 Pick the smallest shape that fits.
 
@@ -62,13 +62,13 @@ signature (see `internal/connectors/loader.go`).
 
 ```go
 func(
-    ctx context.Context,
-    database *sqlx.DB,
-    eventBus *events.Bus,
-    coreService *service.Service,
-    wg *sync.WaitGroup,
-    router *identity.Router,
-    connectorConfig *config.ConnectorConfig,
+ctx context.Context,
+database *sqlx.DB,
+eventBus *events.Bus,
+coreService *service.Service,
+wg *sync.WaitGroup,
+router *identity.Router,
+connectorConfig *config.ConnectorConfig,
 ) error
 ```
 
@@ -76,11 +76,15 @@ What each argument is for:
 
 - `ctx` — cancelled on shutdown. Pass it into background goroutines so they exit cleanly.
 - `database` — the shared `*sqlx.DB`. Use it directly, or use `db.MigrateConnectorFS` to apply per-connector schema.
-- `eventBus` — `pkg/events.Bus`. Subscribe here to react to core events; publish here when you want core or other connectors to react to yours.
-- `coreService` — the central service layer. Call its methods (e.g. `coreService.CreateUser`, `coreService.CreateComputeAllocationMembership`) instead of going to stores yourself.
-- `wg` — register every long-running goroutine with `wg.Add(1)` and `defer wg.Done()`. The server waits up to 30s for this group to drain on shutdown.
+- `eventBus` — `pkg/events.Bus`. Subscribe here to react to core events; publish here when you want core or other
+  connectors to react to yours.
+- `coreService` — the central service layer. Call its methods (e.g. `coreService.CreateUser`,
+  `coreService.CreateComputeAllocationMembership`) instead of going to stores yourself.
+- `wg` — register every long-running goroutine with `wg.Add(1)` and `defer wg.Done()`. The server waits up to 30s for
+  this group to drain on shutdown.
 - `router` — `*identity.Router`. Register routes with `Public`, `RequireAuth`, or `RequirePrivilege`.
-- `connectorConfig` — the YAML block keyed under your connector's name in `config/custos.yaml`. Use `GetStringField`, `GetNestedConfig`, etc. on `*config.ConnectorConfig` to read fields.
+- `connectorConfig` — the YAML block keyed under your connector's name in `config/custos.yaml`. Use `GetStringField`,
+  `GetNestedConfig`, etc. on `*config.ConnectorConfig` to read fields.
 
 Return `nil` on success. Returning an error fails the whole server startup, so
 prefer logging and returning `nil` for "config missing, skip me silently"
@@ -116,30 +120,30 @@ is the canonical small example):
 package lustresync
 
 import (
-    "context"
-    "sync"
+	"context"
+	"sync"
 
-    "github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx"
 
-    "github.com/apache/airavata-custos/connectors/Lustre/Sync/internal"
-    "github.com/apache/airavata-custos/internal/config"
-    "github.com/apache/airavata-custos/pkg/events"
-    "github.com/apache/airavata-custos/pkg/identity"
-    "github.com/apache/airavata-custos/pkg/service"
+	"github.com/apache/airavata-custos/connectors/Lustre/Sync/internal"
+	"github.com/apache/airavata-custos/internal/config"
+	"github.com/apache/airavata-custos/pkg/events"
+	"github.com/apache/airavata-custos/pkg/identity"
+	"github.com/apache/airavata-custos/pkg/service"
 )
 
 func LoadConnector(
-    ctx context.Context,
-    _ *sqlx.DB,
-    eventBus *events.Bus,
-    coreService *service.Service,
-    wg *sync.WaitGroup,
-    router *identity.Router,
-    connectorConfig *config.ConnectorConfig,
+	ctx context.Context,
+	_ *sqlx.DB,
+	eventBus *events.Bus,
+	coreService *service.Service,
+	wg *sync.WaitGroup,
+	router *identity.Router,
+	connectorConfig *config.ConnectorConfig,
 ) error {
-    handlers := internal.NewHandlers(coreService)
-    handlers.RegisterRoutes(router)
-    return nil
+	handlers := internal.NewHandlers(coreService)
+	handlers.RegisterRoutes(router)
+	return nil
 }
 ```
 
@@ -156,9 +160,9 @@ Import:
 Add an entry to the `connectorLoaders` map:
 
 ```go
-connectorLoaders := map[string]func(...){
-    // ...existing entries...
-    "lustre-sync": lustresync.LoadConnector,
+connectorLoaders := map[string]func (...){
+// ...existing entries...
+"lustre-sync": lustresync.LoadConnector,
 }
 ```
 
@@ -196,12 +200,12 @@ each leaf field. Example:
 
 ```go
 if api, err := connectorConfig.GetNestedConfig("api"); err == nil {
-    if url, ok := api["url"].(string); ok {
-        cfg.URL = url
-    }
-    if token, ok := api["token"].(string); ok {
-        cfg.Token = token
-    }
+if url, ok := api["url"].(string); ok {
+cfg.URL = url
+}
+if token, ok := api["token"].(string); ok {
+cfg.Token = token
+}
 }
 ```
 
@@ -213,7 +217,10 @@ type assertions.
 Two patterns, pick one:
 
 - **YAML-only.** Simplest. Recommended for new connectors. TempAccount is the example.
-- **YAML with env fallback.** Read YAML, fall back to env vars if any required field is missing. The COmanage loader is the canonical reference: see `LoadConnector` for the orchestration, `loadConfigFromConnectorConfig` for the YAML reader, and `loadConfigFromEnv` for the env fallback in `connectors/COmanage/Identity-Provisioner/pkg/comanage/loader.go`.
+- **YAML with env fallback.** Read YAML, fall back to env vars if any required field is missing. The COmanage loader is
+  the canonical reference: see `LoadConnector` for the orchestration, `loadConfigFromConnectorConfig` for the YAML
+  reader, and `loadConfigFromEnv` for the env fallback in
+  `connectors/COmanage/Identity-Provisioner/pkg/comanage/loader.go`.
 
 If required config is missing, log and `return nil` so the connector skips
 without failing the whole server. Do not panic. Do not return an error unless
@@ -232,21 +239,29 @@ router.Public("GET /healthz", h.health)
 router.RequireAuth("GET /connectors/lustre-sync/me", h.getSelf)
 
 // RequirePrivilege: verified caller AND the named privilege key. 403 if absent.
-router.RequirePrivilege(
-    "POST /connectors/lustre-sync/sync",
-    models.PrivilegeLustreWrite,
-    h.runSync,
-)
+router.RequirePrivilege("POST /connectors/lustre-sync/sync", SyncWrite, h.runSync)
 ```
 
 API surface in `pkg/identity/middleware.go`. Mount everything under
 `/connectors/<your-name>/...` to keep namespaces clean.
 
-Privilege keys live in `pkg/models/privilege.go`. Today the catalog is
-`amie:read`, `amie:write`, `hpc:read`, `hpc:write`, `signer:read`,
-`signer:write`, `privileges:grant`, `roles:manage`. Reuse an existing key if
-it fits. If you genuinely need a new connector-specific key, add it as a
-constant in `pkg/models/privilege.go` and append it to `KnownPrivileges()`.
+Privilege keys use the `<owner>:<scope>:<action>` shape and live in a runtime registry. Declare your connector's keys in
+a `privileges.go` inside your connector's server package and register them at startup:
+
+```go
+const (
+SyncRead  models.PrivilegeKey = "lustre-sync:sync:read"
+SyncWrite models.PrivilegeKey = "lustre-sync:sync:write"
+)
+
+func init() {
+models.Register(SyncRead, SyncWrite)
+}
+```
+
+The AMIE connector's `server/privileges.go` is the shipping example. Do not add connector keys to
+`pkg/models/privilege.go`; that file holds core keys only. See [docs/privileges.md](../privileges.md) for the catalog
+and add your keys to its table.
 
 ### 7. Database state (if you need it)
 
@@ -280,15 +295,15 @@ spawn workers:
 
 ```go
 import (
-    lustredb "github.com/apache/airavata-custos/connectors/Lustre/Sync/db"
-    "github.com/apache/airavata-custos/internal/db"
+lustredb "github.com/apache/airavata-custos/connectors/Lustre/Sync/db"
+"github.com/apache/airavata-custos/internal/db"
 )
 
 func LoadConnector(ctx context.Context, database *sqlx.DB, ...) error {
-    if err := db.MigrateConnectorFS(database, lustredb.MigrationFS(), "migrations", "lustre"); err != nil {
-        return err
-    }
-    // ...rest of loader...
+if err := db.MigrateConnectorFS(database, lustredb.MigrationFS(), "migrations", "lustre"); err != nil {
+return err
+}
+// ...rest of loader...
 }
 ```
 
@@ -308,9 +323,9 @@ If you have a poller, processor, or any other long-running goroutine:
 
 ```go
 wg.Add(1)
-go func() {
-    defer wg.Done()
-    poller.Run(ctx) // honour ctx.Done() inside Run
+go func () {
+defer wg.Done()
+poller.Run(ctx) // honour ctx.Done() inside Run
 }()
 ```
 
@@ -342,21 +357,21 @@ place before traffic arrives:
 
 ```go
 type ClusterUserSubscriber struct {
-    bus  *events.Bus
-    core *service.Service
+bus  *events.Bus
+core *service.Service
 }
 
 func (s *ClusterUserSubscriber) RegisterSubscribers() {
-    s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleCreate)
+s.bus.Subscribe(events.ComputeClusterUserCreateEvent, s.handleCreate)
 }
 
 func (s *ClusterUserSubscriber) handleCreate(ctx context.Context, _ events.Event, payload interface{}) {
-    cu, ok := payload.(*models.ComputeClusterUser)
-    if !ok {
-        slog.Error("payload type mismatch", "type", payload)
-        return
-    }
-    // ...react...
+cu, ok := payload.(*models.ComputeClusterUser)
+if !ok {
+slog.Error("payload type mismatch", "type", payload)
+return
+}
+// ...react...
 }
 ```
 
@@ -393,11 +408,12 @@ the row yourself with `coreService.CreateAuditEvent`:
 
 ```go
 _, _ = svc.CreateAuditEvent(ctx, &models.AuditEvent{
-    EventType:  "LustreQuotaSyncStarted",
-    EntityType: "ComputeAllocation",
-    EntityID:   alloc.ID,
-    Source:     "lustre",
+EventType:  "LustreQuotaSyncStarted",
+EntityType: "ComputeAllocation",
+EntityID:   alloc.ID,
+Source:     "lustre",
 })
+
 ```
 
 `trace_id`, `span_id`, and `parent_span_id` are read from `ctx` and stamped
@@ -408,13 +424,14 @@ keeps `packet_id` and `event_id`), create a `<connector>_audit_extras` table.
 Same shape as AMIE's:
 
 ```sql
-CREATE TABLE amie_audit_extras (
+CREATE TABLE amie_audit_extras
+(
     audit_event_id VARCHAR(255) NOT NULL,
     packet_id      VARCHAR(255) NOT NULL,
     event_id       VARCHAR(255) NULL,
     PRIMARY KEY (audit_event_id),
     CONSTRAINT fk_amie_audit_extras_event
-        FOREIGN KEY (audit_event_id) REFERENCES audit_events(id) ON DELETE CASCADE
+        FOREIGN KEY (audit_event_id) REFERENCES audit_events (id) ON DELETE CASCADE
     -- plus any FKs to your connector's own tables
 );
 ```
@@ -475,7 +492,8 @@ Two lines, in the same file as `LoadConnector` (see
 What each swag flag does:
 
 - `-g loader.go` — the entry-point file with the `@title` / `@host` / etc. annotations
-- `-d .,../../server,../../store` — additional dirs to scan for handler annotations. List every package whose handler or model types appear in the spec
+- `-d .,../../server,../../store` — additional dirs to scan for handler annotations. List every package whose handler or
+  model types appear in the spec
 - `-o ../../api` — output directory (writes `swagger.yaml`)
 - `--outputTypes yaml` — yaml only, no json
 - `--parseDependency` — follow imported types so external structs render properly
@@ -513,8 +531,8 @@ example:
 
 ```go
 import (
-    "github.com/apache/airavata-custos/pkg/identity"
-    "github.com/apache/airavata-custos/pkg/models"
+"github.com/apache/airavata-custos/pkg/identity"
+"github.com/apache/airavata-custos/pkg/models"
 )
 
 ctx := identity.WithCaller(req.Context(), &identity.Caller{UserID: "u-1"})
@@ -548,9 +566,17 @@ including the AMIE-specific isolated stack on `:3307`.
 
 ## Common pitfalls
 
-- **Returning an error for "config missing".** If your connector's required config (API URL, credentials, etc.) isn't set in `config/custos.yaml` or the environment, do NOT return an error from `LoadConnector`. Any error here fails the **whole server startup** — core and every other connector are blocked, not just yours. Instead, log a warning and `return nil`. Your connector silently does nothing; the rest of the server boots cleanly.
+- **Returning an error for "config missing".** If your connector's required config (API URL, credentials, etc.) isn't
+  set in `config/custos.yaml` or the environment, do NOT return an error from `LoadConnector`. Any error here fails the
+  **whole server startup** — core and every other connector are blocked, not just yours. Instead, log a warning and
+  `return nil`. Your connector silently does nothing; the rest of the server boots cleanly.
 
-- **Not registering background goroutines with `wg`.** When you spawn a long-running goroutine in `LoadConnector`, you must call `wg.Add(1)` first and `defer wg.Done()` inside it. The server uses that WaitGroup to track background work and gives it up to 30 seconds to drain on shutdown. If your goroutine isn't on the WaitGroup, the server doesn't know it exists; it cancels `ctx` and exits while your goroutine is still mid-flight. Anything in progress gets cut off — a transaction may commit half-done, an external reply may never get sent, audit rows may be missing entries. The pattern is:
+- **Not registering background goroutines with `wg`.** When you spawn a long-running goroutine in `LoadConnector`, you
+  must call `wg.Add(1)` first and `defer wg.Done()` inside it. The server uses that WaitGroup to track background work
+  and gives it up to 30 seconds to drain on shutdown. If your goroutine isn't on the WaitGroup, the server doesn't know
+  it exists; it cancels `ctx` and exits while your goroutine is still mid-flight. Anything in progress gets cut off — a
+  transaction may commit half-done, an external reply may never get sent, audit rows may be missing entries. The pattern
+  is:
   ```go
   wg.Add(1)
   go func() {
@@ -559,7 +585,10 @@ including the AMIE-specific isolated stack on `:3307`.
   }()
   ```
 - **Mounting routes outside `/connectors/<name>/...`.** Other connectors collide; nothing tells you until production.
-- **Bypassing `coreService` for domain mutations.** Use `coreService.CreateUser`, `CreateComputeAllocationMembership`, etc., so transactions and audit rows stay consistent. Composing connector-side stores around `internal/store` types is fine when you are wrapping core (e.g. AMIE builds an audit service over `corestore.NewAuditEventStore`), but never call a core store to mutate users, projects, or allocations directly — go through `coreService`.
+- **Bypassing `coreService` for domain mutations.** Use `coreService.CreateUser`, `CreateComputeAllocationMembership`,
+  etc., so transactions and audit rows stay consistent. Composing connector-side stores around `internal/store` types is
+  fine when you are wrapping core (e.g. AMIE builds an audit service over `corestore.NewAuditEventStore`), but never
+  call a core store to mutate users, projects, or allocations directly — go through `coreService`.
 - **Forgetting to regenerate the OpenAPI spec.** `make verify-no-drift` will fail CI.
 - **Skipping license headers** on new `.go` and `.sql` files. Same CI failure mode.
 

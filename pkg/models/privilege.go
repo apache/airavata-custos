@@ -27,10 +27,15 @@ import (
 type PrivilegeKey string
 
 const (
-	ClustersRead    PrivilegeKey = "core:clusters:read"
-	ClustersWrite   PrivilegeKey = "core:clusters:write"
-	PrivilegesGrant PrivilegeKey = "core:privileges:grant"
-	RolesManage     PrivilegeKey = "core:roles:manage"
+	ClustersRead     PrivilegeKey = "core:clusters:read"
+	ClustersWrite    PrivilegeKey = "core:clusters:write"
+	AllocationsRead  PrivilegeKey = "core:allocations:read"
+	AllocationsWrite PrivilegeKey = "core:allocations:write"
+	ProjectsRead     PrivilegeKey = "core:projects:read"
+	ProjectsWrite    PrivilegeKey = "core:projects:write"
+	TracesRead       PrivilegeKey = "core:traces:read"
+	PrivilegesGrant  PrivilegeKey = "core:privileges:grant"
+	RolesManage      PrivilegeKey = "core:roles:manage"
 )
 
 var (
@@ -42,6 +47,11 @@ func init() {
 	Register(
 		ClustersRead,
 		ClustersWrite,
+		AllocationsRead,
+		AllocationsWrite,
+		ProjectsRead,
+		ProjectsWrite,
+		TracesRead,
 		PrivilegesGrant,
 		RolesManage,
 	)

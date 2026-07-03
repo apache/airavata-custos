@@ -13,19 +13,6 @@ SET
 time_zone = '+00:00';
 
 -- ---------------------------------------------------------------------------
--- dev-admin direct privilege grants (bypasses the bootstrap super_admin →
--- API-grant flow that would otherwise need a separate per-privilege POST).
--- ---------------------------------------------------------------------------
-INSERT
-IGNORE INTO user_privileges (id, user_id, privilege, granted_by) VALUES
-  (UUID(), 'dev-admin', 'amie:read',    'dev-admin'),
-  (UUID(), 'dev-admin', 'amie:write',   'dev-admin'),
-  (UUID(), 'dev-admin', 'hpc:read',     'dev-admin'),
-  (UUID(), 'dev-admin', 'hpc:write',    'dev-admin'),
-  (UUID(), 'dev-admin', 'signer:read',  'dev-admin'),
-  (UUID(), 'dev-admin', 'signer:write', 'dev-admin');
-
--- ---------------------------------------------------------------------------
 -- Resources (cluster-scoped resource catalog)
 -- ---------------------------------------------------------------------------
 INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)

@@ -160,6 +160,7 @@ func (h *RequestProjectCreateHandler) ensurePIUser(ctx context.Context, body map
 		FirstName:      getString(body, "PiFirstName"),
 		LastName:       getString(body, "PiLastName"),
 		Email:          email,
+		Status:         models.UserPending,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create PI user: %w", err)

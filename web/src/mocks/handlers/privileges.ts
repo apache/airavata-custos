@@ -21,14 +21,21 @@ import type { Privilege } from "@/features/core/identity/types";
 // Default to admin-grade so MSW-only browsing exercises the full UI; tests
 // override per-case via server.use().
 const ALL_PRIVILEGES: Privilege[] = [
-  "amie:read",
-  "amie:write",
-  "hpc:read",
-  "hpc:write",
-  "signer:read",
-  "signer:write",
-  "privileges:grant",
-  "roles:manage",
+  "core:clusters:read",
+  "core:clusters:write",
+  "core:allocations:read",
+  "core:allocations:write",
+  "core:projects:read",
+  "core:projects:write",
+  "core:traces:read",
+  "core:privileges:grant",
+  "core:roles:manage",
+  "amie:packets:read",
+  "amie:packets:write",
+  "amie:replies:read",
+  "amie:replies:write",
+  "amie:unmapped:read",
+  "amie:unmapped:write",
 ];
 
 const MOCK_USER = {

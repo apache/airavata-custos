@@ -165,8 +165,8 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 	if user.Email != "sam.userman@user.example.edu" {
 		t.Errorf("user.email: got %q", user.Email)
 	}
-	if user.Status != "ACTIVE" {
-		t.Errorf("user.status: got %q, want ACTIVE", user.Status)
+	if user.Status != "PENDING" {
+		t.Errorf("user.status: got %q, want PENDING", user.Status)
 	}
 
 	// ComputeClusterUser must be on the configured cluster and bound to the

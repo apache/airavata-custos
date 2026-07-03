@@ -307,12 +307,22 @@ definitions:
     enum:
     - core:clusters:read
     - core:clusters:write
+    - core:allocations:read
+    - core:allocations:write
+    - core:projects:read
+    - core:projects:write
+    - core:traces:read
     - core:privileges:grant
     - core:roles:manage
     type: string
     x-enum-varnames:
     - ClustersRead
     - ClustersWrite
+    - AllocationsRead
+    - AllocationsWrite
+    - ProjectsRead
+    - ProjectsWrite
+    - TracesRead
     - PrivilegesGrant
     - RolesManage
   Project:
@@ -568,12 +578,14 @@ definitions:
     type: object
   UserStatus:
     enum:
+    - PENDING
     - ACTIVE
     - INACTIVE
     - SUSPENDED
     - MERGED
     type: string
     x-enum-varnames:
+    - UserPending
     - UserActive
     - UserInactive
     - UserSuspended
@@ -582,10 +594,12 @@ definitions:
     enum:
     - CLUSTER_LOCAL
     - VIRTUAL
+    - SYSTEM
     type: string
     x-enum-varnames:
     - UserTypeClusterLocal
     - UserTypeVirtual
+    - UserTypeSystem
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -2658,6 +2672,11 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:traces:read
         - core:privileges:grant
         - core:roles:manage
         in: path
@@ -3156,6 +3175,11 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:traces:read
         - core:privileges:grant
         - core:roles:manage
         in: path
@@ -3680,6 +3704,11 @@ paths:
         enum:
         - core:clusters:read
         - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:traces:read
         - core:privileges:grant
         - core:roles:manage
         in: path
