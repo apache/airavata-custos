@@ -47,6 +47,27 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	List users (paginated)
+// @Tags	Users
+// @Security	BearerAuth
+// @Produce	json
+// @Param	limit	query	integer	false	"Page size"
+// @Param	offset	query	integer	false	"Page offset"
+// @Success	200	{object}	UserListResponse
+// @Router	/users [get]
+func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	rows, total, err := s.svc.ListUsers(r.Context(), atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	if rows == nil {
+		rows = []models.User{}
+	}
+	common.WriteJSON(w, http.StatusOK, UserListResponse{Items: rows, Total: total})
+}
+
 // @Summary	Get a user by ID
 // @Tags	Users
 // @Security	BearerAuth

@@ -70,6 +70,15 @@ func (s *Service) GetOrganization(ctx context.Context, id string) (*models.Organ
 	return org, nil
 }
 
+// ListOrganizations returns a page of organizations plus the total count.
+func (s *Service) ListOrganizations(ctx context.Context, limit, offset int) ([]models.Organization, int, error) {
+	rows, total, err := s.orgs.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list organizations: %w", err)
+	}
+	return rows, total, nil
+}
+
 // GetOrganizationByOriginatedID retrieves an organization by its external originated ID.
 func (s *Service) GetOrganizationByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error) {
 	org, err := s.orgs.FindByOriginatedID(ctx, originatedID)

@@ -38,6 +38,18 @@ type ProjectListResponse struct {
 	Total int               `json:"total"`
 }
 
+// OrganizationListResponse is the paginated list envelope for organizations.
+type OrganizationListResponse struct {
+	Items []models.Organization `json:"items"`
+	Total int                   `json:"total"`
+}
+
+// UserListResponse is the paginated list envelope for users.
+type UserListResponse struct {
+	Items []models.User `json:"items"`
+	Total int           `json:"total"`
+}
+
 // ProjectMemberAllocationRef carries the (allocation, role) the user holds on
 // one of the project's allocations.
 type ProjectMemberAllocationRef struct {

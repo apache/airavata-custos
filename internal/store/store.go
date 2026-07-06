@@ -31,6 +31,8 @@ type UserStore interface {
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	// List returns a page of users ordered by email, plus the total count.
+	List(ctx context.Context, limit, offset int) ([]models.User, int, error)
 	// GetUserByOIDCSub returns the user owning the user_identities row whose
 	// oidc_sub matches or nil if no row links the given subject.
 	GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error)
@@ -52,6 +54,8 @@ type OrganizationStore interface {
 	FindByID(ctx context.Context, id string) (*models.Organization, error)
 	// FindByOriginatedID returns the organization matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error)
+	// List returns a page of organizations ordered by name, plus the total count.
+	List(ctx context.Context, limit, offset int) ([]models.Organization, int, error)
 	// Create inserts a new organization within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error
 	// Update replaces mutable fields of an existing organization within the provided transaction.

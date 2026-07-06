@@ -264,6 +264,11 @@ export type Organization = {
     originated_id?: string;
 };
 
+export type OrganizationListResponse = {
+    items?: Array<Organization>;
+    total?: number;
+};
+
 export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
 
 export type Project = {
@@ -409,6 +414,11 @@ export type UserIdentity = {
      */
     source?: string;
     user_id?: string;
+};
+
+export type UserListResponse = {
+    items?: Array<User>;
+    total?: number;
 };
 
 export type UserPrivilege = {
@@ -2586,6 +2596,31 @@ export type GetMeResponses = {
 
 export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
 
+export type GetOrganizationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/organizations';
+};
+
+export type GetOrganizationsResponses = {
+    /**
+     * OK
+     */
+    200: OrganizationListResponse;
+};
+
+export type GetOrganizationsResponse = GetOrganizationsResponses[keyof GetOrganizationsResponses];
+
 export type PostOrganizationsData = {
     /**
      * Organization payload
@@ -3432,6 +3467,31 @@ export type GetUserPrivilegesResponses = {
 };
 
 export type GetUserPrivilegesResponse = GetUserPrivilegesResponses[keyof GetUserPrivilegesResponses];
+
+export type GetUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/users';
+};
+
+export type GetUsersResponses = {
+    /**
+     * OK
+     */
+    200: UserListResponse;
+};
+
+export type GetUsersResponse = GetUsersResponses[keyof GetUsersResponses];
 
 export type PostUsersData = {
     /**

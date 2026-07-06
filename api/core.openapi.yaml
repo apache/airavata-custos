@@ -303,6 +303,15 @@ definitions:
           Record ID.'
         type: string
     type: object
+  OrganizationListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/Organization'
+        type: array
+      total:
+        type: integer
+    type: object
   PrivilegeKey:
     enum:
     - core:clusters:read
@@ -555,6 +564,15 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  UserListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/User'
+        type: array
+      total:
+        type: integer
     type: object
   UserPrivilege:
     properties:
@@ -2616,6 +2634,28 @@ paths:
       tags:
       - Caller
   /organizations:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/OrganizationListResponse'
+      security:
+      - BearerAuth: []
+      summary: List organizations (paginated)
+      tags:
+      - Organizations
     post:
       consumes:
       - application/json
@@ -3439,6 +3479,28 @@ paths:
       tags:
       - Caller
   /users:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserListResponse'
+      security:
+      - BearerAuth: []
+      summary: List users (paginated)
+      tags:
+      - Users
     post:
       consumes:
       - application/json

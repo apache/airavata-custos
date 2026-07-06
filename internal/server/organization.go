@@ -47,6 +47,27 @@ func (s *Server) createOrganization(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusCreated, created)
 }
 
+// @Summary	List organizations (paginated)
+// @Tags	Organizations
+// @Security	BearerAuth
+// @Produce	json
+// @Param	limit	query	integer	false	"Page size"
+// @Param	offset	query	integer	false	"Page offset"
+// @Success	200	{object}	OrganizationListResponse
+// @Router	/organizations [get]
+func (s *Server) listOrganizations(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	rows, total, err := s.svc.ListOrganizations(r.Context(), atoiOr(q.Get("limit"), 50), atoiOr(q.Get("offset"), 0))
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	if rows == nil {
+		rows = []models.Organization{}
+	}
+	common.WriteJSON(w, http.StatusOK, OrganizationListResponse{Items: rows, Total: total})
+}
+
 // @Summary	Get an organization by ID
 // @Tags	Organizations
 // @Security	BearerAuth
