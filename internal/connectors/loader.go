@@ -24,6 +24,7 @@ import (
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
+	"github.com/apache/airavata-custos/connectors/LDAP/Provisioner/pkg/ldap"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
 	"github.com/apache/airavata-custos/connectors/TempAccount/pkg/tempaccount"
@@ -41,6 +42,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		"slurm-association-mapper":      smapper.LoadConnector,
 		"amie-processor":                amie.LoadConnector,
 		"comanage-identity-provisioner": comanage.LoadConnector,
+		"ldap-identity-provisioner":     ldap.LoadConnector,
 		"slurm-usage-monitor":           monitor.LoadConnector,
 		"temp-account":                  tempaccount.LoadConnector,
 	}
