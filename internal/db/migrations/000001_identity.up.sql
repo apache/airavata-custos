@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS users
     organization_id VARCHAR(255) NOT NULL,
     first_name      VARCHAR(255) NOT NULL,
     last_name       VARCHAR(255) NOT NULL,
-    middle_name     VARCHAR(255) NULL,
+    middle_name     VARCHAR(255) NOT NULL DEFAULT '',
     email           VARCHAR(255) NOT NULL,
     status          VARCHAR(32)  NOT NULL DEFAULT 'PENDING',
     created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
