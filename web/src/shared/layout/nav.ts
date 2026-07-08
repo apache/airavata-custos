@@ -21,8 +21,9 @@ import {
   ClipboardList,
   FolderKanban,
   HardDrive,
-  Server,
   type LucideIcon,
+  Server,
+  UserCog,
 } from "lucide-react";
 
 export type AbilityCheck = { action: string; subject: string };
@@ -56,6 +57,12 @@ export const portalNav: NavItem[] = [
     icon: FolderKanban,
     group: "allocations",
     ability: { action: "read", subject: "Project" },
+  },
+  {
+    href: "/admin/users",
+    label: "Users & Permissions",
+    icon: UserCog,
+    group: "admin",
   },
   {
     href: "/admin/traces",

@@ -39,6 +39,16 @@ export type SideDrawerProps = {
   description?: React.ReactNode;
   children: React.ReactNode;
   width?: SideDrawerWidth;
+  // Non-modal drawers skip the dimming backdrop and leave the rest of the
+  // page interactive — e.g. clicking another table row while the drawer is
+  // open should swap its contents rather than being blocked by an overlay.
+  modal?: boolean;
+  // Base UI closes on any outside pointer press by default, which races with
+  // a caller's own click handling (e.g. a row toggling the same drawer) —
+  // the outside-press listener fires before React's onClick, so the caller's
+  // "close if already open" check always sees a fresh `null` state. Set this
+  // when the caller owns open/close entirely (row clicks, toggle buttons).
+  disablePointerDismissal?: boolean;
 };
 
 export function SideDrawer({
@@ -48,11 +58,20 @@ export function SideDrawer({
   description,
   children,
   width = "md",
+  modal = true,
+  disablePointerDismissal = false,
 }: SideDrawerProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      disablePointerDismissal={disablePointerDismissal}
+    >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        {modal ? (
+          <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        ) : null}
         <DialogPrimitive.Popup
           className={cn(
             "fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-popover text-popover-foreground shadow-xl outline-none",
