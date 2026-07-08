@@ -20,7 +20,15 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
-import { allocationStatusSchema } from "@/features/core/allocations/schemas";
+import allocationResourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
+import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
+import allocationUsageFixture from "@/features/core/allocations/__fixtures__/usage.json";
+import {
+  allocationDiffSchema,
+  attachedResourceSchema,
+  allocationStatusSchema,
+  allocationUsageSchema,
+} from "@/features/core/allocations/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
 import {
@@ -61,6 +69,26 @@ describe("MSW fixtures pass current Zod schemas", () => {
   it("allocation status fixture values validate against zAllocationStatus-backed enum", () => {
     const statuses = (allocationsFixture as Array<{ status: string }>).map((a) => a.status);
     const result = z.array(allocationStatusSchema).safeParse(statuses);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("allocation resource fixtures validate against attachedResourceSchema", () => {
+    const rows = Object.values(
+      allocationResourcesFixture as Record<string, unknown[]>,
+    ).flat();
+    const result = z.array(attachedResourceSchema).safeParse(rows);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("allocation diff fixtures validate against allocationDiffSchema", () => {
+    const rows = Object.values(allocationDiffsFixture as Record<string, unknown[]>).flat();
+    const result = z.array(allocationDiffSchema).safeParse(rows);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("allocation usage fixtures validate against allocationUsageSchema", () => {
+    const rows = Object.values(allocationUsageFixture as Record<string, unknown[]>).flat();
+    const result = z.array(allocationUsageSchema).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 

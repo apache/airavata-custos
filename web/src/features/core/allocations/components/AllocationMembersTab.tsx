@@ -150,8 +150,9 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
       header: "",
       align: "right",
       interactive: true,
+      // PI and CO_PI are upstream-owned; the portal never edits or removes them.
       cell: (row) =>
-        canManage ? (
+        canManage && row.role !== "PI" && row.role !== "CO_PI" ? (
           <div className="flex justify-end gap-2">
             <Button
               variant="ghost"

@@ -21,6 +21,7 @@ import {
   approveChangeRequest,
   getAllocation,
   getChangeRequest,
+  listAllocationDiffs,
   listAllocationMembers,
   listAllocationResources,
   listAllocations,
@@ -104,9 +105,48 @@ describe("getAllocation", () => {
 });
 
 describe("listAllocationResources", () => {
+  it("parses attached resource rows", async () => {
+    const resource = {
+      id: "res-a-gpu",
+      name: "ClusterA GPU",
+      resource_type: "GPU",
+      resource_amount: 50000,
+      compute_cluster_id: "cluster-a",
+    };
+    fetchMock.mockResolvedValueOnce(mockResponse(200, [resource]));
+    const out = await listAllocationResources("alloc-001");
+    expect(out).toHaveLength(1);
+    expect(out[0]?.name).toBe("ClusterA GPU");
+    expect(out[0]?.resource_type).toBe("GPU");
+  });
+
   it("returns [] when backend returns null", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, null));
     const out = await listAllocationResources("alloc-001");
+    expect(out).toEqual([]);
+  });
+});
+
+describe("listAllocationDiffs", () => {
+  it("parses diff rows", async () => {
+    const diff = {
+      id: "diff-001",
+      compute_allocation_id: "alloc-001",
+      diff_type: "USAGE_UPDATE",
+      new_su_amount: 250000,
+      status: "ACTIVE",
+      timestamp: "2026-05-15T08:30:00Z",
+    };
+    fetchMock.mockResolvedValueOnce(mockResponse(200, [diff]));
+    const out = await listAllocationDiffs("alloc-001");
+    expect(out).toHaveLength(1);
+    expect(out[0]?.diff_type).toBe("USAGE_UPDATE");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/compute-allocations/alloc-001/diffs");
+  });
+
+  it("returns [] when backend returns null", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, null));
+    const out = await listAllocationDiffs("alloc-001");
     expect(out).toEqual([]);
   });
 });
