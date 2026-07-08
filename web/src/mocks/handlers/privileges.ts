@@ -52,11 +52,26 @@ const MOCK_USER = {
   type: "CLUSTER_LOCAL",
 };
 
+// Test seam: e2e scopes privileges per persona via a non-httpOnly cookie.
+// Unset (MSW-only browsing, unit tests) falls back to full access.
+function effectivePrivileges(): Privilege[] {
+  if (typeof document === "undefined") return ALL_PRIVILEGES;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("custos.test-privileges="));
+  if (!match) return ALL_PRIVILEGES;
+  const list = decodeURIComponent(match.slice("custos.test-privileges=".length))
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list.length > 0 ? (list as Privilege[]) : ALL_PRIVILEGES;
+}
+
 export const privilegesHandlers = [
   http.get("*/api/v1/user/privileges", () =>
-    HttpResponse.json({ privileges: ALL_PRIVILEGES }),
+    HttpResponse.json({ privileges: effectivePrivileges() }),
   ),
   http.get("*/api/v1/me", () =>
-    HttpResponse.json({ user: MOCK_USER, privileges: ALL_PRIVILEGES }),
+    HttpResponse.json({ user: MOCK_USER, privileges: effectivePrivileges() }),
   ),
 ];

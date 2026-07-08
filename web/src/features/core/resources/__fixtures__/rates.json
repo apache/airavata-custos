@@ -1,0 +1,37 @@
+[
+  {
+    "id": "rate-anvil-cpu-current",
+    "compute_allocation_resource_id": "res-anvil-cpu",
+    "rate": 0.05,
+    "start_time": "2020-01-01T00:00:00Z",
+    "end_time": "2035-01-01T00:00:00Z"
+  },
+  {
+    "id": "rate-anvil-cpu-old",
+    "compute_allocation_resource_id": "res-anvil-cpu",
+    "rate": 0.04,
+    "start_time": "2018-01-01T00:00:00Z",
+    "end_time": "2020-01-01T00:00:00Z"
+  },
+  {
+    "id": "rate-anvil-gpu-current",
+    "compute_allocation_resource_id": "res-anvil-gpu",
+    "rate": 0.5,
+    "start_time": "2021-06-01T00:00:00Z",
+    "end_time": "2035-06-01T00:00:00Z"
+  },
+  {
+    "id": "rate-anvil-gpu-old",
+    "compute_allocation_resource_id": "res-anvil-gpu",
+    "rate": 0.45,
+    "start_time": "2019-06-01T00:00:00Z",
+    "end_time": "2021-06-01T00:00:00Z"
+  },
+  {
+    "id": "rate-bridges2-cpu-current",
+    "compute_allocation_resource_id": "res-bridges2-cpu",
+    "rate": 0.06,
+    "start_time": "2022-01-01T00:00:00Z",
+    "end_time": "2033-01-01T00:00:00Z"
+  }
+]
