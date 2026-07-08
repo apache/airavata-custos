@@ -24,18 +24,37 @@ import {
   rateSchema,
 } from "./schemas";
 
+// The backend serializes empty lists as JSON null (Go nil slice).
+const resourceListSchema = z.array(computeAllocationResourceSchema).nullable();
+const rateListSchema = z.array(rateSchema).nullable();
+
 export async function listResources(): Promise<ComputeAllocationResource[]> {
   const raw = await apiFetch("/compute-allocation-resources");
-  return z.array(computeAllocationResourceSchema).parse(raw);
+  return resourceListSchema.parse(raw) ?? [];
 }
 
 export async function listResourceRates(id: string): Promise<Rate[]> {
   const raw = await apiFetch(`/compute-allocation-resources/${id}/rates`);
-  return z.array(rateSchema).parse(raw);
+  return rateListSchema.parse(raw) ?? [];
 }
 
 export async function getEffectiveRate(id: string, at?: string): Promise<Rate> {
   const qs = at ? `?at=${encodeURIComponent(at)}` : "";
   const raw = await apiFetch(`/compute-allocation-resources/${id}/rates/effective${qs}`);
+  return rateSchema.parse(raw);
+}
+
+export type CreateResourceRatePayload = {
+  compute_allocation_resource_id: string;
+  rate: number;
+  start_time: string;
+  end_time: string;
+};
+
+export async function createResourceRate(payload: CreateResourceRatePayload): Promise<Rate> {
+  const raw = await apiFetch("/compute-allocation-resource-rates", {
+    method: "POST",
+    body: payload,
+  });
   return rateSchema.parse(raw);
 }

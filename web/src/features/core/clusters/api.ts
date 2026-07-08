@@ -24,9 +24,13 @@ import {
   computeClusterUserSchema,
 } from "./schemas";
 
+// The backend serializes empty lists as JSON null (Go nil slice).
+const clusterListSchema = z.array(computeClusterSchema).nullable();
+const clusterUserListSchema = z.array(computeClusterUserSchema).nullable();
+
 export async function listClusters(): Promise<ComputeCluster[]> {
   const raw = await apiFetch("/compute-clusters");
-  return z.array(computeClusterSchema).parse(raw);
+  return clusterListSchema.parse(raw) ?? [];
 }
 
 export async function getCluster(id: string): Promise<ComputeCluster> {
@@ -36,5 +40,5 @@ export async function getCluster(id: string): Promise<ComputeCluster> {
 
 export async function listClusterUsers(id: string): Promise<ComputeClusterUser[]> {
   const raw = await apiFetch(`/compute-clusters/${id}/users`);
-  return z.array(computeClusterUserSchema).parse(raw);
+  return clusterUserListSchema.parse(raw) ?? [];
 }

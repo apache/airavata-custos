@@ -45,4 +45,17 @@ export const resourcesHandlers = [
     const id = String(params.id);
     return HttpResponse.json(ratesFor(id));
   }),
+
+  http.post("*/api/v1/compute-allocation-resource-rates", async ({ request }) => {
+    const body = (await request.json()) as Partial<Rate>;
+    const created: Rate = {
+      id: `rate-${Date.now()}`,
+      compute_allocation_resource_id: String(body.compute_allocation_resource_id),
+      rate: Number(body.rate),
+      start_time: String(body.start_time),
+      end_time: String(body.end_time),
+    };
+    rates.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
 ];

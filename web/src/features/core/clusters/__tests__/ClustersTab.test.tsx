@@ -31,13 +31,13 @@ import { ClustersTab } from "../components/ClustersTab";
 
 beforeEach(() => {
   clusters = [
-    { id: "cluster-anvil", name: "Anvil" },
+    { id: "cluster-a", name: "ClusterA" },
     { id: "cluster-bridges2", name: "Bridges-2" },
   ];
   users = [
     {
       id: "ccu-1",
-      compute_cluster_id: "cluster-anvil",
+      compute_cluster_id: "cluster-a",
       user_id: "user-ada-lovelace",
       local_username: "alovelace",
     },
@@ -48,15 +48,15 @@ describe("<ClustersTab />", () => {
   it("filters clusters client-side by name", () => {
     render(<ClustersTab />);
     fireEvent.change(screen.getByLabelText("Search clusters"), { target: { value: "bridges" } });
-    expect(screen.queryByText("Anvil")).not.toBeInTheDocument();
+    expect(screen.queryByText("ClusterA")).not.toBeInTheDocument();
     expect(screen.getByText("Bridges-2")).toBeInTheDocument();
   });
 
   it("opens a drawer with local users, rendering the user id as plain text", () => {
     render(<ClustersTab />);
-    fireEvent.click(screen.getByRole("button", { name: "Anvil" }));
+    fireEvent.click(screen.getByRole("button", { name: "ClusterA" }));
 
-    expect(screen.getByText("Cluster: Anvil")).toBeInTheDocument();
+    expect(screen.getByText("Cluster: ClusterA")).toBeInTheDocument();
     expect(screen.getByText("alovelace")).toBeInTheDocument();
     expect(screen.getByText("user-ada-lovelace")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "user-ada-lovelace" })).not.toBeInTheDocument();

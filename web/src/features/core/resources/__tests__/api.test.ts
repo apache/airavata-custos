@@ -31,15 +31,15 @@ afterEach(() => {
 });
 
 const resource = {
-  id: "res-anvil-cpu",
-  name: "Anvil CPU",
+  id: "res-a-cpu",
+  name: "ClusterA CPU",
   resource_type: "CPU",
   resource_amount: 1000000,
-  compute_cluster_id: "cluster-anvil",
+  compute_cluster_id: "cluster-a",
 };
 const rate = {
   id: "rate-1",
-  compute_allocation_resource_id: "res-anvil-cpu",
+  compute_allocation_resource_id: "res-a-cpu",
   rate: 0.05,
   start_time: "2020-01-01T00:00:00Z",
   end_time: "2035-01-01T00:00:00Z",
@@ -49,22 +49,32 @@ describe("listResources", () => {
   it("parses a bare array of resources", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [resource]));
     const out = await listResources();
-    expect(out[0]?.name).toBe("Anvil CPU");
+    expect(out[0]?.name).toBe("ClusterA CPU");
+  });
+
+  it("returns an empty array when the backend sends null", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
+    await expect(listResources()).resolves.toEqual([]);
   });
 });
 
 describe("listResourceRates", () => {
   it("parses a bare array of rates", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [rate]));
-    const out = await listResourceRates("res-anvil-cpu");
+    const out = await listResourceRates("res-a-cpu");
     expect(out[0]?.rate).toBe(0.05);
+  });
+
+  it("returns an empty array when the backend sends null", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
+    await expect(listResourceRates("res-a-cpu")).resolves.toEqual([]);
   });
 });
 
 describe("getEffectiveRate", () => {
   it("parses a single effective rate and appends the at query when given", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, rate));
-    await getEffectiveRate("res-anvil-cpu", "2026-06-01T00:00:00Z");
+    await getEffectiveRate("res-a-cpu", "2026-06-01T00:00:00Z");
     const url = fetchMock.mock.calls[0]?.[0] as string;
     expect(url).toContain("/rates/effective?at=");
   });

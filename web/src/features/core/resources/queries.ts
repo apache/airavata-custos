@@ -17,8 +17,8 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getEffectiveRate, listResourceRates, listResources } from "./api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createResourceRate, getEffectiveRate, listResourceRates, listResources } from "./api";
 
 export const resourceKeys = {
   all: ["resources"] as const,
@@ -57,5 +57,16 @@ export function useEffectiveRate(id: string | undefined) {
     enabled: Boolean(id),
     retry: false,
     ...DEFAULTS,
+  });
+}
+
+export function useCreateResourceRate(resourceId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: createResourceRate,
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: resourceKeys.rates(resourceId) });
+      client.invalidateQueries({ queryKey: resourceKeys.effective(resourceId) });
+    },
   });
 }
