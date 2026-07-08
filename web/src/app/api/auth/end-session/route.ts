@@ -34,6 +34,20 @@ function clearAuthCookies(res: NextResponse) {
   }
 }
 
+// Discover the end-session endpoint; some issuers (CILogon) don't have one.
+async function discoverEndSessionEndpoint(issuer: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${issuer.replace(/\/$/, "")}/.well-known/openid-configuration`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const doc = (await res.json()) as { end_session_endpoint?: unknown };
+    return typeof doc.end_session_endpoint === "string" ? doc.end_session_endpoint : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/sign-in";
   const origin = request.nextUrl.origin;
@@ -41,17 +55,21 @@ export async function GET(request: NextRequest) {
 
   const session = await auth();
   const idToken = session?.idToken ?? null;
-  const endSession = new URL(
-    `${serverEnv.OIDC_ISSUER_URL.replace(/\/$/, "")}/protocol/openid-connect/logout`,
-  );
-  endSession.searchParams.set("post_logout_redirect_uri", postLogout);
-  if (idToken) {
-    endSession.searchParams.set("id_token_hint", idToken);
-  } else {
-    endSession.searchParams.set("client_id", serverEnv.OIDC_CLIENT_ID);
+  const endpoint = await discoverEndSessionEndpoint(serverEnv.OIDC_ISSUER_URL);
+
+  let redirectTo = postLogout;
+  if (endpoint) {
+    const url = new URL(endpoint);
+    url.searchParams.set("post_logout_redirect_uri", postLogout);
+    if (idToken) {
+      url.searchParams.set("id_token_hint", idToken);
+    } else {
+      url.searchParams.set("client_id", serverEnv.OIDC_CLIENT_ID);
+    }
+    redirectTo = url.toString();
   }
 
-  const res = NextResponse.redirect(endSession.toString());
+  const res = NextResponse.redirect(redirectTo);
   clearAuthCookies(res);
   return res;
 }
