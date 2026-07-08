@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ccu-anvil-ada",
+    "compute_cluster_id": "cluster-anvil",
+    "user_id": "user-ada-lovelace",
+    "local_username": "alovelace"
+  },
+  {
+    "id": "ccu-anvil-grace",
+    "compute_cluster_id": "cluster-anvil",
+    "user_id": "user-grace-hopper",
+    "local_username": "ghopper"
+  },
+  {
+    "id": "ccu-anvil-dennis",
+    "compute_cluster_id": "cluster-anvil",
+    "user_id": "user-dennis-ritchie",
+    "local_username": "dritchie"
+  },
+  {
+    "id": "ccu-bridges2-ada",
+    "compute_cluster_id": "cluster-bridges2",
+    "user_id": "user-ada-lovelace",
+    "local_username": "ada"
+  },
+  {
+    "id": "ccu-expanse-katherine",
+    "compute_cluster_id": "cluster-expanse",
+    "user_id": "user-katherine-johnson",
+    "local_username": "kjohnson"
+  },
+  {
+    "id": "ccu-delta-donald",
+    "compute_cluster_id": "cluster-delta",
+    "user_id": "user-donald-knuth",
+    "local_username": "dknuth"
+  }
+]

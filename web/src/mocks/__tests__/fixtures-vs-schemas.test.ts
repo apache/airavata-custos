@@ -21,6 +21,20 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
 import { allocationStatusSchema } from "@/features/core/allocations/schemas";
+import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
+import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
+import {
+  computeClusterSchema,
+  computeClusterUserSchema,
+} from "@/features/core/clusters/schemas";
+import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
+import { organizationSchema } from "@/features/core/organizations/schemas";
+import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
+import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
+import {
+  computeAllocationResourceSchema,
+  rateSchema,
+} from "@/features/core/resources/schemas";
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
@@ -39,9 +53,34 @@ describe("MSW fixtures pass current Zod schemas", () => {
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
+  it("organization fixtures validate against organizationSchema", () => {
+    const result = z.array(organizationSchema).safeParse(organizationsFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
   it("allocation status fixture values validate against zAllocationStatus-backed enum", () => {
     const statuses = (allocationsFixture as Array<{ status: string }>).map((a) => a.status);
     const result = z.array(allocationStatusSchema).safeParse(statuses);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("cluster fixtures validate against computeClusterSchema", () => {
+    const result = z.array(computeClusterSchema).safeParse(clustersFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("cluster user fixtures validate against computeClusterUserSchema", () => {
+    const result = z.array(computeClusterUserSchema).safeParse(clusterUsersFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("resource fixtures validate against computeAllocationResourceSchema", () => {
+    const result = z.array(computeAllocationResourceSchema).safeParse(resourcesFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("rate fixtures validate against rateSchema", () => {
+    const result = z.array(rateSchema).safeParse(ratesFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 });

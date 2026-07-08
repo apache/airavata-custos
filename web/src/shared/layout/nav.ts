@@ -17,8 +17,10 @@
 
 import {
   Activity,
+  Building2,
   ClipboardList,
   FolderKanban,
+  HardDrive,
   Server,
   type LucideIcon,
 } from "lucide-react";
@@ -68,5 +70,19 @@ export const portalNav: NavItem[] = [
     icon: ClipboardList,
     group: "admin",
     ability: { action: "read", subject: "AMIE" },
+  },
+  {
+    href: "/admin/organizations",
+    label: "Organizations",
+    icon: Building2,
+    group: "admin",
+    ability: { action: "read", subject: "Organization" },
+  },
+  {
+    href: "/admin/resources",
+    label: "Resources",
+    icon: HardDrive,
+    group: "admin",
+    ability: { action: "read", subject: "Cluster" },
   },
 ];

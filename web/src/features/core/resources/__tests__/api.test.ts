@@ -1,0 +1,71 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getEffectiveRate, listResourceRates, listResources } from "../api";
+
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+function mockResponse(status: number, body: unknown): Response {
+  const text = typeof body === "string" ? body : JSON.stringify(body);
+  return new Response(text, { status, headers: { "content-type": "application/json" } });
+}
+
+afterEach(() => {
+  fetchMock.mockReset();
+});
+
+const resource = {
+  id: "res-anvil-cpu",
+  name: "Anvil CPU",
+  resource_type: "CPU",
+  resource_amount: 1000000,
+  compute_cluster_id: "cluster-anvil",
+};
+const rate = {
+  id: "rate-1",
+  compute_allocation_resource_id: "res-anvil-cpu",
+  rate: 0.05,
+  start_time: "2020-01-01T00:00:00Z",
+  end_time: "2035-01-01T00:00:00Z",
+};
+
+describe("listResources", () => {
+  it("parses a bare array of resources", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, [resource]));
+    const out = await listResources();
+    expect(out[0]?.name).toBe("Anvil CPU");
+  });
+});
+
+describe("listResourceRates", () => {
+  it("parses a bare array of rates", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, [rate]));
+    const out = await listResourceRates("res-anvil-cpu");
+    expect(out[0]?.rate).toBe(0.05);
+  });
+});
+
+describe("getEffectiveRate", () => {
+  it("parses a single effective rate and appends the at query when given", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, rate));
+    await getEffectiveRate("res-anvil-cpu", "2026-06-01T00:00:00Z");
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toContain("/rates/effective?at=");
+  });
+});

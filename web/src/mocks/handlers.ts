@@ -18,16 +18,22 @@
 import type { RequestHandler } from "msw";
 import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
+import { clustersHandlers } from "./handlers/clusters";
 import { healthzHandlers } from "./handlers/healthz";
+import { organizationsHandlers } from "./handlers/organizations";
 import { privilegesHandlers } from "./handlers/privileges";
 import { projectsHandlers } from "./handlers/projects";
+import { resourcesHandlers } from "./handlers/resources";
 import { tracesHandlers } from "./handlers/traces";
 
 export const handlers: RequestHandler[] = [
   ...healthzHandlers,
   ...privilegesHandlers,
   ...projectsHandlers,
+  ...organizationsHandlers,
   ...allocationsHandlers,
   ...tracesHandlers,
   ...amieHandlers,
+  ...clustersHandlers,
+  ...resourcesHandlers,
 ];

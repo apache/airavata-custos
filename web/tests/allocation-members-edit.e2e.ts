@@ -39,7 +39,7 @@ test.describe("allocation members tab", () => {
     const editButtons = page.getByRole("button", { name: /^edit /i });
     await editButtons.first().click();
     await expect(page.getByRole("heading", { name: /^Edit member$/i })).toBeVisible();
-    await page.getByLabel(/^role$/i).selectOption("co_pi");
+    await page.getByLabel(/^role$/i).selectOption("CO_PI");
     await page.getByRole("button", { name: /^save$/i }).click();
     await expect(page.getByRole("heading", { name: /^Edit member$/i })).toBeHidden({
       timeout: 15_000,

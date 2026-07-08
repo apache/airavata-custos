@@ -1,0 +1,51 @@
+[
+  {
+    "id": "res-anvil-cpu",
+    "name": "Anvil CPU",
+    "resource_type": "CPU",
+    "resource_amount": 1000000,
+    "compute_cluster_id": "cluster-anvil"
+  },
+  {
+    "id": "res-anvil-gpu",
+    "name": "Anvil GPU",
+    "resource_type": "GPU",
+    "resource_amount": 50000,
+    "compute_cluster_id": "cluster-anvil"
+  },
+  {
+    "id": "res-bridges2-cpu",
+    "name": "Bridges-2 RM",
+    "resource_type": "CPU",
+    "resource_amount": 800000,
+    "compute_cluster_id": "cluster-bridges2"
+  },
+  {
+    "id": "res-bridges2-storage",
+    "name": "Bridges-2 Ocean",
+    "resource_type": "STORAGE",
+    "resource_amount": 200000,
+    "compute_cluster_id": "cluster-bridges2"
+  },
+  {
+    "id": "res-expanse-gpu",
+    "name": "Expanse GPU",
+    "resource_type": "GPU",
+    "resource_amount": 30000,
+    "compute_cluster_id": "cluster-expanse"
+  },
+  {
+    "id": "res-delta-cpu",
+    "name": "Delta CPU",
+    "resource_type": "CPU",
+    "resource_amount": 600000,
+    "compute_cluster_id": "cluster-delta"
+  },
+  {
+    "id": "res-delta-gpu",
+    "name": "Delta GPU A100",
+    "resource_type": "GPU",
+    "resource_amount": 40000,
+    "compute_cluster_id": "cluster-delta"
+  }
+]
