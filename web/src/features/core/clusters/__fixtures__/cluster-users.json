@@ -18,14 +18,14 @@
     "local_username": "dritchie"
   },
   {
-    "id": "ccu-bridges2-ada",
-    "compute_cluster_id": "cluster-bridges2",
+    "id": "ccu-c-ada",
+    "compute_cluster_id": "cluster-c",
     "user_id": "user-ada-lovelace",
     "local_username": "ada"
   },
   {
-    "id": "ccu-expanse-katherine",
-    "compute_cluster_id": "cluster-expanse",
+    "id": "ccu-d-katherine",
+    "compute_cluster_id": "cluster-d",
     "user_id": "user-katherine-johnson",
     "local_username": "kjohnson"
   },

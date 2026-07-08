@@ -28,8 +28,8 @@
     "end_time": "2021-06-01T00:00:00Z"
   },
   {
-    "id": "rate-bridges2-cpu-current",
-    "compute_allocation_resource_id": "res-bridges2-cpu",
+    "id": "rate-c-cpu-current",
+    "compute_allocation_resource_id": "res-c-cpu",
     "rate": 0.06,
     "start_time": "2022-01-01T00:00:00Z",
     "end_time": "2033-01-01T00:00:00Z"

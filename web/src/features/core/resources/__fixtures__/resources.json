@@ -14,25 +14,25 @@
     "compute_cluster_id": "cluster-a"
   },
   {
-    "id": "res-bridges2-cpu",
-    "name": "Bridges-2 RM",
+    "id": "res-c-cpu",
+    "name": "ClusterC RM",
     "resource_type": "CPU",
     "resource_amount": 800000,
-    "compute_cluster_id": "cluster-bridges2"
+    "compute_cluster_id": "cluster-c"
   },
   {
-    "id": "res-bridges2-storage",
-    "name": "Bridges-2 Ocean",
+    "id": "res-c-storage",
+    "name": "ClusterC Ocean",
     "resource_type": "STORAGE",
     "resource_amount": 200000,
-    "compute_cluster_id": "cluster-bridges2"
+    "compute_cluster_id": "cluster-c"
   },
   {
-    "id": "res-expanse-gpu",
-    "name": "Expanse GPU",
+    "id": "res-d-gpu",
+    "name": "ClusterD GPU",
     "resource_type": "GPU",
     "resource_amount": 30000,
-    "compute_cluster_id": "cluster-expanse"
+    "compute_cluster_id": "cluster-d"
   },
   {
     "id": "res-b-cpu",

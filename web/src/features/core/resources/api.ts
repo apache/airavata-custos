@@ -17,20 +17,15 @@
 
 import { z } from "zod";
 import { apiFetch } from "@/shared/api/client";
-import {
-  type ComputeAllocationResource,
-  type Rate,
-  computeAllocationResourceSchema,
-  rateSchema,
-} from "./schemas";
+import { type Rate, type ResourceSummary, rateSchema, resourceSummarySchema } from "./schemas";
 
 // The backend serializes empty lists as JSON null (Go nil slice).
-const resourceListSchema = z.array(computeAllocationResourceSchema).nullable();
+const summaryListSchema = z.array(resourceSummarySchema).nullable();
 const rateListSchema = z.array(rateSchema).nullable();
 
-export async function listResources(): Promise<ComputeAllocationResource[]> {
-  const raw = await apiFetch("/compute-allocation-resources");
-  return resourceListSchema.parse(raw) ?? [];
+export async function listResourceSummaries(): Promise<ResourceSummary[]> {
+  const raw = await apiFetch("/compute-allocation-resources/summary");
+  return summaryListSchema.parse(raw) ?? [];
 }
 
 export async function listResourceRates(id: string): Promise<Rate[]> {

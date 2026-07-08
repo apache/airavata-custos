@@ -19,6 +19,7 @@ import { z } from "zod";
 import {
   zComputeAllocationResource,
   zComputeAllocationResourceRate,
+  zComputeAllocationResourceSummary,
 } from "@/generated/core/zod.gen";
 
 // The generated schema marks every field optional; the backend always returns
@@ -31,6 +32,19 @@ export const computeAllocationResourceSchema = zComputeAllocationResource.requir
   compute_cluster_id: true,
 });
 export type ComputeAllocationResource = z.infer<typeof computeAllocationResourceSchema>;
+
+export const resourceSummarySchema = zComputeAllocationResourceSummary.required({
+  id: true,
+  name: true,
+  resource_type: true,
+  resource_amount: true,
+  compute_cluster_id: true,
+  allocation_count: true,
+  total_allocated: true,
+  total_used_su: true,
+  rate_count: true,
+});
+export type ResourceSummary = z.infer<typeof resourceSummarySchema>;
 
 export const rateSchema = zComputeAllocationResourceRate.required({
   id: true,
