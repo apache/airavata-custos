@@ -99,6 +99,7 @@ func (s *Server) routes() {
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
+	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}", models.AllocationsRead, s.getComputeAllocationResource)
 
 	s.router.RequirePrivilege("GET /compute-allocations/{id}/resources", models.AllocationsRead, s.listResourcesForAllocation)

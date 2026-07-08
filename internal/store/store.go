@@ -194,6 +194,16 @@ type AllocationListFilter struct {
 	Offset    int
 }
 
+// ComputeAllocationResourceSummary is a resource plus its aggregate
+// allocation, usage, and rate figures.
+type ComputeAllocationResourceSummary struct {
+	models.ComputeAllocationResource
+	AllocationCount int64   `json:"allocation_count" db:"allocation_count"`
+	TotalAllocated  int64   `json:"total_allocated"  db:"total_allocated"`
+	TotalUsedSU     float64 `json:"total_used_su"    db:"total_used_su"`
+	RateCount       int64   `json:"rate_count"       db:"rate_count"`
+}
+
 // ComputeAllocationResourceStore defines persistence operations for compute
 // allocation resources (CPU, GPU, etc.).
 type ComputeAllocationResourceStore interface {
@@ -207,6 +217,9 @@ type ComputeAllocationResourceStore interface {
 	FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error)
 	// List returns all compute allocation resources.
 	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
+	// ListSummaries returns all resources with their aggregate allocation,
+	// usage, and rate figures.
+	ListSummaries(ctx context.Context) ([]ComputeAllocationResourceSummary, error)
 	// Create inserts a new resource within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error
 	// Update replaces mutable fields of an existing resource within the provided transaction.

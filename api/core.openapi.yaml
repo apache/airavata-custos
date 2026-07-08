@@ -241,6 +241,33 @@ definitions:
         description: The time when this rate becomes effective.
         type: string
     type: object
+  ComputeAllocationResourceSummary:
+    properties:
+      allocation_count:
+        type: integer
+      compute_cluster_id:
+        description: The ID of the compute cluster the resource (partition) belongs
+          to.
+        type: string
+      id:
+        type: string
+      name:
+        description: resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive",
+          etc.
+        type: string
+      rate_count:
+        type: integer
+      resource_amount:
+        description: Number of CPUs, GPUs.
+        type: integer
+      resource_type:
+        description: 'TRES: cpu, gres/gpu'
+        type: string
+      total_allocated:
+        type: integer
+      total_used_su:
+        type: number
+    type: object
   ComputeAllocationUsage:
     properties:
       compute_allocation_id:
@@ -1834,6 +1861,31 @@ paths:
       summary: Get the effective rate for a resource at a given time
       tags:
       - Compute Allocation Resource Rates
+  /compute-allocation-resources/summary:
+    get:
+      description: Each row is a resource plus its allocation count, total allocated
+        amount, total used SUs, and rate count.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeAllocationResourceSummary'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List compute allocation resources with aggregate figures
+      tags:
+      - Compute Allocation Resources
   /compute-allocation-usages:
     post:
       consumes:

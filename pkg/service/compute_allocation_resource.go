@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -100,6 +101,16 @@ func (s *Service) ListComputeAllocationResources(ctx context.Context) ([]models.
 		return nil, fmt.Errorf("list compute allocation resources: %w", err)
 	}
 	return resources, nil
+}
+
+// ListComputeAllocationResourceSummaries returns every resource with its
+// aggregate allocation, usage, and rate figures.
+func (s *Service) ListComputeAllocationResourceSummaries(ctx context.Context) ([]store.ComputeAllocationResourceSummary, error) {
+	rows, err := s.resources.ListSummaries(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list compute allocation resource summaries: %w", err)
+	}
+	return rows, nil
 }
 
 // ListComputeAllocationResourcesByTypeAndCluster returns all resources of the
