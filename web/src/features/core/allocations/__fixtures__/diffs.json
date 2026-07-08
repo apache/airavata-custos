@@ -1,0 +1,59 @@
+{
+  "alloc-001": [
+    {
+      "id": "diff-001",
+      "compute_allocation_id": "alloc-001",
+      "diff_type": "ALLOCATION_STATUS_CHANGE",
+      "new_su_amount": 250000,
+      "status": "ACTIVE",
+      "timestamp": "2026-04-01T00:00:00.000Z",
+      "description": "Allocation activated for the funding period."
+    },
+    {
+      "id": "diff-002",
+      "compute_allocation_id": "alloc-001",
+      "diff_type": "USAGE_UPDATE",
+      "new_su_amount": 250000,
+      "status": "ACTIVE",
+      "timestamp": "2026-05-15T08:30:00.000Z",
+      "description": "Recorded usage from a batch of GPU jobs."
+    },
+    {
+      "id": "diff-003",
+      "compute_allocation_id": "alloc-001",
+      "diff_type": "USAGE_UPDATE",
+      "new_su_amount": 250000,
+      "status": "ACTIVE",
+      "timestamp": "2026-06-20T14:05:00.000Z"
+    }
+  ],
+  "alloc-003": [
+    {
+      "id": "diff-101",
+      "compute_allocation_id": "alloc-003",
+      "diff_type": "ALLOCATION_STATUS_CHANGE",
+      "new_su_amount": 150000,
+      "status": "ACTIVE",
+      "timestamp": "2026-04-12T00:00:00.000Z",
+      "description": "Allocation activated."
+    },
+    {
+      "id": "diff-102",
+      "compute_allocation_id": "alloc-003",
+      "diff_type": "USAGE_UPDATE",
+      "new_su_amount": 350000,
+      "status": "ACTIVE",
+      "timestamp": "2026-05-20T09:15:00.000Z",
+      "description": "SU amount raised after an approved change request."
+    },
+    {
+      "id": "diff-103",
+      "compute_allocation_id": "alloc-003",
+      "diff_type": "ALLOCATION_STATUS_CHANGE",
+      "new_su_amount": 350000,
+      "status": "INACTIVE",
+      "timestamp": "2026-06-25T16:40:00.000Z",
+      "description": "Paused pending end-of-quarter review."
+    }
+  ]
+}
