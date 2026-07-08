@@ -37,6 +37,11 @@ test.describe("allocation detail", () => {
     await expect(page.getByRole("heading", { name: /no usage recorded/i })).toBeVisible({
       timeout: 15_000,
     });
+
+    await page.getByRole("tab", { name: /^history$/i }).click();
+    await expect(page.getByText(/ALLOCATION_STATUS_CHANGE/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("axe sweep on allocation detail", async ({ page }) => {

@@ -23,6 +23,7 @@ import {
   approveChangeRequest,
   getAllocation,
   getChangeRequest,
+  listAllocationDiffs,
   listAllocationMembers,
   listAllocationResources,
   listAllocationUsage,
@@ -48,6 +49,7 @@ export const allocationKeys = {
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
+  diffs: (id: string) => [...allocationKeys.detail(id), "diffs"] as const,
   members: (id: string) => [...allocationKeys.detail(id), "members"] as const,
   changeRequests: (params: ChangeRequestListParams = {}) =>
     [...allocationKeys.all, "change-requests", "list", params] as const,
@@ -105,6 +107,15 @@ export function useAllocationUsage(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.usage(id) : [...allocationKeys.all, "usage", "none"],
     queryFn: () => listAllocationUsage(id as string),
+    enabled: Boolean(id),
+    ...DEFAULTS,
+  });
+}
+
+export function useAllocationDiffs(id: string | undefined) {
+  return useQuery({
+    queryKey: id ? allocationKeys.diffs(id) : [...allocationKeys.all, "diffs", "none"],
+    queryFn: () => listAllocationDiffs(id as string),
     enabled: Boolean(id),
     ...DEFAULTS,
   });

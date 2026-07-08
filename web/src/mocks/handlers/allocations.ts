@@ -18,15 +18,19 @@
 import { http, HttpResponse } from "msw";
 import allocationsFixture from "@/features/core/allocations/__fixtures__/allocations.json";
 import resourcesFixture from "@/features/core/allocations/__fixtures__/resources.json";
+import diffsFixture from "@/features/core/allocations/__fixtures__/diffs.json";
+import usageFixture from "@/features/core/allocations/__fixtures__/usage.json";
 import membersFixture from "@/features/core/allocations/__fixtures__/members.json";
 import changeRequestsFixture from "@/features/core/allocations/__fixtures__/change-requests.json";
 import eventsFixture from "@/features/core/allocations/__fixtures__/events.json";
 import type {
+  AllocationDiff,
   AllocationMembership,
+  AttachedResource,
+  AllocationUsage,
   ChangeRequest,
   ChangeRequestEvent,
   ComputeAllocation,
-  ComputeAllocationResource,
   CreateChangeRequestPayload,
   CreateMembershipPayload,
   UpdateChangeRequestPayload,
@@ -36,11 +40,13 @@ import type {
 const allocations: ComputeAllocation[] = (allocationsFixture as ComputeAllocation[]).map((a) => ({
   ...a,
 }));
-const resourcesByAlloc: Record<string, ComputeAllocationResource[]> = Object.fromEntries(
-  Object.entries(resourcesFixture as Record<string, ComputeAllocationResource[]>).map(
+const resourcesByAlloc: Record<string, AttachedResource[]> = Object.fromEntries(
+  Object.entries(resourcesFixture as Record<string, AttachedResource[]>).map(
     ([id, rows]) => [id, rows.map((r) => ({ ...r }))],
   ),
 );
+const usageByAlloc = usageFixture as Record<string, AllocationUsage[]>;
+const diffsByAlloc = diffsFixture as Record<string, AllocationDiff[]>;
 const membersByAlloc: Record<string, AllocationMembership[]> = Object.fromEntries(
   Object.entries(membersFixture as Record<string, AllocationMembership[]>).map(([id, rows]) => [
     id,
@@ -107,8 +113,21 @@ export const allocationsHandlers = [
 
   http.get("*/api/v1/compute-allocations/:id/usages", ({ params }) => {
     const id = String(params.id);
-    void id;
-    return HttpResponse.json([]);
+    return HttpResponse.json(usageByAlloc[id] ?? []);
+  }),
+
+  http.get("*/api/v1/compute-allocations/:id/diffs", ({ params }) => {
+    const id = String(params.id);
+    return HttpResponse.json(diffsByAlloc[id] ?? []);
+  }),
+
+  http.get("*/api/v1/compute-allocations/:id/diffs/latest", ({ params }) => {
+    const id = String(params.id);
+    const rows = [...(diffsByAlloc[id] ?? [])].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+    if (rows.length === 0) return HttpResponse.json({ error: "no diffs" }, { status: 404 });
+    return HttpResponse.json(rows[0]);
   }),
 
   http.get("*/api/v1/compute-allocations/:id/memberships", ({ params }) => {

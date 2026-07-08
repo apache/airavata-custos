@@ -16,7 +16,7 @@
 // under the License.
 
 import { z } from "zod";
-import { zAllocationStatus } from "@/generated/core/zod.gen";
+import { zAllocationStatus, zComputeAllocationDiff } from "@/generated/core/zod.gen";
 
 export const allocationStatusSchema = zAllocationStatus;
 export type AllocationStatus = z.infer<typeof allocationStatusSchema>;
@@ -54,22 +54,30 @@ export const computeAllocationListSchema = z.object({
 });
 export type ComputeAllocationList = z.infer<typeof computeAllocationListSchema>;
 
-export const computeAllocationResourceSchema = z.object({
+// GET /compute-allocations/{id}/resources returns the resource records joined
+// through the allocation's mappings; per-allocation amounts are not exposed.
+export const attachedResourceSchema = z.object({
   id: z.string(),
   name: z.string(),
   resource_type: z.string(),
   resource_amount: z.number().int(),
+  compute_cluster_id: z.string(),
 });
-export type ComputeAllocationResource = z.infer<typeof computeAllocationResourceSchema>;
+export type AttachedResource = z.infer<typeof attachedResourceSchema>;
 
-export const computeAllocationResourceRateSchema = z.object({
-  id: z.string(),
-  compute_allocation_resource_id: z.string(),
-  rate: z.number(),
-  start_time: z.string(),
-  end_time: z.string(),
+export const attachedResourceListSchema = z.array(attachedResourceSchema);
+
+// Mirrors zComputeAllocationDiff; tighten the fields the history view reads.
+export const allocationDiffSchema = zComputeAllocationDiff.required({
+  id: true,
+  compute_allocation_id: true,
+  diff_type: true,
+  status: true,
+  timestamp: true,
 });
-export type ComputeAllocationResourceRate = z.infer<typeof computeAllocationResourceRateSchema>;
+export type AllocationDiff = z.infer<typeof allocationDiffSchema>;
+
+export const allocationDiffListSchema = z.array(allocationDiffSchema);
 
 export const allocationMembershipRoleSchema = z.enum([
   "PI",

@@ -652,3 +652,10 @@ INSERT IGNORE INTO compute_allocation_usages (id, compute_allocation_id, used_ra
   ('smp-87de20f2ff9c078f1bad', 'smp-0384acb90162ba62c422', 12896, 12896, '2026-02-15 12:00:00', 'smp-2fd62ff24cea6be8de4c', 'job-ses240029-22', 'res-cpu'),
   ('smp-63be3f2e1dc38e8cc659', 'smp-0384acb90162ba62c422', 13018, 13018, '2026-04-15 12:00:00', 'smp-2fd62ff24cea6be8de4c', 'job-ses240029-24', 'res-cpu'),
   ('smp-c90ca83a563957d78e84', 'smp-0384acb90162ba62c422', 13140, 13140, '2026-06-15 12:00:00', 'smp-2fd62ff24cea6be8de4c', 'job-ses240029-26', 'res-cpu');
+
+-- Allocation history entries so the allocation History tab has rows.
+INSERT IGNORE INTO compute_allocation_diffs (id, compute_allocation_id, diff_type, new_su_amount, status, timestamp, description) VALUES
+  ('smp-diff-1', 'smp-c4071741a17cbea31f46', 'ALLOCATION_STATUS_CHANGE', 500000, 'ACTIVE', '2026-01-15 09:00:00', 'Allocation activated after project approval'),
+  ('smp-diff-2', 'smp-c4071741a17cbea31f46', 'USAGE_UPDATE', 500000, 'ACTIVE', '2026-04-01 02:00:00', 'SU usage updated from quarterly accounting run'),
+  ('smp-diff-3', 'smp-c4071741a17cbea31f46', 'ALLOCATION_INCREASE', 650000, 'ACTIVE', '2026-06-20 14:30:00', 'Supplement approved via change request'),
+  ('smp-diff-4', 'smp-81d26521f4dc52bb030b', 'ALLOCATION_STATUS_CHANGE', 250000, 'INACTIVE', '2026-05-30 00:00:00', 'Allocation end date reached');

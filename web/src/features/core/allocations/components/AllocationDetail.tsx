@@ -25,6 +25,7 @@ import { TabsRouter } from "@/shared/ui/TabsRouter";
 import { useAllocation, useAllocationMembers } from "../queries";
 import { AllocationChangeRequestsTab } from "./AllocationChangeRequestsTab";
 import { AllocationDetailHeader } from "./AllocationDetailHeader";
+import { AllocationHistoryTab } from "./AllocationHistoryTab";
 import { AllocationMembersTab } from "./AllocationMembersTab";
 import { AllocationOverviewTab } from "./AllocationOverviewTab";
 import { AllocationUsageTab } from "./AllocationUsageTab";
@@ -85,6 +86,11 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
             value: "usage",
             label: "Usage",
             content: <AllocationUsageTab allocation={allocation} />,
+          },
+          {
+            value: "history",
+            label: "History",
+            content: <AllocationHistoryTab allocation={allocation} />,
           },
         ]}
       />

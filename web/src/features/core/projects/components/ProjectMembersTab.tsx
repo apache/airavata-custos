@@ -33,7 +33,6 @@ import {
 } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
@@ -164,8 +163,9 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
       header: "",
       align: "right",
       interactive: true,
+      // PI and CO_PI come from the upstream allocation; never edited or removed here.
       cell: (row) =>
-        canManage ? (
+        canManage && row.role !== "PI" && row.role !== "CO_PI" ? (
           <div className="flex justify-end gap-2">
             <Button
               variant="ghost"
@@ -222,7 +222,7 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
   const [role, setRole] = React.useState<ProjectMemberRole>("MEMBER");
 
   React.useEffect(() => {
-    if (member) setRole(member.role);
+    if (member) setRole(member.role === "ALLOCATION_MANAGER" ? "ALLOCATION_MANAGER" : "MEMBER");
   }, [member]);
 
   return (
@@ -247,14 +247,10 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
               onChange={(e) => setRole(e.target.value as ProjectMemberRole)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
-              <option value="PI">PI</option>
-              <option value="CO_PI">Co-PI</option>
               <option value="ALLOCATION_MANAGER">Allocation Manager</option>
               <option value="MEMBER">Member</option>
             </select>
           </div>
-          {/* Spec keeps the dialog minimal; status updates land later */}
-          <Input type="hidden" />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
