@@ -27,8 +27,31 @@ function ratesFor(resourceId: string): Rate[] {
   return rates.filter((r) => r.compute_allocation_resource_id === resourceId);
 }
 
+// Allocation aggregates per resource; rate_count derives from live rate state.
+const ALLOCATION_AGGREGATES: Record<
+  string,
+  { allocation_count: number; total_allocated: number; total_used_su: number }
+> = {
+  "res-a-cpu": { allocation_count: 3, total_allocated: 500000, total_used_su: 312400 },
+  "res-a-gpu": { allocation_count: 2, total_allocated: 40000, total_used_su: 45100 },
+};
+
 export const resourcesHandlers = [
   http.get("*/api/v1/compute-allocation-resources", () => HttpResponse.json(resources)),
+
+  http.get("*/api/v1/compute-allocation-resources/summary", () =>
+    HttpResponse.json(
+      resources.map((r) => ({
+        ...r,
+        ...(ALLOCATION_AGGREGATES[r.id] ?? {
+          allocation_count: 0,
+          total_allocated: 0,
+          total_used_su: 0,
+        }),
+        rate_count: ratesFor(r.id).length,
+      })),
+    ),
+  ),
 
   http.get("*/api/v1/compute-allocation-resources/:id/rates/effective", ({ params, request }) => {
     const id = String(params.id);

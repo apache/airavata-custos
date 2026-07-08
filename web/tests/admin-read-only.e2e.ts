@@ -42,7 +42,7 @@ test.describe("admin resources & clusters read-only sweep", () => {
     await page.getByRole("tab", { name: /^resources$/i }).click();
     await page
       .getByRole("row", { name: /ClusterA CPU/ })
-      .getByRole("button", { name: "Rates" })
+      .getByRole("button", { name: /^Rates \(\d+\)$/ })
       .click();
 
     await expect(page.getByText("Rates: ClusterA CPU")).toBeVisible({ timeout: 15_000 });
@@ -61,7 +61,7 @@ test.describe("admin resources & clusters read-only sweep", () => {
     await page.getByRole("tab", { name: /^resources$/i }).click();
     await page
       .getByRole("row", { name: /ClusterA GPU/ })
-      .getByRole("button", { name: "Rates" })
+      .getByRole("button", { name: /^Rates \(\d+\)$/ })
       .click();
     await expect(page.getByText("Rates: ClusterA GPU")).toBeVisible({ timeout: 15_000 });
 

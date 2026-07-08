@@ -18,16 +18,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComputeCluster } from "@/features/core/clusters/schemas";
-import type { ComputeAllocationResource } from "../schemas";
+import type { ResourceSummary } from "../schemas";
 
-let resources: ComputeAllocationResource[] = [];
+let resources: ResourceSummary[] = [];
 const clusters: ComputeCluster[] = [
   { id: "cluster-a", name: "ClusterA" },
   { id: "cluster-b", name: "ClusterB" },
 ];
 
 vi.mock("../queries", () => ({
-  useResources: () => ({ data: resources, isLoading: false, error: null, refetch: vi.fn() }),
+  useResourceSummaries: () => ({ data: resources, isLoading: false, error: null, refetch: vi.fn() }),
 }));
 
 vi.mock("@/features/core/clusters/queries", () => ({
@@ -52,6 +52,10 @@ beforeEach(() => {
       resource_type: "CPU",
       resource_amount: 1000,
       compute_cluster_id: "cluster-a",
+      allocation_count: 3,
+      total_allocated: 50000,
+      total_used_su: 12500,
+      rate_count: 2,
     },
     {
       id: "res-b-gpu",
@@ -59,6 +63,10 @@ beforeEach(() => {
       resource_type: "GPU",
       resource_amount: 200,
       compute_cluster_id: "cluster-b",
+      allocation_count: 0,
+      total_allocated: 0,
+      total_used_su: 0,
+      rate_count: 0,
     },
   ];
 });
@@ -89,8 +97,15 @@ describe("<ResourcesTab />", () => {
 
   it("opens the rates drawer for the chosen resource", () => {
     render(<ResourcesTab />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Rates" })[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "Rates (2)" }));
     expect(screen.getByText("rates-drawer:ClusterA CPU")).toBeInTheDocument();
+  });
+
+  it("renders aggregate columns with a usage bar", () => {
+    render(<ResourcesTab />);
+    expect(screen.getByText("50,000")).toBeInTheDocument();
+    expect(screen.getByText("12,500")).toBeInTheDocument();
+    expect(screen.getAllByText("25.0%").length).toBeGreaterThan(0);
   });
 
   it("shows the empty state when no resources are registered", () => {

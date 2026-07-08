@@ -16,7 +16,7 @@
 // under the License.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getEffectiveRate, listResourceRates, listResources } from "../api";
+import { getEffectiveRate, listResourceRates, listResourceSummaries } from "../api";
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
@@ -30,12 +30,16 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-const resource = {
+const summary = {
   id: "res-a-cpu",
   name: "ClusterA CPU",
   resource_type: "CPU",
   resource_amount: 1000000,
   compute_cluster_id: "cluster-a",
+  allocation_count: 2,
+  total_allocated: 50000,
+  total_used_su: 12500,
+  rate_count: 3,
 };
 const rate = {
   id: "rate-1",
@@ -45,16 +49,19 @@ const rate = {
   end_time: "2035-01-01T00:00:00Z",
 };
 
-describe("listResources", () => {
-  it("parses a bare array of resources", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, [resource]));
-    const out = await listResources();
+describe("listResourceSummaries", () => {
+  it("parses a bare array of summary rows", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, [summary]));
+    const out = await listResourceSummaries();
     expect(out[0]?.name).toBe("ClusterA CPU");
+    expect(out[0]?.rate_count).toBe(3);
+    const url = fetchMock.mock.calls[0]?.[0] as string;
+    expect(url).toContain("/compute-allocation-resources/summary");
   });
 
   it("returns an empty array when the backend sends null", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
-    await expect(listResources()).resolves.toEqual([]);
+    await expect(listResourceSummaries()).resolves.toEqual([]);
   });
 });
 

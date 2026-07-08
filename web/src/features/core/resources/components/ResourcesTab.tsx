@@ -25,16 +25,17 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { CardSkeleton } from "@/shared/ui/Loading";
-import { useResources } from "../queries";
-import type { ComputeAllocationResource } from "../schemas";
+import { UsageBar } from "@/shared/ui/UsageBar";
+import { useResourceSummaries } from "../queries";
+import type { ResourceSummary } from "../schemas";
 import { ResourcesRatesDrawer } from "./ResourcesRatesDrawer";
 
 export function ResourcesTab() {
-  const query = useResources();
+  const query = useResourceSummaries();
   const clustersQuery = useClusters();
   const [search, setSearch] = React.useState("");
   const [clusterId, setClusterId] = React.useState("");
-  const [ratesFor, setRatesFor] = React.useState<ComputeAllocationResource | null>(null);
+  const [ratesFor, setRatesFor] = React.useState<ResourceSummary | null>(null);
 
   const clusters = clustersQuery.data ?? [];
   const clusterName = (id: string) => clusters.find((c) => c.id === id)?.name ?? id;
@@ -49,7 +50,7 @@ export function ResourcesTab() {
     });
   }, [rows, search, clusterId]);
 
-  const columns: Array<DataTableColumn<ComputeAllocationResource>> = [
+  const columns: Array<DataTableColumn<ResourceSummary>> = [
     {
       key: "name",
       header: "Resource",
@@ -68,12 +69,50 @@ export function ResourcesTab() {
       ),
     },
     {
-      key: "resource_amount",
-      header: "Amount",
+      key: "allocation_count",
+      header: "Allocations",
       align: "right",
       cell: (row) => (
-        <span className="text-sm tabular-nums text-foreground">{row.resource_amount}</span>
+        <span className="text-sm tabular-nums text-foreground">{row.allocation_count}</span>
       ),
+    },
+    {
+      key: "total_allocated",
+      header: "Allocated",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm tabular-nums text-foreground">
+          {row.total_allocated.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "total_used_su",
+      header: "Used SU",
+      align: "right",
+      cell: (row) => (
+        <span className="text-sm tabular-nums text-foreground">
+          {row.total_used_su.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "usage",
+      header: "Used %",
+      cell: (row) => {
+        const pct = (row.total_used_su / Math.max(1, row.total_allocated)) * 100;
+        return (
+          <div className="w-32" title={`${pct.toFixed(1)}% used`}>
+            <UsageBar
+              value={row.total_used_su}
+              max={Math.max(1, row.total_allocated)}
+              label={`${pct.toFixed(1)}%`}
+              ariaLabel={`${row.name} usage ${pct.toFixed(1)} percent`}
+              size="sm"
+            />
+          </div>
+        );
+      },
     },
     {
       key: "actions",
@@ -82,7 +121,7 @@ export function ResourcesTab() {
       interactive: true,
       cell: (row) => (
         <Button variant="outline" size="sm" onClick={() => setRatesFor(row)}>
-          Rates
+          Rates ({row.rate_count})
         </Button>
       ),
     },

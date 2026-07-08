@@ -18,7 +18,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createResourceRate, getEffectiveRate, listResourceRates, listResources } from "./api";
+import { createResourceRate, getEffectiveRate, listResourceRates, listResourceSummaries } from "./api";
 
 export const resourceKeys = {
   all: ["resources"] as const,
@@ -33,10 +33,10 @@ const DEFAULTS = {
   refetchOnWindowFocus: false,
 } as const;
 
-export function useResources() {
+export function useResourceSummaries() {
   return useQuery({
     queryKey: resourceKeys.list(),
-    queryFn: listResources,
+    queryFn: listResourceSummaries,
     ...DEFAULTS,
   });
 }

@@ -32,7 +32,7 @@ import { ClustersTab } from "../components/ClustersTab";
 beforeEach(() => {
   clusters = [
     { id: "cluster-a", name: "ClusterA" },
-    { id: "cluster-bridges2", name: "Bridges-2" },
+    { id: "cluster-c", name: "ClusterC" },
   ];
   users = [
     {
@@ -47,9 +47,9 @@ beforeEach(() => {
 describe("<ClustersTab />", () => {
   it("filters clusters client-side by name", () => {
     render(<ClustersTab />);
-    fireEvent.change(screen.getByLabelText("Search clusters"), { target: { value: "bridges" } });
+    fireEvent.change(screen.getByLabelText("Search clusters"), { target: { value: "clusterc" } });
     expect(screen.queryByText("ClusterA")).not.toBeInTheDocument();
-    expect(screen.getByText("Bridges-2")).toBeInTheDocument();
+    expect(screen.getByText("ClusterC")).toBeInTheDocument();
   });
 
   it("opens a drawer with local users, rendering the user id as plain text", () => {
