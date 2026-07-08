@@ -42,6 +42,7 @@ export type DataTableProps<T> = {
   rows: T[];
   rowKey: (row: T, index: number) => string;
   onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string | undefined;
   caption?: string;
   empty?: React.ReactNode;
   pagination?: DataTablePagination;
@@ -74,6 +75,7 @@ export function DataTable<T>({
   rows,
   rowKey,
   onRowClick,
+  rowClassName,
   caption,
   empty,
   pagination,
@@ -184,16 +186,23 @@ export function DataTable<T>({
                   className={cn(
                     "border-t border-border/60 bg-card",
                     onRowClick && "cursor-pointer",
+                    rowClassName?.(row),
                   )}
                   onClick={
                     onRowClick
                       ? (e) => {
                           // Ignore clicks on interactive children (buttons,
                           // checkboxes, links) — they have their own handlers.
+                          // Also covers portal-rendered content (dropdown
+                          // menus, popovers): the clicked DOM node's
+                          // ancestors won't include the <tr>, but React's
+                          // synthetic events still bubble through the
+                          // *component* tree, so without this the row click
+                          // fires alongside the menu item's own click.
                           const target = e.target as HTMLElement;
                           if (
                             target.closest(
-                              "button, a, input, select, textarea, label",
+                              "button, a, input, select, textarea, label, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [role='dialog'], [role='listbox'], [role='option']",
                             )
                           )
                             return;
@@ -225,7 +234,7 @@ export function DataTable<T>({
                         <td
                           key={col.key}
                           className={cn(
-                            "px-4 py-3 align-middle text-sm text-foreground",
+                            "px-4 py-3 align-top text-sm text-foreground",
                             col.align === "right" && "text-right",
                             col.align === "center" && "text-center",
                           )}
