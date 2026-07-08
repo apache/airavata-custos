@@ -208,6 +208,30 @@ export type ComputeAllocationResourceRate = {
     start_time?: string;
 };
 
+export type ComputeAllocationResourceSummary = {
+    allocation_count?: number;
+    /**
+     * The ID of the compute cluster the resource (partition) belongs to.
+     */
+    compute_cluster_id?: string;
+    id?: string;
+    /**
+     * resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+     */
+    name?: string;
+    rate_count?: number;
+    /**
+     * Number of CPUs, GPUs.
+     */
+    resource_amount?: number;
+    /**
+     * TRES: cpu, gres/gpu
+     */
+    resource_type?: string;
+    total_allocated?: number;
+    total_used_su?: number;
+};
+
 export type ComputeAllocationUsage = {
     compute_allocation_id?: string;
     /**
@@ -1707,6 +1731,33 @@ export type GetComputeAllocationResourcesByIdRatesEffectiveResponses = {
 };
 
 export type GetComputeAllocationResourcesByIdRatesEffectiveResponse = GetComputeAllocationResourcesByIdRatesEffectiveResponses[keyof GetComputeAllocationResourcesByIdRatesEffectiveResponses];
+
+export type GetComputeAllocationResourcesSummaryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/compute-allocation-resources/summary';
+};
+
+export type GetComputeAllocationResourcesSummaryErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetComputeAllocationResourcesSummaryError = GetComputeAllocationResourcesSummaryErrors[keyof GetComputeAllocationResourcesSummaryErrors];
+
+export type GetComputeAllocationResourcesSummaryResponses = {
+    /**
+     * OK
+     */
+    200: Array<ComputeAllocationResourceSummary>;
+};
+
+export type GetComputeAllocationResourcesSummaryResponse = GetComputeAllocationResourcesSummaryResponses[keyof GetComputeAllocationResourcesSummaryResponses];
 
 export type PostComputeAllocationUsagesData = {
     /**

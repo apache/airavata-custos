@@ -138,6 +138,20 @@ export const zComputeAllocationResourceRate = z.object({
 
 export type computeAllocationResourceRateZodType = z.infer<typeof zComputeAllocationResourceRate>;
 
+export const zComputeAllocationResourceSummary = z.object({
+    allocation_count: z.int().optional(),
+    compute_cluster_id: z.string().optional(),
+    id: z.string().optional(),
+    name: z.string().optional(),
+    rate_count: z.int().optional(),
+    resource_amount: z.int().optional(),
+    resource_type: z.string().optional(),
+    total_allocated: z.int().optional(),
+    total_used_su: z.number().optional()
+});
+
+export type computeAllocationResourceSummaryZodType = z.infer<typeof zComputeAllocationResourceSummary>;
+
 export const zComputeAllocationUsage = z.object({
     compute_allocation_id: z.string().optional(),
     compute_allocation_resource_id: z.string().optional(),
@@ -803,6 +817,11 @@ export const zGetComputeAllocationResourcesByIdRatesEffectiveQuery = z.object({
  * OK
  */
 export const zGetComputeAllocationResourcesByIdRatesEffectiveResponse = zComputeAllocationResourceRate;
+
+/**
+ * OK
+ */
+export const zGetComputeAllocationResourcesSummaryResponse = z.array(zComputeAllocationResourceSummary);
 
 /**
  * Usage payload
