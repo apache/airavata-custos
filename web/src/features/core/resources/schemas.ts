@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import type { z } from "zod";
+import { z } from "zod";
 import {
   zComputeAllocationResource,
   zComputeAllocationResourceRate,
@@ -48,3 +48,32 @@ export function isRateActive(rate: Rate, at: Date = new Date()): boolean {
   const now = at.getTime();
   return now >= start && now < end;
 }
+
+export type RateStatus = "ACTIVE" | "SCHEDULED" | "SUPERSEDED" | "EXPIRED";
+
+// Effective = the containing window with the latest start_time, mirroring the
+// backend ORDER BY start_time DESC. Overlaps resolve to SUPERSEDED, not errors.
+export function classifyRate(rate: Rate, all: Rate[], now: number = Date.now()): RateStatus {
+  const start = Date.parse(rate.start_time);
+  const end = Date.parse(rate.end_time);
+  if (start > now) return "SCHEDULED";
+  if (end <= now) return "EXPIRED";
+  const effectiveStart = Math.max(
+    ...all
+      .filter((r) => Date.parse(r.start_time) <= now && Date.parse(r.end_time) > now)
+      .map((r) => Date.parse(r.start_time)),
+  );
+  return start === effectiveStart ? "ACTIVE" : "SUPERSEDED";
+}
+
+export const createRateSchema = z
+  .object({
+    rate: z.number({ message: "Rate is required" }).min(0, "Rate must be zero or greater"),
+    start_date: z.string().min(1, "Start date is required"),
+    end_date: z.string().min(1, "End date is required"),
+  })
+  .refine((d) => d.end_date > d.start_date, {
+    path: ["end_date"],
+    message: "End date must be after the start date",
+  });
+export type CreateRateForm = z.infer<typeof createRateSchema>;

@@ -1,19 +1,19 @@
 [
   {
-    "id": "ccu-anvil-ada",
-    "compute_cluster_id": "cluster-anvil",
+    "id": "ccu-a-ada",
+    "compute_cluster_id": "cluster-a",
     "user_id": "user-ada-lovelace",
     "local_username": "alovelace"
   },
   {
-    "id": "ccu-anvil-grace",
-    "compute_cluster_id": "cluster-anvil",
+    "id": "ccu-a-grace",
+    "compute_cluster_id": "cluster-a",
     "user_id": "user-grace-hopper",
     "local_username": "ghopper"
   },
   {
-    "id": "ccu-anvil-dennis",
-    "compute_cluster_id": "cluster-anvil",
+    "id": "ccu-a-dennis",
+    "compute_cluster_id": "cluster-a",
     "user_id": "user-dennis-ritchie",
     "local_username": "dritchie"
   },
@@ -30,8 +30,8 @@
     "local_username": "kjohnson"
   },
   {
-    "id": "ccu-delta-donald",
-    "compute_cluster_id": "cluster-delta",
+    "id": "ccu-b-donald",
+    "compute_cluster_id": "cluster-b",
     "user_id": "user-donald-knuth",
     "local_username": "dknuth"
   }

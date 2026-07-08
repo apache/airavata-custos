@@ -1,6 +1,6 @@
 [
-  { "id": "cluster-anvil", "name": "Anvil" },
+  { "id": "cluster-a", "name": "ClusterA" },
   { "id": "cluster-bridges2", "name": "Bridges-2" },
   { "id": "cluster-expanse", "name": "Expanse" },
-  { "id": "cluster-delta", "name": "Delta" }
+  { "id": "cluster-b", "name": "ClusterB" }
 ]

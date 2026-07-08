@@ -24,7 +24,7 @@ describe("clusterKeys", () => {
   });
 
   it("detail and users keys carry the id", () => {
-    expect(clusterKeys.detail("cluster-anvil")).toEqual(["clusters", "detail", "cluster-anvil"]);
-    expect(clusterKeys.users("cluster-anvil")).toEqual(["clusters", "users", "cluster-anvil"]);
+    expect(clusterKeys.detail("cluster-a")).toEqual(["clusters", "detail", "cluster-a"]);
+    expect(clusterKeys.users("cluster-a")).toEqual(["clusters", "users", "cluster-a"]);
   });
 });

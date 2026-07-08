@@ -22,8 +22,8 @@ import type { ComputeAllocationResource } from "../schemas";
 
 let resources: ComputeAllocationResource[] = [];
 const clusters: ComputeCluster[] = [
-  { id: "cluster-anvil", name: "Anvil" },
-  { id: "cluster-delta", name: "Delta" },
+  { id: "cluster-a", name: "ClusterA" },
+  { id: "cluster-b", name: "ClusterB" },
 ];
 
 vi.mock("../queries", () => ({
@@ -47,18 +47,18 @@ import { ResourcesTab } from "../components/ResourcesTab";
 beforeEach(() => {
   resources = [
     {
-      id: "res-anvil-cpu",
-      name: "Anvil CPU",
+      id: "res-a-cpu",
+      name: "ClusterA CPU",
       resource_type: "CPU",
       resource_amount: 1000,
-      compute_cluster_id: "cluster-anvil",
+      compute_cluster_id: "cluster-a",
     },
     {
-      id: "res-delta-gpu",
-      name: "Delta GPU",
+      id: "res-b-gpu",
+      name: "ClusterB GPU",
       resource_type: "GPU",
       resource_amount: 200,
-      compute_cluster_id: "cluster-delta",
+      compute_cluster_id: "cluster-b",
     },
   ];
 });
@@ -66,31 +66,31 @@ beforeEach(() => {
 describe("<ResourcesTab />", () => {
   it("resolves the cluster name as plain text, not a link", () => {
     render(<ResourcesTab />);
-    expect(screen.getByText("Anvil CPU")).toBeInTheDocument();
-    expect(screen.getAllByText("Anvil", { exact: true }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: "Anvil" })).not.toBeInTheDocument();
+    expect(screen.getByText("ClusterA CPU")).toBeInTheDocument();
+    expect(screen.getAllByText("ClusterA", { exact: true }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "ClusterA" })).not.toBeInTheDocument();
   });
 
   it("filters by search text", () => {
     render(<ResourcesTab />);
     fireEvent.change(screen.getByLabelText("Search resources"), { target: { value: "gpu" } });
-    expect(screen.queryByText("Anvil CPU")).not.toBeInTheDocument();
-    expect(screen.getByText("Delta GPU")).toBeInTheDocument();
+    expect(screen.queryByText("ClusterA CPU")).not.toBeInTheDocument();
+    expect(screen.getByText("ClusterB GPU")).toBeInTheDocument();
   });
 
   it("filters by the selected cluster", () => {
     render(<ResourcesTab />);
     fireEvent.change(screen.getByLabelText("Filter by cluster"), {
-      target: { value: "cluster-delta" },
+      target: { value: "cluster-b" },
     });
-    expect(screen.queryByText("Anvil CPU")).not.toBeInTheDocument();
-    expect(screen.getByText("Delta GPU")).toBeInTheDocument();
+    expect(screen.queryByText("ClusterA CPU")).not.toBeInTheDocument();
+    expect(screen.getByText("ClusterB GPU")).toBeInTheDocument();
   });
 
   it("opens the rates drawer for the chosen resource", () => {
     render(<ResourcesTab />);
     fireEvent.click(screen.getAllByRole("button", { name: "Rates" })[0] as HTMLElement);
-    expect(screen.getByText("rates-drawer:Anvil CPU")).toBeInTheDocument();
+    expect(screen.getByText("rates-drawer:ClusterA CPU")).toBeInTheDocument();
   });
 
   it("shows the empty state when no resources are registered", () => {

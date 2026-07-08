@@ -1,17 +1,17 @@
 [
   {
-    "id": "res-anvil-cpu",
-    "name": "Anvil CPU",
+    "id": "res-a-cpu",
+    "name": "ClusterA CPU",
     "resource_type": "CPU",
     "resource_amount": 1000000,
-    "compute_cluster_id": "cluster-anvil"
+    "compute_cluster_id": "cluster-a"
   },
   {
-    "id": "res-anvil-gpu",
-    "name": "Anvil GPU",
+    "id": "res-a-gpu",
+    "name": "ClusterA GPU",
     "resource_type": "GPU",
     "resource_amount": 50000,
-    "compute_cluster_id": "cluster-anvil"
+    "compute_cluster_id": "cluster-a"
   },
   {
     "id": "res-bridges2-cpu",
@@ -35,17 +35,17 @@
     "compute_cluster_id": "cluster-expanse"
   },
   {
-    "id": "res-delta-cpu",
-    "name": "Delta CPU",
+    "id": "res-b-cpu",
+    "name": "ClusterB CPU",
     "resource_type": "CPU",
     "resource_amount": 600000,
-    "compute_cluster_id": "cluster-delta"
+    "compute_cluster_id": "cluster-b"
   },
   {
-    "id": "res-delta-gpu",
-    "name": "Delta GPU A100",
+    "id": "res-b-gpu",
+    "name": "ClusterB GPU A100",
     "resource_type": "GPU",
     "resource_amount": 40000,
-    "compute_cluster_id": "cluster-delta"
+    "compute_cluster_id": "cluster-b"
   }
 ]

@@ -22,18 +22,18 @@ describe("computeAllocationResourceSchema", () => {
   it("accepts a fully populated resource", () => {
     const parsed = computeAllocationResourceSchema.parse({
       id: "res-1",
-      name: "Anvil CPU",
+      name: "ClusterA CPU",
       resource_type: "CPU",
       resource_amount: 1000,
-      compute_cluster_id: "cluster-anvil",
+      compute_cluster_id: "cluster-a",
     });
-    expect(parsed.name).toBe("Anvil CPU");
+    expect(parsed.name).toBe("ClusterA CPU");
   });
 
   it("rejects a resource missing its cluster id", () => {
     const result = computeAllocationResourceSchema.safeParse({
       id: "res-1",
-      name: "Anvil CPU",
+      name: "ClusterA CPU",
       resource_type: "CPU",
       resource_amount: 1000,
     });

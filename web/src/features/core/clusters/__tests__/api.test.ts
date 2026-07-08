@@ -30,10 +30,10 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
-const cluster = { id: "cluster-anvil", name: "Anvil" };
+const cluster = { id: "cluster-a", name: "ClusterA" };
 const clusterUser = {
   id: "ccu-1",
-  compute_cluster_id: "cluster-anvil",
+  compute_cluster_id: "cluster-a",
   user_id: "user-ada-lovelace",
   local_username: "alovelace",
 };
@@ -43,22 +43,34 @@ describe("listClusters", () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [cluster]));
     const out = await listClusters();
     expect(out).toHaveLength(1);
-    expect(out[0]?.name).toBe("Anvil");
+    expect(out[0]?.name).toBe("ClusterA");
+  });
+
+  it("returns an empty array when the backend sends null", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
+    await expect(listClusters()).resolves.toEqual([]);
+  });
+});
+
+describe("listClusterUsers null body", () => {
+  it("returns an empty array when the backend sends null", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, "null"));
+    await expect(listClusterUsers("cluster-a")).resolves.toEqual([]);
   });
 });
 
 describe("getCluster", () => {
   it("parses a single cluster", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, cluster));
-    const out = await getCluster("cluster-anvil");
-    expect(out.id).toBe("cluster-anvil");
+    const out = await getCluster("cluster-a");
+    expect(out.id).toBe("cluster-a");
   });
 });
 
 describe("listClusterUsers", () => {
   it("parses a bare array of cluster users", async () => {
     fetchMock.mockResolvedValueOnce(mockResponse(200, [clusterUser]));
-    const out = await listClusterUsers("cluster-anvil");
+    const out = await listClusterUsers("cluster-a");
     expect(out[0]?.local_username).toBe("alovelace");
   });
 });

@@ -20,11 +20,11 @@ import { computeClusterSchema, computeClusterUserSchema } from "../schemas";
 
 describe("computeClusterSchema", () => {
   it("accepts a cluster with id and name", () => {
-    expect(computeClusterSchema.parse({ id: "cluster-anvil", name: "Anvil" }).name).toBe("Anvil");
+    expect(computeClusterSchema.parse({ id: "cluster-a", name: "ClusterA" }).name).toBe("ClusterA");
   });
 
   it("rejects a cluster missing its name", () => {
-    expect(computeClusterSchema.safeParse({ id: "cluster-anvil" }).success).toBe(false);
+    expect(computeClusterSchema.safeParse({ id: "cluster-a" }).success).toBe(false);
   });
 });
 
@@ -32,7 +32,7 @@ describe("computeClusterUserSchema", () => {
   it("accepts a fully populated cluster user", () => {
     const parsed = computeClusterUserSchema.parse({
       id: "ccu-1",
-      compute_cluster_id: "cluster-anvil",
+      compute_cluster_id: "cluster-a",
       user_id: "user-ada-lovelace",
       local_username: "alovelace",
     });
@@ -42,7 +42,7 @@ describe("computeClusterUserSchema", () => {
   it("rejects a cluster user missing its local username", () => {
     const result = computeClusterUserSchema.safeParse({
       id: "ccu-1",
-      compute_cluster_id: "cluster-anvil",
+      compute_cluster_id: "cluster-a",
       user_id: "user-ada-lovelace",
     });
     expect(result.success).toBe(false);
