@@ -36,13 +36,12 @@ func NewHandlers(coreService *service.Service) *Handlers {
 }
 
 // RegisterRoutes attaches the TempAccount connector's HTTP endpoints to router.
-// TODO(auth) - introduce sepecific privileges and switch to router.RequirePrivilege.
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
-	router.RequireAuth("POST /connectors/temp-account/create", h.createTempAccount)
-	router.RequireAuth("POST /connectors/temp-account/assign-allocation", h.assignAllocationToTempAccount)
-	router.RequireAuth("POST /connectors/temp-account/update-allocation", h.updateAllocationToTempAccount)
-	router.RequireAuth("DELETE /connectors/temp-account/remove/{user_id}", h.removeTempAccount)
-	router.RequireAuth("GET /connectors/temp-account/membership/{user_id}", h.getAllocationMembershipForTempUser)
+	router.RequirePrivilege("POST /connectors/temp-account/create", AccountsWrite, h.createTempAccount)
+	router.RequirePrivilege("POST /connectors/temp-account/assign-allocation", AccountsWrite, h.assignAllocationToTempAccount)
+	router.RequirePrivilege("POST /connectors/temp-account/update-allocation", AccountsWrite, h.updateAllocationToTempAccount)
+	router.RequirePrivilege("DELETE /connectors/temp-account/remove/{user_id}", AccountsWrite, h.removeTempAccount)
+	router.RequirePrivilege("GET /connectors/temp-account/membership/{user_id}", AccountsRead, h.getAllocationMembershipForTempUser)
 }
 
 func (h *Handlers) createTempAccount(w http.ResponseWriter, r *http.Request) {

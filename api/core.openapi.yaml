@@ -311,6 +311,10 @@ definitions:
     - core:allocations:write
     - core:projects:read
     - core:projects:write
+    - core:users:read
+    - core:users:write
+    - core:organizations:read
+    - core:organizations:write
     - core:traces:read
     - core:privileges:grant
     - core:roles:manage
@@ -322,6 +326,10 @@ definitions:
     - AllocationsWrite
     - ProjectsRead
     - ProjectsWrite
+    - UsersRead
+    - UsersWrite
+    - OrganizationsRead
+    - OrganizationsWrite
     - TracesRead
     - PrivilegesGrant
     - RolesManage
@@ -2676,6 +2684,10 @@ paths:
         - core:allocations:write
         - core:projects:read
         - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
@@ -3179,6 +3191,10 @@ paths:
         - core:allocations:write
         - core:projects:read
         - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
@@ -3708,6 +3724,10 @@ paths:
         - core:allocations:write
         - core:projects:read
         - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage

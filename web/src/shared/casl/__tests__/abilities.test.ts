@@ -95,6 +95,34 @@ const cases: Array<[Privilege, Array<[string, string, boolean]>]> = [
     ],
   ],
   [
+    "core:users:read",
+    [
+      ["read", "User", true],
+      ["manage", "User", false],
+    ],
+  ],
+  [
+    "core:users:write",
+    [
+      ["read", "User", true],
+      ["manage", "User", true],
+    ],
+  ],
+  [
+    "core:organizations:read",
+    [
+      ["read", "Organization", true],
+      ["manage", "Organization", false],
+    ],
+  ],
+  [
+    "core:organizations:write",
+    [
+      ["read", "Organization", true],
+      ["manage", "Organization", true],
+    ],
+  ],
+  [
     "core:traces:read",
     [
       ["read", "Trace", true],

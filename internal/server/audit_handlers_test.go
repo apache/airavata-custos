@@ -96,7 +96,7 @@ func newAuditServer(t *testing.T, audit store.AuditTraceStore) *httptest.Server 
 	svc.SetAuditTraces(audit)
 	inner := New(svc, router)
 	wrap := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		inner.ServeHTTP(w, withTestCaller(r, "test-user"))
+		inner.ServeHTTP(w, withTestCaller(r, "test-user", models.TracesRead))
 	})
 	srv := httptest.NewServer(wrap)
 	t.Cleanup(srv.Close)

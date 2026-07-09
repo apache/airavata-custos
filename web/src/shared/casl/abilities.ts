@@ -32,6 +32,10 @@ export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
   "core:allocations:write": [{ action: "manage", subject: "Allocation" }],
   "core:projects:read": [{ action: "read", subject: "Project" }],
   "core:projects:write": [{ action: "manage", subject: "Project" }],
+  "core:users:read": [{ action: "read", subject: "User" }],
+  "core:users:write": [{ action: "manage", subject: "User" }],
+  "core:organizations:read": [{ action: "read", subject: "Organization" }],
+  "core:organizations:write": [{ action: "manage", subject: "Organization" }],
   "core:traces:read": [
     { action: "read", subject: "Trace" },
     { action: "read", subject: "AuditEvent" },

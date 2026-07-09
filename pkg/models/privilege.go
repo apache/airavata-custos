@@ -27,15 +27,19 @@ import (
 type PrivilegeKey string
 
 const (
-	ClustersRead     PrivilegeKey = "core:clusters:read"
-	ClustersWrite    PrivilegeKey = "core:clusters:write"
-	AllocationsRead  PrivilegeKey = "core:allocations:read"
-	AllocationsWrite PrivilegeKey = "core:allocations:write"
-	ProjectsRead     PrivilegeKey = "core:projects:read"
-	ProjectsWrite    PrivilegeKey = "core:projects:write"
-	TracesRead       PrivilegeKey = "core:traces:read"
-	PrivilegesGrant  PrivilegeKey = "core:privileges:grant"
-	RolesManage      PrivilegeKey = "core:roles:manage"
+	ClustersRead       PrivilegeKey = "core:clusters:read"
+	ClustersWrite      PrivilegeKey = "core:clusters:write"
+	AllocationsRead    PrivilegeKey = "core:allocations:read"
+	AllocationsWrite   PrivilegeKey = "core:allocations:write"
+	ProjectsRead       PrivilegeKey = "core:projects:read"
+	ProjectsWrite      PrivilegeKey = "core:projects:write"
+	UsersRead          PrivilegeKey = "core:users:read"
+	UsersWrite         PrivilegeKey = "core:users:write"
+	OrganizationsRead  PrivilegeKey = "core:organizations:read"
+	OrganizationsWrite PrivilegeKey = "core:organizations:write"
+	TracesRead         PrivilegeKey = "core:traces:read"
+	PrivilegesGrant    PrivilegeKey = "core:privileges:grant"
+	RolesManage        PrivilegeKey = "core:roles:manage"
 )
 
 var (
@@ -51,6 +55,10 @@ func init() {
 		AllocationsWrite,
 		ProjectsRead,
 		ProjectsWrite,
+		UsersRead,
+		UsersWrite,
+		OrganizationsRead,
+		OrganizationsWrite,
 		TracesRead,
 		PrivilegesGrant,
 		RolesManage,

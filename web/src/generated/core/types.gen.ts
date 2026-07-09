@@ -264,7 +264,7 @@ export type Organization = {
     originated_id?: string;
 };
 
-export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
 
 export type Project = {
     created_time?: string;
@@ -2654,7 +2654,7 @@ export type GetPrivilegesByKeyHoldersData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/privileges/{key}/holders';
@@ -3167,7 +3167,7 @@ export type DeleteRolesByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/roles/{id}/privileges/{key}';
@@ -3727,7 +3727,7 @@ export type DeleteUsersByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/users/{id}/privileges/{key}';
