@@ -17,60 +17,21 @@
 
 import type { MyAccess } from "./queries";
 
-// Title-case a slug segment: "unmapped" → "Unmapped", "amie" → "Amie" is
-// then upper-cased for known acronym domains below.
-function titleCase(slug: string): string {
-  return slug
-    .split(/[-_]/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-const DOMAIN_LABELS: Record<string, string> = {
-  core: "Core",
-  amie: "AMIE",
-};
-
-export function domainLabel(domain: string): string {
-  return DOMAIN_LABELS[domain] ?? titleCase(domain);
-}
-
-export function resourceLabel(resource: string): string {
-  return titleCase(resource);
-}
-
-export type ProvenanceKind = "role" | "direct";
-
-export type PrivilegeAction = {
-  action: string;
-  label: string;
-  rawKey: string;
-};
+export type ProvenanceKind = "role" | "direct" | "unknown";
 
 export type PrivilegeRow = {
-  resource: string;
-  resourceLabel: string;
-  actions: PrivilegeAction[];
-  rawKeys: string[];
-  // Where this row's grant comes from: a role (with its id + name) or a direct grant.
+  prefix: string;
+  actions: string[];
   provenance: ProvenanceKind;
   roleId?: string;
   provenanceLabel: string;
 };
 
-export type PrivilegeGroup = {
-  domain: string;
-  label: string;
-  rows: PrivilegeRow[];
-};
-
 type Source = { roleId?: string; kind: ProvenanceKind; label: string };
 
-// Build the domain → resource → actions view from the caller's access payload.
-// Every effective key is placed; its provenance is the first role that grants
-// it, else the direct grant, else (defensively) "Direct grant".
-export function buildPrivilegeGroups(access: MyAccess): PrivilegeGroup[] {
+const UNKNOWN_SOURCE: Source = { kind: "unknown", label: "" };
+
+export function buildPrivilegeRows(access: MyAccess): PrivilegeRow[] {
   const sourceByKey = new Map<string, Source>();
   for (const rwp of access.roles) {
     const roleId = rwp.role.id ?? "";
@@ -86,39 +47,30 @@ export function buildPrivilegeGroups(access: MyAccess): PrivilegeGroup[] {
     }
   }
 
-  const groups = new Map<string, Map<string, PrivilegeRow>>();
-  for (const key of access.privileges) {
-    const [domain, resource, action] = key.split(":");
-    if (!domain || !resource || !action) continue;
-    const source = sourceByKey.get(key) ?? { kind: "direct" as const, label: "Direct grant" };
+  // Without the admin-gated provenance reads, never claim "Direct grant".
+  const fallback = access.provenance
+    ? { kind: "direct" as const, label: "Direct grant" }
+    : UNKNOWN_SOURCE;
 
-    let byResource = groups.get(domain);
-    if (!byResource) {
-      byResource = new Map();
-      groups.set(domain, byResource);
-    }
-    let row = byResource.get(resource);
+  const rows = new Map<string, PrivilegeRow>();
+  for (const key of [...access.privileges].sort()) {
+    const lastColon = key.lastIndexOf(":");
+    if (lastColon <= 0) continue;
+    const prefix = key.slice(0, lastColon);
+    const action = key.slice(lastColon + 1);
+    const source = sourceByKey.get(key) ?? fallback;
+    let row = rows.get(prefix);
     if (!row) {
       row = {
-        resource,
-        resourceLabel: resourceLabel(resource),
+        prefix,
         actions: [],
-        rawKeys: [],
         provenance: source.kind,
         roleId: source.roleId,
         provenanceLabel: source.label,
       };
-      byResource.set(resource, row);
+      rows.set(prefix, row);
     }
-    if (!row.actions.some((a) => a.action === action)) {
-      row.actions.push({ action, label: titleCase(action), rawKey: key });
-    }
-    row.rawKeys.push(key);
+    if (!row.actions.includes(action)) row.actions.push(action);
   }
-
-  return [...groups.entries()].map(([domain, byResource]) => ({
-    domain,
-    label: domainLabel(domain),
-    rows: [...byResource.values()],
-  }));
+  return [...rows.values()];
 }

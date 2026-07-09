@@ -34,7 +34,7 @@ export function SettingsPage() {
   const access = useMyAccess(userId, me.data?.privileges ?? []);
 
   return (
-    <div className="mx-auto w-full max-w-[880px] px-6 py-8">
+    <div className="mx-auto w-full max-w-[1080px] px-6 py-8">
       <header className="mb-7">
         <h1 className="font-heading text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">

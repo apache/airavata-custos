@@ -21,6 +21,7 @@ import { AccessCard } from "../AccessCard";
 import type { MyAccess } from "../../queries";
 
 const access: MyAccess = {
+  provenance: true,
   roles: [
     {
       role: {
@@ -48,8 +49,8 @@ const access: MyAccess = {
   ],
 };
 
-function rowFor(resource: string): HTMLElement {
-  return screen.getByText(resource).closest("div[title]") as HTMLElement;
+function rowFor(prefix: string): HTMLElement {
+  return screen.getByText(prefix).closest("div") as HTMLElement;
 }
 
 function roleCard(id: string): HTMLElement {
@@ -57,32 +58,29 @@ function roleCard(id: string): HTMLElement {
 }
 
 describe("AccessCard", () => {
-  it("renders both columns with equal-weight headings and domain groups", () => {
+  it("renders prefix rows with raw action chips", () => {
     render(<AccessCard access={access} />);
     expect(screen.getByRole("heading", { name: "Roles" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Effective privileges" })).toBeInTheDocument();
     expect(roleCard("role-admin")).toHaveTextContent("Administrator");
     expect(screen.getByText("SYSTEM")).toBeInTheDocument();
-    // Domain group labels (Core, AMIE) plus resource rows.
-    expect(screen.getByText("Core")).toBeInTheDocument();
-    expect(screen.getByText("AMIE")).toBeInTheDocument();
-    expect(screen.getByText("Users")).toBeInTheDocument();
-    expect(screen.getByText("Packets")).toBeInTheDocument();
+    const users = rowFor("core:users");
+    expect(users).toHaveTextContent("read");
+    expect(users).toHaveTextContent("write");
+    expect(screen.getByText("amie:packets")).toBeInTheDocument();
+    expect(screen.queryByText("Users")).not.toBeInTheDocument();
   });
 
-  it("shows one chip per action and direct-grant provenance", () => {
+  it("shows provenance per row: role name or Direct grant", () => {
     render(<AccessCard access={access} />);
-    const users = rowFor("Users");
-    expect(users).toHaveTextContent("Read");
-    expect(users).toHaveTextContent("Write");
-    expect(users).toHaveAttribute("title", "core:users:read · core:users:write");
-    expect(rowFor("Traces")).toHaveTextContent("Direct grant");
+    expect(rowFor("core:users")).toHaveTextContent("Administrator");
+    expect(rowFor("core:traces")).toHaveTextContent("Direct grant");
   });
 
   it("highlights a role's privileges on hover", () => {
     render(<AccessCard access={access} />);
-    const users = rowFor("Users");
-    const packets = rowFor("Packets");
+    const users = rowFor("core:users");
+    const packets = rowFor("amie:packets");
     expect(users.className).not.toContain("brand-tint");
 
     fireEvent.mouseEnter(roleCard("role-admin"));
@@ -92,7 +90,25 @@ describe("AccessCard", () => {
   });
 
   it("renders empty states when the caller has no roles", () => {
-    render(<AccessCard access={{ roles: [], direct: [], privileges: [] }} />);
+    render(<AccessCard access={{ provenance: true, roles: [], direct: [], privileges: [] }} />);
     expect(screen.getByText("No roles assigned.")).toBeInTheDocument();
+  });
+
+  it("shows effective privileges without provenance when the reads are gated", () => {
+    render(
+      <AccessCard
+        access={{
+          provenance: false,
+          roles: [],
+          direct: [],
+          privileges: ["core:users:read", "amie:packets:write"],
+        }}
+      />,
+    );
+    expect(screen.getByText(/role details are not visible/i)).toBeInTheDocument();
+    expect(screen.getByText("core:users")).toBeInTheDocument();
+    expect(screen.getByText("amie:packets")).toBeInTheDocument();
+    // Never claim "Direct grant" without the provenance data.
+    expect(screen.queryByText("Direct grant")).not.toBeInTheDocument();
   });
 });
