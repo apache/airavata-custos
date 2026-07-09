@@ -17,17 +17,34 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { apiFetch } from "@/shared/api/client";
+import {
+  getMe,
+  getMyDirectPrivileges,
+  getMyIdentities,
+  getMyRolesWithPrivileges,
+  updateMyName,
+} from "./api";
 import { privilegesResponseSchema } from "./schemas";
+import type { RoleWithPrivileges, UserNameUpdate, UserPrivilege } from "./schemas";
 import type { CurrentUser, Privilege } from "./types";
 
 export const identityKeys = {
   all: ["identity"] as const,
   current: () => [...identityKeys.all, "current"] as const,
   privileges: () => [...identityKeys.all, "privileges"] as const,
+  me: () => [...identityKeys.all, "me"] as const,
+  identities: (userId: string) => [...identityKeys.all, "identities", userId] as const,
+  access: (userId: string) => [...identityKeys.all, "access", userId] as const,
 };
+
+const DEFAULTS = {
+  staleTime: 30_000,
+  gcTime: 300_000,
+  refetchOnWindowFocus: false,
+} as const;
 
 export function useCurrentUser() {
   const { data: session, status } = useSession();
@@ -51,8 +68,56 @@ export function usePrivileges() {
       return privilegesResponseSchema.parse(raw);
     },
     enabled: status === "authenticated",
-    staleTime: 30_000,
-    gcTime: 300_000,
-    refetchOnWindowFocus: false,
+    ...DEFAULTS,
+  });
+}
+
+export function useMe() {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: identityKeys.me(),
+    queryFn: getMe,
+    enabled: status === "authenticated",
+    ...DEFAULTS,
+  });
+}
+
+export function useMyIdentities(userId: string | undefined) {
+  return useQuery({
+    queryKey: userId ? identityKeys.identities(userId) : [...identityKeys.all, "identities", "none"],
+    queryFn: () => getMyIdentities(userId as string),
+    enabled: Boolean(userId),
+    ...DEFAULTS,
+  });
+}
+
+export type MyAccess = {
+  roles: RoleWithPrivileges[];
+  direct: UserPrivilege[];
+  privileges: Privilege[];
+};
+
+// The access card needs roles, direct grants, and the effective union together;
+// compose them from the caller-scoped endpoints (no single backend endpoint).
+export function useMyAccess(userId: string | undefined, effective: Privilege[]) {
+  return useQuery({
+    queryKey: userId ? identityKeys.access(userId) : [...identityKeys.all, "access", "none"],
+    queryFn: async (): Promise<MyAccess> => {
+      const [roles, direct] = await Promise.all([
+        getMyRolesWithPrivileges(userId as string),
+        getMyDirectPrivileges(userId as string),
+      ]);
+      return { roles, direct, privileges: effective };
+    },
+    enabled: Boolean(userId),
+    ...DEFAULTS,
+  });
+}
+
+export function useUpdateMyName(userId: string | undefined) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (name: UserNameUpdate) => updateMyName(userId as string, name),
+    onSuccess: () => client.invalidateQueries({ queryKey: identityKeys.me() }),
   });
 }

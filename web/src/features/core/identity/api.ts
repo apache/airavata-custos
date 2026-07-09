@@ -16,22 +16,75 @@
 // under the License.
 
 import { apiFetch } from "@/shared/api/client";
-import { auth } from "@/shared/auth/auth";
-import { privilegesResponseSchema } from "./schemas";
-import type { CurrentUser, Privilege } from "./types";
-
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const session = await auth();
-  if (!session?.user) return null;
-  return {
-    id: session.user.id ?? session.user.email ?? "",
-    email: session.user.email ?? "",
-    name: session.user.name ?? session.user.email ?? "",
-    privileges: session.privileges ?? [],
-  };
-}
+import {
+  meResponseSchema,
+  privilegesResponseSchema,
+  roleDetailResponseSchema,
+  userIdentitiesResponseSchema,
+  userPrivilegesResponseSchema,
+  userRolesResponseSchema,
+  userSchema,
+} from "./schemas";
+import type {
+  RoleWithPrivileges,
+  UserIdentity,
+  UserNameUpdate,
+  UserPrivilege,
+  UserProfile,
+} from "./schemas";
+import type { Privilege } from "./types";
 
 export async function getPrivileges(): Promise<Privilege[]> {
   const raw = await apiFetch("/user/privileges");
   return privilegesResponseSchema.parse(raw);
+}
+
+export type Me = { user: UserProfile; privileges: Privilege[] };
+
+export async function getMe(): Promise<Me> {
+  const parsed = meResponseSchema.parse(await apiFetch("/me"));
+  return { user: parsed.user, privileges: parsed.privileges ?? [] };
+}
+
+export async function getMyIdentities(userId: string): Promise<UserIdentity[]> {
+  return userIdentitiesResponseSchema.parse(
+    await apiFetch(`/users/${userId}/user-identities`),
+  );
+}
+
+// No user-scoped roles-with-privileges endpoint exists; compose it from the
+// caller's role grants and each role's privilege detail.
+export async function getMyRolesWithPrivileges(
+  userId: string,
+): Promise<RoleWithPrivileges[]> {
+  const grants = userRolesResponseSchema.parse(
+    await apiFetch(`/users/${userId}/roles`),
+  );
+  const details = await Promise.all(
+    grants.map(async (grant) => {
+      const detail = roleDetailResponseSchema.parse(
+        await apiFetch(`/roles/${grant.role_id}`),
+      );
+      if (!detail.role) return null;
+      return { role: detail.role, privileges: detail.privileges, grant };
+    }),
+  );
+  return details.filter((d): d is RoleWithPrivileges => d !== null);
+}
+
+export async function getMyDirectPrivileges(
+  userId: string,
+): Promise<UserPrivilege[]> {
+  return userPrivilegesResponseSchema.parse(
+    await apiFetch(`/users/${userId}/privileges`),
+  );
+}
+
+export async function updateMyName(
+  userId: string,
+  name: UserNameUpdate,
+): Promise<UserProfile> {
+  return userSchema.parse(
+    await apiFetch(`/users/${userId}`, { method: "PUT", body: name }),
+  );
 }

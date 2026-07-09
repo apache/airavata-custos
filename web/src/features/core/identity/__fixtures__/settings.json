@@ -1,0 +1,96 @@
+{
+  "user": {
+    "id": "msw-user",
+    "organization_id": "msw-org",
+    "first_name": "Elena",
+    "middle_name": "",
+    "last_name": "Vasquez",
+    "email": "elena.vasquez@sample.example.edu",
+    "status": "ACTIVE",
+    "type": "CLUSTER_LOCAL"
+  },
+  "identities": [
+    {
+      "id": "ident-1",
+      "user_id": "msw-user",
+      "source": "cilogon",
+      "external_id": "elena.vasquez@access-ci.org",
+      "email": "elena.vasquez@access-ci.org",
+      "oidc_sub": "http://cilogon.org/serverA/users/12345",
+      "created_at": "2026-03-12T09:00:00Z"
+    },
+    {
+      "id": "ident-2",
+      "user_id": "msw-user",
+      "source": "comanage",
+      "external_id": "CO-4821",
+      "email": "elena.vasquez@sample.example.edu",
+      "oidc_sub": "",
+      "created_at": "2026-03-14T09:00:00Z"
+    }
+  ],
+  "roles": [
+    {
+      "user_id": "msw-user",
+      "role_id": "role-admin",
+      "granted_by": "portal-admin",
+      "granted_at": "2026-03-12T09:00:00Z",
+      "reason": "Initial administrator"
+    },
+    {
+      "user_id": "msw-user",
+      "role_id": "role-amie",
+      "granted_by": "portal-admin",
+      "granted_at": "2026-04-02T09:00:00Z",
+      "reason": "Operate AMIE exchange"
+    }
+  ],
+  "roleDetails": {
+    "role-admin": {
+      "role": {
+        "id": "role-admin",
+        "name": "Administrator",
+        "description": "Full management of users, projects, allocations, and clusters.",
+        "is_system": true,
+        "created_at": "2026-01-01T00:00:00Z"
+      },
+      "privileges": [
+        "core:users:read",
+        "core:users:write",
+        "core:projects:read",
+        "core:projects:write",
+        "core:allocations:read",
+        "core:allocations:write",
+        "core:clusters:read",
+        "core:clusters:write",
+        "core:roles:manage"
+      ]
+    },
+    "role-amie": {
+      "role": {
+        "id": "role-amie",
+        "name": "AMIE Operator",
+        "description": "Operate the AMIE packet exchange: inspect and reply to packets.",
+        "is_system": false,
+        "created_at": "2026-02-01T00:00:00Z"
+      },
+      "privileges": [
+        "amie:packets:read",
+        "amie:packets:write",
+        "amie:replies:read",
+        "amie:replies:write",
+        "amie:unmapped:read"
+      ]
+    }
+  },
+  "direct": [
+    {
+      "id": "grant-1",
+      "user_id": "msw-user",
+      "privilege": "core:traces:read",
+      "granted_by": "portal-admin",
+      "granted_at": "2026-05-01T09:00:00Z",
+      "reason": "Audit review access"
+    }
+  ]
+}

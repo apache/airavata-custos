@@ -46,6 +46,14 @@ import {
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
+import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
+import {
+  roleDetailResponseSchema,
+  userIdentitySchema,
+  userPrivilegeSchema,
+  userRoleSchema,
+  userSchema,
+} from "@/features/core/identity/schemas";
 
 describe("MSW fixtures pass current Zod schemas", () => {
   it("project fixtures validate against projectSchema (zProjectStatus-backed)", () => {
@@ -110,5 +118,39 @@ describe("MSW fixtures pass current Zod schemas", () => {
   it("rate fixtures validate against rateSchema", () => {
     const result = z.array(rateSchema).safeParse(ratesFixture);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings /me user validates against userSchema", () => {
+    const result = userSchema.safeParse(settingsFixture.user);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings identity fixtures validate against userIdentitySchema", () => {
+    const result = z.array(userIdentitySchema).safeParse(settingsFixture.identities);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings role grants validate against userRoleSchema", () => {
+    const result = z.array(userRoleSchema).safeParse(settingsFixture.roles);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings role details validate against roleDetailResponseSchema", () => {
+    const result = z
+      .array(roleDetailResponseSchema)
+      .safeParse(Object.values(settingsFixture.roleDetails));
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings direct grants validate against userPrivilegeSchema", () => {
+    const result = z.array(userPrivilegeSchema).safeParse(settingsFixture.direct);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("settings role grant ids resolve via roleDetails (internally consistent)", () => {
+    const detailIds = Object.keys(settingsFixture.roleDetails);
+    for (const grant of settingsFixture.roles) {
+      expect(detailIds).toContain(grant.role_id);
+    }
   });
 });
