@@ -16,10 +16,11 @@
 // under the License.
 
 import { describe, expect, it } from "vitest";
-import { buildPrivilegeGroups, domainLabel, resourceLabel } from "../privileges";
+import { buildPrivilegeRows } from "../privileges";
 import type { MyAccess } from "../queries";
 
 const access: MyAccess = {
+  provenance: true,
   roles: [
     {
       role: { id: "role-admin", name: "Administrator", is_system: true },
@@ -49,38 +50,46 @@ function must<T>(value: T | undefined): T {
   return value;
 }
 
-describe("buildPrivilegeGroups", () => {
-  const groups = buildPrivilegeGroups(access);
-  const core = must(groups.find((g) => g.domain === "core"));
-  const users = must(core.rows.find((r) => r.resource === "users"));
+describe("buildPrivilegeRows", () => {
+  const rows = buildPrivilegeRows(access);
 
-  it("groups by domain with title-cased labels, unknown domains generic", () => {
-    expect(domainLabel("core")).toBe("Core");
-    expect(domainLabel("amie")).toBe("AMIE");
-    expect(domainLabel("future")).toBe("Future");
-    expect(resourceLabel("packets")).toBe("Packets");
-    expect(groups.map((g) => g.label).sort()).toEqual(["AMIE", "Core", "Future"]);
-  });
-
-  it("one row per resource with one chip per action", () => {
-    expect(users.actions.map((a) => a.action)).toEqual(["read", "write"]);
-    expect(users.rawKeys).toEqual(["core:users:read", "core:users:write"]);
+  it("renders one row per prefix with the action segments, sorted", () => {
+    expect(rows.map((r) => r.prefix)).toEqual([
+      "amie:packets",
+      "core:roles",
+      "core:traces",
+      "core:users",
+      "future:widgets",
+    ]);
+    const users = must(rows.find((r) => r.prefix === "core:users"));
+    expect(users.actions).toEqual(["read", "write"]);
+    const packets = must(rows.find((r) => r.prefix === "amie:packets"));
+    expect(packets.actions).toEqual(["read", "write"]);
   });
 
   it("attributes provenance: role name for role-derived, Direct grant otherwise", () => {
+    const users = must(rows.find((r) => r.prefix === "core:users"));
     expect(users.provenance).toBe("role");
     expect(users.roleId).toBe("role-admin");
     expect(users.provenanceLabel).toBe("Administrator");
 
-    const traces = must(core.rows.find((r) => r.resource === "traces"));
+    const traces = must(rows.find((r) => r.prefix === "core:traces"));
     expect(traces.provenance).toBe("direct");
     expect(traces.provenanceLabel).toBe("Direct grant");
+
+    // Unknown keys fall back to Direct grant only when provenance was readable.
+    const future = must(rows.find((r) => r.prefix === "future:widgets"));
+    expect(future.provenanceLabel).toBe("Direct grant");
   });
 
-  it("renders unknown-domain keys generically without a hardcoded list", () => {
-    const future = must(groups.find((g) => g.domain === "future"));
-    const row = must(future.rows.at(0));
-    expect(row.resourceLabel).toBe("Widgets");
-    expect(row.provenanceLabel).toBe("Direct grant");
+  it("never claims Direct grant without the provenance reads", () => {
+    const gated = buildPrivilegeRows({
+      provenance: false,
+      roles: [],
+      direct: [],
+      privileges: ["core:users:read"],
+    });
+    expect(must(gated.at(0)).provenance).toBe("unknown");
+    expect(must(gated.at(0)).provenanceLabel).toBe("");
   });
 });

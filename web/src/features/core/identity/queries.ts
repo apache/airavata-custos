@@ -95,19 +95,27 @@ export type MyAccess = {
   roles: RoleWithPrivileges[];
   direct: UserPrivilege[];
   privileges: Privilege[];
+  // False when the caller lacks the role/privilege read gates; the card then
+  // shows effective privileges without provenance.
+  provenance: boolean;
 };
 
-// The access card needs roles, direct grants, and the effective union together;
-// compose them from the caller-scoped endpoints (no single backend endpoint).
+// The roles and grants reads are admin-gated; run them only when the caller's
+// own privileges imply access. Everyone still gets the effective set from /me.
 export function useMyAccess(userId: string | undefined, effective: Privilege[]) {
+  const provenance =
+    effective.includes("core:roles:manage") && effective.includes("core:privileges:grant");
   return useQuery({
-    queryKey: userId ? identityKeys.access(userId) : [...identityKeys.all, "access", "none"],
+    queryKey: userId
+      ? [...identityKeys.access(userId), provenance]
+      : [...identityKeys.all, "access", "none"],
     queryFn: async (): Promise<MyAccess> => {
+      if (!provenance) return { roles: [], direct: [], privileges: effective, provenance };
       const [roles, direct] = await Promise.all([
         getMyRolesWithPrivileges(userId as string),
         getMyDirectPrivileges(userId as string),
       ]);
-      return { roles, direct, privileges: effective };
+      return { roles, direct, privileges: effective, provenance };
     },
     enabled: Boolean(userId),
     ...DEFAULTS,
