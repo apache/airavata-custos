@@ -110,6 +110,47 @@ func (s *Server) updateUserStatus(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, u)
 }
 
+type userNameUpdateRequest struct {
+	FirstName  string `json:"first_name"`
+	MiddleName string `json:"middle_name"`
+	LastName   string `json:"last_name"`
+}
+
+// @Summary	Update a user's name
+// @Tags	Users
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id	path	string	true	"User ID"
+// @Param	request	body	userNameUpdateRequest	true	"Name fields"
+// @Success	200	{object}	models.User
+// @Failure	400	{object}	object{error=string}
+// @Failure	404	{object}	object{error=string}
+// @Router	/users/{id} [put]
+func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
+	var req userNameUpdateRequest
+	if err := common.DecodeJSON(r, &req); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	id := r.PathValue("id")
+	if err := s.svc.UpdateUser(r.Context(), &models.User{
+		ID:         id,
+		FirstName:  req.FirstName,
+		MiddleName: req.MiddleName,
+		LastName:   req.LastName,
+	}); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	updated, err := s.svc.GetUser(r.Context(), id)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, updated)
+}
+
 type mergeUsersRequest struct {
 	SurvivingUserID string `json:"surviving_user_id"`
 	RetiringUserID  string `json:"retiring_user_id"`

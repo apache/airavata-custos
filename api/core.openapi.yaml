@@ -719,6 +719,15 @@ definitions:
       name:
         type: string
     type: object
+  userNameUpdateRequest:
+    properties:
+      first_name:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -3607,6 +3616,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Name fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userNameUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a user's name
       tags:
       - Users
   /users/{id}/change-requests:

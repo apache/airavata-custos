@@ -205,3 +205,50 @@ func TestListClusterUsers_EmptyListIsJSONArray(t *testing.T) {
 		t.Errorf("empty list body: got %q, want []", body)
 	}
 }
+
+func TestUpdateUser_UpdatesNameFields(t *testing.T) {
+	_, svc, srv := setupTestStack(t)
+	org, err := svc.CreateOrganization(t.Context(), &models.Organization{
+		OriginatedID: "name-update-org", Name: "Name Update Org",
+	})
+	if err != nil {
+		t.Fatalf("seed org: %v", err)
+	}
+	user, err := svc.CreateUser(t.Context(), &models.User{
+		OrganizationID: org.ID, FirstName: "Old", LastName: "Name",
+		Email: fmt.Sprintf("name.update+%d@example.edu", time.Now().UnixNano()), Status: models.UserActive,
+	})
+	if err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	body := strings.NewReader(`{"first_name":"New","middle_name":"Q","last_name":"Person"}`)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/users/"+user.ID, body)
+	req = withTestCaller(req, "u-1", models.UsersWrite)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200 (%s)", rr.Code, rr.Body.String())
+	}
+	var got models.User
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.FirstName != "New" || got.MiddleName != "Q" || got.LastName != "Person" {
+		t.Errorf("name not updated: got %q %q %q", got.FirstName, got.MiddleName, got.LastName)
+	}
+	if got.Email != user.Email {
+		t.Errorf("email should be unchanged: got %q, want %q", got.Email, user.Email)
+	}
+}
+
+func TestUpdateUser_RequiresPrivilege(t *testing.T) {
+	_, _, srv := setupTestStack(t)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/users/some-id", strings.NewReader(`{"first_name":"X"}`))
+	req = withTestCaller(req, "u-1")
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("status: got %d, want 403", rr.Code)
+	}
+}

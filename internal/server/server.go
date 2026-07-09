@@ -72,6 +72,7 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /users", models.UsersWrite, s.createUser)
 	s.router.RequirePrivilege("GET /users", models.UsersRead, s.listUsers)
 	s.router.RequirePrivilege("GET /users/{id}", models.UsersRead, s.getUser)
+	s.router.RequirePrivilege("PUT /users/{id}", models.UsersWrite, s.updateUser)
 	s.router.RequirePrivilege("PUT /users/{id}/status", models.UsersWrite, s.updateUserStatus)
 	s.router.RequirePrivilege("POST /users/merge", models.UsersWrite, s.mergeUsers)
 
