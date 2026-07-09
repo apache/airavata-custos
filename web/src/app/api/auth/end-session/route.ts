@@ -50,7 +50,9 @@ async function discoverEndSessionEndpoint(issuer: string): Promise<string | null
 
 export async function GET(request: NextRequest) {
   const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/sign-in";
-  const origin = request.nextUrl.origin;
+  // Behind a reverse proxy request.nextUrl.origin is the internal listen
+  // address (localhost:3000).
+  const origin = serverEnv.NEXTAUTH_URL ?? request.nextUrl.origin;
   const postLogout = new URL(callbackUrl, origin).toString();
 
   const session = await auth();

@@ -26,6 +26,7 @@ vi.mock("@/lib/env", () => ({
   serverEnv: {
     OIDC_ISSUER_URL: "https://idp.example.org",
     OIDC_CLIENT_ID: "client-123",
+    NEXTAUTH_URL: "https://portal.example.org",
   },
 }));
 
@@ -39,7 +40,9 @@ function discoveryResponse(body: unknown, ok = true): Response {
 }
 
 function request() {
-  return new NextRequest("https://portal.example.org/api/auth/end-session?callbackUrl=/sign-in");
+  // Internal origin, as seen behind the reverse proxy; the public URL must
+  // come from NEXTAUTH_URL, never from here.
+  return new NextRequest("http://localhost:3000/api/auth/end-session?callbackUrl=/sign-in");
 }
 
 afterEach(() => {
