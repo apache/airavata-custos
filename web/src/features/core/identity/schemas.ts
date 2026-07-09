@@ -18,6 +18,8 @@
 import { z } from "zod";
 import {
   zRole,
+  zUser,
+  zUserIdentity,
   zUserPrivilege,
   zUserRole,
 } from "@/generated/core/zod.gen";
@@ -25,13 +27,23 @@ import {
 // Any non-empty string. Connector registries extend the catalog at runtime,
 // so the generated core-only enum can't be a tight bound.
 export const privilegeKeySchema = z.string().min(1);
-export const userPrivilegeSchema = zUserPrivilege;
-export const userRoleSchema = zUserRole;
+// granted_by and reason are nullable (*string) on the backend, so they arrive
+// as JSON null; the generated schema only allows undefined, so widen them.
+const nullableGrantMeta = {
+  granted_by: z.string().nullish(),
+  reason: z.string().nullish(),
+};
+export const userPrivilegeSchema = zUserPrivilege.extend(nullableGrantMeta);
+export const userRoleSchema = zUserRole.extend(nullableGrantMeta);
 export const roleSchema = zRole;
+export const userSchema = zUser;
+export const userIdentitySchema = zUserIdentity;
 
 export const roleWithPrivilegesSchema = z.object({
   role: zRole,
   privileges: z.array(privilegeKeySchema),
+  // The caller's grant for this role (granted_at, granted_by, reason).
+  grant: userRoleSchema,
 });
 
 export const callerPrivilegesSchema = z.object({
@@ -42,4 +54,44 @@ export const privilegesResponseSchema = callerPrivilegesSchema.transform(
   (value) => value.privileges ?? [],
 );
 
+// GET /me — profile plus effective privilege keys.
+export const meResponseSchema = z.object({
+  user: zUser,
+  privileges: z.array(privilegeKeySchema).optional(),
+});
+
+// Backend may send null instead of [] for empty lists; tolerate it.
+export const userIdentitiesResponseSchema = z
+  .array(zUserIdentity)
+  .nullish()
+  .transform((value) => value ?? []);
+
+export const userRolesResponseSchema = z
+  .array(userRoleSchema)
+  .nullish()
+  .transform((value) => value ?? []);
+
+export const userPrivilegesResponseSchema = z
+  .array(userPrivilegeSchema)
+  .nullish()
+  .transform((value) => value ?? []);
+
+// GET /roles/{id} — a role and the privilege keys it carries.
+export const roleDetailResponseSchema = z.object({
+  role: zRole.optional(),
+  privileges: z.array(privilegeKeySchema).nullish().transform((v) => v ?? []),
+});
+
+export const userNameUpdateSchema = z.object({
+  first_name: z.string().optional(),
+  middle_name: z.string().optional(),
+  last_name: z.string().optional(),
+});
+
 export type PrivilegeKey = z.infer<typeof privilegeKeySchema>;
+export type UserProfile = z.infer<typeof zUser>;
+export type UserIdentity = z.infer<typeof zUserIdentity>;
+export type UserRole = z.infer<typeof userRoleSchema>;
+export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
+export type RoleWithPrivileges = z.infer<typeof roleWithPrivilegesSchema>;
+export type UserNameUpdate = z.infer<typeof userNameUpdateSchema>;

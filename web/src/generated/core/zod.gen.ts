@@ -483,6 +483,14 @@ export const zUpdateRoleRequest = z.object({
 
 export type updateRoleRequestZodType = z.infer<typeof zUpdateRoleRequest>;
 
+export const zUserNameUpdateRequest = z.object({
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    middle_name: z.string().optional()
+});
+
+export type userNameUpdateRequestZodType = z.infer<typeof zUserNameUpdateRequest>;
+
 export const zGetAuditEventsQuery = z.object({
     trace_id: z.string(),
     span_id: z.string().optional()
@@ -1357,6 +1365,20 @@ export const zGetUsersByIdPath = z.object({
  * OK
  */
 export const zGetUsersByIdResponse = zUser;
+
+/**
+ * Name fields
+ */
+export const zPutUsersByIdBody = zUserNameUpdateRequest;
+
+export const zPutUsersByIdPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zPutUsersByIdResponse = zUser;
 
 export const zGetUsersByIdChangeRequestsPath = z.object({
     id: z.string()

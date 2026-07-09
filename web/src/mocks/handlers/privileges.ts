@@ -42,16 +42,6 @@ const ALL_PRIVILEGES: Privilege[] = [
   "amie:unmapped:write",
 ];
 
-const MOCK_USER = {
-  id: "msw-user",
-  organization_id: "msw-org",
-  first_name: "MSW",
-  last_name: "User",
-  email: "msw@custos.local",
-  status: "ACTIVE",
-  type: "CLUSTER_LOCAL",
-};
-
 // Test seam: e2e scopes privileges per persona via a non-httpOnly cookie.
 // Unset (MSW-only browsing, unit tests) falls back to full access.
 function effectivePrivileges(): Privilege[] {
@@ -67,11 +57,11 @@ function effectivePrivileges(): Privilege[] {
   return list.length > 0 ? (list as Privilege[]) : ALL_PRIVILEGES;
 }
 
+// Exported so the identity settings handlers share the same effective set.
+export { effectivePrivileges };
+
 export const privilegesHandlers = [
   http.get("*/api/v1/user/privileges", () =>
     HttpResponse.json({ privileges: effectivePrivileges() }),
-  ),
-  http.get("*/api/v1/me", () =>
-    HttpResponse.json({ user: MOCK_USER, privileges: effectivePrivileges() }),
   ),
 ];

@@ -514,6 +514,12 @@ export type UpdateRoleRequest = {
     name?: string;
 };
 
+export type UserNameUpdateRequest = {
+    first_name?: string;
+    last_name?: string;
+    middle_name?: string;
+};
+
 export type GetAuditEventsData = {
     body?: never;
     path?: never;
@@ -3605,6 +3611,47 @@ export type GetUsersByIdResponses = {
 };
 
 export type GetUsersByIdResponse = GetUsersByIdResponses[keyof GetUsersByIdResponses];
+
+export type PutUsersByIdData = {
+    /**
+     * Name fields
+     */
+    body: UserNameUpdateRequest;
+    path: {
+        /**
+         * User ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/users/{id}';
+};
+
+export type PutUsersByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type PutUsersByIdError = PutUsersByIdErrors[keyof PutUsersByIdErrors];
+
+export type PutUsersByIdResponses = {
+    /**
+     * OK
+     */
+    200: User;
+};
+
+export type PutUsersByIdResponse = PutUsersByIdResponses[keyof PutUsersByIdResponses];
 
 export type GetUsersByIdChangeRequestsData = {
     body?: never;
