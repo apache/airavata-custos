@@ -40,6 +40,15 @@ definitions:
     - ACTIVE
     - INACTIVE
     - DELETED
+  CallerProfileResponse:
+    properties:
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      user:
+        $ref: '#/definitions/User'
+    type: object
   ComputeAllocation:
     properties:
       compute_cluster_id:
@@ -232,6 +241,33 @@ definitions:
         description: The time when this rate becomes effective.
         type: string
     type: object
+  ComputeAllocationResourceSummary:
+    properties:
+      allocation_count:
+        type: integer
+      compute_cluster_id:
+        description: The ID of the compute cluster the resource (partition) belongs
+          to.
+        type: string
+      id:
+        type: string
+      name:
+        description: resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive",
+          etc.
+        type: string
+      rate_count:
+        type: integer
+      resource_amount:
+        description: Number of CPUs, GPUs.
+        type: integer
+      resource_type:
+        description: 'TRES: cpu, gres/gpu'
+        type: string
+      total_allocated:
+        type: integer
+      total_used_su:
+        type: number
+    type: object
   ComputeAllocationUsage:
     properties:
       compute_allocation_id:
@@ -294,26 +330,45 @@ definitions:
           Record ID.'
         type: string
     type: object
+  OrganizationListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/Organization'
+        type: array
+      total:
+        type: integer
+    type: object
   PrivilegeKey:
     enum:
-    - amie:read
-    - amie:write
-    - hpc:read
-    - hpc:write
-    - signer:read
-    - signer:write
-    - privileges:grant
-    - roles:manage
+    - core:clusters:read
+    - core:clusters:write
+    - core:allocations:read
+    - core:allocations:write
+    - core:projects:read
+    - core:projects:write
+    - core:users:read
+    - core:users:write
+    - core:organizations:read
+    - core:organizations:write
+    - core:traces:read
+    - core:privileges:grant
+    - core:roles:manage
     type: string
     x-enum-varnames:
-    - PrivilegeAMIERead
-    - PrivilegeAMIEWrite
-    - PrivilegeHPCRead
-    - PrivilegeHPCWrite
-    - PrivilegeSignerRead
-    - PrivilegeSignerWrite
-    - PrivilegeGrant
-    - PrivilegeRolesManage
+    - ClustersRead
+    - ClustersWrite
+    - AllocationsRead
+    - AllocationsWrite
+    - ProjectsRead
+    - ProjectsWrite
+    - UsersRead
+    - UsersWrite
+    - OrganizationsRead
+    - OrganizationsWrite
+    - TracesRead
+    - PrivilegesGrant
+    - RolesManage
   Project:
     properties:
       created_time:
@@ -537,6 +592,15 @@ definitions:
       user_id:
         type: string
     type: object
+  UserListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/User'
+        type: array
+      total:
+        type: integer
+    type: object
   UserPrivilege:
     properties:
       granted_at:
@@ -567,12 +631,14 @@ definitions:
     type: object
   UserStatus:
     enum:
+    - PENDING
     - ACTIVE
     - INACTIVE
     - SUSPENDED
     - MERGED
     type: string
     x-enum-varnames:
+    - UserPending
     - UserActive
     - UserInactive
     - UserSuspended
@@ -581,10 +647,12 @@ definitions:
     enum:
     - CLUSTER_LOCAL
     - VIRTUAL
+    - SYSTEM
     type: string
     x-enum-varnames:
     - UserTypeClusterLocal
     - UserTypeVirtual
+    - UserTypeSystem
   attachResourceRequest:
     properties:
       compute_allocation_resource_id:
@@ -649,6 +717,15 @@ definitions:
       description:
         type: string
       name:
+        type: string
+    type: object
+  userNameUpdateRequest:
+    properties:
+      first_name:
+        type: string
+      last_name:
+        type: string
+      middle_name:
         type: string
     type: object
 host: localhost:8080
@@ -1793,6 +1870,31 @@ paths:
       summary: Get the effective rate for a resource at a given time
       tags:
       - Compute Allocation Resource Rates
+  /compute-allocation-resources/summary:
+    get:
+      description: Each row is a resource plus its allocation count, total allocated
+        amount, total used SUs, and rate count.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ComputeAllocationResourceSummary'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List compute allocation resources with aggregate figures
+      tags:
+      - Compute Allocation Resources
   /compute-allocation-usages:
     post:
       consumes:
@@ -2571,7 +2673,50 @@ paths:
       summary: Get a compute cluster user by (cluster, user) pair
       tags:
       - Compute Cluster Users
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/CallerProfileResponse'
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the caller's user record and effective privileges
+      tags:
+      - Caller
   /organizations:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/OrganizationListResponse'
+      security:
+      - BearerAuth: []
+      summary: List organizations (paginated)
+      tags:
+      - Organizations
     post:
       consumes:
       - application/json
@@ -2634,14 +2779,19 @@ paths:
       parameters:
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
+        - core:traces:read
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3136,14 +3286,19 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
+        - core:traces:read
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true
@@ -3385,6 +3540,28 @@ paths:
       tags:
       - Caller
   /users:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserListResponse'
+      security:
+      - BearerAuth: []
+      summary: List users (paginated)
+      tags:
+      - Users
     post:
       consumes:
       - application/json
@@ -3439,6 +3616,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Name fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userNameUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/User'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a user's name
       tags:
       - Users
   /users/{id}/change-requests:
@@ -3664,14 +3882,19 @@ paths:
         type: string
       - description: Privilege key
         enum:
-        - amie:read
-        - amie:write
-        - hpc:read
-        - hpc:write
-        - signer:read
-        - signer:write
-        - privileges:grant
-        - roles:manage
+        - core:clusters:read
+        - core:clusters:write
+        - core:allocations:read
+        - core:allocations:write
+        - core:projects:read
+        - core:projects:write
+        - core:users:read
+        - core:users:write
+        - core:organizations:read
+        - core:organizations:write
+        - core:traces:read
+        - core:privileges:grant
+        - core:roles:manage
         in: path
         name: key
         required: true

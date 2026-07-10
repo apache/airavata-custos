@@ -1,3 +1,22 @@
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
 # Contributing
 
 Thanks for your interest in contributing to Apache Airavata Custos. This document covers the repository layout, build commands, coding conventions, and the pull request workflow.
@@ -16,7 +35,7 @@ For instructions on running Custos locally against a database, see [INSTALL.md](
 - `pkg/` — public packages (models, service, events)
 - `connectors/` — protocol/site-specific connectors (ACCESS, SLURM, …)
 - `extensions/` — out-of-process extensions (PAM module, SSH cert signer, …)
-- `dev-ops/compose/` — local Docker Compose stack (MariaDB, Keycloak, Vault, Prometheus, Grafana)
+- `dev-ops/compose/` — local Docker Compose stack (MariaDB, Adminer, Prometheus, Grafana, Vault)
 
 ## Build
 
@@ -53,18 +72,50 @@ Every SQL file must carry the Apache 2.0 license header (see existing files for 
 
 ## Tests
 
-Run the full test suite from the repo root:
+Two tiers: unit tests and integration tests, separated by a build tag.
+
+### Unit tests (default, no external services)
 
 ```bash
 go test ./...
 ```
 
-Connector packages (for example `connectors/SLURM/Association-Mapper/...`) use `httptest` and do not require external services.
+Runs every package's unit tests. Handlers and stores use `httptest` and mocks.
+No DB, no network. This is what should pass on every commit.
+
+### Integration tests (build tag, real services)
+
+Integration test files carry `//go:build integration` at the top, so the default
+`go test ./...` skips them silently. To run them, pass the tag and provide the
+required env vars:
+
+```bash
+# General integration tests (server, core service, identity resolver).
+# Reuses the dev compose stack on :3306.
+export CORE_TEST_DATABASE_DSN='admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true'
+go test -tags integration ./...
+```
+
+The AMIE connector ships its own integration stack because its tests mutate a
+lot of state and we don't want to corrupt the dev DB. It brings up an isolated
+MariaDB on `:3307` and a mock AMIE server on `:8181`, runs the suite, then
+tears it down:
+
+```bash
+make integration-test-amie
+```
+
+(equivalent to `scripts/run-amie-integration-tests.sh`). The `:3307` is
+deliberate. It's a separate stack defined in `dev-ops/local-amie/`, independent
+of the `:3306` dev compose.
+
+If you see a test file you expect to run but `go test ./...` reports zero tests
+for the package, check the first line for `//go:build integration`.
 
 ## Submitting changes
 
 1. Open an issue describing the change, if one does not already exist.
-2. Create a topic branch off `main`.
+2. Create a topic branch off `master`.
 3. Make focused, well-scoped commits with clear messages.
 4. Ensure `go build ./...`, `go vet ./...`, and `go test ./...` all pass.
 5. Open a pull request and link the related issue.

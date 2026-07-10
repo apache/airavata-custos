@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # Baseline scenario expectations. Packets are defined in
 # mock-server.py::gen_baseline_scenario. Portal dev rows that AMIE cannot
 # produce (resources, rates, usage, change requests) come from
@@ -54,11 +71,11 @@ expectations:
       # Pat is the merge survivor; Sam was MERGED into Pat.
       total_count: 5
       rows:
-        - { first_name: Pat,    last_name: Madison, email: pat.madison@baseline.example.edu, status: ACTIVE }
+        - { first_name: Pat,    last_name: Madison, email: pat.madison@baseline.example.edu, status: PENDING }
         - { first_name: Sam,    last_name: Second,        email: sam.second@baseline.example.edu,        status: MERGED }
-        - { first_name: Casey,  last_name: Collaborator,  email: casey.collab@baseline.example.edu,      status: ACTIVE }
-        - { first_name: Riley,  last_name: Researcher,    email: riley.research@baseline.example.edu,    status: ACTIVE }
-        - { first_name: Morgan, last_name: Manager,       email: morgan.manager@baseline.example.edu,    status: ACTIVE }
+        - { first_name: Casey,  last_name: Collaborator,  email: casey.collab@baseline.example.edu,      status: PENDING }
+        - { first_name: Riley,  last_name: Researcher,    email: riley.research@baseline.example.edu,    status: PENDING }
+        - { first_name: Morgan, last_name: Manager,       email: morgan.manager@baseline.example.edu,    status: PENDING }
 
     user_identities:
       total_count: 5
@@ -230,14 +247,16 @@ seed_rows:
           compute_allocation_membership_id: { from: "compute_allocation_memberships.id where compute_allocation_id=(compute_allocations.id where name=BL-001)" } }
 
   user_privileges:
-    minimum_count: 6        # dev-admin gets all 6 portal privileges via seed
+    minimum_count: 8        # dev-admin gets all portal privileges via seed
     rows:
-      - { user_id: dev-admin, privilege: "amie:read" }
-      - { user_id: dev-admin, privilege: "amie:write" }
-      - { user_id: dev-admin, privilege: "hpc:read" }
-      - { user_id: dev-admin, privilege: "hpc:write" }
-      - { user_id: dev-admin, privilege: "signer:read" }
-      - { user_id: dev-admin, privilege: "signer:write" }
+      - { user_id: dev-admin, privilege: "amie:packets:read" }
+      - { user_id: dev-admin, privilege: "amie:packets:write" }
+      - { user_id: dev-admin, privilege: "amie:replies:read" }
+      - { user_id: dev-admin, privilege: "amie:replies:write" }
+      - { user_id: dev-admin, privilege: "amie:unmapped:read" }
+      - { user_id: dev-admin, privilege: "amie:unmapped:write" }
+      - { user_id: dev-admin, privilege: "core:clusters:read" }
+      - { user_id: dev-admin, privilege: "core:clusters:write" }
 
 verification_queries:
 

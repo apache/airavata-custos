@@ -52,6 +52,28 @@ func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User,
 	return &u, nil
 }
 
+func (s *mysqlUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+	var total int
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
+		return nil, 0, err
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var rows []models.User
+	if err := s.db.SelectContext(ctx, &rows,
+		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT ? OFFSET ?`, limit, offset); err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
+}
+
 func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var u models.User
 	err := s.db.GetContext(ctx, &u,

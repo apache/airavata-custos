@@ -31,6 +31,8 @@ type UserStore interface {
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	// FindByEmail returns the user with the given email, or nil if not found.
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	// List returns a page of users ordered by email, plus the total count.
+	List(ctx context.Context, limit, offset int) ([]models.User, int, error)
 	// GetUserByOIDCSub returns the user owning the user_identities row whose
 	// oidc_sub matches or nil if no row links the given subject.
 	GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error)
@@ -52,6 +54,8 @@ type OrganizationStore interface {
 	FindByID(ctx context.Context, id string) (*models.Organization, error)
 	// FindByOriginatedID returns the organization matching the external originated ID, or nil if not found.
 	FindByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error)
+	// List returns a page of organizations ordered by name, plus the total count.
+	List(ctx context.Context, limit, offset int) ([]models.Organization, int, error)
 	// Create inserts a new organization within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error
 	// Update replaces mutable fields of an existing organization within the provided transaction.
@@ -112,6 +116,8 @@ type UserIdentityStore interface {
 	FindByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error)
 	// FindByUser returns every user identity bound to the given user, ordered by created_at.
 	FindByUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
+	// FindByUserAndSource returns the binding for (user, source), or nil if absent.
+	FindByUserAndSource(ctx context.Context, userID, source string) (*models.UserIdentity, error)
 	// Create inserts a new user identity within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error
 	// Update replaces mutable fields of an existing user identity within the provided transaction.
@@ -188,6 +194,16 @@ type AllocationListFilter struct {
 	Offset    int
 }
 
+// ComputeAllocationResourceSummary is a resource plus its aggregate
+// allocation, usage, and rate figures.
+type ComputeAllocationResourceSummary struct {
+	models.ComputeAllocationResource
+	AllocationCount int64   `json:"allocation_count" db:"allocation_count"`
+	TotalAllocated  int64   `json:"total_allocated"  db:"total_allocated"`
+	TotalUsedSU     float64 `json:"total_used_su"    db:"total_used_su"`
+	RateCount       int64   `json:"rate_count"       db:"rate_count"`
+}
+
 // ComputeAllocationResourceStore defines persistence operations for compute
 // allocation resources (CPU, GPU, etc.).
 type ComputeAllocationResourceStore interface {
@@ -201,6 +217,9 @@ type ComputeAllocationResourceStore interface {
 	FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error)
 	// List returns all compute allocation resources.
 	List(ctx context.Context) ([]models.ComputeAllocationResource, error)
+	// ListSummaries returns all resources with their aggregate allocation,
+	// usage, and rate figures.
+	ListSummaries(ctx context.Context) ([]ComputeAllocationResourceSummary, error)
 	// Create inserts a new resource within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error
 	// Update replaces mutable fields of an existing resource within the provided transaction.
@@ -451,7 +470,7 @@ type UserPrivilegeStore interface {
 	// ListByPrivilege returns every active holder of the given privilege.
 	ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error)
 	// CountByPrivilege returns the number of active holders inside a tx.
-	// Used to enforce the last-meta-holder guard when revoking PrivilegeGrant.
+	// Used to enforce the last-meta-holder guard when revoking PrivilegesGrant.
 	CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error)
 	// Create inserts a new grant inside the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error

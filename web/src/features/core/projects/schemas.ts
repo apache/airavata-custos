@@ -1,10 +1,27 @@
-// TODO(openapi): replace with generated from projects.openapi.yaml
-import { z } from "zod";
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
-export const projectStatusSchema = z.enum(["ACTIVE", "INACTIVE", "DELETED"]);
+import { z } from "zod";
+import { zProjectStatus, zUserStatus, zUserType } from "@/generated/core/zod.gen";
+
+export const projectStatusSchema = zProjectStatus;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
-export const userStatusSchema = z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "MERGED"]);
+export const userStatusSchema = zUserStatus;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
 // Mirrors pkg/models/project.go#Project. The backend only exposes
@@ -55,6 +72,9 @@ export const projectMemberAllocationSchema = z.object({
 });
 export type ProjectMemberAllocation = z.infer<typeof projectMemberAllocationSchema>;
 
+export const userTypeSchema = zUserType;
+export type UserType = z.infer<typeof userTypeSchema>;
+
 export const projectMemberSchema = z.object({
   id: z.string(),
   project_id: z.string(),
@@ -63,6 +83,7 @@ export const projectMemberSchema = z.object({
   display_name: z.string(),
   role: projectMemberRoleSchema,
   status: projectStatusSchema,
+  type: userTypeSchema.optional(),
   added_time: z.string(),
   allocations: z.array(projectMemberAllocationSchema).default([]),
 });

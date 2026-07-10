@@ -1,9 +1,27 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 "use client";
 
+import { useEffectiveRate } from "@/features/core/resources/queries";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { useAllocationResources } from "../queries";
-import type { ComputeAllocation } from "../schemas";
+import type { AttachedResource, ComputeAllocation } from "../schemas";
 
 export type AllocationOverviewTabProps = {
   allocation: ComputeAllocation;
@@ -11,6 +29,26 @@ export type AllocationOverviewTabProps = {
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat().format(n);
+}
+
+function AllocationResourceRow({ resource }: { resource: AttachedResource }) {
+  const rateQuery = useEffectiveRate(resource.id);
+  return (
+    <li className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm">
+      <div>
+        <span className="font-medium">{resource.name}</span>
+        <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
+          {resource.resource_type}
+        </span>
+        {rateQuery.data ? (
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {formatNumber(rateQuery.data.rate)} SU/unit
+          </div>
+        ) : null}
+      </div>
+      <span className="tabular-nums">{formatNumber(resource.resource_amount)}</span>
+    </li>
+  );
 }
 
 export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps) {
@@ -57,19 +95,8 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
           <p className="text-sm text-muted-foreground">No resources attached.</p>
         ) : (
           <ul className="space-y-1">
-            {resourcesQuery.data.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between rounded-md border bg-card px-3 py-2 text-sm"
-              >
-                <div>
-                  <span className="font-medium">{r.name}</span>
-                  <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
-                    {r.resource_type}
-                  </span>
-                </div>
-                <span className="tabular-nums">{formatNumber(r.resource_amount)}</span>
-              </li>
+            {resourcesQuery.data.map((resource) => (
+              <AllocationResourceRow key={resource.id} resource={resource} />
             ))}
           </ul>
         )}

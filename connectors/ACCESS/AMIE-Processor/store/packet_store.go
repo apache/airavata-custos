@@ -176,7 +176,7 @@ func buildPacketFilter(f PacketListFilter) (string, []any) {
 func (s *mariaDBPacketStore) ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error) {
 	var rows []model.ProcessingEvent
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT id, packet_id, type, status, attempts, payload, created_at, started_at, finished_at, last_error, next_retry_at
+		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
 		 FROM amie_processing_events WHERE packet_id = ? ORDER BY created_at ASC`, packetID)
 	if err != nil {
 		return nil, err

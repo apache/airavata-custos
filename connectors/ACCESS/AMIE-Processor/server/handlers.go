@@ -28,7 +28,6 @@ import (
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/store"
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
-	"github.com/apache/airavata-custos/pkg/models"
 )
 
 type Handlers struct {
@@ -41,19 +40,19 @@ func NewHandlers(audits store.PacketAuditStore, packets store.PacketStore) *Hand
 }
 
 // RegisterRoutes attaches the AMIE connector's HTTP endpoints via router, gated
-// on amie:read for query routes and amie:write for retry/resolve/link.
+// by scope-specific read/write privileges.
 func (h *Handlers) RegisterRoutes(router *identity.Router) {
-	router.RequirePrivilege("GET /connectors/amie/packets", models.PrivilegeAMIERead, h.listPackets)
-	router.RequirePrivilege("GET /connectors/amie/packets/{id}", models.PrivilegeAMIERead, h.getPacket)
-	router.RequirePrivilege("GET /connectors/amie/packets/{id}/events", models.PrivilegeAMIERead, h.listPacketEvents)
-	router.RequirePrivilege("GET /connectors/amie/packets/{packet_id}/audits", models.PrivilegeAMIERead, h.listPacketAudits)
-	router.RequirePrivilege("GET /connectors/amie/stats", models.PrivilegeAMIERead, h.getStats)
-	router.RequirePrivilege("GET /connectors/amie/replies", models.PrivilegeAMIERead, h.listReplies)
-	router.RequirePrivilege("GET /connectors/amie/unmapped", models.PrivilegeAMIERead, h.listUnmapped)
-	router.RequirePrivilege("POST /connectors/amie/packets/{id}/retry", models.PrivilegeAMIEWrite, h.retryPacket)
-	router.RequirePrivilege("POST /connectors/amie/packets/{id}/resolve", models.PrivilegeAMIEWrite, h.resolvePacket)
-	router.RequirePrivilege("POST /connectors/amie/replies/{id}/retry", models.PrivilegeAMIEWrite, h.retryReply)
-	router.RequirePrivilege("POST /connectors/amie/unmapped/{id}/link", models.PrivilegeAMIEWrite, h.linkUnmapped)
+	router.RequirePrivilege("GET /connectors/amie/packets", PacketsRead, h.listPackets)
+	router.RequirePrivilege("GET /connectors/amie/packets/{id}", PacketsRead, h.getPacket)
+	router.RequirePrivilege("GET /connectors/amie/packets/{id}/events", PacketsRead, h.listPacketEvents)
+	router.RequirePrivilege("GET /connectors/amie/packets/{packet_id}/audits", PacketsRead, h.listPacketAudits)
+	router.RequirePrivilege("GET /connectors/amie/stats", PacketsRead, h.getStats)
+	router.RequirePrivilege("GET /connectors/amie/replies", RepliesRead, h.listReplies)
+	router.RequirePrivilege("GET /connectors/amie/unmapped", UnmappedRead, h.listUnmapped)
+	router.RequirePrivilege("POST /connectors/amie/packets/{id}/retry", PacketsWrite, h.retryPacket)
+	router.RequirePrivilege("POST /connectors/amie/packets/{id}/resolve", PacketsWrite, h.resolvePacket)
+	router.RequirePrivilege("POST /connectors/amie/replies/{id}/retry", RepliesWrite, h.retryReply)
+	router.RequirePrivilege("POST /connectors/amie/unmapped/{id}/link", UnmappedWrite, h.linkUnmapped)
 }
 
 // @Summary	List audit events for an AMIE packet

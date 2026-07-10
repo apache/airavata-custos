@@ -273,6 +273,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListChangeRequestsForAllocationFunc: func(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error) {
 //				panic("mock out the ListChangeRequestsForAllocation method")
 //			},
+//			ListComputeAllocationResourceSummariesFunc: func(ctx context.Context) ([]store.ComputeAllocationResourceSummary, error) {
+//				panic("mock out the ListComputeAllocationResourceSummaries method")
+//			},
 //			ListComputeAllocationResourcesFunc: func(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 //				panic("mock out the ListComputeAllocationResources method")
 //			},
@@ -678,6 +681,9 @@ type CoreServiceMock struct {
 
 	// ListChangeRequestsForAllocationFunc mocks the ListChangeRequestsForAllocation method.
 	ListChangeRequestsForAllocationFunc func(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error)
+
+	// ListComputeAllocationResourceSummariesFunc mocks the ListComputeAllocationResourceSummaries method.
+	ListComputeAllocationResourceSummariesFunc func(ctx context.Context) ([]store.ComputeAllocationResourceSummary, error)
 
 	// ListComputeAllocationResourcesFunc mocks the ListComputeAllocationResources method.
 	ListComputeAllocationResourcesFunc func(ctx context.Context) ([]models.ComputeAllocationResource, error)
@@ -1470,6 +1476,11 @@ type CoreServiceMock struct {
 			// AllocationID is the allocationID argument value.
 			AllocationID string
 		}
+		// ListComputeAllocationResourceSummaries holds details about calls to the ListComputeAllocationResourceSummaries method.
+		ListComputeAllocationResourceSummaries []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
 		// ListComputeAllocationResources holds details about calls to the ListComputeAllocationResources method.
 		ListComputeAllocationResources []struct {
 			// Ctx is the ctx argument value.
@@ -1926,6 +1937,7 @@ type CoreServiceMock struct {
 	lockListAuditEventsByEventType                             sync.RWMutex
 	lockListChangeRequestsByRequester                          sync.RWMutex
 	lockListChangeRequestsForAllocation                        sync.RWMutex
+	lockListComputeAllocationResourceSummaries                 sync.RWMutex
 	lockListComputeAllocationResources                         sync.RWMutex
 	lockListComputeAllocationResourcesByTypeAndCluster         sync.RWMutex
 	lockListComputeAllocationsByCluster                        sync.RWMutex
@@ -5106,6 +5118,38 @@ func (mock *CoreServiceMock) ListChangeRequestsForAllocationCalls() []struct {
 	mock.lockListChangeRequestsForAllocation.RLock()
 	calls = mock.calls.ListChangeRequestsForAllocation
 	mock.lockListChangeRequestsForAllocation.RUnlock()
+	return calls
+}
+
+// ListComputeAllocationResourceSummaries calls ListComputeAllocationResourceSummariesFunc.
+func (mock *CoreServiceMock) ListComputeAllocationResourceSummaries(ctx context.Context) ([]store.ComputeAllocationResourceSummary, error) {
+	if mock.ListComputeAllocationResourceSummariesFunc == nil {
+		panic("CoreServiceMock.ListComputeAllocationResourceSummariesFunc: method is nil but CoreService.ListComputeAllocationResourceSummaries was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockListComputeAllocationResourceSummaries.Lock()
+	mock.calls.ListComputeAllocationResourceSummaries = append(mock.calls.ListComputeAllocationResourceSummaries, callInfo)
+	mock.lockListComputeAllocationResourceSummaries.Unlock()
+	return mock.ListComputeAllocationResourceSummariesFunc(ctx)
+}
+
+// ListComputeAllocationResourceSummariesCalls gets all the calls that were made to ListComputeAllocationResourceSummaries.
+// Check the length with:
+//
+//	len(mockedCoreService.ListComputeAllocationResourceSummariesCalls())
+func (mock *CoreServiceMock) ListComputeAllocationResourceSummariesCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockListComputeAllocationResourceSummaries.RLock()
+	calls = mock.calls.ListComputeAllocationResourceSummaries
+	mock.lockListComputeAllocationResourceSummaries.RUnlock()
 	return calls
 }
 

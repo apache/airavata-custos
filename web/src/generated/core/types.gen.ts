@@ -4,7 +4,32 @@ export type ClientOptions = {
     baseUrl: 'localhost:8080/' | (string & {});
 };
 
+export type AllocationMembershipResponse = {
+    compute_allocation_id?: string;
+    display_name?: string;
+    email?: string;
+    end_time?: string;
+    id?: string;
+    /**
+     * ACTIVE, INACTIVE, etc.
+     */
+    membership_status?: AllocationStatus;
+    role?: string;
+    start_time?: string;
+    user_id?: string;
+};
+
+export type AllocationSuTotalResponse = {
+    compute_allocation_id?: string;
+    total_su_amount?: number;
+};
+
 export type AllocationStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
+
+export type CallerProfileResponse = {
+    privileges?: Array<PrivilegeKey>;
+    user?: User;
+};
 
 export type ComputeAllocation = {
     /**
@@ -101,6 +126,11 @@ export type ComputeAllocationDiff = {
     timestamp?: string;
 };
 
+export type ComputeAllocationListResponse = {
+    items?: Array<ComputeAllocation>;
+    total?: number;
+};
+
 export type ComputeAllocationMembership = {
     compute_allocation_id?: string;
     end_time?: string;
@@ -178,6 +208,30 @@ export type ComputeAllocationResourceRate = {
     start_time?: string;
 };
 
+export type ComputeAllocationResourceSummary = {
+    allocation_count?: number;
+    /**
+     * The ID of the compute cluster the resource (partition) belongs to.
+     */
+    compute_cluster_id?: string;
+    id?: string;
+    /**
+     * resource / partition name, e.g., "cpu-01", "gpu-01", "gpu-interactive", etc.
+     */
+    name?: string;
+    rate_count?: number;
+    /**
+     * Number of CPUs, GPUs.
+     */
+    resource_amount?: number;
+    /**
+     * TRES: cpu, gres/gpu
+     */
+    resource_type?: string;
+    total_allocated?: number;
+    total_used_su?: number;
+};
+
 export type ComputeAllocationUsage = {
     compute_allocation_id?: string;
     /**
@@ -234,7 +288,12 @@ export type Organization = {
     originated_id?: string;
 };
 
-export type PrivilegeKey = 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+export type OrganizationListResponse = {
+    items?: Array<Organization>;
+    total?: number;
+};
+
+export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
 
 export type Project = {
     created_time?: string;
@@ -247,6 +306,47 @@ export type Project = {
      * ACCESS, NAIRR, XRASS, etc.
      */
     origination?: string;
+    project_pi_id?: string;
+    status?: ProjectStatus;
+    title?: string;
+};
+
+export type ProjectListResponse = {
+    items?: Array<ProjectResponse>;
+    total?: number;
+};
+
+export type ProjectMemberAllocationRef = {
+    id?: string;
+    name?: string;
+    role?: string;
+};
+
+export type ProjectMemberResponse = {
+    added_time?: string;
+    allocations?: Array<ProjectMemberAllocationRef>;
+    display_name?: string;
+    email?: string;
+    id?: string;
+    project_id?: string;
+    role?: string;
+    status?: string;
+    user_id?: string;
+};
+
+export type ProjectResponse = {
+    created_time?: string;
+    id?: string;
+    /**
+     * The ID of the project in origination. For example: ACCESS Record ID.
+     */
+    originated_id?: string;
+    /**
+     * ACCESS, NAIRR, XRASS, etc.
+     */
+    origination?: string;
+    project_pi_display_name?: string;
+    project_pi_email?: string;
     project_pi_id?: string;
     status?: ProjectStatus;
     title?: string;
@@ -305,6 +405,13 @@ export type User = {
     middle_name?: string;
     organization_id?: string;
     status?: UserStatus;
+    type?: UserType;
+};
+
+export type UserAllocationSuTotalResponse = {
+    compute_allocation_id?: string;
+    total_su_amount?: number;
+    user_id?: string;
 };
 
 export type UserIdentity = {
@@ -333,6 +440,11 @@ export type UserIdentity = {
     user_id?: string;
 };
 
+export type UserListResponse = {
+    items?: Array<User>;
+    total?: number;
+};
+
 export type UserPrivilege = {
     granted_at?: string;
     granted_by?: string;
@@ -350,7 +462,9 @@ export type UserRole = {
     user_id?: string;
 };
 
-export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'MERGED';
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'MERGED';
+
+export type UserType = 'CLUSTER_LOCAL' | 'VIRTUAL' | 'SYSTEM';
 
 export type AttachResourceRequest = {
     compute_allocation_resource_id?: string;
@@ -370,7 +484,7 @@ export type GrantPrivilegeRequest = {
 
 export type GrantRoleRequest = {
     reason?: string;
-    roleID?: string;
+    role_id?: string;
 };
 
 export type MergeUsersRequest = {
@@ -398,6 +512,12 @@ export type UpdateAllocationResourceMappingRequest = {
 export type UpdateRoleRequest = {
     description?: string;
     name?: string;
+};
+
+export type UserNameUpdateRequest = {
+    first_name?: string;
+    last_name?: string;
+    middle_name?: string;
 };
 
 export type GetAuditEventsData = {
@@ -1618,6 +1738,33 @@ export type GetComputeAllocationResourcesByIdRatesEffectiveResponses = {
 
 export type GetComputeAllocationResourcesByIdRatesEffectiveResponse = GetComputeAllocationResourcesByIdRatesEffectiveResponses[keyof GetComputeAllocationResourcesByIdRatesEffectiveResponses];
 
+export type GetComputeAllocationResourcesSummaryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/compute-allocation-resources/summary';
+};
+
+export type GetComputeAllocationResourcesSummaryErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetComputeAllocationResourcesSummaryError = GetComputeAllocationResourcesSummaryErrors[keyof GetComputeAllocationResourcesSummaryErrors];
+
+export type GetComputeAllocationResourcesSummaryResponses = {
+    /**
+     * OK
+     */
+    200: Array<ComputeAllocationResourceSummary>;
+};
+
+export type GetComputeAllocationResourcesSummaryResponse = GetComputeAllocationResourcesSummaryResponses[keyof GetComputeAllocationResourcesSummaryResponses];
+
 export type PostComputeAllocationUsagesData = {
     /**
      * Usage payload
@@ -1709,6 +1856,43 @@ export type GetComputeAllocationUsagesByIdResponses = {
 };
 
 export type GetComputeAllocationUsagesByIdResponse = GetComputeAllocationUsagesByIdResponses[keyof GetComputeAllocationUsagesByIdResponses];
+
+export type GetComputeAllocationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by project ID
+         */
+        project_id?: string;
+        /**
+         * Filter by status
+         */
+        status?: string;
+        /**
+         * Search name
+         */
+        q?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/compute-allocations';
+};
+
+export type GetComputeAllocationsResponses = {
+    /**
+     * OK
+     */
+    200: ComputeAllocationListResponse;
+};
+
+export type GetComputeAllocationsResponse = GetComputeAllocationsResponses[keyof GetComputeAllocationsResponses];
 
 export type PostComputeAllocationsData = {
     /**
@@ -1895,7 +2079,7 @@ export type GetComputeAllocationsByIdMembershipsResponses = {
     /**
      * OK
      */
-    200: Array<ComputeAllocationMembership>;
+    200: Array<AllocationMembershipResponse>;
 };
 
 export type GetComputeAllocationsByIdMembershipsResponse = GetComputeAllocationsByIdMembershipsResponses[keyof GetComputeAllocationsByIdMembershipsResponses];
@@ -2111,10 +2295,7 @@ export type GetComputeAllocationsByIdUsagesTotalResponses = {
     /**
      * OK
      */
-    200: {
-        compute_allocation_id?: string;
-        total_su_amount?: number;
-    };
+    200: AllocationSuTotalResponse;
 };
 
 export type GetComputeAllocationsByIdUsagesTotalResponse = GetComputeAllocationsByIdUsagesTotalResponses[keyof GetComputeAllocationsByIdUsagesTotalResponses];
@@ -2150,11 +2331,7 @@ export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses = {
     /**
      * OK
      */
-    200: {
-        compute_allocation_id?: string;
-        total_su_amount?: number;
-        user_id?: string;
-    };
+    200: UserAllocationSuTotalResponse;
 };
 
 export type GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponse = GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses[keyof GetComputeAllocationsByIdUsersByUserIdUsagesTotalResponses];
@@ -2449,6 +2626,58 @@ export type GetComputeClustersByIdUsersByUserIdResponses = {
 
 export type GetComputeClustersByIdUsersByUserIdResponse = GetComputeClustersByIdUsersByUserIdResponses[keyof GetComputeClustersByIdUsersByUserIdResponses];
 
+export type GetMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/me';
+};
+
+export type GetMeErrors = {
+    /**
+     * Missing authenticated caller
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetMeError = GetMeErrors[keyof GetMeErrors];
+
+export type GetMeResponses = {
+    /**
+     * OK
+     */
+    200: CallerProfileResponse;
+};
+
+export type GetMeResponse = GetMeResponses[keyof GetMeResponses];
+
+export type GetOrganizationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/organizations';
+};
+
+export type GetOrganizationsResponses = {
+    /**
+     * OK
+     */
+    200: OrganizationListResponse;
+};
+
+export type GetOrganizationsResponse = GetOrganizationsResponses[keyof GetOrganizationsResponses];
+
 export type PostOrganizationsData = {
     /**
      * Organization payload
@@ -2517,7 +2746,7 @@ export type GetPrivilegesByKeyHoldersData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/privileges/{key}/holders';
@@ -2552,7 +2781,7 @@ export type GetPrivilegesCatalogData = {
 
 export type GetPrivilegesCatalogErrors = {
     /**
-     * Missing caller header
+     * Missing or invalid bearer token
      */
     401: {
         error?: string;
@@ -2575,6 +2804,43 @@ export type GetPrivilegesCatalogResponses = {
 };
 
 export type GetPrivilegesCatalogResponse = GetPrivilegesCatalogResponses[keyof GetPrivilegesCatalogResponses];
+
+export type GetProjectsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by PI user ID
+         */
+        pi_id?: string;
+        /**
+         * Filter by status
+         */
+        status?: string;
+        /**
+         * Search title / originated_id
+         */
+        q?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/projects';
+};
+
+export type GetProjectsResponses = {
+    /**
+     * OK
+     */
+    200: ProjectListResponse;
+};
+
+export type GetProjectsResponse = GetProjectsResponses[keyof GetProjectsResponses];
 
 export type PostProjectsData = {
     /**
@@ -2633,10 +2899,42 @@ export type GetProjectsByIdResponses = {
     /**
      * OK
      */
-    200: Project;
+    200: ProjectResponse;
 };
 
 export type GetProjectsByIdResponse = GetProjectsByIdResponses[keyof GetProjectsByIdResponses];
+
+export type GetProjectsByIdMembersData = {
+    body?: never;
+    path: {
+        /**
+         * Project ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/projects/{id}/members';
+};
+
+export type GetProjectsByIdMembersErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetProjectsByIdMembersError = GetProjectsByIdMembersErrors[keyof GetProjectsByIdMembersErrors];
+
+export type GetProjectsByIdMembersResponses = {
+    /**
+     * OK
+     */
+    200: Array<ProjectMemberResponse>;
+};
+
+export type GetProjectsByIdMembersResponse = GetProjectsByIdMembersResponses[keyof GetProjectsByIdMembersResponses];
 
 export type PutProjectsByIdStatusData = {
     /**
@@ -2961,7 +3259,7 @@ export type DeleteRolesByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/roles/{id}/privileges/{key}';
@@ -3207,15 +3505,9 @@ export type GetUserPrivilegesData = {
 
 export type GetUserPrivilegesErrors = {
     /**
-     * Missing X-Custos-User-Id header
+     * Missing authenticated caller
      */
     401: {
-        error?: string;
-    };
-    /**
-     * Auth lookup failed
-     */
-    503: {
         error?: string;
     };
 };
@@ -3232,6 +3524,31 @@ export type GetUserPrivilegesResponses = {
 };
 
 export type GetUserPrivilegesResponse = GetUserPrivilegesResponses[keyof GetUserPrivilegesResponses];
+
+export type GetUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page size
+         */
+        limit?: number;
+        /**
+         * Page offset
+         */
+        offset?: number;
+    };
+    url: '/users';
+};
+
+export type GetUsersResponses = {
+    /**
+     * OK
+     */
+    200: UserListResponse;
+};
+
+export type GetUsersResponse = GetUsersResponses[keyof GetUsersResponses];
 
 export type PostUsersData = {
     /**
@@ -3294,6 +3611,47 @@ export type GetUsersByIdResponses = {
 };
 
 export type GetUsersByIdResponse = GetUsersByIdResponses[keyof GetUsersByIdResponses];
+
+export type PutUsersByIdData = {
+    /**
+     * Name fields
+     */
+    body: UserNameUpdateRequest;
+    path: {
+        /**
+         * User ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/users/{id}';
+};
+
+export type PutUsersByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type PutUsersByIdError = PutUsersByIdErrors[keyof PutUsersByIdErrors];
+
+export type PutUsersByIdResponses = {
+    /**
+     * OK
+     */
+    200: User;
+};
+
+export type PutUsersByIdResponse = PutUsersByIdResponses[keyof PutUsersByIdResponses];
 
 export type GetUsersByIdChangeRequestsData = {
     body?: never;
@@ -3484,7 +3842,7 @@ export type PostUsersByIdPrivilegesErrors = {
         error?: string;
     };
     /**
-     * Missing caller header
+     * Missing or invalid bearer token
      */
     401: {
         error?: string;
@@ -3527,7 +3885,7 @@ export type DeleteUsersByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'amie:read' | 'amie:write' | 'hpc:read' | 'hpc:write' | 'signer:read' | 'signer:write' | 'privileges:grant' | 'roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
     };
     query?: never;
     url: '/users/{id}/privileges/{key}';
@@ -3541,7 +3899,7 @@ export type DeleteUsersByIdPrivilegesByKeyErrors = {
         error?: string;
     };
     /**
-     * Missing caller header
+     * Missing or invalid bearer token
      */
     401: {
         error?: string;

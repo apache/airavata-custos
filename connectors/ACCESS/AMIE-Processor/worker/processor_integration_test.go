@@ -75,9 +75,9 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 	}
 
 	if _, err := database.Exec(
-		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, payload, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, []byte(""), now,
+		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now,
 	); err != nil {
 		t.Fatalf("seed event: %v", err)
 	}
@@ -102,7 +102,7 @@ func readEvent(t *testing.T, database *sqlx.DB, id string) *model.ProcessingEven
 	t.Helper()
 	var e model.ProcessingEvent
 	if err := database.Get(&e,
-		`SELECT id, packet_id, type, status, attempts, payload, created_at, started_at, finished_at, last_error, next_retry_at
+		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
 		 FROM amie_processing_events WHERE id = ?`, id,
 	); err != nil {
 		t.Fatalf("read event %s: %v", id, err)

@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +23,7 @@ import {
   approveChangeRequest,
   getAllocation,
   getChangeRequest,
+  listAllocationDiffs,
   listAllocationMembers,
   listAllocationResources,
   listAllocationUsage,
@@ -31,6 +49,7 @@ export const allocationKeys = {
   detail: (id: string) => [...allocationKeys.all, "detail", id] as const,
   resources: (id: string) => [...allocationKeys.detail(id), "resources"] as const,
   usage: (id: string) => [...allocationKeys.detail(id), "usage"] as const,
+  diffs: (id: string) => [...allocationKeys.detail(id), "diffs"] as const,
   members: (id: string) => [...allocationKeys.detail(id), "members"] as const,
   changeRequests: (params: ChangeRequestListParams = {}) =>
     [...allocationKeys.all, "change-requests", "list", params] as const,
@@ -88,6 +107,15 @@ export function useAllocationUsage(id: string | undefined) {
   return useQuery({
     queryKey: id ? allocationKeys.usage(id) : [...allocationKeys.all, "usage", "none"],
     queryFn: () => listAllocationUsage(id as string),
+    enabled: Boolean(id),
+    ...DEFAULTS,
+  });
+}
+
+export function useAllocationDiffs(id: string | undefined) {
+  return useQuery({
+    queryKey: id ? allocationKeys.diffs(id) : [...allocationKeys.all, "diffs", "none"],
+    queryFn: () => listAllocationDiffs(id as string),
     enabled: Boolean(id),
     ...DEFAULTS,
   });

@@ -1,8 +1,26 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 "use client";
 
 import Link from "next/link";
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import {
@@ -15,7 +33,6 @@ import {
 } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
@@ -107,7 +124,14 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
             <AvatarFallback>{initialsFrom(row.display_name)}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium text-foreground">{row.display_name}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">{row.display_name}</span>
+              {row.type === "VIRTUAL" && (
+                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                  Virtual
+                </Badge>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground">{row.email}</div>
           </div>
         </div>
@@ -139,8 +163,9 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
       header: "",
       align: "right",
       interactive: true,
+      // PI and CO_PI come from the upstream allocation; never edited or removed here.
       cell: (row) =>
-        canManage ? (
+        canManage && row.role !== "PI" && row.role !== "CO_PI" ? (
           <div className="flex justify-end gap-2">
             <Button
               variant="ghost"
@@ -197,7 +222,7 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
   const [role, setRole] = React.useState<ProjectMemberRole>("MEMBER");
 
   React.useEffect(() => {
-    if (member) setRole(member.role);
+    if (member) setRole(member.role === "ALLOCATION_MANAGER" ? "ALLOCATION_MANAGER" : "MEMBER");
   }, [member]);
 
   return (
@@ -222,14 +247,10 @@ function EditMemberDialog({ member, onClose, onSubmit, isPending }: EditMemberDi
               onChange={(e) => setRole(e.target.value as ProjectMemberRole)}
               className="h-9 w-full rounded-md border bg-background px-3 text-sm"
             >
-              <option value="PI">PI</option>
-              <option value="CO_PI">Co-PI</option>
               <option value="ALLOCATION_MANAGER">Allocation Manager</option>
               <option value="MEMBER">Member</option>
             </select>
           </div>
-          {/* Spec keeps the dialog minimal; status updates land later */}
-          <Input type="hidden" />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

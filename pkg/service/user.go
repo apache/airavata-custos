@@ -55,7 +55,7 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 		user.ID = newID()
 	}
 	if user.Status == "" {
-		user.Status = models.UserActive
+		user.Status = models.UserPending
 	}
 	if user.Type == "" {
 		user.Type = models.UserTypeClusterLocal
@@ -69,6 +69,15 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 
 	s.eventBus.Publish(ctx, events.UserCreateEvent, user)
 	return user, nil
+}
+
+// ListUsers returns a page of users plus the total count.
+func (s *Service) ListUsers(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list users: %w", err)
+	}
+	return rows, total, nil
 }
 
 // GetUser retrieves a user by ID. Returns ErrNotFound when no user matches.

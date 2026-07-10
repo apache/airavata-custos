@@ -47,52 +47,37 @@ airavata-custos/
 | `extensions/` | Independent services that run alongside Custos to extend HPC node behavior | `CILogon-SSH-PAM`, `SSH-Certificate-Signer` |
 | `dev-ops/` | Local dev stack and deployment automation | `compose/`, `terraform/`, `account-provisioning/` |
 
-## Audit conventions
-
-Every audit row in the system lives in the core `audit_events` table. Core, every connector, and any future extension write to it via the same shape: `event_type`, `entity_type`, `entity_id`, `details`, `source`, and the OpenTelemetry trace columns (`trace_id`, `span_id`, `parent_span_id`). The trace-view API at `/audit/traces*` reads from this one table.
-
-When a connector needs to attach connector-specific references to an audit row (for example AMIE keeps `packet_id` and `event_id` so it can fetch from a packet down to its audits), those references go in a separate `<connector>_audit_extras` table owned by the connector. The extras table has `audit_event_id` as its primary key with a `ON DELETE CASCADE` foreign key to `audit_events(id)`, plus whatever connector-specific columns it needs. The connector writes the row into its own extras table, inside the same transaction as the `audit_events` insert.
-
-Connector-specific endpoints live under `/connectors/{name}/...` and join `audit_events` with the connector's extras table. The unified trace view never reads the extras tables.
-
-The shape generalizes: a new connector that needs to record connector-specific references creates its own `<connector>_audit_extras` table and follows the same pattern. The core `audit_events` table stays neutral and never grows connector-shaped columns.
+For runtime topology and the audit conventions every component follows, see [docs/architecture.md](docs/architecture.md). New connector authors should start with [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md).
 
 ## Prerequisites
 
 * Go 1.24+
 * Docker and Docker Compose
-* `protoc` and `protoc-gen-go` (only needed when regenerating proto sources)
 
 ## Quick Start
-
-Clone the repository:
 
 ```sh
 git clone https://github.com/apache/airavata-custos.git
 cd airavata-custos
 ```
 
-Start the backing services (MariaDB, Prometheus, Grafana, Vault):
+See [INSTALL.md](INSTALL.md) to bring up the dev stack and run the server. See each connector's and extension's README for run and configuration details.
 
-```sh
-cd dev-ops/compose
-docker compose up -d
-```
+## Documentation
 
-Build and test a connector, e.g. ACCESS-CI AMIE:
-
-```sh
-cd connectors/ACCESS/AMIE-Processor
-go build ./...
-go test ./...
-```
-
-See each connector's and extension's README for run and configuration details.
+- [INSTALL.md](INSTALL.md): run the server locally against the dev compose stack
+- [CONTRIBUTING.md](CONTRIBUTING.md): coding conventions, build, and test workflow
+- [docs/architecture.md](docs/architecture.md): runtime topology and audit conventions
+- [docs/contributing/writing-a-connector.md](docs/contributing/writing-a-connector.md): authoring guide for new connectors
+- [docs/glossary.md](docs/glossary.md): domain terms (HPC, AMIE, COmanage, PI, DN, site code, etc.)
+- [docs/API-Docs.md](docs/API-Docs.md): REST API reference
+- [docs/Allocation-Data-Models.md](docs/Allocation-Data-Models.md): domain model overview
+- [docs/ACCESS-HPC-Reference.md](docs/ACCESS-HPC-Reference.md): ACCESS-CI integration reference
 
 ## Questions or Need Help?
 
 * Open a [GitHub issue](https://github.com/apache/airavata-custos/issues)
-* Subscribe to the Custos mailing list: `custos-subscribe@airavata.apache.org`
+* Join the [Airavata dev mailing list](https://airavata.apache.org/mailing-list.html)
 
 ## Publications
 

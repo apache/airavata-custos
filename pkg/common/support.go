@@ -22,6 +22,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/apache/airavata-custos/pkg/service"
@@ -38,6 +39,10 @@ func WriteJSON(w http.ResponseWriter, status int, body any) {
 	w.WriteHeader(status)
 	if body == nil {
 		return
+	}
+	// A nil slice would encode as JSON null; list endpoints must return [].
+	if v := reflect.ValueOf(body); v.Kind() == reflect.Slice && v.IsNil() {
+		body = []any{}
 	}
 	_ = json.NewEncoder(w).Encode(body)
 }

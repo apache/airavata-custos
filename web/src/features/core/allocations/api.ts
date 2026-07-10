@@ -1,19 +1,38 @@
-// TODO(openapi): replace with generated from allocations.openapi.yaml
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 import { apiFetch } from "@/shared/api/client";
 import {
+  type AllocationDiff,
   type AllocationMembership,
+  type AttachedResource,
   type AllocationUsage,
   type ChangeRequest,
   type ChangeRequestEvent,
   type ComputeAllocation,
   type ComputeAllocationList,
-  type ComputeAllocationResource,
   type CreateChangeRequestPayload,
   type CreateMembershipPayload,
   type UpdateChangeRequestPayload,
   type UpdateMembershipPayload,
+  allocationDiffListSchema,
   allocationMembershipListSchema,
   allocationMembershipSchema,
+  attachedResourceListSchema,
   allocationUsageListSchema,
   changeRequestEventListSchema,
   changeRequestListSchema,
@@ -26,7 +45,6 @@ import {
   updateMembershipPayloadSchema,
 } from "./schemas";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
-import { z } from "zod";
 
 export async function listAllocations(
   params: AllocationListParams = {},
@@ -47,20 +65,14 @@ export async function getAllocation(id: string): Promise<ComputeAllocation> {
   return computeAllocationSchema.parse(raw);
 }
 
-export async function listAllocationResources(
-  id: string,
-): Promise<ComputeAllocationResource[]> {
+export async function listAllocationResources(id: string): Promise<AttachedResource[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/resources`);
-  return z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        resource_type: z.string(),
-        resource_amount: z.number().int(),
-      }),
-    )
-    .parse(raw ?? []);
+  return attachedResourceListSchema.parse(raw ?? []);
+}
+
+export async function listAllocationDiffs(id: string): Promise<AllocationDiff[]> {
+  const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
+  return allocationDiffListSchema.parse(raw ?? []);
 }
 
 export async function listAllocationUsage(id: string): Promise<AllocationUsage[]> {

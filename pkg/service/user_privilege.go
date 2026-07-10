@@ -92,8 +92,8 @@ func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege 
 	if !models.IsKnownPrivilege(privilege) {
 		return fmt.Errorf("%w: unknown privilege %q", ErrInvalidInput, privilege)
 	}
-	if privilege == models.PrivilegeGrant && revokerID == userID {
-		return fmt.Errorf("%w: cannot self-revoke %s", ErrInvalidInput, models.PrivilegeGrant)
+	if privilege == models.PrivilegesGrant && revokerID == userID {
+		return fmt.Errorf("%w: cannot self-revoke %s", ErrInvalidInput, models.PrivilegesGrant)
 	}
 
 	return s.inTx(ctx, func(tx *sql.Tx) error {
@@ -107,13 +107,13 @@ func (s *Service) RevokePrivilege(ctx context.Context, userID string, privilege 
 		if existing == nil {
 			return fmt.Errorf("%w: no active grant for privilege %q", ErrNotFound, privilege)
 		}
-		if privilege == models.PrivilegeGrant {
-			count, err := s.privileges.CountByPrivilege(ctx, tx, models.PrivilegeGrant)
+		if privilege == models.PrivilegesGrant {
+			count, err := s.privileges.CountByPrivilege(ctx, tx, models.PrivilegesGrant)
 			if err != nil {
 				return fmt.Errorf("count meta holders: %w", err)
 			}
 			if count <= 1 {
-				return fmt.Errorf("%w: cannot revoke the last active %s", ErrInvalidInput, models.PrivilegeGrant)
+				return fmt.Errorf("%w: cannot revoke the last active %s", ErrInvalidInput, models.PrivilegesGrant)
 			}
 		}
 		if err := s.privileges.Delete(ctx, tx, userID, privilege); err != nil {
@@ -217,7 +217,7 @@ func (s *Service) PrivilegeCatalog() []models.PrivilegeKey {
 // active privileges:grant either directly or via a role. The check runs
 // inside the supplied tx so concurrent grant + revoke serialize.
 func (s *Service) assertGranterTx(ctx context.Context, tx *sql.Tx, actorID string) error {
-	return s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegeGrant)
+	return s.assertHasPrivilegeTx(ctx, tx, actorID, models.PrivilegesGrant)
 }
 
 // writePrivilegeAuditTx records a privilege lifecycle event in audit_events.

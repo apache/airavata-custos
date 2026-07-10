@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 "use client";
 
 import * as React from "react";
@@ -10,25 +27,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import type { AllocationMembership, AllocationStatus } from "../schemas";
+import type { AllocationMembership } from "../schemas";
 
-const ROLES = ["PI", "CO_PI", "ALLOCATION_MANAGER", "MEMBER"] as const;
+// Only these roles are portal-assignable. PI and CO_PI come from upstream and
+// are never granted or revoked here. Status and end date are system-tracked.
+const ROLES = ["ALLOCATION_MANAGER", "MEMBER"] as const;
 type MemberRole = (typeof ROLES)[number];
 
 const ROLE_LABELS: Record<MemberRole, string> = {
-  PI: "PI",
-  CO_PI: "Co-PI",
   ALLOCATION_MANAGER: "Allocation Manager",
   MEMBER: "Member",
 };
 
 export type MemberEditPayload = {
   role: MemberRole;
-  membership_status: AllocationStatus;
-  start_time?: string;
-  end_time?: string;
 };
 
 export type MemberEditDialogProps = {
@@ -40,14 +53,10 @@ export type MemberEditDialogProps = {
 
 export function MemberEditDialog({ member, onClose, onSubmit, isPending }: MemberEditDialogProps) {
   const [role, setRole] = React.useState<MemberRole>("MEMBER");
-  const [status, setStatus] = React.useState<AllocationStatus>("ACTIVE");
-  const [endTime, setEndTime] = React.useState("");
 
   React.useEffect(() => {
     if (member) {
-      setRole((member.role as MemberRole | undefined) ?? "MEMBER");
-      setStatus(member.membership_status);
-      setEndTime(member.end_time.slice(0, 10));
+      setRole(member.role === "ALLOCATION_MANAGER" ? "ALLOCATION_MANAGER" : "MEMBER");
     }
   }, [member]);
 
@@ -62,11 +71,7 @@ export function MemberEditDialog({ member, onClose, onSubmit, isPending }: Membe
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            onSubmit({
-              role,
-              membership_status: status,
-              ...(endTime ? { end_time: new Date(endTime).toISOString() } : {}),
-            });
+            onSubmit({ role });
           }}
         >
           <div className="space-y-2">
@@ -83,28 +88,6 @@ export function MemberEditDialog({ member, onClose, onSubmit, isPending }: Membe
                 </option>
               ))}
             </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="member-status">Membership status</Label>
-            <select
-              id="member-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as AllocationStatus)}
-              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-              <option value="DELETED">DELETED</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="member-end">End date</Label>
-            <Input
-              id="member-end"
-              type="date"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
