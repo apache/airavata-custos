@@ -11,11 +11,11 @@ function Cell({
   activeClass: string;
   onClick?: () => void;
 }) {
-  const title = label === "R" ? "Read" : "Write";
+  const title = label === "read" ? "Read" : "Write";
   const className = cn(
-    "inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-semibold",
+    "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
     active ? activeClass : "bg-[color:var(--custos-gray-100)] text-[color:var(--custos-gray-400)]",
-    onClick && "cursor-pointer transition-transform hover:scale-110",
+    onClick && "cursor-pointer transition-transform hover:scale-105",
   );
   if (!onClick) {
     return (
@@ -52,13 +52,13 @@ export function PermissionRW({
   return (
     <div className="flex items-center gap-1">
       <Cell
-        label="R"
+        label="read"
         active={read}
         activeClass="bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]"
         onClick={onToggleRead}
       />
       <Cell
-        label="W"
+        label="write"
         active={write}
         activeClass="bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]"
         onClick={onToggleWrite}

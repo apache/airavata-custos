@@ -13,10 +13,10 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { togglePermission } from "../permissions";
-import type { PermissionKey } from "../permissions";
-import type { RoleRow, UserRow } from "../types";
-import { useUsersAdmin } from "../UsersAdminContext";
+import { togglePermission } from "@/shared/users-admin/permissions";
+import type { PermissionKey } from "@/shared/users-admin/permissions";
+import type { RoleRow, UserRow } from "@/shared/users-admin/types";
+import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 
 function fullNameFor(user: UserRow): string {

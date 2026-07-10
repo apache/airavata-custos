@@ -9,8 +9,8 @@ import {
 } from "@/shared/hooks/useShallowSearchParams";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Input } from "@/shared/ui/input";
-import { useUsersAdmin } from "../UsersAdminContext";
-import type { UserRow } from "../types";
+import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
+import type { UserRow } from "@/shared/users-admin/types";
 import { IDENTITY_SOURCE_LABELS } from "./identities";
 import { IdentitiesCell } from "./IdentitiesCell";
 import { PermissionsDrawer } from "./PermissionsDrawer";
@@ -39,7 +39,7 @@ function useExpandableRow() {
 
 export function UsersTable() {
   const { user: currentUser } = useCurrentUser();
-  const { users, roles, toggleUserRole } = useUsersAdmin();
+  const { users, roles } = useUsersAdmin();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const selectedUser = users.find((u) => u.id === selectedId) ?? null;
   const expandedRow = useExpandableRow();
@@ -101,10 +101,8 @@ export function UsersTable() {
       cell: (row) => (
         <RolesCell
           user={row}
-          roles={roles}
           expanded={row.id !== undefined && row.id === expandedRow.expandedId}
           onToggleExpand={() => row.id && expandedRow.toggle(row.id)}
-          onToggleRole={(roleId) => row.id && toggleUserRole(row.id, roleId)}
         />
       ),
     },

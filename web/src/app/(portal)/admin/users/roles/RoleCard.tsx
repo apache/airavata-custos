@@ -3,9 +3,9 @@
 import { Pencil, ShieldCheck } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
-import { PermissionRW } from "../PermissionRW";
-import { rwStateFor } from "../permissions";
-import type { RoleRow } from "../types";
+import { PermissionRW } from "@/shared/users-admin/PermissionRW";
+import { rwStateFor } from "@/shared/users-admin/permissions";
+import type { RoleRow } from "@/shared/users-admin/types";
 import { RoleFormDialog } from "./RoleFormDialog";
 
 export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: number }) {
@@ -37,12 +37,12 @@ export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: nu
 
         <div>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Permissions
+            Effective Privileges
           </h4>
           <ul className="space-y-2">
             {rwPermissions.map((p) => (
               <li key={p.section} className="flex items-center justify-between text-sm">
-                <span className="text-foreground">{p.label}</span>
+                <span className="font-mono text-foreground">{p.section}</span>
                 <PermissionRW read={p.read} write={p.write} />
               </li>
             ))}

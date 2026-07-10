@@ -1,5 +1,8 @@
 "use client";
 
+import { LogOut, ShieldCheck } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import * as React from "react";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -7,11 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { MyPermissionsDialog } from "@/shared/users-admin/MyPermissionsDialog";
 
 export function UserPill() {
   const { data: session, status } = useSession();
+  const [permissionsOpen, setPermissionsOpen] = React.useState(false);
   const loading = status === "loading";
   const user = session?.user;
   const name = user?.name ?? user?.email ?? "Signed out";
@@ -39,13 +42,18 @@ export function UserPill() {
             </button>
           )}
         />
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => setPermissionsOpen(true)}>
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            My Permissions
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void signOut({ callbackUrl: "/sign-in" })}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <MyPermissionsDialog open={permissionsOpen} onOpenChange={setPermissionsOpen} />
     </div>
   );
 }
