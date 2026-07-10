@@ -1,8 +1,8 @@
 "use client";
 
-import { PermissionRW } from "../PermissionRW";
-import type { PermissionKey } from "../permissions";
-import { rwStateFor } from "../permissions";
+import { PermissionRW } from "@/shared/users-admin/PermissionRW";
+import type { PermissionKey } from "@/shared/users-admin/permissions";
+import { rwStateFor } from "@/shared/users-admin/permissions";
 
 export function PermissionMatrixEditor({
   permissions,
@@ -18,12 +18,12 @@ export function PermissionMatrixEditor({
   return (
     <div>
       <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Permissions
+        Effective Privileges
       </h4>
       <ul className="space-y-2">
         {rwPermissions.map((p) => (
           <li key={p.section} className="flex items-center justify-between text-sm">
-            <span className="text-foreground">{p.label}</span>
+            <span className="font-mono text-foreground">{p.section}</span>
             <PermissionRW
               read={p.read}
               write={p.write}

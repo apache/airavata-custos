@@ -1,6 +1,6 @@
 "use client";
 
-import { useUsersAdmin } from "../UsersAdminContext";
+import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
 import { RoleCard } from "./RoleCard";
 
 export function RolesGrid() {

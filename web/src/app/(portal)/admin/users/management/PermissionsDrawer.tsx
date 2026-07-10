@@ -1,9 +1,9 @@
 import { Badge } from "@/shared/ui/badge";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
-import { PermissionRW } from "../PermissionRW";
-import { permissionsFromRoles, rwStateFor } from "../permissions";
-import type { UserRow } from "../types";
-import { useUsersAdmin } from "../UsersAdminContext";
+import { PermissionRW } from "@/shared/users-admin/PermissionRW";
+import { permissionsFromRoles, rwStateFor } from "@/shared/users-admin/permissions";
+import type { UserRow } from "@/shared/users-admin/types";
+import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
 import { identitySourceIcon, identitySourceLabel } from "./identities";
 import { RoleAssignMenu } from "./RoleAssignMenu";
 
@@ -82,12 +82,12 @@ export function PermissionsDrawer({
 
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Permissions
+              Effective Privileges
             </h3>
             <ul className="space-y-2">
               {rwPermissions.map((p) => (
                 <li key={p.section} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{p.label}</span>
+                  <span className="font-mono text-foreground">{p.section}</span>
                   <PermissionRW read={p.read} write={p.write} />
                 </li>
               ))}

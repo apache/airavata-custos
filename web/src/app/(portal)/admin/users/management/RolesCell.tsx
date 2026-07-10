@@ -1,28 +1,22 @@
 "use client";
 
 import { Badge } from "@/shared/ui/badge";
-import type { RoleRow, UserRow } from "../types";
-import { RoleAssignMenu } from "./RoleAssignMenu";
+import type { UserRow } from "@/shared/users-admin/types";
 
 const VISIBLE_ROLE_COUNT = 2;
 
 export function RolesCell({
   user,
-  roles,
   expanded,
   onToggleExpand,
-  onToggleRole,
 }: {
   user: UserRow;
-  roles: RoleRow[];
   expanded: boolean;
   onToggleExpand: () => void;
-  onToggleRole: (roleId: string) => void;
 }) {
   const userRoles = user.roles;
   const visibleRoles = expanded ? userRoles : userRoles.slice(0, VISIBLE_ROLE_COUNT);
   const hiddenCount = userRoles.length - visibleRoles.length;
-  const heldRoleIds = new Set(userRoles.map((r) => r.id ?? ""));
 
   return (
     <div className="flex w-[260px] flex-wrap items-center gap-1.5">
@@ -52,13 +46,6 @@ export function RolesCell({
           Show less
         </button>
       ) : null}
-
-      <RoleAssignMenu
-        roles={roles}
-        heldRoleIds={heldRoleIds}
-        onToggleRole={onToggleRole}
-        triggerLabel={`Assign a role to ${user.email ?? "this user"}`}
-      />
     </div>
   );
 }
