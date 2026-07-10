@@ -175,3 +175,11 @@ yet. To populate it:
   request, a membership override) live in
   [`dev-ops/compose/seeds/dev_portal_data.sql`](dev-ops/compose/seeds/dev_portal_data.sql).
   Apply after AMIE has run so the referenced allocation IDs exist.
+
+## 9. (Optional) Public landing page
+
+Custos ships a default landing page at
+[`web/landing/index.html`](web/landing/index.html), a single self-contained
+file with no build step. Replace it with your own `index.html` to get your
+site's landing page. Serve it as a static page from whatever web server
+fronts your deployment.
