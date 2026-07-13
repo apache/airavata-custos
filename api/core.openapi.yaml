@@ -46,8 +46,23 @@ definitions:
         items:
           $ref: '#/definitions/PrivilegeKey'
         type: array
+      roles:
+        items:
+          $ref: '#/definitions/CallerRoleGrant'
+        type: array
       user:
         $ref: '#/definitions/User'
+    type: object
+  CallerRoleGrant:
+    properties:
+      granted_at:
+        type: string
+      privileges:
+        items:
+          $ref: '#/definitions/PrivilegeKey'
+        type: array
+      role:
+        $ref: '#/definitions/Role'
     type: object
   ComputeAllocation:
     properties:
@@ -2675,6 +2690,8 @@ paths:
       - Compute Cluster Users
   /me:
     get:
+      description: Roles are the caller's own grants; unlike /users/{id}/roles this
+        needs no admin privilege.
       produces:
       - application/json
       responses:
@@ -2691,7 +2708,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get the caller's user record and effective privileges
+      summary: Get the caller's user record, effective privileges, and roles
       tags:
       - Caller
   /organizations:

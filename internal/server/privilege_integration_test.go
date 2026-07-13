@@ -95,6 +95,9 @@ func TestGetCallerProfile_NoCaller_401(t *testing.T) {
 func TestGetCallerProfile_ReturnsUserAndPrivileges(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "user@example.edu")
+	// /me computes the effective set fresh from the DB, not from the request
+	// context, so the grant must exist as a row.
+	seedPrivilegesGrant(t, database, user)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/me", nil)
 	req = withTestCaller(req, user, models.PrivilegesGrant)
@@ -111,6 +114,59 @@ func TestGetCallerProfile_ReturnsUserAndPrivileges(t *testing.T) {
 	}
 	if len(body.Privileges) != 1 || body.Privileges[0] != models.PrivilegesGrant {
 		t.Errorf("privileges: got %v, want [%s]", body.Privileges, models.PrivilegesGrant)
+	}
+	if body.Roles == nil || len(body.Roles) != 0 {
+		t.Errorf("roles: got %v, want empty array", body.Roles)
+	}
+}
+
+func TestGetCallerProfile_IncludesOwnRoles(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	user := seedUser(t, database, "roleholder@example.edu")
+	if _, err := database.Exec(
+		"INSERT INTO roles (id, name, description, is_system) VALUES (?, ?, ?, ?)",
+		"role-me-test", "Reviewer", "Reads reports", false,
+	); err != nil {
+		t.Fatalf("seed role: %v", err)
+	}
+	if _, err := database.Exec(
+		"INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
+		user, "role-me-test",
+	); err != nil {
+		t.Fatalf("seed grant: %v", err)
+	}
+	if _, err := database.Exec(
+		"INSERT INTO role_privileges (role_id, privilege) VALUES (?, ?)",
+		"role-me-test", "core:traces:read",
+	); err != nil {
+		t.Fatalf("seed role privilege: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	// No admin privileges on purpose: /me must return the caller's own roles.
+	req = withTestCaller(req, user)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var body CallerProfileResponse
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(body.Roles) != 1 || body.Roles[0].Role.Name != "Reviewer" {
+		t.Fatalf("roles: got %+v, want the Reviewer role", body.Roles)
+	}
+	if body.Roles[0].GrantedAt.IsZero() {
+		t.Errorf("granted_at is zero")
+	}
+	if len(body.Roles[0].Privileges) != 1 || body.Roles[0].Privileges[0] != "core:traces:read" {
+		t.Errorf("role privileges: got %v, want [core:traces:read]", body.Roles[0].Privileges)
+	}
+	// The effective set is computed fresh, so the role-carried key shows up
+	// without any cache warm-up or context injection.
+	if len(body.Privileges) != 1 || body.Privileges[0] != "core:traces:read" {
+		t.Errorf("effective privileges: got %v, want [core:traces:read]", body.Privileges)
 	}
 }
 

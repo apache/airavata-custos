@@ -663,7 +663,9 @@ export const getComputeClustersByIdUsersByUserId = <ThrowOnError extends boolean
 });
 
 /**
- * Get the caller's user record and effective privileges
+ * Get the caller's user record, effective privileges, and roles
+ *
+ * Roles are the caller's own grants; unlike /users/{id}/roles this needs no admin privilege.
  */
 export const getMe = <ThrowOnError extends boolean = false>(options?: Options<GetMeData, ThrowOnError>): RequestResult<GetMeResponses, GetMeErrors, ThrowOnError> => (options?.client ?? client).get<GetMeResponses, GetMeErrors, ThrowOnError>({
     security: [{ name: 'Authorization', type: 'apiKey' }],

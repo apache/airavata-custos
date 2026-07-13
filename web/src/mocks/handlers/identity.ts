@@ -27,7 +27,18 @@ let user = { ...fixture.user };
 
 export const identityHandlers = [
   http.get("*/api/v1/me", () =>
-    HttpResponse.json({ user, privileges: effectivePrivileges() }),
+    HttpResponse.json({
+      user,
+      privileges: effectivePrivileges(),
+      roles: fixture.roles.flatMap((grant) => {
+        const detail = (fixture.roleDetails as Record<string, RoleDetail | undefined>)[
+          grant.role_id
+        ];
+        return detail?.role
+          ? [{ role: detail.role, privileges: detail.privileges, granted_at: grant.granted_at }]
+          : [];
+      }),
+    }),
   ),
   http.get("*/api/v1/users/:id/user-identities", () =>
     HttpResponse.json(fixture.identities),

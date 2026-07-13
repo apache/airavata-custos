@@ -31,7 +31,7 @@ export function SettingsPage() {
   // session.user.id may be an email fallback.
   const userId = me.data?.user.id;
   const identities = useMyIdentities(userId);
-  const access = useMyAccess(userId, me.data?.privileges ?? []);
+  const access = useMyAccess(userId, me.data?.privileges ?? [], me.data?.roles ?? []);
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-6 py-8">

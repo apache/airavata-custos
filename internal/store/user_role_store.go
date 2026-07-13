@@ -21,11 +21,20 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// UserRoleDetail is the joined view of one held role: the role row, the
+// privileges it carries, and when it was granted to the user.
+type UserRoleDetail struct {
+	Role       models.Role
+	Privileges []models.PrivilegeKey
+	GrantedAt  time.Time
+}
 
 const userRoleColumns = "user_id, role_id, granted_by, granted_at, reason"
 
@@ -111,6 +120,45 @@ func (s *mysqlUserRoleStore) Delete(ctx context.Context, tx *sql.Tx, userID, rol
 		`DELETE FROM user_roles WHERE user_id = ? AND role_id = ?`,
 		userID, roleID)
 	return err
+}
+
+// ListDetailedByUser returns the user's roles with their privileges and
+// grant dates in one query.
+func (s *mysqlUserRoleStore) ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error) {
+	var rows []struct {
+		models.Role
+		UserGrantedAt time.Time      `db:"user_granted_at"`
+		Privilege     sql.NullString `db:"privilege"`
+	}
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT r.id, r.name, r.description, r.is_system, r.created_at,
+		        ur.granted_at AS user_granted_at, rp.privilege
+		 		FROM user_roles ur
+		 JOIN roles r ON r.id = ur.role_id
+		 LEFT JOIN role_privileges rp ON rp.role_id = r.id
+		 WHERE ur.user_id = ?
+		 ORDER BY r.name, rp.privilege`, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]UserRoleDetail, 0)
+	index := make(map[string]int)
+	for _, row := range rows {
+		i, seen := index[row.Role.ID]
+		if !seen {
+			out = append(out, UserRoleDetail{
+				Role:       row.Role,
+				Privileges: []models.PrivilegeKey{},
+				GrantedAt:  row.UserGrantedAt,
+			})
+			i = len(out) - 1
+			index[row.Role.ID] = i
+		}
+		if row.Privilege.Valid {
+			out[i].Privileges = append(out[i].Privileges, models.PrivilegeKey(row.Privilege.String))
+		}
+	}
+	return out, nil
 }
 
 // PrivilegesForUser returns the union of privileges from every role the
