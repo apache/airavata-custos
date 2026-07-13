@@ -448,6 +448,7 @@ type UserRoleStore interface {
 	Find(ctx context.Context, userID, roleID string) (*models.UserRole, error)
 	FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error)
 	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
+	ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error)
 	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
 	ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error)
 	Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error

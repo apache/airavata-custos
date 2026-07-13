@@ -20,6 +20,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/apache/airavata-custos/pkg/common"
 	"github.com/apache/airavata-custos/pkg/identity"
@@ -45,14 +46,24 @@ func (s *Server) getCallerPrivileges(w http.ResponseWriter, r *http.Request) {
 	common.WriteJSON(w, http.StatusOK, map[string]any{"privileges": keys})
 }
 
+// CallerRoleGrant is a role held by the caller, together with the privileges
+// it grants and when it was granted.
+type CallerRoleGrant struct {
+	Role       models.Role           `json:"role"`
+	Privileges []models.PrivilegeKey `json:"privileges"`
+	GrantedAt  time.Time             `json:"granted_at"`
+}
+
 // CallerProfileResponse bundles the caller's user row with the effective
-// privilege set.
+// privilege set and held roles.
 type CallerProfileResponse struct {
 	User       *models.User          `json:"user"`
 	Privileges []models.PrivilegeKey `json:"privileges"`
+	Roles      []CallerRoleGrant     `json:"roles"`
 }
 
-// @Summary	Get the caller's user record and effective privileges
+// @Summary	Get the caller's user record, effective privileges, and roles
+// @Description	Roles are the caller's own grants; unlike /users/{id}/roles this needs no admin privilege.
 // @Tags	Caller
 // @Security	BearerAuth
 // @Produce	json
@@ -69,11 +80,27 @@ func (s *Server) getCallerProfile(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	keys := identity.PrivilegesFromContext(r.Context())
-	if keys == nil {
-		keys = []models.PrivilegeKey{}
+	// Read fresh instead of using the cached context set, so roles and the
+	// effective privileges in one response always agree with each other.
+	keys, err := s.svc.EffectivePrivileges(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
 	}
-	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{User: user, Privileges: keys})
+	details, err := s.svc.ListUserRolesWithPrivileges(r.Context(), caller.UserID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	roles := make([]CallerRoleGrant, 0, len(details))
+	for _, d := range details {
+		roles = append(roles, CallerRoleGrant{Role: d.Role, Privileges: d.Privileges, GrantedAt: d.GrantedAt})
+	}
+	common.WriteJSON(w, http.StatusOK, CallerProfileResponse{
+		User:       user,
+		Privileges: keys,
+		Roles:      roles,
+	})
 }
 
 // @Summary	List the declared privilege catalog

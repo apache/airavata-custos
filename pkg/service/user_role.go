@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -136,6 +137,13 @@ func (s *Service) ListUserRoles(ctx context.Context, userID string) ([]models.Us
 		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
 	}
 	return s.userRoles.ListByUser(ctx, userID)
+}
+
+func (s *Service) ListUserRolesWithPrivileges(ctx context.Context, userID string) ([]store.UserRoleDetail, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidInput)
+	}
+	return s.userRoles.ListDetailedByUser(ctx, userID)
 }
 
 func (s *Service) ListRoleHolders(ctx context.Context, roleID string) ([]models.UserRole, error) {
