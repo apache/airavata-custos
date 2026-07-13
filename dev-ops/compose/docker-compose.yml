@@ -24,11 +24,11 @@ services:
     restart: always
     command: --character-set-server=utf8 --collation-server=utf8_general_ci
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     environment:
-      MARIADB_ROOT_PASSWORD: root
+      MARIADB_ROOT_PASSWORD: ${CUSTOS_DB_ROOT_PASSWORD:-root}
       MARIADB_USER: admin
-      MARIADB_PASSWORD: admin
+      MARIADB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
       MAX_ALLOWED_PACKET: 1073741824
     volumes:
       - ./dbinit:/docker-entrypoint-initdb.d
@@ -50,14 +50,14 @@ services:
       KC_DB: mariadb
       KC_DB_URL: jdbc:mariadb://db:3306/keycloak
       KC_DB_USERNAME: admin
-      KC_DB_PASSWORD: admin
+      KC_DB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
       KC_HOSTNAME_URL: http://localhost:8081
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     ports:
-      - "8081:8080"
-      - "9001:9000"
+      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:9001:9000"
     volumes:
       - ./keycloak/import:/opt/keycloak/data/import:ro
     depends_on:
@@ -74,14 +74,14 @@ services:
     image: adminer
     restart: always
     ports:
-      - 18080:8080
+      - "127.0.0.1:18080:8080"
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
     ports:
-      - "19090:9090"
+      - "127.0.0.1:19090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     extra_hosts:
@@ -92,7 +92,7 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "13000:3000"
+      - "127.0.0.1:13000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -106,8 +106,8 @@ services:
     container_name: vault
     restart: unless-stopped
     ports:
-      - "8201:8201"
-      - "8200:8200"
+      - "127.0.0.1:8201:8201"
+      - "127.0.0.1:8200:8200"
     environment:
       VAULT_ADDR: http://0.0.0.0:8201
       VAULT_API_ADDR: http://127.0.0.1:8200
