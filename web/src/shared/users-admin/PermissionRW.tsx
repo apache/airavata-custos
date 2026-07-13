@@ -31,7 +31,7 @@ function Cell({
   const title = label === "read" ? "Read" : "Write";
   const className = cn(
     "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
-    active ? activeClass : "bg-[color:var(--custos-gray-100)] text-[color:var(--custos-gray-400)]",
+    active ? activeClass : "border border-border text-muted-foreground",
     onClick && "cursor-pointer transition-transform hover:scale-105",
   );
   if (!onClick) {
@@ -71,13 +71,13 @@ export function PermissionRW({
       <Cell
         label="read"
         active={read}
-        activeClass="bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]"
+        activeClass="bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]"
         onClick={onToggleRead}
       />
       <Cell
         label="write"
         active={write}
-        activeClass="bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]"
+        activeClass="bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]"
         onClick={onToggleWrite}
       />
     </div>
