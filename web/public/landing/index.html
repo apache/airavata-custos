@@ -18,9 +18,9 @@
 -->
 <!--
   Default landing page for a Custos deployment. To use your own, replace
-  this file with your index.html at the web server; the portal is untouched.
+  this file with your index.html before building the portal; see INSTALL.md.
 -->
-<title>Example Research Computing</title>
+<title>Custos Portal</title>
 <style>
     :root {
         /* Brand tokens: colors are changed here, not in the rules below. */
@@ -493,14 +493,14 @@
 
 <header>
     <div class="wrap bar">
-        <a class="logo" href="#"><span class="mark" aria-hidden="true"></span>Example Research Computing</a>
+        <a class="logo" href="#"><span class="mark" aria-hidden="true"></span>Custos Portal</a>
         <nav class="main" aria-label="Primary">
             <a href="#compute">Compute</a>
             <a href="#platform">Platform</a>
             <a href="#access">Access</a>
             <a href="#docs">Docs</a>
         </nav>
-        <a class="btn btn-ghost signin" href="#portal">Sign in</a>
+        <a class="btn btn-ghost signin" href="/api/auth/federated-sign-in">Sign in</a>
     </div>
 </header>
 
@@ -510,13 +510,13 @@
         <h1>Compute for open science, in one portal.</h1>
         <p class="lede">
             GPU and CPU resources for research and teaching, with projects, allocations,
-            and usage managed in a single place. Sign in with your institutional identity
-            and work from your first notebook to a full multi-node run.
+            and usage managed in a single place. Sign in and work from your first
+            notebook to a full multi-node run.
         </p>
         <div class="cta-row">
-            <a class="btn btn-primary" href="#portal">Sign in to the portal</a>
+            <a class="btn btn-primary" href="/api/auth/federated-sign-in">Sign in to the portal</a>
             <a class="btn btn-ghost" href="#docs">Read the docs</a>
-            <span class="cta-note">Sign-in uses your existing institutional identity.</span>
+            <span class="cta-note">Sign-in goes through your organization's identity provider.</span>
         </div>
 
         <dl class="stats mono">
@@ -589,8 +589,8 @@
             </p>
             <div class="features">
                 <div class="feature">
-                    <h3>Institutional sign-in</h3>
-                    <p>Authenticate with the academic identity you already have. No separate accounts to manage.</p>
+                    <h3>Single sign-on</h3>
+                    <p>Sign in through your organization's identity provider. No separate accounts to manage.</p>
                 </div>
                 <div class="feature">
                     <h3>Projects &amp; allocations</h3>
@@ -623,18 +623,18 @@
             <p class="eyebrow mono">Access</p>
             <h2>Built for the research community.</h2>
             <p class="section-lede">
-                Allocations for research and teaching. Here's who we serve and how to get time.
+                Allocations for research and teaching. Who the portal serves and how to get time.
             </p>
             <div class="audience">
                 <div class="aud">
                     <h3>Researchers</h3>
                     <p>Project allocations for data- and compute-intensive science in every domain.</p>
-                    <span class="pill">Applications open</span>
+                    <span class="pill">Apply for time</span>
                 </div>
                 <div class="aud">
                     <h3>Students &amp; educators</h3>
                     <p>Course allocations and training programs on the same system research runs on.</p>
-                    <span class="pill">Course requests welcome</span>
+                    <span class="pill">Request course time</span>
                 </div>
                 <div class="aud">
                     <h3>Partners</h3>
@@ -646,11 +646,10 @@
             <div class="closer">
                 <h2>Ready when you are.</h2>
                 <p>
-                    Sign in with your institutional identity, join a project, and follow the
-                    quickstart to your first job.
+                    Sign in, join a project, and follow the quickstart to your first job.
                 </p>
                 <div class="cta-row">
-                    <a class="btn btn-primary" href="#portal">Sign in to the portal</a>
+                    <a class="btn btn-primary" href="/api/auth/federated-sign-in">Sign in to the portal</a>
                     <a class="btn btn-ghost" href="#docs">Start with the quickstart</a>
                 </div>
             </div>
@@ -668,7 +667,7 @@
             <a href="#ack">Acknowledgment</a>
         </nav>
         <div class="attribution">
-            <p>Operated by Example University Research Computing.</p>
+            <p>Operated by [your organization].</p>
             <p>Funded by [your funding agency and award number].</p>
             <p>Powered by <a href="https://github.com/apache/airavata-custos">Apache Airavata Custos</a>.</p>
         </div>

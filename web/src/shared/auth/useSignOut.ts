@@ -24,7 +24,9 @@ export type SignOutOptions = { callbackUrl?: string };
 export function useSignOut() {
   const [isPending, setIsPending] = useState(false);
   const signOut = useCallback((opts?: SignOutOptions) => {
-    const callbackUrl = opts?.callbackUrl ?? "/sign-in";
+    // "/" is the deployment's public root (a landing page when one fronts
+    // the portal); bare deployments fall through to the sign-in page.
+    const callbackUrl = opts?.callbackUrl ?? "/";
     setIsPending(true);
     // The end-session route reads idToken from the session before clearing
     // the cookie, so it can build a Keycloak logout URL with id_token_hint

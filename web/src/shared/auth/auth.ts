@@ -62,7 +62,7 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, account }) {
       if (account?.access_token) {
         (token as { accessToken?: string }).accessToken = account.access_token;
-        // Some IdPs (CILogon) hand out opaque access tokens; use the JWT-shaped
+        // Some IdPs hand out opaque access tokens; use the JWT-shaped
         // bearer for the backend call so the verifier accepts it.
         const bearer = looksLikeJwt(account.access_token)
           ? account.access_token
