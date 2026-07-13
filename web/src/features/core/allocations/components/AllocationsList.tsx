@@ -121,7 +121,6 @@ export function AllocationsList({
     {
       key: "initial",
       header: "Initial SUs",
-      align: "right",
       sortable: true,
       sortValue: (row) => row.initial_su_amount,
       cell: (row) => <span className="tabular-nums">{formatSU(row.initial_su_amount)}</span>,
