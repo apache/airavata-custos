@@ -175,6 +175,13 @@ export const zOrganization = z.object({
 
 export type organizationZodType = z.infer<typeof zOrganization>;
 
+export const zOrganizationListResponse = z.object({
+    items: z.array(zOrganization).optional(),
+    total: z.int().optional()
+});
+
+export type organizationListResponseZodType = z.infer<typeof zOrganizationListResponse>;
+
 export const zPrivilegeKey = z.enum([
     'core:clusters:read',
     'core:clusters:write',
@@ -386,6 +393,13 @@ export const zCallerProfileResponse = z.object({
 });
 
 export type callerProfileResponseZodType = z.infer<typeof zCallerProfileResponse>;
+
+export const zUserListResponse = z.object({
+    items: z.array(zUser).optional(),
+    total: z.int().optional()
+});
+
+export type userListResponseZodType = z.infer<typeof zUserListResponse>;
 
 export const zAttachResourceRequest = z.object({
     compute_allocation_resource_id: z.string().optional(),
@@ -1037,6 +1051,16 @@ export const zGetComputeClustersByIdUsersByUserIdResponse = zComputeClusterUser;
  */
 export const zGetMeResponse = zCallerProfileResponse;
 
+export const zGetOrganizationsQuery = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetOrganizationsResponse = zOrganizationListResponse;
+
 /**
  * Organization payload
  */
@@ -1285,6 +1309,16 @@ export const zGetUserIdentitiesSourcesBySourceExternalByExternalIdResponse = zUs
 export const zGetUserPrivilegesResponse = z.object({
     privileges: z.array(zPrivilegeKey).optional()
 });
+
+export const zGetUsersQuery = z.object({
+    limit: z.int().optional(),
+    offset: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetUsersResponse = zUserListResponse;
 
 /**
  * User payload

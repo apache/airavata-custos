@@ -84,6 +84,23 @@ func (s *Server) listComputeAllocationResources(w http.ResponseWriter, r *http.R
 	common.WriteJSON(w, http.StatusOK, resources)
 }
 
+// @Summary	List compute allocation resources with aggregate figures
+// @Description	Each row is a resource plus its allocation count, total allocated amount, total used SUs, and rate count.
+// @Tags	Compute Allocation Resources
+// @Security	BearerAuth
+// @Produce	json
+// @Success	200	{array}	store.ComputeAllocationResourceSummary
+// @Failure	401	{object}	object{error=string}
+// @Router	/compute-allocation-resources/summary [get]
+func (s *Server) listComputeAllocationResourceSummaries(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.svc.ListComputeAllocationResourceSummaries(r.Context())
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, rows)
+}
+
 type attachResourceRequest struct {
 	ComputeAllocationResourceID string `json:"compute_allocation_resource_id"`
 	ResourceAmount              int64  `json:"resource_amount"`

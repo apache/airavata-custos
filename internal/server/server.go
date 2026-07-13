@@ -66,10 +66,13 @@ func (s *Server) routes() {
 	s.router.Public("GET /healthz", s.healthz)
 
 	s.router.RequirePrivilege("POST /organizations", models.OrganizationsWrite, s.createOrganization)
+	s.router.RequirePrivilege("GET /organizations", models.OrganizationsRead, s.listOrganizations)
 	s.router.RequirePrivilege("GET /organizations/{id}", models.OrganizationsRead, s.getOrganization)
 
 	s.router.RequirePrivilege("POST /users", models.UsersWrite, s.createUser)
+	s.router.RequirePrivilege("GET /users", models.UsersRead, s.listUsers)
 	s.router.RequirePrivilege("GET /users/{id}", models.UsersRead, s.getUser)
+	s.router.RequirePrivilege("PUT /users/{id}", models.UsersWrite, s.updateUser)
 	s.router.RequirePrivilege("PUT /users/{id}/status", models.UsersWrite, s.updateUserStatus)
 	s.router.RequirePrivilege("POST /users/merge", models.UsersWrite, s.mergeUsers)
 
@@ -97,6 +100,7 @@ func (s *Server) routes() {
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
+	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}", models.AllocationsRead, s.getComputeAllocationResource)
 
 	s.router.RequirePrivilege("GET /compute-allocations/{id}/resources", models.AllocationsRead, s.listResourcesForAllocation)

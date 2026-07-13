@@ -62,6 +62,28 @@ func (s *mysqlOrganizationStore) FindByOriginatedID(ctx context.Context, origina
 	return &o, nil
 }
 
+func (s *mysqlOrganizationStore) List(ctx context.Context, limit, offset int) ([]models.Organization, int, error) {
+	var total int
+	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM organizations`); err != nil {
+		return nil, 0, err
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var rows []models.Organization
+	if err := s.db.SelectContext(ctx, &rows,
+		`SELECT id, originated_id, name FROM organizations ORDER BY name LIMIT ? OFFSET ?`, limit, offset); err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
+}
+
 func (s *mysqlOrganizationStore) Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)`,

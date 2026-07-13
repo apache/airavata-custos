@@ -88,6 +88,31 @@ func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]model
 	return resources, nil
 }
 
+func (s *mysqlComputeAllocationResourceStore) ListSummaries(ctx context.Context) ([]ComputeAllocationResourceSummary, error) {
+	var rows []ComputeAllocationResourceSummary
+	err := s.db.SelectContext(ctx, &rows,
+		`SELECT r.id, r.name, r.resource_type, r.resource_amount, r.compute_cluster_id,
+		        COALESCE(m.allocation_count, 0) AS allocation_count,
+		        COALESCE(m.total_allocated, 0)  AS total_allocated,
+		        COALESCE(u.total_used_su, 0)    AS total_used_su,
+		        COALESCE(rt.rate_count, 0)      AS rate_count
+		 FROM compute_allocation_resources r
+		 LEFT JOIN (SELECT compute_allocation_resource_id, COUNT(DISTINCT compute_allocation_id) AS allocation_count, SUM(resource_amount) AS total_allocated
+		            FROM compute_allocation_resource_mappings
+		            GROUP BY compute_allocation_resource_id) m ON m.compute_allocation_resource_id = r.id
+		 LEFT JOIN (SELECT compute_allocation_resource_id, SUM(used_su_amount) AS total_used_su
+		            FROM compute_allocation_usages
+		            GROUP BY compute_allocation_resource_id) u ON u.compute_allocation_resource_id = r.id
+		 LEFT JOIN (SELECT compute_allocation_resource_id, COUNT(*) AS rate_count
+		            FROM compute_allocation_resource_rates
+		            GROUP BY compute_allocation_resource_id) rt ON rt.compute_allocation_resource_id = r.id
+		 ORDER BY r.name`)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func (s *mysqlComputeAllocationResourceStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)

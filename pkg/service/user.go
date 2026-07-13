@@ -71,6 +71,15 @@ func (s *Service) CreateUser(ctx context.Context, user *models.User) (*models.Us
 	return user, nil
 }
 
+// ListUsers returns a page of users plus the total count.
+func (s *Service) ListUsers(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+	rows, total, err := s.users.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list users: %w", err)
+	}
+	return rows, total, nil
+}
+
 // GetUser retrieves a user by ID. Returns ErrNotFound when no user matches.
 func (s *Service) GetUser(ctx context.Context, id string) (*models.User, error) {
 	u, err := s.users.FindByID(ctx, id)
