@@ -17,20 +17,22 @@
 
 "use client";
 
-import { PermissionRW } from "@/shared/users-admin/PermissionRW";
+import { cn } from "@/lib/utils";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
-import { rwStateFor } from "@/shared/users-admin/permissions";
+import { DEFAULT_PERMISSION_KEYS, permissionRowsFor } from "@/shared/users-admin/permissions";
 
 export function PermissionMatrixEditor({
   permissions,
+  catalog = DEFAULT_PERMISSION_KEYS,
   onTogglePermission,
   editable = true,
 }: {
   permissions: PermissionKey[];
+  catalog?: readonly PermissionKey[];
   onTogglePermission: (permission: PermissionKey) => void;
   editable?: boolean;
 }) {
-  const rwPermissions = rwStateFor(permissions);
+  const rows = permissionRowsFor(permissions, catalog);
 
   return (
     <div>
@@ -38,17 +40,39 @@ export function PermissionMatrixEditor({
         Effective Privileges
       </h4>
       <ul className="space-y-2">
-        {rwPermissions.map((p) => (
-          <li key={p.section} className="flex items-center justify-between text-sm">
-            <span className="font-mono text-foreground">{p.section}</span>
-            <PermissionRW
-              read={p.read}
-              write={p.write}
-              onToggleRead={editable ? () => onTogglePermission(`${p.section}:read`) : undefined}
-              onToggleWrite={
-                editable ? () => onTogglePermission(`${p.section}:write`) : undefined
-              }
-            />
+        {rows.map((row) => (
+          <li key={row.section} className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-mono text-foreground">{row.section}</span>
+            <div className="flex flex-wrap justify-end gap-1">
+              {row.actions.map((privilege) => {
+                const className = cn(
+                  "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
+                  privilege.active
+                    ? "bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]"
+                    : "bg-[color:var(--custos-gray-100)] text-[color:var(--custos-gray-400)]",
+                  editable && "cursor-pointer transition-transform hover:scale-105",
+                );
+                if (!editable) {
+                  return (
+                    <span key={privilege.key} title={privilege.key} className={className}>
+                      {privilege.action}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={privilege.key}
+                    type="button"
+                    title={privilege.key}
+                    aria-pressed={privilege.active}
+                    onClick={() => onTogglePermission(privilege.key)}
+                    className={className}
+                  >
+                    {privilege.action}
+                  </button>
+                );
+              })}
+            </div>
           </li>
         ))}
       </ul>

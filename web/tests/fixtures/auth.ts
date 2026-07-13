@@ -19,7 +19,6 @@
 // handshake. The app has no auth bypass; real OIDC runs in playwright.live.
 
 import type { Page } from "@playwright/test";
-import { encode } from "next-auth/jwt";
 
 export type Persona = "viewer" | "manager" | "admin";
 
@@ -79,6 +78,7 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
     throw new Error("NEXTAUTH_SECRET must be set for the cookie-injection fixture");
   }
 
+  const { encode } = await import("next-auth/jwt");
   const token = await encode({
     salt: "custos.session-token",
     secret,

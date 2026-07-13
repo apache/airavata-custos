@@ -15,30 +15,75 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Permission sections mirror the backend's privilege scopes (domain:resource,
-// e.g. "core:allocations"), so each section can be granted read/write
-// independently. Displayed verbatim as the effective-privilege key.
-export const PERMISSION_SECTIONS = [
-  "amie:packets",
-  "amie:replies",
-  "amie:unmapped",
-  "core:allocations",
-  "core:clusters",
-  "core:organizations",
-  "core:projects",
-  "core:traces",
-  "core:users",
-  "temp-account:accounts",
+export const DEFAULT_PERMISSION_KEYS = [
+  "core:allocations:read",
+  "core:allocations:write",
+  "core:clusters:read",
+  "core:clusters:write",
+  "core:organizations:read",
+  "core:organizations:write",
+  "core:privileges:grant",
+  "core:projects:read",
+  "core:projects:write",
+  "core:roles:manage",
+  "core:traces:read",
+  "core:users:read",
+  "core:users:write",
 ] as const;
-export type PermissionSection = (typeof PERMISSION_SECTIONS)[number];
-export type PermissionKey = `${PermissionSection}:read` | `${PermissionSection}:write`;
 
-export function rwStateFor(permissions: PermissionKey[]) {
+export type PermissionKey = string;
+
+type PermissionParts = {
+  section: string;
+  action: string;
+};
+
+function splitPermission(key: PermissionKey): PermissionParts {
+  const parts = key.split(":");
+  const action = parts.pop() ?? key;
+  return { section: parts.join(":") || key, action };
+}
+
+export function permissionRowsFor(
+  permissions: PermissionKey[],
+  catalog: readonly PermissionKey[] = DEFAULT_PERMISSION_KEYS,
+) {
   const held = new Set(permissions);
-  return PERMISSION_SECTIONS.map((section) => ({
-    section,
-    read: held.has(`${section}:read` as PermissionKey),
-    write: held.has(`${section}:write` as PermissionKey),
+  const keys = Array.from(new Set([...catalog, ...permissions])).sort();
+  const rows = new Map<
+    string,
+    {
+      section: string;
+      actions: Array<{ action: string; key: PermissionKey; active: boolean }>;
+    }
+  >();
+
+  for (const key of keys) {
+    const { section, action } = splitPermission(key);
+    const row = rows.get(section) ?? { section, actions: [] };
+    row.actions.push({ action, key, active: held.has(key) });
+    rows.set(section, row);
+  }
+
+  return Array.from(rows.values()).map((row) => ({
+    ...row,
+    actions: row.actions.sort((a, b) => {
+      const order = ["read", "write", "grant", "manage"];
+      const ai = order.indexOf(a.action);
+      const bi = order.indexOf(b.action);
+      if (ai !== bi) {
+        return (ai === -1 ? order.length : ai) - (bi === -1 ? order.length : bi);
+      }
+      return a.action.localeCompare(b.action);
+    }),
+  }));
+}
+
+export function rwStateFor(permissions: PermissionKey[], catalog?: readonly PermissionKey[]) {
+  return permissionRowsFor(permissions, catalog).map((row) => ({
+    section: row.section,
+    read: row.actions.some((a) => a.action === "read" && a.active),
+    write: row.actions.some((a) => a.action === "write" && a.active),
   }));
 }
 
@@ -46,7 +91,9 @@ export function rwStateFor(permissions: PermissionKey[]) {
 // write also grants read, and revoking read also revokes write.
 export function togglePermission(permissions: PermissionKey[], key: PermissionKey): PermissionKey[] {
   const held = new Set(permissions);
-  const isRead = key.endsWith(":read");
+  const { action } = splitPermission(key);
+  const isRead = action === "read";
+  const isWrite = action === "write";
   const pairedKey = (
     isRead ? key.replace(/:read$/, ":write") : key.replace(/:write$/, ":read")
   ) as PermissionKey;
@@ -56,13 +103,15 @@ export function togglePermission(permissions: PermissionKey[], key: PermissionKe
     if (isRead) held.delete(pairedKey);
   } else {
     held.add(key);
-    if (!isRead) held.add(pairedKey);
+    if (isWrite) held.add(pairedKey);
   }
   return Array.from(held);
 }
 
 // A user's effective permissions are the union of everything granted by
 // each role they hold.
-export function permissionsFromRoles(roles: Array<{ permissions: PermissionKey[] }>): PermissionKey[] {
+export function permissionsFromRoles(
+  roles: Array<{ permissions: PermissionKey[] }>,
+): PermissionKey[] {
   return Array.from(new Set(roles.flatMap((r) => r.permissions)));
 }

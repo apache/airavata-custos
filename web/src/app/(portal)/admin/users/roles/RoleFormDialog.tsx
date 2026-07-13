@@ -18,6 +18,9 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
+import { useCreateRole, usePrivilegeCatalog, useUpdateRole } from "@/features/core/roles/queries";
+import type { RoleRow } from "@/features/core/roles/schemas";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -32,14 +35,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { togglePermission } from "@/shared/users-admin/permissions";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
-import type { RoleRow, UserRow } from "@/shared/users-admin/types";
-import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
-
-function fullNameFor(user: UserRow): string {
-  const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return name || (user.email ?? "Unknown user");
-}
 
 export function RoleFormDialog({
   role,
@@ -51,54 +47,43 @@ export function RoleFormDialog({
   triggerRender: React.ReactElement;
   triggerContent: React.ReactNode;
 }) {
-  const { users, addRole, updateRole } = useUsersAdmin();
   const isEdit = Boolean(role);
+  const catalogQuery = usePrivilegeCatalog();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [permissions, setPermissions] = React.useState<PermissionKey[]>([]);
-  const [userSearch, setUserSearch] = React.useState("");
-  const [selectedUserIds, setSelectedUserIds] = React.useState<Set<string>>(new Set());
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
       setName(role?.name ?? "");
       setDescription(role?.description ?? "");
-      setPermissions(role?.permissions ?? []);
-      setUserSearch("");
-      setSelectedUserIds(
-        new Set(
-          role ? users.filter((u) => u.roles.some((r) => r.id === role.id)).map((u) => u.id ?? "") : [],
-        ),
-      );
+      setPermissions(role?.privileges ?? []);
     }
   }
 
-  function toggleUserSelected(userId: string) {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  }
-
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!name.trim()) return;
-    const input = { name: name.trim(), description: description.trim(), permissions };
-    if (isEdit && role?.id) {
-      updateRole(role.id, input, Array.from(selectedUserIds));
-    } else {
-      addRole(input, Array.from(selectedUserIds));
+    const input = { name: name.trim(), description: description.trim(), privileges: permissions };
+    try {
+      if (isEdit && role?.id) {
+        await updateRole.mutateAsync({ role, input });
+        toast.success("Role updated");
+      } else {
+        await createRole.mutateAsync(input);
+        toast.success("Role created");
+      }
+      setOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Role update failed");
     }
-    setOpen(false);
   }
 
-  const needle = userSearch.trim().toLowerCase();
-  const matchingUsers = needle
-    ? users.filter((u) => `${fullNameFor(u)} ${u.email ?? ""}`.toLowerCase().includes(needle))
-    : users;
+  const saving = createRole.isPending || updateRole.isPending;
+  const catalog = catalogQuery.data;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -108,8 +93,8 @@ export function RoleFormDialog({
           <DialogTitle>{isEdit ? "Edit role" : "Create role"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? `Update what ${role?.name} can see and do, and who holds it.`
-              : "Define a name, choose the permissions it grants, and optionally assign it to users right away."}
+              ? `Update what ${role?.name} can see and do.`
+              : "Define a name and choose the permissions it grants."}
           </DialogDescription>
         </DialogHeader>
 
@@ -140,57 +125,17 @@ export function RoleFormDialog({
 
           <PermissionMatrixEditor
             permissions={permissions}
+            catalog={catalog}
             onTogglePermission={(key) => setPermissions((prev) => togglePermission(prev, key))}
           />
-
-          <div className="border-t border-border" />
-
-          <div className="space-y-2">
-            <Label htmlFor="role-user-search">Assign to users (optional)</Label>
-            <Input
-              id="role-user-search"
-              type="search"
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Search by username or email"
-            />
-            <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
-              {matchingUsers.length === 0 ? (
-                <li className="px-1 py-1 text-sm text-muted-foreground">No users match.</li>
-              ) : (
-                matchingUsers.map((u) => {
-                  const id = u.id ?? u.email ?? "";
-                  return (
-                    <li key={id}>
-                      <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-sm hover:bg-muted">
-                        <input
-                          type="checkbox"
-                          checked={selectedUserIds.has(id)}
-                          onChange={() => toggleUserSelected(id)}
-                          className="size-4 rounded border-input"
-                        />
-                        <span className="font-medium text-foreground">{fullNameFor(u)}</span>
-                        <span className="text-xs text-muted-foreground">{u.email}</span>
-                      </label>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-            {selectedUserIds.size > 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {selectedUserIds.size} user{selectedUserIds.size === 1 ? "" : "s"} selected
-              </p>
-            ) : null}
-          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} type="button">
+          <Button variant="outline" onClick={() => setOpen(false)} type="button" disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()} type="button">
-            {isEdit ? "Save changes" : "Create role"}
+          <Button onClick={handleSubmit} disabled={!name.trim() || saving} type="button">
+            {saving ? "Saving..." : isEdit ? "Save changes" : "Create role"}
           </Button>
         </DialogFooter>
       </DialogContent>
