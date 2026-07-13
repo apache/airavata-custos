@@ -17,10 +17,9 @@
 
 "use client";
 
-import { LogOut, Settings, ShieldCheck } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import * as React from "react";
 import { useSignOut } from "@/shared/auth/useSignOut";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
@@ -30,12 +29,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { MyPermissionsDialog } from "@/shared/users-admin/MyPermissionsDialog";
 
 export function UserPill() {
   const { data: session, status } = useSession();
   const { signOut, isPending } = useSignOut();
-  const [permissionsOpen, setPermissionsOpen] = React.useState(false);
   const loading = status === "loading";
   const user = session?.user;
   const name = user?.name ?? user?.email ?? "Signed out";
@@ -77,10 +74,6 @@ export function UserPill() {
               </Link>
             )}
           />
-          <DropdownMenuItem onClick={() => setPermissionsOpen(true)}>
-            <ShieldCheck className="mr-2 h-4 w-4" />
-            My Permissions
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
@@ -92,7 +85,6 @@ export function UserPill() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <MyPermissionsDialog open={permissionsOpen} onOpenChange={setPermissionsOpen} />
     </div>
   );
 }
