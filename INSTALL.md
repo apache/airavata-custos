@@ -25,7 +25,7 @@ conventions and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Prerequisites
 
 - Go **1.24+**
-- Node **20+** and **pnpm** (for the portal)
+- Node **22+** and **pnpm** (for the portal)
 - Docker and Docker Compose
 - `git`
 
