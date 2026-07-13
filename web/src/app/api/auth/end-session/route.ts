@@ -21,37 +21,65 @@ import { auth } from "@/shared/auth/auth";
 
 export const runtime = "nodejs";
 
-// Cleared inline so the redirect lands on /sign-in already-signed-out,
-// regardless of whether the IdP round-trips.
 const SESSION_COOKIES = [
   "custos.session-token",
   "__Secure-custos.session-token",
 ];
 
-function clearAuthCookies(res: NextResponse) {
+// Cookies are deleted on the redirect response itself; sign-out must not
+// depend on an IdP logout hop, which some issuers do not have.
+function clearAuthCookies(request: NextRequest, res: NextResponse) {
+  const requestCookies = request.cookies.getAll();
   for (const name of SESSION_COOKIES) {
-    res.cookies.set({ name, value: "", path: "/", maxAge: 0 });
+    // Browsers reject __Secure- deletions that aren't marked Secure.
+    const secure = name.startsWith("__Secure-");
+    // Oversized sessions get chunked into name.0, name.1, ...
+    const chunks = requestCookies
+      .filter((c) => c.name.startsWith(`${name}.`))
+      .map((c) => c.name);
+    for (const target of [name, ...chunks]) {
+      res.cookies.set({ name: target, value: "", path: "/", maxAge: 0, httpOnly: true, secure });
+    }
+  }
+}
+
+// Discover the end-session endpoint; some issuers don't have one.
+async function discoverEndSessionEndpoint(issuer: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${issuer.replace(/\/$/, "")}/.well-known/openid-configuration`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const doc = (await res.json()) as { end_session_endpoint?: unknown };
+    return typeof doc.end_session_endpoint === "string" ? doc.end_session_endpoint : null;
+  } catch {
+    return null;
   }
 }
 
 export async function GET(request: NextRequest) {
-  const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/sign-in";
-  const origin = request.nextUrl.origin;
+  const callbackUrl = request.nextUrl.searchParams.get("callbackUrl") ?? "/";
+  // Behind a reverse proxy request.nextUrl.origin is the internal address.
+  const origin = serverEnv.NEXTAUTH_URL ?? request.nextUrl.origin;
   const postLogout = new URL(callbackUrl, origin).toString();
 
   const session = await auth();
   const idToken = session?.idToken ?? null;
-  const endSession = new URL(
-    `${serverEnv.OIDC_ISSUER_URL.replace(/\/$/, "")}/protocol/openid-connect/logout`,
-  );
-  endSession.searchParams.set("post_logout_redirect_uri", postLogout);
-  if (idToken) {
-    endSession.searchParams.set("id_token_hint", idToken);
-  } else {
-    endSession.searchParams.set("client_id", serverEnv.OIDC_CLIENT_ID);
+  const endpoint = await discoverEndSessionEndpoint(serverEnv.OIDC_ISSUER_URL);
+
+  let redirectTo = postLogout;
+  if (endpoint) {
+    const url = new URL(endpoint);
+    url.searchParams.set("post_logout_redirect_uri", postLogout);
+    if (idToken) {
+      url.searchParams.set("id_token_hint", idToken);
+    } else {
+      url.searchParams.set("client_id", serverEnv.OIDC_CLIENT_ID);
+    }
+    redirectTo = url.toString();
   }
 
-  const res = NextResponse.redirect(endSession.toString());
-  clearAuthCookies(res);
+  const res = NextResponse.redirect(redirectTo);
+  clearAuthCookies(request, res);
   return res;
 }

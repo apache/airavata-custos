@@ -59,6 +59,16 @@ async function parseBody(response: Response): Promise<unknown> {
   }
 }
 
+// The backend reports errors as {"error": "..."}; surface that text so dialogs
+// show the guard message instead of a generic "API 409 on ...".
+function errorMessageFromBody(body: unknown): string | undefined {
+  if (body && typeof body === "object" && "error" in body) {
+    const { error } = body as { error: unknown };
+    if (typeof error === "string" && error.length > 0) return error;
+  }
+  return undefined;
+}
+
 export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const url = buildUrl(path);
   const headers = new Headers(init.headers);
@@ -86,7 +96,7 @@ export async function apiFetch<T = unknown>(path: string, init: ApiFetchInit = {
   const parsed = await parseBody(response);
 
   if (!response.ok) {
-    throw new ApiError(response.status, url, parsed);
+    throw new ApiError(response.status, url, parsed, errorMessageFromBody(parsed));
   }
   return parsed as T;
 }

@@ -138,6 +138,20 @@ export const zComputeAllocationResourceRate = z.object({
 
 export type computeAllocationResourceRateZodType = z.infer<typeof zComputeAllocationResourceRate>;
 
+export const zComputeAllocationResourceSummary = z.object({
+    allocation_count: z.int().optional(),
+    compute_cluster_id: z.string().optional(),
+    id: z.string().optional(),
+    name: z.string().optional(),
+    rate_count: z.int().optional(),
+    resource_amount: z.int().optional(),
+    resource_type: z.string().optional(),
+    total_allocated: z.int().optional(),
+    total_used_su: z.number().optional()
+});
+
+export type computeAllocationResourceSummaryZodType = z.infer<typeof zComputeAllocationResourceSummary>;
+
 export const zComputeAllocationUsage = z.object({
     compute_allocation_id: z.string().optional(),
     compute_allocation_resource_id: z.string().optional(),
@@ -468,6 +482,14 @@ export const zUpdateRoleRequest = z.object({
 });
 
 export type updateRoleRequestZodType = z.infer<typeof zUpdateRoleRequest>;
+
+export const zUserNameUpdateRequest = z.object({
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    middle_name: z.string().optional()
+});
+
+export type userNameUpdateRequestZodType = z.infer<typeof zUserNameUpdateRequest>;
 
 export const zGetAuditEventsQuery = z.object({
     trace_id: z.string(),
@@ -803,6 +825,11 @@ export const zGetComputeAllocationResourcesByIdRatesEffectiveQuery = z.object({
  * OK
  */
 export const zGetComputeAllocationResourcesByIdRatesEffectiveResponse = zComputeAllocationResourceRate;
+
+/**
+ * OK
+ */
+export const zGetComputeAllocationResourcesSummaryResponse = z.array(zComputeAllocationResourceSummary);
 
 /**
  * Usage payload
@@ -1338,6 +1365,20 @@ export const zGetUsersByIdPath = z.object({
  * OK
  */
 export const zGetUsersByIdResponse = zUser;
+
+/**
+ * Name fields
+ */
+export const zPutUsersByIdBody = zUserNameUpdateRequest;
+
+export const zPutUsersByIdPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zPutUsersByIdResponse = zUser;
 
 export const zGetUsersByIdChangeRequestsPath = z.object({
     id: z.string()

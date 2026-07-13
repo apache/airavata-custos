@@ -175,3 +175,19 @@ yet. To populate it:
   request, a membership override) live in
   [`dev-ops/compose/seeds/dev_portal_data.sql`](dev-ops/compose/seeds/dev_portal_data.sql).
   Apply after AMIE has run so the referenced allocation IDs exist.
+
+## 9. (Optional) Public landing page
+
+The portal serves a landing page at `/` to signed-out users; signed-in
+users get the portal home instead. The page lives at
+[`web/public/landing/index.html`](web/public/landing/index.html), a single
+self-contained file.
+
+To use your own landing page, replace that file with your `index.html` before
+building the portal. Put any assets it needs (images, stylesheets, fonts)
+anywhere under `web/public/` and reference them by their URL path from the
+site root (`web/public/brand/logo.svg` is served at `/brand/logo.svg`). They
+ship with the build automatically.
+
+Point the page's sign-in links at `/api/auth/federated-sign-in` to send
+users straight to the identity provider.

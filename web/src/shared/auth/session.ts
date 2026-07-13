@@ -34,9 +34,8 @@ export async function getPortalSession(): Promise<PortalSession> {
   };
 }
 
-// Some IdPs (CILogon) hand out opaque access tokens while their id_tokens are
-// JWTs; the backend only verifies JWTs, so prefer whichever bearer actually
-// has the JWT shape. Keycloak access_tokens are JWTs so they win there.
+// Some IdPs hand out opaque access tokens while their id_tokens are JWTs;
+// the backend only verifies JWTs, so prefer whichever bearer has the JWT shape.
 export function pickBackendBearer(session: PortalSession): string | null {
   if (!session) return null;
   if (looksLikeJwt(session.accessToken)) return session.accessToken ?? null;

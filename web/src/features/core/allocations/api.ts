@@ -17,19 +17,22 @@
 
 import { apiFetch } from "@/shared/api/client";
 import {
+  type AllocationDiff,
   type AllocationMembership,
+  type AttachedResource,
   type AllocationUsage,
   type ChangeRequest,
   type ChangeRequestEvent,
   type ComputeAllocation,
   type ComputeAllocationList,
-  type ComputeAllocationResource,
   type CreateChangeRequestPayload,
   type CreateMembershipPayload,
   type UpdateChangeRequestPayload,
   type UpdateMembershipPayload,
+  allocationDiffListSchema,
   allocationMembershipListSchema,
   allocationMembershipSchema,
+  attachedResourceListSchema,
   allocationUsageListSchema,
   changeRequestEventListSchema,
   changeRequestListSchema,
@@ -42,7 +45,6 @@ import {
   updateMembershipPayloadSchema,
 } from "./schemas";
 import type { AllocationListParams, ChangeRequestListParams } from "./types";
-import { z } from "zod";
 
 export async function listAllocations(
   params: AllocationListParams = {},
@@ -63,20 +65,14 @@ export async function getAllocation(id: string): Promise<ComputeAllocation> {
   return computeAllocationSchema.parse(raw);
 }
 
-export async function listAllocationResources(
-  id: string,
-): Promise<ComputeAllocationResource[]> {
+export async function listAllocationResources(id: string): Promise<AttachedResource[]> {
   const raw = await apiFetch(`/compute-allocations/${id}/resources`);
-  return z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        resource_type: z.string(),
-        resource_amount: z.number().int(),
-      }),
-    )
-    .parse(raw ?? []);
+  return attachedResourceListSchema.parse(raw ?? []);
+}
+
+export async function listAllocationDiffs(id: string): Promise<AllocationDiff[]> {
+  const raw = await apiFetch(`/compute-allocations/${id}/diffs`);
+  return allocationDiffListSchema.parse(raw ?? []);
 }
 
 export async function listAllocationUsage(id: string): Promise<AllocationUsage[]> {

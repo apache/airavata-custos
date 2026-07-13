@@ -20,6 +20,7 @@ import {
   callerPrivilegesSchema,
   privilegeKeySchema,
   privilegesResponseSchema,
+  userRolesResponseSchema,
 } from "../schemas";
 
 describe("identity schemas", () => {
@@ -45,5 +46,19 @@ describe("identity schemas", () => {
       privilegesResponseSchema.parse({ privileges: ["core:projects:read"] }),
     ).toEqual(["core:projects:read"]);
     expect(privilegesResponseSchema.parse({})).toEqual([]);
+  });
+
+  it("tolerates null granted_by and reason on role grants (backend nullable *string)", () => {
+    const parsed = userRolesResponseSchema.parse([
+      {
+        user_id: "u-1",
+        role_id: "r-1",
+        granted_at: "2026-07-01T00:00:00.000Z",
+        granted_by: null,
+        reason: null,
+      },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.role_id).toBe("r-1");
   });
 });

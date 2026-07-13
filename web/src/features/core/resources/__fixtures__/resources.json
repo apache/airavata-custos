@@ -1,0 +1,51 @@
+[
+  {
+    "id": "res-a-cpu",
+    "name": "ClusterA CPU",
+    "resource_type": "CPU",
+    "resource_amount": 1000000,
+    "compute_cluster_id": "cluster-a"
+  },
+  {
+    "id": "res-a-gpu",
+    "name": "ClusterA GPU",
+    "resource_type": "GPU",
+    "resource_amount": 50000,
+    "compute_cluster_id": "cluster-a"
+  },
+  {
+    "id": "res-c-cpu",
+    "name": "ClusterC RM",
+    "resource_type": "CPU",
+    "resource_amount": 800000,
+    "compute_cluster_id": "cluster-c"
+  },
+  {
+    "id": "res-c-storage",
+    "name": "ClusterC Ocean",
+    "resource_type": "STORAGE",
+    "resource_amount": 200000,
+    "compute_cluster_id": "cluster-c"
+  },
+  {
+    "id": "res-d-gpu",
+    "name": "ClusterD GPU",
+    "resource_type": "GPU",
+    "resource_amount": 30000,
+    "compute_cluster_id": "cluster-d"
+  },
+  {
+    "id": "res-b-cpu",
+    "name": "ClusterB CPU",
+    "resource_type": "CPU",
+    "resource_amount": 600000,
+    "compute_cluster_id": "cluster-b"
+  },
+  {
+    "id": "res-b-gpu",
+    "name": "ClusterB GPU A100",
+    "resource_type": "GPU",
+    "resource_amount": 40000,
+    "compute_cluster_id": "cluster-b"
+  }
+]

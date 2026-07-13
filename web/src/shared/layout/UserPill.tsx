@@ -22,9 +22,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useSignOut } from "@/shared/auth/useSignOut";
 
@@ -58,10 +60,25 @@ export function UserPill() {
             </button>
           )}
         />
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-64">
+          <div className="px-2 py-1.5">
+            <div className="truncate text-sm font-semibold text-foreground">{name}</div>
+            <div className="truncate text-xs text-muted-foreground">{email}</div>
+          </div>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
+            render={(props) => (
+              <Link {...props} href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
+            )}
+          />
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
             disabled={isPending}
-            onClick={() => void signOut({ callbackUrl: "/sign-in" })}
+            onClick={() => void signOut()}
           >
             <LogOut className="mr-2 h-4 w-4" />
             {isPending ? "Signing out…" : "Sign out"}

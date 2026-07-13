@@ -1,0 +1,675 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<!--
+  Default landing page for a Custos deployment. To use your own, replace
+  this file with your index.html before building the portal; see INSTALL.md.
+-->
+<title>Custos Portal</title>
+<style>
+    :root {
+        /* Brand tokens: colors are changed here, not in the rules below. */
+        --accent: #0F7A6C; /* primary brand color */
+        --accent-ink: #0B5A50; /* darker accent for text on light ground */
+        --accent-tint: rgba(15, 122, 108, 0.10);
+
+        --paper: #F6F8F9; /* page ground */
+        --panel: #FFFFFF; /* card ground */
+        --line: #D8DfE2; /* borders */
+        --ink: #17222B; /* headings, body */
+        --muted: #54626E; /* secondary text (AA on paper) */
+        --status: #B97F10; /* status dot */
+        --btn-text: #FFFFFF;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --accent: #35B2A0;
+            --accent-ink: #6FCFC1;
+            --accent-tint: rgba(53, 178, 160, 0.14);
+            --paper: #0E141A;
+            --panel: #141C24;
+            --line: #263340;
+            --ink: #E7EDF1;
+            --muted: #9AA9B5;
+            --status: #D9A13B;
+            --btn-text: #08211D;
+        }
+    }
+
+    :root[data-theme="light"] {
+        --accent: #0F7A6C;
+        --accent-ink: #0B5A50;
+        --accent-tint: rgba(15, 122, 108, 0.10);
+        --paper: #F6F8F9;
+        --panel: #FFFFFF;
+        --line: #D8DFE2;
+        --ink: #17222B;
+        --muted: #54626E;
+        --status: #B97F10;
+        --btn-text: #FFFFFF;
+    }
+
+    :root[data-theme="dark"] {
+        --accent: #35B2A0;
+        --accent-ink: #6FCFC1;
+        --accent-tint: rgba(53, 178, 160, 0.14);
+        --paper: #0E141A;
+        --panel: #141C24;
+        --line: #263340;
+        --ink: #E7EDF1;
+        --muted: #9AA9B5;
+        --status: #D9A13B;
+        --btn-text: #08211D;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
+
+    body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+    }
+
+    .mono {
+        font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    }
+
+    a {
+        color: var(--accent-ink);
+    }
+
+    a:focus-visible, button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    .wrap {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background: var(--accent);
+        color: var(--btn-text);
+        padding: 8px 16px;
+        z-index: 10;
+        text-decoration: none;
+    }
+
+    .skip:focus {
+        left: 12px;
+        top: 12px;
+    }
+
+    /* header */
+    header {
+        border-bottom: 1px solid var(--line);
+    }
+
+    .bar {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 18px 0;
+        flex-wrap: wrap;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+    .logo .mark {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: var(--accent);
+        display: inline-block;
+        position: relative;
+    }
+
+    .logo .mark::after {
+        content: "";
+        position: absolute;
+        inset: 7px;
+        border-radius: 2px;
+        background: var(--paper);
+    }
+
+    nav.main {
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+        margin-left: auto;
+    }
+
+    nav.main a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 14.5px;
+    }
+
+    nav.main a:hover {
+        color: var(--ink);
+    }
+
+    .bar .signin {
+        margin-left: 8px;
+    }
+
+    /* buttons */
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: var(--btn-text);
+    }
+
+    .btn-primary:hover {
+        filter: brightness(1.07);
+    }
+
+    .btn-ghost {
+        border: 1px solid var(--line);
+        color: var(--ink);
+    }
+
+    .btn-ghost:hover {
+        border-color: var(--accent);
+    }
+
+    /* hero */
+    .hero {
+        padding: 72px 0 42px;
+    }
+
+    .hero .eyebrow {
+        color: var(--accent-ink);
+    }
+
+    .eyebrow {
+        font-size: 12.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    h1 {
+        font-size: clamp(34px, 5.2vw, 56px);
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        font-weight: 800;
+        margin: 14px 0 18px;
+        max-width: 17ch;
+        text-wrap: balance;
+    }
+
+    .hero p.lede {
+        font-size: 19px;
+        color: var(--muted);
+        max-width: 56ch;
+        margin: 0 0 28px;
+    }
+
+    .cta-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .cta-note {
+        font-size: 13.5px;
+        color: var(--muted);
+    }
+
+    /* stat strip */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 44px 0 0;
+    }
+
+    .stat {
+        background: var(--panel);
+        padding: 18px 20px;
+    }
+
+    .stat b {
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+    }
+
+    .stat span {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    /* sections */
+    section {
+        padding: 64px 0 8px;
+    }
+
+    section > .wrap > .eyebrow {
+        color: var(--accent-ink);
+    }
+
+    h2 {
+        font-size: clamp(24px, 3.2vw, 32px);
+        letter-spacing: -0.02em;
+        margin: 10px 0 8px;
+        text-wrap: balance;
+    }
+
+    .section-lede {
+        color: var(--muted);
+        max-width: 62ch;
+        margin: 0 0 30px;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 22px;
+    }
+
+    .card h3 {
+        margin: 0 0 6px;
+        font-size: 17.5px;
+        letter-spacing: -0.01em;
+    }
+
+    .card p {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14.5px;
+    }
+
+    .card dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 5px 14px;
+        font-size: 13.5px;
+    }
+
+    .card dt {
+        color: var(--muted);
+    }
+
+    .card dd {
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 4px 40px;
+    }
+
+    .feature {
+        padding: 16px 0;
+        border-top: 1px solid var(--line);
+    }
+
+    .feature h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+    }
+
+    .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14.5px;
+    }
+
+    /* access */
+    .audience {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+    }
+
+    .aud {
+        border-left: 3px solid var(--accent);
+        padding: 4px 0 4px 18px;
+    }
+
+    .aud h3 {
+        margin: 0 0 6px;
+        font-size: 16.5px;
+    }
+
+    .aud p {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 14.5px;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12.5px;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 3px 12px;
+    }
+
+    .pill::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--status);
+    }
+
+    /* closing cta */
+    .closer {
+        margin: 72px 0;
+        border: 1px solid var(--line);
+        background: var(--accent-tint);
+        border-radius: 14px;
+        padding: 40px 32px;
+    }
+
+    .closer h2 {
+        margin-top: 0;
+    }
+
+    .closer p {
+        color: var(--muted);
+        max-width: 56ch;
+    }
+
+    /* footer */
+    footer {
+        border-top: 1px solid var(--line);
+        padding: 36px 0 44px;
+        font-size: 14px;
+    }
+
+    .foot-links {
+        display: flex;
+        gap: 26px;
+        flex-wrap: wrap;
+        margin: 0 0 22px;
+    }
+
+    .foot-links a {
+        color: var(--muted);
+        text-decoration: none;
+    }
+
+    .foot-links a:hover {
+        color: var(--ink);
+    }
+
+    .attribution {
+        color: var(--muted);
+        max-width: 72ch;
+    }
+
+    .attribution p {
+        margin: 4px 0;
+    }
+
+    .attribution a {
+        color: var(--accent-ink);
+    }
+</style>
+
+<a class="skip" href="#content">Skip to content</a>
+
+<header>
+    <div class="wrap bar">
+        <a class="logo" href="#"><span class="mark" aria-hidden="true"></span>Custos Portal</a>
+        <nav class="main" aria-label="Primary">
+            <a href="#compute">Compute</a>
+            <a href="#platform">Platform</a>
+            <a href="#access">Access</a>
+            <a href="#docs">Docs</a>
+        </nav>
+        <a class="btn btn-ghost signin" href="/api/auth/federated-sign-in">Sign in</a>
+    </div>
+</header>
+
+<main id="content">
+    <div class="wrap hero">
+        <p class="eyebrow mono">Research computing platform</p>
+        <h1>Compute for open science, in one portal.</h1>
+        <p class="lede">
+            GPU and CPU resources for research and teaching, with projects, allocations,
+            and usage managed in a single place. Sign in and work from your first
+            notebook to a full multi-node run.
+        </p>
+        <div class="cta-row">
+            <a class="btn btn-primary" href="/api/auth/federated-sign-in">Sign in to the portal</a>
+            <a class="btn btn-ghost" href="#docs">Read the docs</a>
+            <span class="cta-note">Sign-in goes through your organization's identity provider.</span>
+        </div>
+
+        <dl class="stats mono">
+            <div class="stat"><b>128</b><span>GPUs</span></div>
+            <div class="stat"><b>4,096</b><span>CPU cores</span></div>
+            <div class="stat"><b>48 TB</b><span>System memory</span></div>
+            <div class="stat"><b>2 PB</b><span>Shared storage</span></div>
+        </dl>
+    </div>
+
+    <section id="compute">
+        <div class="wrap">
+            <p class="eyebrow mono">Hardware</p>
+            <h2>The resources behind the portal.</h2>
+            <p class="section-lede">
+                Two classes of compute and a shared data platform, scheduled as one system.
+            </p>
+            <div class="cards">
+                <article class="card">
+                    <h3>GPU nodes</h3>
+                    <p>For model training, inference, and GPU-accelerated simulation.</p>
+                    <dl class="mono">
+                        <dt>Nodes</dt>
+                        <dd>16</dd>
+                        <dt>GPUs per node</dt>
+                        <dd>8</dd>
+                        <dt>Memory</dt>
+                        <dd>1 TB / node</dd>
+                        <dt>Interconnect</dt>
+                        <dd>200 Gb/s</dd>
+                    </dl>
+                </article>
+                <article class="card">
+                    <h3>CPU nodes</h3>
+                    <p>For high-throughput and memory-heavy workloads.</p>
+                    <dl class="mono">
+                        <dt>Nodes</dt>
+                        <dd>32</dd>
+                        <dt>Cores per node</dt>
+                        <dd>128</dd>
+                        <dt>Memory</dt>
+                        <dd>512 GB / node</dd>
+                        <dt>Local NVMe</dt>
+                        <dd>8 TB / node</dd>
+                    </dl>
+                </article>
+                <article class="card">
+                    <h3>Data platform</h3>
+                    <p>Shared storage sized for large datasets and fast staging.</p>
+                    <dl class="mono">
+                        <dt>Capacity</dt>
+                        <dd>2 PB</dd>
+                        <dt>Fabric</dt>
+                        <dd>100 Gb/s</dd>
+                        <dt>Scratch</dt>
+                        <dd>per-project</dd>
+                    </dl>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="platform">
+        <div class="wrap">
+            <p class="eyebrow mono">Platform</p>
+            <h2>One portal for the whole lifecycle.</h2>
+            <p class="section-lede">
+                The portal is powered by Apache Airavata Custos: identity, projects,
+                allocations, and usage in one place, from request to result.
+            </p>
+            <div class="features">
+                <div class="feature">
+                    <h3>Single sign-on</h3>
+                    <p>Sign in through your organization's identity provider. No separate accounts to manage.</p>
+                </div>
+                <div class="feature">
+                    <h3>Projects &amp; allocations</h3>
+                    <p>Request time, add collaborators, and track consumption against your award without leaving the
+                        browser.</p>
+                </div>
+                <div class="feature">
+                    <h3>Roles that match research</h3>
+                    <p>PIs, co-PIs, allocation managers, and members, with the permissions each actually needs.</p>
+                </div>
+                <div class="feature">
+                    <h3>Usage you can audit</h3>
+                    <p>Per-project and per-user usage against every resource, kept current as jobs complete.</p>
+                </div>
+                <div class="feature">
+                    <h3>Upstream integration</h3>
+                    <p>Connects to national allocation programs and identity registries, so awards flow in
+                        automatically.</p>
+                </div>
+                <div class="feature">
+                    <h3>Open source</h3>
+                    <p>Built on Apache Airavata Custos. Inspect it, extend it, or run your own.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="access">
+        <div class="wrap">
+            <p class="eyebrow mono">Access</p>
+            <h2>Built for the research community.</h2>
+            <p class="section-lede">
+                Allocations for research and teaching. Who the portal serves and how to get time.
+            </p>
+            <div class="audience">
+                <div class="aud">
+                    <h3>Researchers</h3>
+                    <p>Project allocations for data- and compute-intensive science in every domain.</p>
+                    <span class="pill">Apply for time</span>
+                </div>
+                <div class="aud">
+                    <h3>Students &amp; educators</h3>
+                    <p>Course allocations and training programs on the same system research runs on.</p>
+                    <span class="pill">Request course time</span>
+                </div>
+                <div class="aud">
+                    <h3>Partners</h3>
+                    <p>Collaboration opportunities for institutions building on shared research infrastructure.</p>
+                    <span class="pill">Get in touch</span>
+                </div>
+            </div>
+
+            <div class="closer">
+                <h2>Ready when you are.</h2>
+                <p>
+                    Sign in, join a project, and follow the quickstart to your first job.
+                </p>
+                <div class="cta-row">
+                    <a class="btn btn-primary" href="/api/auth/federated-sign-in">Sign in to the portal</a>
+                    <a class="btn btn-ghost" href="#docs">Start with the quickstart</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <nav class="foot-links" aria-label="Footer">
+            <a href="#docs">Documentation</a>
+            <a href="#support">Support</a>
+            <a href="#status">System status</a>
+            <a href="#policies">Policies</a>
+            <a href="#ack">Acknowledgment</a>
+        </nav>
+        <div class="attribution">
+            <p>Operated by [your organization].</p>
+            <p>Funded by [your funding agency and award number].</p>
+            <p>Powered by <a href="https://github.com/apache/airavata-custos">Apache Airavata Custos</a>.</p>
+        </div>
+    </div>
+</footer>

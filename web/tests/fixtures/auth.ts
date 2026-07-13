@@ -23,18 +23,47 @@ import { encode } from "next-auth/jwt";
 
 export type Persona = "viewer" | "manager" | "admin";
 
+// Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
+// gates resolve per persona. The MSW /user/privileges handler reads the
+// matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
-  viewer: ["hpc:read"],
-  manager: ["hpc:read", "hpc:write", "amie:read"],
+  viewer: [
+    "core:users:read",
+    "core:organizations:read",
+    "core:clusters:read",
+    "core:allocations:read",
+  ],
+  manager: [
+    "core:allocations:read",
+    "core:allocations:write",
+    "core:projects:read",
+    "core:projects:write",
+    "core:clusters:read",
+    "core:users:read",
+    "core:organizations:read",
+    "amie:packets:read",
+    "amie:replies:read",
+  ],
   admin: [
-    "amie:read",
-    "amie:write",
-    "hpc:read",
-    "hpc:write",
-    "signer:read",
-    "signer:write",
-    "privileges:grant",
-    "roles:manage",
+    "core:clusters:read",
+    "core:clusters:write",
+    "core:allocations:read",
+    "core:allocations:write",
+    "core:projects:read",
+    "core:projects:write",
+    "core:users:read",
+    "core:users:write",
+    "core:organizations:read",
+    "core:organizations:write",
+    "core:traces:read",
+    "core:privileges:grant",
+    "core:roles:manage",
+    "amie:packets:read",
+    "amie:packets:write",
+    "amie:replies:read",
+    "amie:replies:write",
+    "amie:unmapped:read",
+    "amie:unmapped:write",
   ],
 };
 
@@ -63,12 +92,23 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
   });
 
   const port = process.env.PORT ?? "3217";
+  const url = `http://localhost:${port}`;
   await page.context().addCookies([
     {
       name: "custos.session-token",
       value: token,
-      url: `http://localhost:${port}`,
+      url,
       httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    },
+    // Non-httpOnly so the browser-context MSW /user/privileges handler can read
+    // it and scope abilities to this persona.
+    {
+      name: "custos.test-privileges",
+      value: PRIVILEGES[persona].join(","),
+      url,
+      httpOnly: false,
       secure: false,
       sameSite: "Lax",
     },

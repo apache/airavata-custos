@@ -1,0 +1,52 @@
+[
+  {
+    "id": "org-gatech",
+    "name": "Georgia Institute of Technology",
+    "originated_id": "GATECH"
+  },
+  {
+    "id": "org-tacc",
+    "name": "Texas Advanced Computing Center",
+    "originated_id": "TACC"
+  },
+  {
+    "id": "org-ncsa",
+    "name": "National Center for Supercomputing Applications",
+    "originated_id": "NCSA"
+  },
+  {
+    "id": "org-psc",
+    "name": "Pittsburgh Supercomputing Center",
+    "originated_id": "PSC"
+  },
+  {
+    "id": "org-sdsc",
+    "name": "San Diego Supercomputer Center",
+    "originated_id": "SDSC"
+  },
+  {
+    "id": "org-purdue",
+    "name": "Purdue University",
+    "originated_id": "PURDUE"
+  },
+  {
+    "id": "org-indiana",
+    "name": "Indiana University",
+    "originated_id": "IU"
+  },
+  {
+    "id": "org-jhu",
+    "name": "Johns Hopkins University",
+    "originated_id": "JHU"
+  },
+  {
+    "id": "org-uky",
+    "name": "University of Kentucky",
+    "originated_id": "UKY"
+  },
+  {
+    "id": "org-osc",
+    "name": "Ohio Supercomputer Center",
+    "originated_id": "OSC"
+  }
+]
