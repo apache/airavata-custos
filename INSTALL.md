@@ -178,8 +178,16 @@ yet. To populate it:
 
 ## 9. (Optional) Public landing page
 
-Custos ships a default landing page at
-[`web/landing/index.html`](web/landing/index.html), a single self-contained
-file with no build step. Replace it with your own `index.html` to get your
-site's landing page. Serve it as a static page from whatever web server
-fronts your deployment.
+The portal serves a landing page at `/` to signed-out users; signed-in
+users get the portal home instead. The page lives at
+[`web/public/landing/index.html`](web/public/landing/index.html), a single
+self-contained file.
+
+To use your own landing page, replace that file with your `index.html` before
+building the portal. Put any assets it needs (images, stylesheets, fonts)
+anywhere under `web/public/` and reference them by their URL path from the
+site root (`web/public/brand/logo.svg` is served at `/brand/logo.svg`). They
+ship with the build automatically.
+
+Point the page's sign-in links at `/api/auth/federated-sign-in` to send
+users straight to the identity provider.

@@ -69,6 +69,12 @@ describe("end-session route", () => {
     expect(res.headers.get("location")).toBe("https://portal.example.org/sign-in");
   });
 
+  it("defaults the callback to the deployment root", async () => {
+    fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+    const res = await GET(new NextRequest("http://localhost:3000/api/auth/end-session"));
+    expect(res.headers.get("location")).toBe("https://portal.example.org/");
+  });
+
   it("redirects locally when discovery fails", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network"));
     const res = await GET(request());
@@ -81,5 +87,30 @@ describe("end-session route", () => {
     const cookie = res.cookies.get("custos.session-token");
     expect(cookie?.value).toBe("");
     expect(cookie?.maxAge).toBe(0);
+  });
+
+  it("marks the __Secure- deletion Secure so browsers accept it", async () => {
+    fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+    const res = await GET(request());
+    expect(res.cookies.get("__Secure-custos.session-token")?.secure).toBe(true);
+  });
+
+  it("clears chunked session cookies", async () => {
+    fetchMock.mockResolvedValueOnce(discoveryResponse({}));
+    const req = new NextRequest("http://localhost:3000/api/auth/end-session", {
+      headers: {
+        cookie:
+          "__Secure-custos.session-token.0=aaa; __Secure-custos.session-token.1=bbb",
+      },
+    });
+    const res = await GET(req);
+    for (const name of [
+      "__Secure-custos.session-token.0",
+      "__Secure-custos.session-token.1",
+    ]) {
+      const cookie = res.cookies.get(name);
+      expect(cookie?.value).toBe("");
+      expect(cookie?.maxAge).toBe(0);
+    }
   });
 });

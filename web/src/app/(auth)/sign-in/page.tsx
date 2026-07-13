@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { SignInForm } from "./SignInForm";
 
@@ -22,7 +23,15 @@ export const metadata = {
   title: "Sign in · Custos Portal",
 };
 
-export default function SignInPage() {
+type SearchParams = Promise<{ error?: string; callbackUrl?: string }>;
+
+// Rendered only on auth errors; otherwise the user goes straight to the IdP.
+export default async function SignInPage(props: { searchParams: SearchParams }) {
+  const { error, callbackUrl } = await props.searchParams;
+  if (!error) {
+    const suffix = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
+    redirect(`/api/auth/federated-sign-in${suffix}`);
+  }
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted px-6 py-12">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
