@@ -1,0 +1,91 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: Core Verify
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/db/migrations/**'
+      - '.github/workflows/core-verify.yml'
+  push:
+    branches: [master]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/db/migrations/**'
+      - '.github/workflows/core-verify.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Format, build, vet, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:11.2
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: custos
+          MARIADB_USER: admin
+          MARIADB_PASSWORD: admin
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Check formatting
+        run: |
+          files=$(gofmt -l .)
+          if [ -n "$files" ]; then
+            echo "gofmt required on:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Unit tests
+        run: go test ./...
+
+      # The AMIE integration suite has its own workflow and compose stack;
+      # this covers the core suite only.
+      - name: Core integration tests
+        env:
+          CORE_TEST_DATABASE_DSN: "admin:admin@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true"
+        run: go test -tags integration ./internal/...
