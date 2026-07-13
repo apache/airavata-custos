@@ -21,6 +21,14 @@ import { cn } from "@/lib/utils";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
 import { DEFAULT_PERMISSION_KEYS, permissionRowsFor } from "@/shared/users-admin/permissions";
 
+const ACTION_CHIP_CLASSES: Record<string, string> = {
+  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
+  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+};
+const ACTION_CHIP_FALLBACK =
+  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
+const INACTIVE_CHIP_CLASS = "bg-muted text-muted-foreground";
+
 export function PermissionMatrixEditor({
   permissions,
   catalog = DEFAULT_PERMISSION_KEYS,
@@ -48,8 +56,8 @@ export function PermissionMatrixEditor({
                 const className = cn(
                   "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
                   privilege.active
-                    ? "bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]"
-                    : "bg-[color:var(--custos-gray-100)] text-[color:var(--custos-gray-400)]",
+                    ? ACTION_CHIP_CLASSES[privilege.action] ?? ACTION_CHIP_FALLBACK
+                    : INACTIVE_CHIP_CLASS,
                   editable && "cursor-pointer transition-transform hover:scale-105",
                 );
                 if (!editable) {
