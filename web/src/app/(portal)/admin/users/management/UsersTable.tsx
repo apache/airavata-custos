@@ -20,6 +20,7 @@
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 import { useCurrentUser } from "@/features/core/identity/queries";
+import { cn } from "@/lib/utils";
 import {
   replaceShallowSearchParams,
   useShallowSearchParams,
@@ -145,7 +146,14 @@ export function UsersTable() {
   ];
 
   return (
-    <div className="space-y-4">
+    // The details panel is non-modal; push the content aside while it is
+    // open so no table columns hide behind it (24rem = the panel's max-w-sm).
+    <div
+      className={cn(
+        "space-y-4 transition-[margin-right] duration-200",
+        selectedUser && "lg:mr-[24rem]",
+      )}
+    >
       <div className="flex flex-col gap-3 rounded-md border bg-card p-4 sm:flex-row sm:items-center">
         <Input
           type="search"
@@ -192,8 +200,8 @@ export function UsersTable() {
           setSelectedId((prev) => (prev === row.id ? null : (row.id ?? null)));
         }}
         rowClassName={(row) =>
-          isCurrentUser(row)
-            ? "bg-[color:var(--custos-blue-50)]/40 hover:bg-[color:var(--custos-blue-50)]/60"
+          row.id && row.id === selectedId
+            ? "bg-[color:var(--brand-tint)] hover:bg-[color:var(--brand-tint)]"
             : undefined
         }
         empty={

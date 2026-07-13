@@ -43,6 +43,15 @@ function grantedLine(grant: UserRole): string | null {
 
 const columnHeading = "mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
+// Same chip treatment as the users-admin read/write boxes; verbs outside the
+// read/write pair (grant, manage) get the accent tone.
+const ACTION_CHIP_CLASSES: Record<string, string> = {
+  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
+  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+};
+const ACTION_CHIP_FALLBACK =
+  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
+
 export function AccessCard({ access }: { access: MyAccess }) {
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const rows = buildPrivilegeRows(access);
@@ -97,7 +106,10 @@ export function AccessCard({ access }: { access: MyAccess }) {
                       {row.actions.map((action) => (
                         <span
                           key={action}
-                          className="rounded-[5px] border border-border bg-muted px-2 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground"
+                          className={cn(
+                            "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
+                            ACTION_CHIP_CLASSES[action] ?? ACTION_CHIP_FALLBACK,
+                          )}
                         >
                           {action}
                         </span>

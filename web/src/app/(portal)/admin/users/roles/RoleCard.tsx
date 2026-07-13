@@ -26,7 +26,7 @@ import type { RoleRow } from "@/shared/users-admin/types";
 import { RoleFormDialog } from "./RoleFormDialog";
 
 export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: number }) {
-  const rwPermissions = rwStateFor(role.permissions);
+  const rwPermissions = rwStateFor(role.permissions).filter((p) => p.read || p.write);
 
   return (
     <Card>
@@ -56,14 +56,18 @@ export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: nu
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Effective Privileges
           </h4>
-          <ul className="space-y-2">
-            {rwPermissions.map((p) => (
-              <li key={p.section} className="flex items-center justify-between text-sm">
-                <span className="font-mono text-foreground">{p.section}</span>
-                <PermissionRW read={p.read} write={p.write} />
-              </li>
-            ))}
-          </ul>
+          {rwPermissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No privileges granted.</p>
+          ) : (
+            <ul className="space-y-2">
+              {rwPermissions.map((p) => (
+                <li key={p.section} className="flex items-center justify-between text-sm">
+                  <span className="font-mono text-foreground">{p.section}</span>
+                  <PermissionRW read={p.read} write={p.write} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="border-t border-border" />

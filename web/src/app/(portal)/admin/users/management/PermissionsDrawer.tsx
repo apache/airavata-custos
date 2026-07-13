@@ -32,7 +32,9 @@ export function PermissionsDrawer({
   onClose: () => void;
 }) {
   const { roles, toggleUserRole } = useUsersAdmin();
-  const rwPermissions = rwStateFor(user ? permissionsFromRoles(user.roles) : []);
+  const rwPermissions = rwStateFor(user ? permissionsFromRoles(user.roles) : []).filter(
+    (p) => p.read || p.write,
+  );
   const heldRoleIds = new Set(user?.roles.map((r) => r.id ?? "") ?? []);
 
   return (
@@ -101,14 +103,18 @@ export function PermissionsDrawer({
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Effective Privileges
             </h3>
-            <ul className="space-y-2">
-              {rwPermissions.map((p) => (
-                <li key={p.section} className="flex items-center justify-between text-sm">
-                  <span className="font-mono text-foreground">{p.section}</span>
-                  <PermissionRW read={p.read} write={p.write} />
-                </li>
-              ))}
-            </ul>
+            {rwPermissions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No privileges granted.</p>
+            ) : (
+              <ul className="space-y-2">
+                {rwPermissions.map((p) => (
+                  <li key={p.section} className="flex items-center justify-between text-sm">
+                    <span className="font-mono text-foreground">{p.section}</span>
+                    <PermissionRW read={p.read} write={p.write} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       )}
