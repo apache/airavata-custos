@@ -105,10 +105,34 @@ describe("AccessCard", () => {
         }}
       />,
     );
-    expect(screen.getByText(/role details are not visible/i)).toBeInTheDocument();
+    expect(screen.getByText(/no roles assigned/i)).toBeInTheDocument();
     expect(screen.getByText("core:users")).toBeInTheDocument();
     expect(screen.getByText("amie:packets")).toBeInTheDocument();
     // Never claim "Direct grant" without the provenance data.
     expect(screen.queryByText("Direct grant")).not.toBeInTheDocument();
+  });
+
+  it("lists held roles with attribution even without provenance", () => {
+    render(
+      <AccessCard
+        access={{
+          provenance: false,
+          roles: [
+            {
+              role: { id: "role-reviewer", name: "Reviewer", description: "Reads reports." },
+              privileges: ["core:users:read"],
+              grant: { role_id: "role-reviewer", granted_at: "2026-07-01T09:00:00Z" },
+            },
+          ],
+          direct: [],
+          privileges: ["core:users:read", "core:traces:read"],
+        }}
+      />,
+    );
+    expect(roleCard("role-reviewer")).toHaveTextContent("Reviewer");
+    expect(roleCard("role-reviewer")).toHaveTextContent("Granted");
+    expect(rowFor("core:users")).toHaveTextContent("Reviewer");
+    // A key not carried by any visible role must not claim "Direct grant".
+    expect(rowFor("core:traces")).not.toHaveTextContent("Direct grant");
   });
 });

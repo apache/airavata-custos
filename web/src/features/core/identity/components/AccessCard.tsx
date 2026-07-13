@@ -68,18 +68,11 @@ export function AccessCard({ access }: { access: MyAccess }) {
       <div className="grid grid-cols-1 border-t border-border md:grid-cols-2">
         <section className="px-6 py-5 md:border-r md:border-border">
           <h4 className={columnHeading}>Roles</h4>
-          {access.provenance ? (
-            <RolesColumn
-              roles={access.roles}
-              activeRole={activeRole}
-              onHover={setActiveRole}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Role details are not visible with your current access. Your effective
-              privileges are listed on the right.
-            </p>
-          )}
+          <RolesColumn
+            roles={access.roles}
+            activeRole={activeRole}
+            onHover={setActiveRole}
+          />
         </section>
 
         <section className="border-t border-border px-6 py-5 md:border-t-0">

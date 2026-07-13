@@ -287,6 +287,14 @@ export const zRole = z.object({
 
 export type roleZodType = z.infer<typeof zRole>;
 
+export const zCallerRoleGrant = z.object({
+    granted_at: z.string().optional(),
+    privileges: z.array(zPrivilegeKey).optional(),
+    role: zRole.optional()
+});
+
+export type callerRoleGrantZodType = z.infer<typeof zCallerRoleGrant>;
+
 export const zTraceEvent = z.object({
     created_at: z.string().optional(),
     description: z.string().optional(),
@@ -403,6 +411,7 @@ export type userZodType = z.infer<typeof zUser>;
 
 export const zCallerProfileResponse = z.object({
     privileges: z.array(zPrivilegeKey).optional(),
+    roles: z.array(zCallerRoleGrant).optional(),
     user: zUser.optional()
 });
 

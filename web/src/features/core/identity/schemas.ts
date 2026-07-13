@@ -54,10 +54,23 @@ export const privilegesResponseSchema = callerPrivilegesSchema.transform(
   (value) => value.privileges ?? [],
 );
 
-// GET /me — profile plus effective privilege keys.
+export const callerRoleGrantSchema = z.object({
+  role: zRole,
+  privileges: z
+    .array(privilegeKeySchema)
+    .nullish()
+    .transform((value) => value ?? []),
+  granted_at: z.string(),
+});
+
+// GET /me: profile plus effective privilege keys and held roles.
 export const meResponseSchema = z.object({
   user: zUser,
   privileges: z.array(privilegeKeySchema).optional(),
+  roles: z
+    .array(callerRoleGrantSchema)
+    .nullish()
+    .transform((value) => value ?? []),
 });
 
 // Backend may send null instead of [] for empty lists; tolerate it.
@@ -94,4 +107,5 @@ export type UserIdentity = z.infer<typeof zUserIdentity>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserPrivilege = z.infer<typeof userPrivilegeSchema>;
 export type RoleWithPrivileges = z.infer<typeof roleWithPrivilegesSchema>;
+export type CallerRoleGrant = z.infer<typeof callerRoleGrantSchema>;
 export type UserNameUpdate = z.infer<typeof userNameUpdateSchema>;

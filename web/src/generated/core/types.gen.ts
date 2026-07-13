@@ -28,7 +28,14 @@ export type AllocationStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
 export type CallerProfileResponse = {
     privileges?: Array<PrivilegeKey>;
+    roles?: Array<CallerRoleGrant>;
     user?: User;
+};
+
+export type CallerRoleGrant = {
+    granted_at?: string;
+    privileges?: Array<PrivilegeKey>;
+    role?: Role;
 };
 
 export type ComputeAllocation = {

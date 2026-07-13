@@ -26,6 +26,7 @@ import {
   userSchema,
 } from "./schemas";
 import type {
+  CallerRoleGrant,
   RoleWithPrivileges,
   UserIdentity,
   UserNameUpdate,
@@ -39,11 +40,11 @@ export async function getPrivileges(): Promise<Privilege[]> {
   return privilegesResponseSchema.parse(raw);
 }
 
-export type Me = { user: UserProfile; privileges: Privilege[] };
+export type Me = { user: UserProfile; privileges: Privilege[]; roles: CallerRoleGrant[] };
 
 export async function getMe(): Promise<Me> {
   const parsed = meResponseSchema.parse(await apiFetch("/me"));
-  return { user: parsed.user, privileges: parsed.privileges ?? [] };
+  return { user: parsed.user, privileges: parsed.privileges ?? [], roles: parsed.roles };
 }
 
 export async function getMyIdentities(userId: string): Promise<UserIdentity[]> {
