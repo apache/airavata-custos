@@ -63,6 +63,7 @@ export const portalNav: NavItem[] = [
     label: "Users & Permissions",
     icon: UserCog,
     group: "admin",
+    ability: { action: "read", subject: "User" },
   },
   {
     href: "/admin/traces",
