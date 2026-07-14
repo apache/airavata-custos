@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserIdentity } from "@/generated/core/types.gen";
+import type { UserIdentity } from "@/features/core/users/schemas";
 import { Badge } from "@/shared/ui/badge";
 import { identitySourceIcon, identitySourceLabel } from "./identities";
 
@@ -8,10 +8,14 @@ const VISIBLE_IDENTITY_COUNT = 2;
 
 export function IdentitiesCell({
   identities,
+  isLoading,
+  hasError,
   expanded,
   onToggleExpand,
 }: {
   identities: UserIdentity[];
+  isLoading: boolean;
+  hasError: boolean;
   expanded: boolean;
   onToggleExpand: () => void;
 }) {
@@ -20,7 +24,11 @@ export function IdentitiesCell({
 
   return (
     <div className="flex w-[220px] flex-wrap items-center gap-1.5">
-      {identities.length === 0 ? (
+      {isLoading ? (
+        <span className="text-sm text-muted-foreground">Loading identities…</span>
+      ) : hasError ? (
+        <span className="text-sm text-muted-foreground">Identities unavailable</span>
+      ) : identities.length === 0 ? (
         <span className="text-sm text-muted-foreground">No identities</span>
       ) : (
         visible.map((identity) => {

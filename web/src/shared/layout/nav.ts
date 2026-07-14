@@ -23,7 +23,6 @@ import {
   HardDrive,
   Server,
   type LucideIcon,
-  Server,
   UserCog,
 } from "lucide-react";
 
@@ -64,6 +63,7 @@ export const portalNav: NavItem[] = [
     label: "Users & Permissions",
     icon: UserCog,
     group: "admin",
+    ability: { action: "read", subject: "User" },
   },
   {
     href: "/admin/traces",
