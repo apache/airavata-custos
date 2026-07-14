@@ -21,8 +21,8 @@ import {
   ClipboardList,
   FolderKanban,
   HardDrive,
-  type LucideIcon,
   Server,
+  type LucideIcon,
   UserCog,
 } from "lucide-react";
 

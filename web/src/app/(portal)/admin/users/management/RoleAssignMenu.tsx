@@ -1,24 +1,7 @@
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 "use client";
 
-import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useRoleDetails } from "@/features/core/users/queries";
+import type { Role } from "@/features/core/users/schemas";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -29,9 +12,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/dialog";
-import { PermissionRW } from "@/shared/users-admin/PermissionRW";
-import { rwStateFor } from "@/shared/users-admin/permissions";
-import type { RoleRow } from "@/shared/users-admin/types";
+import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { PrivilegeList } from "./PrivilegeList";
 
 function setsEqual(a: Set<string>, b: Set<string>) {
   if (a.size !== b.size) return false;
@@ -44,16 +27,27 @@ function setsEqual(a: Set<string>, b: Set<string>) {
 export function RoleAssignMenu({
   roles,
   heldRoleIds,
-  onToggleRole,
+  onSave,
   triggerLabel,
+  isCurrentUser,
+  isPending,
+  error,
 }: {
-  roles: RoleRow[];
+  roles: Role[];
   heldRoleIds: Set<string>;
-  onToggleRole: (roleId: string) => void;
+  onSave: (roleIds: string[]) => Promise<boolean>;
   triggerLabel: string;
+  isCurrentUser: boolean;
+  isPending: boolean;
+  error: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
+  const details = useRoleDetails(
+    roles.flatMap((role) => (role.id ? [role.id] : [])),
+    open,
+  );
+  const detailById = new Map(details.roles.map((role) => [role.id, role]));
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -69,13 +63,20 @@ export function RoleAssignMenu({
     });
   }
 
-  function handleSave() {
-    for (const role of roles) {
-      if (role.id && draftIds.has(role.id) !== heldRoleIds.has(role.id)) {
-        onToggleRole(role.id);
-      }
+  async function handleSave() {
+    const removedIds = [...heldRoleIds].filter((roleId) => !draftIds.has(roleId));
+    const removesOwnRoleManager =
+      isCurrentUser &&
+      removedIds.some((roleId) => detailById.get(roleId)?.privileges.includes("core:roles:manage"));
+    const confirmationMessage = removesOwnRoleManager
+      ? "This may remove your own ability to manage roles. Continue with these changes?"
+      : isCurrentUser && removedIds.length > 0 && details.isError
+        ? "Some role privileges are unavailable, so these changes may remove your own access. Continue?"
+        : null;
+    if (confirmationMessage && !window.confirm(confirmationMessage)) {
+      return;
     }
-    setOpen(false);
+    if (await onSave([...draftIds])) setOpen(false);
   }
 
   const hasChanges = !setsEqual(draftIds, heldRoleIds);
@@ -103,7 +104,7 @@ export function RoleAssignMenu({
           <ul className="space-y-3 px-6 pt-3 pb-4">
             {roles.map((role) => {
               const assigned = role.id ? draftIds.has(role.id) : false;
-              const rwPermissions = rwStateFor(role.permissions).filter((p) => p.read || p.write);
+              const privileges = role.id ? (detailById.get(role.id)?.privileges ?? []) : [];
 
               return (
                 <li key={role.id} className="overflow-hidden rounded-lg border border-border">
@@ -122,26 +123,19 @@ export function RoleAssignMenu({
                       size="sm"
                       className="shrink-0"
                       onClick={() => role.id && toggleDraft(role.id)}
+                      disabled={isPending}
                     >
                       {assigned ? "Unassign" : "Assign"}
                     </Button>
                   </div>
 
                   <div className="p-4">
-                    {rwPermissions.length > 0 ? (
-                      <ul className="space-y-2">
-                        {rwPermissions.map((p) => (
-                          <li
-                            key={p.section}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="font-mono text-foreground">{p.section}</span>
-                            <PermissionRW read={p.read} write={p.write} />
-                          </li>
-                        ))}
-                      </ul>
+                    {details.isLoading && privileges.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Loading privileges…</p>
+                    ) : details.isError && privileges.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Privileges unavailable.</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No privileges granted.</p>
+                      <PrivilegeList privileges={privileges} />
                     )}
                   </div>
                 </li>
@@ -150,12 +144,26 @@ export function RoleAssignMenu({
           </ul>
         </div>
 
+        {error ? (
+          <p role="alert" className="text-sm text-[color:var(--custos-red-600)]">
+            {error}
+          </p>
+        ) : null}
         <DialogFooter className="-mt-5">
-          <Button variant="outline" onClick={() => setOpen(false)} type="button">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            type="button"
+            disabled={isPending}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} type="button" disabled={!hasChanges}>
-            Save
+          <Button
+            onClick={() => void handleSave()}
+            type="button"
+            disabled={!hasChanges || isPending || details.isLoading}
+          >
+            {isPending ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

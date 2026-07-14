@@ -18,6 +18,7 @@
 import { serverEnv } from "@/lib/env";
 import { getPortalSession, pickBackendBearer } from "@/shared/auth/session";
 import { type NextRequest, NextResponse } from "next/server";
+import { responseBodyForStatus } from "./proxy-response";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,10 @@ async function proxy(request: NextRequest, ctx: Context) {
   const session = await getPortalSession();
   const bearer = pickBackendBearer(session);
   if (!bearer) {
-    return NextResponse.json({ code: "missing_bearer", message: "Not authenticated" }, { status: 401 });
+    return NextResponse.json(
+      { code: "missing_bearer", message: "Not authenticated" },
+      { status: 401 },
+    );
   }
 
   const headers = new Headers();
@@ -57,9 +61,8 @@ async function proxy(request: NextRequest, ctx: Context) {
   const traceId = upstream.headers.get("x-trace-id");
   if (traceId) responseHeaders.set("x-trace-id", traceId);
 
-  const hasNoBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
-
-  return new NextResponse(hasNoBody ? null : await upstream.text(), {
+  const upstreamBody = await upstream.text();
+  return new NextResponse(responseBodyForStatus(upstream.status, upstreamBody), {
     status: upstream.status,
     headers: responseHeaders,
   });

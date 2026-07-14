@@ -17,10 +17,9 @@
 
 "use client";
 
-import { LogOut, Settings } from "lucide-react";
-import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { useSignOut } from "@/shared/auth/useSignOut";
+import { LogOut, ShieldCheck } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import * as React from "react";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -29,10 +28,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { MyPermissionsDialog } from "@/shared/users-admin/MyPermissionsDialog";
 
 export function UserPill() {
   const { data: session, status } = useSession();
-  const { signOut, isPending } = useSignOut();
+  const [permissionsOpen, setPermissionsOpen] = React.useState(false);
   const loading = status === "loading";
   const user = session?.user;
   const name = user?.name ?? user?.email ?? "Signed out";
@@ -60,31 +60,18 @@ export function UserPill() {
             </button>
           )}
         />
-        <DropdownMenuContent align="end" className="w-64">
-          <div className="px-2 py-1.5">
-            <div className="truncate text-sm font-semibold text-foreground">{name}</div>
-            <div className="truncate text-xs text-muted-foreground">{email}</div>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            render={(props) => (
-              <Link {...props} href="/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Link>
-            )}
-          />
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={isPending}
-            onClick={() => void signOut()}
-          >
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => setPermissionsOpen(true)}>
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            My Permissions
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void signOut({ callbackUrl: "/sign-in" })}>
             <LogOut className="mr-2 h-4 w-4" />
-            {isPending ? "Signing out…" : "Sign out"}
+            Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <MyPermissionsDialog open={permissionsOpen} onOpenChange={setPermissionsOpen} />
     </div>
   );
 }
