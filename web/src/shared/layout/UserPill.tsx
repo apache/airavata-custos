@@ -81,7 +81,7 @@ export function UserPill() {
             onClick={() => void signOut()}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Sign out
+            {isPending ? "Signing out…" : "Sign out"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

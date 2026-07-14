@@ -15,22 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export const DEFAULT_PERMISSION_KEYS = [
-  "core:allocations:read",
-  "core:allocations:write",
-  "core:clusters:read",
-  "core:clusters:write",
-  "core:organizations:read",
-  "core:organizations:write",
-  "core:privileges:grant",
-  "core:projects:read",
-  "core:projects:write",
-  "core:roles:manage",
-  "core:traces:read",
-  "core:users:read",
-  "core:users:write",
-] as const;
-
 export type PermissionKey = string;
 
 type PermissionParts = {
@@ -46,7 +30,7 @@ function splitPermission(key: PermissionKey): PermissionParts {
 
 export function permissionRowsFor(
   permissions: PermissionKey[],
-  catalog: readonly PermissionKey[] = DEFAULT_PERMISSION_KEYS,
+  catalog: readonly PermissionKey[] = permissions,
 ) {
   const held = new Set(permissions);
   const keys = Array.from(new Set([...catalog, ...permissions])).sort();

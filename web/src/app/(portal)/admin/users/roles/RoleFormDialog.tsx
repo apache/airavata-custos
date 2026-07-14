@@ -83,7 +83,7 @@ export function RoleFormDialog({
   }
 
   const saving = createRole.isPending || updateRole.isPending;
-  const catalog = catalogQuery.data;
+  const catalog = catalogQuery.data ?? [];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

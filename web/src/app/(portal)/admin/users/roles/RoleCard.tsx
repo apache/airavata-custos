@@ -21,11 +21,10 @@ import { Pencil, ShieldCheck } from "lucide-react";
 import type { RoleRow } from "@/features/core/roles/schemas";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
-import type { PermissionKey } from "@/shared/users-admin/permissions";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 import { RoleFormDialog } from "./RoleFormDialog";
 
-export function RoleCard({ role, catalog }: { role: RoleRow; catalog: readonly PermissionKey[] }) {
+export function RoleCard({ role }: { role: RoleRow }) {
   return (
     <Card>
       <CardHeader>
@@ -52,7 +51,7 @@ export function RoleCard({ role, catalog }: { role: RoleRow; catalog: readonly P
 
         <PermissionMatrixEditor
           permissions={role.privileges}
-          catalog={catalog}
+          catalog={role.privileges}
           onTogglePermission={() => undefined}
           editable={false}
         />

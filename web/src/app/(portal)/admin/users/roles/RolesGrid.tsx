@@ -17,14 +17,12 @@
 
 "use client";
 
-import { usePrivilegeCatalog, useRoleRows } from "@/features/core/roles/queries";
+import { useRoleRows } from "@/features/core/roles/queries";
 import { Button } from "@/shared/ui/button";
-import { DEFAULT_PERMISSION_KEYS } from "@/shared/users-admin/permissions";
 import { RoleCard } from "./RoleCard";
 
 export function RolesGrid() {
   const rolesQuery = useRoleRows();
-  const catalogQuery = usePrivilegeCatalog();
 
   if (rolesQuery.isPending) {
     return (
@@ -56,7 +54,6 @@ export function RolesGrid() {
   }
 
   const roles = rolesQuery.data;
-  const catalog = catalogQuery.data ?? [...DEFAULT_PERMISSION_KEYS];
 
   if (roles.length === 0) {
     return (
@@ -69,7 +66,7 @@ export function RolesGrid() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {roles.map((role) => (
-        <RoleCard key={role.id} role={role} catalog={catalog} />
+        <RoleCard key={role.id} role={role} />
       ))}
     </div>
   );
