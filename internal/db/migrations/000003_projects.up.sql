@@ -33,3 +33,19 @@ CREATE TABLE IF NOT EXISTS projects
     KEY idx_projects_status (status),
     CONSTRAINT fk_projects_pi FOREIGN KEY (project_pi_id) REFERENCES users (id) ON DELETE RESTRICT
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Project-level governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER
+-- status is derived from compute_allocation_memberships, so it is not stored
+-- here. One row per (project, user).
+CREATE TABLE IF NOT EXISTS project_memberships
+(
+    project_id VARCHAR(255) NOT NULL,
+    user_id    VARCHAR(255) NOT NULL,
+    role       VARCHAR(32)  NOT NULL,
+    added_time TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (project_id, user_id),
+    KEY idx_project_memberships_role (role),
+    CONSTRAINT fk_project_memberships_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+    CONSTRAINT fk_project_memberships_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT chk_project_memberships_role CHECK (role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

@@ -39,14 +39,19 @@ CREATE TABLE IF NOT EXISTS compute_allocations
 
 CREATE TABLE IF NOT EXISTS compute_allocation_resources
 (
-    id              VARCHAR(255) NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    resource_type   VARCHAR(64)  NOT NULL,
-    resource_amount BIGINT       NOT NULL DEFAULT 0,
-    created_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at      TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    id                 VARCHAR(255) NOT NULL,
+    name               VARCHAR(255) NOT NULL,
+    resource_type      VARCHAR(64)  NOT NULL,
+    resource_amount    BIGINT       NOT NULL DEFAULT 0,
+    compute_cluster_id VARCHAR(255) NOT NULL,
+    created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    KEY idx_compute_allocation_resources_type (resource_type)
+    UNIQUE KEY uq_compute_allocation_resources_cluster_name (compute_cluster_id, name),
+    KEY idx_compute_allocation_resources_type (resource_type),
+    KEY idx_compute_allocation_resources_cluster (compute_cluster_id),
+    CONSTRAINT fk_compute_allocation_resources_cluster FOREIGN KEY (compute_cluster_id)
+        REFERENCES compute_clusters (id) ON DELETE RESTRICT
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS compute_allocation_resource_mappings
@@ -154,8 +159,8 @@ CREATE TABLE IF NOT EXISTS compute_allocation_usages
 (
     id                             VARCHAR(255) NOT NULL,
     compute_allocation_id          VARCHAR(255) NOT NULL,
-    used_raw_amount                BIGINT       NOT NULL DEFAULT 0,
-    used_su_amount                 BIGINT       NOT NULL DEFAULT 0,
+    used_raw_amount                DOUBLE       NOT NULL DEFAULT 0,
+    used_su_amount                 DOUBLE       NOT NULL DEFAULT 0,
     calculated_time                TIMESTAMP(6) NOT NULL,
     user_id                        VARCHAR(255) NOT NULL DEFAULT '',
     job_id                         VARCHAR(255) NOT NULL DEFAULT '',
