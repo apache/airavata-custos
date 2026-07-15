@@ -31,12 +31,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-const NEW_ADMIN_LABELS = ["Organizations", "Resources", "Users & Permissions"];
+const NEW_ADMIN_LABELS = ["Organizations", "Resources"];
 
 const FULL_PRIVILEGES: Privilege[] = [
   "core:organizations:read",
   "core:clusters:read",
-  "core:users:read",
 ];
 
 beforeEach(() => {
