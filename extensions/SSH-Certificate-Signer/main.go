@@ -168,7 +168,7 @@ func runServer(cfg *config.Config, logger *slog.Logger, autoMigrate bool) {
 		"cache_ttl_seconds", cfg.Signer.Validation.CacheTTLSeconds)
 
 	signHandler := handler.NewSignHandler(oidcValidator, policyEnforcer, principalValidator, vaultClient, auditLogger, logger)
-	revokeHandler := handler.NewRevokeHandler(auditLogger, logger)
+	revokeHandler := handler.NewRevokeHandler(auditLogger, db, logger)
 	jwksHandler := handler.NewJWKSHandler(vaultClient, logger)
 	caPublicKeyHandler := handler.NewCAPublicKeyHandler(vaultClient, logger)
 	healthHandler := handler.NewHealthHandler(db, vaultClient)

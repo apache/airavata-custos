@@ -25,6 +25,7 @@ import { organizationsHandlers } from "./handlers/organizations";
 import { privilegesHandlers } from "./handlers/privileges";
 import { projectsHandlers } from "./handlers/projects";
 import { resourcesHandlers } from "./handlers/resources";
+import { signerHandlers } from "./handlers/signer";
 import { tracesHandlers } from "./handlers/traces";
 
 export const handlers: RequestHandler[] = [
@@ -38,4 +39,5 @@ export const handlers: RequestHandler[] = [
   ...amieHandlers,
   ...clustersHandlers,
   ...resourcesHandlers,
+  ...signerHandlers,
 ];

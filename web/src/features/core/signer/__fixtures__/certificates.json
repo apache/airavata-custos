@@ -1,0 +1,46 @@
+[
+  {
+    "serial_number": 42,
+    "key_id": "dev-admin@login.cluster.example.org-1700000000",
+    "principal": "dev-admin",
+    "public_key_fingerprint": "SHA256:7d8f2a1bUserKeyFingerprintActiveExample0001",
+    "ca_fingerprint": "SHA256:caFingerprintExample00000000000000000000001",
+    "valid_after": 1700000000,
+    "valid_before": 4102444800,
+    "issued_at": 1700000000,
+    "source_ip": "203.0.113.42",
+    "granted_extensions": ["permit-pty", "permit-user-rc"],
+    "force_command": null,
+    "revoked": false
+  },
+  {
+    "serial_number": 43,
+    "key_id": "dev-admin@login.cluster.example.org-1576800000",
+    "principal": "dev-admin",
+    "public_key_fingerprint": "SHA256:9a1c3e5bUserKeyFingerprintExpiredExample002",
+    "ca_fingerprint": "SHA256:caFingerprintExample00000000000000000000001",
+    "valid_after": 1576800000,
+    "valid_before": 1577836800,
+    "issued_at": 1576800000,
+    "source_ip": "203.0.113.43",
+    "granted_extensions": ["permit-pty"],
+    "force_command": null,
+    "revoked": false
+  },
+  {
+    "serial_number": 44,
+    "key_id": "dev-admin@login.cluster.example.org-1690000000",
+    "principal": "dev-admin",
+    "public_key_fingerprint": "SHA256:4b6d8f0aUserKeyFingerprintRevokedExample003",
+    "ca_fingerprint": "SHA256:caFingerprintExample00000000000000000000001",
+    "valid_after": 1690000000,
+    "valid_before": 4102444800,
+    "issued_at": 1690000000,
+    "source_ip": "203.0.113.44",
+    "granted_extensions": ["permit-pty"],
+    "force_command": null,
+    "revoked": true,
+    "revoked_at": 1690500000,
+    "revocation_reason": "Key compromised"
+  }
+]

@@ -64,6 +64,8 @@ const PRIVILEGES: Record<Persona, string[]> = {
     "amie:replies:write",
     "amie:unmapped:read",
     "amie:unmapped:write",
+    "signer:certificates:read",
+    "signer:certificates:write",
   ],
 };
 

@@ -24,6 +24,9 @@ export const serverSchema = z.object({
 
   CUSTOS_CORE_API_BASE_URL: z.string().url().default("http://localhost:8080"),
 
+  // SSH Certificate Signer (separate service; proxy routes /signer/* here).
+  CUSTOS_SIGNER_API_BASE_URL: z.string().url().default("http://localhost:8084"),
+
   OIDC_ISSUER_URL: z.string().url(),
   OIDC_CLIENT_ID: z.string().min(1),
   OIDC_CLIENT_SECRET: z.string().min(1),
