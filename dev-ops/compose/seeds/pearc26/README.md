@@ -63,7 +63,7 @@ To reset one attendee (registry person, custos rows, cluster cache):
 | 01_org_cluster.sql | PEARC26 Attendees org; the `nexus-dev` cluster row |
 | 02_resources_rates.sql | `debug` partition catalog entry + SU rate |
 | 03_admin_role.sql | approver/bootstrap-admin user + `access-approver` role |
-| setup-live.sh | project (PI = seed-03 admin), `pearc26-tutorial` allocation (25000 SU), resource grant, PEARC26 access-event row |
+| setup-live.sh | project (PI = the admin who authenticates), `pearc26-tutorial` allocation (25000 SU), resource grant, PEARC26 access-event row |
 
 ## Notes
 
@@ -73,7 +73,8 @@ To reset one attendee (registry person, custos rows, cluster cache):
   different id means approvals silently never reach COmanage. The row
   upserts the name to `nexus-dev` if `default_cluster.sql` got there
   first.
-- The seed-03 user is approver, bootstrap admin, AND project PI: set
+- The seed-03 user is a fallback approver role holder; the PI is whoever
+  runs setup-live.sh. Bootstrap admin: set
   `CUSTOS_BOOTSTRAP_ADMIN_EMAIL=approver@pearc26.local` (or edit that
   email to your own) and boot grants super_admin idempotently.
 - **Never create the allocation with SQL.** Seeded rows bypass the event

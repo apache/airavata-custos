@@ -89,13 +89,14 @@ capi() { # method path [json-body] -- prints the body, aborts loudly on non-2xx
 
 echo "== Preflight: who am I against the backend"
 me=$(capi GET /me)
-echo "$me" | python3 -c "
+ADMIN_ID=$(echo "$me" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 u=d.get('user') or {}
-print('  user:', u.get('email'), '(', u.get('id'), ')')
-print('  privileges:', len(d.get('privileges') or []))
-" || { echo "Could not parse /me response: $me"; exit 1; }
+print('  user:', u.get('email'), '(', u.get('id'), ')', file=sys.stderr)
+print('  privileges:', len(d.get('privileges') or []), file=sys.stderr)
+print(u.get('id') or '')")
+[ -n "$ADMIN_ID" ] || { echo "Could not resolve the caller from /me: $me"; exit 1; }
 if ! echo "$me" | grep -q "projects:write"; then
   echo "This identity lacks core:projects:write. Authenticate as the ADMIN"
   echo "identity at the CILogon prompt (the linked admin email), then re-run."
@@ -103,7 +104,8 @@ if ! echo "$me" | grep -q "projects:write"; then
 fi
 
 echo "== Creating project"
-project=$(capi POST /projects '{"originated_id":"PEARC26","title":"PEARC26 Tutorial Workshop","origination":"pearc26","project_pi_id":"pearc26-approver","status":"ACTIVE"}')
+# The authenticated admin is the PI: the seed approver has no login.
+project=$(capi POST /projects "{\"originated_id\":\"PEARC26\",\"title\":\"PEARC26 Tutorial Workshop\",\"origination\":\"pearc26\",\"project_pi_id\":\"$ADMIN_ID\",\"status\":\"ACTIVE\"}")
 project_id=$(echo "$project" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
 echo "  project $project_id"
 
@@ -121,7 +123,7 @@ echo "  grant: cpu x4 for 87840 minutes on partition debug"
 echo "== Recording PI membership and the PEARC26 access event"
 "${DB_EXEC[@]}" <<SQL
 INSERT IGNORE INTO project_memberships (project_id, user_id, role, added_time)
-VALUES ('$project_id', 'pearc26-approver', 'PI', NOW(6));
+VALUES ('$project_id', '$ADMIN_ID', 'PI', NOW(6));
 INSERT INTO access_events (code, compute_allocation_id, organization_id)
 VALUES ('PEARC26', '$alloc_id', 'pearc26-org')
 ON DUPLICATE KEY UPDATE compute_allocation_id = '$alloc_id';
