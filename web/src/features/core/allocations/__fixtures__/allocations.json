@@ -38,5 +38,15 @@
     "initial_su_amount": 50000,
     "start_time": "2026-02-09T00:00:00.000Z",
     "end_time": "2026-08-09T00:00:00.000Z"
+  },
+  {
+    "id": "alloc-pearc26-001",
+    "project_id": "project-pearc26",
+    "name": "pearc26-tutorial",
+    "status": "ACTIVE",
+    "compute_cluster_id": "cluster-001",
+    "initial_su_amount": 5000,
+    "start_time": "2026-07-01T00:00:00.000Z",
+    "end_time": "2026-08-31T00:00:00.000Z"
   }
 ]

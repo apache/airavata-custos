@@ -15,8 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { http, HttpResponse } from "msw";
 import type { AccessRequest } from "@/features/core/access-requests/schemas";
+import { http, HttpResponse } from "msw";
 
 const EVENT_NAMES: Record<string, string> = {
   PEARC26: "pearc26-tutorial",
@@ -90,6 +90,29 @@ export function resetAccessRequests() {
 
 const notFound = () => HttpResponse.json({ error: "not found" }, { status: 404 });
 
+// Test seam: e2e seeds the caller's own denied request via a non-httpOnly
+// cookie, mirroring the privileges handler.
+function deniedMineFromCookie(): AccessRequest | null {
+  if (typeof document === "undefined") return null;
+  if (!document.cookie.split("; ").includes("custos.test-my-access-request=DENIED")) return null;
+  return {
+    id: "areq-mine-denied",
+    oidc_sub: "sub-mock-caller",
+    email: "caller@example.edu",
+    name: "Mock Caller",
+    institution: "Example University",
+    event_code: "PEARC26",
+    reason: "",
+    status: "DENIED",
+    approver_id: "user-admin-001",
+    deny_reason: "Could not verify event registration for this attendee.",
+    expires_at: null,
+    created_user_id: "",
+    timestamp: "2026-07-10T14:05:00Z",
+    decided_at: "2026-07-11T09:00:00Z",
+  };
+}
+
 // The privileged list carries decision context; /me stays the bare model.
 function bare(row: AccessRequest): Omit<AccessRequest, "decided_at" | "allocation_id"> {
   const { decided_at: _decidedAt, allocation_id: _allocationId, ...rest } = row;
@@ -97,9 +120,10 @@ function bare(row: AccessRequest): Omit<AccessRequest, "decided_at" | "allocatio
 }
 
 export const accessRequestsHandlers = [
-  http.get("*/api/v1/access-requests/me", () =>
-    mine ? HttpResponse.json(bare(mine)) : notFound(),
-  ),
+  http.get("*/api/v1/access-requests/me", () => {
+    const row = mine ?? deniedMineFromCookie();
+    return row ? HttpResponse.json(bare(row)) : notFound();
+  }),
 
   http.get("*/api/v1/access-requests/events/:code", ({ params }) => {
     const code = String(params.code);
