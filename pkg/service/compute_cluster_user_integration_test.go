@@ -22,11 +22,14 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
@@ -82,5 +85,78 @@ func TestMarkComputeClusterUserProvisioned_RoundTrip(t *testing.T) {
 
 	if err := svc.MarkComputeClusterUserProvisioned(ctx(), "missing-"+uuid.NewString()); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound for unknown id, got %v", err)
+	}
+}
+
+func TestAllocateComputeClusterUser_CollisionRetry(t *testing.T) {
+	database := setupTestDB(t)
+	svc := newTestService(database)
+
+	cluster, err := svc.CreateComputeCluster(ctx(), &models.ComputeCluster{
+		Name: "posix-alloc-" + uuid.NewString()[:8],
+	})
+	if err != nil {
+		t.Fatalf("create cluster: %v", err)
+	}
+
+	org, err := svc.CreateOrganization(ctx(), &models.Organization{
+		OriginatedID: uuid.NewString(),
+		Name:         "posix-alloc-test-org",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+
+	const n = 10
+	users := make([]*models.User, n)
+	for i := range users {
+		u, err := svc.CreateUser(ctx(), &models.User{
+			OrganizationID: org.ID,
+			FirstName:      "Collision",
+			LastName:       "Target",
+			Email:          fmt.Sprintf("col-%s@example.invalid", uuid.NewString()),
+		})
+		if err != nil {
+			t.Fatalf("create user %d: %v", i, err)
+		}
+		users[i] = u
+	}
+
+	type result struct {
+		username string
+		err      error
+	}
+	results := make([]result, n)
+	var wg sync.WaitGroup
+	for i, u := range users {
+		wg.Add(1)
+		go func(idx int, user *models.User) {
+			defer wg.Done()
+			ccu, err := svc.AllocateComputeClusterUser(ctx(), user, cluster.ID)
+			if err != nil {
+				results[idx] = result{err: err}
+				return
+			}
+			results[idx] = result{username: ccu.LocalUsername}
+		}(i, u)
+	}
+	wg.Wait()
+
+	seen := make(map[string]bool)
+	for i, r := range results {
+		if r.err != nil {
+			t.Errorf("goroutine %d: %v", i, r.err)
+			continue
+		}
+		if seen[r.username] {
+			t.Errorf("duplicate username %q across goroutines", r.username)
+		}
+		seen[r.username] = true
+		if !strings.HasPrefix(r.username, posix.Prefix()+"-") {
+			t.Errorf("username %q does not start with %q", r.username, posix.Prefix()+"-")
+		}
+	}
+	if len(seen) != n {
+		t.Errorf("distinct usernames: got %d, want %d", len(seen), n)
 	}
 }

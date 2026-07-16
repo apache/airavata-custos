@@ -24,6 +24,9 @@ var _ CoreService = &CoreServiceMock{}
 //			AddPrivilegeToRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the AddPrivilegeToRole method")
 //			},
+//			AllocateComputeClusterUserFunc: func(ctx context.Context, user *models.User, clusterID string) (*models.ComputeClusterUser, error) {
+//				panic("mock out the AllocateComputeClusterUser method")
+//			},
 //			AttachResourceToAllocationFunc: func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error) {
 //				panic("mock out the AttachResourceToAllocation method")
 //			},
@@ -450,6 +453,9 @@ var _ CoreService = &CoreServiceMock{}
 type CoreServiceMock struct {
 	// AddPrivilegeToRoleFunc mocks the AddPrivilegeToRole method.
 	AddPrivilegeToRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
+
+	// AllocateComputeClusterUserFunc mocks the AllocateComputeClusterUser method.
+	AllocateComputeClusterUserFunc func(ctx context.Context, user *models.User, clusterID string) (*models.ComputeClusterUser, error)
 
 	// AttachResourceToAllocationFunc mocks the AttachResourceToAllocation method.
 	AttachResourceToAllocationFunc func(ctx context.Context, allocationID string, resourceID string, resourceAmount int64, resourceTime int64) (*models.ComputeAllocationResourceMapping, error)
@@ -880,6 +886,15 @@ type CoreServiceMock struct {
 			Privilege models.PrivilegeKey
 			// ActorID is the actorID argument value.
 			ActorID string
+		}
+		// AllocateComputeClusterUser holds details about calls to the AllocateComputeClusterUser method.
+		AllocateComputeClusterUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// User is the user argument value.
+			User *models.User
+			// ClusterID is the clusterID argument value.
+			ClusterID string
 		}
 		// AttachResourceToAllocation holds details about calls to the AttachResourceToAllocation method.
 		AttachResourceToAllocation []struct {
@@ -1938,6 +1953,7 @@ type CoreServiceMock struct {
 		}
 	}
 	lockAddPrivilegeToRole                                     sync.RWMutex
+	lockAllocateComputeClusterUser                             sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
 	lockBootstrapSuperAdmin                                    sync.RWMutex
 	lockCreateAuditEvent                                       sync.RWMutex
@@ -2120,6 +2136,46 @@ func (mock *CoreServiceMock) AddPrivilegeToRoleCalls() []struct {
 	mock.lockAddPrivilegeToRole.RLock()
 	calls = mock.calls.AddPrivilegeToRole
 	mock.lockAddPrivilegeToRole.RUnlock()
+	return calls
+}
+
+// AllocateComputeClusterUser calls AllocateComputeClusterUserFunc.
+func (mock *CoreServiceMock) AllocateComputeClusterUser(ctx context.Context, user *models.User, clusterID string) (*models.ComputeClusterUser, error) {
+	if mock.AllocateComputeClusterUserFunc == nil {
+		panic("CoreServiceMock.AllocateComputeClusterUserFunc: method is nil but CoreService.AllocateComputeClusterUser was just called")
+	}
+	callInfo := struct {
+		Ctx       context.Context
+		User      *models.User
+		ClusterID string
+	}{
+		Ctx:       ctx,
+		User:      user,
+		ClusterID: clusterID,
+	}
+	mock.lockAllocateComputeClusterUser.Lock()
+	mock.calls.AllocateComputeClusterUser = append(mock.calls.AllocateComputeClusterUser, callInfo)
+	mock.lockAllocateComputeClusterUser.Unlock()
+	return mock.AllocateComputeClusterUserFunc(ctx, user, clusterID)
+}
+
+// AllocateComputeClusterUserCalls gets all the calls that were made to AllocateComputeClusterUser.
+// Check the length with:
+//
+//	len(mockedCoreService.AllocateComputeClusterUserCalls())
+func (mock *CoreServiceMock) AllocateComputeClusterUserCalls() []struct {
+	Ctx       context.Context
+	User      *models.User
+	ClusterID string
+} {
+	var calls []struct {
+		Ctx       context.Context
+		User      *models.User
+		ClusterID string
+	}
+	mock.lockAllocateComputeClusterUser.RLock()
+	calls = mock.calls.AllocateComputeClusterUser
+	mock.lockAllocateComputeClusterUser.RUnlock()
 	return calls
 }
 

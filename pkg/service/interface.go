@@ -98,6 +98,7 @@ type ComputeClusterService interface {
 
 // ComputeClusterUserService exposes per-cluster user records.
 type ComputeClusterUserService interface {
+	AllocateComputeClusterUser(ctx context.Context, user *models.User, clusterID string) (*models.ComputeClusterUser, error)
 	CreateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error)
 	GetComputeClusterUser(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)

@@ -191,7 +191,11 @@ func (h *RequestProjectCreateHandler) ensurePIClusterUser(ctx context.Context, u
 			return &a, nil
 		}
 	}
-	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
+	user, err := h.svc.GetUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup user %q: %w", userID, err)
+	}
+	return h.svc.AllocateComputeClusterUser(ctx, user, h.clusterID)
 }
 
 func (h *RequestProjectCreateHandler) ensureProject(ctx context.Context, originatedID, grantNumber, piID string) (*models.Project, error) {

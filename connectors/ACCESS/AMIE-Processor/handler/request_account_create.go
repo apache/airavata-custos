@@ -188,7 +188,11 @@ func (h *RequestAccountCreateHandler) ensureComputeClusterUser(ctx context.Conte
 			return &a, nil
 		}
 	}
-	return allocateAndCreateClusterUser(ctx, h.svc, h.clusterID, userID)
+	user, err := h.svc.GetUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup user %q: %w", userID, err)
+	}
+	return h.svc.AllocateComputeClusterUser(ctx, user, h.clusterID)
 }
 
 // ensureMembership returns the existing (allocation, user) membership or

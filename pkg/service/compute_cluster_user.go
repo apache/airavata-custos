@@ -20,11 +20,14 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/apache/airavata-custos/pkg/events"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 // CreateComputeClusterUser persists a new compute-cluster user mapping. If
@@ -81,6 +84,60 @@ func (s *Service) CreateComputeClusterUser(ctx context.Context, cu *models.Compu
 
 	s.eventBus.Publish(ctx, events.ComputeClusterUserCreateEvent, cu)
 	return cu, nil
+}
+
+// AllocateComputeClusterUser builds a POSIX username for the user and creates
+// the cluster mapping, retrying with a numeric suffix on username collisions.
+func (s *Service) AllocateComputeClusterUser(ctx context.Context, user *models.User, clusterID string) (*models.ComputeClusterUser, error) {
+	if user == nil || user.ID == "" {
+		return nil, fmt.Errorf("%w: user is required", ErrInvalidInput)
+	}
+
+	base, truncated, err := posix.BuildBase(user, posix.Prefix())
+	if err != nil {
+		_, _ = s.CreateAuditEvent(ctx, &models.AuditEvent{
+			EventType:  "PosixUsernameUnbuildable",
+			EntityID:   user.ID,
+			EntityType: "user",
+			Details:    err.Error(),
+		})
+		return nil, err
+	}
+	if truncated {
+		_, _ = s.CreateAuditEvent(ctx, &models.AuditEvent{
+			EventType:  "PosixUsernameTruncated",
+			EntityID:   user.ID,
+			EntityType: "user",
+			Details:    base,
+		})
+	}
+
+	for n := 0; n < posix.MaxCollisionSuffix; n++ {
+		candidate := base
+		if n > 0 {
+			candidate = base + strconv.Itoa(n+1)
+		}
+		ccu, err := s.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{
+			ComputeClusterID: clusterID,
+			UserID:           user.ID,
+			LocalUsername:    candidate,
+		})
+		if err == nil {
+			return ccu, nil
+		}
+		if errors.Is(err, ErrAlreadyExists) {
+			continue
+		}
+		return nil, err
+	}
+
+	_, _ = s.CreateAuditEvent(ctx, &models.AuditEvent{
+		EventType:  "PosixUsernameAllocatorExhausted",
+		EntityID:   user.ID,
+		EntityType: "user",
+		Details:    base,
+	})
+	return nil, fmt.Errorf("posix username allocator exhausted for base %q", base)
 }
 
 func isLocalUsernameDuplicate(err error) bool {
