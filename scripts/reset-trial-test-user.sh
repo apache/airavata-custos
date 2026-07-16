@@ -17,7 +17,15 @@ cd "$(dirname "$0")/.."
 EMAIL="${1:-lahirujayathilake@gmail.com}"
 CONFIRM="${2:-}"
 CLUSTER="exouser@149.165.159.51"
-DB_EXEC=(docker exec -i custos_db mariadb -u admin -padmin custos)
+# DB credentials come from DATABASE_DSN when present (deployment hosts
+# differ from the local compose defaults).
+DB_USER=admin; DB_PASS=admin
+if [ -f .env ] && grep -q "^DATABASE_DSN=" .env; then
+  _dsn=$(grep "^DATABASE_DSN=" .env | cut -d= -f2- | tr -d '"' | tr -d "'")
+  DB_USER=$(echo "$_dsn" | cut -d: -f1)
+  DB_PASS=$(echo "$_dsn" | sed -E 's/^[^:]*:([^@]*)@.*/\1/')
+fi
+DB_EXEC=(docker exec -i custos_db mariadb -u"$DB_USER" -p"$DB_PASS" custos)
 
 set -a; source .env; set +a
 : "${COMANAGE_REGISTRY_URL:?missing in .env}" "${COMANAGE_CO_ID:?}" "${COMANAGE_API_USER:?}" "${COMANAGE_API_KEY:?}"

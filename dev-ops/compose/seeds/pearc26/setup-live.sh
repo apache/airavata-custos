@@ -13,7 +13,15 @@ set -euo pipefail
 cd "$(dirname "$0")/../../../.."
 
 API="${CUSTOS_API:-http://localhost:8080}"
-DB_EXEC=(docker exec -i custos_db mariadb -u admin -padmin custos)
+# DB credentials come from DATABASE_DSN when present (deployment hosts
+# differ from the local compose defaults).
+DB_USER=admin; DB_PASS=admin
+if [ -f .env ] && grep -q "^DATABASE_DSN=" .env; then
+  _dsn=$(grep "^DATABASE_DSN=" .env | cut -d= -f2- | tr -d '"' | tr -d "'")
+  DB_USER=$(echo "$_dsn" | cut -d: -f1)
+  DB_PASS=$(echo "$_dsn" | sed -E 's/^[^:]*:([^@]*)@.*/\1/')
+fi
+DB_EXEC=(docker exec -i custos_db mariadb -u"$DB_USER" -p"$DB_PASS" custos)
 
 set -a; source .env; set +a
 : "${CUSTOS_CLUSTER_ID:?missing in .env}"
