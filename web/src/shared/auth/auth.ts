@@ -102,6 +102,7 @@ export const authConfig: NextAuthConfig = {
       if (t.accessToken) session.accessToken = t.accessToken;
       if (t.idToken) session.idToken = t.idToken;
       session.privileges = t.privileges ?? [];
+      session.custosUserId = t.custosUserId;
       if (session.user) {
         // Prefer the backend-resolved Custos user_id over the OIDC sub so
         // downstream API callers get a value that matches users.id.

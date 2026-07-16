@@ -22,6 +22,7 @@ declare module "next-auth" {
     accessToken?: string | null;
     idToken?: string | null;
     privileges?: Privilege[];
+    custosUserId?: string;
   }
   interface User {
     privileges?: Privilege[];
