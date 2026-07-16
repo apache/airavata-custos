@@ -341,6 +341,50 @@ type ComputeAllocationChangeRequestEventStore interface {
 	Delete(ctx context.Context, tx *sql.Tx, id string) error
 }
 
+// AccessEventStore defines persistence operations for the event codes that
+// gate self-service access requests.
+type AccessEventStore interface {
+	// FindByCode returns the access event with the given code, or nil if it does not exist.
+	FindByCode(ctx context.Context, code string) (*models.AccessEvent, error)
+}
+
+// AccessRequestStore defines persistence operations for self-service access
+// requests keyed by the requester's token subject.
+type AccessRequestStore interface {
+	// FindByID returns the access request with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.AccessRequest, error)
+	// FindLatestBySub returns the most recent access request for the given
+	// subject (highest timestamp), or nil if none exist.
+	FindLatestBySub(ctx context.Context, oidcSub string) (*models.AccessRequest, error)
+	// HasPendingBySub reports whether the given subject has a PENDING request.
+	HasPendingBySub(ctx context.Context, oidcSub string) (bool, error)
+	// List returns access requests filtered by the supplied criteria, newest first.
+	List(ctx context.Context, f AccessRequestListFilter) ([]models.AccessRequest, error)
+	// Create inserts a new access request within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, r *models.AccessRequest) error
+	// Update replaces mutable fields of an existing access request within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, r *models.AccessRequest) error
+}
+
+// AccessRequestListFilter selects which requests AccessRequestStore.List returns.
+type AccessRequestListFilter struct {
+	Status    string
+	EventCode string
+	Limit     int
+}
+
+// AccessRequestEventStore defines persistence operations for the append-only
+// audit trail of state transitions applied to an AccessRequest.
+type AccessRequestEventStore interface {
+	// FindByID returns the event with the given ID, or nil if it does not exist.
+	FindByID(ctx context.Context, id string) (*models.AccessRequestEvent, error)
+	// FindByRequest returns every event recorded against the given access
+	// request, ordered by timestamp ascending.
+	FindByRequest(ctx context.Context, accessRequestID string) ([]models.AccessRequestEvent, error)
+	// Create inserts a new event within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, e *models.AccessRequestEvent) error
+}
+
 // ProjectMembershipStore defines persistence operations for project-level
 // governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
 // compute_allocation_memberships and not stored here.
