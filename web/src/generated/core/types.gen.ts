@@ -20,6 +20,24 @@ export type AccessRequest = {
     timestamp?: string;
 };
 
+export type AccessRequestListItem = {
+    allocation_id?: string;
+    approver_id?: string;
+    created_user_id?: string;
+    decided_at?: string;
+    deny_reason?: string;
+    email?: string;
+    event_code?: string;
+    expires_at?: string;
+    id?: string;
+    institution?: string;
+    name?: string;
+    oidc_sub?: string;
+    reason?: string;
+    status?: AccessRequestStatus;
+    timestamp?: string;
+};
+
 export type AccessRequestStatus = 'PENDING' | 'APPROVED' | 'DENIED';
 
 export type AllocationMembershipResponse = {
@@ -569,7 +587,7 @@ export type GetAccessRequestsResponses = {
     /**
      * OK
      */
-    200: Array<AccessRequest>;
+    200: Array<AccessRequestListItem>;
 };
 
 export type GetAccessRequestsResponse = GetAccessRequestsResponses[keyof GetAccessRequestsResponses];

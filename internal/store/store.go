@@ -381,6 +381,9 @@ type AccessRequestEventStore interface {
 	// FindByRequest returns every event recorded against the given access
 	// request, ordered by timestamp ascending.
 	FindByRequest(ctx context.Context, accessRequestID string) ([]models.AccessRequestEvent, error)
+	// FindDecisionEventsByRequestIDs returns the APPROVED/DENIED events for
+	// the given access request ids, ordered by timestamp ascending.
+	FindDecisionEventsByRequestIDs(ctx context.Context, requestIDs []string) ([]models.AccessRequestEvent, error)
 	// Create inserts a new event within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, e *models.AccessRequestEvent) error
 }

@@ -134,6 +134,16 @@ func (s *Service) ListAccessRequests(ctx context.Context, f store.AccessRequestL
 	return rows, nil
 }
 
+// ListAccessRequestDecisionEvents returns the APPROVED/DENIED audit rows for
+// the given access request ids, ordered by timestamp ascending.
+func (s *Service) ListAccessRequestDecisionEvents(ctx context.Context, requestIDs []string) ([]models.AccessRequestEvent, error) {
+	rows, err := s.accessRequestEvents.FindDecisionEventsByRequestIDs(ctx, requestIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list access request decision events: %w", err)
+	}
+	return rows, nil
+}
+
 // ApproveAccessRequest transitions a PENDING request to APPROVED. Account
 // provisioning runs first; if any step fails the request stays PENDING with
 // a FAILED event row and the error is returned, so a later re-approve can

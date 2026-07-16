@@ -83,6 +83,17 @@ type AllocationMembershipResponse struct {
 	Email       string `json:"email,omitempty"`
 }
 
+// AccessRequestListItem embeds the persisted request and surfaces decision
+// context for the review queue: when the decision landed (newest
+// APPROVED/DENIED audit row, null while pending) and which allocation the
+// event grants. Only the privileged list returns this shape; requesters get
+// the bare model.
+type AccessRequestListItem struct {
+	models.AccessRequest
+	DecidedAt    *time.Time `json:"decided_at"`
+	AllocationID string     `json:"allocation_id,omitempty"`
+}
+
 // ComputeAllocationListResponse is the paginated list envelope for compute
 // allocations.
 type ComputeAllocationListResponse struct {

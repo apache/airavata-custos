@@ -18,6 +18,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -137,7 +138,7 @@ func (s *Server) getOwnAccessRequest(w http.ResponseWriter, r *http.Request) {
 // @Param	status	query	string	false	"Filter by status"
 // @Param	event	query	string	false	"Filter by event code"
 // @Param	limit	query	integer	false	"Maximum rows (default 50)"
-// @Success	200	{array}	models.AccessRequest
+// @Success	200	{array}	AccessRequestListItem
 // @Router	/access-requests [get]
 func (s *Server) listAccessRequests(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -150,10 +151,50 @@ func (s *Server) listAccessRequests(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	if rows == nil {
-		rows = []models.AccessRequest{}
+	items, err := s.enrichAccessRequests(r.Context(), rows)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
 	}
-	common.WriteJSON(w, http.StatusOK, rows)
+	common.WriteJSON(w, http.StatusOK, items)
+}
+
+// enrichAccessRequests joins decision timestamps and the event's allocation
+// onto the listed rows: one batch query for decision events plus one event
+// lookup per distinct code.
+func (s *Server) enrichAccessRequests(ctx context.Context, rows []models.AccessRequest) ([]AccessRequestListItem, error) {
+	ids := make([]string, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+	events, err := s.svc.ListAccessRequestDecisionEvents(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	decidedAt := make(map[string]time.Time, len(events))
+	for _, e := range events {
+		// Events arrive timestamp-ascending, so the last write is the newest.
+		decidedAt[e.AccessRequestID] = e.Timestamp
+	}
+	allocByCode := make(map[string]string)
+	items := make([]AccessRequestListItem, 0, len(rows))
+	for _, row := range rows {
+		allocID, ok := allocByCode[row.EventCode]
+		if !ok {
+			ev, err := s.svc.GetAccessEvent(ctx, row.EventCode)
+			if err != nil {
+				return nil, err
+			}
+			allocID = ev.ComputeAllocationID
+			allocByCode[row.EventCode] = allocID
+		}
+		item := AccessRequestListItem{AccessRequest: row, AllocationID: allocID}
+		if ts, ok := decidedAt[row.ID]; ok {
+			item.DecidedAt = &ts
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 // @Summary	Approve or deny an access request

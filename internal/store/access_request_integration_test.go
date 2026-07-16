@@ -367,3 +367,64 @@ func TestAccessRequestEventStoreAppendAndGet(t *testing.T) {
 		t.Fatalf("events = %+v, want [created, approved]", events)
 	}
 }
+
+func TestAccessRequestEventStoreFindDecisionEventsByRequestIDs(t *testing.T) {
+	database := setupAccessTestDB(t)
+	code := seedAccessEvent(t, database)
+	reqStore := NewAccessRequestStore(database)
+	evStore := NewAccessRequestEventStore(database)
+	ctx := context.Background()
+
+	base := time.Now().UTC().Truncate(time.Microsecond)
+	approvedReq := newAccessRequest("sub-dec-a", code, base)
+	deniedReq := newAccessRequest("sub-dec-b", code, base)
+	pendingReq := newAccessRequest("sub-dec-c", code, base)
+	appendEvent := func(reqID, eventType string, ts time.Time) *models.AccessRequestEvent {
+		return &models.AccessRequestEvent{
+			ID:              uuid.NewString(),
+			AccessRequestID: reqID,
+			EventType:       eventType,
+			Timestamp:       ts,
+		}
+	}
+	approvedEv := appendEvent(approvedReq.ID, models.AccessRequestEventApproved, base.Add(2*time.Minute))
+	deniedEv := appendEvent(deniedReq.ID, models.AccessRequestEventDenied, base.Add(time.Minute))
+	inTestTx(t, database, func(tx *sql.Tx) error {
+		for _, r := range []*models.AccessRequest{approvedReq, deniedReq, pendingReq} {
+			if err := reqStore.Create(ctx, tx, r); err != nil {
+				return err
+			}
+		}
+		for _, e := range []*models.AccessRequestEvent{
+			// CREATED and FAILED rows must not surface as decisions.
+			appendEvent(approvedReq.ID, models.AccessRequestEventCreated, base),
+			appendEvent(approvedReq.ID, models.AccessRequestEventFailed, base.Add(time.Minute)),
+			approvedEv,
+			appendEvent(deniedReq.ID, models.AccessRequestEventCreated, base),
+			deniedEv,
+			appendEvent(pendingReq.ID, models.AccessRequestEventCreated, base),
+		} {
+			if err := evStore.Create(ctx, tx, e); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	got, err := evStore.FindDecisionEventsByRequestIDs(ctx,
+		[]string{approvedReq.ID, deniedReq.ID, pendingReq.ID})
+	if err != nil {
+		t.Fatalf("find decision events: %v", err)
+	}
+	if len(got) != 2 || got[0].ID != deniedEv.ID || got[1].ID != approvedEv.ID {
+		t.Fatalf("decision events = %+v, want [denied, approved] by timestamp", got)
+	}
+
+	none, err := evStore.FindDecisionEventsByRequestIDs(ctx, nil)
+	if err != nil {
+		t.Fatalf("find with empty ids: %v", err)
+	}
+	if len(none) != 0 {
+		t.Fatalf("expected no events for empty ids, got %+v", none)
+	}
+}

@@ -29,6 +29,39 @@ definitions:
       timestamp:
         type: string
     type: object
+  AccessRequestListItem:
+    properties:
+      allocation_id:
+        type: string
+      approver_id:
+        type: string
+      created_user_id:
+        type: string
+      decided_at:
+        type: string
+      deny_reason:
+        type: string
+      email:
+        type: string
+      event_code:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      institution:
+        type: string
+      name:
+        type: string
+      oidc_sub:
+        type: string
+      reason:
+        type: string
+      status:
+        $ref: '#/definitions/AccessRequestStatus'
+      timestamp:
+        type: string
+    type: object
   AccessRequestStatus:
     enum:
     - PENDING
@@ -817,7 +850,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/AccessRequest'
+              $ref: '#/definitions/AccessRequestListItem'
             type: array
       security:
       - BearerAuth: []

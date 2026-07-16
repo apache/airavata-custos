@@ -28,6 +28,26 @@ export const zAccessRequest = z.object({
 
 export type accessRequestZodType = z.infer<typeof zAccessRequest>;
 
+export const zAccessRequestListItem = z.object({
+    allocation_id: z.string().optional(),
+    approver_id: z.string().optional(),
+    created_user_id: z.string().optional(),
+    decided_at: z.string().optional(),
+    deny_reason: z.string().optional(),
+    email: z.string().optional(),
+    event_code: z.string().optional(),
+    expires_at: z.string().optional(),
+    id: z.string().optional(),
+    institution: z.string().optional(),
+    name: z.string().optional(),
+    oidc_sub: z.string().optional(),
+    reason: z.string().optional(),
+    status: zAccessRequestStatus.optional(),
+    timestamp: z.string().optional()
+});
+
+export type accessRequestListItemZodType = z.infer<typeof zAccessRequestListItem>;
+
 export const zAllocationSuTotalResponse = z.object({
     compute_allocation_id: z.string().optional(),
     total_su_amount: z.int().optional()
@@ -537,7 +557,7 @@ export const zGetAccessRequestsQuery = z.object({
 /**
  * OK
  */
-export const zGetAccessRequestsResponse = z.array(zAccessRequest);
+export const zGetAccessRequestsResponse = z.array(zAccessRequestListItem);
 
 /**
  * Access request payload

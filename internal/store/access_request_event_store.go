@@ -64,6 +64,26 @@ func (s *mysqlAccessRequestEventStore) FindByRequest(ctx context.Context, access
 	return rows, nil
 }
 
+func (s *mysqlAccessRequestEventStore) FindDecisionEventsByRequestIDs(ctx context.Context, requestIDs []string) ([]models.AccessRequestEvent, error) {
+	if len(requestIDs) == 0 {
+		return nil, nil
+	}
+	query, args, err := sqlx.In(
+		`SELECT `+accessRequestEventColumns+`
+		 FROM access_request_events
+		 WHERE access_request_id IN (?) AND event_type IN (?)
+		 ORDER BY timestamp`,
+		requestIDs, []string{models.AccessRequestEventApproved, models.AccessRequestEventDenied})
+	if err != nil {
+		return nil, err
+	}
+	var rows []models.AccessRequestEvent
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func (s *mysqlAccessRequestEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AccessRequestEvent) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO access_request_events
