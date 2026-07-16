@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { formatCredits, formatNative } from "../lib";
+import { formatCredits, formatNative, formatPercent } from "../lib";
 import type { UsageResource, UsageSummary } from "../schemas";
 
 // Approximate the caller's own native usage from their share of the credits;
@@ -31,7 +31,12 @@ function callerNative(r: UsageResource): number {
 // "team 0" / "you 0".
 export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
   const rows = summary.by_resource;
-  const maxUsed = Math.max(1, ...rows.map((r) => r.used));
+  // Each bar is the resource's share of total credits consumed, so the bars
+  // sum to the period total; resources carry no per-resource cap in v1.
+  const totalUsed = Math.max(
+    1,
+    rows.reduce((sum, r) => sum + r.used, 0),
+  );
   const anyCallerUsage = rows.some((r) => r.used_by_caller > 0);
 
   return (
@@ -47,7 +52,7 @@ export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
       ) : (
         <ul className="space-y-3">
           {rows.map((r) => (
-            <ResourceRow key={r.resource_id} resource={r} maxUsed={maxUsed} />
+            <ResourceRow key={r.resource_id} resource={r} total={totalUsed} />
           ))}
         </ul>
       )}
@@ -55,17 +60,21 @@ export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
   );
 }
 
-function ResourceRow({ resource, maxUsed }: { resource: UsageResource; maxUsed: number }) {
+function ResourceRow({ resource, total }: { resource: UsageResource; total: number }) {
   const mine = resource.used_by_caller;
   const team = Math.max(0, resource.used - mine);
-  const minePct = (mine / maxUsed) * 100;
-  const teamPct = (team / maxUsed) * 100;
+  const share = (resource.used / total) * 100;
+  const minePct = (mine / total) * 100;
+  const teamPct = (team / total) * 100;
 
   const labelParts: string[] = [];
   if (mine > 0) labelParts.push(`you ${formatCredits(mine)}`);
   if (team > 0)
     labelParts.push(mine > 0 ? `team ${formatCredits(team)}` : `${formatCredits(team)} used`);
-  const label = labelParts.length ? labelParts.join(" · ") : `${formatCredits(resource.used)} used`;
+  const detail = labelParts.length
+    ? labelParts.join(" · ")
+    : `${formatCredits(resource.used)} used`;
+  const label = `${formatPercent(share)} · ${detail}`;
 
   const nativeLine =
     mine > 0
@@ -84,7 +93,7 @@ function ResourceRow({ resource, maxUsed }: { resource: UsageResource; maxUsed: 
           <div
             style={{
               width: `${teamPct}%`,
-              background: mine > 0 ? "var(--chart-5)" : "var(--chart-1)",
+              background: mine > 0 ? "var(--chart-1-soft)" : "var(--chart-1)",
             }}
           />
         ) : null}

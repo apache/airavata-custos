@@ -23,6 +23,7 @@ import {
   daysBand,
   daysUntil,
   formatCredits,
+  formatPercent,
   pctRemaining,
 } from "../lib";
 import type { UsageDailyBucket, UsageResource } from "../schemas";
@@ -58,6 +59,16 @@ function series(zeroDays: number, activeDays: number, perDay: number): UsageDail
   }
   return out;
 }
+
+describe("formatPercent", () => {
+  it("rounds to a whole percent", () => {
+    expect(formatPercent(66.7)).toBe("67%");
+    expect(formatPercent(0)).toBe("0%");
+  });
+  it("shows <1% for a small positive share", () => {
+    expect(formatPercent(0.4)).toBe("<1%");
+  });
+});
 
 describe("pctRemaining", () => {
   it("computes remaining percentage", () => {

@@ -136,10 +136,12 @@ describe("resource and member breakdowns", () => {
     by_member: null,
   };
 
-  it("resource view shows the you-vs-team split when the caller has a slice", () => {
+  it("resource view shows the share of total and the you-vs-team split", () => {
     render(<ResourceBreakdown summary={summary} />);
     expect(screen.getByText(/your share vs the rest of the team/)).toBeInTheDocument();
     expect(screen.getAllByText(/you .* · team/).length).toBeGreaterThan(0);
+    // gpu is 200 of 300 consumed, so its row leads with its 67% share.
+    expect(screen.getByText(/67% · you/)).toBeInTheDocument();
   });
 
   it("collapses to plain consumption when the caller has no usage (no 'you 0 · team')", () => {
@@ -159,7 +161,7 @@ describe("resource and member breakdowns", () => {
       by_resource: [resource("gpu", 200, 200)] as UsageResource[],
     };
     render(<ResourceBreakdown summary={solo} />);
-    expect(screen.getByText(/^you /)).toBeInTheDocument();
+    expect(screen.getByText(/· you /)).toBeInTheDocument();
     expect(screen.queryByText(/team 0/)).not.toBeInTheDocument();
   });
 

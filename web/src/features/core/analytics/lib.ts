@@ -143,6 +143,13 @@ export function formatNative(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
 }
 
+// Whole-percent label; a positive value under 1% shows "<1%" rather than
+// rounding down to "0%".
+export function formatPercent(n: number): string {
+  if (n > 0 && n < 1) return "<1%";
+  return `${Math.round(n)}%`;
+}
+
 // "Aug 1, 2026"
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {

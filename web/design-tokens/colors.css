@@ -153,6 +153,9 @@
   /* chart-5 is the "others" neutral, not a 4th series; danger is never a
      series color. */
   --chart-1: #2361b8;
+  /* Lighter chart-1 for a secondary same-series segment (e.g. team vs you);
+     reads as filled, distinct from the empty track. */
+  --chart-1-soft: var(--custos-blue-200);
   --chart-2: #22c55e;
   --chart-3: #f59e0b;
   --chart-4: #8b5cf6;
@@ -220,6 +223,7 @@
 
   /* Dark-surface dataviz palette (paired with the light values above). */
   --chart-1: #4d86c9;
+  --chart-1-soft: var(--custos-blue-300);
   --chart-2: #16a34a;
   --chart-3: #d97706;
   --chart-4: #8b5cf6;
