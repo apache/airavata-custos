@@ -1,3 +1,20 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 "use client";
 
 import { useRoleDetails } from "@/features/core/users/queries";
@@ -12,6 +29,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { PrivilegeList } from "./PrivilegeList";
@@ -35,7 +54,7 @@ export function RoleAssignMenu({
 }: {
   roles: Role[];
   heldRoleIds: Set<string>;
-  onSave: (roleIds: string[]) => Promise<boolean>;
+  onSave: (roleIds: string[], reason?: string) => Promise<boolean>;
   triggerLabel: string;
   isCurrentUser: boolean;
   isPending: boolean;
@@ -43,6 +62,7 @@ export function RoleAssignMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
+  const [reason, setReason] = useState("");
   const details = useRoleDetails(
     roles.flatMap((role) => (role.id ? [role.id] : [])),
     open,
@@ -51,7 +71,10 @@ export function RoleAssignMenu({
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) setDraftIds(new Set(heldRoleIds));
+    if (next) {
+      setDraftIds(new Set(heldRoleIds));
+      setReason("");
+    }
   }
 
   function toggleDraft(roleId: string) {
@@ -76,7 +99,7 @@ export function RoleAssignMenu({
     if (confirmationMessage && !window.confirm(confirmationMessage)) {
       return;
     }
-    if (await onSave([...draftIds])) setOpen(false);
+    if (await onSave([...draftIds], reason.trim() || undefined)) setOpen(false);
   }
 
   const hasChanges = !setsEqual(draftIds, heldRoleIds);
@@ -142,6 +165,18 @@ export function RoleAssignMenu({
               );
             })}
           </ul>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="role-assign-reason">Reason (optional)</Label>
+          <Input
+            id="role-assign-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Record why these roles are being granted"
+            maxLength={500}
+            disabled={isPending}
+          />
         </div>
 
         {error ? (
