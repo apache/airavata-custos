@@ -18,6 +18,24 @@
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
+-- Privileges held by a user. Only active grants live here; revoke is DELETE.
+-- The full grant/revoke history (who, when, why) is recorded in audit_events.
+CREATE TABLE IF NOT EXISTS user_privileges
+(
+    id          VARCHAR(255) NOT NULL,
+    user_id     VARCHAR(255) NOT NULL,
+    privilege   VARCHAR(64)  NOT NULL,
+    granted_by  VARCHAR(255) NULL,
+    granted_at  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    reason      TEXT         NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_user_privileges (user_id, privilege),
+    KEY idx_user_privileges_user (user_id),
+    KEY idx_user_privileges_priv (privilege),
+    CONSTRAINT fk_user_privileges_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_privileges_granted_by FOREIGN KEY (granted_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- Roles are named bundles of privileges. Granting a role to a user is
 -- equivalent to granting each of the role's privileges.
 CREATE TABLE IF NOT EXISTS roles

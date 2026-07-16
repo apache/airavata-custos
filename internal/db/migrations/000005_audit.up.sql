@@ -18,15 +18,26 @@
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
+-- entity_type records the kind of resource the row is about ("user", "role",
+-- "compute_cluster_user", "packet", etc.). source names the subsystem that
+-- produced the event.
 CREATE TABLE IF NOT EXISTS audit_events
 (
-    id         VARCHAR(255) NOT NULL,
-    event_type VARCHAR(128) NOT NULL,
-    event_time TIMESTAMP(6) NOT NULL,
-    entity_id  VARCHAR(255) NOT NULL,
-    details    TEXT         NOT NULL,
+    id             VARCHAR(255) NOT NULL,
+    event_type     VARCHAR(128) NOT NULL,
+    event_time     TIMESTAMP(6) NOT NULL,
+    entity_id      VARCHAR(255) NOT NULL,
+    entity_type    VARCHAR(64)  NOT NULL DEFAULT '',
+    details        TEXT         NOT NULL,
+    source         VARCHAR(64)  NOT NULL DEFAULT 'core',
+    trace_id       CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    span_id        CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    parent_span_id CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
     PRIMARY KEY (id),
     KEY idx_audit_events_entity (entity_id, event_time),
+    KEY idx_audit_events_entity_type (entity_type),
     KEY idx_audit_events_type (event_type, event_time),
-    KEY idx_audit_events_time (event_time)
+    KEY idx_audit_events_time (event_time),
+    KEY idx_audit_events_source (source),
+    KEY idx_audit_events_trace (trace_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

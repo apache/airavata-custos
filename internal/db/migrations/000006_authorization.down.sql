@@ -15,8 +15,7 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-ALTER TABLE audit_events
-    ADD COLUMN trace_id       CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
-    ADD COLUMN span_id        CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
-    ADD COLUMN parent_span_id CHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
-    ADD KEY idx_audit_events_trace (trace_id);
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS role_privileges;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS user_privileges;
