@@ -37,6 +37,7 @@ import (
 	"github.com/apache/airavata-custos/internal/config"
 	"github.com/apache/airavata-custos/internal/connectors"
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/email"
 	"github.com/apache/airavata-custos/internal/server"
 	"github.com/apache/airavata-custos/internal/tracing"
 	"github.com/apache/airavata-custos/pkg/events"
@@ -146,6 +147,21 @@ func run() error {
 		return err
 	}
 	svc.SetIdentityCacheTTL(cfg.Core.Auth.CacheTTL)
+
+	mailer := email.New(email.Config{
+		Host:        cfg.Core.Email.SMTPHost,
+		Port:        cfg.Core.Email.SMTPPort,
+		Username:    cfg.Core.Email.Username,
+		Password:    cfg.Core.Email.Password,
+		From:        cfg.Core.Email.From,
+		SiteName:    cfg.Core.Email.SiteName,
+		PortalURL:   cfg.Core.Email.PortalURL,
+		ClusterHost: cfg.Core.Email.ClusterHost,
+	})
+	if _, isNoop := mailer.(email.Noop); isNoop {
+		slog.Info("notification mail disabled: relay settings incomplete")
+	}
+	svc.SetMailer(mailer)
 
 	// identity.Middleware sits in front of the router-backed server, so every
 	// gated route sees a verified caller + privilege set on ctx.

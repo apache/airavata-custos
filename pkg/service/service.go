@@ -26,6 +26,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/internal/db"
+	"github.com/apache/airavata-custos/internal/email"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/events"
 )
@@ -62,6 +63,14 @@ type Service struct {
 	userRoles           store.UserRoleStore
 	auditTraces         store.AuditTraceStore
 	identityCache       *identityCache
+	mailer              email.Mailer
+}
+
+// SetMailer configures notification mail; unset means messages are dropped.
+func (s *Service) SetMailer(m email.Mailer) {
+	if m != nil {
+		s.mailer = m
+	}
 }
 
 // New constructs a Service backed by the supplied database handle.
@@ -96,6 +105,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		userRoles:           store.NewUserRoleStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
+		mailer:              email.Noop{},
 	}
 }
 
@@ -156,6 +166,7 @@ func NewWithStores(
 		userRoles:           userRoles,
 		auditTraces:         store.NewAuditTraceStore(database),
 		identityCache:       newIdentityCache(),
+		mailer:              email.Noop{},
 	}
 }
 

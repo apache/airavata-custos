@@ -45,6 +45,20 @@ type CoreConfig struct {
 	API      APIConfig      `yaml:"api"`
 	LogLevel string         `yaml:"log_level"`
 	Auth     AuthConfig     `yaml:"auth"`
+	Email    EmailConfig    `yaml:"email"`
+}
+
+// EmailConfig carries the SMTP relay and the deployment identity rendered
+// into notification mail. All optional; incomplete settings disable sending.
+type EmailConfig struct {
+	SMTPHost    string `yaml:"smtp_host"`
+	SMTPPort    int    `yaml:"smtp_port"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	From        string `yaml:"from"`
+	SiteName    string `yaml:"site_name"`
+	PortalURL   string `yaml:"portal_url"`
+	ClusterHost string `yaml:"cluster_host"`
 }
 
 type DatabaseConfig struct {

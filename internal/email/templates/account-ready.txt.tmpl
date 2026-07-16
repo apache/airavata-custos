@@ -1,0 +1,23 @@
+Your {{.SiteName}} account is ready
+
+Hi{{if .FirstName}} {{.FirstName}}{{end}}, your request was approved and your
+{{.SiteName}} account is now active.
+
+Username: {{.Username}}
+
+Step 1 - Open the portal
+Sign in with the same institutional identity you used to request access:
+{{.PortalURL}}
+
+Step 2 - Connect to the cluster
+Open a terminal and connect over SSH:
+ssh {{.Username}}@{{.ClusterHost}}
+{{if .ExpiresOn}}
+Note: this is a trial account. Access ends on {{.ExpiresOn}}.
+{{end}}
+Trouble signing in or connecting? Reply to this email and an administrator
+will help.
+
+--
+You are receiving this because your access request to {{.SiteName}} was
+approved. This is an automated message.

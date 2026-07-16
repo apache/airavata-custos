@@ -22,9 +22,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/apache/airavata-custos/internal/email"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 )
@@ -172,7 +174,7 @@ func (s *Service) ApproveAccessRequest(ctx context.Context, id, approverID strin
 		exp = expiresAt.UTC()
 	}
 
-	user, err := s.provisionAccessRequest(ctx, req, exp)
+	user, username, err := s.provisionAccessRequest(ctx, req, exp)
 	if err != nil {
 		s.appendAccessRequestEvent(ctx, req.ID, models.AccessRequestEventFailed, fmt.Sprintf("Approval failed: %v", err))
 		return nil, err
@@ -196,29 +198,49 @@ func (s *Service) ApproveAccessRequest(ctx context.Context, id, approverID strin
 	}); err != nil {
 		return nil, fmt.Errorf("approve access request: %w", err)
 	}
+
+	// Best effort and off the request path: the approval stands even when
+	// the notification cannot be delivered.
+	go s.sendAccountReadyEmail(req, username, exp)
+
 	return req, nil
+}
+
+func (s *Service) sendAccountReadyEmail(req *models.AccessRequest, username string, expiresAt time.Time) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	first, _ := splitName(req.Name)
+	err := s.mailer.SendAccountReady(ctx, req.Email, email.AccountReadyData{
+		Username:  username,
+		FirstName: first,
+		ExpiresOn: expiresAt.Format("January 2, 2006"),
+	})
+	if err != nil {
+		slog.Error("account-ready email failed", "request_id", req.ID, "error", err)
+		s.appendAccessRequestEvent(ctx, req.ID, models.AccessRequestEventFailed, fmt.Sprintf("Account-ready email failed: %v", err))
+	}
 }
 
 // provisionAccessRequest creates the user, identity binding, cluster user,
 // and allocation membership for an approval. Every step tolerates leftovers
 // from an earlier partial run so a failed approval can be retried.
-func (s *Service) provisionAccessRequest(ctx context.Context, req *models.AccessRequest, expiresAt time.Time) (*models.User, error) {
+func (s *Service) provisionAccessRequest(ctx context.Context, req *models.AccessRequest, expiresAt time.Time) (*models.User, string, error) {
 	ev, err := s.accessEvents.FindByCode(ctx, req.EventCode)
 	if err != nil {
-		return nil, fmt.Errorf("lookup access event: %w", err)
+		return nil, "", fmt.Errorf("lookup access event: %w", err)
 	}
 	if ev == nil {
-		return nil, fmt.Errorf("%w: access event %q", ErrNotFound, req.EventCode)
+		return nil, "", fmt.Errorf("%w: access event %q", ErrNotFound, req.EventCode)
 	}
 	alloc, err := s.allocs.FindByID(ctx, ev.ComputeAllocationID)
 	if err != nil {
-		return nil, fmt.Errorf("lookup compute allocation: %w", err)
+		return nil, "", fmt.Errorf("lookup compute allocation: %w", err)
 	}
 	if alloc == nil {
-		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, ev.ComputeAllocationID)
+		return nil, "", fmt.Errorf("%w: compute allocation %q not found", ErrInvalidInput, ev.ComputeAllocationID)
 	}
 	if alloc.Status != models.ACTIVE {
-		return nil, fmt.Errorf("%w: compute allocation %q is %s, must be ACTIVE", ErrInvalidInput, alloc.ID, alloc.Status)
+		return nil, "", fmt.Errorf("%w: compute allocation %q is %s, must be ACTIVE", ErrInvalidInput, alloc.ID, alloc.Status)
 	}
 
 	first, last := splitName(req.Name)
@@ -236,7 +258,7 @@ func (s *Service) provisionAccessRequest(ctx context.Context, req *models.Access
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
+		return nil, "", fmt.Errorf("create user: %w", err)
 	}
 
 	if _, err := s.CreateUserIdentity(ctx, &models.UserIdentity{
@@ -246,17 +268,22 @@ func (s *Service) provisionAccessRequest(ctx context.Context, req *models.Access
 		OIDCSub:    req.OIDCSub,
 		Email:      req.Email,
 	}); err != nil && !errors.Is(err, ErrAlreadyExists) {
-		return nil, fmt.Errorf("create user identity: %w", err)
+		return nil, "", fmt.Errorf("create user identity: %w", err)
 	}
 
 	// Check the pair first: the allocator treats a pair duplicate as a
 	// username collision and would burn its retry budget on the same pair.
+	username := ""
 	if existing, err := s.clusterUsers.FindByPair(ctx, alloc.ComputeClusterID, user.ID); err != nil {
-		return nil, fmt.Errorf("lookup compute cluster user: %w", err)
-	} else if existing == nil {
-		if _, err := s.AllocateComputeClusterUser(ctx, user, alloc.ComputeClusterID); err != nil {
-			return nil, fmt.Errorf("allocate compute cluster user: %w", err)
+		return nil, "", fmt.Errorf("lookup compute cluster user: %w", err)
+	} else if existing != nil {
+		username = existing.LocalUsername
+	} else {
+		ccu, err := s.AllocateComputeClusterUser(ctx, user, alloc.ComputeClusterID)
+		if err != nil {
+			return nil, "", fmt.Errorf("allocate compute cluster user: %w", err)
 		}
+		username = ccu.LocalUsername
 	}
 
 	if _, err := s.CreateComputeAllocationMembership(ctx, &models.ComputeAllocationMembership{
@@ -266,9 +293,9 @@ func (s *Service) provisionAccessRequest(ctx context.Context, req *models.Access
 		EndTime:             expiresAt,
 		MembershipStatus:    models.ACTIVE,
 	}); err != nil && !errors.Is(err, ErrAlreadyExists) {
-		return nil, fmt.Errorf("create compute allocation membership: %w", err)
+		return nil, "", fmt.Errorf("create compute allocation membership: %w", err)
 	}
-	return user, nil
+	return user, username, nil
 }
 
 // DenyAccessRequest transitions a PENDING request to DENIED, recording the

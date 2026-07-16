@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>Your {{.SiteName}} account is ready</title>
+  <!--[if mso]>
+  <style type="text/css">table,td,div,p,a{font-family:Arial,Helvetica,sans-serif !important;}</style>
+  <![endif]-->
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#f4f5f7; -webkit-font-smoothing:antialiased;">
+
+  <!-- preheader: shown in the inbox preview, hidden in the body -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f4f5f7;">
+    Your account {{.Username}} is active. Sign in to the portal or connect to the cluster over SSH.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f5f7;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+
+          <!-- brand bar -->
+          <tr>
+            <td style="padding:24px 32px; border-bottom:1px solid #eef0f3;">
+              <span style="font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:18px; font-weight:700; letter-spacing:0.02em; color:#2361b8;">{{.SiteName}}</span>
+            </td>
+          </tr>
+
+          <!-- body -->
+          <tr>
+            <td style="padding:32px 32px 8px 32px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <h1 style="margin:0 0 12px 0; font-size:22px; line-height:1.3; font-weight:700; color:#111111;">Your account is ready</h1>
+              <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#374151;">
+                Hi{{if .FirstName}} {{.FirstName}}{{end}}, your request was approved and your {{.SiteName}} account is now active. Your username is:
+              </p>
+
+              <!-- username callout -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:12px 16px; background-color:#f4f5f7; border:1px solid #e5e7eb; border-radius:8px; font-family:'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:16px; font-weight:600; color:#111111;">
+                    {{.Username}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- step 1: portal -->
+          <tr>
+            <td style="padding:24px 32px 8px 32px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#6b7280;">Step 1 &middot; Open the portal</p>
+              <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#374151;">
+                Sign in with the same institutional identity you used to request access.
+              </p>
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{.PortalURL}}" style="height:44px;v-text-anchor:middle;width:200px;" arcsize="18%" strokecolor="#2361b8" fillcolor="#2361b8">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">Sign in to the portal</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-->
+              <a href="{{.PortalURL}}" style="display:inline-block; background-color:#2361b8; color:#ffffff; font-size:15px; font-weight:600; text-decoration:none; padding:12px 24px; border-radius:8px;">Sign in to the portal</a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+
+          <!-- step 2: ssh -->
+          <tr>
+            <td style="padding:24px 32px 8px 32px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#6b7280;">Step 2 &middot; Connect to the cluster</p>
+              <p style="margin:0 0 12px 0; font-size:15px; line-height:1.6; color:#374151;">
+                Open a terminal and connect over SSH with the command below.
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:14px 16px; background-color:#0e274a; border-radius:8px; font-family:'SF Mono',Menlo,Consolas,'Liberation Mono',monospace; font-size:14px; color:#e9f0f8;">
+                    <span style="color:#79a4d6;">$</span>&nbsp;ssh {{.Username}}@{{.ClusterHost}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {{if .ExpiresOn}}
+          <!-- trial expiry note (optional) -->
+          <tr>
+            <td style="padding:20px 32px 0 32px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:12px 16px; background-color:#fef3c7; border-radius:8px; font-size:13px; line-height:1.5; color:#92400e;">
+                    This is a trial account. Access ends on <strong>{{.ExpiresOn}}</strong>.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {{end}}
+          <!-- help -->
+          <tr>
+            <td style="padding:28px 32px 32px 32px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0; font-size:14px; line-height:1.6; color:#6b7280;">
+                Trouble signing in or connecting? Reply to this email and an administrator will help.
+              </p>
+            </td>
+          </tr>
+
+          <!-- footer -->
+          <tr>
+            <td style="padding:20px 32px; background-color:#f9fafb; border-top:1px solid #eef0f3; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0; font-size:12px; line-height:1.5; color:#9aa1ae;">
+                You are receiving this because your access request to {{.SiteName}} was approved. This is an automated message.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

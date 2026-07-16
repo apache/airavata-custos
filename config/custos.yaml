@@ -27,6 +27,17 @@ core:
       audience: "${OIDC_AUDIENCE}"
     cache_ttl: "30s"
 
+  # Notification mail; sending stays disabled while any value is unset.
+  email:
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${EMAIL_HOST_USER}"
+    password: "${EMAIL_HOST_PASSWORD}"
+    from: "${EMAIL_HOST_USER}"
+    site_name: "${EMAIL_SITE_NAME}"
+    portal_url: "${EMAIL_PORTAL_URL}"
+    cluster_host: "${EMAIL_CLUSTER_HOST}"
+
 connectors:
   slurm-mapper:
     type: "slurm-association-mapper"
