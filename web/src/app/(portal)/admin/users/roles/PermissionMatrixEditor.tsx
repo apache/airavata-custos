@@ -17,20 +17,31 @@
 
 "use client";
 
-import { PermissionRW } from "@/shared/users-admin/PermissionRW";
+import { cn } from "@/lib/utils";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
-import { rwStateFor } from "@/shared/users-admin/permissions";
+import { permissionRowsFor } from "@/shared/users-admin/permissions";
+
+const ACTION_CHIP_CLASSES: Record<string, string> = {
+  read: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
+  write: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+};
+const ACTION_CHIP_FALLBACK =
+  "bg-[color:var(--tone-accent-bg)] text-[color:var(--tone-accent-fg)]";
+const INACTIVE_CHIP_CLASS = "border border-border text-muted-foreground";
 
 export function PermissionMatrixEditor({
   permissions,
+  catalog,
   onTogglePermission,
   editable = true,
 }: {
   permissions: PermissionKey[];
-  onTogglePermission: (permission: PermissionKey) => void;
+  catalog?: readonly PermissionKey[];
+  onTogglePermission?: (permission: PermissionKey) => void;
   editable?: boolean;
 }) {
-  const rwPermissions = rwStateFor(permissions);
+  const rows = permissionRowsFor(permissions, catalog);
+  const canEdit = editable && onTogglePermission;
 
   return (
     <div>
@@ -38,17 +49,39 @@ export function PermissionMatrixEditor({
         Effective Privileges
       </h4>
       <ul className="space-y-2">
-        {rwPermissions.map((p) => (
-          <li key={p.section} className="flex items-center justify-between text-sm">
-            <span className="font-mono text-foreground">{p.section}</span>
-            <PermissionRW
-              read={p.read}
-              write={p.write}
-              onToggleRead={editable ? () => onTogglePermission(`${p.section}:read`) : undefined}
-              onToggleWrite={
-                editable ? () => onTogglePermission(`${p.section}:write`) : undefined
-              }
-            />
+        {rows.map((row) => (
+          <li key={row.section} className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-mono text-foreground">{row.section}</span>
+            <div className="flex flex-wrap justify-end gap-1">
+              {row.actions.map((privilege) => {
+                const className = cn(
+                  "inline-flex h-6 items-center justify-center rounded px-2 text-xs font-medium",
+                  privilege.active
+                    ? ACTION_CHIP_CLASSES[privilege.action] ?? ACTION_CHIP_FALLBACK
+                    : INACTIVE_CHIP_CLASS,
+                  canEdit && "cursor-pointer transition-transform hover:scale-105",
+                );
+                if (!canEdit) {
+                  return (
+                    <span key={privilege.key} title={privilege.key} className={className}>
+                      {privilege.action}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={privilege.key}
+                    type="button"
+                    title={privilege.key}
+                    aria-pressed={privilege.active}
+                    onClick={() => onTogglePermission(privilege.key)}
+                    className={className}
+                  >
+                    {privilege.action}
+                  </button>
+                );
+              })}
+            </div>
           </li>
         ))}
       </ul>

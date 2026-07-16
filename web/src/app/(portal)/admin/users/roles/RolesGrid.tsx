@@ -17,20 +17,56 @@
 
 "use client";
 
-import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
+import { useRoleRows } from "@/features/core/roles/queries";
+import { Button } from "@/shared/ui/button";
 import { RoleCard } from "./RoleCard";
 
 export function RolesGrid() {
-  const { roles, users } = useUsersAdmin();
+  const rolesQuery = useRoleRows();
+
+  if (rolesQuery.isPending) {
+    return (
+      <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
+        Loading roles...
+      </div>
+    );
+  }
+
+  if (rolesQuery.isError) {
+    const error = rolesQuery.error;
+    return (
+      <div className="space-y-3 rounded-md border bg-card p-6">
+        <p className="text-sm text-destructive">
+          {error instanceof Error ? error.message : "Could not load roles."}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            rolesQuery.refetch();
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const roles = rolesQuery.data;
+
+  if (roles.length === 0) {
+    return (
+      <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
+        No roles have been created yet.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {roles.map((role) => (
-        <RoleCard
-          key={role.id}
-          role={role}
-          memberCount={users.filter((u) => u.roles.some((r) => r.id === role.id)).length}
-        />
+        <RoleCard key={role.id} role={role} />
       ))}
     </div>
   );

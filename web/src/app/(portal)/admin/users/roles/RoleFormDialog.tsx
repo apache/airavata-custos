@@ -18,6 +18,9 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
+import { useCreateRole, usePrivilegeCatalog, useUpdateRole } from "@/features/core/roles/queries";
+import type { RoleRow } from "@/features/core/roles/schemas";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -32,8 +35,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { togglePermission } from "@/shared/users-admin/permissions";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
-import type { RoleRow, UserRow } from "@/shared/users-admin/types";
 import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
+import type { UserRow } from "@/shared/users-admin/types";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 
 function fullNameFor(user: UserRow): string {
@@ -51,8 +54,11 @@ export function RoleFormDialog({
   triggerRender: React.ReactElement;
   triggerContent: React.ReactNode;
 }) {
-  const { users, addRole, updateRole } = useUsersAdmin();
   const isEdit = Boolean(role);
+  const catalogQuery = usePrivilegeCatalog();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const { users } = useUsersAdmin();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -65,13 +71,9 @@ export function RoleFormDialog({
     if (next) {
       setName(role?.name ?? "");
       setDescription(role?.description ?? "");
-      setPermissions(role?.permissions ?? []);
+      setPermissions(role?.privileges ?? []);
       setUserSearch("");
-      setSelectedUserIds(
-        new Set(
-          role ? users.filter((u) => u.roles.some((r) => r.id === role.id)).map((u) => u.id ?? "") : [],
-        ),
-      );
+      setSelectedUserIds(new Set(role?.holderIds ?? []));
     }
   }
 
@@ -84,17 +86,26 @@ export function RoleFormDialog({
     });
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!name.trim()) return;
-    const input = { name: name.trim(), description: description.trim(), permissions };
-    if (isEdit && role?.id) {
-      updateRole(role.id, input, Array.from(selectedUserIds));
-    } else {
-      addRole(input, Array.from(selectedUserIds));
+    const input = { name: name.trim(), description: description.trim(), privileges: permissions };
+    const memberUserIds = Array.from(selectedUserIds);
+    try {
+      if (isEdit && role?.id) {
+        await updateRole.mutateAsync({ role, input, memberUserIds });
+        toast.success("Role updated");
+      } else {
+        await createRole.mutateAsync({ ...input, memberUserIds });
+        toast.success("Role created");
+      }
+      setOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Role update failed");
     }
-    setOpen(false);
   }
 
+  const saving = createRole.isPending || updateRole.isPending;
+  const catalog = catalogQuery.data ?? [];
   const needle = userSearch.trim().toLowerCase();
   const matchingUsers = needle
     ? users.filter((u) => `${fullNameFor(u)} ${u.email ?? ""}`.toLowerCase().includes(needle))
@@ -108,8 +119,8 @@ export function RoleFormDialog({
           <DialogTitle>{isEdit ? "Edit role" : "Create role"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? `Update what ${role?.name} can see and do, and who holds it.`
-              : "Define a name, choose the permissions it grants, and optionally assign it to users right away."}
+              ? `Update what ${role?.name} can see and do.`
+              : "Define a name and choose the permissions it grants."}
           </DialogDescription>
         </DialogHeader>
 
@@ -140,6 +151,7 @@ export function RoleFormDialog({
 
           <PermissionMatrixEditor
             permissions={permissions}
+            catalog={catalog}
             onTogglePermission={(key) => setPermissions((prev) => togglePermission(prev, key))}
           />
 
@@ -186,11 +198,11 @@ export function RoleFormDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} type="button">
+          <Button variant="outline" onClick={() => setOpen(false)} type="button" disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()} type="button">
-            {isEdit ? "Save changes" : "Create role"}
+          <Button onClick={handleSubmit} disabled={!name.trim() || saving} type="button">
+            {saving ? "Saving..." : isEdit ? "Save changes" : "Create role"}
           </Button>
         </DialogFooter>
       </DialogContent>

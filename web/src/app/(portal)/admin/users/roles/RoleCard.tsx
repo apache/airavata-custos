@@ -18,16 +18,13 @@
 "use client";
 
 import { Pencil, ShieldCheck } from "lucide-react";
+import type { RoleRow } from "@/features/core/roles/schemas";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
-import { PermissionRW } from "@/shared/users-admin/PermissionRW";
-import { rwStateFor } from "@/shared/users-admin/permissions";
-import type { RoleRow } from "@/shared/users-admin/types";
+import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
 import { RoleFormDialog } from "./RoleFormDialog";
 
-export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: number }) {
-  const rwPermissions = rwStateFor(role.permissions).filter((p) => p.read || p.write);
-
+export function RoleCard({ role }: { role: RoleRow }) {
   return (
     <Card>
       <CardHeader>
@@ -45,30 +42,17 @@ export function RoleCard({ role, memberCount }: { role: RoleRow; memberCount: nu
             <p className="mt-1 text-sm text-muted-foreground">{role.description}</p>
           </div>
           <Badge variant="secondary" className="shrink-0">
-            {memberCount} {memberCount === 1 ? "member" : "members"}
+            {role.memberCount} {role.memberCount === 1 ? "member" : "members"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="border-t border-border" />
 
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Effective Privileges
-          </h4>
-          {rwPermissions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No privileges granted.</p>
-          ) : (
-            <ul className="space-y-2">
-              {rwPermissions.map((p) => (
-                <li key={p.section} className="flex items-center justify-between text-sm">
-                  <span className="font-mono text-foreground">{p.section}</span>
-                  <PermissionRW read={p.read} write={p.write} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <PermissionMatrixEditor
+          permissions={role.privileges}
+          editable={false}
+        />
 
         <div className="border-t border-border" />
 

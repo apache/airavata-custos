@@ -57,7 +57,9 @@ async function proxy(request: NextRequest, ctx: Context) {
   const traceId = upstream.headers.get("x-trace-id");
   if (traceId) responseHeaders.set("x-trace-id", traceId);
 
-  return new NextResponse(await upstream.text(), {
+  const hasNoBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
+
+  return new NextResponse(hasNoBody ? null : await upstream.text(), {
     status: upstream.status,
     headers: responseHeaders,
   });
