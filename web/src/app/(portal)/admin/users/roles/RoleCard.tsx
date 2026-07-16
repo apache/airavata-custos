@@ -51,8 +51,6 @@ export function RoleCard({ role }: { role: RoleRow }) {
 
         <PermissionMatrixEditor
           permissions={role.privileges}
-          catalog={role.privileges}
-          onTogglePermission={() => undefined}
           editable={false}
         />
 

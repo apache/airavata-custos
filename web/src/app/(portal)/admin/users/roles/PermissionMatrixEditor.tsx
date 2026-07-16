@@ -37,10 +37,11 @@ export function PermissionMatrixEditor({
 }: {
   permissions: PermissionKey[];
   catalog?: readonly PermissionKey[];
-  onTogglePermission: (permission: PermissionKey) => void;
+  onTogglePermission?: (permission: PermissionKey) => void;
   editable?: boolean;
 }) {
   const rows = permissionRowsFor(permissions, catalog);
+  const canEdit = editable && onTogglePermission;
 
   return (
     <div>
@@ -58,9 +59,9 @@ export function PermissionMatrixEditor({
                   privilege.active
                     ? ACTION_CHIP_CLASSES[privilege.action] ?? ACTION_CHIP_FALLBACK
                     : INACTIVE_CHIP_CLASS,
-                  editable && "cursor-pointer transition-transform hover:scale-105",
+                  canEdit && "cursor-pointer transition-transform hover:scale-105",
                 );
-                if (!editable) {
+                if (!canEdit) {
                   return (
                     <span key={privilege.key} title={privilege.key} className={className}>
                       {privilege.action}

@@ -153,6 +153,34 @@ export const rolesHandlers = [
     return HttpResponse.json(role.holders);
   }),
 
+  http.post("*/api/v1/users/:userId/roles", async ({ params, request }) => {
+    const body = (await request.json()) as { role_id?: string };
+    const role = body.role_id ? roleById(body.role_id) : undefined;
+    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+    const userId = String(params.userId);
+    if (role.holders.some((holder) => holder.user_id === userId)) {
+      return HttpResponse.json({ error: "user already holds that role" }, { status: 409 });
+    }
+    const holder = {
+      user_id: userId,
+      role_id: role.id,
+      granted_at: new Date().toISOString(),
+    };
+    role.holders = [...role.holders, holder];
+    return HttpResponse.json(holder, { status: 201 });
+  }),
+
+  http.delete("*/api/v1/users/:userId/roles/:roleId", ({ params }) => {
+    const role = roleById(String(params.roleId));
+    if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });
+    const userId = String(params.userId);
+    if (!role.holders.some((holder) => holder.user_id === userId)) {
+      return HttpResponse.json({ error: "user does not hold that role" }, { status: 404 });
+    }
+    role.holders = role.holders.filter((holder) => holder.user_id !== userId);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post("*/api/v1/roles/:roleId/privileges", async ({ params, request }) => {
     const role = roleById(String(params.roleId));
     if (!role) return HttpResponse.json({ error: "not found" }, { status: 404 });

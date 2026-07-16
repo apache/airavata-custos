@@ -43,6 +43,11 @@ export async function getRoleMemberCount(roleId: string): Promise<number> {
   return holders.length;
 }
 
+export async function getRoleHolderIds(roleId: string): Promise<string[]> {
+  const holders = roleHoldersResponseSchema.parse(await apiFetch(`/roles/${roleId}/holders`));
+  return holders.flatMap((holder) => (holder.user_id ? [holder.user_id] : []));
+}
+
 export async function listPrivilegeCatalog(): Promise<PrivilegeKey[]> {
   return privilegeCatalogResponseSchema.parse(await apiFetch("/privileges/catalog"));
 }
@@ -52,12 +57,12 @@ export async function listRoleRows(): Promise<RoleRow[]> {
   return Promise.all(
     roles.map(async (role) => {
       const roleId = role.id ?? "";
-      if (!roleId) return { ...role, privileges: [], memberCount: 0 };
-      const [privileges, memberCount] = await Promise.all([
+      if (!roleId) return { ...role, privileges: [], holderIds: [], memberCount: 0 };
+      const [privileges, holderIds] = await Promise.all([
         getRolePrivileges(roleId),
-        getRoleMemberCount(roleId),
+        getRoleHolderIds(roleId),
       ]);
-      return { ...role, privileges, memberCount };
+      return { ...role, privileges, holderIds, memberCount: holderIds.length };
     }),
   );
 }
@@ -116,5 +121,37 @@ export async function reconcileRolePrivileges(
   }
   for (const privilege of toRemove) {
     await removePrivilegeFromRole(roleId, privilege);
+  }
+}
+
+export async function grantRoleToUser(userId: string, roleId: string): Promise<void> {
+  await apiFetch(`/users/${userId}/roles`, {
+    method: "POST",
+    body: { role_id: roleId },
+  });
+}
+
+export async function revokeRoleFromUser(userId: string, roleId: string): Promise<void> {
+  await apiFetch(`/users/${userId}/roles/${roleId}`, {
+    method: "DELETE",
+    body: {},
+  });
+}
+
+export async function reconcileRoleMembers(
+  roleId: string,
+  current: string[],
+  next: string[],
+): Promise<void> {
+  const currentSet = new Set(current);
+  const nextSet = new Set(next);
+  const toAdd = next.filter((userId) => !currentSet.has(userId));
+  const toRemove = current.filter((userId) => !nextSet.has(userId));
+
+  for (const userId of toAdd) {
+    await grantRoleToUser(userId, roleId);
+  }
+  for (const userId of toRemove) {
+    await revokeRoleFromUser(userId, roleId);
   }
 }

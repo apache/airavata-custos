@@ -22,6 +22,8 @@ type PermissionParts = {
   action: string;
 };
 
+const ACTION_ORDER = ["read", "write", "grant", "manage"];
+
 function splitPermission(key: PermissionKey): PermissionParts {
   const parts = key.split(":");
   const action = parts.pop() ?? key;
@@ -52,11 +54,13 @@ export function permissionRowsFor(
   return Array.from(rows.values()).map((row) => ({
     ...row,
     actions: row.actions.sort((a, b) => {
-      const order = ["read", "write", "grant", "manage"];
-      const ai = order.indexOf(a.action);
-      const bi = order.indexOf(b.action);
+      const ai = ACTION_ORDER.indexOf(a.action);
+      const bi = ACTION_ORDER.indexOf(b.action);
       if (ai !== bi) {
-        return (ai === -1 ? order.length : ai) - (bi === -1 ? order.length : bi);
+        return (
+          (ai === -1 ? ACTION_ORDER.length : ai) -
+          (bi === -1 ? ACTION_ORDER.length : bi)
+        );
       }
       return a.action.localeCompare(b.action);
     }),

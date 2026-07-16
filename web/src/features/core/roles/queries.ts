@@ -22,10 +22,15 @@ import {
   createRole,
   listPrivilegeCatalog,
   listRoleRows,
+  reconcileRoleMembers,
   reconcileRolePrivileges,
   updateRole,
 } from "./api";
 import type { RoleInput, RoleRow } from "./schemas";
+
+type RoleMutationInput = RoleInput & {
+  memberUserIds?: string[];
+};
 
 export const roleKeys = {
   all: ["roles"] as const,
@@ -58,24 +63,36 @@ export function usePrivilegeCatalog() {
 export function useCreateRole() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: RoleInput) => {
+    mutationFn: async (input: RoleMutationInput) => {
       const role = await createRole(input);
-      if (role.id) await reconcileRolePrivileges(role.id, [], input.privileges);
+      if (role.id) {
+        await reconcileRolePrivileges(role.id, [], input.privileges);
+        await reconcileRoleMembers(role.id, [], input.memberUserIds ?? []);
+      }
       return role;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: roleKeys.all }),
+    onSettled: () => client.invalidateQueries({ queryKey: roleKeys.all }),
   });
 }
 
 export function useUpdateRole() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ role, input }: { role: RoleRow; input: RoleInput }) => {
+    mutationFn: async ({
+      role,
+      input,
+      memberUserIds,
+    }: {
+      role: RoleRow;
+      input: RoleInput;
+      memberUserIds?: string[];
+    }) => {
       if (!role.id) throw new Error("Role id is required");
       const updated = await updateRole(role.id, input);
       await reconcileRolePrivileges(role.id, role.privileges, input.privileges);
+      await reconcileRoleMembers(role.id, role.holderIds, memberUserIds ?? role.holderIds);
       return updated;
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: roleKeys.all }),
+    onSettled: () => client.invalidateQueries({ queryKey: roleKeys.all }),
   });
 }

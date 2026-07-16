@@ -35,7 +35,14 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { togglePermission } from "@/shared/users-admin/permissions";
 import type { PermissionKey } from "@/shared/users-admin/permissions";
+import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
+import type { UserRow } from "@/shared/users-admin/types";
 import { PermissionMatrixEditor } from "./PermissionMatrixEditor";
+
+function fullNameFor(user: UserRow): string {
+  const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  return name || (user.email ?? "Unknown user");
+}
 
 export function RoleFormDialog({
   role,
@@ -51,10 +58,13 @@ export function RoleFormDialog({
   const catalogQuery = usePrivilegeCatalog();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
+  const { users } = useUsersAdmin();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [permissions, setPermissions] = React.useState<PermissionKey[]>([]);
+  const [userSearch, setUserSearch] = React.useState("");
+  const [selectedUserIds, setSelectedUserIds] = React.useState<Set<string>>(new Set());
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -62,18 +72,30 @@ export function RoleFormDialog({
       setName(role?.name ?? "");
       setDescription(role?.description ?? "");
       setPermissions(role?.privileges ?? []);
+      setUserSearch("");
+      setSelectedUserIds(new Set(role?.holderIds ?? []));
     }
+  }
+
+  function toggleUserSelected(userId: string) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
   }
 
   async function handleSubmit() {
     if (!name.trim()) return;
     const input = { name: name.trim(), description: description.trim(), privileges: permissions };
+    const memberUserIds = Array.from(selectedUserIds);
     try {
       if (isEdit && role?.id) {
-        await updateRole.mutateAsync({ role, input });
+        await updateRole.mutateAsync({ role, input, memberUserIds });
         toast.success("Role updated");
       } else {
-        await createRole.mutateAsync(input);
+        await createRole.mutateAsync({ ...input, memberUserIds });
         toast.success("Role created");
       }
       setOpen(false);
@@ -84,6 +106,10 @@ export function RoleFormDialog({
 
   const saving = createRole.isPending || updateRole.isPending;
   const catalog = catalogQuery.data ?? [];
+  const needle = userSearch.trim().toLowerCase();
+  const matchingUsers = needle
+    ? users.filter((u) => `${fullNameFor(u)} ${u.email ?? ""}`.toLowerCase().includes(needle))
+    : users;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -128,6 +154,47 @@ export function RoleFormDialog({
             catalog={catalog}
             onTogglePermission={(key) => setPermissions((prev) => togglePermission(prev, key))}
           />
+
+          <div className="border-t border-border" />
+
+          <div className="space-y-2">
+            <Label htmlFor="role-user-search">Assign to users (optional)</Label>
+            <Input
+              id="role-user-search"
+              type="search"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Search by username or email"
+            />
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+              {matchingUsers.length === 0 ? (
+                <li className="px-1 py-1 text-sm text-muted-foreground">No users match.</li>
+              ) : (
+                matchingUsers.map((u) => {
+                  const id = u.id ?? u.email ?? "";
+                  return (
+                    <li key={id}>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-1 text-sm hover:bg-muted">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(id)}
+                          onChange={() => toggleUserSelected(id)}
+                          className="size-4 rounded border-input"
+                        />
+                        <span className="font-medium text-foreground">{fullNameFor(u)}</span>
+                        <span className="text-xs text-muted-foreground">{u.email}</span>
+                      </label>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+            {selectedUserIds.size > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {selectedUserIds.size} user{selectedUserIds.size === 1 ? "" : "s"} selected
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <DialogFooter>

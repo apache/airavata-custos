@@ -16,31 +16,22 @@
 // under the License.
 
 import { z } from "zod";
-import { zRole, zUserRole } from "@/generated/core/zod.gen";
+import {
+  privilegeKeySchema,
+  roleDetailResponseSchema,
+  roleSchema,
+  userRoleSchema,
+} from "@/features/core/identity/schemas";
 
-export const privilegeKeySchema = z.string().min(1);
+export { privilegeKeySchema, roleDetailResponseSchema, roleSchema };
 
-export const roleSchema = zRole;
 export const rolesResponseSchema = z
   .array(roleSchema)
   .nullish()
   .transform((value) => value ?? []);
 
-export const roleDetailResponseSchema = z.object({
-  role: roleSchema.optional(),
-  privileges: z
-    .array(privilegeKeySchema)
-    .nullish()
-    .transform((value) => value ?? []),
-});
-
 export const roleHoldersResponseSchema = z
-  .array(
-    zUserRole.extend({
-      granted_by: z.string().nullish(),
-      reason: z.string().nullish(),
-    }),
-  )
+  .array(userRoleSchema)
   .nullish()
   .transform((value) => value ?? []);
 
@@ -62,5 +53,6 @@ export type UserRole = z.infer<typeof roleHoldersResponseSchema>[number];
 
 export type RoleRow = Role & {
   privileges: PrivilegeKey[];
+  holderIds: string[];
   memberCount: number;
 };
