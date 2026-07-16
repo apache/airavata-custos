@@ -54,6 +54,7 @@ type ctxKey string
 const (
 	callerKey     ctxKey = "caller"
 	privilegesKey ctxKey = "privileges"
+	claimsKey     ctxKey = "claims"
 )
 
 type privilegeSet map[models.PrivilegeKey]struct{}
@@ -67,6 +68,20 @@ func WithCaller(ctx context.Context, caller *Caller) context.Context {
 func CallerFromContext(ctx context.Context) *Caller {
 	if caller, ok := ctx.Value(callerKey).(*Caller); ok {
 		return caller
+	}
+	return nil
+}
+
+// WithClaims attaches the verified token claims to ctx. The middleware sets
+// it for every verified request, linked or not.
+func WithClaims(ctx context.Context, claims *Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, claims)
+}
+
+// ClaimsFromContext returns the verified token claims, or nil if none are set.
+func ClaimsFromContext(ctx context.Context) *Claims {
+	if claims, ok := ctx.Value(claimsKey).(*Claims); ok {
+		return claims
 	}
 	return nil
 }

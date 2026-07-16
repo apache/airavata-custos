@@ -18,6 +18,7 @@
 package identity
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -27,10 +28,17 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
+// TokenVerifier validates a raw bearer token into Claims. Satisfied by
+// JWTVerifier; tests substitute a stub.
+type TokenVerifier interface {
+	Verify(ctx context.Context, rawToken string) (*Claims, error)
+}
+
 // Middleware verifies the bearer token once, resolves the caller, and
 // attaches Caller + privilege set to the request context. Public paths
-// bypass verification entirely.
-func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []string, next http.Handler) http.Handler {
+// bypass verification entirely. A verified-but-unlinked caller proceeds
+// with Claims only when isTokenPath matches the request.
+func Middleware(verifier TokenVerifier, resolver UserResolver, publicPaths []string, isTokenPath func(*http.Request) bool, next http.Handler) http.Handler {
 	publicSet := make(map[string]struct{}, len(publicPaths))
 	for _, path := range publicPaths {
 		publicSet[path] = struct{}{}
@@ -50,8 +58,13 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			writeJSONError(w, http.StatusUnauthorized, "invalid_token", "Invalid or expired bearer token")
 			return
 		}
-		caller, privileges, err := resolver.ResolveCaller(req.Context(), claims)
+		ctx := WithClaims(req.Context(), claims)
+		caller, privileges, err := resolver.ResolveCaller(ctx, claims)
 		if errors.Is(err, ErrNotLinked) {
+			if isTokenPath != nil && isTokenPath(req) {
+				next.ServeHTTP(w, req.WithContext(ctx))
+				return
+			}
 			writeJSONError(w, http.StatusUnauthorized, "identity_not_linked", "OIDC identity is not linked to a portal user")
 			return
 		}
@@ -60,21 +73,25 @@ func Middleware(verifier *JWTVerifier, resolver UserResolver, publicPaths []stri
 			writeJSONError(w, http.StatusServiceUnavailable, "auth_lookup_failed", "Identity resolution failed")
 			return
 		}
-		ctx := WithCaller(req.Context(), caller)
+		ctx = WithCaller(ctx, caller)
 		ctx = withPrivileges(ctx, privileges)
 		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
 
 // Router is the only path that lets HTTP routes hit the mux. The mux
-// field is unexported on purpose: callers must go through RequirePrivilege, RequireAuth, or Public.
+// field is unexported on purpose: callers must go through RequirePrivilege,
+// RequireAuth, RequireToken, or Public.
 type Router struct {
 	mux         *http.ServeMux
+	tokenMux    *http.ServeMux
 	publicPaths []string
 }
 
 // NewRouter wraps mux.
-func NewRouter(mux *http.ServeMux) *Router { return &Router{mux: mux} }
+func NewRouter(mux *http.ServeMux) *Router {
+	return &Router{mux: mux, tokenMux: http.NewServeMux()}
+}
 
 // RequirePrivilege registers an authenticated handler. The wrapper checks privilege
 // against the caller's privilege set in ctx; absent → 403.
@@ -112,6 +129,23 @@ func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWrite
 		}
 		handler(w, req)
 	})
+}
+
+// RequireToken registers a handler reachable with a verified token whose
+// identity is not yet linked to a user. Handlers read ClaimsFromContext;
+// CallerFromContext may be nil.
+func (r *Router) RequireToken(pattern string, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, handler)
+	r.tokenMux.HandleFunc(pattern, func(http.ResponseWriter, *http.Request) {})
+}
+
+// TokenPathMatcher reports whether a request targets a RequireToken route,
+// with the same pattern semantics as the real mux.
+func (r *Router) TokenPathMatcher() func(*http.Request) bool {
+	return func(req *http.Request) bool {
+		_, pattern := r.tokenMux.Handler(req)
+		return pattern != ""
+	}
 }
 
 // PublicPaths returns the path components of every Public() registration,
