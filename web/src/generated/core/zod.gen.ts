@@ -2,6 +2,32 @@
 
 import * as z from 'zod';
 
+export const zAccessRequestStatus = z.enum([
+    'PENDING',
+    'APPROVED',
+    'DENIED'
+]);
+
+export type accessRequestStatusZodType = z.infer<typeof zAccessRequestStatus>;
+
+export const zAccessRequest = z.object({
+    approver_id: z.string().optional(),
+    created_user_id: z.string().optional(),
+    deny_reason: z.string().optional(),
+    email: z.string().optional(),
+    event_code: z.string().optional(),
+    expires_at: z.string().optional(),
+    id: z.string().optional(),
+    institution: z.string().optional(),
+    name: z.string().optional(),
+    oidc_sub: z.string().optional(),
+    reason: z.string().optional(),
+    status: zAccessRequestStatus.optional(),
+    timestamp: z.string().optional()
+});
+
+export type accessRequestZodType = z.infer<typeof zAccessRequest>;
+
 export const zAllocationSuTotalResponse = z.object({
     compute_allocation_id: z.string().optional(),
     total_su_amount: z.int().optional()
@@ -209,7 +235,9 @@ export const zPrivilegeKey = z.enum([
     'core:organizations:write',
     'core:traces:read',
     'core:privileges:grant',
-    'core:roles:manage'
+    'core:roles:manage',
+    'core:access-requests:read',
+    'core:access-requests:write'
 ]);
 
 export type privilegeKeyZodType = z.infer<typeof zPrivilegeKey>;
@@ -499,6 +527,66 @@ export const zUserNameUpdateRequest = z.object({
 });
 
 export type userNameUpdateRequestZodType = z.infer<typeof zUserNameUpdateRequest>;
+
+export const zGetAccessRequestsQuery = z.object({
+    status: z.string().optional(),
+    event: z.string().optional(),
+    limit: z.int().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetAccessRequestsResponse = z.array(zAccessRequest);
+
+/**
+ * Access request payload
+ */
+export const zPostAccessRequestsBody = z.object({
+    event_code: z.string().optional(),
+    institution: z.string().optional(),
+    reason: z.string().optional()
+});
+
+/**
+ * Created
+ */
+export const zPostAccessRequestsResponse = zAccessRequest;
+
+/**
+ * Decision payload
+ */
+export const zPutAccessRequestsByIdBody = z.object({
+    deny_reason: z.string().optional(),
+    expires_at: z.string().optional(),
+    status: z.string().optional()
+});
+
+export const zPutAccessRequestsByIdPath = z.object({
+    id: z.string()
+});
+
+/**
+ * OK
+ */
+export const zPutAccessRequestsByIdResponse = zAccessRequest;
+
+export const zGetAccessRequestsEventsByCodePath = z.object({
+    code: z.string()
+});
+
+/**
+ * OK
+ */
+export const zGetAccessRequestsEventsByCodeResponse = z.object({
+    code: z.string().optional(),
+    name: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetAccessRequestsMeResponse = zAccessRequest;
 
 export const zGetAuditEventsQuery = z.object({
     trace_id: z.string(),
@@ -1130,7 +1218,9 @@ export const zGetPrivilegesByKeyHoldersPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:access-requests:read',
+        'core:access-requests:write'
     ])
 });
 
@@ -1279,7 +1369,9 @@ export const zDeleteRolesByIdPrivilegesByKeyPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:access-requests:read',
+        'core:access-requests:write'
     ])
 });
 
@@ -1468,7 +1560,9 @@ export const zDeleteUsersByIdPrivilegesByKeyPath = z.object({
         'core:organizations:write',
         'core:traces:read',
         'core:privileges:grant',
-        'core:roles:manage'
+        'core:roles:manage',
+        'core:access-requests:read',
+        'core:access-requests:write'
     ])
 });
 

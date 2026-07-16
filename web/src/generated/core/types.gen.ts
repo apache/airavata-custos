@@ -4,6 +4,24 @@ export type ClientOptions = {
     baseUrl: 'localhost:8080/' | (string & {});
 };
 
+export type AccessRequest = {
+    approver_id?: string;
+    created_user_id?: string;
+    deny_reason?: string;
+    email?: string;
+    event_code?: string;
+    expires_at?: string;
+    id?: string;
+    institution?: string;
+    name?: string;
+    oidc_sub?: string;
+    reason?: string;
+    status?: AccessRequestStatus;
+    timestamp?: string;
+};
+
+export type AccessRequestStatus = 'PENDING' | 'APPROVED' | 'DENIED';
+
 export type AllocationMembershipResponse = {
     compute_allocation_id?: string;
     display_name?: string;
@@ -300,7 +318,7 @@ export type OrganizationListResponse = {
     total?: number;
 };
 
-export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+export type PrivilegeKey = 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:access-requests:read' | 'core:access-requests:write';
 
 export type Project = {
     created_time?: string;
@@ -526,6 +544,188 @@ export type UserNameUpdateRequest = {
     last_name?: string;
     middle_name?: string;
 };
+
+export type GetAccessRequestsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filter by status
+         */
+        status?: string;
+        /**
+         * Filter by event code
+         */
+        event?: string;
+        /**
+         * Maximum rows (default 50)
+         */
+        limit?: number;
+    };
+    url: '/access-requests';
+};
+
+export type GetAccessRequestsResponses = {
+    /**
+     * OK
+     */
+    200: Array<AccessRequest>;
+};
+
+export type GetAccessRequestsResponse = GetAccessRequestsResponses[keyof GetAccessRequestsResponses];
+
+export type PostAccessRequestsData = {
+    /**
+     * Access request payload
+     */
+    body: {
+        event_code?: string;
+        institution?: string;
+        reason?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/access-requests';
+};
+
+export type PostAccessRequestsErrors = {
+    /**
+     * Bad Request
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Conflict
+     */
+    409: {
+        error?: string;
+    };
+};
+
+export type PostAccessRequestsError = PostAccessRequestsErrors[keyof PostAccessRequestsErrors];
+
+export type PostAccessRequestsResponses = {
+    /**
+     * Created
+     */
+    201: AccessRequest;
+};
+
+export type PostAccessRequestsResponse = PostAccessRequestsResponses[keyof PostAccessRequestsResponses];
+
+export type PutAccessRequestsByIdData = {
+    /**
+     * Decision payload
+     */
+    body: {
+        deny_reason?: string;
+        expires_at?: string;
+        status?: string;
+    };
+    path: {
+        /**
+         * Access request ID
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/access-requests/{id}';
+};
+
+export type PutAccessRequestsByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type PutAccessRequestsByIdError = PutAccessRequestsByIdErrors[keyof PutAccessRequestsByIdErrors];
+
+export type PutAccessRequestsByIdResponses = {
+    /**
+     * OK
+     */
+    200: AccessRequest;
+};
+
+export type PutAccessRequestsByIdResponse = PutAccessRequestsByIdResponses[keyof PutAccessRequestsByIdResponses];
+
+export type GetAccessRequestsEventsByCodeData = {
+    body?: never;
+    path: {
+        /**
+         * Event code
+         */
+        code: string;
+    };
+    query?: never;
+    url: '/access-requests/events/{code}';
+};
+
+export type GetAccessRequestsEventsByCodeErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetAccessRequestsEventsByCodeError = GetAccessRequestsEventsByCodeErrors[keyof GetAccessRequestsEventsByCodeErrors];
+
+export type GetAccessRequestsEventsByCodeResponses = {
+    /**
+     * OK
+     */
+    200: {
+        code?: string;
+        name?: string;
+    };
+};
+
+export type GetAccessRequestsEventsByCodeResponse = GetAccessRequestsEventsByCodeResponses[keyof GetAccessRequestsEventsByCodeResponses];
+
+export type GetAccessRequestsMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/access-requests/me';
+};
+
+export type GetAccessRequestsMeErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetAccessRequestsMeError = GetAccessRequestsMeErrors[keyof GetAccessRequestsMeErrors];
+
+export type GetAccessRequestsMeResponses = {
+    /**
+     * OK
+     */
+    200: AccessRequest;
+};
+
+export type GetAccessRequestsMeResponse = GetAccessRequestsMeResponses[keyof GetAccessRequestsMeResponses];
 
 export type GetAuditEventsData = {
     body?: never;
@@ -2794,7 +2994,7 @@ export type GetPrivilegesByKeyHoldersData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:access-requests:read' | 'core:access-requests:write';
     };
     query?: never;
     url: '/privileges/{key}/holders';
@@ -3324,7 +3524,7 @@ export type DeleteRolesByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:access-requests:read' | 'core:access-requests:write';
     };
     query?: never;
     url: '/roles/{id}/privileges/{key}';
@@ -3950,7 +4150,7 @@ export type DeleteUsersByIdPrivilegesByKeyData = {
         /**
          * Privilege key
          */
-        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage';
+        key: 'core:clusters:read' | 'core:clusters:write' | 'core:allocations:read' | 'core:allocations:write' | 'core:projects:read' | 'core:projects:write' | 'core:users:read' | 'core:users:write' | 'core:organizations:read' | 'core:organizations:write' | 'core:traces:read' | 'core:privileges:grant' | 'core:roles:manage' | 'core:access-requests:read' | 'core:access-requests:write';
     };
     query?: never;
     url: '/users/{id}/privileges/{key}';

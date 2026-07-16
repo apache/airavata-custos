@@ -72,6 +72,7 @@ function isActive(pathname: string, href: string): boolean {
 
 function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
+  const Badge = item.badge;
   return (
     <Link
       href={item.href}
@@ -85,6 +86,7 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
     >
       <Icon className="h-5 w-5 stroke-[1.75]" />
       <span className="truncate">{item.label}</span>
+      {Badge ? <Badge /> : null}
       {active && <span className="absolute top-2 right-0 bottom-2 w-1 rounded-l-full bg-brand" />}
     </Link>
   );

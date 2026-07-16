@@ -26,6 +26,8 @@ export type PrivilegeRule = { action: string; subject: string };
 // TODO(privileges): backend should declare (subject, action) pairs per key
 // so clients can derive this map from /me instead of shipping it.
 export const PRIVILEGE_ABILITY_MAP: Record<string, PrivilegeRule[]> = {
+  "core:access-requests:read": [{ action: "read", subject: "AccessRequest" }],
+  "core:access-requests:write": [{ action: "manage", subject: "AccessRequest" }],
   "core:clusters:read": [{ action: "read", subject: "Cluster" }],
   "core:clusters:write": [{ action: "manage", subject: "Cluster" }],
   "core:allocations:read": [{ action: "read", subject: "Allocation" }],

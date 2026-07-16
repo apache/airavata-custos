@@ -32,6 +32,8 @@ export const ROLE_SUPER_ADMIN: RoleRow = {
     "amie:replies:write",
     "amie:unmapped:read",
     "amie:unmapped:write",
+    "core:access-requests:read",
+    "core:access-requests:write",
     "core:allocations:read",
     "core:allocations:write",
     "core:clusters:read",
@@ -43,8 +45,6 @@ export const ROLE_SUPER_ADMIN: RoleRow = {
     "core:traces:read",
     "core:users:read",
     "core:users:write",
-    "temp-account:accounts:read",
-    "temp-account:accounts:write",
   ],
 };
 export const ROLE_OPERATOR: RoleRow = {

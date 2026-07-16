@@ -25,7 +25,10 @@ import {
   type LucideIcon,
   Server,
   UserCog,
+  UserPlus,
 } from "lucide-react";
+import type { ComponentType } from "react";
+import { PendingCountBadge } from "@/features/core/access-requests/PendingCountBadge";
 
 export type AbilityCheck = { action: string; subject: string };
 
@@ -37,6 +40,7 @@ export type NavItem = {
   icon: LucideIcon;
   group: NavGroup;
   ability?: AbilityCheck;
+  badge?: ComponentType;
 };
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
@@ -64,6 +68,14 @@ export const portalNav: NavItem[] = [
     label: "Analytics",
     icon: ChartColumn,
     group: "allocations",
+  },
+  {
+    href: "/admin/access-requests",
+    label: "Access Requests",
+    icon: UserPlus,
+    group: "admin",
+    ability: { action: "read", subject: "AccessRequest" },
+    badge: PendingCountBadge,
   },
   {
     href: "/admin/users",
