@@ -1,5 +1,44 @@
 basePath: /
 definitions:
+  AccessRequest:
+    properties:
+      approver_id:
+        type: string
+      created_user_id:
+        type: string
+      deny_reason:
+        type: string
+      email:
+        type: string
+      event_code:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      institution:
+        type: string
+      name:
+        type: string
+      oidc_sub:
+        type: string
+      reason:
+        type: string
+      status:
+        $ref: '#/definitions/AccessRequestStatus'
+      timestamp:
+        type: string
+    type: object
+  AccessRequestStatus:
+    enum:
+    - PENDING
+    - APPROVED
+    - DENIED
+    type: string
+    x-enum-varnames:
+    - AccessRequestPending
+    - AccessRequestApproved
+    - AccessRequestDenied
   AllocationMembershipResponse:
     properties:
       compute_allocation_id:
@@ -369,6 +408,8 @@ definitions:
     - core:traces:read
     - core:privileges:grant
     - core:roles:manage
+    - core:access-requests:read
+    - core:access-requests:write
     type: string
     x-enum-varnames:
     - ClustersRead
@@ -384,6 +425,8 @@ definitions:
     - TracesRead
     - PrivilegesGrant
     - RolesManage
+    - AccessRequestsRead
+    - AccessRequestsWrite
   Project:
     properties:
       created_time:
@@ -752,6 +795,187 @@ info:
   title: Apache Custos Core API
   version: 0.2.0
 paths:
+  /access-requests:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by event code
+        in: query
+        name: event
+        type: string
+      - description: Maximum rows (default 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRequest'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List access requests
+      tags:
+      - Access Requests
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Access request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            event_code:
+              type: string
+            institution:
+              type: string
+            reason:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/AccessRequest'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit an access request
+      tags:
+      - Access Requests
+  /access-requests/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Access request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Decision payload
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            deny_reason:
+              type: string
+            expires_at:
+              type: string
+            status:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AccessRequest'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve or deny an access request
+      tags:
+      - Access Requests
+  /access-requests/events/{code}:
+    get:
+      parameters:
+      - description: Event code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resolve an access event code
+      tags:
+      - Access Requests
+  /access-requests/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AccessRequest'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the caller's latest access request
+      tags:
+      - Access Requests
   /audit/events:
     get:
       parameters:
@@ -2864,6 +3088,8 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:access-requests:read
+        - core:access-requests:write
         in: path
         name: key
         required: true
@@ -3389,6 +3615,8 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:access-requests:read
+        - core:access-requests:write
         in: path
         name: key
         required: true
@@ -3985,6 +4213,8 @@ paths:
         - core:traces:read
         - core:privileges:grant
         - core:roles:manage
+        - core:access-requests:read
+        - core:access-requests:write
         in: path
         name: key
         required: true

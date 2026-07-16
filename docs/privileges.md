@@ -34,12 +34,18 @@ should be migrated.
 | `core:organizations:read`  | `GET /organizations`, `GET /organizations/{id}`                                                                                                                                                                                                                                                                                                                                                                                       |
 | `core:organizations:write` | `POST /organizations`                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `core:traces:read`       | `GET /audit/traces`, `GET /audit/traces/{trace_id}`, `GET /audit/events`, `GET /audit/sources`                                                                                                                                                                                                                                                                                                                                          |
+| `core:access-requests:read`  | `GET /access-requests`                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `core:access-requests:write` | `PUT /access-requests/{id}`                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `core:privileges:grant`  | `GET /privileges/catalog`, `GET /users/{id}/privileges`, `GET /privileges/{key}/holders`, `POST /users/{id}/privileges`, `DELETE /users/{id}/privileges/{key}`                                                                                                                                                                                                                                                                          |
 | `core:roles:manage`      | `GET /roles`, `POST /roles`, `PUT /roles/{id}`, `DELETE /roles/{id}`, and the role-assignment endpoints under `/users/{id}/roles`                                                                                                                                                                                                                                                                                                       |
 
-Only three routes skip the privilege check by design: `GET /healthz` is
+A few routes skip the privilege check by design: `GET /healthz` is
 public, and `GET /me` / `GET /user/privileges` accept any verified caller
-so users can read their own profile and effective privilege set.
+so users can read their own profile and effective privilege set. The
+access-request self-service routes (`GET /access-requests/events/{code}`,
+`POST /access-requests`, `GET /access-requests/me`) accept any verified
+token, even one not yet linked to a user, so a new person can request
+access.
 
 The bootstrap super_admin role carries every privilege registered at
 startup, core and connector alike. Individual grants beyond that are made

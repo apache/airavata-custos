@@ -164,6 +164,14 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /user-identities/oidc-subjects/{oidcSub}", models.UsersRead, s.getUserIdentityByOIDCSub)
 	s.router.RequirePrivilege("GET /users/{id}/user-identities", models.UsersRead, s.listUserIdentitiesForUser)
 
+	// Self-service routes reachable with a verified token whose identity is
+	// not linked to a user yet.
+	s.router.RequireToken("GET /access-requests/events/{code}", s.getAccessEventByCode)
+	s.router.RequireToken("POST /access-requests", s.createAccessRequest)
+	s.router.RequireToken("GET /access-requests/me", s.getOwnAccessRequest)
+	s.router.RequirePrivilege("GET /access-requests", models.AccessRequestsRead, s.listAccessRequests)
+	s.router.RequirePrivilege("PUT /access-requests/{id}", models.AccessRequestsWrite, s.decideAccessRequest)
+
 	// A caller reads their own profile; no privilege needed.
 	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
 	s.router.RequireAuth("GET /me", s.getCallerProfile)

@@ -40,6 +40,9 @@ const (
 	TracesRead         PrivilegeKey = "core:traces:read"
 	PrivilegesGrant    PrivilegeKey = "core:privileges:grant"
 	RolesManage        PrivilegeKey = "core:roles:manage"
+
+	AccessRequestsRead  PrivilegeKey = "core:access-requests:read"
+	AccessRequestsWrite PrivilegeKey = "core:access-requests:write"
 )
 
 var (
@@ -62,6 +65,8 @@ func init() {
 		TracesRead,
 		PrivilegesGrant,
 		RolesManage,
+		AccessRequestsRead,
+		AccessRequestsWrite,
 	)
 }
 

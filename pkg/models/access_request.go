@@ -32,6 +32,9 @@ const (
 	AccessRequestEventCreated  = "CREATED"
 	AccessRequestEventApproved = "APPROVED"
 	AccessRequestEventDenied   = "DENIED"
+	// AccessRequestEventFailed records an approval attempt whose provisioning
+	// failed; the request itself stays PENDING so it can be re-approved.
+	AccessRequestEventFailed = "FAILED"
 )
 
 // AccessEvent maps an event code to the allocation and organization an
