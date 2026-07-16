@@ -69,7 +69,7 @@ func TestAccessRequestE2E(t *testing.T) {
 	ensureE2EClient(t, admin)
 
 	mock := newRegistryMock(t)
-	api := bootBackend(t, database, mock.srv.URL)
+	api := bootBackend(t, database, mockConnectorConfig(mock.srv.URL))
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano()%1e8)
 
@@ -210,15 +210,8 @@ type accessRequest struct {
 
 // --- backend boot ---
 
-func bootBackend(t *testing.T, database *sqlx.DB, registryURL string) *httptest.Server {
-	t.Helper()
-	ctx := context.Background()
-	bus := events.New()
-	svc := service.New(database, bus)
-	router := identity.NewRouter(http.NewServeMux())
-	srv := server.New(svc, router)
-
-	cc := &config.ConnectorConfig{
+func mockConnectorConfig(registryURL string) *config.ConnectorConfig {
+	return &config.ConnectorConfig{
 		Type:    "comanage-identity-provisioner",
 		Enabled: true,
 		Config: map[string]interface{}{
@@ -234,6 +227,16 @@ func bootBackend(t *testing.T, database *sqlx.DB, registryURL string) *httptest.
 			},
 		},
 	}
+}
+
+func bootBackend(t *testing.T, database *sqlx.DB, cc *config.ConnectorConfig) *httptest.Server {
+	t.Helper()
+	ctx := context.Background()
+	bus := events.New()
+	svc := service.New(database, bus)
+	router := identity.NewRouter(http.NewServeMux())
+	srv := server.New(svc, router)
+
 	if err := comanage.LoadConnector(ctx, database, bus, svc, nil, router, cc); err != nil {
 		t.Fatalf("load identity-provisioner connector: %v", err)
 	}
