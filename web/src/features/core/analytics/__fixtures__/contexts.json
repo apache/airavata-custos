@@ -1,0 +1,34 @@
+[
+  {
+    "project_id": "proj-climate",
+    "project_name": "Climate Modelling",
+    "role": "MEMBER",
+    "allocations": [
+      {
+        "id": "alloc-climate",
+        "name": "Climate GPU + CPU",
+        "status": "ACTIVE",
+        "initial_su_amount": 1800000,
+        "used_su_amount": 590152,
+        "start_time": "2026-06-11T12:00:00.000Z",
+        "end_time": "2026-08-02T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "project_id": "proj-genai",
+    "project_name": "GenAI Training",
+    "role": "PI",
+    "allocations": [
+      {
+        "id": "alloc-genai",
+        "name": "GenAI GPU",
+        "status": "ACTIVE",
+        "initial_su_amount": 900000,
+        "used_su_amount": 822895,
+        "start_time": "2026-06-11T12:00:00.000Z",
+        "end_time": "2026-08-31T12:00:00.000Z"
+      }
+    ]
+  }
+]

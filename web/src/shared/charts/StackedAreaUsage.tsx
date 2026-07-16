@@ -28,11 +28,11 @@ import {
 } from "recharts";
 
 const DEFAULT_COLORS = [
-  "var(--custos-blue-500)",
-  "var(--custos-green-500)",
-  "var(--custos-amber-500)",
-  "var(--custos-red-500)",
-  "var(--custos-blue-300)",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 export type StackedAreaUsageProps = {
@@ -58,9 +58,9 @@ export function StackedAreaUsage({
     <div role="img" aria-label={ariaLabel ?? "Stacked area usage chart"}>
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--custos-gray-100)" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--custos-gray-400)" />
-          <YAxis tick={{ fontSize: 12 }} stroke="var(--custos-gray-400)" />
+          <CartesianGrid stroke="var(--chart-grid)" />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
+          <YAxis tick={{ fontSize: 12 }} stroke="var(--chart-grid)" />
           <Tooltip />
           {seriesKeys.map((key, i) => (
             <Area

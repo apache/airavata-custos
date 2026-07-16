@@ -25,24 +25,18 @@ import allocationDiffsFixture from "@/features/core/allocations/__fixtures__/dif
 import allocationUsageFixture from "@/features/core/allocations/__fixtures__/usage.json";
 import {
   allocationDiffSchema,
-  attachedResourceSchema,
   allocationStatusSchema,
   allocationUsageSchema,
+  attachedResourceSchema,
 } from "@/features/core/allocations/schemas";
 import clusterUsersFixture from "@/features/core/clusters/__fixtures__/cluster-users.json";
 import clustersFixture from "@/features/core/clusters/__fixtures__/clusters.json";
-import {
-  computeClusterSchema,
-  computeClusterUserSchema,
-} from "@/features/core/clusters/schemas";
+import { computeClusterSchema, computeClusterUserSchema } from "@/features/core/clusters/schemas";
 import organizationsFixture from "@/features/core/organizations/__fixtures__/organizations.json";
 import { organizationSchema } from "@/features/core/organizations/schemas";
 import ratesFixture from "@/features/core/resources/__fixtures__/rates.json";
 import resourcesFixture from "@/features/core/resources/__fixtures__/resources.json";
-import {
-  computeAllocationResourceSchema,
-  rateSchema,
-} from "@/features/core/resources/schemas";
+import { computeAllocationResourceSchema, rateSchema } from "@/features/core/resources/schemas";
 import membersFixture from "@/features/core/projects/__fixtures__/members.json";
 import projectsFixture from "@/features/core/projects/__fixtures__/projects.json";
 import { projectMemberSchema, projectSchema } from "@/features/core/projects/schemas";
@@ -54,6 +48,14 @@ import {
   userRoleSchema,
   userSchema,
 } from "@/features/core/identity/schemas";
+import analyticsContextsFixture from "@/features/core/analytics/__fixtures__/contexts.json";
+import analyticsSummariesFixture from "@/features/core/analytics/__fixtures__/usage-summary.json";
+import analyticsJobsFixture from "@/features/core/analytics/__fixtures__/jobs.json";
+import {
+  analyticsContextsSchema,
+  analyticsJobSchema,
+  usageSummarySchema,
+} from "@/features/core/analytics/schemas";
 
 describe("MSW fixtures pass current Zod schemas", () => {
   it("project fixtures validate against projectSchema (zProjectStatus-backed)", () => {
@@ -62,9 +64,7 @@ describe("MSW fixtures pass current Zod schemas", () => {
   });
 
   it("member fixtures validate against projectMemberSchema (zUserType-backed)", () => {
-    const allMembers = Object.values(
-      membersFixture as Record<string, unknown[]>,
-    ).flat();
+    const allMembers = Object.values(membersFixture as Record<string, unknown[]>).flat();
     const result = z.array(projectMemberSchema).safeParse(allMembers);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
@@ -81,9 +81,7 @@ describe("MSW fixtures pass current Zod schemas", () => {
   });
 
   it("allocation resource fixtures validate against attachedResourceSchema", () => {
-    const rows = Object.values(
-      allocationResourcesFixture as Record<string, unknown[]>,
-    ).flat();
+    const rows = Object.values(allocationResourcesFixture as Record<string, unknown[]>).flat();
     const result = z.array(attachedResourceSchema).safeParse(rows);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
@@ -151,6 +149,42 @@ describe("MSW fixtures pass current Zod schemas", () => {
     const detailIds = Object.keys(settingsFixture.roleDetails);
     for (const grant of settingsFixture.roles) {
       expect(detailIds).toContain(grant.role_id);
+    }
+  });
+
+  it("analytics contexts fixture validates against analyticsContextsSchema", () => {
+    const result = analyticsContextsSchema.safeParse(analyticsContextsFixture);
+    expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+  });
+
+  it("analytics usage-summary fixtures validate against usageSummarySchema", () => {
+    for (const summary of Object.values(analyticsSummariesFixture)) {
+      const result = usageSummarySchema.safeParse(summary);
+      expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
+    }
+  });
+
+  it("analytics summary ids resolve to a context allocation (internally consistent)", () => {
+    const allocIds = analyticsContextsFixture.flatMap((c) => c.allocations.map((a) => a.id));
+    for (const id of Object.keys(analyticsSummariesFixture)) {
+      expect(allocIds).toContain(id);
+    }
+  });
+
+  it("researcher (MEMBER) allocation never carries by_member data", () => {
+    const memberProjects = analyticsContextsFixture.filter((c) => c.role === "MEMBER");
+    const summaries = analyticsSummariesFixture as Record<string, { by_member: unknown }>;
+    for (const c of memberProjects) {
+      for (const a of c.allocations) {
+        expect(summaries[a.id]?.by_member).toBeNull();
+      }
+    }
+  });
+
+  it("analytics jobs fixtures validate against analyticsJobSchema", () => {
+    for (const entry of Object.values(analyticsJobsFixture)) {
+      const result = z.array(analyticsJobSchema).safeParse(entry.jobs);
+      expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
     }
   });
 });

@@ -1,0 +1,761 @@
+{
+  "alloc-climate": {
+    "total": 1800000,
+    "used": 590152,
+    "daily": [
+      {
+        "date": "2026-06-11",
+        "by_resource": {
+          "res-gpu-b200": 10844,
+          "res-gpu-rtx": 1754,
+          "res-cpu": 2640,
+          "res-storage": 760
+        }
+      },
+      {
+        "date": "2026-06-12",
+        "by_resource": {
+          "res-gpu-b200": 11096,
+          "res-gpu-rtx": 1826,
+          "res-cpu": 2710,
+          "res-storage": 780
+        }
+      },
+      {
+        "date": "2026-06-13",
+        "by_resource": {
+          "res-gpu-b200": 11348,
+          "res-gpu-rtx": 1898,
+          "res-cpu": 2780,
+          "res-storage": 800
+        }
+      },
+      {
+        "date": "2026-06-14",
+        "by_resource": {
+          "res-gpu-b200": 11600,
+          "res-gpu-rtx": 1970,
+          "res-cpu": 2850,
+          "res-storage": 820
+        }
+      },
+      {
+        "date": "2026-06-15",
+        "by_resource": {
+          "res-gpu-b200": 11852,
+          "res-gpu-rtx": 2042,
+          "res-cpu": 2920,
+          "res-storage": 840
+        }
+      },
+      {
+        "date": "2026-06-16",
+        "by_resource": {
+          "res-gpu-b200": 12104,
+          "res-gpu-rtx": 2114,
+          "res-cpu": 2990,
+          "res-storage": 860
+        }
+      },
+      {
+        "date": "2026-06-17",
+        "by_resource": {
+          "res-gpu-b200": 12356,
+          "res-gpu-rtx": 2186,
+          "res-cpu": 3060,
+          "res-storage": 880
+        }
+      },
+      {
+        "date": "2026-06-18",
+        "by_resource": {
+          "res-gpu-b200": 10340,
+          "res-gpu-rtx": 1610,
+          "res-cpu": 2500,
+          "res-storage": 720
+        }
+      },
+      {
+        "date": "2026-06-19",
+        "by_resource": {
+          "res-gpu-b200": 10592,
+          "res-gpu-rtx": 1682,
+          "res-cpu": 2570,
+          "res-storage": 740
+        }
+      },
+      {
+        "date": "2026-06-20",
+        "by_resource": {
+          "res-gpu-b200": 10844,
+          "res-gpu-rtx": 1754,
+          "res-cpu": 2640,
+          "res-storage": 760
+        }
+      },
+      {
+        "date": "2026-06-21",
+        "by_resource": {
+          "res-gpu-b200": 11096,
+          "res-gpu-rtx": 1826,
+          "res-cpu": 2710,
+          "res-storage": 780
+        }
+      },
+      {
+        "date": "2026-06-22",
+        "by_resource": {
+          "res-gpu-b200": 11348,
+          "res-gpu-rtx": 1898,
+          "res-cpu": 2780,
+          "res-storage": 800
+        }
+      },
+      {
+        "date": "2026-06-23",
+        "by_resource": {
+          "res-gpu-b200": 11600,
+          "res-gpu-rtx": 1970,
+          "res-cpu": 2850,
+          "res-storage": 820
+        }
+      },
+      {
+        "date": "2026-06-24",
+        "by_resource": {
+          "res-gpu-b200": 11852,
+          "res-gpu-rtx": 2042,
+          "res-cpu": 2920,
+          "res-storage": 840
+        }
+      },
+      {
+        "date": "2026-06-25",
+        "by_resource": {
+          "res-gpu-b200": 12104,
+          "res-gpu-rtx": 2114,
+          "res-cpu": 2990,
+          "res-storage": 860
+        }
+      },
+      {
+        "date": "2026-06-26",
+        "by_resource": {
+          "res-gpu-b200": 12356,
+          "res-gpu-rtx": 2186,
+          "res-cpu": 3060,
+          "res-storage": 880
+        }
+      },
+      {
+        "date": "2026-06-27",
+        "by_resource": {
+          "res-gpu-b200": 10340,
+          "res-gpu-rtx": 1610,
+          "res-cpu": 2500,
+          "res-storage": 720
+        }
+      },
+      {
+        "date": "2026-06-28",
+        "by_resource": {
+          "res-gpu-b200": 10592,
+          "res-gpu-rtx": 1682,
+          "res-cpu": 2570,
+          "res-storage": 740
+        }
+      },
+      {
+        "date": "2026-06-29",
+        "by_resource": {
+          "res-gpu-b200": 10844,
+          "res-gpu-rtx": 1754,
+          "res-cpu": 2640,
+          "res-storage": 760
+        }
+      },
+      {
+        "date": "2026-06-30",
+        "by_resource": {
+          "res-gpu-b200": 11096,
+          "res-gpu-rtx": 1826,
+          "res-cpu": 2710,
+          "res-storage": 780
+        }
+      },
+      {
+        "date": "2026-07-01",
+        "by_resource": {
+          "res-gpu-b200": 11348,
+          "res-gpu-rtx": 1898,
+          "res-cpu": 2780,
+          "res-storage": 800
+        }
+      },
+      {
+        "date": "2026-07-02",
+        "by_resource": {
+          "res-gpu-b200": 11600,
+          "res-gpu-rtx": 1970,
+          "res-cpu": 2850,
+          "res-storage": 820
+        }
+      },
+      {
+        "date": "2026-07-03",
+        "by_resource": {
+          "res-gpu-b200": 11852,
+          "res-gpu-rtx": 2042,
+          "res-cpu": 2920,
+          "res-storage": 840
+        }
+      },
+      {
+        "date": "2026-07-04",
+        "by_resource": {
+          "res-gpu-b200": 12104,
+          "res-gpu-rtx": 2114,
+          "res-cpu": 2990,
+          "res-storage": 860
+        }
+      },
+      {
+        "date": "2026-07-05",
+        "by_resource": {
+          "res-gpu-b200": 12356,
+          "res-gpu-rtx": 2186,
+          "res-cpu": 3060,
+          "res-storage": 880
+        }
+      },
+      {
+        "date": "2026-07-06",
+        "by_resource": {
+          "res-gpu-b200": 10340,
+          "res-gpu-rtx": 1610,
+          "res-cpu": 2500,
+          "res-storage": 720
+        }
+      },
+      {
+        "date": "2026-07-07",
+        "by_resource": {
+          "res-gpu-b200": 10592,
+          "res-gpu-rtx": 1682,
+          "res-cpu": 2570,
+          "res-storage": 740
+        }
+      },
+      {
+        "date": "2026-07-08",
+        "by_resource": {
+          "res-gpu-b200": 10844,
+          "res-gpu-rtx": 1754,
+          "res-cpu": 2640,
+          "res-storage": 760
+        }
+      },
+      {
+        "date": "2026-07-09",
+        "by_resource": {
+          "res-gpu-b200": 11096,
+          "res-gpu-rtx": 1826,
+          "res-cpu": 2710,
+          "res-storage": 780
+        }
+      },
+      {
+        "date": "2026-07-10",
+        "by_resource": {
+          "res-gpu-b200": 11348,
+          "res-gpu-rtx": 1898,
+          "res-cpu": 2780,
+          "res-storage": 800
+        }
+      },
+      {
+        "date": "2026-07-11",
+        "by_resource": {
+          "res-gpu-b200": 11600,
+          "res-gpu-rtx": 1970,
+          "res-cpu": 2850,
+          "res-storage": 820
+        }
+      },
+      {
+        "date": "2026-07-12",
+        "by_resource": {
+          "res-gpu-b200": 11852,
+          "res-gpu-rtx": 2042,
+          "res-cpu": 2920,
+          "res-storage": 840
+        }
+      },
+      {
+        "date": "2026-07-13",
+        "by_resource": {
+          "res-gpu-b200": 12104,
+          "res-gpu-rtx": 2114,
+          "res-cpu": 2990,
+          "res-storage": 860
+        }
+      },
+      {
+        "date": "2026-07-14",
+        "by_resource": {
+          "res-gpu-b200": 12356,
+          "res-gpu-rtx": 2186,
+          "res-cpu": 3060,
+          "res-storage": 880
+        }
+      },
+      {
+        "date": "2026-07-15",
+        "by_resource": {
+          "res-gpu-b200": 10340,
+          "res-gpu-rtx": 1610,
+          "res-cpu": 2500,
+          "res-storage": 720
+        }
+      }
+    ],
+    "by_resource": [
+      {
+        "resource_id": "res-gpu-b200",
+        "name": "B200 GPU",
+        "resource_type": "GPU_HOURS",
+        "used": 397936,
+        "cap": null,
+        "used_native": 49742,
+        "native_unit": "GPU-hours",
+        "used_by_caller": 15046
+      },
+      {
+        "resource_id": "res-gpu-rtx",
+        "name": "RTX PRO 6000",
+        "resource_type": "GPU_HOURS",
+        "used": 66646,
+        "cap": null,
+        "used_native": 8331,
+        "native_unit": "GPU-hours",
+        "used_by_caller": 5566
+      },
+      {
+        "resource_id": "res-cpu",
+        "name": "CPU",
+        "resource_type": "CPU_HOURS",
+        "used": 97510,
+        "cap": null,
+        "used_native": 97510,
+        "native_unit": "core-hours",
+        "used_by_caller": 61720
+      },
+      {
+        "resource_id": "res-storage",
+        "name": "Storage",
+        "resource_type": "STORAGE_TB",
+        "used": 28060,
+        "cap": null,
+        "used_native": 2806,
+        "native_unit": "TB-months",
+        "used_by_caller": 7858
+      }
+    ],
+    "by_member": null
+  },
+  "alloc-genai": {
+    "total": 900000,
+    "used": 822895,
+    "daily": [
+      {
+        "date": "2026-06-11",
+        "by_resource": {
+          "res-gpu-b200": 13210,
+          "res-gpu-rtx": 4460,
+          "res-cpu": 4104,
+          "res-storage": 611
+        }
+      },
+      {
+        "date": "2026-06-12",
+        "by_resource": {
+          "res-gpu-b200": 13490,
+          "res-gpu-rtx": 4590,
+          "res-cpu": 4221,
+          "res-storage": 624
+        }
+      },
+      {
+        "date": "2026-06-13",
+        "by_resource": {
+          "res-gpu-b200": 13770,
+          "res-gpu-rtx": 4720,
+          "res-cpu": 4338,
+          "res-storage": 637
+        }
+      },
+      {
+        "date": "2026-06-14",
+        "by_resource": {
+          "res-gpu-b200": 14050,
+          "res-gpu-rtx": 4850,
+          "res-cpu": 4455,
+          "res-storage": 650
+        }
+      },
+      {
+        "date": "2026-06-15",
+        "by_resource": {
+          "res-gpu-b200": 14330,
+          "res-gpu-rtx": 4980,
+          "res-cpu": 4572,
+          "res-storage": 663
+        }
+      },
+      {
+        "date": "2026-06-16",
+        "by_resource": {
+          "res-gpu-b200": 14610,
+          "res-gpu-rtx": 5110,
+          "res-cpu": 4689,
+          "res-storage": 676
+        }
+      },
+      {
+        "date": "2026-06-17",
+        "by_resource": {
+          "res-gpu-b200": 14890,
+          "res-gpu-rtx": 5240,
+          "res-cpu": 4806,
+          "res-storage": 689
+        }
+      },
+      {
+        "date": "2026-06-18",
+        "by_resource": {
+          "res-gpu-b200": 12650,
+          "res-gpu-rtx": 4200,
+          "res-cpu": 3870,
+          "res-storage": 585
+        }
+      },
+      {
+        "date": "2026-06-19",
+        "by_resource": {
+          "res-gpu-b200": 12930,
+          "res-gpu-rtx": 4330,
+          "res-cpu": 3987,
+          "res-storage": 598
+        }
+      },
+      {
+        "date": "2026-06-20",
+        "by_resource": {
+          "res-gpu-b200": 13210,
+          "res-gpu-rtx": 4460,
+          "res-cpu": 4104,
+          "res-storage": 611
+        }
+      },
+      {
+        "date": "2026-06-21",
+        "by_resource": {
+          "res-gpu-b200": 13490,
+          "res-gpu-rtx": 4590,
+          "res-cpu": 4221,
+          "res-storage": 624
+        }
+      },
+      {
+        "date": "2026-06-22",
+        "by_resource": {
+          "res-gpu-b200": 13770,
+          "res-gpu-rtx": 4720,
+          "res-cpu": 4338,
+          "res-storage": 637
+        }
+      },
+      {
+        "date": "2026-06-23",
+        "by_resource": {
+          "res-gpu-b200": 14050,
+          "res-gpu-rtx": 4850,
+          "res-cpu": 4455,
+          "res-storage": 650
+        }
+      },
+      {
+        "date": "2026-06-24",
+        "by_resource": {
+          "res-gpu-b200": 14330,
+          "res-gpu-rtx": 4980,
+          "res-cpu": 4572,
+          "res-storage": 663
+        }
+      },
+      {
+        "date": "2026-06-25",
+        "by_resource": {
+          "res-gpu-b200": 14610,
+          "res-gpu-rtx": 5110,
+          "res-cpu": 4689,
+          "res-storage": 676
+        }
+      },
+      {
+        "date": "2026-06-26",
+        "by_resource": {
+          "res-gpu-b200": 14890,
+          "res-gpu-rtx": 5240,
+          "res-cpu": 4806,
+          "res-storage": 689
+        }
+      },
+      {
+        "date": "2026-06-27",
+        "by_resource": {
+          "res-gpu-b200": 12650,
+          "res-gpu-rtx": 4200,
+          "res-cpu": 3870,
+          "res-storage": 585
+        }
+      },
+      {
+        "date": "2026-06-28",
+        "by_resource": {
+          "res-gpu-b200": 12930,
+          "res-gpu-rtx": 4330,
+          "res-cpu": 3987,
+          "res-storage": 598
+        }
+      },
+      {
+        "date": "2026-06-29",
+        "by_resource": {
+          "res-gpu-b200": 13210,
+          "res-gpu-rtx": 4460,
+          "res-cpu": 4104,
+          "res-storage": 611
+        }
+      },
+      {
+        "date": "2026-06-30",
+        "by_resource": {
+          "res-gpu-b200": 13490,
+          "res-gpu-rtx": 4590,
+          "res-cpu": 4221,
+          "res-storage": 624
+        }
+      },
+      {
+        "date": "2026-07-01",
+        "by_resource": {
+          "res-gpu-b200": 13770,
+          "res-gpu-rtx": 4720,
+          "res-cpu": 4338,
+          "res-storage": 637
+        }
+      },
+      {
+        "date": "2026-07-02",
+        "by_resource": {
+          "res-gpu-b200": 14050,
+          "res-gpu-rtx": 4850,
+          "res-cpu": 4455,
+          "res-storage": 650
+        }
+      },
+      {
+        "date": "2026-07-03",
+        "by_resource": {
+          "res-gpu-b200": 14330,
+          "res-gpu-rtx": 4980,
+          "res-cpu": 4572,
+          "res-storage": 663
+        }
+      },
+      {
+        "date": "2026-07-04",
+        "by_resource": {
+          "res-gpu-b200": 14610,
+          "res-gpu-rtx": 5110,
+          "res-cpu": 4689,
+          "res-storage": 676
+        }
+      },
+      {
+        "date": "2026-07-05",
+        "by_resource": {
+          "res-gpu-b200": 14890,
+          "res-gpu-rtx": 5240,
+          "res-cpu": 4806,
+          "res-storage": 689
+        }
+      },
+      {
+        "date": "2026-07-06",
+        "by_resource": {
+          "res-gpu-b200": 12650,
+          "res-gpu-rtx": 4200,
+          "res-cpu": 3870,
+          "res-storage": 585
+        }
+      },
+      {
+        "date": "2026-07-07",
+        "by_resource": {
+          "res-gpu-b200": 12930,
+          "res-gpu-rtx": 4330,
+          "res-cpu": 3987,
+          "res-storage": 598
+        }
+      },
+      {
+        "date": "2026-07-08",
+        "by_resource": {
+          "res-gpu-b200": 13210,
+          "res-gpu-rtx": 4460,
+          "res-cpu": 4104,
+          "res-storage": 611
+        }
+      },
+      {
+        "date": "2026-07-09",
+        "by_resource": {
+          "res-gpu-b200": 13490,
+          "res-gpu-rtx": 4590,
+          "res-cpu": 4221,
+          "res-storage": 624
+        }
+      },
+      {
+        "date": "2026-07-10",
+        "by_resource": {
+          "res-gpu-b200": 13770,
+          "res-gpu-rtx": 4720,
+          "res-cpu": 4338,
+          "res-storage": 637
+        }
+      },
+      {
+        "date": "2026-07-11",
+        "by_resource": {
+          "res-gpu-b200": 14050,
+          "res-gpu-rtx": 4850,
+          "res-cpu": 4455,
+          "res-storage": 650
+        }
+      },
+      {
+        "date": "2026-07-12",
+        "by_resource": {
+          "res-gpu-b200": 14330,
+          "res-gpu-rtx": 4980,
+          "res-cpu": 4572,
+          "res-storage": 663
+        }
+      },
+      {
+        "date": "2026-07-13",
+        "by_resource": {
+          "res-gpu-b200": 14610,
+          "res-gpu-rtx": 5110,
+          "res-cpu": 4689,
+          "res-storage": 676
+        }
+      },
+      {
+        "date": "2026-07-14",
+        "by_resource": {
+          "res-gpu-b200": 14890,
+          "res-gpu-rtx": 5240,
+          "res-cpu": 4806,
+          "res-storage": 689
+        }
+      },
+      {
+        "date": "2026-07-15",
+        "by_resource": {
+          "res-gpu-b200": 12650,
+          "res-gpu-rtx": 4200,
+          "res-cpu": 3870,
+          "res-storage": 585
+        }
+      }
+    ],
+    "by_resource": [
+      {
+        "resource_id": "res-gpu-b200",
+        "name": "B200 GPU",
+        "resource_type": "GPU_HOURS",
+        "used": 482790,
+        "cap": null,
+        "used_native": 60349,
+        "native_unit": "GPU-hours",
+        "used_by_caller": 271700
+      },
+      {
+        "resource_id": "res-gpu-rtx",
+        "name": "RTX PRO 6000",
+        "resource_type": "GPU_HOURS",
+        "used": 165590,
+        "cap": null,
+        "used_native": 20699,
+        "native_unit": "GPU-hours",
+        "used_by_caller": 0
+      },
+      {
+        "resource_id": "res-cpu",
+        "name": "CPU",
+        "resource_type": "CPU_HOURS",
+        "used": 152181,
+        "cap": null,
+        "used_native": 152181,
+        "native_unit": "core-hours",
+        "used_by_caller": 31846
+      },
+      {
+        "resource_id": "res-storage",
+        "name": "Storage",
+        "resource_type": "STORAGE_TB",
+        "used": 22334,
+        "cap": null,
+        "used_native": 2233,
+        "native_unit": "TB-months",
+        "used_by_caller": 0
+      }
+    ],
+    "by_member": [
+      {
+        "user_id": "user-mo",
+        "name": "Maria Okoro",
+        "used": 303546
+      },
+      {
+        "user_id": "user-jo",
+        "name": "Jordan Olsen",
+        "used": 211090
+      },
+      {
+        "user_id": "user-al",
+        "name": "Ana López",
+        "used": 120335
+      },
+      {
+        "user_id": "user-mc",
+        "name": "Mei Chen",
+        "used": 110155
+      },
+      {
+        "user_id": "user-rd2",
+        "name": "Ravi Desai",
+        "used": 55435
+      },
+      {
+        "user_id": "user-sn",
+        "name": "Sam Nguyen",
+        "used": 22334
+      }
+    ]
+  }
+}

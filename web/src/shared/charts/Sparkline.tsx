@@ -28,7 +28,7 @@ export type SparklineProps = {
 
 export function Sparkline({
   data,
-  color = "var(--custos-blue-500)",
+  color = "var(--chart-1)",
   height = 32,
   ariaLabel,
 }: SparklineProps) {

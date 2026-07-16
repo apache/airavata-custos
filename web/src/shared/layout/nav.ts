@@ -18,6 +18,7 @@
 import {
   Activity,
   Building2,
+  ChartColumn,
   ClipboardList,
   FolderKanban,
   HardDrive,
@@ -57,6 +58,14 @@ export const portalNav: NavItem[] = [
     icon: FolderKanban,
     group: "allocations",
     ability: { action: "read", subject: "Project" },
+  },
+  {
+    // No ability gate: every signed-in user can see their own usage. Access is
+    // membership-scoped by the backend (empty state when they belong to nothing).
+    href: "/analytics",
+    label: "Analytics",
+    icon: ChartColumn,
+    group: "allocations",
   },
   {
     href: "/admin/users",

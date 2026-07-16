@@ -18,6 +18,7 @@
 import type { RequestHandler } from "msw";
 import { allocationsHandlers } from "./handlers/allocations";
 import { amieHandlers } from "./handlers/amie";
+import { analyticsHandlers } from "./handlers/analytics";
 import { clustersHandlers } from "./handlers/clusters";
 import { healthzHandlers } from "./handlers/healthz";
 import { identityHandlers } from "./handlers/identity";
@@ -35,6 +36,7 @@ export const handlers: RequestHandler[] = [
   ...rolesHandlers,
   ...identityHandlers,
   ...usersHandlers,
+  ...analyticsHandlers,
   ...projectsHandlers,
   ...organizationsHandlers,
   ...allocationsHandlers,
