@@ -123,14 +123,28 @@ fi
 "${DB_EXEC[@]}" -e "DELETE FROM access_requests WHERE email='$EMAIL';" 2>/dev/null || true
 echo "  done"
 
+echo "== Slurm accounting cleanup"
+# slurmctld binds an association to the uid at load time; a recycled
+# username returns with a new uid, so stale user associations must go.
+if [ -n "${SLURM_API_URL:-}" ] && [ -n "${SLURM_TOKEN:-}" ]; then
+  for u in $(printf '%s\n' $local_usernames $registry_uids | sort -u); do
+    code=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+      -H "X-SLURM-USER-NAME: ${SLURM_API_USERNAME:-nexus-provisioner}" -H "X-SLURM-USER-TOKEN: $SLURM_TOKEN" \
+      "$SLURM_API_URL/slurmdb/v0.0.${SLURM_API_VERSION:-40}/user/$u")
+    echo "  slurm user $u delete -> HTTP $code (404/does-not-exist is fine)"
+  done
+else
+  echo "  SLURM_API_URL/SLURM_TOKEN not set; skipped (delete stale associations manually if the username is reused)"
+fi
+
 echo "== Cluster checks (read-only + cache flush attempt)"
 base="ou=people,o=Nexus,o=CO,dc=nexus,dc=cybershuttle,dc=org"
 ldap_left=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" \
   "ldapsearch -x -H ldaps://ldap-test.nexus.cybershuttle.org -b '$base' '(mail=$EMAIL)' dn 2>/dev/null | grep -c '^dn:' || true" 2>/dev/null || echo "?")
 echo "  LDAP entries remaining for $EMAIL: $ldap_left (registry->LDAP delete can lag a minute)"
 for u in $(printf '%s\n' $local_usernames $registry_uids | sort -u); do
-  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "sudo -n sss_cache -u '$u' 2>/dev/null" 2>/dev/null \
-    && echo "  sss_cache flushed for $u" \
+  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "sudo -n sss_cache -u '$u' 2>/dev/null; sudo -n sss_cache -E 2>/dev/null" 2>/dev/null \
+    && echo "  sss_cache flushed for $u (full cache invalidated)" \
     || echo "  could not flush sss cache for $u (entry may linger up to the SSSD cache TTL, ~90 min)"
   r=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "id '$u' 2>&1" 2>/dev/null || true)
   echo "  id $u -> $r"
