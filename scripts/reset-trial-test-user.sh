@@ -32,9 +32,42 @@ set -a; source .env; set +a
 
 creg() { curl -sf -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" "$@"; }
 
+# free_identifiers frees the login/uid identifiers on a person and its linked
+# org identities. Those are unique registry-wide and survive a soft delete,
+# so a reused sub/username 403s re-provisioning until they are removed.
+free_identifiers() {
+  local pid="$1"
+  for oid in $(creg "$COMANAGE_REGISTRY_URL/co_org_identity_links.json?copersonid=$pid" \
+      | python3 -c "import json,sys; print(' '.join(str(l['OrgIdentityId']) for l in json.load(sys.stdin).get('CoOrgIdentityLinks',[])))" 2>/dev/null); do
+    for iid in $(creg "$COMANAGE_REGISTRY_URL/identifiers.json?orgidentityid=$oid" \
+        | python3 -c "import json,sys; print(' '.join(str(i['Id']) for i in json.load(sys.stdin).get('Identifiers',[])))" 2>/dev/null); do
+      curl -sf -o /dev/null -X DELETE -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" \
+        "$COMANAGE_REGISTRY_URL/identifiers/$iid.json" \
+        && echo "  freed org identity $oid identifier $iid" \
+        || echo "  could not delete identifier $iid on org identity $oid"
+    done
+  done
+  for iid in $(creg "$COMANAGE_REGISTRY_URL/identifiers.json?copersonid=$pid" \
+      | python3 -c "import json,sys
+free={'oidcsub','sorid','eppn','uid'}
+print(' '.join(str(i['Id']) for i in json.load(sys.stdin).get('Identifiers',[]) if i['Type'] in free))" 2>/dev/null); do
+    curl -sf -o /dev/null -X DELETE -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" \
+      "$COMANAGE_REGISTRY_URL/identifiers/$iid.json" \
+      && echo "  freed person $pid identifier $iid" \
+      || echo "  could not delete person identifier $iid"
+  done
+}
+
 echo "== Looking up '$EMAIL' in the registry"
-person_ids=$(creg "$COMANAGE_REGISTRY_URL/co_people.json?coid=$COMANAGE_CO_ID&search.mail=$EMAIL" \
-  | python3 -c "import json,sys; print(' '.join(str(p['Id']) for p in json.load(sys.stdin).get('CoPeople',[])))" || true)
+people_json=$(creg "$COMANAGE_REGISTRY_URL/co_people.json?coid=$COMANAGE_CO_ID&search.mail=$EMAIL" || true)
+person_ids=$(echo "$people_json" | python3 -c "import json,sys; print(' '.join(str(p['Id']) for p in json.load(sys.stdin).get('CoPeople',[])))" 2>/dev/null || true)
+
+# Soft-deleted matches keep their stale login identifiers; free them now
+# regardless of the exact-email gate (they are already dead, so it is safe).
+for pid in $(echo "$people_json" | python3 -c "import json,sys; print(' '.join(str(p['Id']) for p in json.load(sys.stdin).get('CoPeople',[]) if p.get('Status')=='Deleted'))" 2>/dev/null); do
+  echo "  freeing identifiers on soft-deleted CoPerson $pid"
+  free_identifiers "$pid"
+done
 
 declare -a targets=()
 registry_uids=""
@@ -85,30 +118,7 @@ fi
 
 for t in "${targets[@]}"; do
   pid="${t%%:*}"; ident="${t##*:}"
-  # Identifiers on linked org identities are unique registry-wide and
-  # survive the person soft delete; free them or re-provisioning 403s
-  # with "identifier already in use".
-  for oid in $(creg "$COMANAGE_REGISTRY_URL/co_org_identity_links.json?copersonid=$pid" \
-      | python3 -c "import json,sys; print(' '.join(str(l['OrgIdentityId']) for l in json.load(sys.stdin).get('CoOrgIdentityLinks',[])))" 2>/dev/null); do
-    for iid in $(creg "$COMANAGE_REGISTRY_URL/identifiers.json?orgidentityid=$oid" \
-        | python3 -c "import json,sys; print(' '.join(str(i['Id']) for i in json.load(sys.stdin).get('Identifiers',[])))" 2>/dev/null); do
-      curl -sf -o /dev/null -X DELETE -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" \
-        "$COMANAGE_REGISTRY_URL/identifiers/$iid.json" \
-        && echo "  freed org identity $oid identifier $iid" \
-        || echo "  could not delete identifier $iid on org identity $oid"
-    done
-  done
-  # Person-level login/uid identifiers survive the soft delete and are
-  # unique registry-wide; free them too.
-  for iid in $(creg "$COMANAGE_REGISTRY_URL/identifiers.json?copersonid=$pid" \
-      | python3 -c "import json,sys
-free={'oidcsub','sorid','eppn','uid'}
-print(' '.join(str(i['Id']) for i in json.load(sys.stdin).get('Identifiers',[]) if i['Type'] in free))" 2>/dev/null); do
-    curl -sf -o /dev/null -X DELETE -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" \
-      "$COMANAGE_REGISTRY_URL/identifiers/$iid.json" \
-      && echo "  freed person identifier $iid" \
-      || echo "  could not delete person identifier $iid"
-  done
+  free_identifiers "$pid"
   echo "== Deleting registry CoPerson $pid ($ident)"
   curl -sf -o /dev/null -X DELETE -u "$COMANAGE_API_USER:$COMANAGE_API_KEY" \
     "$COMANAGE_REGISTRY_URL/api/co/$COMANAGE_CO_ID/core/v1/people/$ident" \
