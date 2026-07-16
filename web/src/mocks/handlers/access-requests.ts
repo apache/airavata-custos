@@ -22,6 +22,10 @@ const EVENT_NAMES: Record<string, string> = {
   PEARC26: "pearc26-tutorial",
 };
 
+const EVENT_ALLOCATIONS: Record<string, string> = {
+  PEARC26: "alloc-pearc26-001",
+};
+
 function seedRequests(): AccessRequest[] {
   return [
     {
@@ -38,6 +42,7 @@ function seedRequests(): AccessRequest[] {
       expires_at: null,
       created_user_id: "",
       timestamp: "2026-07-10T14:05:00Z",
+      decided_at: null,
     },
     {
       id: "areq-002",
@@ -53,6 +58,23 @@ function seedRequests(): AccessRequest[] {
       expires_at: null,
       created_user_id: "",
       timestamp: "2026-07-11T09:30:00Z",
+      decided_at: null,
+    },
+    {
+      id: "areq-003",
+      oidc_sub: "sub-queue-003",
+      email: "marcus.rivera@utexas.edu",
+      name: "Marcus Rivera",
+      institution: "University of Texas",
+      event_code: "PEARC26",
+      reason: "Tutorial follow-up experiments.",
+      status: "APPROVED",
+      approver_id: "user-admin-001",
+      deny_reason: "",
+      expires_at: "2026-08-09T00:00:00Z",
+      created_user_id: "u2",
+      timestamp: "2026-07-09T11:00:00Z",
+      decided_at: "2026-07-10T08:15:00Z",
     },
   ];
 }
@@ -68,8 +90,16 @@ export function resetAccessRequests() {
 
 const notFound = () => HttpResponse.json({ error: "not found" }, { status: 404 });
 
+// The privileged list carries decision context; /me stays the bare model.
+function bare(row: AccessRequest): Omit<AccessRequest, "decided_at" | "allocation_id"> {
+  const { decided_at: _decidedAt, allocation_id: _allocationId, ...rest } = row;
+  return rest;
+}
+
 export const accessRequestsHandlers = [
-  http.get("*/api/v1/access-requests/me", () => (mine ? HttpResponse.json(mine) : notFound())),
+  http.get("*/api/v1/access-requests/me", () =>
+    mine ? HttpResponse.json(bare(mine)) : notFound(),
+  ),
 
   http.get("*/api/v1/access-requests/events/:code", ({ params }) => {
     const code = String(params.code);
@@ -119,7 +149,9 @@ export const accessRequestsHandlers = [
     let rows = requests;
     if (status) rows = rows.filter((r) => r.status === status);
     if (event) rows = rows.filter((r) => r.event_code === event);
-    return HttpResponse.json(rows);
+    return HttpResponse.json(
+      rows.map((r) => ({ ...r, allocation_id: EVENT_ALLOCATIONS[r.event_code] ?? null })),
+    );
   }),
 
   http.put("*/api/v1/access-requests/:id", async ({ params, request }) => {
@@ -138,6 +170,7 @@ export const accessRequestsHandlers = [
     }
     row.status = body.status;
     row.approver_id = "user-admin-001";
+    row.decided_at = new Date().toISOString();
     if (body.status === "APPROVED") {
       row.expires_at =
         body.expires_at ?? new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();

@@ -16,21 +16,17 @@
 // under the License.
 
 import type { Metadata } from "next";
-import { EmptyState } from "@/shared/ui/EmptyState";
+import { AccessRequestsQueue } from "@/features/core/access-requests/components/AccessRequestsQueue";
 
 export const metadata: Metadata = {
   title: "Access Requests — Admin",
 };
 
-// Placeholder: the queue lands in the next phase on this branch.
 export default function AdminAccessRequestsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-[28px] font-bold leading-tight">Access Requests</h1>
-      <EmptyState
-        heading="Review queue coming in this branch"
-        description="Pending trial-access requests will be listed here for approval."
-      />
+      <AccessRequestsQueue />
     </div>
   );
 }

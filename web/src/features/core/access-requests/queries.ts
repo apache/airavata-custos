@@ -19,6 +19,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import * as React from "react";
 import {
   type AccessRequestListFilter,
   createAccessRequest,
@@ -78,6 +79,19 @@ export function useAccessRequests(
     refetchOnWindowFocus: false,
     ...options,
   });
+}
+
+// Trial users are the ones an approved access request created; the map keys
+// their user id to the trial end date. Admin-gated pages only.
+export function useTrialExpiryByUserId(): Map<string, string> {
+  const { data } = useAccessRequests({ status: "APPROVED" });
+  return React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of data ?? []) {
+      if (r.created_user_id && r.expires_at) map.set(r.created_user_id, r.expires_at);
+    }
+    return map;
+  }, [data]);
 }
 
 export function useDecideAccessRequest() {

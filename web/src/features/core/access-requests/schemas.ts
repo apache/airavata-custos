@@ -46,6 +46,9 @@ export const accessRequestSchema = z.object({
     .nullish()
     .transform((v) => v ?? ""),
   timestamp: z.string(),
+  // Present only on the privileged list; /me responses omit both.
+  decided_at: z.string().nullish(),
+  allocation_id: z.string().nullish(),
 });
 export type AccessRequest = z.infer<typeof accessRequestSchema>;
 
