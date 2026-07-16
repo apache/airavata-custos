@@ -26,8 +26,9 @@ fi
 
 if [ -z "${ACCESS_TOKEN:-}" ]; then
   : "${OIDC_CLIENT_ID:?missing in .env}" "${OIDC_CLIENT_SECRET:?missing in .env}"
-  echo "== CILogon device authorization"
-  dev=$(curl -sf -X POST https://cilogon.org/oauth2/device_authorization \
+  ISSUER="${OIDC_ISSUER_URL%/}"
+  echo "== CILogon device authorization ($ISSUER)"
+  dev=$(curl -sf -X POST "$ISSUER/oauth2/device_authorization" \
     -d "client_id=$OIDC_CLIENT_ID" -d "client_secret=$OIDC_CLIENT_SECRET" \
     -d "scope=openid profile email org.cilogon.userinfo")
   device_code=$(echo "$dev" | python3 -c "import json,sys; print(json.load(sys.stdin)['device_code'])")
@@ -36,7 +37,7 @@ if [ -z "${ACCESS_TOKEN:-}" ]; then
   echo "Waiting for authentication..."
   while true; do
     sleep "$interval"
-    tok=$(curl -s -X POST https://cilogon.org/oauth2/token \
+    tok=$(curl -s -X POST "$ISSUER/oauth2/token" \
       -d "client_id=$OIDC_CLIENT_ID" -d "client_secret=$OIDC_CLIENT_SECRET" \
       -d "grant_type=urn:ietf:params:oauth:grant-type:device_code" \
       -d "device_code=$device_code")
@@ -45,24 +46,61 @@ if [ -z "${ACCESS_TOKEN:-}" ]; then
       echo "Device authorization failed: $tok"; exit 1
     fi
   done
-  # The backend verifier wants a JWT; some setups issue opaque access
-  # tokens, in which case the id_token is the JWT-shaped bearer.
+  # The backend verifies the id_token (the access token is opaque or
+  # carries a different audience). Print redacted claims for diagnosis.
   ACCESS_TOKEN=$(echo "$tok" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-a=d.get('access_token','')
-print(a if a.count('.')==2 else d.get('id_token',a))")
+print(d.get('id_token') or d.get('access_token',''))")
+  echo "$tok" | python3 -c "
+import base64, json, sys
+d = json.load(sys.stdin)
+def peek(name):
+    t = d.get(name) or ''
+    if t.count('.') != 2:
+        print(f'  {name}: opaque/absent')
+        return
+    pay = t.split('.')[1]
+    pay += '=' * (-len(pay) % 4)
+    c = json.loads(base64.urlsafe_b64decode(pay))
+    print(f'  {name}: iss={c.get(\"iss\")} aud={c.get(\"aud\")} sub={str(c.get(\"sub\"))[:40]}')
+peek('access_token'); peek('id_token')
+print('  using:', 'id_token' if d.get('id_token') else 'access_token')"
   echo "Authenticated."
 fi
 
-capi() { # method path [json-body]
-  local method="$1" path="$2" body="${3:-}"
+capi() { # method path [json-body] -- prints the body, aborts loudly on non-2xx
+  local method="$1" path="$2" body="${3:-}" out code
+  out=$(mktemp)
   if [ -n "$body" ]; then
-    curl -sf -X "$method" -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" "$API$path" -d "$body"
+    code=$(curl -s -o "$out" -w "%{http_code}" -X "$method" -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" "$API$path" -d "$body")
   else
-    curl -sf -X "$method" -H "Authorization: Bearer $ACCESS_TOKEN" "$API$path"
+    code=$(curl -s -o "$out" -w "%{http_code}" -X "$method" -H "Authorization: Bearer $ACCESS_TOKEN" "$API$path")
   fi
+  if [ "${code:0:1}" != "2" ]; then
+    echo "" >&2
+    echo "FAILED: $method $path -> HTTP $code" >&2
+    cat "$out" >&2; echo "" >&2
+    rm -f "$out"
+    exit 1
+  fi
+  cat "$out"; rm -f "$out"
 }
+
+echo "== Preflight: who am I against the backend"
+me=$(capi GET /me)
+echo "$me" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+u=d.get('user') or {}
+print('  user:', u.get('email'), '(', u.get('id'), ')')
+print('  privileges:', len(d.get('privileges') or []))
+" || { echo "Could not parse /me response: $me"; exit 1; }
+if ! echo "$me" | grep -q "projects:write"; then
+  echo "This identity lacks core:projects:write. Authenticate as the ADMIN"
+  echo "identity at the CILogon prompt (the linked admin email), then re-run."
+  exit 1
+fi
 
 echo "== Creating project"
 project=$(capi POST /projects '{"originated_id":"PEARC26","title":"PEARC26 Tutorial Workshop","origination":"pearc26","project_pi_id":"pearc26-approver","status":"ACTIVE"}')
