@@ -135,11 +135,15 @@ echo "== Slurm accounting cleanup"
 # slurmctld binds an association to the uid at load time; a recycled
 # username returns with a new uid, so stale user associations must go.
 if [ -n "${SLURM_API_URL:-}" ] && [ -n "${SLURM_TOKEN:-}" ]; then
+  ver="v0.0.${SLURM_API_VERSION:-40}"
   for u in $(printf '%s\n' $local_usernames $registry_uids | sort -u); do
-    code=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+    # Delete the association (not the user record): the /user endpoint
+    # 304s without removing the association, leaving a stale uid binding.
+    removed=$(curl -s -X DELETE \
       -H "X-SLURM-USER-NAME: ${SLURM_API_USERNAME:-nexus-provisioner}" -H "X-SLURM-USER-TOKEN: $SLURM_TOKEN" \
-      "$SLURM_API_URL/slurmdb/v0.0.${SLURM_API_VERSION:-40}/user/$u")
-    echo "  slurm user $u delete -> HTTP $code (404/does-not-exist is fine)"
+      "$SLURM_API_URL/slurmdb/$ver/associations?user=$u" \
+      | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('removed_associations',[])))" 2>/dev/null || echo 0)
+    echo "  slurm associations removed for $u: $removed"
   done
 else
   echo "  SLURM_API_URL/SLURM_TOKEN not set; skipped (delete stale associations manually if the username is reused)"
