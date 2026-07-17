@@ -139,8 +139,14 @@ function AnalyticsBody({
     <div className="space-y-6">
       <HeroTiles allocation={allocation} callerUsed={callerUsed} now={now} />
       <UsageOverTimeBars summary={summary} />
-      <ResourceBreakdown summary={summary} />
-      {isManager && summary.by_member ? <MemberBreakdown members={summary.by_member} /> : null}
+      {isManager && summary.by_member ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <ResourceBreakdown summary={summary} />
+          <MemberBreakdown members={summary.by_member} total={summary.total} />
+        </div>
+      ) : (
+        <ResourceBreakdown summary={summary} />
+      )}
       <JobsTable
         allocationId={allocation.id}
         canManage={isManager}

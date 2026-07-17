@@ -409,6 +409,36 @@ func TestUsageSummary_PISeesRankedMembers(t *testing.T) {
 	}
 }
 
+// A member whose profile has no first/last name still gets a readable label.
+func TestUsageSummary_MemberWithoutNameFallsBackToEmail(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "pi7@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
+	start := time.Now().UTC().AddDate(0, 0, -2)
+	alloc := seedAllocation(t, database, project, cluster, 1000, start, time.Now().UTC().AddDate(0, 0, 28))
+	res := seedResource(t, database, cluster, "gpu-01", "GPU_HOURS")
+	if _, err := database.Exec("UPDATE users SET first_name = '', last_name = '' WHERE id = ?", pi); err != nil {
+		t.Fatalf("blank name: %v", err)
+	}
+	seedUsage(t, database, alloc, res, pi, 400, 40, time.Now().UTC().AddDate(0, 0, -1))
+
+	rr := httptest.NewRecorder()
+	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/allocations/"+alloc+"/usage-summary", nil), pi)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got UsageSummary
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.ByMember) != 1 || got.ByMember[0].Name != "pi7@example.edu" {
+		t.Fatalf("by_member name: got %+v, want email fallback", got.ByMember)
+	}
+}
+
 // Access is membership-only: a site-wide privilege does not open an allocation
 // the caller has no membership or role on.
 func TestUsageSummary_SitePrivilegeAloneDoesNotGrantAccess_404(t *testing.T) {

@@ -269,7 +269,7 @@ func (s *mysqlStore) MemberUsage(ctx context.Context, allocationID string) ([]Me
 	var rows []MemberRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT u.user_id,
-		        TRIM(CONCAT(COALESCE(usr.first_name, ''), ' ', COALESCE(usr.last_name, ''))) AS name,
+		        COALESCE(NULLIF(TRIM(CONCAT(COALESCE(usr.first_name, ''), ' ', COALESCE(usr.last_name, ''))), ''), usr.email) AS name,
 		        SUM(u.used_su_amount) AS used
 		   FROM compute_allocation_usages u
 		   JOIN users usr ON usr.id = u.user_id

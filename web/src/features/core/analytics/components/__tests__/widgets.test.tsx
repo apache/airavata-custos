@@ -136,36 +136,37 @@ describe("resource and member breakdowns", () => {
     by_member: null,
   };
 
-  it("resource view shows the share of total and the you-vs-team split", () => {
+  it("resource view shares are against the allocation budget, with the remainder", () => {
     render(<ResourceBreakdown summary={summary} />);
-    expect(screen.getByText(/your share vs the rest of the team/)).toBeInTheDocument();
-    expect(screen.getAllByText(/you .* · team/).length).toBeGreaterThan(0);
-    // gpu is 200 of 300 consumed, so its row leads with its 67% share.
-    expect(screen.getByText(/67% · you/)).toBeInTheDocument();
+    // gpu is 200 of the 1000 budget, not 67% of the 300 consumed.
+    expect(screen.getByText(/20% · 200/)).toBeInTheDocument();
+    expect(screen.getByText(/10% · 100/)).toBeInTheDocument();
+    // The unused remainder is a legend row of its own.
+    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.getByText(/70% · 700/)).toBeInTheDocument();
   });
 
-  it("collapses to plain consumption when the caller has no usage (no 'you 0 · team')", () => {
-    const noSlice = {
+  it("flips to an over-budget center and drops the remainder when usage exceeds the budget", () => {
+    const overrun = {
       ...summary,
-      by_resource: [resource("gpu", 200, 0)] as UsageResource[],
+      total: 100,
+      by_resource: [resource("gpu", 150, 0), resource("cpu", 50, 0)] as UsageResource[],
     };
-    render(<ResourceBreakdown summary={noSlice} />);
-    expect(screen.getByText(/consumed · last 30 days/)).toBeInTheDocument();
-    expect(screen.getByText(/used$/)).toBeInTheDocument();
-    expect(screen.queryByText(/you 0/)).not.toBeInTheDocument();
+    render(<ResourceBreakdown summary={overrun} />);
+    // Shares scale to the 200 consumed; the center shows how far over.
+    expect(screen.getByText(/75% · 150/)).toBeInTheDocument();
+    expect(screen.getByText("-100")).toBeInTheDocument();
+    expect(screen.queryByText("Available")).not.toBeInTheDocument();
   });
 
-  it("drops the team clause for a solo user (no 'team 0')", () => {
-    const solo = {
-      ...summary,
-      by_resource: [resource("gpu", 200, 200)] as UsageResource[],
-    };
-    render(<ResourceBreakdown summary={solo} />);
-    expect(screen.getByText(/· you /)).toBeInTheDocument();
-    expect(screen.queryByText(/team 0/)).not.toBeInTheDocument();
+  it("renders a full available ring when nothing is used yet", () => {
+    const untouched = { ...summary, used: 0, by_resource: [] as UsageResource[] };
+    render(<ResourceBreakdown summary={untouched} />);
+    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.getByText(/of 1K available/)).toBeInTheDocument();
   });
 
-  it("member breakdown ranks members and rolls up the rest", () => {
+  it("member breakdown lists every member and folds the tail into one ring arc", () => {
     const many: UsageMember[] = [
       { user_id: "u1", name: "A A", used: 600 },
       { user_id: "u2", name: "B B", used: 500 },
@@ -175,8 +176,24 @@ describe("resource and member breakdowns", () => {
       { user_id: "u6", name: "F F", used: 100 },
       { user_id: "u7", name: "G G", used: 50 },
     ];
-    render(<MemberBreakdown members={many} />);
+    const { container } = render(<MemberBreakdown members={many} total={4300} />);
+    // Every member appears in the legend, including the folded tail.
     expect(screen.getByText("A A")).toBeInTheDocument();
-    expect(screen.getByText("+2 others")).toBeInTheDocument();
+    expect(screen.getByText("F F")).toBeInTheDocument();
+    expect(screen.getByText("G G")).toBeInTheDocument();
+    // The tail shares a single ring arc.
+    expect(container.querySelector('[data-slice="__others"]')).toBeInTheDocument();
+    // 2150 of the 4300 budget remains.
+    expect(screen.getByText(/50% · 2.15K/)).toBeInTheDocument();
+  });
+
+  it("hovering a sector swaps the donut center to that slice", () => {
+    const { container } = render(<ResourceBreakdown summary={summary} />);
+    const arc = container.querySelector('[data-slice="gpu"]') as Element;
+    fireEvent.mouseEnter(arc);
+    // Center shows the hovered slice's share of the budget.
+    expect(screen.getByText(/20% · of 1K/)).toBeInTheDocument();
+    fireEvent.mouseLeave(arc);
+    expect(screen.getByText(/of 1K available/)).toBeInTheDocument();
   });
 });
