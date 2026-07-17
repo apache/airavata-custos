@@ -44,7 +44,7 @@ type Allocation struct {
 	Name            string    `json:"name"`
 	Status          string    `json:"status"`
 	InitialSUAmount int64     `json:"initial_su_amount"`
-	UsedSUAmount    int64     `json:"used_su_amount"`
+	UsedSUAmount    float64   `json:"used_su_amount"`
 	StartTime       time.Time `json:"start_time"`
 	EndTime         time.Time `json:"end_time"`
 }
@@ -62,8 +62,8 @@ type ProjectContext struct {
 // continuous from allocation start to today, so a zero-usage day carries an
 // empty map.
 type UsageDailyBucket struct {
-	Date       string           `json:"date"`
-	ByResource map[string]int64 `json:"by_resource"`
+	Date       string             `json:"date"`
+	ByResource map[string]float64 `json:"by_resource"`
 }
 
 // UsageResource aggregates one resource's consumption, including the caller's
@@ -72,25 +72,25 @@ type UsageResource struct {
 	ResourceID   string  `json:"resource_id"`
 	Name         string  `json:"name"`
 	ResourceType string  `json:"resource_type"`
-	Used         int64   `json:"used"`
+	Used         float64 `json:"used"`
 	Cap          *int64  `json:"cap"`
 	UsedNative   float64 `json:"used_native"`
 	NativeUnit   string  `json:"native_unit"`
-	UsedByCaller int64   `json:"used_by_caller"`
+	UsedByCaller float64 `json:"used_by_caller"`
 }
 
 // UsageMember is one member's consumption against an allocation.
 type UsageMember struct {
-	UserID string `json:"user_id"`
-	Name   string `json:"name"`
-	Used   int64  `json:"used"`
+	UserID string  `json:"user_id"`
+	Name   string  `json:"name"`
+	Used   float64 `json:"used"`
 }
 
 // UsageSummary is the aggregated usage for one allocation. ByMember is null
 // unless the caller may see per-member data.
 type UsageSummary struct {
 	Total      int64              `json:"total"`
-	Used       int64              `json:"used"`
+	Used       float64            `json:"used"`
 	Daily      []UsageDailyBucket `json:"daily"`
 	ByResource []UsageResource    `json:"by_resource"`
 	ByMember   []UsageMember      `json:"by_member"`
@@ -108,7 +108,7 @@ type Job struct {
 	ResourceType   string    `json:"resource_type"`
 	UsedRaw        float64   `json:"used_raw"`
 	NativeUnit     string    `json:"native_unit"`
-	Used           int64     `json:"used"`
+	Used           float64   `json:"used"`
 }
 
 // AllocationJobs is a page of jobs plus the total matching count.
@@ -306,11 +306,11 @@ func buildResourceBreakdown(rows []ResourceRow) []UsageResource {
 // start to today. The range is capped against a stray start_time.
 func buildDailyBuckets(start time.Time, rows []DailyRow) []UsageDailyBucket {
 	const layout = "2006-01-02"
-	byDay := make(map[string]map[string]int64, len(rows))
+	byDay := make(map[string]map[string]float64, len(rows))
 	for _, r := range rows {
 		day := r.Day.Format(layout)
 		if byDay[day] == nil {
-			byDay[day] = map[string]int64{}
+			byDay[day] = map[string]float64{}
 		}
 		byDay[day][r.ResourceID] += r.Credits
 	}
@@ -331,7 +331,7 @@ func buildDailyBuckets(start time.Time, rows []DailyRow) []UsageDailyBucket {
 		key := d.Format(layout)
 		m := byDay[key]
 		if m == nil {
-			m = map[string]int64{}
+			m = map[string]float64{}
 		}
 		buckets = append(buckets, UsageDailyBucket{Date: key, ByResource: m})
 	}

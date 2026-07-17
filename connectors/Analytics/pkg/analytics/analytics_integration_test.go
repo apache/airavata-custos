@@ -179,14 +179,14 @@ func TestAnalyticsContexts_PIRoleAndAllocations(t *testing.T) {
 	if len(c.Allocations) != 2 {
 		t.Fatalf("allocations: got %d, want 2", len(c.Allocations))
 	}
-	var usedForAlloc1 int64 = -1
+	var usedForAlloc1 float64 = -1
 	for _, a := range c.Allocations {
 		if a.ID == alloc1 {
 			usedForAlloc1 = a.UsedSUAmount
 		}
 	}
 	if usedForAlloc1 != 300 {
-		t.Errorf("used_su_amount for alloc1: got %d, want 300", usedForAlloc1)
+		t.Errorf("used_su_amount for alloc1: got %v, want 300", usedForAlloc1)
 	}
 }
 
@@ -352,17 +352,17 @@ func TestUsageSummary_MemberSeesOwnSliceNoMembers(t *testing.T) {
 		t.Errorf("total: got %d, want 1000", got.Total)
 	}
 	if got.Used != 500 {
-		t.Errorf("used: got %d, want 500", got.Used)
+		t.Errorf("used: got %v, want 500", got.Used)
 	}
 	if len(got.ByResource) != 1 {
 		t.Fatalf("by_resource: got %d, want 1", len(got.ByResource))
 	}
 	r := got.ByResource[0]
 	if r.Used != 500 {
-		t.Errorf("resource used: got %d, want 500", r.Used)
+		t.Errorf("resource used: got %v, want 500", r.Used)
 	}
 	if r.UsedByCaller != 100 {
-		t.Errorf("used_by_caller: got %d, want 100 (member's own slice)", r.UsedByCaller)
+		t.Errorf("used_by_caller: got %v, want 100 (member's own slice)", r.UsedByCaller)
 	}
 	if r.NativeUnit != "GPU-hours" {
 		t.Errorf("native_unit: got %q, want GPU-hours", r.NativeUnit)
@@ -405,7 +405,7 @@ func TestUsageSummary_PISeesRankedMembers(t *testing.T) {
 		t.Errorf("by_member[0]: got %+v, want pi with 400 (ranked first)", got.ByMember[0])
 	}
 	if got.ByMember[1].Used != 100 {
-		t.Errorf("by_member[1] used: got %d, want 100", got.ByMember[1].Used)
+		t.Errorf("by_member[1] used: got %v, want 100", got.ByMember[1].Used)
 	}
 }
 
@@ -599,7 +599,7 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 	if len(got.Daily) != 6 {
 		t.Fatalf("daily buckets: got %d, want 6 (continuous start..today)", len(got.Daily))
 	}
-	var total int64
+	var total float64
 	nonEmpty := 0
 	for _, b := range got.Daily {
 		for _, v := range b.ByResource {
@@ -610,7 +610,7 @@ func TestUsageSummary_DailyBucketsContinuous(t *testing.T) {
 		}
 	}
 	if total != 350 {
-		t.Errorf("summed daily credits: got %d, want 350", total)
+		t.Errorf("summed daily credits: got %v, want 350", total)
 	}
 	if nonEmpty != 2 {
 		t.Errorf("non-empty days: got %d, want 2", nonEmpty)

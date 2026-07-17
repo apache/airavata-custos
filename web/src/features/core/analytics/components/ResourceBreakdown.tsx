@@ -33,10 +33,7 @@ export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
   const rows = summary.by_resource;
   // Each bar is the resource's share of total credits consumed, so the bars
   // sum to the period total; resources carry no per-resource cap in v1.
-  const totalUsed = Math.max(
-    1,
-    rows.reduce((sum, r) => sum + r.used, 0),
-  );
+  const totalUsed = rows.reduce((sum, r) => sum + r.used, 0);
   const anyCallerUsage = rows.some((r) => r.used_by_caller > 0);
 
   return (
@@ -63,7 +60,7 @@ export function ResourceBreakdown({ summary }: { summary: UsageSummary }) {
 function ResourceRow({ resource, total }: { resource: UsageResource; total: number }) {
   const mine = resource.used_by_caller;
   const team = Math.max(0, resource.used - mine);
-  const share = (resource.used / total) * 100;
+  const share = total > 0 ? (resource.used / total) * 100 : 0;
   const minePct = (mine / total) * 100;
   const teamPct = (team / total) * 100;
 

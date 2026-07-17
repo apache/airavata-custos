@@ -134,13 +134,16 @@ export function formatCredits(n: number): string {
   }).format(n);
 }
 
-// Full grouped credits for tooltips and sublines.
+// Full grouped credits for tooltips and sublines. Sub-unit values keep
+// enough digits to stay visibly non-zero.
 export function formatCreditsFull(n: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+  const fractionDigits = n !== 0 && Math.abs(n) < 1 ? 3 : 0;
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: fractionDigits }).format(n);
 }
 
 export function formatNative(n: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+  const fractionDigits = n !== 0 && Math.abs(n) < 1 ? 3 : 0;
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: fractionDigits }).format(n);
 }
 
 // Whole-percent label; a positive value under 1% shows "<1%" rather than

@@ -39,10 +39,7 @@ export function MemberBreakdown({ members }: { members: UsageMember[] }) {
   const top = ranked.slice(0, TOP_MEMBERS);
   const rest = ranked.slice(TOP_MEMBERS);
   const restTotal = rest.reduce((a, m) => a + m.used, 0);
-  const total = Math.max(
-    1,
-    ranked.reduce((a, m) => a + m.used, 0),
-  );
+  const total = ranked.reduce((a, m) => a + m.used, 0);
 
   const slices: Slice[] = top.map((m, i) => ({
     key: m.user_id,
@@ -77,7 +74,7 @@ export function MemberBreakdown({ members }: { members: UsageMember[] }) {
                 />
                 <span className="min-w-0 flex-1 truncate">{s.label}</span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {formatPercent((s.used / total) * 100)} · {formatCredits(s.used)}
+                  {formatPercent(total > 0 ? (s.used / total) * 100 : 0)} · {formatCredits(s.used)}
                 </span>
               </li>
             ))}
@@ -96,7 +93,7 @@ function Donut({ slices, total }: { slices: Slice[]; total: number }) {
     <svg viewBox="0 0 42 42" className="h-32 w-32 shrink-0" aria-hidden="true">
       <circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--brand-tint)" strokeWidth="5" />
       {slices.map((s) => {
-        const pct = (s.used / total) * 100;
+        const pct = total > 0 ? (s.used / total) * 100 : 0;
         const dash = (
           <circle
             key={s.key}
