@@ -260,7 +260,6 @@ export function UsersTable({
           page,
           pageSize,
           total,
-          pageSizeOptions: [25],
           onPageChange: (nextPage) => {
             resetSelection();
             onPageChange(nextPage);
