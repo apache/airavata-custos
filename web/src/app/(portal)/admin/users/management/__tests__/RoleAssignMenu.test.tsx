@@ -85,6 +85,7 @@ describe("RoleAssignMenu", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /edit roles/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Unassign" }));
     fireEvent.change(screen.getByLabelText(/reason/i), {
       target: { value: "Onboarding new team member" },
     });
