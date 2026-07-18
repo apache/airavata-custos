@@ -20,21 +20,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAbility } from "@/shared/casl/AbilityProvider";
 
 const TABS = [
   { href: "/admin/users/management", label: "User Management" },
-  { href: "/admin/users/roles", label: "Role Management" },
+  {
+    href: "/admin/users/roles",
+    label: "Role Management",
+    ability: { action: "manage", subject: "Role" } as const,
+  },
 ] as const;
 
 export function UsersNav({ rightSlot }: { rightSlot?: React.ReactNode }) {
   const pathname = usePathname();
+  const ability = useAbility();
+  const tabs = TABS.filter(
+    (tab) => !("ability" in tab) || ability.can(tab.ability.action, tab.ability.subject),
+  );
+
   return (
     <nav
       aria-label="Users & permissions sections"
       className="flex min-h-9 items-end justify-between border-b border-border/60"
     >
       <ul className="-mb-px flex flex-wrap gap-1">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = pathname === tab.href || pathname?.startsWith(`${tab.href}/`);
           return (
             <li key={tab.href}>

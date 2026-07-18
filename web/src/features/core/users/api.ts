@@ -69,7 +69,7 @@ export async function assignUserRole(
   reason?: string,
 ): Promise<UserRole> {
   const body: Record<string, string> = { role_id: roleId };
-  if (reason && reason.trim()) body.reason = reason.trim();
+  if (reason?.trim()) body.reason = reason.trim();
   return grantRoleResponseSchema.parse(
     await apiFetch(`/users/${userId}/roles`, {
       method: "POST",
