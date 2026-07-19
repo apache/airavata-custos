@@ -18,7 +18,6 @@
 "use client";
 
 import { LogOut, Settings } from "lucide-react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useSignOut } from "@/shared/auth/useSignOut";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
@@ -26,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
@@ -66,14 +66,10 @@ export function UserPill() {
             <div className="truncate text-xs text-muted-foreground">{email}</div>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            render={(props) => (
-              <Link {...props} href="/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Link>
-            )}
-          />
+          <DropdownMenuLinkItem href="/settings" closeOnClick>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </DropdownMenuLinkItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
