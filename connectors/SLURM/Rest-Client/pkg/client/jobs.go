@@ -35,6 +35,9 @@ curl -s -X GET \
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
+	"time"
 )
 
 type jobsResponse struct {
@@ -47,25 +50,29 @@ type JobFilter struct {
 	EndTime   int64    `json:"end_time,omitempty"`
 }
 
-type internalJobFilter struct {
-	Users     []string     `json:"users,omitempty"`
-	StartTime *SlurmNumber `json:"start_time,omitempty"`
-	EndTime   *SlurmNumber `json:"end_time,omitempty"`
+// slurmQueryTime formats a unix timestamp as the naive UTC datetime string
+// slurmdbd's query parser wants.
+func slurmQueryTime(ts int64) string {
+	return time.Unix(ts, 0).UTC().Format("2006-01-02T15:04:05")
 }
 
 func (c *Client) ListJobs(filter JobFilter) ([]JobInfo, error) {
 	var out jobsResponse
-	internalFilter := internalJobFilter{
-		Users: filter.Users,
+	params := url.Values{}
+	if len(filter.Users) > 0 {
+		params.Set("users", strings.Join(filter.Users, ","))
 	}
 	if filter.StartTime > 0 {
-		internalFilter.StartTime = &SlurmNumber{Set: true, Infinite: false, Number: filter.StartTime}
+		params.Set("start_time", slurmQueryTime(filter.StartTime))
 	}
 	if filter.EndTime > 0 {
-		internalFilter.EndTime = &SlurmNumber{Set: true, Infinite: false, Number: filter.EndTime}
+		params.Set("end_time", slurmQueryTime(filter.EndTime))
 	}
-
-	if _, err := c.do("GET", "/slurmdb/v0.0."+c.apiVersion+"/jobs", internalFilter, &out); err != nil {
+	path := "/slurmdb/v0.0." + c.apiVersion + "/jobs"
+	if enc := params.Encode(); enc != "" {
+		path += "?" + enc
+	}
+	if _, err := c.do("GET", path, nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Jobs, nil
