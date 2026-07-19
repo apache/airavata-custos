@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/internal/smonitor"
@@ -36,6 +37,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion, clusterID string
+	var pollOverlap time.Duration
 
 	if connectorConfig != nil {
 		slurmAPI, err := connectorConfig.GetNestedConfig("slurm_api")
@@ -55,6 +57,13 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 		}
 		if id, ok := connectorConfig.Config["cluster_id"].(string); ok {
 			clusterID = id
+		}
+		if lb, ok := connectorConfig.Config["usage_lookback"].(string); ok && lb != "" {
+			if d, err := time.ParseDuration(lb); err == nil {
+				pollOverlap = d
+			} else {
+				slog.Warn("invalid usage_lookback, using default", "value", lb, "error", err)
+			}
 		}
 	}
 
@@ -86,7 +95,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, clusterID)
+	monitor := smonitor.NewSlurmMonitor(slurmClient, eventBus, coreService, clusterID, pollOverlap)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

@@ -46,6 +46,9 @@ connectors:
       username: "${SLURM_API_USERNAME}"
       token: "${SLURM_TOKEN}"
     cluster_id: "${CUSTOS_CLUSTER_ID}"
+    # How far back each poll re-scans to catch jobs SLURM writes to its
+    # accounting database late. Tune to the cluster's slurmdbd commit lag.
+    usage_lookback: "15m"
 
   comanage-provisioner:
     type: "comanage-identity-provisioner"

@@ -87,8 +87,8 @@ type ComputeClusterUserStore interface {
 	FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	// FindByPair returns the mapping for a (compute_cluster_id, user_id) pair, or nil if absent.
 	FindByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
-	// FindByLocalUsernameAndCluster returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
-	FindByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
+	// FindByClusterAndLocalUsername returns the mapping for a (local_username, compute_cluster_id) pair, or nil if absent.
+	FindByClusterAndLocalUsername(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	// FindByCluster returns every user mapping for the given compute cluster.
 	FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	// FindByUser returns every cluster mapping held by the given Custos user.

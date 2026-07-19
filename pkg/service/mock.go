@@ -189,8 +189,8 @@ var _ CoreService = &CoreServiceMock{}
 //			GetComputeClusterUserFunc: func(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUser method")
 //			},
-//			GetComputeClusterUserByLocalUsernameAndClusterFunc: func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
-//				panic("mock out the GetComputeClusterUserByLocalUsernameAndCluster method")
+//			GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+//				panic("mock out the GetComputeClusterUserByClusterAndLocalUsername method")
 //			},
 //			GetComputeClusterUserByPairFunc: func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error) {
 //				panic("mock out the GetComputeClusterUserByPair method")
@@ -598,8 +598,8 @@ type CoreServiceMock struct {
 	// GetComputeClusterUserFunc mocks the GetComputeClusterUser method.
 	GetComputeClusterUserFunc func(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 
-	// GetComputeClusterUserByLocalUsernameAndClusterFunc mocks the GetComputeClusterUserByLocalUsernameAndCluster method.
-	GetComputeClusterUserByLocalUsernameAndClusterFunc func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error)
+	// GetComputeClusterUserByClusterAndLocalUsernameFunc mocks the GetComputeClusterUserByClusterAndLocalUsername method.
+	GetComputeClusterUserByClusterAndLocalUsernameFunc func(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error)
 
 	// GetComputeClusterUserByPairFunc mocks the GetComputeClusterUserByPair method.
 	GetComputeClusterUserByPairFunc func(ctx context.Context, clusterID string, userID string) (*models.ComputeClusterUser, error)
@@ -1256,8 +1256,8 @@ type CoreServiceMock struct {
 			// ID is the id argument value.
 			ID string
 		}
-		// GetComputeClusterUserByLocalUsernameAndCluster holds details about calls to the GetComputeClusterUserByLocalUsernameAndCluster method.
-		GetComputeClusterUserByLocalUsernameAndCluster []struct {
+		// GetComputeClusterUserByClusterAndLocalUsername holds details about calls to the GetComputeClusterUserByClusterAndLocalUsername method.
+		GetComputeClusterUserByClusterAndLocalUsername []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ClusterID is the clusterID argument value.
@@ -1909,7 +1909,7 @@ type CoreServiceMock struct {
 	lockGetComputeCluster                                      sync.RWMutex
 	lockGetComputeClusterByName                                sync.RWMutex
 	lockGetComputeClusterUser                                  sync.RWMutex
-	lockGetComputeClusterUserByLocalUsernameAndCluster         sync.RWMutex
+	lockGetComputeClusterUserByClusterAndLocalUsername         sync.RWMutex
 	lockGetComputeClusterUserByPair                            sync.RWMutex
 	lockGetEffectiveRateForResource                            sync.RWMutex
 	lockGetLatestDiffForAllocation                             sync.RWMutex
@@ -4065,10 +4065,10 @@ func (mock *CoreServiceMock) GetComputeClusterUserCalls() []struct {
 	return calls
 }
 
-// GetComputeClusterUserByLocalUsernameAndCluster calls GetComputeClusterUserByLocalUsernameAndClusterFunc.
-func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
-	if mock.GetComputeClusterUserByLocalUsernameAndClusterFunc == nil {
-		panic("CoreServiceMock.GetComputeClusterUserByLocalUsernameAndClusterFunc: method is nil but CoreService.GetComputeClusterUserByLocalUsernameAndCluster was just called")
+// GetComputeClusterUserByClusterAndLocalUsername calls GetComputeClusterUserByClusterAndLocalUsernameFunc.
+func (mock *CoreServiceMock) GetComputeClusterUserByClusterAndLocalUsername(ctx context.Context, clusterID string, localUsername string) (*models.ComputeClusterUser, error) {
+	if mock.GetComputeClusterUserByClusterAndLocalUsernameFunc == nil {
+		panic("CoreServiceMock.GetComputeClusterUserByClusterAndLocalUsernameFunc: method is nil but CoreService.GetComputeClusterUserByClusterAndLocalUsername was just called")
 	}
 	callInfo := struct {
 		Ctx           context.Context
@@ -4079,17 +4079,17 @@ func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndCluster(ctx 
 		ClusterID:     clusterID,
 		LocalUsername: localUsername,
 	}
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Lock()
-	mock.calls.GetComputeClusterUserByLocalUsernameAndCluster = append(mock.calls.GetComputeClusterUserByLocalUsernameAndCluster, callInfo)
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.Unlock()
-	return mock.GetComputeClusterUserByLocalUsernameAndClusterFunc(ctx, clusterID, localUsername)
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.Lock()
+	mock.calls.GetComputeClusterUserByClusterAndLocalUsername = append(mock.calls.GetComputeClusterUserByClusterAndLocalUsername, callInfo)
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.Unlock()
+	return mock.GetComputeClusterUserByClusterAndLocalUsernameFunc(ctx, clusterID, localUsername)
 }
 
-// GetComputeClusterUserByLocalUsernameAndClusterCalls gets all the calls that were made to GetComputeClusterUserByLocalUsernameAndCluster.
+// GetComputeClusterUserByClusterAndLocalUsernameCalls gets all the calls that were made to GetComputeClusterUserByClusterAndLocalUsername.
 // Check the length with:
 //
-//	len(mockedCoreService.GetComputeClusterUserByLocalUsernameAndClusterCalls())
-func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndClusterCalls() []struct {
+//	len(mockedCoreService.GetComputeClusterUserByClusterAndLocalUsernameCalls())
+func (mock *CoreServiceMock) GetComputeClusterUserByClusterAndLocalUsernameCalls() []struct {
 	Ctx           context.Context
 	ClusterID     string
 	LocalUsername string
@@ -4099,9 +4099,9 @@ func (mock *CoreServiceMock) GetComputeClusterUserByLocalUsernameAndClusterCalls
 		ClusterID     string
 		LocalUsername string
 	}
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RLock()
-	calls = mock.calls.GetComputeClusterUserByLocalUsernameAndCluster
-	mock.lockGetComputeClusterUserByLocalUsernameAndCluster.RUnlock()
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.RLock()
+	calls = mock.calls.GetComputeClusterUserByClusterAndLocalUsername
+	mock.lockGetComputeClusterUserByClusterAndLocalUsername.RUnlock()
 	return calls
 }
 

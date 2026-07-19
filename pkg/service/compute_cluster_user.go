@@ -122,16 +122,16 @@ func (s *Service) GetComputeClusterUserByPair(ctx context.Context, clusterID, us
 	return c, nil
 }
 
-// GetComputeClusterUserByLocalUsernameAndCluster retrieves the compute-cluster
-// user mapping for the given (local_username, compute_cluster_id) pair.
-func (s *Service) GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error) {
+// GetComputeClusterUserByClusterAndLocalUsername retrieves the compute-cluster
+// user mapping for the given (compute_cluster_id, local_username) pair.
+func (s *Service) GetComputeClusterUserByClusterAndLocalUsername(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error) {
 	if clusterID == "" {
 		return nil, fmt.Errorf("%w: compute_cluster_id is required", ErrInvalidInput)
 	}
 	if localUsername == "" {
 		return nil, fmt.Errorf("%w: local_username is required", ErrInvalidInput)
 	}
-	c, err := s.clusterUsers.FindByLocalUsernameAndCluster(ctx, clusterID, localUsername)
+	c, err := s.clusterUsers.FindByClusterAndLocalUsername(ctx, clusterID, localUsername)
 	if err != nil {
 		return nil, fmt.Errorf("get compute cluster user by local username and cluster: %w", err)
 	}
