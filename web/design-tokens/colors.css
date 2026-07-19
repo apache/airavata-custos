@@ -66,7 +66,7 @@
   --custos-amber-600: #d97706;
   --custos-amber-700: #b45309;
   /* amber-800/900 add darker stops so warn bands can clear WCAG AA at 12px
-     against amber-100 — amber-700/100 only hits 4.03:1, amber-800/100 reaches 6.28:1. */
+       against amber-100 — amber-700/100 only hits 4.03:1, amber-800/100 reaches 6.28:1. */
   --custos-amber-800: #92400e;
   --custos-amber-900: #78350f;
 
@@ -84,7 +84,7 @@
   --custos-warning: #f59e0b;
 
   /* Brand semantic — distinct from --primary; reserved for active states,
-     links, brand wordmark, progress bar default fill. */
+       links, brand wordmark, progress bar default fill. */
   --brand: var(--custos-blue-500);
   --brand-foreground: #ffffff;
   --brand-tint: var(--custos-blue-50);
@@ -150,11 +150,17 @@
   --sidebar-border: var(--custos-gray-200);
   --sidebar-ring: var(--custos-blue-500);
 
-  --chart-1: var(--custos-blue-500);
-  --chart-2: var(--custos-green-500);
-  --chart-3: var(--custos-red-500);
-  --chart-4: var(--custos-blue-700);
-  --chart-5: var(--custos-gray-500);
+  /* chart-5 is the "others" neutral, not a 4th series; danger is never a
+     series color. */
+  --chart-1: #2361b8;
+  /* Lighter chart-1 for a secondary same-series segment (e.g. team vs you);
+     reads as filled, distinct from the empty track. */
+  --chart-1-soft: var(--custos-blue-200);
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #6b7280;
+  --chart-grid: var(--custos-gray-200);
 }
 
 /* Dark theme. Re-points the shadcn-style semantic tokens at the Custos palette
@@ -204,11 +210,25 @@
   --banner-error-fg: var(--custos-red-300);
   --banner-error-icon: var(--custos-red-400);
 
-  --tone-ok-bg: rgba(34, 197, 94, 0.16);     --tone-ok-fg: var(--custos-green-300);
-  --tone-error-bg: rgba(239, 68, 68, 0.16);  --tone-error-fg: var(--custos-red-300);
-  --tone-warn-bg: rgba(245, 158, 11, 0.18);  --tone-warn-fg: var(--custos-amber-200);
-  --tone-info-bg: rgba(77, 134, 201, 0.22);  --tone-info-fg: var(--custos-blue-300);
-  --tone-accent-bg: rgba(139, 92, 246, 0.2); --tone-accent-fg: #c4b5fd;
+  --tone-ok-bg: rgba(34, 197, 94, 0.16);
+  --tone-ok-fg: var(--custos-green-300);
+  --tone-error-bg: rgba(239, 68, 68, 0.16);
+  --tone-error-fg: var(--custos-red-300);
+  --tone-warn-bg: rgba(245, 158, 11, 0.18);
+  --tone-warn-fg: var(--custos-amber-200);
+  --tone-info-bg: rgba(77, 134, 201, 0.22);
+  --tone-info-fg: var(--custos-blue-300);
+  --tone-accent-bg: rgba(139, 92, 246, 0.2);
+  --tone-accent-fg: #c4b5fd;
+
+  /* Dark-surface dataviz palette (paired with the light values above). */
+  --chart-1: #4d86c9;
+  --chart-1-soft: var(--custos-blue-300);
+  --chart-2: #16a34a;
+  --chart-3: #d97706;
+  --chart-4: #8b5cf6;
+  --chart-5: #9aa1ae;
+  --chart-grid: var(--custos-gray-700);
 
   --syntax-key: #c4b5fd;
   --syntax-str: var(--custos-green-300);

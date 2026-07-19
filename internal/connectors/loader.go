@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/pkg/amie"
+	"github.com/apache/airavata-custos/connectors/Analytics/pkg/analytics"
 	"github.com/apache/airavata-custos/connectors/COmanage/Identity-Provisioner/pkg/comanage"
 	"github.com/apache/airavata-custos/connectors/SLURM/Association-Mapper/pkg/smapper"
 	"github.com/apache/airavata-custos/connectors/SLURM/Usage-Monitor/pkg/monitor"
@@ -43,6 +44,7 @@ func LoadConnectorsFromConfig(ctx context.Context, cfg *config.Config, database 
 		"comanage-identity-provisioner": comanage.LoadConnector,
 		"slurm-usage-monitor":           monitor.LoadConnector,
 		"temp-account":                  tempaccount.LoadConnector,
+		"analytics":                     analytics.LoadConnector,
 	}
 
 	for connectorName, connectorCfg := range cfg.Connectors {

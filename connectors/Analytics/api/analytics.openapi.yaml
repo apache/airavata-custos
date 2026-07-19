@@ -1,0 +1,255 @@
+definitions:
+  Allocation:
+    properties:
+      end_time:
+        type: string
+      id:
+        type: string
+      initial_su_amount:
+        type: integer
+      name:
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      used_su_amount:
+        type: number
+    type: object
+  AllocationJobs:
+    properties:
+      jobs:
+        items:
+          $ref: '#/definitions/Job'
+        type: array
+      total:
+        type: integer
+    type: object
+  Job:
+    properties:
+      calculated_time:
+        type: string
+      id:
+        type: string
+      job_id:
+        type: string
+      native_unit:
+        type: string
+      resource_id:
+        type: string
+      resource_name:
+        type: string
+      resource_type:
+        type: string
+      used:
+        type: number
+      used_raw:
+        type: number
+      user_id:
+        type: string
+      user_name:
+        type: string
+    type: object
+  ProjectContext:
+    properties:
+      allocations:
+        items:
+          $ref: '#/definitions/Allocation'
+        type: array
+      project_id:
+        type: string
+      project_name:
+        type: string
+      role:
+        type: string
+    type: object
+  UsageDailyBucket:
+    properties:
+      by_resource:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      date:
+        type: string
+    type: object
+  UsageMember:
+    properties:
+      name:
+        type: string
+      used:
+        type: number
+      user_id:
+        type: string
+    type: object
+  UsageResource:
+    properties:
+      cap:
+        type: integer
+      name:
+        type: string
+      native_unit:
+        type: string
+      resource_id:
+        type: string
+      resource_type:
+        type: string
+      used:
+        type: number
+      used_by_caller:
+        type: number
+      used_native:
+        type: number
+    type: object
+  UsageSummary:
+    properties:
+      by_member:
+        items:
+          $ref: '#/definitions/UsageMember'
+        type: array
+      by_resource:
+        items:
+          $ref: '#/definitions/UsageResource'
+        type: array
+      daily:
+        items:
+          $ref: '#/definitions/UsageDailyBucket'
+        type: array
+      total:
+        type: integer
+      used:
+        type: number
+    type: object
+info:
+  contact: {}
+paths:
+  /connectors/analytics/allocations/{id}/jobs:
+    get:
+      description: A page of usage records (a job's charge) the newest first, with
+        the total count. Access is membership-scoped like the usage summary. Plain
+        members always see only their own records; project managers see everyone's
+        by default and can narrow to their own with mine=true. Non-members receive
+        404.
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page size (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Page offset
+        in: query
+        name: offset
+        type: integer
+      - description: Restrict to the caller's own jobs
+        in: query
+        name: mine
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AllocationJobs'
+        "400":
+          description: Missing allocation id
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Allocation not found or caller lacks access
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List an allocation's jobs (usage records)
+      tags:
+      - Analytics
+  /connectors/analytics/allocations/{id}/usage-summary:
+    get:
+      description: 'Aggregated usage for one allocation. Access is membership-scoped:
+        the caller must hold a membership on the allocation or a governance role on
+        its project. The per-member breakdown is populated only for project managers.
+        Callers without access receive 404 so allocation existence is not leaked.'
+      parameters:
+      - description: Compute allocation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UsageSummary'
+        "400":
+          description: Missing allocation id
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Allocation not found or caller lacks access
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an allocation's usage summary
+      tags:
+      - Analytics
+  /connectors/analytics/contexts:
+    get:
+      description: Projects the caller belongs to (through a role or allocation membership),
+        each with the caller's role and its allocations. No privilege required; scoped
+        to the caller's own memberships.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ProjectContext'
+            type: array
+        "401":
+          description: Missing authenticated caller
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the caller's analytics contexts
+      tags:
+      - Analytics
+swagger: "2.0"

@@ -84,3 +84,7 @@ connectors:
   temp-account:
     type: "temp-account"
     enabled: true
+
+  analytics:
+    type: "analytics"
+    enabled: true
