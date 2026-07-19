@@ -26,24 +26,13 @@ type RoleDetail = (typeof fixture.roleDetails)[keyof typeof fixture.roleDetails]
 let user = { ...fixture.user };
 
 export const identityHandlers = [
-  http.get("*/api/v1/me", () =>
-    HttpResponse.json({
-      user,
-      privileges: effectivePrivileges(),
-      roles: fixture.roles.flatMap((grant) => {
-        const detail = (fixture.roleDetails as Record<string, RoleDetail | undefined>)[
-          grant.role_id
-        ];
-        return detail?.role
-          ? [{ role: detail.role, privileges: detail.privileges, granted_at: grant.granted_at }]
-          : [];
-      }),
-    }),
+  http.get("*/api/v1/me", () => HttpResponse.json({ user, privileges: effectivePrivileges() })),
+  http.get("*/api/v1/users/:id/user-identities", ({ params }) =>
+    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.identities : []),
   ),
-  http.get("*/api/v1/users/:id/user-identities", () =>
-    HttpResponse.json(fixture.identities),
+  http.get("*/api/v1/users/:id/roles", ({ params }) =>
+    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.roles : []),
   ),
-  http.get("*/api/v1/users/:id/roles", () => HttpResponse.json(fixture.roles)),
   http.get("*/api/v1/roles/:roleId", ({ params }) => {
     const detail = (fixture.roleDetails as Record<string, RoleDetail | undefined>)[
       String(params.roleId)
@@ -51,7 +40,9 @@ export const identityHandlers = [
     if (!detail) return HttpResponse.json({ error: "not found" }, { status: 404 });
     return HttpResponse.json(detail);
   }),
-  http.get("*/api/v1/users/:id/privileges", () => HttpResponse.json(fixture.direct)),
+  http.get("*/api/v1/users/:id/privileges", ({ params }) =>
+    HttpResponse.json(String(params.id) === fixture.user.id ? fixture.direct : []),
+  ),
   http.put("*/api/v1/users/:id", async ({ request }) => {
     const body = (await request.json()) as {
       first_name?: string;

@@ -15,14 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { UsersNav } from "../UsersNav";
-import { UsersTableContainer } from "./UsersTableContainer";
+"use client";
 
-export default function UserManagementPage() {
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { Button } from "@/shared/ui/button";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { UsersNav } from "../UsersNav";
+import { RoleFormDialog } from "./RoleFormDialog";
+import { RolesGrid } from "./RolesGrid";
+
+export function RoleManagementView() {
+  const ability = useAbility();
+  const canManageRoles = ability.can("manage", "Role");
+
+  if (!canManageRoles) {
+    return (
+      <div className="space-y-6">
+        <UsersNav />
+        <ErrorState
+          heading="Not permitted"
+          message="You do not have permission to manage roles."
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <UsersNav />
-      <UsersTableContainer />
+    <div className="space-y-6">
+      <UsersNav
+        rightSlot={<RoleFormDialog triggerRender={<Button />} triggerContent="Create role" />}
+      />
+      <RolesGrid />
     </div>
   );
 }

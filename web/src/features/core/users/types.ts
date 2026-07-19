@@ -15,14 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { UsersNav } from "../UsersNav";
-import { UsersTableContainer } from "./UsersTableContainer";
+import type { Role, User, UserIdentity } from "./schemas";
 
-export default function UserManagementPage() {
-  return (
-    <div className="space-y-4">
-      <UsersNav />
-      <UsersTableContainer />
-    </div>
-  );
-}
+export type UserListParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export type RoleWithPrivileges = Role & {
+  privileges: string[];
+};
+
+export type UserManagementRow = User & {
+  roles: Role[];
+  identities: UserIdentity[];
+  rolesLoading: boolean;
+  identitiesLoading: boolean;
+  rolesError: boolean;
+  identitiesError: boolean;
+};
+
+export type UpdateUserRolesInput = {
+  userId: string;
+  currentRoleIds: string[];
+  desiredRoleIds: string[];
+  reason?: string;
+};

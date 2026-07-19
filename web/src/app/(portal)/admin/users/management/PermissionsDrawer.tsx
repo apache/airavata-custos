@@ -15,33 +15,93 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Badge } from "@/shared/ui/badge";
+"use client";
+
+import {
+  useDirectPrivileges,
+  useRoleDetails,
+  useUpdateUserRoles,
+} from "@/features/core/users/queries";
+import type { Role } from "@/features/core/users/schemas";
+import type { UserManagementRow } from "@/features/core/users/types";
 import { SideDrawer } from "@/shared/ui/SideDrawer";
-import { PermissionRW } from "@/shared/users-admin/PermissionRW";
-import { permissionsFromRoles, rwStateFor } from "@/shared/users-admin/permissions";
-import type { UserRow } from "@/shared/users-admin/types";
-import { useUsersAdmin } from "@/shared/users-admin/UsersAdminContext";
-import { identitySourceIcon, identitySourceLabel } from "./identities";
+import { Badge } from "@/shared/ui/badge";
+import * as React from "react";
+import { toast } from "sonner";
+import { PrivilegeList } from "./PrivilegeList";
 import { RoleAssignMenu } from "./RoleAssignMenu";
+import { identitySourceIcon, identitySourceLabel } from "./identities";
 
 export function PermissionsDrawer({
   user,
+  rolesCatalog,
+  canManageRoles,
+  canReadDirectPrivileges,
+  currentUserEmail,
   onClose,
 }: {
-  user: UserRow | null;
+  user: UserManagementRow | null;
+  rolesCatalog: Role[];
+  canManageRoles: boolean;
+  canReadDirectPrivileges: boolean;
+  currentUserEmail: string | undefined;
   onClose: () => void;
 }) {
-  const { roles, toggleUserRole } = useUsersAdmin();
-  const rwPermissions = rwStateFor(user ? permissionsFromRoles(user.roles) : []).filter(
-    (p) => p.read || p.write,
+  const roleIds = user?.roles.flatMap((role) => (role.id ? [role.id] : [])) ?? [];
+  const roleDetails = useRoleDetails(roleIds, Boolean(user) && canManageRoles);
+  const directPrivileges = useDirectPrivileges(
+    user?.id,
+    Boolean(user) && canManageRoles && canReadDirectPrivileges,
   );
-  const heldRoleIds = new Set(user?.roles.map((r) => r.id ?? "") ?? []);
+  const updateRoles = useUpdateUserRoles();
+  const [assignmentError, setAssignmentError] = React.useState<{
+    userId: string;
+    message: string;
+  } | null>(null);
+  const currentAssignmentError =
+    assignmentError && assignmentError.userId === user?.id ? assignmentError.message : null;
+
+  const roleDerivedPrivileges = Array.from(
+    new Set(roleDetails.roles.flatMap((role) => role.privileges)),
+  );
+  const displayedPrivileges = canReadDirectPrivileges
+    ? Array.from(
+        new Set([
+          ...roleDerivedPrivileges,
+          ...(directPrivileges.data ?? []).map((grant) => grant.privilege),
+        ]),
+      )
+    : roleDerivedPrivileges;
+
+  async function handleSaveRoles(desiredRoleIds: string[], reason?: string): Promise<boolean> {
+    if (!user?.id) return false;
+    setAssignmentError(null);
+    try {
+      await updateRoles.mutateAsync({
+        userId: user.id,
+        currentRoleIds: roleIds,
+        desiredRoleIds,
+        reason,
+      });
+      toast.success("User roles updated");
+      return true;
+    } catch (error) {
+      setAssignmentError({
+        userId: user.id,
+        message: error instanceof Error ? error.message : "Failed to update user roles",
+      });
+      return false;
+    }
+  }
 
   return (
     <SideDrawer
       open={user !== null}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open) {
+          setAssignmentError(null);
+          onClose();
+        }
       }}
       title={user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : undefined}
       description={user?.email}
@@ -49,39 +109,55 @@ export function PermissionsDrawer({
       modal={false}
       disablePointerDismissal
     >
-      {user && (
+      {user ? (
         <div className="space-y-5">
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Roles
-            </h3>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {user.roles.length === 0 ? (
-                <span className="text-sm text-muted-foreground">No roles</span>
-              ) : (
-                user.roles.map((role) => (
-                  <Badge key={role.id} variant="outline">
-                    {role.name}
-                  </Badge>
-                ))
-              )}
-              <RoleAssignMenu
-                roles={roles}
-                heldRoleIds={heldRoleIds}
-                onToggleRole={(roleId) => user.id && toggleUserRole(user.id, roleId)}
-                triggerLabel={`Assign a role to ${user.email ?? "this user"}`}
-              />
-            </div>
-          </section>
-
-          <div className="border-t border-border" />
+          {canManageRoles ? (
+            <>
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Roles
+                </h3>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {user.rolesLoading ? (
+                    <span className="text-sm text-muted-foreground">Loading roles…</span>
+                  ) : user.rolesError ? (
+                    <span className="text-sm text-muted-foreground">Roles unavailable</span>
+                  ) : user.roles.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">No roles</span>
+                  ) : (
+                    user.roles.map((role) => (
+                      <Badge key={role.id} variant="outline">
+                        {role.name}
+                      </Badge>
+                    ))
+                  )}
+                  {!user.rolesLoading && !user.rolesError ? (
+                    <RoleAssignMenu
+                      roles={rolesCatalog}
+                      heldRoleIds={new Set(roleIds)}
+                      onSave={handleSaveRoles}
+                      triggerLabel={`Assign a role to ${user.email ?? "this user"}`}
+                      isCurrentUser={Boolean(currentUserEmail) && user.email === currentUserEmail}
+                      isPending={updateRoles.isPending}
+                      error={currentAssignmentError}
+                    />
+                  ) : null}
+                </div>
+              </section>
+              <div className="border-t border-border" />
+            </>
+          ) : null}
 
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               External Identities
             </h3>
             <div className="flex flex-wrap items-center gap-1.5">
-              {user.identities.length === 0 ? (
+              {user.identitiesLoading ? (
+                <span className="text-sm text-muted-foreground">Loading identities…</span>
+              ) : user.identitiesError ? (
+                <span className="text-sm text-muted-foreground">Identities unavailable</span>
+              ) : user.identities.length === 0 ? (
                 <span className="text-sm text-muted-foreground">No identities</span>
               ) : (
                 user.identities.map((identity) => {
@@ -97,27 +173,26 @@ export function PermissionsDrawer({
             </div>
           </section>
 
-          <div className="border-t border-border" />
-
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Effective Privileges
-            </h3>
-            {rwPermissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No privileges granted.</p>
-            ) : (
-              <ul className="space-y-2">
-                {rwPermissions.map((p) => (
-                  <li key={p.section} className="flex items-center justify-between text-sm">
-                    <span className="font-mono text-foreground">{p.section}</span>
-                    <PermissionRW read={p.read} write={p.write} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {canManageRoles ? (
+            <>
+              <div className="border-t border-border" />
+              <section>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {canReadDirectPrivileges ? "Effective Privileges" : "Role-derived Privileges"}
+                </h3>
+                {roleDetails.isLoading ||
+                (canReadDirectPrivileges && directPrivileges.isLoading) ? (
+                  <p className="text-sm text-muted-foreground">Loading privileges…</p>
+                ) : roleDetails.isError || (canReadDirectPrivileges && directPrivileges.isError) ? (
+                  <p className="text-sm text-muted-foreground">Privileges unavailable.</p>
+                ) : (
+                  <PrivilegeList privileges={displayedPrivileges} />
+                )}
+              </section>
+            </>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </SideDrawer>
   );
 }

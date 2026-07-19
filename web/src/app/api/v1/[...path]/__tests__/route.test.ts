@@ -18,6 +18,8 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { responseBodyForStatus } from "../proxy-response";
+
 vi.mock("@/lib/env", () => ({
   serverEnv: {
     CUSTOS_CORE_API_BASE_URL: "https://core.example.org",
@@ -38,6 +40,16 @@ const ctx = { params: Promise.resolve({ path: ["roles", "role-1", "privileges"] 
 
 afterEach(() => {
   fetchMock.mockReset();
+});
+
+describe("responseBodyForStatus", () => {
+  it.each([204, 205, 304])("returns null for bodyless status %s", (status) => {
+    expect(responseBodyForStatus(status, "")).toBeNull();
+  });
+
+  it("preserves an ordinary response body", () => {
+    expect(responseBodyForStatus(200, '{"ok":true}')).toBe('{"ok":true}');
+  });
 });
 
 describe("api v1 proxy route", () => {
