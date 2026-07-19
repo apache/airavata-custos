@@ -67,7 +67,7 @@ func (s *mysqlComputeClusterUserStore) FindByPair(ctx context.Context, clusterID
 	return &c, nil
 }
 
-func (s *mysqlComputeClusterUserStore) FindByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error) {
+func (s *mysqlComputeClusterUserStore) FindByClusterAndLocalUsername(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
 	err := s.db.GetContext(ctx, &c,
 		`SELECT `+computeClusterUserColumns+`

@@ -99,7 +99,7 @@ type ComputeClusterUserService interface {
 	CreateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) (*models.ComputeClusterUser, error)
 	GetComputeClusterUser(ctx context.Context, id string) (*models.ComputeClusterUser, error)
 	GetComputeClusterUserByPair(ctx context.Context, clusterID, userID string) (*models.ComputeClusterUser, error)
-	GetComputeClusterUserByLocalUsernameAndCluster(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
+	GetComputeClusterUserByClusterAndLocalUsername(ctx context.Context, clusterID, localUsername string) (*models.ComputeClusterUser, error)
 	ListComputeClusterUsersByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	ListComputeClusterUsersByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
 	UpdateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) error

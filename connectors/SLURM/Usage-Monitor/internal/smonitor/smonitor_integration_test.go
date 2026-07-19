@@ -207,7 +207,7 @@ func TestSlurmMonitorIntegration(t *testing.T) {
 			}, nil
 		},
 
-		GetComputeClusterUserByLocalUsernameAndClusterFunc: func(ctx context.Context, localUsername string, clusterId string) (*models.ComputeClusterUser, error) {
+		GetComputeClusterUserByClusterAndLocalUsernameFunc: func(ctx context.Context, localUsername string, clusterId string) (*models.ComputeClusterUser, error) {
 			return &models.ComputeClusterUser{
 				ID:               "user-" + localUsername,
 				ComputeClusterID: clusterId,
