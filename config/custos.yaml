@@ -36,6 +36,15 @@ connectors:
       version: "${SLURM_API_VERSION}"
       username: "${SLURM_API_USERNAME}"
       token: "${SLURM_TOKEN}"
+    # How often the sweep re-declares associations for provisioned members.
+    # This is what guarantees an association exists, so it also decides how
+    # long a member waits when an event is lost or the account provisions late.
+    association_reconcile_interval: "5m"
+    # How long to hold a just-provisioned account back before writing its
+    # association. Covers the directory export and the cluster's name cache,
+    # which Custos cannot observe. Raise it if users hit "Invalid account"
+    # right after being added.
+    association_provision_grace: "30s"
 
   slurm-usage-monitor:
     type: "slurm-usage-monitor"

@@ -132,6 +132,9 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	}
 	log.Info("comanage: UnixClusterAccount attached", "username", cu.LocalUsername, "uid", uidInt, "co_group_id", coGroupID)
 	o.audit(ctx, cu, "ComanageClusterAccountAttached", fmt.Sprintf("comanage_id=%s username=%s uid=%d", personID, cu.LocalUsername, uidInt))
+	if err := o.core.MarkComputeClusterUserProvisioned(ctx, cu.ID); err != nil {
+		log.Warn("comanage: failed to mark cluster user provisioned", "err", err)
+	}
 	return nil
 }
 

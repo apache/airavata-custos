@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS compute_cluster_users
     compute_cluster_id VARCHAR(255) NOT NULL,
     user_id            VARCHAR(255) NOT NULL,
     local_username     VARCHAR(255) NOT NULL,
+    provisioned_at     TIMESTAMP(6) NULL,
     created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),

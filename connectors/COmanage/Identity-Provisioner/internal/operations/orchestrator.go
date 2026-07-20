@@ -38,6 +38,7 @@ type CoreService interface {
 	ListUserIdentitiesForUser(ctx context.Context, userID string) ([]models.UserIdentity, error)
 	CreateUserIdentity(ctx context.Context, ui *models.UserIdentity) (*models.UserIdentity, error)
 	CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error)
+	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
 }
 
 type Orchestrator struct {
