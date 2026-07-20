@@ -29,8 +29,13 @@ import (
 )
 
 type fakeSlurmClient struct {
-	mu      sync.Mutex
-	upserts []client.Association
+	mu       sync.Mutex
+	upserts  []client.Association
+	existing []client.Association
+}
+
+func (f *fakeSlurmClient) ListAssociations(client.AssocFilter) ([]client.Association, error) {
+	return f.existing, nil
 }
 
 func (f *fakeSlurmClient) CreateAccount(client.Account, string) error { return nil }
@@ -245,5 +250,71 @@ func TestReconcilerSkipsInactiveMemberships(t *testing.T) {
 
 	if n := len(slurm.all()); n != 0 {
 		t.Fatalf("expected no association for an inactive membership, got %d", n)
+	}
+}
+
+// The sweep reads what the cluster already has, so a steady-state pass writes
+// nothing instead of re-declaring every member every interval.
+func TestReconcilerSkipsAssociationsAlreadyCorrect(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{{
+		Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute",
+	}}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.all()); n != 0 {
+		t.Fatalf("expected no writes when the association already matches, got %d", n)
+	}
+}
+
+// Drifted limits are repaired: same key, different limits, so it rewrites.
+func TestReconcilerRewritesAssociationWithDriftedLimits(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+		overrides: []models.ComputeAllocationMembershipResourceOverride{{
+			ID: "ovr-1", ComputeAllocationMembershipID: "mem-1", ComputeAllocationResourceID: "res-1",
+			OverrideResourceAmount: 4,
+		}},
+	})
+	// Cluster has the association but without the override's limits.
+	slurm := &fakeSlurmClient{existing: []client.Association{{
+		Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute",
+	}}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	got := slurm.all()
+	if len(got) != 1 {
+		t.Fatalf("expected the drifted association to be rewritten, got %d writes", len(got))
+	}
+	if len(got[0].Limits.GrpTRES) != 1 || got[0].Limits.GrpTRES[0].Count != 4 {
+		t.Errorf("rewrite did not restore the override limits: %+v", got[0].Limits)
+	}
+}
+
+// A missing association is still written even though others already exist.
+func TestReconcilerWritesOnlyTheMissingAssociation(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+		resources: []models.ComputeAllocationResource{
+			{ID: "res-1", Name: "compute", ResourceType: "cpu"},
+			{ID: "res-2", Name: "gpu", ResourceType: "gres/gpu"},
+		},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{{
+		Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute",
+	}}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	got := slurm.all()
+	if len(got) != 1 {
+		t.Fatalf("expected only the missing partition to be written, got %d", len(got))
+	}
+	if got[0].Partition != "gpu" {
+		t.Errorf("expected the gpu association to be written, got %q", got[0].Partition)
 	}
 }

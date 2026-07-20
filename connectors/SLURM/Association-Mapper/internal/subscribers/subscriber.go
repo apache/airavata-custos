@@ -31,6 +31,7 @@ import (
 type SlurmClient interface {
 	CreateAccount(a client.Account, cluster string) error
 	UpsertAssociation(a client.Association) error
+	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 }
 
 type AssociationSubscriber struct {
