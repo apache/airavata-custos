@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -66,9 +67,10 @@ func (a *AssociationSubscriber) StartReconciler(ctx context.Context) {
 	}
 }
 
-// reconcile re-declares the association for every active membership whose
-// account is provisioned. Upserts are idempotent, so this repairs both a
-// missing association and one whose limits were overwritten.
+// reconcile compares what the cluster has against what the allocations say it
+// should have, and writes only the difference. Reading actual state each pass
+// is what lets it repair a missing association and one whose limits drifted,
+// without re-writing every member every time.
 func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 	sweepCtx, cancel := context.WithTimeout(ctx, reconcileSweepTimeout)
 	defer cancel()
@@ -86,6 +88,15 @@ func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 			slog.Error("Association reconciler: failed to list cluster users", "cluster_id", cluster.ID, "error", err)
 			continue
 		}
+		// One read per cluster. On failure fall back to writing every
+		// association, which costs extra calls but still converges.
+		existing, err := a.existingAssociations(sweepCtx, cluster.Name)
+		if err != nil {
+			slog.Warn("Association reconciler: could not read current associations, writing unconditionally",
+				"cluster", cluster.Name, "error", err)
+			existing = nil
+		}
+
 		for _, csu := range clusterUsers {
 			if !a.readyForAssociation(csu) {
 				skipped++
@@ -100,7 +111,7 @@ func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 				if membership.MembershipStatus != models.ACTIVE {
 					continue
 				}
-				if err := a.upsertAssociationsForMembership(sweepCtx, membership); err != nil {
+				if err := a.syncAssociationsForMembership(sweepCtx, membership, existing); err != nil {
 					slog.Error("Association reconciler: failed to upsert association",
 						"membership_id", membership.ID, "user_id", csu.UserID, "error", err)
 					continue
@@ -110,6 +121,19 @@ func (a *AssociationSubscriber) reconcile(ctx context.Context) {
 		}
 	}
 	slog.Debug("Association reconciler pass complete", "written", written, "skipped_unprovisioned", skipped)
+}
+
+// existingAssociations indexes the cluster's current associations by key.
+func (a *AssociationSubscriber) existingAssociations(ctx context.Context, clusterName string) (map[assocKey]client.Association, error) {
+	assocs, err := a.slurmClient.ListAssociations(client.AssocFilter{Cluster: clusterName})
+	if err != nil {
+		return nil, err
+	}
+	byKey := make(map[assocKey]client.Association, len(assocs))
+	for _, assoc := range assocs {
+		byKey[keyOf(assoc)] = assoc
+	}
+	return byKey, nil
 }
 
 // readyForAssociation reports whether the account has been provisioned long

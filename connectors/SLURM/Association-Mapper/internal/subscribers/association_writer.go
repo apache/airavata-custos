@@ -32,15 +32,58 @@ import (
 // and reject the user's jobs. The reconciler retries these.
 var errNotProvisioned = errors.New("cluster account not provisioned yet")
 
-// upsertAssociationsForMembership writes the Slurm association for every
-// resource on the membership's allocation.
+// assocKey identifies an association the way Slurm does. Cluster is not part
+// of it because callers scope their lookups to one cluster already.
+type assocKey struct {
+	account   string
+	user      string
+	partition string
+}
+
+func keyOf(a client.Association) assocKey {
+	return assocKey{account: a.Account, user: a.User, partition: a.Partition}
+}
+
+// sameLimits reports whether two associations already carry the same limits.
+// Only the limits are compared: the key fields match by construction.
+func sameLimits(want, got client.Association) bool {
+	return sameTRES(want.Limits.GrpTRES, got.Limits.GrpTRES) &&
+		sameTRES(want.Limits.GrpTRESMins, got.Limits.GrpTRESMins)
+}
+
+func sameTRES(want, got []client.TRES) bool {
+	if len(want) != len(got) {
+		return false
+	}
+	counts := make(map[string]int64, len(want))
+	for _, t := range want {
+		counts[t.Type] = t.Count
+	}
+	for _, t := range got {
+		if c, ok := counts[t.Type]; !ok || c != t.Count {
+			return false
+		}
+	}
+	return true
+}
+
+// upsertAssociationsForMembership writes the association for every resource on
+// the membership's allocation, without checking what the cluster already has.
+// The event paths use this: an event fires because something changed.
+func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
+	return a.syncAssociationsForMembership(ctx, membership, nil)
+}
+
+// syncAssociationsForMembership builds the association for each of the
+// allocation's resources and writes the ones that differ from existing, the
+// state already on the cluster. A nil existing writes all of them.
 //
 // Every caller goes through here on purpose. Slurm keys an association by
 // (cluster, account, user, partition) and its upsert is last-write-wins, so a
 // caller that built the record without limits would wipe limits another caller
 // had set. Folding the per-member overrides in here keeps all writers
 // producing the same record for the same key.
-func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) error {
+func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, existing map[assocKey]client.Association) error {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
 		return fmt.Errorf("get compute allocation: %w", err)
@@ -86,6 +129,9 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 			Partition: resource.Name,
 			QoS:       []string{"normal"},
 			Limits:    limitsFor(resource, overrideByResource[resource.ID]),
+		}
+		if got, ok := existing[keyOf(association)]; ok && sameLimits(association, got) {
+			continue
 		}
 		if err := a.slurmClient.UpsertAssociation(association); err != nil {
 			return fmt.Errorf("upsert association for partition %s: %w", resource.Name, err)
