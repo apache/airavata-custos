@@ -70,7 +70,7 @@ func TestSubscriberSpansOpenUnderParent(t *testing.T) {
 	sr := setupRecorder(t)
 
 	core := mockCoreServiceWithError(errors.New("mock get failed"))
-	sub := NewAssociationSubscriber(nil, nil, core)
+	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
 	rootTrace := root.SpanContext().TraceID()
@@ -116,7 +116,7 @@ func TestSubscriberSpansRecordErrorOnDownstreamFailure(t *testing.T) {
 	sr := setupRecorder(t)
 
 	core := mockCoreServiceWithError(errors.New("downstream failure"))
-	sub := NewAssociationSubscriber(nil, nil, core)
+	sub := NewAssociationSubscriber(nil, nil, core, 0, 0)
 
 	ctx, root := tracing.Start(context.Background(), "test.parent")
 	sub.SubscribeToComputeAllocationCreation(ctx, models.ComputeAllocation{

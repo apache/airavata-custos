@@ -357,6 +357,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ListUsersByOrganizationFunc: func(ctx context.Context, organizationID string) ([]models.User, error) {
 //				panic("mock out the ListUsersByOrganization method")
 //			},
+//			MarkComputeClusterUserProvisionedFunc: func(ctx context.Context, id string) error {
+//				panic("mock out the MarkComputeClusterUserProvisioned method")
+//			},
 //			MergeUsersFunc: func(ctx context.Context, survivingID string, retiringID string) (*models.User, error) {
 //				panic("mock out the MergeUsers method")
 //			},
@@ -765,6 +768,9 @@ type CoreServiceMock struct {
 
 	// ListUsersByOrganizationFunc mocks the ListUsersByOrganization method.
 	ListUsersByOrganizationFunc func(ctx context.Context, organizationID string) ([]models.User, error)
+
+	// MarkComputeClusterUserProvisionedFunc mocks the MarkComputeClusterUserProvisioned method.
+	MarkComputeClusterUserProvisionedFunc func(ctx context.Context, id string) error
 
 	// MergeUsersFunc mocks the MergeUsers method.
 	MergeUsersFunc func(ctx context.Context, survivingID string, retiringID string) (*models.User, error)
@@ -1666,6 +1672,13 @@ type CoreServiceMock struct {
 			// OrganizationID is the organizationID argument value.
 			OrganizationID string
 		}
+		// MarkComputeClusterUserProvisioned holds details about calls to the MarkComputeClusterUserProvisioned method.
+		MarkComputeClusterUserProvisioned []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
 		// MergeUsers holds details about calls to the MergeUsers method.
 		MergeUsers []struct {
 			// Ctx is the ctx argument value.
@@ -1965,6 +1978,7 @@ type CoreServiceMock struct {
 	lockListUserPrivileges                                     sync.RWMutex
 	lockListUserRoles                                          sync.RWMutex
 	lockListUsersByOrganization                                sync.RWMutex
+	lockMarkComputeClusterUserProvisioned                      sync.RWMutex
 	lockMergeUsers                                             sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
@@ -6114,6 +6128,42 @@ func (mock *CoreServiceMock) ListUsersByOrganizationCalls() []struct {
 	mock.lockListUsersByOrganization.RLock()
 	calls = mock.calls.ListUsersByOrganization
 	mock.lockListUsersByOrganization.RUnlock()
+	return calls
+}
+
+// MarkComputeClusterUserProvisioned calls MarkComputeClusterUserProvisionedFunc.
+func (mock *CoreServiceMock) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
+	if mock.MarkComputeClusterUserProvisionedFunc == nil {
+		panic("CoreServiceMock.MarkComputeClusterUserProvisionedFunc: method is nil but CoreService.MarkComputeClusterUserProvisioned was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	mock.lockMarkComputeClusterUserProvisioned.Lock()
+	mock.calls.MarkComputeClusterUserProvisioned = append(mock.calls.MarkComputeClusterUserProvisioned, callInfo)
+	mock.lockMarkComputeClusterUserProvisioned.Unlock()
+	return mock.MarkComputeClusterUserProvisionedFunc(ctx, id)
+}
+
+// MarkComputeClusterUserProvisionedCalls gets all the calls that were made to MarkComputeClusterUserProvisioned.
+// Check the length with:
+//
+//	len(mockedCoreService.MarkComputeClusterUserProvisionedCalls())
+func (mock *CoreServiceMock) MarkComputeClusterUserProvisionedCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	mock.lockMarkComputeClusterUserProvisioned.RLock()
+	calls = mock.calls.MarkComputeClusterUserProvisioned
+	mock.lockMarkComputeClusterUserProvisioned.RUnlock()
 	return calls
 }
 

@@ -77,10 +77,11 @@ func installRecorder(t *testing.T) *recordingProcessor {
 // fakeCore is an in-memory CoreService stub that records audit-event writes
 // and returns canned user/identity data.
 type fakeCore struct {
-	user            *models.User
-	identities      []models.UserIdentity
-	auditEvents     []models.AuditEvent
-	createdIdentity *models.UserIdentity
+	user              *models.User
+	identities        []models.UserIdentity
+	auditEvents       []models.AuditEvent
+	createdIdentity   *models.UserIdentity
+	markedProvisioned []string
 }
 
 func (f *fakeCore) GetUser(_ context.Context, _ string) (*models.User, error) {
@@ -96,6 +97,11 @@ func (f *fakeCore) ListUserIdentitiesForUser(_ context.Context, _ string) ([]mod
 func (f *fakeCore) CreateUserIdentity(_ context.Context, ui *models.UserIdentity) (*models.UserIdentity, error) {
 	f.createdIdentity = ui
 	return ui, nil
+}
+
+func (f *fakeCore) MarkComputeClusterUserProvisioned(_ context.Context, id string) error {
+	f.markedProvisioned = append(f.markedProvisioned, id)
+	return nil
 }
 
 func (f *fakeCore) CreateAuditEvent(ctx context.Context, e *models.AuditEvent) (*models.AuditEvent, error) {
@@ -210,6 +216,10 @@ func TestEnsurePOSIXAccount_EmitsComanageSpanTree(t *testing.T) {
 		if !contains(got, want) {
 			t.Errorf("missing span %q. got=%v", want, got)
 		}
+	}
+
+	if len(core.markedProvisioned) != 1 || core.markedProvisioned[0] != "ccu-1" {
+		t.Errorf("expected cluster user ccu-1 marked provisioned, got %v", core.markedProvisioned)
 	}
 }
 

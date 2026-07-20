@@ -200,6 +200,27 @@ func (s *Service) UpdateComputeClusterUser(ctx context.Context, cu *models.Compu
 	return nil
 }
 
+// MarkComputeClusterUserProvisioned stamps provisioned_at on the mapping,
+// signaling that the account exists in the registry.
+func (s *Service) MarkComputeClusterUserProvisioned(ctx context.Context, id string) error {
+	if id == "" {
+		return fmt.Errorf("%w: compute cluster user id is required", ErrInvalidInput)
+	}
+	cu, err := s.clusterUsers.FindByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("lookup compute cluster user: %w", err)
+	}
+	if cu == nil {
+		return ErrNotFound
+	}
+	if err := s.inTx(ctx, func(tx *sql.Tx) error {
+		return s.clusterUsers.MarkProvisioned(ctx, tx, id)
+	}); err != nil {
+		return fmt.Errorf("mark compute cluster user provisioned: %w", err)
+	}
+	return nil
+}
+
 // DeleteComputeClusterUser removes a compute-cluster user mapping by ID.
 func (s *Service) DeleteComputeClusterUser(ctx context.Context, id string) error {
 	if id == "" {
