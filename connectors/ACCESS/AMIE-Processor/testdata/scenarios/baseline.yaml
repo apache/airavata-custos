@@ -155,6 +155,11 @@ expectations:
         CO_PI: 1
         ALLOCATION_MANAGER: 1
 
+    compute_allocation_resource_mappings:
+      # ResourceList entries map only when registered in the cluster catalog;
+      # baseline seeds no catalog rows, so no mappings are created.
+      total_count: 0
+
   audit_log:
     # audit_events (source='amie') and amie_audit_extras carry the same count;
     # one row each per AMIE audit.

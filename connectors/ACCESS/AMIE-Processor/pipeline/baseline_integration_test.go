@@ -52,6 +52,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
 		{"project_memberships", 4},
+		// ResourceList names match no catalog rows in this scenario.
+		{"compute_allocation_resource_mappings", 0},
 	}
 	if decoded != 12 {
 		t.Errorf("decoded packets: got %d, want 12", decoded)

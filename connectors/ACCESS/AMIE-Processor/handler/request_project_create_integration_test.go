@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/apache/airavata-custos/connectors/ACCESS/AMIE-Processor/model"
+	"github.com/apache/airavata-custos/pkg/models"
 )
 
 // baseRPCBody returns a fully populated request_project_create body with
@@ -90,6 +91,10 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 	}
 	if got := countRows(t, database, "compute_allocations"); got != 1 {
 		t.Errorf("compute_allocations: got %d, want 1", got)
+	}
+	// Unregistered packet resources create no mapping and do not fail the packet.
+	if got := countRows(t, database, "compute_allocation_resource_mappings"); got != 0 {
+		t.Errorf("compute_allocation_resource_mappings: got %d, want 0 (resource not in catalog)", got)
 	}
 
 	var org struct {
@@ -353,6 +358,72 @@ func TestRequestProjectCreate_ReplyFailurePropagates(t *testing.T) {
 	// REPLY_SENT audit row must NOT exist when the reply failed.
 	if got := countAuditActions(t, database, pkt.ID, model.AuditReplySent); got != 0 {
 		t.Errorf("audit REPLY_SENT on failed reply: got %d, want 0", got)
+	}
+}
+
+// TestRequestProjectCreate_AttachesRegisteredResources asserts a catalog-registered
+// packet resource is mapped with no caps and not duplicated on re-delivery.
+func TestRequestProjectCreate_AttachesRegisteredResources(t *testing.T) {
+	database := setupTestDB(t)
+
+	svc := newTestCoreService(database)
+	audit := newTestAuditService(database)
+	amie := &fakeAmieClient{}
+	h := NewRequestProjectCreateHandler(svc, testClusterID, amie, audit)
+
+	resource, err := svc.CreateComputeAllocationResource(context.Background(), &models.ComputeAllocationResource{
+		Name:             "compute.access-ci.org",
+		ResourceType:     "CPU_HOURS",
+		ResourceAmount:   1000,
+		ComputeClusterID: testClusterID,
+	})
+	if err != nil {
+		t.Fatalf("seed catalog resource: %v", err)
+	}
+
+	body := baseRPCBody()
+	pkt := insertPacket(t, database, "request_project_create", body)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": pkt.Type, "body": body}, pkt, "")
+	}); err != nil {
+		t.Fatalf("Handle returned error: %v", err)
+	}
+
+	var mapping struct {
+		ComputeAllocationResourceID string `db:"compute_allocation_resource_id"`
+		ResourceAmount              int64  `db:"resource_amount"`
+		ResourceTime                int64  `db:"resource_time"`
+	}
+	if err := database.Get(&mapping,
+		"SELECT compute_allocation_resource_id, resource_amount, resource_time FROM compute_allocation_resource_mappings LIMIT 1",
+	); err != nil {
+		t.Fatalf("read mapping: %v", err)
+	}
+	if mapping.ComputeAllocationResourceID != resource.ID {
+		t.Errorf("mapping.resource_id: got %q, want %q", mapping.ComputeAllocationResourceID, resource.ID)
+	}
+	// The packet carries no native amounts; the SU budget is the limit.
+	if mapping.ResourceAmount != 0 || mapping.ResourceTime != 0 {
+		t.Errorf("mapping caps: got (%d,%d), want (0,0)", mapping.ResourceAmount, mapping.ResourceTime)
+	}
+	if got := countAuditActions(t, database, pkt.ID, model.AuditAttachResource); got != 1 {
+		t.Errorf("audit ATTACH_RESOURCE: got %d, want 1", got)
+	}
+
+	// Re-delivery (supplement) must not duplicate the mapping.
+	second := baseRPCBody()
+	second["AllocationType"] = "supplement"
+	secondPkt := insertPacket(t, database, "request_project_create", second)
+	if err := runHandlerInTx(t, database, func(ctx context.Context, tx *sql.Tx) error {
+		return h.Handle(ctx, tx, map[string]any{"type": secondPkt.Type, "body": second}, secondPkt, "")
+	}); err != nil {
+		t.Fatalf("second Handle: %v", err)
+	}
+	if got := countRows(t, database, "compute_allocation_resource_mappings"); got != 1 {
+		t.Errorf("mappings after re-delivery: got %d, want 1", got)
+	}
+	if got := countAuditActions(t, database, secondPkt.ID, model.AuditAttachResource); got != 0 {
+		t.Errorf("audit ATTACH_RESOURCE on re-delivery: got %d, want 0", got)
 	}
 }
 
