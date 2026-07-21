@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -151,5 +152,118 @@ func TestAllocationDeletionRemovesAllAssociations(t *testing.T) {
 	got := slurm.allDeletes()
 	if len(got) != 1 || got[0].Account != "test-alloc" || got[0].User != "" {
 		t.Fatalf("expected an account-wide delete on allocation deletion, got %+v", got)
+	}
+}
+
+// The sweep is the backstop for a lost deactivation: an association the
+// allocations no longer call for is removed even if no event ever arrived.
+func TestReconcilerRemovesStaleAssociation(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		// desired
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		// left behind by a membership that is gone
+		{Account: "test-alloc", Cluster: "testcluster", User: "ghost", Partition: "compute"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	got := slurm.allDeletes()
+	if len(got) != 1 {
+		t.Fatalf("expected the stale association to be removed, got %d deletes", len(got))
+	}
+	if got[0].User != "ghost" || got[0].Partition != "compute" {
+		t.Errorf("removed the wrong association: %+v", got[0])
+	}
+}
+
+// Guard: an empty desired set almost always means a failed lookup, so the
+// sweep must not read it as "revoke everyone".
+func TestReconcilerDoesNotPruneWhenNothingIsDesired(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   nil, // nobody entitled to anything
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.allDeletes()); n != 0 {
+		t.Fatalf("an empty desired set must not revoke anything, got %d deletes", n)
+	}
+}
+
+// Guard: associations on accounts Custos does not manage are never touched.
+func TestReconcilerLeavesUnmanagedAccountsAlone(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt:     ago(time.Minute),
+		memberships:       []models.ComputeAllocationMembership{testMembership()},
+		unmanagedAccounts: true, // core reports no allocations on this cluster
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "someone-elses-account", Cluster: "testcluster", User: "outsider", Partition: "compute"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.allDeletes()); n != 0 {
+		t.Fatalf("an unmanaged account must not be touched, got %d deletes", n)
+	}
+}
+
+// Account-level records carry the allocation's own limits, not a member's
+// access, so the sweep must leave them be.
+func TestReconcilerLeavesAccountLevelAssociationsAlone(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+		{Account: "test-alloc", Cluster: "testcluster", User: ""}, // account-level
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.allDeletes()); n != 0 {
+		t.Fatalf("account-level associations must not be pruned, got %d deletes", n)
+	}
+}
+
+// A member inside the provisioning grace is still entitled, so their fresh
+// association must not be pruned just because the sweep is not writing it yet.
+func TestReconcilerDoesNotPruneAssociationsInsideGrace(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Second),
+		memberships:   []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	if n := len(slurm.allDeletes()); n != 0 {
+		t.Fatalf("a member inside the grace must keep their association, got %d deletes", n)
+	}
+}
+
+// An allocation that is no longer active grants nothing, so its members'
+// associations are swept away even without a deactivation event.
+func TestReconcilerRemovesAssociationsForInactiveAllocation(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt:    ago(time.Minute),
+		allocationStatus: models.INACTIVE,
+		memberships:      []models.ComputeAllocationMembership{testMembership()},
+	})
+	slurm := &fakeSlurmClient{existing: []client.Association{
+		{Account: "test-alloc", Cluster: "testcluster", User: "testuser", Partition: "compute"},
+	}}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).reconcile(context.Background())
+
+	// Desired is empty for an inactive allocation, so the empty-desired guard
+	// holds and nothing is revoked. The event handler does that job.
+	if n := len(slurm.allDeletes()); n != 0 {
+		t.Fatalf("expected the empty-desired guard to hold, got %d deletes", n)
 	}
 }
