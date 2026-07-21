@@ -17,6 +17,7 @@
 
 "use client";
 
+import { useTrialExpiryByUserId } from "@/features/core/access-requests/queries";
 import type { Role } from "@/features/core/users/schemas";
 import type { UserManagementRow } from "@/features/core/users/types";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/shared/hooks/useShallowSearchParams";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Input } from "@/shared/ui/input";
+import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 import { IdentitiesCell } from "./IdentitiesCell";
@@ -35,6 +37,18 @@ import { IDENTITY_SOURCE_LABELS } from "./identities";
 function fullNameFor(user: UserManagementRow): string {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
   return name || user.email;
+}
+
+function formatTrialEnd(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 function useExpandableRow() {
@@ -71,6 +85,7 @@ export function UsersTable({
 }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const expandedRow = useExpandableRow();
+  const trialExpiry = useTrialExpiryByUserId();
   const searchParams = useShallowSearchParams();
   const search = searchParams.get("q") ?? "";
   const roleFilter = searchParams.get("role") ?? "all";
@@ -137,6 +152,13 @@ export function UsersTable({
           {fullNameFor(row)}
           {isCurrentUser(row) ? (
             <span className="ml-1.5 font-normal text-muted-foreground">(You)</span>
+          ) : null}
+          {row.id && trialExpiry.has(row.id) ? (
+            <StatusBadge
+              variant="warning"
+              label={`Trial · ends ${formatTrialEnd(trialExpiry.get(row.id) ?? "")}`}
+              className="ml-1.5"
+            />
           ) : null}
         </span>
       ),

@@ -31,6 +31,12 @@ vi.mock("@/shared/hooks/useShallowSearchParams", () => ({
   replaceShallowSearchParams: searchParamMocks.replace,
 }));
 
+const trialMocks = vi.hoisted(() => ({ map: new Map<string, string>() }));
+
+vi.mock("@/features/core/access-requests/queries", () => ({
+  useTrialExpiryByUserId: () => trialMocks.map,
+}));
+
 const row: UserManagementRow = {
   id: "user-1",
   email: "user@example.org",
@@ -69,6 +75,7 @@ describe("UsersTable", () => {
   beforeEach(() => {
     searchParamMocks.params = new URLSearchParams();
     searchParamMocks.replace.mockReset();
+    trialMocks.map = new Map();
   });
 
   it("renders a hydrated user and marks the current user", () => {
@@ -77,6 +84,13 @@ describe("UsersTable", () => {
     expect(screen.getByText("(You)")).toBeInTheDocument();
     expect(screen.getAllByText("Administrator")).toHaveLength(2);
     expect(screen.getAllByText("CILogon")).toHaveLength(2);
+    expect(screen.queryByText(/Trial · ends/)).toBeNull();
+  });
+
+  it("marks a trial user with an expiry badge", () => {
+    trialMocks.map = new Map([["user-1", "2026-08-01T00:00:00Z"]]);
+    renderTable(true);
+    expect(screen.getByText(/Trial · ends/)).toBeInTheDocument();
   });
 
   it("hides all role UI without roles:manage", () => {
