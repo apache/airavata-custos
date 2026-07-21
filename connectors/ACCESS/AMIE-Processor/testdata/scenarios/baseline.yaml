@@ -46,6 +46,9 @@ trigger:
     seed:
       - table: compute_clusters
         row: { id: "${AMIE_CLUSTER_ID}", name: default-cluster }
+      - table: compute_allocation_resources
+        # Matches every packet's ResourceList so project_create attaches it.
+        row: { id: baseline-resource, name: baseline-cluster.example.edu, resource_type: CPU_HOURS, resource_amount: 0, compute_cluster_id: "${AMIE_CLUSTER_ID}" }
 
 expectations:
 
@@ -155,16 +158,25 @@ expectations:
         CO_PI: 1
         ALLOCATION_MANAGER: 1
 
+    compute_allocation_resource_mappings:
+      # One mapping per allocation from the seeded catalog row; the
+      # supplement re-delivery does not duplicate.
+      total_count: 2
+      rows:
+        - { compute_allocation_resource_id: baseline-resource, resource_amount: 0, resource_time: 0 }
+        - { compute_allocation_resource_id: baseline-resource, resource_amount: 0, resource_time: 0 }
+
   audit_log:
     # audit_events (source='amie') and amie_audit_extras carry the same count;
     # one row each per AMIE audit.
-    total_count: 52
+    total_count: 54
     by_action:
       PACKET_RECEIVED: 12     # one per packet
       CREATE_PERSON: 6        # 3 project_create + 3 account_create
       CREATE_ACCOUNT: 6       # 3 project_create + 3 account_create
       CREATE_PROJECT: 3
       CREATE_ALLOCATION: 3    # supplement-delivery still audits CREATE_ALLOCATION
+      ATTACH_RESOURCE: 2      # one per allocation; supplement attach is a no-op
       CREATE_MEMBERSHIP: 5    # 2 PIs + 3 account_create
       REPLY_SENT: 11          # everything except inform_transaction_complete
       PERSIST_DNS: 3          # 2 from data_*, 1 delete from request_user_modify

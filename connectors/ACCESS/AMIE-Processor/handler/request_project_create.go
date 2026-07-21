@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"go.opentelemetry.io/otel/codes"
@@ -112,6 +113,10 @@ func (h *RequestProjectCreateHandler) Handle(ctx context.Context, tx *sql.Tx, pa
 	}
 	if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditCreateAllocation, "compute_allocation", allocation.ID, ""); err != nil {
 		return fmt.Errorf("request_project_create: audit CREATE_ALLOCATION: %w", err)
+	}
+
+	if err := h.ensureResourceMappings(ctx, tx, body, allocation, packet, eventID); err != nil {
+		return fmt.Errorf("request_project_create: ensure resource mappings: %w", err)
 	}
 
 	piMembership, created, err := h.ensurePIMembership(ctx, allocation, pi.ID)
@@ -238,6 +243,35 @@ func (h *RequestProjectCreateHandler) ensureAllocation(ctx context.Context, body
 		StartTime:        start,
 		EndTime:          end,
 	})
+}
+
+// ensureResourceMappings grants the allocation each packet resource found in
+// the cluster's catalog. AMIE expresses the grant only in service units,
+// already stored on the allocation, so mappings carry no native caps;
+// unregistered names are skipped rather than failing the packet.
+func (h *RequestProjectCreateHandler) ensureResourceMappings(ctx context.Context, tx *sql.Tx, body map[string]any, allocation *models.ComputeAllocation, packet *model.Packet, eventID string) error {
+	for _, name := range getResourceList(body) {
+		resource, err := h.svc.GetComputeAllocationResourceByNameAndCluster(ctx, name, h.clusterID)
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("amie: packet resource not in the cluster catalog, mapping skipped",
+				"resource", name, "allocation_id", allocation.ID)
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("lookup resource %q: %w", name, err)
+		}
+		mapping, err := h.svc.AttachResourceToAllocation(ctx, allocation.ID, resource.ID, 0, 0)
+		if errors.Is(err, service.ErrAlreadyExists) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("attach resource %q: %w", name, err)
+		}
+		if err := h.auditSvc.Log(ctx, tx, packet.ID, eventID, model.AuditAttachResource, "compute_allocation_resource_mapping", mapping.ID, name); err != nil {
+			return fmt.Errorf("audit ATTACH_RESOURCE: %w", err)
+		}
+	}
+	return nil
 }
 
 // ensurePIMembership asserts the PI as a role=PI membership on the allocation.

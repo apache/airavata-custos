@@ -48,10 +48,12 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 		{"compute_allocations", 2},
 		{"compute_allocation_diffs", 1},
 		{"amie_user_dns", 2},
-		{"amie_audit_extras", 52},
+		{"amie_audit_extras", 54},
 		{"compute_cluster_users", 4},
 		{"compute_allocation_memberships", 5},
 		{"project_memberships", 4},
+		// One per allocation; the supplement re-delivery does not duplicate.
+		{"compute_allocation_resource_mappings", 2},
 	}
 	if decoded != 12 {
 		t.Errorf("decoded packets: got %d, want 12", decoded)
@@ -69,8 +71,8 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	); err != nil {
 		t.Fatalf("count amie audit_events: %v", err)
 	}
-	if amieAuditEvents != 52 {
-		t.Errorf("audit_events source='amie': got %d, want 52", amieAuditEvents)
+	if amieAuditEvents != 54 {
+		t.Errorf("audit_events source='amie': got %d, want 54", amieAuditEvents)
 	}
 
 	// audit_log.by_action.

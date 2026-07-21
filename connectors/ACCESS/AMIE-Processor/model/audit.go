@@ -29,6 +29,7 @@ const (
 	AuditCreateAccount        AuditAction = "CREATE_ACCOUNT"
 	AuditCreateProject        AuditAction = "CREATE_PROJECT"
 	AuditCreateAllocation     AuditAction = "CREATE_ALLOCATION"
+	AuditAttachResource       AuditAction = "ATTACH_RESOURCE"
 	AuditInactivateProject    AuditAction = "INACTIVATE_PROJECT"
 	AuditReactivateProject    AuditAction = "REACTIVATE_PROJECT"
 	AuditCreateMembership     AuditAction = "CREATE_MEMBERSHIP"
