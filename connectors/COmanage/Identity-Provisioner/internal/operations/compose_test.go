@@ -19,6 +19,7 @@ package operations
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -118,7 +119,7 @@ func TestMergeUnixClusterAccount_PreservesAllKeysAndAppendsBlock(t *testing.T) {
 
 func TestBuildCreatePersonBody_Shape(t *testing.T) {
 	u := &models.User{FirstName: "GoalE2E", LastName: "Throwaway", Email: "goal-e2e@example.invalid"}
-	raw, err := buildCreatePersonBody(2, u)
+	raw, err := buildCreatePersonBody(2, u, "http://idp.invalid/users/9")
 	if err != nil {
 		t.Fatalf("buildCreatePersonBody: %v", err)
 	}
@@ -126,9 +127,24 @@ func TestBuildCreatePersonBody_Shape(t *testing.T) {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	for _, key := range []string{"CoPerson", "Name", "EmailAddress"} {
+	for _, key := range []string{"CoPerson", "Name", "EmailAddress", "Identifier"} {
 		if _, ok := got[key]; !ok {
 			t.Errorf("body missing %q", key)
 		}
+	}
+	body := string(raw)
+	if !strings.Contains(body, `"verified":true`) {
+		t.Errorf("email must be created verified: %s", body)
+	}
+	if !strings.Contains(body, `"type":"oidcsub"`) || !strings.Contains(body, `"login":true`) {
+		t.Errorf("create body must carry the login oidcsub identifier: %s", body)
+	}
+
+	raw, err = buildCreatePersonBody(2, u, "")
+	if err != nil {
+		t.Fatalf("buildCreatePersonBody without sub: %v", err)
+	}
+	if strings.Contains(string(raw), "Identifier") {
+		t.Errorf("no Identifier block expected without a sub: %s", raw)
 	}
 }

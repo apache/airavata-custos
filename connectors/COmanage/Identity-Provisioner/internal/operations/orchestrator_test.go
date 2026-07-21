@@ -152,6 +152,10 @@ func mockComanageServer(t *testing.T) *httptest.Server {
 			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"Identifier","Id":"7"}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/org_identities.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"OrgIdentity","Id":"61"}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_org_identity_links.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoOrgIdentityLink","Id":"71"}`)
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_group_members.json"):
 			_, _ = io.WriteString(w, `{"ResponseType":"CoGroupMembers","Version":"1.0","CoGroupMembers":[]}`)
 		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_group_members.json"):
@@ -271,4 +275,141 @@ func contains(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+func TestEnsurePOSIXAccount_CorrectsAutoAssignedPersonUID(t *testing.T) {
+	installRecorder(t)
+
+	var peoplePutBody string
+	// The composite carries a wrong auto-assigned uid the merge must replace.
+	composite := `{
+        "CoPerson":{"meta":{"id":42},"co_id":2,"status":"A"},
+        "Name":[{"given":"E2E","family":"Test","type":"official","primary_name":true}],
+        "EmailAddress":[{"mail":"e2e@example.invalid","type":"official","verified":false}],
+        "Identifier":[
+            {"identifier":"Person100099","type":"comanage_id","login":false,"status":"A"},
+            {"identifier":"etest3401","type":"uid","login":false,"status":"A"},
+            {"identifier":"2000099","type":"uidnumber","login":false,"status":"A"}
+        ]
+    }`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case r.Method == http.MethodGet && strings.Contains(path, "/people/"):
+			_, _ = io.WriteString(w, composite)
+		case r.Method == http.MethodPut && strings.Contains(path, "/people/"):
+			b, _ := io.ReadAll(r.Body)
+			peoplePutBody = string(b)
+			_, _ = io.WriteString(w, composite)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_people.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"CoPeople","Version":"1.0","CoPeople":[{"Version":"1.0","Id":42,"CoId":2,"Status":"Active"}]}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json") && r.URL.Query().Get("copersonid") != "":
+			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[
+                {"Id":90,"Identifier":"Person100099","Type":"comanage_id","Status":"A"}]}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_groups.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"CoGroups","Version":"1.0","CoGroups":[]}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_groups.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroup","Id":"55"}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/identifiers.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"Identifiers","Version":"1.0","Identifiers":[]}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"Identifier","Id":"7"}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/co_group_members.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"CoGroupMembers","Version":"1.0","CoGroupMembers":[]}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_group_members.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoGroupMember","Id":"11"}`)
+		case r.Method == http.MethodGet && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"UnixClusterGroups","Version":"1.0","UnixClusterGroups":[]}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/unix_cluster/unix_cluster_groups.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"UnixClusterGroup","Id":"3"}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	core := &fakeCore{user: &models.User{ID: "user-1", FirstName: "E2E", LastName: "Test", Email: "e2e@example.invalid"}}
+	orch := newOrchestratorForTest(t, srv, core)
+
+	ctx, root := tracing.Start(context.Background(), "test.root")
+	defer root.End()
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "cluster-e2etest"}
+	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	}
+
+	if !strings.Contains(peoplePutBody, `"identifier":"cluster-e2etest"`) {
+		t.Fatalf("composite PUT must carry the corrected uid identifier: %s", peoplePutBody)
+	}
+	if strings.Contains(peoplePutBody, "etest3401") {
+		t.Fatalf("composite PUT still carries the auto-assigned uid: %s", peoplePutBody)
+	}
+	if !strings.Contains(peoplePutBody, `"username":"cluster-e2etest"`) {
+		t.Fatalf("composite PUT must still carry the UnixClusterAccount: %s", peoplePutBody)
+	}
+}
+
+func TestEnsurePOSIXAccount_CreatesOIDCLinkage(t *testing.T) {
+	installRecorder(t)
+
+	var identifierBodies []string
+	var linkBody string
+	base := mockComanageServer(t)
+	defer base.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/identifiers.json"):
+			b, _ := io.ReadAll(r.Body)
+			identifierBodies = append(identifierBodies, string(b))
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"Identifier","Id":"7"}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/org_identities.json"):
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"OrgIdentity","Id":"61"}`)
+		case r.Method == http.MethodPost && strings.HasSuffix(path, "/co_org_identity_links.json"):
+			b, _ := io.ReadAll(r.Body)
+			linkBody = string(b)
+			_, _ = io.WriteString(w, `{"ResponseType":"NewObject","Version":"1.0","ObjectType":"CoOrgIdentityLink","Id":"71"}`)
+		default:
+			proxyReq, _ := http.NewRequest(r.Method, base.URL+r.URL.RequestURI(), r.Body)
+			resp, err := http.DefaultClient.Do(proxyReq)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer resp.Body.Close()
+			w.WriteHeader(resp.StatusCode)
+			_, _ = io.Copy(w, resp.Body)
+		}
+	}))
+	defer srv.Close()
+
+	core := &fakeCore{
+		user: &models.User{ID: "user-1", FirstName: "E2E", LastName: "Test", Email: "e2e@example.invalid"},
+		identities: []models.UserIdentity{
+			{UserID: "user-1", Source: "oidc", ExternalID: "http://idp.invalid/users/9", OIDCSub: "http://idp.invalid/users/9"},
+		},
+	}
+	orch := newOrchestratorForTest(t, srv, core)
+
+	ctx, root := tracing.Start(context.Background(), "test.root")
+	defer root.End()
+
+	cu := &models.ComputeClusterUser{ID: "ccu-1", UserID: "user-1", LocalUsername: "e2etest"}
+	if err := orch.EnsurePOSIXAccount(ctx, cu); err != nil {
+		t.Fatalf("EnsurePOSIXAccount: %v", err)
+	}
+
+	found := false
+	for _, b := range identifierBodies {
+		if strings.Contains(b, `"Type":"oidcsub"`) && strings.Contains(b, "idp.invalid/users/9") && strings.Contains(b, `"Type":"Org"`) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no oidcsub identifier posted on the org identity: %v", identifierBodies)
+	}
+	if !strings.Contains(linkBody, `"CoPersonId":42`) || !strings.Contains(linkBody, `"OrgIdentityId":61`) {
+		t.Fatalf("link body wrong: %s", linkBody)
+	}
 }
