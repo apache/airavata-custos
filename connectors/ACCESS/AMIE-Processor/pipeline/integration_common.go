@@ -164,6 +164,14 @@ func seedCluster(t *testing.T, database *sqlx.DB) {
 	); err != nil {
 		t.Fatalf("seed cluster: %v", err)
 	}
+	// Catalog entry matching the mock packets' ResourceList, so
+	// request_project_create exercises the resource-mapping path.
+	if _, err := database.Exec(
+		"INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id) VALUES (?, ?, ?, ?, ?)",
+		"baseline-resource", "baseline-cluster.example.edu", "CPU_HOURS", 0, testClusterID,
+	); err != nil {
+		t.Fatalf("seed catalog resource: %v", err)
+	}
 }
 
 // testPipeline runs the AMIE connector in-process against the local mock
