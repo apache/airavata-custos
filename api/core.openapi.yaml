@@ -8,6 +8,11 @@ definitions:
         type: string
       deny_reason:
         type: string
+      desired_username:
+        description: |-
+          DesiredUsername is the cluster login the requester picked at request
+          time. Empty falls back to a generated name at approval.
+        type: string
       email:
         type: string
       event_code:
@@ -40,6 +45,11 @@ definitions:
       decided_at:
         type: string
       deny_reason:
+        type: string
+      desired_username:
+        description: |-
+          DesiredUsername is the cluster login the requester picked at request
+          time. Empty falls back to a generated name at approval.
         type: string
       email:
         type: string
@@ -1011,6 +1021,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Get the caller's latest access request
+      tags:
+      - Access Requests
+  /access-requests/username:
+    get:
+      description: Returns an available suggested login and, when a candidate is given,
+        whether it is well-formed and free on the event's cluster.
+      parameters:
+      - description: Event code
+        in: query
+        name: event_code
+        required: true
+        type: string
+      - description: Candidate username
+        in: query
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              available:
+                type: boolean
+              suggestion:
+                type: string
+              valid:
+                type: boolean
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check a requested cluster username
       tags:
       - Access Requests
   /audit/events:

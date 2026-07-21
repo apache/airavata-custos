@@ -8,6 +8,11 @@ export type AccessRequest = {
     approver_id?: string;
     created_user_id?: string;
     deny_reason?: string;
+    /**
+     * DesiredUsername is the cluster login the requester picked at request
+     * time. Empty falls back to a generated name at approval.
+     */
+    desired_username?: string;
     email?: string;
     event_code?: string;
     expires_at?: string;
@@ -26,6 +31,11 @@ export type AccessRequestListItem = {
     created_user_id?: string;
     decided_at?: string;
     deny_reason?: string;
+    /**
+     * DesiredUsername is the cluster login the requester picked at request
+     * time. Empty falls back to a generated name at approval.
+     */
+    desired_username?: string;
     email?: string;
     event_code?: string;
     expires_at?: string;
@@ -748,6 +758,46 @@ export type GetAccessRequestsMeResponses = {
 };
 
 export type GetAccessRequestsMeResponse = GetAccessRequestsMeResponses[keyof GetAccessRequestsMeResponses];
+
+export type GetAccessRequestsUsernameData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Event code
+         */
+        event_code: string;
+        /**
+         * Candidate username
+         */
+        username?: string;
+    };
+    url: '/access-requests/username';
+};
+
+export type GetAccessRequestsUsernameErrors = {
+    /**
+     * Not Found
+     */
+    404: {
+        error?: string;
+    };
+};
+
+export type GetAccessRequestsUsernameError = GetAccessRequestsUsernameErrors[keyof GetAccessRequestsUsernameErrors];
+
+export type GetAccessRequestsUsernameResponses = {
+    /**
+     * OK
+     */
+    200: {
+        available?: boolean;
+        suggestion?: string;
+        valid?: boolean;
+    };
+};
+
+export type GetAccessRequestsUsernameResponse = GetAccessRequestsUsernameResponses[keyof GetAccessRequestsUsernameResponses];
 
 export type GetAuditEventsData = {
     body?: never;

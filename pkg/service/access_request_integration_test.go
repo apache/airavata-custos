@@ -385,3 +385,82 @@ func TestListAccessRequests_Filter(t *testing.T) {
 		t.Errorf("all list len = %d, want 2", len(all))
 	}
 }
+
+func TestCreateAccessRequest_RejectsBadUsername(t *testing.T) {
+	env := setupAccessEnv(t)
+	req := newAccessRequestFor(env, "sub-"+uuid.NewString()[:8])
+	req.DesiredUsername = "Bad Name!"
+	if _, err := env.svc.CreateAccessRequest(ctx(), req); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput for bad username, got %v", err)
+	}
+}
+
+func TestApproveAccessRequest_UsesChosenUsername(t *testing.T) {
+	env := setupAccessEnv(t)
+	req := newAccessRequestFor(env, "sub-"+uuid.NewString()[:8])
+	req.DesiredUsername = "jdoe"
+	created, err := env.svc.CreateAccessRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	approved, err := env.svc.ApproveAccessRequest(ctx(), created.ID, env.adminID, nil)
+	if err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	ccu, err := env.svc.GetComputeClusterUserByPair(ctx(), env.clusterID, approved.CreatedUserID)
+	if err != nil {
+		t.Fatalf("get cluster user: %v", err)
+	}
+	if ccu.LocalUsername != "jdoe" {
+		t.Errorf("local username = %q, want the chosen %q", ccu.LocalUsername, "jdoe")
+	}
+}
+
+func TestCheckAccessRequestUsername(t *testing.T) {
+	env := setupAccessEnv(t)
+
+	// Empty candidate: a valid, available suggestion following the prefix.
+	res, err := env.svc.CheckAccessRequestUsername(ctx(), env.code, "", "Trial Person", "trial@example.invalid")
+	if err != nil {
+		t.Fatalf("check (suggestion): %v", err)
+	}
+	if !strings.HasPrefix(res.Suggestion, posix.Prefix()+"-") {
+		t.Errorf("suggestion %q lacks prefix %q", res.Suggestion, posix.Prefix()+"-")
+	}
+	if !res.Valid || !res.Available {
+		t.Errorf("empty candidate: valid=%v available=%v, want both true", res.Valid, res.Available)
+	}
+
+	// A well-formed, free candidate.
+	if r, err := env.svc.CheckAccessRequestUsername(ctx(), env.code, "jdoe", "Trial Person", ""); err != nil {
+		t.Fatalf("check (free): %v", err)
+	} else if !r.Valid || !r.Available {
+		t.Errorf("free candidate: valid=%v available=%v, want both true", r.Valid, r.Available)
+	}
+
+	// Malformed candidate.
+	if r, err := env.svc.CheckAccessRequestUsername(ctx(), env.code, "Bad!", "Trial Person", ""); err != nil {
+		t.Fatalf("check (invalid): %v", err)
+	} else if r.Valid || r.Available {
+		t.Errorf("invalid candidate: valid=%v available=%v, want both false", r.Valid, r.Available)
+	}
+
+	// A taken candidate: claim it on the cluster, then it must read unavailable.
+	taker, err := env.svc.CreateUser(ctx(), &models.User{
+		OrganizationID: env.orgID, FirstName: "Taken", LastName: "User",
+		Email: "taken-" + uuid.NewString()[:8] + "@example.invalid", Status: models.UserActive,
+	})
+	if err != nil {
+		t.Fatalf("create taker: %v", err)
+	}
+	if _, err := env.svc.CreateComputeClusterUser(ctx(), &models.ComputeClusterUser{
+		ComputeClusterID: env.clusterID, UserID: taker.ID, LocalUsername: "taken1",
+	}); err != nil {
+		t.Fatalf("claim username: %v", err)
+	}
+	if r, err := env.svc.CheckAccessRequestUsername(ctx(), env.code, "taken1", "Trial Person", ""); err != nil {
+		t.Fatalf("check (taken): %v", err)
+	} else if !r.Valid || r.Available {
+		t.Errorf("taken candidate: valid=%v available=%v, want valid=true available=false", r.Valid, r.Available)
+	}
+}

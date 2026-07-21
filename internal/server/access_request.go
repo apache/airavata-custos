@@ -31,9 +31,10 @@ import (
 )
 
 type createAccessRequestBody struct {
-	Institution string `json:"institution"`
-	EventCode   string `json:"event_code"`
-	Reason      string `json:"reason"`
+	Institution     string `json:"institution"`
+	DesiredUsername string `json:"desired_username"`
+	EventCode       string `json:"event_code"`
+	Reason          string `json:"reason"`
 }
 
 type decideAccessRequestBody struct {
@@ -63,6 +64,39 @@ func (s *Server) getAccessEventByCode(w http.ResponseWriter, r *http.Request) {
 	}
 	// Only the code and allocation name go out; the caller is not a user yet.
 	common.WriteJSON(w, http.StatusOK, map[string]string{"code": ev.Code, "name": alloc.Name})
+}
+
+// @Summary	Check a requested cluster username
+// @Description	Returns an available suggested login and, when a candidate is given, whether it is well-formed and free on the event's cluster.
+// @Tags	Access Requests
+// @Security	BearerAuth
+// @Produce	json
+// @Param	event_code	query	string	true	"Event code"
+// @Param	username	query	string	false	"Candidate username"
+// @Success	200	{object}	object{suggestion=string,valid=bool,available=bool}
+// @Failure	404	{object}	object{error=string}
+// @Router	/access-requests/username [get]
+func (s *Server) checkAccessRequestUsername(w http.ResponseWriter, r *http.Request) {
+	claims := identity.ClaimsFromContext(r.Context())
+	if claims == nil {
+		common.WriteError(w, http.StatusUnauthorized, errors.New("verified token required"))
+		return
+	}
+	q := r.URL.Query()
+	name := claims.Name
+	if name == "" {
+		name = strings.TrimSpace(claims.GivenName + " " + claims.FamilyName)
+	}
+	res, err := s.svc.CheckAccessRequestUsername(r.Context(), q.Get("event_code"), strings.TrimSpace(q.Get("username")), name, claims.Email)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, map[string]any{
+		"suggestion": res.Suggestion,
+		"valid":      res.Valid,
+		"available":  res.Available,
+	})
 }
 
 // @Summary	Submit an access request
@@ -96,12 +130,13 @@ func (s *Server) createAccessRequest(w http.ResponseWriter, r *http.Request) {
 		name = strings.TrimSpace(claims.GivenName + " " + claims.FamilyName)
 	}
 	created, err := s.svc.CreateAccessRequest(r.Context(), &models.AccessRequest{
-		OIDCSub:     claims.Sub,
-		Email:       claims.Email,
-		Name:        name,
-		Institution: body.Institution,
-		EventCode:   body.EventCode,
-		Reason:      body.Reason,
+		OIDCSub:         claims.Sub,
+		Email:           claims.Email,
+		Name:            name,
+		Institution:     body.Institution,
+		DesiredUsername: strings.TrimSpace(body.DesiredUsername),
+		EventCode:       body.EventCode,
+		Reason:          body.Reason,
 	})
 	if err != nil {
 		common.WriteServiceError(w, err)

@@ -29,7 +29,8 @@ import (
 
 // COALESCE folds the nullable columns into Go zero values on read; writes use
 // nullIfEmpty so empty strings never trip the users FKs.
-const accessRequestColumns = `id, oidc_sub, email, name, institution, event_code,
+const accessRequestColumns = `id, oidc_sub, email, name, institution,
+	COALESCE(desired_username, '') AS desired_username, event_code,
 	COALESCE(reason, '') AS reason, status,
 	COALESCE(approver_id, '') AS approver_id,
 	COALESCE(deny_reason, '') AS deny_reason,
@@ -122,9 +123,9 @@ func (s *mysqlAccessRequestStore) List(ctx context.Context, f AccessRequestListF
 func (s *mysqlAccessRequestStore) Create(ctx context.Context, tx *sql.Tx, r *models.AccessRequest) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO access_requests
-		     (id, oidc_sub, email, name, institution, event_code, reason, status, approver_id, deny_reason, expires_at, created_user_id, timestamp)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		r.ID, r.OIDCSub, r.Email, r.Name, r.Institution, r.EventCode,
+		     (id, oidc_sub, email, name, institution, desired_username, event_code, reason, status, approver_id, deny_reason, expires_at, created_user_id, timestamp)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		r.ID, r.OIDCSub, r.Email, r.Name, r.Institution, nullIfEmpty(r.DesiredUsername), r.EventCode,
 		nullIfEmpty(r.Reason), string(r.Status), nullIfEmpty(r.ApproverID),
 		nullIfEmpty(r.DenyReason), r.ExpiresAt, nullIfEmpty(r.CreatedUserID), r.Timestamp)
 	return err

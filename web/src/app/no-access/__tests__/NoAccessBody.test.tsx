@@ -16,7 +16,7 @@
 // under the License.
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -110,8 +110,43 @@ describe("<NoAccessBody />", () => {
     await openForm();
     fireEvent.change(screen.getByLabelText("Institution"), { target: { value: "Example U" } });
     await screen.findByText(/pearc26-tutorial/i, undefined, { timeout: 2000 });
+    // The prefilled username must clear the availability check before submit unlocks.
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /submit request/i })).toBeEnabled(),
+      { timeout: 2000 },
+    );
     fireEvent.click(screen.getByRole("button", { name: /submit request/i }));
     await screen.findByRole("heading", { name: /request received/i });
+  });
+
+  it("prefills the suggested username and marks it available", async () => {
+    searchParams = "event=PEARC26";
+    await openForm();
+    await screen.findByText(/pearc26-tutorial/i, undefined, { timeout: 2000 });
+    await waitFor(() => expect(screen.getByLabelText("Cluster username")).toHaveValue("nexus-mockcaller"), {
+      timeout: 2000,
+    });
+    expect(await screen.findByLabelText(/username available/i, undefined, { timeout: 2000 })).toBeInTheDocument();
+  });
+
+  it("flags a taken username and blocks submit", async () => {
+    searchParams = "event=PEARC26";
+    await openForm();
+    fireEvent.change(screen.getByLabelText("Institution"), { target: { value: "Example U" } });
+    await screen.findByText(/pearc26-tutorial/i, undefined, { timeout: 2000 });
+    fireEvent.change(screen.getByLabelText("Cluster username"), { target: { value: "taken" } });
+    expect(await screen.findByText(/already taken/i, undefined, { timeout: 2000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit request/i })).toBeDisabled();
+  });
+
+  it("rejects a malformed username with a format hint", async () => {
+    searchParams = "event=PEARC26";
+    await openForm();
+    fireEvent.change(screen.getByLabelText("Institution"), { target: { value: "Example U" } });
+    await screen.findByText(/pearc26-tutorial/i, undefined, { timeout: 2000 });
+    fireEvent.change(screen.getByLabelText("Cluster username"), { target: { value: "Bad Name" } });
+    expect(await screen.findByText(/lowercase letters, digits/i, undefined, { timeout: 2000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit request/i })).toBeDisabled();
   });
 
   it("shows the pending state for an existing PENDING request", async () => {
@@ -152,6 +187,10 @@ describe("<NoAccessBody />", () => {
     await openForm();
     fireEvent.change(screen.getByLabelText("Institution"), { target: { value: "Example U" } });
     await screen.findByText(/pearc26-tutorial/i, undefined, { timeout: 2000 });
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /submit request/i })).toBeEnabled(),
+      { timeout: 2000 },
+    );
     fireEvent.click(screen.getByRole("button", { name: /submit request/i }));
     await screen.findByRole("heading", { name: /request received/i });
   });

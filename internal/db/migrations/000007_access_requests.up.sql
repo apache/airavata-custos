@@ -36,12 +36,13 @@ CREATE TABLE IF NOT EXISTS access_events
 
 CREATE TABLE IF NOT EXISTS access_requests
 (
-    id              VARCHAR(255) NOT NULL,
-    oidc_sub        VARCHAR(255) NOT NULL,
-    email           VARCHAR(255) NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    institution     VARCHAR(255) NOT NULL,
-    event_code      VARCHAR(64)  NOT NULL,
+    id               VARCHAR(255) NOT NULL,
+    oidc_sub         VARCHAR(255) NOT NULL,
+    email            VARCHAR(255) NOT NULL,
+    name             VARCHAR(255) NOT NULL,
+    institution      VARCHAR(255) NOT NULL,
+    desired_username VARCHAR(64)  NULL,
+    event_code       VARCHAR(64)  NOT NULL,
     reason          TEXT         NULL,
     status          VARCHAR(32)  NOT NULL DEFAULT 'PENDING',
     approver_id     VARCHAR(255) NULL,

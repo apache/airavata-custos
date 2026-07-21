@@ -131,6 +131,16 @@ export const accessRequestsHandlers = [
     return name ? HttpResponse.json({ code, name }) : notFound();
   }),
 
+  http.get("*/api/v1/access-requests/username", ({ request }) => {
+    const url = new URL(request.url);
+    if (!EVENT_NAMES[url.searchParams.get("event_code") ?? ""]) return notFound();
+    const username = url.searchParams.get("username") ?? "";
+    const valid = username === "" || /^[a-z][a-z0-9_-]{0,31}$/.test(username);
+    // "taken" stands in for a claimed login so the red-cross path is testable.
+    const available = valid && username !== "taken";
+    return HttpResponse.json({ suggestion: "nexus-mockcaller", valid, available });
+  }),
+
   http.post("*/api/v1/access-requests", async ({ request }) => {
     if (mine?.status === "PENDING") {
       return HttpResponse.json({ error: "a pending request already exists" }, { status: 409 });

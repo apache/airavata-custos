@@ -14,6 +14,7 @@ export const zAccessRequest = z.object({
     approver_id: z.string().optional(),
     created_user_id: z.string().optional(),
     deny_reason: z.string().optional(),
+    desired_username: z.string().optional(),
     email: z.string().optional(),
     event_code: z.string().optional(),
     expires_at: z.string().optional(),
@@ -34,6 +35,7 @@ export const zAccessRequestListItem = z.object({
     created_user_id: z.string().optional(),
     decided_at: z.string().optional(),
     deny_reason: z.string().optional(),
+    desired_username: z.string().optional(),
     email: z.string().optional(),
     event_code: z.string().optional(),
     expires_at: z.string().optional(),
@@ -608,6 +610,20 @@ export const zGetAccessRequestsEventsByCodeResponse = z.object({
  * OK
  */
 export const zGetAccessRequestsMeResponse = zAccessRequest;
+
+export const zGetAccessRequestsUsernameQuery = z.object({
+    event_code: z.string(),
+    username: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zGetAccessRequestsUsernameResponse = z.object({
+    available: z.boolean().optional(),
+    suggestion: z.string().optional(),
+    valid: z.boolean().optional()
+});
 
 export const zGetAuditEventsQuery = z.object({
     trace_id: z.string(),

@@ -61,3 +61,11 @@ export const accessEventResolveSchema = z.object({
   name: z.string(),
 });
 export type AccessEventResolve = z.infer<typeof accessEventResolveSchema>;
+
+// A cluster login check: a free suggestion plus how the typed candidate stands.
+export const usernameCheckSchema = z.object({
+  suggestion: z.string(),
+  valid: z.boolean(),
+  available: z.boolean(),
+});
+export type UsernameCheck = z.infer<typeof usernameCheckSchema>;

@@ -167,6 +167,7 @@ func (s *Server) routes() {
 	// Self-service routes reachable with a verified token whose identity is
 	// not linked to a user yet.
 	s.router.RequireToken("GET /access-requests/events/{code}", s.getAccessEventByCode)
+	s.router.RequireToken("GET /access-requests/username", s.checkAccessRequestUsername)
 	s.router.RequireToken("POST /access-requests", s.createAccessRequest)
 	s.router.RequireToken("GET /access-requests/me", s.getOwnAccessRequest)
 	s.router.RequirePrivilege("GET /access-requests", models.AccessRequestsRead, s.listAccessRequests)

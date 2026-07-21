@@ -46,10 +46,10 @@ test.describe("access requests — requester", () => {
     await expect(page.getByRole("heading", { name: /request trial access/i })).toBeVisible();
 
     // Identity comes from the session and is not editable.
-    await expect(page.getByLabel("Name")).toHaveValue("Test Viewer");
-    await expect(page.getByLabel("Name")).toBeDisabled();
-    await expect(page.getByLabel("Email")).toHaveValue("viewer@custos.local");
-    await expect(page.getByLabel("Email")).toBeDisabled();
+    await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Test Viewer");
+    await expect(page.getByLabel("Name", { exact: true })).toBeDisabled();
+    await expect(page.getByLabel("Email", { exact: true })).toHaveValue("viewer@custos.local");
+    await expect(page.getByLabel("Email", { exact: true })).toBeDisabled();
 
     await page.getByLabel("Institution").fill("Example University");
     await page.getByLabel("Event code").fill("NOPE99");
@@ -58,6 +58,24 @@ test.describe("access requests — requester", () => {
 
     await page.getByLabel("Event code").fill("PEARC26");
     await expect(page.getByText(/event: pearc26-tutorial/i)).toBeVisible({ timeout: 15_000 });
+
+    // The username field prefills with the suggested login and checks out.
+    await expect(page.getByLabel("Cluster username")).toHaveValue("nexus-mockcaller", {
+      timeout: 15_000,
+    });
+    await expect(page.getByLabel(/username available/i)).toBeVisible({ timeout: 15_000 });
+
+    // A taken login is flagged and blocks submit.
+    await page.getByLabel("Cluster username").fill("taken");
+    await expect(page.getByText(/already taken/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /submit request/i })).toBeDisabled();
+
+    // A free login clears it again.
+    await page.getByLabel("Cluster username").fill("jdoe");
+    await expect(page.getByLabel(/username available/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /submit request/i })).toBeEnabled({
+      timeout: 15_000,
+    });
 
     await page.getByRole("button", { name: /submit request/i }).click();
     await expect(page.getByRole("heading", { name: /request received/i })).toBeVisible({

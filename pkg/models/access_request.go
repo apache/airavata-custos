@@ -48,19 +48,22 @@ type AccessEvent struct {
 // AccessRequest is a self-service request for a trial account, identified by
 // the verified token subject rather than an existing user.
 type AccessRequest struct {
-	ID            string              `json:"id"                        db:"id"`
-	OIDCSub       string              `json:"oidc_sub"                  db:"oidc_sub"`
-	Email         string              `json:"email"                     db:"email"`
-	Name          string              `json:"name"                      db:"name"`
-	Institution   string              `json:"institution"               db:"institution"`
-	EventCode     string              `json:"event_code"                db:"event_code"`
-	Reason        string              `json:"reason,omitempty"          db:"reason"`
-	Status        AccessRequestStatus `json:"status"                    db:"status"`
-	ApproverID    string              `json:"approver_id,omitempty"     db:"approver_id"`
-	DenyReason    string              `json:"deny_reason,omitempty"     db:"deny_reason"`
-	ExpiresAt     *time.Time          `json:"expires_at,omitempty"      db:"expires_at"`
-	CreatedUserID string              `json:"created_user_id,omitempty" db:"created_user_id"`
-	Timestamp     time.Time           `json:"timestamp"                 db:"timestamp"`
+	ID          string `json:"id"                        db:"id"`
+	OIDCSub     string `json:"oidc_sub"                  db:"oidc_sub"`
+	Email       string `json:"email"                     db:"email"`
+	Name        string `json:"name"                      db:"name"`
+	Institution string `json:"institution"               db:"institution"`
+	// DesiredUsername is the cluster login the requester picked at request
+	// time. Empty falls back to a generated name at approval.
+	DesiredUsername string              `json:"desired_username,omitempty" db:"desired_username"`
+	EventCode       string              `json:"event_code"                db:"event_code"`
+	Reason          string              `json:"reason,omitempty"          db:"reason"`
+	Status          AccessRequestStatus `json:"status"                    db:"status"`
+	ApproverID      string              `json:"approver_id,omitempty"     db:"approver_id"`
+	DenyReason      string              `json:"deny_reason,omitempty"     db:"deny_reason"`
+	ExpiresAt       *time.Time          `json:"expires_at,omitempty"      db:"expires_at"`
+	CreatedUserID   string              `json:"created_user_id,omitempty" db:"created_user_id"`
+	Timestamp       time.Time           `json:"timestamp"                 db:"timestamp"`
 }
 
 // AccessRequestEvent is an append-only audit trail entry for state

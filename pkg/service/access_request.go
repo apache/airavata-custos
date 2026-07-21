@@ -23,12 +23,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/apache/airavata-custos/internal/email"
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
+	"github.com/apache/airavata-custos/pkg/posix"
 )
 
 // defaultAccessRequestLifetime is how long an approved trial account lasts
@@ -70,6 +72,9 @@ func (s *Service) CreateAccessRequest(ctx context.Context, req *models.AccessReq
 	}
 	if req.EventCode == "" {
 		return nil, fmt.Errorf("%w: event_code is required", ErrInvalidInput)
+	}
+	if req.DesiredUsername != "" && !posix.ValidChosen(req.DesiredUsername) {
+		return nil, fmt.Errorf("%w: desired_username must be 1-32 characters, start with a lowercase letter", ErrInvalidInput)
 	}
 
 	if ev, err := s.accessEvents.FindByCode(ctx, req.EventCode); err != nil {
@@ -278,6 +283,19 @@ func (s *Service) provisionAccessRequest(ctx context.Context, req *models.Access
 		return nil, "", fmt.Errorf("lookup compute cluster user: %w", err)
 	} else if existing != nil {
 		username = existing.LocalUsername
+	} else if req.DesiredUsername != "" {
+		// The requester picked this login and it was free when they asked; a
+		// duplicate here means someone took it since, so the approval fails and
+		// stays PENDING for a retry with a different pick.
+		ccu, err := s.CreateComputeClusterUser(ctx, &models.ComputeClusterUser{
+			ComputeClusterID: alloc.ComputeClusterID,
+			UserID:           user.ID,
+			LocalUsername:    req.DesiredUsername,
+		})
+		if err != nil {
+			return nil, "", fmt.Errorf("create cluster user with chosen username %q: %w", req.DesiredUsername, err)
+		}
+		username = ccu.LocalUsername
 	} else {
 		ccu, err := s.AllocateComputeClusterUser(ctx, user, alloc.ComputeClusterID)
 		if err != nil {
@@ -350,6 +368,105 @@ func (s *Service) appendAccessRequestEvent(ctx context.Context, requestID, event
 			Timestamp:       nowUTC(),
 		})
 	})
+}
+
+// UsernameCheck reports on a requested cluster login: a guaranteed-free
+// suggestion plus the standing of the candidate the requester typed.
+type UsernameCheck struct {
+	Suggestion string
+	Valid      bool
+	Available  bool
+}
+
+// CheckAccessRequestUsername resolves the event's cluster, builds an available
+// suggestion from the requester's identity, and reports whether the candidate
+// login (when supplied) is well-formed and free on that cluster.
+func (s *Service) CheckAccessRequestUsername(ctx context.Context, eventCode, candidate, name, email string) (*UsernameCheck, error) {
+	if eventCode == "" {
+		return nil, fmt.Errorf("%w: event code is required", ErrInvalidInput)
+	}
+	ev, err := s.accessEvents.FindByCode(ctx, eventCode)
+	if err != nil {
+		return nil, fmt.Errorf("lookup access event: %w", err)
+	}
+	if ev == nil {
+		return nil, fmt.Errorf("%w: access event %q", ErrNotFound, eventCode)
+	}
+	alloc, err := s.allocs.FindByID(ctx, ev.ComputeAllocationID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup compute allocation: %w", err)
+	}
+	if alloc == nil {
+		return nil, fmt.Errorf("%w: compute allocation %q not found", ErrNotFound, ev.ComputeAllocationID)
+	}
+
+	suggestion, err := s.suggestClusterUsername(ctx, alloc.ComputeClusterID, name, email)
+	if err != nil {
+		return nil, err
+	}
+	res := &UsernameCheck{Suggestion: suggestion, Valid: true, Available: true}
+	if candidate != "" {
+		res.Valid = posix.ValidChosen(candidate)
+		if !res.Valid {
+			res.Available = false
+			return res, nil
+		}
+		free, err := s.clusterUsernameFree(ctx, alloc.ComputeClusterID, candidate)
+		if err != nil {
+			return nil, err
+		}
+		res.Available = free
+	}
+	return res, nil
+}
+
+// clusterUsernameFree reports whether localUsername is unclaimed on the cluster.
+func (s *Service) clusterUsernameFree(ctx context.Context, clusterID, localUsername string) (bool, error) {
+	_, err := s.GetComputeClusterUserByClusterAndLocalUsername(ctx, clusterID, localUsername)
+	if errors.Is(err, ErrNotFound) {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// suggestClusterUsername builds the generated-style base from the requester's
+// name (falling back to the email local part) and appends the lowest free
+// numeric suffix.
+func (s *Service) suggestClusterUsername(ctx context.Context, clusterID, name, email string) (string, error) {
+	first, last := splitName(name)
+	base, _, err := posix.BuildBase(&models.User{FirstName: first, LastName: last}, posix.Prefix())
+	if err != nil {
+		local := posix.Normalize(emailLocalPart(email))
+		if local == "" {
+			local = "user"
+		}
+		base = posix.Prefix() + "-" + local
+	}
+	for n := 0; n < posix.MaxCollisionSuffix; n++ {
+		candidate := base
+		if n > 0 {
+			candidate = base + strconv.Itoa(n+1)
+		}
+		free, err := s.clusterUsernameFree(ctx, clusterID, candidate)
+		if err != nil {
+			return "", err
+		}
+		if free {
+			return candidate, nil
+		}
+	}
+	return base, nil
+}
+
+// emailLocalPart returns the portion of an address before the "@".
+func emailLocalPart(email string) string {
+	if i := strings.IndexByte(email, '@'); i > 0 {
+		return email[:i]
+	}
+	return email
 }
 
 // splitName maps a display name onto first/last: first token, then the rest.

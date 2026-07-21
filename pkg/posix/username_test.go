@@ -154,3 +154,30 @@ func TestPrefix(t *testing.T) {
 		t.Errorf("override = %q, want %q", got, "alt")
 	}
 }
+
+func TestValidChosen(t *testing.T) {
+	cases := []struct {
+		in   string
+		want bool
+	}{
+		{"jdoe", true},
+		{"a", true},
+		{"user-1", true},
+		{"user_1", true},
+		{"j2", true},
+		{"", false},
+		{"1abc", false},   // must start with a letter
+		{"-abc", false},   // must start with a letter
+		{"JDoe", false},   // no uppercase
+		{"jo hn", false},  // no space
+		{"jdoe!", false},  // no punctuation
+		{"nexus-x", true}, // a prefixed-looking name is still a valid literal
+		{strings.Repeat("a", 33), false},
+		{strings.Repeat("a", 32), true},
+	}
+	for _, c := range cases {
+		if got := ValidChosen(c.in); got != c.want {
+			t.Errorf("ValidChosen(%q) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}

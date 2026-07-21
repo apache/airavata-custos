@@ -19,9 +19,11 @@ import { ApiError, apiFetch } from "@/shared/api/client";
 import {
   type AccessEventResolve,
   type AccessRequest,
+  type UsernameCheck,
   accessEventResolveSchema,
   accessRequestSchema,
   accessRequestsSchema,
+  usernameCheckSchema,
 } from "./schemas";
 
 // 404 means "no request yet" / "unknown code" — a state, not a failure.
@@ -46,9 +48,19 @@ export async function resolveAccessEvent(code: string): Promise<AccessEventResol
   );
 }
 
+export async function checkAccessRequestUsername(
+  eventCode: string,
+  username: string,
+): Promise<UsernameCheck> {
+  const search = new URLSearchParams({ event_code: eventCode });
+  if (username) search.set("username", username);
+  return usernameCheckSchema.parse(await apiFetch(`/access-requests/username?${search.toString()}`));
+}
+
 export type CreateAccessRequestBody = {
   institution: string;
   event_code: string;
+  desired_username?: string;
   reason?: string;
 };
 

@@ -22,6 +22,7 @@ import { useSession } from "next-auth/react";
 import * as React from "react";
 import {
   type AccessRequestListFilter,
+  checkAccessRequestUsername,
   createAccessRequest,
   decideAccessRequest,
   type DecideAccessRequestBody,
@@ -55,6 +56,18 @@ export function useAccessEvent(code: string) {
     enabled: code.length > 0,
     retry: false,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// The endpoint returns a free suggestion plus the standing of `username`; pass
+// an empty username to fetch only the suggestion for the default.
+export function useUsernameCheck(eventCode: string, username: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...accessRequestKeys.all, "username", eventCode, username] as const,
+    queryFn: () => checkAccessRequestUsername(eventCode, username),
+    enabled: enabled && eventCode.length > 0,
+    retry: false,
     refetchOnWindowFocus: false,
   });
 }

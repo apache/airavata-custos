@@ -18,19 +18,22 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { Check, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   accessRequestKeys,
   useAccessEvent,
   useCreateAccessRequest,
   useMyAccessRequest,
+  useUsernameCheck,
 } from "@/features/core/access-requests/queries";
 import type { AccessRequest } from "@/features/core/access-requests/schemas";
 import { ApiError } from "@/shared/api/client";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { cn } from "@/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -155,7 +158,27 @@ function RequestForm() {
   const resolved = settled ? (eventQuery.data ?? null) : null;
   const unknownCode = settled && eventQuery.data === null;
 
-  const canSubmit = institution.trim().length > 0 && Boolean(resolved) && !create.isPending;
+  const [username, setUsername] = useState("");
+  const [usernameEdited, setUsernameEdited] = useState(false);
+  const trimmedUsername = username.trim();
+  const debouncedUsername = useDebounce(trimmedUsername, 400);
+  const usernameCheck = useUsernameCheck(debouncedCode, debouncedUsername, Boolean(resolved));
+
+  // Prefill the field with the server's suggested login once, until edited.
+  useEffect(() => {
+    if (!usernameEdited && username === "" && usernameCheck.data?.suggestion) {
+      setUsername(usernameCheck.data.suggestion);
+    }
+  }, [usernameEdited, username, usernameCheck.data?.suggestion]);
+
+  const usernameSettled =
+    debouncedUsername === trimmedUsername && trimmedUsername.length > 0 && !usernameCheck.isFetching;
+  const usernameData = usernameSettled ? usernameCheck.data : undefined;
+  const usernameOk = Boolean(usernameData?.valid && usernameData?.available);
+  const usernameBad = Boolean(usernameData && (!usernameData.valid || !usernameData.available));
+
+  const canSubmit =
+    institution.trim().length > 0 && Boolean(resolved) && usernameOk && !create.isPending;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -164,6 +187,7 @@ function RequestForm() {
       {
         institution: institution.trim(),
         event_code: trimmedCode,
+        desired_username: trimmedUsername || undefined,
         reason: reason.trim() || undefined,
       },
       {
@@ -219,6 +243,53 @@ function RequestForm() {
           ) : resolved ? (
             <p className="text-xs text-muted-foreground">Event: {resolved.name}</p>
           ) : null}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="ar-username">Cluster username</Label>
+          <div className="relative">
+            <Input
+              id="ar-username"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setUsernameEdited(true);
+              }}
+              disabled={!resolved}
+              placeholder="e.g. jdoe"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className={cn(
+                "pr-8",
+                !usernameEdited && "text-muted-foreground",
+                usernameBad && "border-destructive",
+              )}
+              aria-invalid={usernameBad || undefined}
+            />
+            {resolved && trimmedUsername.length > 0 && usernameSettled ? (
+              <span className="-translate-y-1/2 absolute top-1/2 right-2.5">
+                {usernameOk ? (
+                  <Check
+                    className="h-4 w-4 text-[color:var(--custos-green-700)]"
+                    aria-label="Username available"
+                  />
+                ) : (
+                  <X className="h-4 w-4 text-destructive" aria-label="Username unavailable" />
+                )}
+              </span>
+            ) : null}
+          </div>
+          {usernameBad ? (
+            <p className="text-xs text-destructive">
+              {usernameData && !usernameData.valid
+                ? "Use 1-32 characters: lowercase letters, digits, - or _, starting with a letter."
+                : "That username is already taken."}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Your login on the cluster. Keep the suggested one or type your own.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ar-reason">Reason (optional)</Label>

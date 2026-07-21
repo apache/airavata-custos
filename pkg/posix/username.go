@@ -81,3 +81,21 @@ func Prefix() string {
 	}
 	return "custos"
 }
+
+// ValidChosen reports whether s is acceptable as a user-picked login: 1 to 32
+// characters, starting with a lowercase letter, then lowercase letters, digits,
+// hyphen, or underscore. Unlike a generated name it carries no prefix.
+func ValidChosen(s string) bool {
+	if s == "" || len(s) > 32 {
+		return false
+	}
+	for i, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case i > 0 && (r >= '0' && r <= '9' || r == '-' || r == '_'):
+		default:
+			return false
+		}
+	}
+	return true
+}
