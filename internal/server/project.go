@@ -23,6 +23,7 @@ import (
 
 	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/common"
+	"github.com/apache/airavata-custos/pkg/identity"
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
@@ -50,11 +51,13 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary	Get a project by ID
+// @Description	Callers without the projects read privilege only see projects they participate in; others return 404.
 // @Tags	Projects
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Project ID"
 // @Success	200	{object}	ProjectResponse
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/projects/{id} [get]
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request) {
@@ -103,6 +106,7 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary	List projects (filtered + paginated, PI joined)
+// @Description	Callers without the projects read privilege get only the projects they participate in; filters and pagination apply to privileged callers only.
 // @Tags	Projects
 // @Security	BearerAuth
 // @Produce	json
@@ -112,8 +116,26 @@ func (s *Server) updateProjectStatus(w http.ResponseWriter, r *http.Request) {
 // @Param	limit	query	integer	false	"Page size"
 // @Param	offset	query	integer	false	"Page offset"
 // @Success	200	{object}	ProjectListResponse
+// @Failure	401	{object}	object{error=string}
 // @Router	/projects [get]
 func (s *Server) listProjects(w http.ResponseWriter, r *http.Request) {
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	if !identity.HasPrivilege(r.Context(), models.ProjectsRead) {
+		rows, err := s.svc.ListProjectsForParticipant(r.Context(), caller.UserID)
+		if err != nil {
+			common.WriteServiceError(w, err)
+			return
+		}
+		items := make([]ProjectResponse, 0, len(rows))
+		for i := range rows {
+			items = append(items, projectResponseFrom(&rows[i]))
+		}
+		common.WriteJSON(w, http.StatusOK, ProjectListResponse{Items: items, Total: len(items)})
+		return
+	}
 	q := r.URL.Query()
 	f := store.ProjectListFilter{
 		PIID:   q.Get("pi_id"),

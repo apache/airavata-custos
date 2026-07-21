@@ -181,11 +181,13 @@ func (s *Server) detachResourceFromAllocation(w http.ResponseWriter, r *http.Req
 }
 
 // @Summary	List resources attached to a compute allocation
+// @Description	Callers without the allocations read privilege must hold a membership on the allocation or a governance role on its project; others return 404.
 // @Tags	Compute Allocation Resources
 // @Security	BearerAuth
 // @Produce	json
 // @Param	id	path	string	true	"Compute allocation ID"
 // @Success	200	{array}	models.ComputeAllocationResourceMapping
+// @Failure	401	{object}	object{error=string}
 // @Failure	404	{object}	object{error=string}
 // @Router	/compute-allocations/{id}/resources [get]
 func (s *Server) listResourcesForAllocation(w http.ResponseWriter, r *http.Request) {

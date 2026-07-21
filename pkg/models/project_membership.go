@@ -30,6 +30,19 @@ const (
 	ProjectRoleAllocationManager ProjectRole = "ALLOCATION_MANAGER"
 )
 
+// GovernanceRoles are the project roles that manage allocations.
+var GovernanceRoles = []ProjectRole{ProjectRolePI, ProjectRoleCoPI, ProjectRoleAllocationManager}
+
+// IsGovernanceRole reports whether a role is in GovernanceRoles.
+func IsGovernanceRole(role ProjectRole) bool {
+	for _, r := range GovernanceRoles {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
 // ProjectMembership ties a user to a project-level governance role.
 type ProjectMembership struct {
 	ProjectID string      `json:"project_id" db:"project_id"`
