@@ -16,6 +16,7 @@
 // under the License.
 
 import { http, HttpResponse } from "msw";
+import settingsFixture from "@/features/core/identity/__fixtures__/settings.json";
 import type { PrivilegeKey, Role, UserRole } from "@/generated/core/types.gen";
 
 const PRIVILEGES: PrivilegeKey[] = [
@@ -79,6 +80,13 @@ const initialRoles: MockRole[] = [
         { user_id: "u3", role_id: "role-auditor", granted_at: "2026-01-15T09:00:00Z" },
       ],
     },
+    ...Object.values(settingsFixture.roleDetails).map((detail) => ({
+      ...detail.role,
+      privileges: detail.privileges as PrivilegeKey[],
+      holders: (settingsFixture.roles as UserRole[]).filter(
+        (grant) => grant.role_id === detail.role.id,
+      ),
+    })),
   ];
 
 const roles = new Map<string, MockRole>(initialRoles.map((role) => [role.id ?? "", role]));

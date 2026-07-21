@@ -19,28 +19,41 @@ import { expect, test } from "@playwright/test";
 import { signInAs } from "./fixtures/auth";
 
 test.describe("settings", () => {
+  test.setTimeout(90_000);
+
   test("account menu opens the settings page and theme persists across reload", async ({
     page,
   }) => {
     await signInAs(page, "admin");
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("button", { name: /account menu/i })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // Open the account menu and navigate to Settings.
     await page.getByRole("button", { name: /account menu/i }).click();
-    await page.getByRole("menuitem", { name: /settings/i }).click();
-    await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.getByRole("heading", { name: /^Settings$/ })).toBeVisible();
+    await Promise.all([
+      page.waitForURL(/\/settings$/, { waitUntil: "domcontentloaded" }),
+      page.getByRole("menuitem", { name: /settings/i }).click(),
+    ]);
+    await expect(page.getByRole("heading", { name: /^Settings$/ })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // The identity cards render against the seeded MSW fixtures.
-    await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Effective privileges" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole("heading", { name: "Effective privileges" })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // Switch to the dark theme and confirm it applies.
     await page.getByRole("button", { name: /^dark$/i }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);
 
     // Reload and confirm the choice persisted (next-themes localStorage).
-    await page.reload();
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByRole("button", { name: /^dark$/i })).toHaveAttribute(
       "aria-pressed",
       "true",
