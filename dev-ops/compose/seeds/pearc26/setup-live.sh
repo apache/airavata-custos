@@ -124,9 +124,11 @@ alloc=$(capi POST /compute-allocations "{\"project_id\":\"$project_id\",\"name\"
 alloc_id=$(echo "$alloc" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
 echo "  allocation $alloc_id ($start -> $end)"
 
-echo "== Attaching the resource grant (fires the SLURM limits event)"
+echo "== Attaching the resource grants (fire the SLURM limits + association events)"
 capi POST "/compute-allocations/$alloc_id/resources" '{"compute_allocation_resource_id":"pearc26-res-debug-cpu","resource_amount":4,"resource_time":87840}' >/dev/null
 echo "  grant: cpu x4 for 87840 minutes on partition debug"
+capi POST "/compute-allocations/$alloc_id/resources" '{"compute_allocation_resource_id":"pearc26-res-gpu-cpu","resource_amount":8,"resource_time":87840}' >/dev/null
+echo "  grant: cpu x8 for 87840 minutes on partition gpu"
 
 echo "== Recording PI membership and the PEARC26 access event"
 "${DB_EXEC[@]}" <<SQL
