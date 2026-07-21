@@ -319,6 +319,10 @@ export type ComputeClusterUser = {
      * The username of the user on the compute cluster, which may be different from their Airavata Custos username.
      */
     local_username?: string;
+    /**
+     * When the account was provisioned into the registry; nil until then.
+     */
+    provisioned_at?: string;
     user_id?: string;
 };
 

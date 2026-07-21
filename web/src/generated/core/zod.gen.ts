@@ -222,6 +222,7 @@ export const zComputeClusterUser = z.object({
     compute_cluster_id: z.string().optional(),
     id: z.string().optional(),
     local_username: z.string().optional(),
+    provisioned_at: z.string().optional(),
     user_id: z.string().optional()
 });
 

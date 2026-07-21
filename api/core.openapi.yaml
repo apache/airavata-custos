@@ -403,6 +403,10 @@ definitions:
         description: The username of the user on the compute cluster, which may be
           different from their Airavata Custos username.
         type: string
+      provisioned_at:
+        description: When the account was provisioned into the registry; nil until
+          then.
+        type: string
       user_id:
         type: string
     type: object
