@@ -102,6 +102,19 @@ func (s *Service) EnsureProjectMembership(ctx context.Context, projectID, userID
 	})
 }
 
+// ProjectRoleForUser returns the user's governance role on a project, or an
+// empty role when they hold none.
+func (s *Service) ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error) {
+	pm, err := s.projMemberships.FindByPair(ctx, projectID, userID)
+	if err != nil {
+		return "", fmt.Errorf("lookup project role: %w", err)
+	}
+	if pm == nil {
+		return "", nil
+	}
+	return pm.Role, nil
+}
+
 // ListProjectMemberships returns every project_memberships row for the project.
 func (s *Service) ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error) {
 	if projectID == "" {

@@ -37,6 +37,20 @@ func (s *Service) ListComputeAllocations(ctx context.Context, f store.Allocation
 	return rows, total, nil
 }
 
+// ListComputeAllocationsForParticipant returns the allocations where the
+// user holds an active membership, or a governance role on the parent
+// project.
+func (s *Service) ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
+	}
+	rows, err := s.allocs.FindByParticipant(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list compute allocations for participant: %w", err)
+	}
+	return rows, nil
+}
+
 // CreateComputeAllocation persists a new compute allocation. The referenced
 // project and compute cluster must already exist. If alloc.ID is empty a new
 // UUID is generated; if Status is empty it defaults to ACTIVE.

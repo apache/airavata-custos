@@ -82,6 +82,24 @@ func (s *mysqlProjectMembershipStore) FindPIByProject(ctx context.Context, proje
 	return &pm, nil
 }
 
+// IsParticipant reports whether the user has a project_memberships row or an
+// active membership on any of the project's allocations.
+func (s *mysqlProjectMembershipStore) IsParticipant(ctx context.Context, projectID, userID string) (bool, error) {
+	var participant bool
+	err := s.db.GetContext(ctx, &participant,
+		`SELECT EXISTS (SELECT 1 FROM project_memberships
+		                 WHERE project_id = ? AND user_id = ?)
+		     OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
+		                  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
+		                 WHERE ca.project_id = ? AND cam.user_id = ?
+		                   AND cam.membership_status = 'ACTIVE')`,
+		projectID, userID, projectID, userID)
+	if err != nil {
+		return false, err
+	}
+	return participant, nil
+}
+
 func (s *mysqlProjectMembershipStore) Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO project_memberships (project_id, user_id, role, added_time)

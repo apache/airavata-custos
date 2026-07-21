@@ -101,6 +101,19 @@ func (r *Router) RequireAuth(pattern string, handler http.HandlerFunc) {
 	r.mux.HandleFunc(pattern, handler)
 }
 
+// RequireScoped registers a route whose access depends on the specific
+// resource, not a site privilege. authorize runs first: it writes the response
+// and returns false to deny, or returns true to run handler. The policy is a
+// required argument, so a scoped route cannot be registered without one.
+func (r *Router) RequireScoped(pattern string, authorize func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+	r.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
+		if !authorize(w, req) {
+			return
+		}
+		handler(w, req)
+	})
+}
+
 // PublicPaths returns the path components of every Public() registration,
 // suitable for handing to Middleware.
 func (r *Router) PublicPaths() []string { return r.publicPaths }

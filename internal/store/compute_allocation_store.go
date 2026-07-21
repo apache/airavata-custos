@@ -96,6 +96,30 @@ func (s *mysqlComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id
 	return err
 }
 
+// FindByParticipant returns the allocations where the user holds an active
+// membership, or a governance role on the parent project. Ordered like List
+// (start_time descending).
+func (s *mysqlComputeAllocationStore) FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+	var rows []models.ComputeAllocation
+	query, args, err := sqlx.In(
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations a
+		  WHERE EXISTS (SELECT 1 FROM compute_allocation_memberships cam
+		                 WHERE cam.compute_allocation_id = a.id AND cam.user_id = ?
+		                   AND cam.membership_status = 'ACTIVE')
+		     OR EXISTS (SELECT 1 FROM project_memberships pm
+		                 WHERE pm.project_id = a.project_id AND pm.user_id = ?
+		                   AND pm.role IN (?))
+		  ORDER BY start_time DESC`, userID, userID, models.GovernanceRoles)
+	if err != nil {
+		return nil, err
+	}
+	err = s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {
 	where := []string{}
 	args := []any{}

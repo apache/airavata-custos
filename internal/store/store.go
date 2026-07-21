@@ -157,6 +157,10 @@ type ProjectStore interface {
 	// ListWithPI is List joined with the PI user, replacing the per-row
 	// GetUser fan-out the handler would otherwise need.
 	ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error)
+	// ListWithPIForParticipant returns the projects where the user holds a
+	// project membership or an active allocation membership, PI joined,
+	// newest first.
+	ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error)
 }
 
 // ProjectListFilter selects which projects ProjectStore.List returns.
@@ -185,6 +189,9 @@ type ComputeAllocationStore interface {
 	// List returns a paginated, filtered slice of allocations plus the total
 	// count matching the filter (ignoring limit/offset).
 	List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error)
+	// FindByParticipant returns the allocations where the user holds an active
+	// membership, or a governance role on the parent project. Newest first.
+	FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
 }
 
 // AllocationListFilter selects which allocations ComputeAllocationStore.List returns.
@@ -344,6 +351,9 @@ type ProjectMembershipStore interface {
 	FindByProject(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
 	// FindPIByProject returns the PI row, or nil if the project has no PI yet.
 	FindPIByProject(ctx context.Context, projectID string) (*models.ProjectMembership, error)
+	// IsParticipant reports whether the user has a project_memberships row or
+	// an active membership on any of the project's allocations.
+	IsParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	// Create inserts a new row within the provided transaction.
 	Create(ctx context.Context, tx *sql.Tx, pm *models.ProjectMembership) error
 	// UpdateRole changes the role of an existing (project, user) row.

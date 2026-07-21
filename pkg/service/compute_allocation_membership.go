@@ -89,6 +89,16 @@ func (s *Service) GetComputeAllocationMembership(ctx context.Context, id string)
 	return m, nil
 }
 
+// IsAllocationMember reports whether the user holds an active membership on
+// the allocation.
+func (s *Service) IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error) {
+	m, err := s.memberships.FindByPair(ctx, allocationID, userID)
+	if err != nil {
+		return false, fmt.Errorf("lookup compute allocation membership: %w", err)
+	}
+	return m != nil && m.MembershipStatus == models.ACTIVE, nil
+}
+
 // ListMembersForAllocation returns memberships for an allocation joined with
 // users so each row carries display_name and email. Display fields live on
 // store.MembershipWithUser, not on the core entity.

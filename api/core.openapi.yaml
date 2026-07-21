@@ -1991,6 +1991,9 @@ paths:
       - Compute Allocation Usages
   /compute-allocations:
     get:
+      description: Callers without the allocations read privilege get only allocations
+        where they hold a membership or a governance role on the parent project; filters
+        and pagination apply to privileged callers only.
       parameters:
       - description: Filter by project ID
         in: query
@@ -2019,6 +2022,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ComputeAllocationListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: List compute allocations (filtered + paginated)
@@ -2055,6 +2065,8 @@ paths:
       - Compute Allocations
   /compute-allocations/{id}:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2068,6 +2080,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ComputeAllocation'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2167,6 +2186,8 @@ paths:
       - Compute Allocation Diffs
   /compute-allocations/{id}/memberships:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2182,6 +2203,13 @@ paths:
             items:
               $ref: '#/definitions/AllocationMembershipResponse'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2196,6 +2224,8 @@ paths:
       - Compute Allocation Memberships
   /compute-allocations/{id}/resources:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2211,6 +2241,13 @@ paths:
             items:
               $ref: '#/definitions/ComputeAllocationResourceMapping'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2342,6 +2379,8 @@ paths:
       - Compute Allocation Resources
   /compute-allocations/{id}/usages:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2357,6 +2396,13 @@ paths:
             items:
               $ref: '#/definitions/ComputeAllocationUsage'
             type: array
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2371,6 +2417,8 @@ paths:
       - Compute Allocation Usages
   /compute-allocations/{id}/usages/total:
     get:
+      description: Callers without the allocations read privilege must hold a membership
+        on the allocation or a governance role on its project; others return 404.
       parameters:
       - description: Compute allocation ID
         in: path
@@ -2384,6 +2432,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/AllocationSUTotalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -2866,6 +2921,8 @@ paths:
       - Privileges
   /projects:
     get:
+      description: Callers without the projects read privilege get only the projects
+        they participate in; filters and pagination apply to privileged callers only.
       parameters:
       - description: Filter by PI user ID
         in: query
@@ -2894,6 +2951,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ProjectListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       security:
       - BearerAuth: []
       summary: List projects (filtered + paginated, PI joined)
@@ -2930,6 +2994,8 @@ paths:
       - Projects
   /projects/{id}:
     get:
+      description: Callers without the projects read privilege only see projects they
+        participate in; others return 404.
       parameters:
       - description: Project ID
         in: path
@@ -2943,6 +3009,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/ProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:

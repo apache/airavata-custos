@@ -53,7 +53,9 @@ type ProjectWithPI struct {
 // portal needs to render a project row.
 const projectWithPISelect = `SELECT p.id, p.originated_id, p.title, p.origination, p.project_pi_id,
         p.status, p.created_time,
-        u.first_name AS pi_first_name, u.last_name AS pi_last_name, u.email AS pi_email
+        COALESCE(u.first_name, '') AS pi_first_name,
+        COALESCE(u.last_name, '')  AS pi_last_name,
+        COALESCE(u.email, '')      AS pi_email
    FROM projects p
    LEFT JOIN users u ON u.id = p.project_pi_id`
 
@@ -185,6 +187,25 @@ func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]mo
 		return nil, 0, err
 	}
 	return rows, total, nil
+}
+
+// ListWithPIForParticipant returns the projects where the user holds a
+// project membership or an active allocation membership, with the PI joined,
+// newest first.
+func (s *mysqlProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
+	var rows []ProjectWithPI
+	err := s.db.SelectContext(ctx, &rows, projectWithPISelect+`
+	  WHERE EXISTS (SELECT 1 FROM project_memberships pm
+	                 WHERE pm.project_id = p.id AND pm.user_id = ?)
+	     OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
+	                  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
+	                 WHERE ca.project_id = p.id AND cam.user_id = ?
+	                   AND cam.membership_status = 'ACTIVE')
+	  ORDER BY p.created_time DESC`, userID, userID)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // ListWithPI is List joined with the PI user. Replaces per-row GetUser calls
