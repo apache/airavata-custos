@@ -99,12 +99,60 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationCreation(ctx context
 	slog.Info("Successfully created SLURM account for compute allocation", "account", slurmAccount)
 }
 
+// SubscribeToComputeAllocationDeletion revokes every member's access when the
+// allocation is deleted. The Slurm account is left in place so its job history
+// stays attributable.
 func (a *AssociationSubscriber) SubscribeToComputeAllocationDeletion(ctx context.Context, computeAllocation models.ComputeAllocation) {
-	slog.Info("Received compute allocation deletion event", "account", computeAllocation)
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_delete")
+	defer span.End()
+	span.SetAttributes(attribute.String("slurm.allocation_id", computeAllocation.ID))
+
+	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+		slog.Error("Failed to remove associations for deleted allocation", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationDeletionFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
+		return
+	}
+	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deleted allocation.")
 }
 
+// SubscribeToComputeAllocationUpdate keeps cluster access in sync with the
+// allocation. An allocation that stops being active loses every association,
+// and one that becomes active again has them restored.
 func (a *AssociationSubscriber) SubscribeToComputeAllocationUpdate(ctx context.Context, computeAllocation models.ComputeAllocation) {
-	slog.Info("Received compute allocation update event", "account", computeAllocation)
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_update")
+	defer span.End()
+	span.SetAttributes(attribute.String("slurm.allocation_id", computeAllocation.ID))
+
+	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if activeAllocation(computeAllocation) {
+		if err := a.restoreAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+			slog.Error("Failed to restore associations for reactivated allocation", "error", err)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to restore associations. Error: "+err.Error())
+			return
+		}
+		a.recordAuditEvent(ctx, "ComputeAllocationProvisioned", "compute_allocation", computeAllocation.ID, "Restored cluster associations for the active allocation.")
+		return
+	}
+
+	if err := a.removeAssociationsForAllocation(fetchCtx, computeAllocation); err != nil {
+		slog.Error("Failed to remove associations for deactivated allocation", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationUpdateFailed", "compute_allocation", computeAllocation.ID, "Failed to remove associations. Error: "+err.Error())
+		return
+	}
+	a.recordAuditEvent(ctx, "ComputeAllocationDeprovisioned", "compute_allocation", computeAllocation.ID, "Removed cluster associations for the deactivated allocation.")
 }
 
 func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreation(ctx context.Context, mapping models.ComputeAllocationResourceMapping) {
