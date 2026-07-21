@@ -32,6 +32,7 @@ type SlurmClient interface {
 	CreateAccount(a client.Account, cluster string) error
 	UpsertAssociation(a client.Association) error
 	ListAssociations(f client.AssocFilter) ([]client.Association, error)
+	DeleteAssociation(f client.AssocFilter) error
 }
 
 type AssociationSubscriber struct {
@@ -57,6 +58,8 @@ func (a *AssociationSubscriber) RegisterSubscribers() {
 	a.eventBus.SubscribeComputeAllocationDeleted(a.SubscribeToComputeAllocationDeletion)
 	a.eventBus.SubscribeComputeAllocationUpdated(a.SubscribeToComputeAllocationUpdate)
 	a.eventBus.SubscribeComputeAllocationMembershipCreated(a.SubscribeToComputeAllocationMembershipCreation)
+	a.eventBus.SubscribeComputeAllocationMembershipUpdated(a.SubscribeToComputeAllocationMembershipUpdate)
+	a.eventBus.SubscribeComputeAllocationMembershipDeleted(a.SubscribeToComputeAllocationMembershipDeletion)
 	a.eventBus.SubscribeComputeAllocationMembershipResourceOverrideCreated(a.SubscribeToComputeAllocationMembershipResourceOverrideCreation)
 	a.eventBus.SubscribeComputeAllocationResourceMappingCreated(a.SubscribeToComputeAllocationResourceMappingCreation)
 }

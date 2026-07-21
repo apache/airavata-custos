@@ -131,3 +131,67 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipResourceOv
 	}
 	a.recordAuditEvent(ctx, "ComputeAllocationMembershipResourceOverrideCreationSucceeded", "compute_allocation_membership_resource_override", override.ID, "Successfully upserted association.")
 }
+
+// SubscribeToComputeAllocationMembershipUpdate reacts to a membership-changing
+// state. Anything other than ACTIVE means the member should no longer be able
+// to submit, so the associations go; going back to ACTIVE re-grants them.
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipUpdate(ctx context.Context, membership models.ComputeAllocationMembership) {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_update")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("slurm.allocation_id", membership.ComputeAllocationID),
+		attribute.String("slurm.user_id", membership.UserID),
+	)
+
+	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
+	defer cancel()
+
+	if membership.MembershipStatus == models.ACTIVE {
+		if err := a.upsertAssociationsForMembership(fetchCtx, membership); err != nil {
+			if errors.Is(err, errNotProvisioned) {
+				slog.Info("Cluster account not provisioned yet, leaving the association to the reconciler",
+					"membership_id", membership.ID)
+				return
+			}
+			slog.Error("Failed to upsert association for reactivated membership", "error", err)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to upsert association. Error: "+err.Error())
+		}
+		return
+	}
+
+	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
+		slog.Error("Failed to remove associations for deactivated membership", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipUpdateFailed", "compute_allocation_membership", membership.ID, "Failed to remove associations. Error: "+err.Error())
+		return
+	}
+	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Removed cluster associations for the deactivated membership.")
+}
+
+// SubscribeToComputeAllocationMembershipDeletion removes the member's access
+// when the membership row itself goes away.
+func (a *AssociationSubscriber) SubscribeToComputeAllocationMembershipDeletion(ctx context.Context, membership models.ComputeAllocationMembership) {
+	ctx = audit.WithSource(ctx, "slurm")
+	ctx, span := tracing.Start(ctx, "slurm.compute_allocation_membership_delete")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("slurm.allocation_id", membership.ComputeAllocationID),
+		attribute.String("slurm.user_id", membership.UserID),
+	)
+
+	fetchCtx, cancel := context.WithTimeout(ctx, coreCallTimeout)
+	defer cancel()
+
+	if err := a.removeAssociationsForMembership(fetchCtx, membership); err != nil {
+		slog.Error("Failed to remove associations for deleted membership", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeletionFailed", "compute_allocation_membership", membership.ID, "Failed to remove associations. Error: "+err.Error())
+		return
+	}
+	a.recordAuditEvent(ctx, "ComputeAllocationMembershipDeprovisioned", "compute_allocation_membership", membership.ID, "Removed cluster associations for the deleted membership.")
+}
