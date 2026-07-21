@@ -111,8 +111,13 @@ function PendingCard({ request }: { request: AccessRequest }) {
   const { data: event } = useAccessEvent(request.event_code);
   return (
     <Card heading="Request received">
-      Your request for {event?.name ?? request.event_code} is waiting for review. Submitted{" "}
-      {formatDate(request.timestamp)}.
+      <span className="block">
+        Your request for {event?.name ?? request.event_code} is waiting for review. Submitted{" "}
+        {formatDate(request.timestamp)}.
+      </span>
+      <span className="mt-2 block">
+        Once it's approved you'll get an email with your account details, so check your inbox.
+      </span>
     </Card>
   );
 }
