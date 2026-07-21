@@ -91,7 +91,9 @@ func (o *Orchestrator) findByEmailExact(email string) (int, error) {
 		return 0, err
 	}
 	for _, p := range candidates {
-		if p.CoId == o.c.Config().COID {
+		// Soft-deleted people stay searchable; reusing one provisions into a
+		// dead record, so only Active matches count.
+		if p.CoId == o.c.Config().COID && p.Status == "Active" {
 			return p.Id, nil
 		}
 	}
