@@ -28,7 +28,7 @@ test.describe("analytics page", () => {
   test("member view: shared base, no member breakdown, jobs toggle, or role chip", async ({
     page,
   }) => {
-    await signInAs(page, "viewer");
+    await signInAs(page, "member");
     // Explicit allocation: the Climate context where the caller is a MEMBER.
     await page.goto("/analytics?allocation=alloc-climate");
 
@@ -73,7 +73,7 @@ test.describe("analytics page", () => {
   });
 
   test("axe: no serious or critical violations", async ({ page }) => {
-    await signInAs(page, "viewer");
+    await signInAs(page, "member");
     await page.goto("/analytics");
     await expect(page.getByRole("heading", { name: "Usage by resource" })).toBeVisible({
       timeout: 20_000,

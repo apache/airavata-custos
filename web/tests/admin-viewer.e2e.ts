@@ -20,7 +20,7 @@ import { signInAs } from "./fixtures/auth";
 
 test.describe("admin viewer persona", () => {
   test("sees read-only surfaces with no mutation UI or dropped nav", async ({ page }) => {
-    await signInAs(page, "viewer");
+    await signInAs(page, "member");
     await page.goto("/admin/organizations");
 
     await expect(page.getByRole("heading", { name: /^Organizations$/ })).toBeVisible({

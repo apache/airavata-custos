@@ -21,13 +21,30 @@
 import type { Page } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
-export type Persona = "viewer" | "manager" | "admin";
+export type Persona = "viewer" | "member" | "manager" | "admin";
+
+// viewer is an UNLINKED caller (no custos user) used for the access-request
+// flow; every other persona is a linked user. The portal layout redirects a
+// caller with no custosUserId to /no-access, so only linked personas reach the
+// portal pages.
+const LINKED: Record<Persona, boolean> = {
+  viewer: false,
+  member: true,
+  manager: true,
+  admin: true,
+};
 
 // Real privilege keys so browser abilities (PRIVILEGE_ABILITY_MAP) and the nav
 // gates resolve per persona. The MSW /user/privileges handler reads the
 // matching test-privileges cookie set below.
 const PRIVILEGES: Record<Persona, string[]> = {
   viewer: [
+    "core:users:read",
+    "core:organizations:read",
+    "core:clusters:read",
+    "core:allocations:read",
+  ],
+  member: [
     "core:users:read",
     "core:organizations:read",
     "core:clusters:read",
@@ -71,6 +88,7 @@ const PRIVILEGES: Record<Persona, string[]> = {
 
 const NAMES: Record<Persona, string> = {
   viewer: "Test Viewer",
+  member: "Test Member",
   manager: "Test Manager",
   admin: "Test Admin",
 };
@@ -90,6 +108,9 @@ export async function signInAs(page: Page, persona: Persona = "admin") {
       email: `${persona}@custos.local`,
       privileges: PRIVILEGES[persona],
       accessToken: "test-mock-bearer",
+      // Linked personas carry a custos user id; the portal layout sends anyone
+      // without one to /no-access.
+      ...(LINKED[persona] ? { custosUserId: `test-${persona}-id` } : {}),
     },
   });
 
