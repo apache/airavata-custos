@@ -36,6 +36,7 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Custos Portal",
   description: "Apache Custos operator and researcher portal",
+  icons: { icon: "/brand/logo/custos-mark.svg" },
 };
 
 export default function RootLayout({
