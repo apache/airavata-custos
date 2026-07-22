@@ -16,36 +16,17 @@
 // under the License.
 
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
-import { SignInForm } from "./SignInForm";
-
-export const metadata = {
-  title: "Sign in · Custos Portal",
-};
 
 type SearchParams = Promise<{ error?: string; callbackUrl?: string }>;
 
-// Rendered only on auth errors; otherwise the user goes straight to the IdP.
+// There is no custom sign-in screen: the landing page is the single entry
+// point. On an auth error we send the signed-out user back to the landing,
+// which shows the reason as a banner; otherwise straight to the IdP.
 export default async function SignInPage(props: { searchParams: SearchParams }) {
   const { error, callbackUrl } = await props.searchParams;
-  if (!error) {
-    const suffix = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
-    redirect(`/api/auth/federated-sign-in${suffix}`);
+  if (error) {
+    redirect(`/?authError=${encodeURIComponent(error)}`);
   }
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-muted px-6 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <div className="mb-6 flex flex-col items-start gap-1">
-          <span className="font-display text-2xl font-extrabold uppercase tracking-tight text-brand">
-            Custos
-          </span>
-          <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
-          <p className="text-sm text-muted-foreground">Sign in with your Custos account.</p>
-        </div>
-        <Suspense fallback={null}>
-          <SignInForm />
-        </Suspense>
-      </div>
-    </div>
-  );
+  const suffix = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
+  redirect(`/api/auth/federated-sign-in${suffix}`);
 }

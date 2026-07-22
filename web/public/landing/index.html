@@ -685,3 +685,107 @@
         </div>
     </div>
 </footer>
+
+<!-- Shows the reason a sign-in attempt failed when the flow redirects back here
+     with ?authError, then auto-dismisses. Kept self-contained like the rest. -->
+<div id="auth-banner" role="alert" aria-live="polite"></div>
+<style>
+    #auth-banner {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        max-width: 360px;
+        display: none;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(200, 30, 20, 0.28);
+        background: #FDECEA;
+        color: #A61B12;
+        font-size: 14px;
+        line-height: 1.4;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+    }
+    #auth-banner.show {
+        display: block;
+        animation: auth-banner-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    #auth-banner.hide {
+        display: block;
+        animation: auth-banner-out 360ms ease both;
+    }
+    @keyframes auth-banner-in {
+        from { opacity: 0; transform: translateY(-14px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes auth-banner-out {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-14px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #auth-banner.show,
+        #auth-banner.hide {
+            animation: none;
+        }
+    }
+    @media (prefers-color-scheme: dark) {
+        #auth-banner {
+            background: #2A1411;
+            color: #F7A9A0;
+            border-color: rgba(248, 55, 0, 0.40);
+        }
+    }
+    :root[data-theme="light"] #auth-banner {
+        background: #FDECEA;
+        color: #A61B12;
+        border-color: rgba(200, 30, 20, 0.28);
+    }
+    :root[data-theme="dark"] #auth-banner {
+        background: #2A1411;
+        color: #F7A9A0;
+        border-color: rgba(248, 55, 0, 0.40);
+    }
+</style>
+<script>
+    (function () {
+        var MESSAGES = {
+            session_expired: "Your session expired. Sign in again to continue.",
+            identity_not_linked: "Your identity isn't linked to a portal user yet. Ask an administrator to link it.",
+            AccessDenied: "Your account isn't permitted to sign in.",
+            Configuration: "Sign-in is misconfigured. Contact your administrator.",
+            OAuthCallback: "Sign-in didn't complete. Try again.",
+            OAuthSignin: "Sign-in didn't complete. Try again.",
+            Verification: "Sign-in didn't complete. Try again."
+        };
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get("authError");
+        if (!code) return;
+        var el = document.getElementById("auth-banner");
+        el.textContent = MESSAGES[code] || "Sign-in failed. Try again.";
+        params.delete("authError");
+        var qs = params.toString();
+        window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
+
+        // Reveal after the page has painted. Starting the animation during the
+        // initial parse means the render-blocking CSS/fonts delay the first
+        // paint until the animation has already finished, so it looks instant.
+        function reveal() {
+            requestAnimationFrame(function () {
+                el.classList.add("show");
+                window.setTimeout(function () {
+                    el.classList.remove("show");
+                    el.classList.add("hide");
+                    window.setTimeout(function () {
+                        el.style.display = "none";
+                        el.classList.remove("hide");
+                    }, 360);
+                }, 6000);
+            });
+        }
+        if (document.readyState === "complete") {
+            reveal();
+        } else {
+            window.addEventListener("load", reveal);
+        }
+    })();
+</script>

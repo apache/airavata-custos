@@ -33,7 +33,9 @@ export function middleware(request: NextRequest) {
       SESSION_COOKIES.some((base) => name === base || name.startsWith(`${base}.`)),
     );
   if (!hasSession) {
-    return NextResponse.rewrite(new URL("/landing/index.html", request.url));
+    const landing = new URL("/landing/index.html", request.url);
+    landing.search = request.nextUrl.search;
+    return NextResponse.rewrite(landing);
   }
   return NextResponse.next();
 }
