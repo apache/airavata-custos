@@ -19,77 +19,87 @@
 <!--
   Default landing page for a Custos deployment. To use your own, replace
   this file with your index.html before building the portal; see INSTALL.md.
+  The logo is the shared brand asset at /brand/logo/; the rest is
+  self-contained.
 -->
 <title>Custos Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <style>
     :root {
-        /* Brand tokens: colors are changed here, not in the rules below. */
-        --accent: #0F7A6C; /* primary brand color */
-        --accent-ink: #0B5A50; /* darker accent for text on light ground */
-        --accent-tint: rgba(15, 122, 108, 0.10);
+        /* Brand. The mark's own gradient runs #F83700 to #FE8C00; the tokens
+           below are the readable relatives of it, not the raw brand values. */
+        --brand-hot: #F83700;
+        --brand-warm: #FE8C00;
 
-        --paper: #F6F8F9; /* page ground */
-        --panel: #FFFFFF; /* card ground */
-        --line: #D8DfE2; /* borders */
-        --ink: #17222B; /* headings, body */
-        --muted: #54626E; /* secondary text (AA on paper) */
-        --status: #B97F10; /* status dot */
+        --accent: #C2410C;      /* solid fills that carry white text */
+        --accent-ink: #B4460B;  /* accent as text on paper */
+        --accent-tint: rgba(248, 55, 0, 0.07);
+        --accent-line: rgba(194, 65, 12, 0.28);
+
+        --paper: #FDF8F4;
+        --panel: #FFFFFF;
+        --line: #EADFD5;
+        --ink: #1F1611;
+        --muted: #6B5A4E;
+        --status: #9A6410;
         --btn-text: #FFFFFF;
+        --glow: rgba(248, 55, 0, 0.10);
     }
 
     @media (prefers-color-scheme: dark) {
         :root {
-            --accent: #35B2A0;
-            --accent-ink: #6FCFC1;
-            --accent-tint: rgba(53, 178, 160, 0.14);
-            --paper: #0E141A;
-            --panel: #141C24;
-            --line: #263340;
-            --ink: #E7EDF1;
-            --muted: #9AA9B5;
-            --status: #D9A13B;
-            --btn-text: #08211D;
+            --accent: #FE8C00;
+            --accent-ink: #FFA94D;
+            --accent-tint: rgba(254, 140, 0, 0.09);
+            --accent-line: rgba(254, 140, 0, 0.30);
+            --paper: #14100D;
+            --panel: #1D1815;
+            --line: #332A24;
+            --ink: #F5EDE6;
+            --muted: #A8968A;
+            --status: #E0A64A;
+            --btn-text: #1F1005;
+            --glow: rgba(248, 55, 0, 0.16);
         }
     }
 
     :root[data-theme="light"] {
-        --accent: #0F7A6C;
-        --accent-ink: #0B5A50;
-        --accent-tint: rgba(15, 122, 108, 0.10);
-        --paper: #F6F8F9;
+        --accent: #C2410C;
+        --accent-ink: #B4460B;
+        --accent-tint: rgba(248, 55, 0, 0.07);
+        --accent-line: rgba(194, 65, 12, 0.28);
+        --paper: #FDF8F4;
         --panel: #FFFFFF;
-        --line: #D8DFE2;
-        --ink: #17222B;
-        --muted: #54626E;
-        --status: #B97F10;
+        --line: #EADFD5;
+        --ink: #1F1611;
+        --muted: #6B5A4E;
+        --status: #9A6410;
         --btn-text: #FFFFFF;
+        --glow: rgba(248, 55, 0, 0.10);
     }
 
     :root[data-theme="dark"] {
-        --accent: #35B2A0;
-        --accent-ink: #6FCFC1;
-        --accent-tint: rgba(53, 178, 160, 0.14);
-        --paper: #0E141A;
-        --panel: #141C24;
-        --line: #263340;
-        --ink: #E7EDF1;
-        --muted: #9AA9B5;
-        --status: #D9A13B;
-        --btn-text: #08211D;
+        --accent: #FE8C00;
+        --accent-ink: #FFA94D;
+        --accent-tint: rgba(254, 140, 0, 0.09);
+        --accent-line: rgba(254, 140, 0, 0.30);
+        --paper: #14100D;
+        --panel: #1D1815;
+        --line: #332A24;
+        --ink: #F5EDE6;
+        --muted: #A8968A;
+        --status: #E0A64A;
+        --btn-text: #1F1005;
+        --glow: rgba(248, 55, 0, 0.16);
     }
 
-    * {
-        box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
-    html {
-        scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
 
     @media (prefers-reduced-motion: reduce) {
-        html {
-            scroll-behavior: auto;
-        }
+        html { scroll-behavior: auto; }
     }
 
     body {
@@ -97,15 +107,14 @@
         background: var(--paper);
         color: var(--ink);
         font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+        -webkit-font-smoothing: antialiased;
     }
 
     .mono {
         font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
     }
 
-    a {
-        color: var(--accent-ink);
-    }
+    a { color: var(--accent-ink); }
 
     a:focus-visible, button:focus-visible {
         outline: 2px solid var(--accent);
@@ -130,50 +139,51 @@
         text-decoration: none;
     }
 
-    .skip:focus {
-        left: 12px;
-        top: 12px;
+    .skip:focus { left: 12px; top: 12px; }
+
+    /* The mark carries the brand gradient. Its counter is negative space, so
+       it reads on either ground without a second copy of the file. */
+    .mark {
+        width: 27px;
+        height: 27px;
+        display: block;
+        flex: none;
+    }
+
+    .brand-logo {
+        height: 24px;
+        width: auto;
+        display: block;
+        flex: none;
     }
 
     /* header */
     header {
         border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        background: color-mix(in srgb, var(--paper) 88%, transparent);
+        backdrop-filter: blur(8px);
+        z-index: 5;
     }
 
     .bar {
         display: flex;
         align-items: center;
         gap: 20px;
-        padding: 18px 0;
+        padding: 16px 24px;
         flex-wrap: wrap;
     }
 
     .logo {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-weight: 800;
-        letter-spacing: -0.01em;
+        gap: 11px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
         color: var(--ink);
         text-decoration: none;
         font-size: 17px;
-    }
-
-    .logo .mark {
-        width: 26px;
-        height: 26px;
-        border-radius: 6px;
-        background: var(--accent);
-        display: inline-block;
-        position: relative;
-    }
-
-    .logo .mark::after {
-        content: "";
-        position: absolute;
-        inset: 7px;
-        border-radius: 2px;
-        background: var(--paper);
     }
 
     nav.main {
@@ -189,13 +199,9 @@
         font-size: 14.5px;
     }
 
-    nav.main a:hover {
-        color: var(--ink);
-    }
+    nav.main a:hover { color: var(--ink); }
 
-    .bar .signin {
-        margin-left: 8px;
-    }
+    .bar .signin { margin-left: 8px; }
 
     /* buttons */
     .btn {
@@ -212,26 +218,29 @@
         color: var(--btn-text);
     }
 
-    .btn-primary:hover {
-        filter: brightness(1.07);
-    }
+    .btn-primary:hover { filter: brightness(1.08); }
 
     .btn-ghost {
         border: 1px solid var(--line);
         color: var(--ink);
     }
 
-    .btn-ghost:hover {
-        border-color: var(--accent);
-    }
+    .btn-ghost:hover { border-color: var(--accent-line); }
 
     /* hero */
     .hero {
-        padding: 72px 0 42px;
+        padding: 84px 24px 46px;
+        position: relative;
     }
 
-    .hero .eyebrow {
-        color: var(--accent-ink);
+    /* Warm light off the top-left, echoing the mark's gradient. Decorative. */
+    .hero::before {
+        content: "";
+        position: absolute;
+        inset: -10% 30% 40% -20%;
+        background: radial-gradient(closest-side, var(--glow), transparent 70%);
+        pointer-events: none;
+        z-index: -1;
     }
 
     .eyebrow {
@@ -239,16 +248,25 @@
         letter-spacing: 0.14em;
         text-transform: uppercase;
         font-weight: 600;
+        color: var(--accent-ink);
     }
 
     h1 {
         font-size: clamp(34px, 5.2vw, 56px);
         line-height: 1.06;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.028em;
         font-weight: 800;
         margin: 14px 0 18px;
         max-width: 17ch;
         text-wrap: balance;
+    }
+
+    /* The one place the brand gradient touches type. */
+    h1 .grad {
+        background: linear-gradient(100deg, var(--brand-hot), var(--brand-warm));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
     }
 
     .hero p.lede {
@@ -279,13 +297,19 @@
         border: 1px solid var(--line);
         border-radius: 10px;
         overflow: hidden;
-        margin: 44px 0 0;
+        margin: 48px 0 0;
     }
 
     .stat {
         background: var(--panel);
         padding: 18px 20px;
+        border-top: 2px solid transparent;
     }
+
+    .stat:first-child { border-top-color: var(--brand-hot); }
+    .stat:nth-child(2) { border-top-color: #FA5A00; }
+    .stat:nth-child(3) { border-top-color: #FC7300; }
+    .stat:last-child { border-top-color: var(--brand-warm); }
 
     .stat b {
         display: block;
@@ -307,15 +331,13 @@
     /* sections */
     section {
         padding: 64px 0 8px;
-    }
-
-    section > .wrap > .eyebrow {
-        color: var(--accent-ink);
+        /* clears the sticky header when an anchor is followed */
+        scroll-margin-top: 72px;
     }
 
     h2 {
         font-size: clamp(24px, 3.2vw, 32px);
-        letter-spacing: -0.02em;
+        letter-spacing: -0.022em;
         margin: 10px 0 8px;
         text-wrap: balance;
     }
@@ -357,11 +379,11 @@
         grid-template-columns: auto 1fr;
         gap: 5px 14px;
         font-size: 13.5px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
     }
 
-    .card dt {
-        color: var(--muted);
-    }
+    .card dt { color: var(--muted); }
 
     .card dd {
         margin: 0;
@@ -437,15 +459,13 @@
     /* closing cta */
     .closer {
         margin: 72px 0;
-        border: 1px solid var(--line);
+        border: 1px solid var(--accent-line);
         background: var(--accent-tint);
         border-radius: 14px;
         padding: 40px 32px;
     }
 
-    .closer h2 {
-        margin-top: 0;
-    }
+    .closer h2 { margin-top: 0; }
 
     .closer p {
         color: var(--muted);
@@ -471,29 +491,21 @@
         text-decoration: none;
     }
 
-    .foot-links a:hover {
-        color: var(--ink);
-    }
+    .foot-links a:hover { color: var(--ink); }
 
     .attribution {
         color: var(--muted);
         max-width: 72ch;
     }
 
-    .attribution p {
-        margin: 4px 0;
-    }
-
-    .attribution a {
-        color: var(--accent-ink);
-    }
+    .attribution p { margin: 4px 0; }
 </style>
 
 <a class="skip" href="#content">Skip to content</a>
 
 <header>
     <div class="wrap bar">
-        <a class="logo" href="#"><span class="mark" aria-hidden="true"></span>Custos Portal</a>
+        <a class="logo" href="#" aria-label="Custos Portal"><img class="brand-logo" src="/brand/logo/custos-logo.svg" alt="Custos"></a>
         <nav class="main" aria-label="Primary">
             <a href="#compute">Compute</a>
             <a href="#platform">Platform</a>
@@ -507,7 +519,7 @@
 <main id="content">
     <div class="wrap hero">
         <p class="eyebrow mono">Research computing platform</p>
-        <h1>Compute for open science, in one portal.</h1>
+        <h1>Compute for <span class="grad">open science</span>, in one portal.</h1>
         <p class="lede">
             GPU and CPU resources for research and teaching, with projects, allocations,
             and usage managed in a single place. Sign in and work from your first
@@ -673,3 +685,107 @@
         </div>
     </div>
 </footer>
+
+<!-- Shows the reason a sign-in attempt failed when the flow redirects back here
+     with ?authError, then auto-dismisses. Kept self-contained like the rest. -->
+<div id="auth-banner" role="alert" aria-live="polite"></div>
+<style>
+    #auth-banner {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        max-width: 360px;
+        display: none;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(200, 30, 20, 0.28);
+        background: #FDECEA;
+        color: #A61B12;
+        font-size: 14px;
+        line-height: 1.4;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+    }
+    #auth-banner.show {
+        display: block;
+        animation: auth-banner-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    #auth-banner.hide {
+        display: block;
+        animation: auth-banner-out 360ms ease both;
+    }
+    @keyframes auth-banner-in {
+        from { opacity: 0; transform: translateY(-14px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes auth-banner-out {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-14px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #auth-banner.show,
+        #auth-banner.hide {
+            animation: none;
+        }
+    }
+    @media (prefers-color-scheme: dark) {
+        #auth-banner {
+            background: #2A1411;
+            color: #F7A9A0;
+            border-color: rgba(248, 55, 0, 0.40);
+        }
+    }
+    :root[data-theme="light"] #auth-banner {
+        background: #FDECEA;
+        color: #A61B12;
+        border-color: rgba(200, 30, 20, 0.28);
+    }
+    :root[data-theme="dark"] #auth-banner {
+        background: #2A1411;
+        color: #F7A9A0;
+        border-color: rgba(248, 55, 0, 0.40);
+    }
+</style>
+<script>
+    (function () {
+        var MESSAGES = {
+            session_expired: "Your session expired. Sign in again to continue.",
+            identity_not_linked: "Your identity isn't linked to a portal user yet. Ask an administrator to link it.",
+            AccessDenied: "Your account isn't permitted to sign in.",
+            Configuration: "Sign-in is misconfigured. Contact your administrator.",
+            OAuthCallback: "Sign-in didn't complete. Try again.",
+            OAuthSignin: "Sign-in didn't complete. Try again.",
+            Verification: "Sign-in didn't complete. Try again."
+        };
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get("authError");
+        if (!code) return;
+        var el = document.getElementById("auth-banner");
+        el.textContent = MESSAGES[code] || "Sign-in failed. Try again.";
+        params.delete("authError");
+        var qs = params.toString();
+        window.history.replaceState(null, "", window.location.pathname + (qs ? "?" + qs : ""));
+
+        // Reveal after the page has painted. Starting the animation during the
+        // initial parse means the render-blocking CSS/fonts delay the first
+        // paint until the animation has already finished, so it looks instant.
+        function reveal() {
+            requestAnimationFrame(function () {
+                el.classList.add("show");
+                window.setTimeout(function () {
+                    el.classList.remove("show");
+                    el.classList.add("hide");
+                    window.setTimeout(function () {
+                        el.style.display = "none";
+                        el.classList.remove("hide");
+                    }, 360);
+                }, 6000);
+            });
+        }
+        if (document.readyState === "complete") {
+            reveal();
+        } else {
+            window.addEventListener("load", reveal);
+        }
+    })();
+</script>

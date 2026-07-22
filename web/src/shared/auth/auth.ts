@@ -82,7 +82,7 @@ export const authConfig: NextAuthConfig = {
             t.privileges = body.privileges ?? [];
           }
         } catch {
-          // Leave token as-is; /no-access handles the empty case.
+          // Leave token as-is; the portal shows the no-access notice for the empty case.
         }
       }
       if (account?.id_token) {

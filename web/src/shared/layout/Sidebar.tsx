@@ -18,6 +18,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { brand } from "@/shared/brand";
 import { useAbility } from "@/shared/casl/AbilityProvider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -42,11 +43,10 @@ export function Sidebar() {
   return (
     <aside className="flex w-[240px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       <div className="px-6 pt-8 pb-6">
-        <Link
-          href="/"
-          className="font-display text-2xl font-extrabold uppercase tracking-tight text-brand"
-        >
-          Custos
+        <Link href="/" aria-label={brand.name} className="inline-flex items-center">
+          {/* Deployment brand logo; set NEXT_PUBLIC_PORTAL_LOGO to override. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={brand.logo} alt={brand.name} className="h-6 w-auto" />
         </Link>
       </div>
 

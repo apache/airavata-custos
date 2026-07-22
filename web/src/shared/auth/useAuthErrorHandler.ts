@@ -18,9 +18,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { toast } from "sonner";
 import { ApiError } from "@/shared/api/client";
 
 type ErrorBody = { code?: unknown };
@@ -32,24 +30,24 @@ function readCode(body: unknown): string | null {
 }
 
 export function useAuthErrorHandler() {
-  const router = useRouter();
   return useCallback(
     (error: unknown) => {
       if (!(error instanceof ApiError)) return;
       const code = readCode(error.body);
 
+      // Sign the user out and let the sign-in page surface the reason as a
+      // toast; a toast fired here would be lost across the sign-out redirect.
       if (error.status === 401 && (code === "invalid_token" || code === "missing_bearer")) {
-        toast("Session expired", { description: "Signing you out…" });
         void signOut({ callbackUrl: "/sign-in?error=session_expired" });
         return;
       }
       if (error.status === 401 && code === "identity_not_linked") {
-        router.push("/no-access?reason=identity_not_linked");
+        void signOut({ callbackUrl: "/sign-in?error=identity_not_linked" });
         return;
       }
       // 403 insufficient_privilege and other codes fall through to the
       // query's local ErrorState — no global takeover.
     },
-    [router],
+    [],
   );
 }
