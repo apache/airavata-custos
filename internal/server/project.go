@@ -211,3 +211,57 @@ func (s *Server) listProjectMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	common.WriteJSON(w, http.StatusOK, out)
 }
+
+// @Summary	Set a project member's governance role
+// @Description	Upserts the member's project role, creating the membership if absent. ALLOCATION_MANAGER grants oversight of the project's allocations. The PI cannot be set or demoted here.
+// @Tags	Projects
+// @Security	BearerAuth
+// @Accept	json
+// @Produce	json
+// @Param	id		path	string	true	"Project ID"
+// @Param	userId	path	string	true	"User ID"
+// @Param	request	body	object{role=string}	true	"Role payload"
+// @Success	200	{object}	object{project_id=string,user_id=string,role=string}
+// @Failure	400	{object}	object{error=string}
+// @Router	/projects/{id}/members/{userId} [put]
+func (s *Server) setProjectMemberRole(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PathValue("id")
+	userID := r.PathValue("userId")
+	var body struct {
+		Role string `json:"role"`
+	}
+	if err := common.DecodeJSON(r, &body); err != nil {
+		common.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.svc.EnsureProjectMembership(r.Context(), projectID, userID, body.Role); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	role, err := s.svc.ProjectRoleForUser(r.Context(), projectID, userID)
+	if err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	common.WriteJSON(w, http.StatusOK, map[string]string{
+		"project_id": projectID,
+		"user_id":    userID,
+		"role":       string(role),
+	})
+}
+
+// @Summary	Remove a project member's governance role
+// @Tags	Projects
+// @Security	BearerAuth
+// @Param	id		path	string	true	"Project ID"
+// @Param	userId	path	string	true	"User ID"
+// @Success	204	"No Content"
+// @Failure	400	{object}	object{error=string}
+// @Router	/projects/{id}/members/{userId} [delete]
+func (s *Server) removeProjectMember(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.EnsureProjectMembership(r.Context(), r.PathValue("id"), r.PathValue("userId"), "MEMBER"); err != nil {
+		common.WriteServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

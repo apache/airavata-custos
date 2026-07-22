@@ -178,7 +178,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => removeMutation.mutate(row.id)}
+              onClick={() => removeMutation.mutate(row.user_id)}
               aria-label={`Remove ${row.display_name}`}
               disabled={removeMutation.isPending}
             >
@@ -201,7 +201,7 @@ export function ProjectMembersTab({ projectId, canManage }: ProjectMembersTabPro
         onSubmit={(payload) => {
           if (!editing) return;
           updateMutation.mutate(
-            { memberId: editing.id, payload },
+            { userId: editing.user_id, payload },
             { onSuccess: () => setEditing(null) },
           );
         }}

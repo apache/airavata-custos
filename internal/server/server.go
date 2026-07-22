@@ -80,6 +80,8 @@ func (s *Server) routes() {
 	s.router.RequireScoped("GET /projects/{id}", s.canReadProject, s.getProject)
 	s.router.RequirePrivilege("PUT /projects/{id}/status", models.ProjectsWrite, s.updateProjectStatus)
 	s.router.RequirePrivilege("GET /projects/{id}/members", models.ProjectsRead, s.listProjectMembers)
+	s.router.RequirePrivilege("PUT /projects/{id}/members/{userId}", models.ProjectsWrite, s.setProjectMemberRole)
+	s.router.RequirePrivilege("DELETE /projects/{id}/members/{userId}", models.ProjectsWrite, s.removeProjectMember)
 
 	s.router.RequirePrivilege("POST /compute-clusters", models.ClustersWrite, s.createComputeCluster)
 	s.router.RequirePrivilege("GET /compute-clusters", models.ClustersRead, s.listComputeClusters)

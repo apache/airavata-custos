@@ -143,18 +143,19 @@ describe("addProjectMember", () => {
 });
 
 describe("updateProjectMember", () => {
-  it("PUTs the patch", async () => {
-    fetchMock.mockResolvedValueOnce(mockResponse(200, { ...validMember, role: "CO_PI" }));
-    const out = await updateProjectMember("project-001", "pm-001", { role: "CO_PI" });
-    expect(out.role).toBe("CO_PI");
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/pm-001");
+  it("PUTs the role to the user-keyed path", async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse(200, { project_id: "project-001", user_id: "user-002", role: "CO_PI" }));
+    await updateProjectMember("project-001", "user-002", { role: "CO_PI" });
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/user-002");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PUT");
   });
 });
 
 describe("removeProjectMember", () => {
-  it("DELETEs the member", async () => {
+  it("DELETEs the user-keyed member", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-    await removeProjectMember("project-001", "pm-001");
+    await removeProjectMember("project-001", "user-002");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/projects/project-001/members/user-002");
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("DELETE");
   });
 });

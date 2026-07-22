@@ -112,6 +112,19 @@ export async function removeMember(id: string): Promise<void> {
   await apiFetch(`/compute-allocation-memberships/${id}`, { method: "DELETE" });
 }
 
+// A governance role lives on the parent project, not the allocation membership.
+// Kept here so the members tab can grant it without importing another feature.
+export async function setAllocationMemberProjectRole(
+  projectId: string,
+  userId: string,
+  role: string,
+): Promise<void> {
+  await apiFetch(`/projects/${projectId}/members/${userId}`, {
+    method: "PUT",
+    body: { role },
+  });
+}
+
 export async function listChangeRequests(
   params: ChangeRequestListParams = {},
 ): Promise<ChangeRequest[]> {

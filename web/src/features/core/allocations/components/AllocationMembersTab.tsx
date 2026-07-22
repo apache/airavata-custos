@@ -29,7 +29,7 @@ import {
   useAddMember,
   useAllocationMembers,
   useRemoveMember,
-  useUpdateMember,
+  useSetMemberProjectRole,
 } from "../queries";
 import type {
   AllocationMembership,
@@ -60,7 +60,7 @@ function initialsFrom(name: string): string {
 export function AllocationMembersTab({ allocation, canManage }: AllocationMembersTabProps) {
   const query = useAllocationMembers(allocation.id);
   const addMutation = useAddMember(allocation.id);
-  const updateMutation = useUpdateMember(allocation.id);
+  const roleMutation = useSetMemberProjectRole(allocation.id);
   const removeMutation = useRemoveMember(allocation.id);
   const [editing, setEditing] = React.useState<AllocationMembership | null>(null);
   const [adding, setAdding] = React.useState(false);
@@ -178,8 +178,8 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
 
   function handleEditSubmit(payload: MemberEditPayload) {
     if (!editing) return;
-    updateMutation.mutate(
-      { id: editing.id, patch: payload },
+    roleMutation.mutate(
+      { projectId: allocation.project_id, userId: editing.user_id, role: payload.role },
       { onSuccess: () => setEditing(null) },
     );
   }
@@ -197,7 +197,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
         member={editing}
         onClose={() => setEditing(null)}
         onSubmit={handleEditSubmit}
-        isPending={updateMutation.isPending}
+        isPending={roleMutation.isPending}
       />
       <AddMemberDialog
         open={adding}

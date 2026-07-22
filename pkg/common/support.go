@@ -59,6 +59,8 @@ func WriteServiceError(w http.ResponseWriter, err error) {
 		WriteError(w, http.StatusConflict, err)
 	case errors.Is(err, service.ErrInvalidInput):
 		WriteError(w, http.StatusBadRequest, err)
+	case errors.Is(err, service.ErrPIChange):
+		WriteError(w, http.StatusConflict, err)
 	default:
 		// Avoid leaking driver messages to clients; log the full error.
 		slog.Error("internal server error", "error", err.Error())

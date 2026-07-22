@@ -86,17 +86,16 @@ export async function addProjectMember(
 
 export async function updateProjectMember(
   projectId: string,
-  memberId: string,
+  userId: string,
   payload: UpdateProjectMemberPayload,
-): Promise<ProjectMember> {
+): Promise<void> {
   const validated = updateProjectMemberPayloadSchema.parse(payload);
-  const raw = await apiFetch(`/projects/${projectId}/members/${memberId}`, {
+  await apiFetch(`/projects/${projectId}/members/${userId}`, {
     method: "PUT",
     body: validated,
   });
-  return projectMemberSchema.parse(raw);
 }
 
-export async function removeProjectMember(projectId: string, memberId: string): Promise<void> {
-  await apiFetch(`/projects/${projectId}/members/${memberId}`, { method: "DELETE" });
+export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
+  await apiFetch(`/projects/${projectId}/members/${userId}`, { method: "DELETE" });
 }

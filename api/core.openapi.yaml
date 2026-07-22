@@ -3370,6 +3370,86 @@ paths:
       summary: List project members (one row per distinct user, with allocations)
       tags:
       - Projects
+  /projects/{id}/members/{userId}:
+    delete:
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a project member's governance role
+      tags:
+      - Projects
+    put:
+      consumes:
+      - application/json
+      description: Upserts the member's project role, creating the membership if absent.
+        ALLOCATION_MANAGER grants oversight of the project's allocations. The PI cannot
+        be set or demoted here.
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Role payload
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              project_id:
+                type: string
+              role:
+                type: string
+              user_id:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set a project member's governance role
+      tags:
+      - Projects
   /projects/{id}/status:
     put:
       consumes:

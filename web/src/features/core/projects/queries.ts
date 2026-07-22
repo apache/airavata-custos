@@ -109,12 +109,12 @@ export function useUpdateProjectMember(projectId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({
-      memberId,
+      userId,
       payload,
     }: {
-      memberId: string;
+      userId: string;
       payload: UpdateProjectMemberPayload;
-    }) => updateProjectMember(projectId, memberId, payload),
+    }) => updateProjectMember(projectId, userId, payload),
     onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
   });
 }
@@ -122,7 +122,7 @@ export function useUpdateProjectMember(projectId: string) {
 export function useRemoveProjectMember(projectId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (memberId: string) => removeProjectMember(projectId, memberId),
+    mutationFn: (userId: string) => removeProjectMember(projectId, userId),
     onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.members(projectId) }),
   });
 }

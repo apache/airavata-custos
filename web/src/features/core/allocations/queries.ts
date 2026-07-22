@@ -32,6 +32,7 @@ import {
   listChangeRequests,
   rejectChangeRequest,
   removeMember,
+  setAllocationMemberProjectRole,
   submitChangeRequest,
   updateMember,
 } from "./api";
@@ -143,6 +144,15 @@ export function useUpdateMember(allocationId: string) {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: UpdateMembershipPayload }) =>
       updateMember(id, patch),
+    onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
+  });
+}
+
+export function useSetMemberProjectRole(allocationId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, userId, role }: { projectId: string; userId: string; role: string }) =>
+      setAllocationMemberProjectRole(projectId, userId, role),
     onSuccess: () => client.invalidateQueries({ queryKey: allocationKeys.members(allocationId) }),
   });
 }

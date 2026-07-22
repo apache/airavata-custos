@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ComputeAllocation } from "../schemas";
 
@@ -50,16 +50,21 @@ const members = [
 ];
 
 const mutation = { mutate: vi.fn(), isPending: false };
+const roleMutation = { mutate: vi.fn(), isPending: false };
 vi.mock("../queries", () => ({
   useAllocationMembers: () => ({ data: members, isLoading: false, error: null, refetch: vi.fn() }),
   useAddMember: () => mutation,
-  useUpdateMember: () => mutation,
+  useSetMemberProjectRole: () => roleMutation,
   useRemoveMember: () => mutation,
 }));
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 
-const allocation = { id: "alloc-001", name: "Test Allocation" } as ComputeAllocation;
+const allocation = {
+  id: "alloc-001",
+  name: "Test Allocation",
+  project_id: "proj-1",
+} as ComputeAllocation;
 
 describe("<AllocationMembersTab />", () => {
   it("offers no Edit or Remove for PI or Co-PI members", () => {
@@ -76,5 +81,16 @@ describe("<AllocationMembersTab />", () => {
     render(<AllocationMembersTab allocation={allocation} canManage={false} />);
     expect(screen.queryByRole("button", { name: /^Remove / })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
+  });
+
+  it("writes the role to the parent project keyed on user id", () => {
+    render(<AllocationMembersTab allocation={allocation} canManage={true} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Mina Frey" }));
+    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ALLOCATION_MANAGER" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(roleMutation.mutate).toHaveBeenCalledWith(
+      { projectId: "proj-1", userId: "u-3", role: "ALLOCATION_MANAGER" },
+      expect.anything(),
+    );
   });
 });

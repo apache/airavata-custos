@@ -34,9 +34,9 @@ function member(over: Record<string, unknown>) {
 }
 
 const members = [
-  member({ id: "pm-1", display_name: "Ada Pi", role: "PI" }),
-  member({ id: "pm-2", display_name: "Ben Copi", role: "CO_PI" }),
-  member({ id: "pm-3", display_name: "Cira Member", role: "MEMBER" }),
+  member({ id: "pm-1", user_id: "u-1", display_name: "Ada Pi", role: "PI" }),
+  member({ id: "pm-2", user_id: "u-2", display_name: "Ben Copi", role: "CO_PI" }),
+  member({ id: "pm-3", user_id: "u-3", display_name: "Cira Member", role: "MEMBER" }),
 ];
 
 const mutation = { mutate: vi.fn(), isPending: false };
@@ -65,5 +65,22 @@ describe("<ProjectMembersTab />", () => {
     const select = screen.getByLabelText("Role");
     const options = within(select).getAllByRole("option").map((o) => o.textContent);
     expect(options).toEqual(["Allocation Manager", "Member"]);
+  });
+
+  it("keys remove on the member's user id", () => {
+    render(<ProjectMembersTab projectId="p-1" canManage={true} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Cira Member" }));
+    expect(mutation.mutate).toHaveBeenCalledWith("u-3");
+  });
+
+  it("keys the role update on the member's user id", () => {
+    render(<ProjectMembersTab projectId="p-1" canManage={true} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Cira Member" }));
+    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ALLOCATION_MANAGER" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(mutation.mutate).toHaveBeenCalledWith(
+      { userId: "u-3", payload: { role: "ALLOCATION_MANAGER" } },
+      expect.anything(),
+    );
   });
 });

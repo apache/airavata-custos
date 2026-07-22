@@ -122,25 +122,23 @@ export const projectsHandlers = [
     return HttpResponse.json(member, { status: 201 });
   }),
 
-  http.put("*/api/v1/projects/:id/members/:memberId", async ({ params, request }) => {
+  http.put("*/api/v1/projects/:id/members/:userId", async ({ params, request }) => {
     const id = String(params.id);
-    const memberId = String(params.memberId);
+    const userId = String(params.userId);
     const patch = (await request.json()) as UpdateProjectMemberPayload;
-    const bucket = membersByProject[id] ?? [];
-    const existing = bucket.find((m) => m.id === memberId);
-    if (!existing) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    if (patch.role) existing.role = patch.role;
-    if (patch.status) existing.status = patch.status;
-    return HttpResponse.json(existing);
+    const bucket = ensureMembersBucket(id);
+    const existing = bucket.find((m) => m.user_id === userId);
+    if (existing && patch.role) existing.role = patch.role;
+    if (existing && patch.status) existing.status = patch.status;
+    return HttpResponse.json({ project_id: id, user_id: userId, role: patch.role ?? "MEMBER" });
   }),
 
-  http.delete("*/api/v1/projects/:id/members/:memberId", ({ params }) => {
+  http.delete("*/api/v1/projects/:id/members/:userId", ({ params }) => {
     const id = String(params.id);
-    const memberId = String(params.memberId);
+    const userId = String(params.userId);
     const bucket = membersByProject[id] ?? [];
-    const idx = bucket.findIndex((m) => m.id === memberId);
-    if (idx === -1) return HttpResponse.json({ error: "member not found" }, { status: 404 });
-    bucket.splice(idx, 1);
+    const idx = bucket.findIndex((m) => m.user_id === userId);
+    if (idx !== -1) bucket.splice(idx, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 ];
