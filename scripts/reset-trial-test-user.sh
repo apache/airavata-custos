@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Wipe one person from the trial-allocation pipeline so their email can be
 # reused as a fresh test user: deletes the registry CoPerson (which pulls the
-# LDAP entry), removes every custos dev-DB row for the email, and checks the
-# cluster no longer resolves the account.
+# LDAP entry), removes every custos dev-DB row for the email, drops the stale
+# Slurm associations, flushes SSSD on every cluster node, and removes the stale
+# home directory (a re-provisioned account gets a new uid and cannot use the
+# old home).
 #
 # Usage:
 #   scripts/reset-trial-test-user.sh [email] [--yes]
@@ -164,15 +166,26 @@ base="ou=people,o=Nexus,o=CO,dc=nexus,dc=cybershuttle,dc=org"
 ldap_left=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" \
   "ldapsearch -x -H ldaps://ldap-test.nexus.cybershuttle.org -b '$base' '(mail=$EMAIL)' dn 2>/dev/null | grep -c '^dn:' || true" 2>/dev/null || echo "?")
 echo "  LDAP entries remaining for $EMAIL: $ldap_left (registry->LDAP delete can lag a minute)"
+# Flush SSSD on every node, not just the login node: a stale cache on a
+# compute node keeps the recycled username bound to its old uid there.
+nodes=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "sinfo -Nh -o '%N' 2>/dev/null | sort -u" 2>/dev/null || true)
+ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "sudo -n sss_cache -E 2>/dev/null" 2>/dev/null \
+  && echo "  sss_cache flushed on the login node" || echo "  could not flush sss_cache on the login node"
+for n in $nodes; do
+  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "ssh -o ConnectTimeout=8 -o StrictHostKeyChecking=no '$n' 'sudo -n sss_cache -E' 2>/dev/null" 2>/dev/null \
+    && echo "  sss_cache flushed on $n" || echo "  could not flush sss_cache on $n"
+done
 for u in $(printf '%s\n' $local_usernames $registry_uids | sort -u); do
-  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "sudo -n sss_cache -u '$u' 2>/dev/null; sudo -n sss_cache -E 2>/dev/null" 2>/dev/null \
-    && echo "  sss_cache flushed for $u (full cache invalidated)" \
-    || echo "  could not flush sss cache for $u (entry may linger up to the SSSD cache TTL, ~90 min)"
   r=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "id '$u' 2>&1" 2>/dev/null || true)
   echo "  id $u -> $r"
 done
+# The home dir is created under the account's uid and never reused, so a
+# re-provisioned account (fresh uid) cannot enter its old home. Remove it; a
+# later login recreates it under the new uid. /home is local to the login node
+# and NFS-exported, so one rm clears it cluster-wide.
 for u in $(printf '%s\n' $local_usernames $registry_uids | sort -u); do
-  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "test -d '/home/$u' && ls -ldn '/home/$u'" 2>/dev/null \
-    && echo "  NOTE: /home/$u still exists with the OLD uid; a re-provisioned account gets a new uid and cannot use it. Fix on the cluster: sudo rm -rf '/home/$u' (or chown to the new uid after re-provisioning)."
+  ssh -o ConnectTimeout=10 -o BatchMode=yes "$CLUSTER" "test -d '/home/$u' && sudo -n rm -rf '/home/$u'" 2>/dev/null \
+    && echo "  removed /home/$u (recreated under the new uid on next login)" \
+    || echo "  /home/$u not present or could not be removed"
 done
 echo "Done. Re-run the checks in a few minutes if LDAP had not caught up yet."
