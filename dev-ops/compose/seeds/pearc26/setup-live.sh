@@ -111,9 +111,22 @@ if ! echo "$me" | grep -q "projects:write"; then
   exit 1
 fi
 
+echo "== Ensuring the tutorial PI identity"
+PI_EMAIL="${PEARC26_PI_EMAIL:-dev@airavata.apache.org}"
+PI_FIRST="${PEARC26_PI_FIRST:-Apache}"
+PI_LAST="${PEARC26_PI_LAST:-Airavata}"
+# Seed PENDING with no OIDC binding so that if this PI email belongs to a real
+# person, their first login links to this row by email and activates it. The
+# email must match the one their IdP asserts.
+"${DB_EXEC[@]}" -e "INSERT INTO users (id, organization_id, first_name, last_name, email, status) VALUES (UUID(), 'system', '$PI_FIRST', '$PI_LAST', '$PI_EMAIL', 'PENDING') ON DUPLICATE KEY UPDATE email=email;"
+PI_ID=$("${DB_EXEC[@]}" -N -e "SELECT id FROM users WHERE email='$PI_EMAIL' LIMIT 1;")
+[ -n "$PI_ID" ] || { echo "Could not resolve the tutorial PI user"; exit 1; }
+echo "  PI: $PI_FIRST $PI_LAST <$PI_EMAIL> ($PI_ID)"
+
 echo "== Creating project"
-# The authenticated admin is the PI: the seed approver has no login.
-project=$(capi POST /projects "{\"originated_id\":\"PEARC26\",\"title\":\"PEARC26 Tutorial Workshop\",\"origination\":\"pearc26\",\"project_pi_id\":\"$ADMIN_ID\",\"status\":\"ACTIVE\"}")
+# PI is a non-personal identity so no maintainer name shows on the tutorial;
+# the authenticated admin keeps governance through the PI membership below.
+project=$(capi POST /projects "{\"originated_id\":\"PEARC26\",\"title\":\"PEARC26 Tutorial Workshop\",\"origination\":\"pearc26\",\"project_pi_id\":\"$PI_ID\",\"status\":\"ACTIVE\"}")
 project_id=$(echo "$project" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
 echo "  project $project_id"
 
