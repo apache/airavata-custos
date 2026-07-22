@@ -63,6 +63,15 @@ DELETE FROM compute_allocation_membership_resource_overrides WHERE compute_alloc
   (SELECT id FROM compute_allocation_memberships WHERE compute_allocation_id='$aid');
 DELETE FROM compute_allocation_memberships WHERE compute_allocation_id='$aid';
 DELETE FROM compute_allocation_resource_mappings WHERE compute_allocation_id='$aid';
+-- Access requests reference the event by code, so clear them (and their event
+-- log) before the access_events row they point at.
+DELETE are FROM access_request_events are
+  JOIN access_requests ar ON ar.id = are.access_request_id
+  JOIN access_events ae ON ae.code = ar.event_code
+ WHERE ae.compute_allocation_id='$aid';
+DELETE ar FROM access_requests ar
+  JOIN access_events ae ON ae.code = ar.event_code
+ WHERE ae.compute_allocation_id='$aid';
 DELETE FROM access_events WHERE compute_allocation_id='$aid';
 DELETE FROM compute_allocations WHERE id='$aid';
 SQL
