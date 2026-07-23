@@ -140,8 +140,8 @@ echo "  allocation $alloc_id ($start -> $end)"
 echo "== Attaching the resource grants (fire the SLURM limits + association events)"
 capi POST "/compute-allocations/$alloc_id/resources" '{"compute_allocation_resource_id":"pearc26-res-debug-cpu","resource_amount":4,"resource_time":87840}' >/dev/null
 echo "  grant: cpu x4 for 87840 minutes on partition debug"
-capi POST "/compute-allocations/$alloc_id/resources" '{"compute_allocation_resource_id":"pearc26-res-gpu-cpu","resource_amount":8,"resource_time":87840}' >/dev/null
-echo "  grant: cpu x8 for 87840 minutes on partition gpu"
+capi POST "/compute-allocations/$alloc_id/resources" '{"compute_allocation_resource_id":"pearc26-res-gpu","resource_amount":1,"resource_time":87840}' >/dev/null
+echo "  grant: gpu x1 for 87840 minutes on partition gpu"
 
 echo "== Recording PI membership and the PEARC26 access event"
 "${DB_EXEC[@]}" <<SQL
