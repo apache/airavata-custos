@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -33,10 +34,11 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion string
+	var reconcileInterval, provisionGrace time.Duration
 
 	if connectorConfig != nil {
 		slurmAPI, err := connectorConfig.GetNestedConfig("slurm_api")
@@ -52,6 +54,20 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 			}
 			if v, ok := slurmAPI["version"].(string); ok {
 				apiVersion = v
+			}
+		}
+		if ri, ok := connectorConfig.Config["association_reconcile_interval"].(string); ok && ri != "" {
+			if d, err := time.ParseDuration(ri); err == nil {
+				reconcileInterval = d
+			} else {
+				slog.Warn("invalid association_reconcile_interval, using default", "value", ri, "error", err)
+			}
+		}
+		if pg, ok := connectorConfig.Config["association_provision_grace"].(string); ok && pg != "" {
+			if d, err := time.ParseDuration(pg); err == nil {
+				provisionGrace = d
+			} else {
+				slog.Warn("invalid association_provision_grace, using default", "value", pg, "error", err)
 			}
 		}
 	}
@@ -77,6 +93,14 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	}
 
 	slurmClient := client.New(apiUrl, user, token, apiVersion)
-	subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService).RegisterSubscribers()
+	subscriber := subscribers.NewAssociationSubscriber(slurmClient, eventBus, coreService, reconcileInterval, provisionGrace)
+	subscriber.RegisterSubscribers()
+
+	// The sweep, not the events above, is what guarantees associations exist.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		subscriber.StartReconciler(ctx)
+	}()
 	return nil
 }

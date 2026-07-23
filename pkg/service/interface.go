@@ -103,6 +103,7 @@ type ComputeClusterUserService interface {
 	ListComputeClusterUsersByCluster(ctx context.Context, clusterID string) ([]models.ComputeClusterUser, error)
 	ListComputeClusterUsersByUser(ctx context.Context, userID string) ([]models.ComputeClusterUser, error)
 	UpdateComputeClusterUser(ctx context.Context, cu *models.ComputeClusterUser) error
+	MarkComputeClusterUserProvisioned(ctx context.Context, id string) error
 	DeleteComputeClusterUser(ctx context.Context, id string) error
 }
 

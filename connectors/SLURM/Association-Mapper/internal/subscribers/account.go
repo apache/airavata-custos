@@ -157,10 +157,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 			return
 		}
 
-		grpTres = append(grpTres, client.TRES{
-			Type:  resource.ResourceType,
-			Count: mapping.ResourceAmount,
-		})
+		grpTres = append(grpTres, tresFor(resource.ResourceType, mapping.ResourceAmount))
 	}
 
 	grpTresMins := []client.TRES{}
@@ -173,10 +170,7 @@ func (a *AssociationSubscriber) SubscribeToComputeAllocationResourceMappingCreat
 			return
 		}
 
-		grpTresMins = append(grpTresMins, client.TRES{
-			Type:  resource.ResourceType,
-			Count: mapping.ResourceTime,
-		})
+		grpTresMins = append(grpTresMins, tresFor(resource.ResourceType, mapping.ResourceTime))
 	}
 
 	limits := client.AssocLimits{

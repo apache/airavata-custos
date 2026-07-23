@@ -33,10 +33,11 @@ type ComputeCluster struct {
 }
 
 type ComputeClusterUser struct {
-	ID               string `json:"id"                db:"id"`
-	ComputeClusterID string `json:"compute_cluster_id" db:"compute_cluster_id"`
-	UserID           string `json:"user_id"            db:"user_id"`
-	LocalUsername    string `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	ID               string     `json:"id"                db:"id"`
+	ComputeClusterID string     `json:"compute_cluster_id" db:"compute_cluster_id"`
+	UserID           string     `json:"user_id"            db:"user_id"`
+	LocalUsername    string     `json:"local_username"     db:"local_username"` // The username of the user on the compute cluster, which may be different from their Airavata Custos username.
+	ProvisionedAt    *time.Time `json:"provisioned_at"     db:"provisioned_at"` // When the account was provisioned into the registry; nil until then.
 }
 
 type ComputeAllocation struct {

@@ -97,6 +97,8 @@ type ComputeClusterUserStore interface {
 	Create(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
 	// Update replaces mutable fields of an existing mapping within the provided transaction.
 	Update(ctx context.Context, tx *sql.Tx, c *models.ComputeClusterUser) error
+	// MarkProvisioned stamps provisioned_at on the mapping within the provided transaction.
+	MarkProvisioned(ctx context.Context, tx *sql.Tx, id string) error
 	// ReassignUser moves every mapping owned by fromUserID over to toUserID,
 	// dropping fromUserID's rows on clusters where toUserID already has one.
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error

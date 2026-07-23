@@ -36,7 +36,7 @@ func NewComputeClusterUserStore(db *sqlx.DB) ComputeClusterUserStore {
 	return &mysqlComputeClusterUserStore{db: db}
 }
 
-const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username`
+const computeClusterUserColumns = `id, compute_cluster_id, user_id, local_username, provisioned_at`
 
 func (s *mysqlComputeClusterUserStore) FindByID(ctx context.Context, id string) (*models.ComputeClusterUser, error) {
 	var c models.ComputeClusterUser
@@ -124,6 +124,11 @@ func (s *mysqlComputeClusterUserStore) Update(ctx context.Context, tx *sql.Tx, c
                 local_username     = ?
           WHERE id = ?`,
 		c.ComputeClusterID, c.UserID, c.LocalUsername, c.ID)
+	return err
+}
+
+func (s *mysqlComputeClusterUserStore) MarkProvisioned(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `UPDATE compute_cluster_users SET provisioned_at = NOW(6) WHERE id = ?`, id)
 	return err
 }
 

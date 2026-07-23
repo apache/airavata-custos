@@ -27,17 +27,28 @@ import (
 	"github.com/apache/airavata-custos/pkg/service"
 )
 
-type AssociationSubscriber struct {
-	slurmClient *client.Client
-	eventBus    *events.Bus
-	coreService service.CoreService
+// SlurmClient is the subset of the REST client the subscribers use.
+type SlurmClient interface {
+	CreateAccount(a client.Account, cluster string) error
+	UpsertAssociation(a client.Association) error
+	ListAssociations(f client.AssocFilter) ([]client.Association, error)
 }
 
-func NewAssociationSubscriber(slurmClient *client.Client, eventBus *events.Bus, coreService service.CoreService) *AssociationSubscriber {
+type AssociationSubscriber struct {
+	slurmClient       SlurmClient
+	eventBus          *events.Bus
+	coreService       service.CoreService
+	reconcileInterval time.Duration
+	provisionGrace    time.Duration
+}
+
+func NewAssociationSubscriber(slurmClient SlurmClient, eventBus *events.Bus, coreService service.CoreService, reconcileInterval, provisionGrace time.Duration) *AssociationSubscriber {
 	return &AssociationSubscriber{
-		slurmClient: slurmClient,
-		eventBus:    eventBus,
-		coreService: coreService,
+		slurmClient:       slurmClient,
+		eventBus:          eventBus,
+		coreService:       coreService,
+		reconcileInterval: reconcileInterval,
+		provisionGrace:    provisionGrace,
 	}
 }
 
