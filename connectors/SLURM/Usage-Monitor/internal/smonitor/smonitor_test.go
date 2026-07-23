@@ -148,6 +148,38 @@ func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
 	}
 }
 
+// A GPU resource is stored as "gres/gpu" but its TRES is {type:gres, name:gpu}.
+// Matching must join type and name, or GPU jobs record zero usage.
+func TestPollMatchesGpuTres(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-gpu": 2.0}, map[string]bool{"alice": true})
+	core.GetComputeAllocationResourceByNameAndClusterFunc = func(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
+		return &models.ComputeAllocationResource{ID: "res-gpu", Name: name, ResourceType: "gres/gpu"}, nil
+	}
+	job := client.JobInfo{
+		JobID:     44,
+		Account:   "acct",
+		User:      "alice",
+		Partition: "gpu",
+		Time:      client.JobTime{Start: 1000, End: 4600}, // 3600 seconds
+		Tres: client.JobTresInfo{
+			Allocated: []client.TRES{
+				{Type: "cpu", Count: 4},
+				{Type: "gres", Name: "gpu", Count: 2},
+				{Type: "node", Count: 1},
+			},
+		},
+	}
+	newTestMonitor(core, job).poll()
+
+	calls := core.CreateComputeAllocationUsageCalls()
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 usage row, got %d", len(calls))
+	}
+	if got := calls[0].U.UsedRawAmount; got != 2.0 {
+		t.Errorf("expected used_raw == 2.0 (2 gpu x 3600s / 3600), got %v", got)
+	}
+}
+
 func TestPollSkipsJobWithoutEffectiveRate(t *testing.T) {
 	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
 	newTestMonitor(core,
