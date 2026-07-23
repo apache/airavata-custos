@@ -37,7 +37,7 @@ export function MetaRow({
       role="group"
       aria-label="Metadata"
       className={cn(
-        "flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-foreground",
+        "inline-flex flex-wrap items-center gap-y-2 rounded-full bg-brand-tint/60 px-4 py-1 text-sm text-foreground [&>*:not(:first-child)]:ml-3 [&>*:not(:first-child)]:border-l [&>*:not(:first-child)]:border-border [&>*:not(:first-child)]:pl-3",
         className,
       )}
     >

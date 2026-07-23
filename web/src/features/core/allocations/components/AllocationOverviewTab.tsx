@@ -56,30 +56,30 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
 
   return (
     <div className="space-y-6">
-      <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-[max-content_1fr] text-sm">
+      <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
         <dt className="text-muted-foreground">Allocation ID</dt>
-        <dd className="font-mono text-foreground">{allocation.id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.id}</dd>
 
         <dt className="text-muted-foreground">Project</dt>
-        <dd className="font-mono text-foreground">{allocation.project_id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.project_id}</dd>
 
         <dt className="text-muted-foreground">Name</dt>
-        <dd className="text-foreground">{allocation.name}</dd>
+        <dd className="text-foreground before:content-[':_']">{allocation.name}</dd>
 
         <dt className="text-muted-foreground">Status</dt>
-        <dd className="text-foreground">{allocation.status}</dd>
+        <dd className="text-foreground before:content-[':_']">{allocation.status}</dd>
 
         <dt className="text-muted-foreground">Cluster</dt>
-        <dd className="font-mono text-foreground">{allocation.compute_cluster_id}</dd>
+        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.compute_cluster_id}</dd>
 
         <dt className="text-muted-foreground">Initial SUs</dt>
-        <dd className="tabular-nums text-foreground">{formatNumber(allocation.initial_su_amount)}</dd>
+        <dd className="tabular-nums text-foreground before:content-[':_']">{formatNumber(allocation.initial_su_amount)}</dd>
 
         <dt className="text-muted-foreground">Start</dt>
-        <dd className="text-foreground">{allocation.start_time}</dd>
+        <dd className="text-foreground before:content-[':_']">{allocation.start_time}</dd>
 
         <dt className="text-muted-foreground">End</dt>
-        <dd className="text-foreground">{allocation.end_time}</dd>
+        <dd className="text-foreground before:content-[':_']">{allocation.end_time}</dd>
       </dl>
 
       <section className="space-y-2">

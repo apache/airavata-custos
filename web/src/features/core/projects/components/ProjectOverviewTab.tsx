@@ -25,26 +25,26 @@ export type ProjectOverviewTabProps = {
 
 export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
   return (
-    <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-[max-content_1fr] text-sm">
+    <dl className="grid gap-x-8 gap-y-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-[max-content_1fr]">
       <dt className="text-muted-foreground">Project ID</dt>
-      <dd className="font-mono text-foreground">{project.id}</dd>
+      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.id}</dd>
 
       <dt className="text-muted-foreground">Originated ID</dt>
-      <dd className="font-mono text-foreground">{project.originated_id || "—"}</dd>
+      <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{project.originated_id || "—"}</dd>
 
       <dt className="text-muted-foreground">Title</dt>
-      <dd className="text-foreground">{project.title}</dd>
+      <dd className="text-foreground before:content-[':_']">{project.title}</dd>
 
       <dt className="text-muted-foreground">Origination</dt>
-      <dd className="text-foreground">{project.origination}</dd>
+      <dd className="text-foreground before:content-[':_']">{project.origination}</dd>
 
       <dt className="text-muted-foreground">PI</dt>
-      <dd className="text-foreground">
+      <dd className="text-foreground before:content-[':_']">
         {project.project_pi_display_name ? (
           <>
             {project.project_pi_display_name}
             {project.project_pi_email ? (
-              <span className="ml-2 text-xs text-muted-foreground">{project.project_pi_email}</span>
+              <span className="ml-2 text-xs text-muted-foreground">({project.project_pi_email})</span>
             ) : null}
           </>
         ) : (
@@ -53,10 +53,10 @@ export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
       </dd>
 
       <dt className="text-muted-foreground">Status</dt>
-      <dd className="text-foreground">{project.status}</dd>
+      <dd className="text-foreground before:content-[':_']">{project.status}</dd>
 
       <dt className="text-muted-foreground">Created</dt>
-      <dd className="text-foreground">{project.created_time}</dd>
+      <dd className="text-foreground before:content-[':_']">{project.created_time}</dd>
     </dl>
   );
 }

@@ -25,11 +25,25 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import {
   StatusBadge,
   statusBadgeVariantFromAllocationStatus,
 } from "@/shared/ui/StatusBadge";
 import type { Project, ProjectStatus } from "../schemas";
+
+function statusLabelFor(value: string): string {
+  switch (value) {
+    case "ACTIVE":
+      return "Active";
+    case "INACTIVE":
+      return "Inactive";
+    case "DELETED":
+      return "Deleted";
+    default:
+      return "All statuses";
+  }
+}
 
 export type ProjectsListProps = {
   rows: Project[];
@@ -137,17 +151,20 @@ export function ProjectsList({
           aria-label="Search projects"
           className="sm:w-64"
         />
-        <select
+        <Select
           value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value as ProjectStatus | "all")}
-          aria-label="Filter by status"
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          onValueChange={(value) => onStatusFilterChange(value as ProjectStatus | "all")}
         >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="DELETED">Deleted</option>
-        </select>
+          <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
+            <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="INACTIVE">Inactive</SelectItem>
+            <SelectItem value="DELETED">Deleted</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
