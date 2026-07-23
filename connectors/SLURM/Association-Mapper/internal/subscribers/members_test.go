@@ -171,6 +171,33 @@ func TestMembershipCreationKeepsOverrideLimits(t *testing.T) {
 	}
 }
 
+// A GPU resource is stored joined as "gres/gpu" but SLURM wants the TRES split
+// into type and name. Sending "gres/gpu" as the type yields an invalid limit.
+func TestMembershipCreationSplitsGpuTres(t *testing.T) {
+	core := coreMock(mockOpts{
+		provisionedAt: ago(time.Minute),
+		resources: []models.ComputeAllocationResource{
+			{ID: "res-1", Name: "gpu", ResourceType: "gres/gpu"},
+		},
+		overrides: []models.ComputeAllocationMembershipResourceOverride{{
+			ID: "ovr-1", ComputeAllocationMembershipID: "mem-1", ComputeAllocationResourceID: "res-1",
+			OverrideResourceAmount: 2, OverrideResourceTime: 120,
+		}},
+	})
+	slurm := &fakeSlurmClient{}
+	NewAssociationSubscriber(slurm, nil, core, 0, 0).
+		SubscribeToComputeAllocationMembershipCreation(context.Background(), testMembership())
+
+	got := slurm.all()
+	if len(got) != 1 {
+		t.Fatalf("expected 1 association, got %d", len(got))
+	}
+	tres := got[0].Limits.GrpTRES
+	if len(tres) != 1 || tres[0].Type != "gres" || tres[0].Name != "gpu" || tres[0].Count != 2 {
+		t.Errorf("expected GrpTRES {gres, gpu, 2}, got %+v", tres)
+	}
+}
+
 // An allocation with no resources has no partition to map onto; skipping beats
 // panicking or inventing a partition name.
 func TestMembershipCreationSkipsWhenAllocationHasNoResources(t *testing.T) {
