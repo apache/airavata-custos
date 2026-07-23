@@ -35,8 +35,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Custos Portal",
-  description: "Apache Custos operator and researcher portal",
+  title: `${brand.name} Portal`,
+  description: `${brand.name} operator and researcher portal`,
   icons: { icon: brand.favicon },
 };
 

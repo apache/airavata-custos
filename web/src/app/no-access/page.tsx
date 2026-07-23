@@ -16,9 +16,10 @@
 // under the License.
 
 import { Suspense } from "react";
+import { brand } from "@/shared/brand";
 import { NoAccessBody } from "./NoAccessBody";
 
-export const metadata = { title: "No access · Custos Portal" };
+export const metadata = { title: `No access · ${brand.name} Portal` };
 
 export default function NoAccessPage() {
   return (
