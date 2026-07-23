@@ -106,7 +106,7 @@ func TestPollRecordsRawAndSUExactly(t *testing.T) {
 	}
 	u := calls[0].U
 	if u.UsedRawAmount != 2.0 {
-		t.Errorf("expected used_raw == 2.0 (2 cpu x 1 node x 3600s / 3600), got %v", u.UsedRawAmount)
+		t.Errorf("expected used_raw == 2.0 (2 cpu x 3600s / 3600), got %v", u.UsedRawAmount)
 	}
 	if u.UsedSUAmount != 16.0 {
 		t.Errorf("expected used_su == 16.0 (2.0 raw x 8.0 rate), got %v", u.UsedSUAmount)
@@ -117,6 +117,34 @@ func TestPollRecordsRawAndSUExactly(t *testing.T) {
 	// Attribution must carry the portal user, not the cluster-user mapping row.
 	if u.UserID != "user-alice" {
 		t.Errorf("expected user_id user-alice, got %q", u.UserID)
+	}
+}
+
+// A multi-node job must not multiply by the node count: allocated TRES is
+// already the whole-job total.
+func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 1.0}, map[string]bool{"alice": true})
+	job := client.JobInfo{
+		JobID:     43,
+		Account:   "acct",
+		User:      "alice",
+		Partition: "debug",
+		Time:      client.JobTime{Start: 1000, End: 4600}, // 3600 seconds
+		Tres: client.JobTresInfo{
+			Allocated: []client.TRES{
+				{Type: "cpu", Count: 8}, // 8 cpus total across 2 nodes
+				{Type: "node", Count: 2},
+			},
+		},
+	}
+	newTestMonitor(core, job).poll()
+
+	calls := core.CreateComputeAllocationUsageCalls()
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 usage row, got %d", len(calls))
+	}
+	if got := calls[0].U.UsedRawAmount; got != 8.0 {
+		t.Errorf("expected used_raw == 8.0 (8 cpu x 3600s / 3600, NOT x 2 nodes), got %v", got)
 	}
 }
 

@@ -170,18 +170,16 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 		tresType := resource.ResourceType
 
 		resourceAmount := int64(0)
-		nodeCount := int64(0)
 		for _, tres := range job.Tres.Allocated {
 			// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:billing Name: Count:1}]
 			if tres.Type == tresType {
 				resourceAmount = tres.Count
 			}
-			if tres.Type == "node" {
-				nodeCount = tres.Count
-			}
 		}
 
-		calculatedRawAmount := float64(resourceAmount) * float64(nodeCount) * float64(jobDurationSec) / 3600
+		// tres.Count already is per-node amount x node count (the whole-job total),
+		// so raw = tres.Count x hours.
+		calculatedRawAmount := float64(resourceAmount) * float64(jobDurationSec) / 3600
 
 		rate, err := m.coreService.GetEffectiveRateForResource(ctx, resource.ID, time.Unix(job.Time.End, 0))
 		if err != nil {
