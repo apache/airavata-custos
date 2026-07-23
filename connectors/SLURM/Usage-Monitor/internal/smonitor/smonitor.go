@@ -31,20 +31,38 @@ import (
 
 const monitorInterval = 30 * time.Second
 
+// defaultPollOverlap is the look-back used when usage_lookback is not set.
+// The look-back makes each poll re-scan a short way before where the last one
+// stopped. SLURM saves a finished job to its accounting database a little
+// after the job ends, so a late-arriving record can land after the poll
+// window it belongs to has already passed. The look-back re-covers that gap,
+// and a repeat of the same job id replaces its earlier row. Its right value
+// depends on the cluster's slurmdbd commit lag, so it is configurable.
+const defaultPollOverlap = 15 * time.Minute
+
+type jobLister interface {
+	ListJobs(filter client.JobFilter) ([]client.JobInfo, error)
+}
+
 type SlurmMonitor struct {
-	slurmClient     *client.Client
+	slurmClient     jobLister
 	eventBus        *events.Bus
 	coreService     service.CoreService
 	clusterId       string
+	pollOverlap     time.Duration
 	lastMonitorTime int64
 }
 
-func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreService service.CoreService, clusterId string) *SlurmMonitor {
+func NewSlurmMonitor(slurmClient *client.Client, eventBus *events.Bus, coreService service.CoreService, clusterId string, pollOverlap time.Duration) *SlurmMonitor {
+	if pollOverlap <= 0 {
+		pollOverlap = defaultPollOverlap
+	}
 	return &SlurmMonitor{
 		slurmClient:     slurmClient,
 		eventBus:        eventBus,
 		coreService:     coreService,
 		clusterId:       clusterId,
+		pollOverlap:     pollOverlap,
 		lastMonitorTime: 1, // initialize to 1 to avoid issues with zero value
 	}
 }
@@ -81,8 +99,12 @@ func (m *SlurmMonitor) poll() {
 		return
 	}
 
+	windowStart := m.lastMonitorTime - int64(m.pollOverlap.Seconds())
+	if windowStart < 1 {
+		windowStart = 1
+	}
 	jobFilter := client.JobFilter{
-		StartTime: m.lastMonitorTime,
+		StartTime: windowStart,
 		EndTime:   time.Now().Unix(),
 	}
 
@@ -94,89 +116,101 @@ func (m *SlurmMonitor) poll() {
 	m.lastMonitorTime = jobFilter.EndTime
 
 	for _, job := range jobs {
-		//slog.Debug("processing SLURM job", "job_id", job.JobID, "job_name", job.Name)
-		//m.coreService.GetComputeAllocationResource()
-		slog.Info("Job object", "job", job)
-		targetAccount := job.Account
-		for _, alloc := range allocations {
-			if alloc.Name == targetAccount {
-				slog.Info("found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)
-
-				user, err := m.coreService.GetComputeClusterUserByLocalUsernameAndCluster(context, job.User, cluster.ID)
-				if err != nil {
-					if err == service.ErrNotFound {
-						slog.Warn("compute cluster user not found for SLURM job, skipping usage recording", "local_username", job.User, "cluster_id", cluster.ID)
-						return
-					} else {
-						slog.Error("failed to get compute cluster user", "error", err)
-						return
-					}
-				}
-
-				resource, err := m.coreService.GetComputeAllocationResourceByNameAndCluster(context, job.Partition, cluster.ID)
-
-				if err != nil {
-					if err == service.ErrNotFound {
-						slog.Warn("compute allocation resource not found for SLURM job, skipping usage recording", "resource_name", job.Partition, "cluster_id", cluster.ID)
-						return
-					} else {
-						slog.Error("failed to get compute allocation resource", "error", err)
-						return
-					}
-				}
-
-				jobId := strconv.FormatInt(job.JobID, 10)
-				existing, err := m.coreService.GetComputeAllocationUsageByComputeAllocationIDAndJobID(context, alloc.ID, jobId)
-
-				if err != nil && err != service.ErrNotFound {
-					slog.Error("failed to check for existing compute allocation usage", "error", err)
-					return
-				}
-
-				jobDurationMs := job.Time.End - job.Time.Start
-
-				if jobDurationMs <= 0 {
-					slog.Warn("SLURM job has non-positive duration, skipping usage recording", "job_id", job.JobID, "duration", jobDurationMs)
-					return
-				}
-
-				tresType := resource.ResourceType
-
-				resourceAmount := int64(0)
-				nodeCount := int64(0)
-				for _, tres := range job.Tres.Allocated {
-					// Process each TRES type and its allocated amount as needed
-					// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:billing Name: Count:1}]
-					if tres.Type == tresType {
-						resourceAmount = tres.Count
-					}
-					if tres.Type == "node" {
-						nodeCount = tres.Count
-					}
-				}
-
-				calulatedRawAmount := float64(resourceAmount) * float64(nodeCount) * float64(jobDurationMs) / (1000 * 3600) // Convert to minutes, adjust as needed based on how you want to calculate usage
-
-				usageModel := &models.ComputeAllocationUsage{
-					ComputeAllocationID:         alloc.ID,
-					UsedRawAmount:               calulatedRawAmount,     // This is a simplification, adjust as needed based on how you want to calculate usage
-					UsedSUAmount:                calulatedRawAmount * 1, // Assuming 1 SU per second for simplicity, adjust as needed based on your SU calculation logic
-					CalculatedTime:              time.Now(),
-					UserID:                      user.ID,
-					JobID:                       jobId,
-					ComputeAllocationResourceID: resource.ID,
-				}
-
-				if existing != nil {
-					m.coreService.DeleteComputeAllocationUsage(context, existing.ID)
-					slog.Info("deleted existing compute allocation usage for SLURM job", "job_id", job.JobID, "existing_usage_id", existing.ID)
-				}
-				m.coreService.CreateComputeAllocationUsage(context, usageModel)
-				break
-			}
-		}
+		m.recordJob(context, job, cluster, allocations)
 	}
 
 	slog.Info("successfully polled SLURM usage", "num_allocations", len(allocations), "num_jobs", len(jobs))
 
+}
+
+// recordJob writes one usage row for a matched job; returning skips only this
+// job so one bad lookup cannot abort the rest of the poll cycle.
+func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluster *models.ComputeCluster, allocations []models.ComputeAllocation) {
+	slog.Info("Job object", "job", job)
+	targetAccount := job.Account
+	for _, alloc := range allocations {
+		if alloc.Name != targetAccount {
+			continue
+		}
+		slog.Info("found matching compute allocation for SLURM job", "job_id", job.JobID, "allocation_id", alloc.ID)
+
+		user, err := m.coreService.GetComputeClusterUserByClusterAndLocalUsername(ctx, cluster.ID, job.User)
+		if err != nil {
+			if err == service.ErrNotFound {
+				slog.Warn("compute cluster user not found for SLURM job, skipping usage recording", "local_username", job.User, "cluster_id", cluster.ID)
+			} else {
+				slog.Error("failed to get compute cluster user", "error", err)
+			}
+			return
+		}
+
+		resource, err := m.coreService.GetComputeAllocationResourceByNameAndCluster(ctx, job.Partition, cluster.ID)
+		if err != nil {
+			if err == service.ErrNotFound {
+				slog.Warn("compute allocation resource not found for SLURM job, skipping usage recording", "resource_name", job.Partition, "cluster_id", cluster.ID)
+			} else {
+				slog.Error("failed to get compute allocation resource", "error", err)
+			}
+			return
+		}
+
+		jobId := strconv.FormatInt(job.JobID, 10)
+		existing, err := m.coreService.GetComputeAllocationUsageByComputeAllocationIDAndJobID(ctx, alloc.ID, jobId)
+		if err != nil && err != service.ErrNotFound {
+			slog.Error("failed to check for existing compute allocation usage", "error", err)
+			return
+		}
+
+		jobDurationSec := job.Time.End - job.Time.Start
+		if jobDurationSec <= 0 {
+			slog.Warn("SLURM job has non-positive duration, skipping usage recording", "job_id", job.JobID, "duration_seconds", jobDurationSec)
+			return
+		}
+
+		// A TRES is keyed by (type, name). Plain resources have an empty name and
+		// key on type alone (cpu); a GPU is {type:gres, name:gpu}, stored as the
+		// joined "gres/gpu". Matching on type alone never finds a GPU.
+		resourceAmount := int64(0)
+		for _, tres := range job.Tres.Allocated {
+			// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:gres Name:gpu Count:1} {Type:billing Name: Count:1}]
+			key := tres.Type
+			if tres.Name != "" {
+				key = tres.Type + "/" + tres.Name
+			}
+			if key == resource.ResourceType {
+				resourceAmount = tres.Count
+			}
+		}
+
+		// tres.Count already is per-node amount x node count (the whole-job total),
+		// so raw = tres.Count x hours.
+		calculatedRawAmount := float64(resourceAmount) * float64(jobDurationSec) / 3600
+
+		rate, err := m.coreService.GetEffectiveRateForResource(ctx, resource.ID, time.Unix(job.Time.End, 0))
+		if err != nil {
+			if err == service.ErrNotFound {
+				slog.Warn("no rate covers the job end time, skipping usage recording", "job_id", job.JobID, "resource_id", resource.ID)
+			} else {
+				slog.Error("failed to get effective rate for resource", "error", err, "job_id", job.JobID, "resource_id", resource.ID)
+			}
+			return
+		}
+
+		usageModel := &models.ComputeAllocationUsage{
+			ComputeAllocationID:         alloc.ID,
+			UsedRawAmount:               calculatedRawAmount,
+			UsedSUAmount:                calculatedRawAmount * rate.Rate,
+			CalculatedTime:              time.Now(),
+			UserID:                      user.UserID,
+			JobID:                       jobId,
+			ComputeAllocationResourceID: resource.ID,
+		}
+
+		if existing != nil {
+			m.coreService.DeleteComputeAllocationUsage(ctx, existing.ID)
+			slog.Info("deleted existing compute allocation usage for SLURM job", "job_id", job.JobID, "existing_usage_id", existing.ID)
+		}
+		m.coreService.CreateComputeAllocationUsage(ctx, usageModel)
+		return
+	}
 }

@@ -32,20 +32,23 @@ connectors:
     type: "slurm-association-mapper"
     enabled: true
     slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
+      url: "${SLURM_API_URL}"
+      version: "${SLURM_API_VERSION}"
+      username: "${SLURM_API_USERNAME}"
+      token: "${SLURM_TOKEN}"
 
   slurm-usage-monitor:
     type: "slurm-usage-monitor"
     enabled: true
     slurm_api:
-      url: "https://slurm-api.example.com"
-      version: "0.0.38"
-      username: "slurm_admin"
-      token: "${SLURM_TOKEN}" # Reference to environment variable
-    cluster_id: "slurm-cluster"
+      url: "${SLURM_API_URL}"
+      version: "${SLURM_API_VERSION}"
+      username: "${SLURM_API_USERNAME}"
+      token: "${SLURM_TOKEN}"
+    cluster_id: "${CUSTOS_CLUSTER_ID}"
+    # How far back each poll re-scans to catch jobs SLURM writes to its
+    # accounting database late. Tune to the cluster's slurmdbd commit lag.
+    usage_lookback: "15m"
 
   comanage-provisioner:
     type: "comanage-identity-provisioner"
