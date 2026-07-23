@@ -74,20 +74,26 @@
   --custos-purple-500: #8b5cf6;
   --custos-purple-700: #6d28d9;
 
+  --custos-orange-50: #fff3e0;
+  --custos-orange-100: #ffe0b2;
+  --custos-orange-400: #ffa726;
+  --custos-orange-500: #fe8c00;
+  --custos-orange-700: #b35f00;
+
   --custos-white: #ffffff;
 
-  --custos-primary: var(--custos-blue-500);
+  --custos-primary: var(--custos-orange-500);
   --custos-primary-foreground: var(--custos-white);
-  --custos-action: var(--custos-blue-500);
+  --custos-action: var(--custos-orange-500);
   --custos-error: var(--custos-red-600);
   --custos-success: var(--custos-green-600);
   --custos-warning: #f59e0b;
 
   /* Brand semantic — distinct from --primary; reserved for active states,
        links, brand wordmark, progress bar default fill. */
-  --brand: var(--custos-blue-500);
+  --brand: var(--custos-orange-500);
   --brand-foreground: #ffffff;
-  --brand-tint: var(--custos-blue-50);
+  --brand-tint: var(--custos-orange-50);
 
   /* Semantic tone tokens — paired bg/fg used by pills, chips, banners. */
   --banner-error-bg: var(--custos-red-50);
@@ -131,8 +137,8 @@
   --muted: var(--custos-gray-100);
   /* Pinned to gray-600 — gray-500 on bg-muted is 4.28:1 and fails WCAG AA. */
   --muted-foreground: var(--custos-gray-600);
-  --accent: var(--custos-blue-50);
-  --accent-foreground: var(--custos-blue-700);
+  --accent: var(--custos-gray-100);
+  --accent-foreground: var(--custos-gray-900);
   --destructive: var(--custos-red-600);
   --destructive-foreground: var(--custos-white);
   --border: var(--custos-gray-200);
@@ -172,14 +178,14 @@
   --card-foreground: var(--custos-gray-50);
   --popover: var(--custos-gray-800);
   --popover-foreground: var(--custos-gray-50);
-  --primary: var(--custos-blue-400);
-  --primary-foreground: var(--custos-gray-900);
+  --primary: var(--custos-gray-700);
+  --primary-foreground: var(--custos-gray-50);
   --secondary: var(--custos-gray-800);
   --secondary-foreground: var(--custos-gray-50);
   --muted: var(--custos-gray-800);
   --muted-foreground: var(--custos-gray-300);
-  --accent: var(--custos-blue-800);
-  --accent-foreground: var(--custos-blue-100);
+  --accent: var(--custos-gray-700);
+  --accent-foreground: var(--custos-gray-50);
   --destructive: var(--custos-red-500);
   --destructive-foreground: var(--custos-white);
   --border: var(--custos-gray-700);
@@ -197,9 +203,9 @@
   --sidebar-border: var(--custos-gray-700);
   --sidebar-ring: var(--custos-blue-400);
 
-  --brand: var(--custos-blue-400);
+  --brand: var(--custos-orange-400);
   --brand-foreground: #ffffff;
-  --brand-tint: rgba(77, 134, 201, 0.22);
+  --brand-tint: rgba(254, 140, 0, 0.22);
 
   --muted-2: var(--custos-gray-700);
   --border-strong: var(--custos-gray-600);

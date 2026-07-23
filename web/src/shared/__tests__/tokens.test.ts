@@ -37,16 +37,16 @@ describe("design-tokens/colors.css", () => {
   it("defines the brand semantic in :root", () => {
     expect(tokens).toContain("--primary: oklch(0.205 0 0)");
     expect(tokens).toContain("--primary-foreground: oklch(0.985 0 0)");
-    expect(tokens).toContain("--brand: var(--custos-blue-500)");
+    expect(tokens).toContain("--brand: var(--custos-orange-500)");
     expect(tokens).toContain("--brand-foreground: #ffffff");
-    expect(tokens).toContain("--brand-tint: var(--custos-blue-50)");
+    expect(tokens).toContain("--brand-tint: var(--custos-orange-50)");
   });
 
   it("mirrors the brand semantic under .dark", () => {
     const darkBlockMatch = tokens.match(/\.dark\s*{[^}]*}/);
     expect(darkBlockMatch, "expected a .dark { ... } block").not.toBeNull();
     const darkBlock = darkBlockMatch?.[0] ?? "";
-    expect(darkBlock).toContain("--brand: var(--custos-blue-400)");
+    expect(darkBlock).toContain("--brand: var(--custos-orange-400)");
     expect(darkBlock).toContain("--brand-tint:");
   });
 });
