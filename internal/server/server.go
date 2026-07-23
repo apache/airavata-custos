@@ -46,7 +46,6 @@ func New(svc *service.Service, router *identity.Router) *Server {
 	return s
 }
 
-// ServeHTTP satisfies http.Handler.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
@@ -76,9 +75,9 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("PUT /users/{id}/status", models.UsersWrite, s.updateUserStatus)
 	s.router.RequirePrivilege("POST /users/merge", models.UsersWrite, s.mergeUsers)
 
-	s.router.RequirePrivilege("GET /projects", models.ProjectsRead, s.listProjects)
+	s.router.RequireAuth("GET /projects", s.listProjects)
 	s.router.RequirePrivilege("POST /projects", models.ProjectsWrite, s.createProject)
-	s.router.RequirePrivilege("GET /projects/{id}", models.ProjectsRead, s.getProject)
+	s.router.RequireScoped("GET /projects/{id}", s.canReadProject, s.getProject)
 	s.router.RequirePrivilege("PUT /projects/{id}/status", models.ProjectsWrite, s.updateProjectStatus)
 	s.router.RequirePrivilege("GET /projects/{id}/members", models.ProjectsRead, s.listProjectMembers)
 
@@ -94,16 +93,16 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /compute-clusters/{id}/users/{userId}", models.ClustersRead, s.getComputeClusterUserByPair)
 	s.router.RequirePrivilege("GET /users/{id}/compute-cluster-users", models.ClustersRead, s.listComputeClusterUsersByUser)
 
-	s.router.RequirePrivilege("GET /compute-allocations", models.AllocationsRead, s.listComputeAllocations)
+	s.router.RequireAuth("GET /compute-allocations", s.listComputeAllocations)
 	s.router.RequirePrivilege("POST /compute-allocations", models.AllocationsWrite, s.createComputeAllocation)
-	s.router.RequirePrivilege("GET /compute-allocations/{id}", models.AllocationsRead, s.getComputeAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}", s.canReadAllocation, s.getComputeAllocation)
 
 	s.router.RequirePrivilege("POST /compute-allocation-resources", models.AllocationsWrite, s.createComputeAllocationResource)
 	s.router.RequirePrivilege("GET /compute-allocation-resources", models.AllocationsRead, s.listComputeAllocationResources)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/summary", models.AllocationsRead, s.listComputeAllocationResourceSummaries)
 	s.router.RequirePrivilege("GET /compute-allocation-resources/{id}", models.AllocationsRead, s.getComputeAllocationResource)
 
-	s.router.RequirePrivilege("GET /compute-allocations/{id}/resources", models.AllocationsRead, s.listResourcesForAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/resources", s.canReadAllocation, s.listResourcesForAllocation)
 	s.router.RequirePrivilege("POST /compute-allocations/{id}/resources", models.AllocationsWrite, s.attachResourceToAllocation)
 	s.router.RequirePrivilege("PUT /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.updateAllocationResourceMapping)
 	s.router.RequirePrivilege("DELETE /compute-allocations/{id}/resources/{resourceId}", models.AllocationsWrite, s.detachResourceFromAllocation)
@@ -139,7 +138,7 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("PUT /compute-allocation-memberships/{id}", models.AllocationsWrite, s.updateComputeAllocationMembership)
 	s.router.RequirePrivilege("PUT /compute-allocation-memberships/{id}/status", models.AllocationsWrite, s.updateMembershipStatus)
 	s.router.RequirePrivilege("DELETE /compute-allocation-memberships/{id}", models.AllocationsWrite, s.deleteComputeAllocationMembership)
-	s.router.RequirePrivilege("GET /compute-allocations/{id}/memberships", models.AllocationsRead, s.listMembersForAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/memberships", s.canReadAllocation, s.listMembersForAllocation)
 	s.router.RequirePrivilege("GET /users/{id}/compute-allocation-memberships", models.AllocationsRead, s.listAllocationsForUser)
 	s.router.RequirePrivilege("GET /compute-allocation-memberships/{id}/resource-overrides", models.AllocationsRead, s.listOverridesForMembership)
 
@@ -152,8 +151,8 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("POST /compute-allocation-usages", models.AllocationsWrite, s.createComputeAllocationUsage)
 	s.router.RequirePrivilege("GET /compute-allocation-usages/{id}", models.AllocationsRead, s.getComputeAllocationUsage)
 	s.router.RequirePrivilege("DELETE /compute-allocation-usages/{id}", models.AllocationsWrite, s.deleteComputeAllocationUsage)
-	s.router.RequirePrivilege("GET /compute-allocations/{id}/usages", models.AllocationsRead, s.listUsagesForAllocation)
-	s.router.RequirePrivilege("GET /compute-allocations/{id}/usages/total", models.AllocationsRead, s.getTotalSUUsageForAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/usages", s.canReadAllocation, s.listUsagesForAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/usages/total", s.canReadAllocation, s.getTotalSUUsageForAllocation)
 	s.router.RequirePrivilege("GET /compute-allocations/{id}/users/{userId}/usages/total", models.AllocationsRead, s.getTotalSUUsageForUserInAllocation)
 	s.router.RequirePrivilege("GET /users/{id}/compute-allocation-usages", models.AllocationsRead, s.listUsagesByUser)
 
@@ -165,7 +164,7 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("GET /user-identities/oidc-subjects/{oidcSub}", models.UsersRead, s.getUserIdentityByOIDCSub)
 	s.router.RequirePrivilege("GET /users/{id}/user-identities", models.UsersRead, s.listUserIdentitiesForUser)
 
-	// Any authenticated caller may read their own profile and effective privilege set with no privilege check.
+	// A caller reads their own profile; no privilege needed.
 	s.router.RequireAuth("GET /user/privileges", s.getCallerPrivileges)
 	s.router.RequireAuth("GET /me", s.getCallerProfile)
 	s.router.RequirePrivilege("GET /privileges/catalog", models.PrivilegesGrant, s.getPrivilegeCatalog)

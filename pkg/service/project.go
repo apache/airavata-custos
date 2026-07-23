@@ -140,6 +140,33 @@ func (s *Service) ListProjectsWithPI(ctx context.Context, f store.ProjectListFil
 	return rows, total, nil
 }
 
+// ListProjectsForParticipant returns the projects where the user holds a
+// project membership or an active allocation membership, PI joined, newest
+// first.
+func (s *Service) ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", ErrInvalidInput)
+	}
+	rows, err := s.projs.ListWithPIForParticipant(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list projects for participant: %w", err)
+	}
+	return rows, nil
+}
+
+// IsProjectParticipant reports whether the user participates in the project
+// through a project_memberships row or an active allocation membership.
+func (s *Service) IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error) {
+	if projectID == "" || userID == "" {
+		return false, fmt.Errorf("%w: project id and user id are required", ErrInvalidInput)
+	}
+	ok, err := s.projMemberships.IsParticipant(ctx, projectID, userID)
+	if err != nil {
+		return false, fmt.Errorf("check project participant: %w", err)
+	}
+	return ok, nil
+}
+
 // UpdateProject persists changes to an existing project. Fields left
 // blank/zero on the supplied record fall back to the stored value.
 func (s *Service) UpdateProject(ctx context.Context, project *models.Project) error {

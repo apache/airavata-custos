@@ -15,16 +15,27 @@
 // specific language governing permissions and limitations
 // under the License.
 
-"use client";
+package server
 
-import type { ReactNode } from "react";
-import { useAbility } from "@/shared/casl/AbilityProvider";
-import { ErrorState } from "@/shared/ui/ErrorState";
+import (
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+)
 
-export function ProjectsPermissionGate({ children }: { children: ReactNode }) {
-  const ability = useAbility();
-  if (ability.cannot("read", "Project")) {
-    return <ErrorState message="Not permitted." />;
-  }
-  return <>{children}</>;
+// A RequireAuth route with a path id would ship without any per-resource
+// check: RequireAuth verifies the caller only. Id-scoped reads must register
+// through RequireScoped (or RequirePrivilege when admin-only).
+func TestNoRequireAuthOnIdScopedRoutes(t *testing.T) {
+	src, err := os.ReadFile("server.go")
+	if err != nil {
+		t.Fatalf("read server.go: %v", err)
+	}
+	re := regexp.MustCompile(`RequireAuth\("[A-Z]+ [^"]*\{[^"]*"`)
+	for _, line := range strings.Split(string(src), "\n") {
+		if re.MatchString(line) {
+			t.Errorf("id-scoped route registered with RequireAuth (needs RequireScoped or RequirePrivilege): %s", strings.TrimSpace(line))
+		}
+	}
 }

@@ -16,8 +16,8 @@
 // under the License.
 
 import type { ReactNode } from "react";
-import { AllocationsPermissionGate } from "./PermissionGate";
 
+// No gate: the backend scopes these reads to the caller's memberships.
 export default function AllocationsLayout({ children }: { children: ReactNode }) {
-  return <AllocationsPermissionGate>{children}</AllocationsPermissionGate>;
+  return <>{children}</>;
 }

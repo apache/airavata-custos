@@ -1892,6 +1892,17 @@ export type GetComputeAllocationsData = {
     url: '/compute-allocations';
 };
 
+export type GetComputeAllocationsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetComputeAllocationsError = GetComputeAllocationsErrors[keyof GetComputeAllocationsErrors];
+
 export type GetComputeAllocationsResponses = {
     /**
      * OK
@@ -1944,6 +1955,12 @@ export type GetComputeAllocationsByIdData = {
 };
 
 export type GetComputeAllocationsByIdErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
     /**
      * Not Found
      */
@@ -2073,6 +2090,12 @@ export type GetComputeAllocationsByIdMembershipsData = {
 
 export type GetComputeAllocationsByIdMembershipsErrors = {
     /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+    /**
      * Not Found
      */
     404: {
@@ -2104,6 +2127,12 @@ export type GetComputeAllocationsByIdResourcesData = {
 };
 
 export type GetComputeAllocationsByIdResourcesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
     /**
      * Not Found
      */
@@ -2257,6 +2286,12 @@ export type GetComputeAllocationsByIdUsagesData = {
 
 export type GetComputeAllocationsByIdUsagesErrors = {
     /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+    /**
      * Not Found
      */
     404: {
@@ -2288,6 +2323,12 @@ export type GetComputeAllocationsByIdUsagesTotalData = {
 };
 
 export type GetComputeAllocationsByIdUsagesTotalErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
     /**
      * Not Found
      */
@@ -2840,6 +2881,17 @@ export type GetProjectsData = {
     url: '/projects';
 };
 
+export type GetProjectsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
+};
+
+export type GetProjectsError = GetProjectsErrors[keyof GetProjectsErrors];
+
 export type GetProjectsResponses = {
     /**
      * OK
@@ -2892,6 +2944,12 @@ export type GetProjectsByIdData = {
 };
 
 export type GetProjectsByIdErrors = {
+    /**
+     * Unauthorized
+     */
+    401: {
+        error?: string;
+    };
     /**
      * Not Found
      */

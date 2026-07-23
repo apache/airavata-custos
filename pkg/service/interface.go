@@ -79,6 +79,8 @@ type ProjectService interface {
 	GetProject(ctx context.Context, id string) (*models.Project, error)
 	GetProjectByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error)
 	ListProjectsByPI(ctx context.Context, piUserID string) ([]models.Project, error)
+	ListProjectsForParticipant(ctx context.Context, userID string) ([]store.ProjectWithPI, error)
+	IsProjectParticipant(ctx context.Context, projectID, userID string) (bool, error)
 	UpdateProject(ctx context.Context, project *models.Project) error
 	UpdateProjectStatus(ctx context.Context, id string, status models.ProjectStatus) (*models.Project, error)
 	DeleteProject(ctx context.Context, id string) error
@@ -113,6 +115,7 @@ type ComputeAllocationService interface {
 	GetComputeAllocation(ctx context.Context, id string) (*models.ComputeAllocation, error)
 	ListComputeAllocationsByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error)
 	ListComputeAllocationsByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error)
+	ListComputeAllocationsForParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error)
 	UpdateComputeAllocation(ctx context.Context, alloc *models.ComputeAllocation) error
 	DeleteComputeAllocation(ctx context.Context, id string) error
 }
@@ -180,6 +183,7 @@ type ComputeAllocationChangeRequestEventService interface {
 type ProjectMembershipService interface {
 	EnsureProjectMembership(ctx context.Context, projectID, userID, role string) error
 	ListProjectMemberships(ctx context.Context, projectID string) ([]models.ProjectMembership, error)
+	ProjectRoleForUser(ctx context.Context, projectID, userID string) (models.ProjectRole, error)
 }
 
 // ComputeAllocationMembershipService exposes allocation memberships.
@@ -189,6 +193,7 @@ type ComputeAllocationMembershipService interface {
 	ListMembersForAllocation(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error)
 	ListMembersForProject(ctx context.Context, projectID string) ([]store.MembershipWithUser, error)
 	ListAllocationsForUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error)
+	IsAllocationMember(ctx context.Context, allocationID, userID string) (bool, error)
 	UpdateComputeAllocationMembership(ctx context.Context, m *models.ComputeAllocationMembership) (*models.ComputeAllocationMembership, error)
 	UpdateMembershipStatus(ctx context.Context, id string, status models.AllocationStatus) (*models.ComputeAllocationMembership, error)
 	DeleteComputeAllocationMembership(ctx context.Context, id string) error

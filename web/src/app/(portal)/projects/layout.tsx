@@ -16,8 +16,8 @@
 // under the License.
 
 import type { ReactNode } from "react";
-import { ProjectsPermissionGate } from "./PermissionGate";
 
+// No gate: the backend scopes these reads to the caller's memberships.
 export default function ProjectsLayout({ children }: { children: ReactNode }) {
-  return <ProjectsPermissionGate>{children}</ProjectsPermissionGate>;
+  return <>{children}</>;
 }
