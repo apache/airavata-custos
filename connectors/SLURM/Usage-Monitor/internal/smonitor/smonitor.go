@@ -167,12 +167,17 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 			return
 		}
 
-		tresType := resource.ResourceType
-
+		// A TRES is keyed by (type, name). Plain resources have an empty name and
+		// key on type alone (cpu); a GPU is {type:gres, name:gpu}, stored as the
+		// joined "gres/gpu". Matching on type alone never finds a GPU.
 		resourceAmount := int64(0)
 		for _, tres := range job.Tres.Allocated {
-			// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:billing Name: Count:1}]
-			if tres.Type == tresType {
+			// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:gres Name:gpu Count:1} {Type:billing Name: Count:1}]
+			key := tres.Type
+			if tres.Name != "" {
+				key = tres.Type + "/" + tres.Name
+			}
+			if key == resource.ResourceType {
 				resourceAmount = tres.Count
 			}
 		}
