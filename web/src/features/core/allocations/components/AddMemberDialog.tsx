@@ -59,12 +59,12 @@ export function AddMemberDialog({
   isPending,
 }: AddMemberDialogProps) {
   const [userId, setUserId] = React.useState("");
-  const [role, setRole] = React.useState<Role>("MEMBER");
+  const [role, setRole] = React.useState<Role>("ALLOCATION_MANAGER");
 
   React.useEffect(() => {
     if (!open) {
       setUserId("");
-      setRole("MEMBER");
+      setRole("ALLOCATION_MANAGER");
     }
   }, [open]);
 

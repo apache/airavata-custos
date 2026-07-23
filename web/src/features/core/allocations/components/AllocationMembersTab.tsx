@@ -90,9 +90,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
           onOpenChange={setAdding}
           allocationId={allocation.id}
           defaultEndTime={allocation.end_time}
-          onSubmit={(payload: CreateMembershipPayload) =>
-            addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-          }
+          onSubmit={handleAddSubmit}
           isPending={addMutation.isPending}
         />
       </div>
@@ -176,6 +174,23 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
     },
   ];
 
+  function handleAddSubmit(payload: CreateMembershipPayload) {
+    addMutation.mutate(payload, {
+      onSuccess: () => {
+        // The create endpoint does not persist a governance role, so set it
+        // through the project-role path or the member has no manager rights.
+        if (payload.role && payload.role !== "MEMBER") {
+          roleMutation.mutate({
+            projectId: allocation.project_id,
+            userId: payload.user_id,
+            role: payload.role,
+          });
+        }
+        setAdding(false);
+      },
+    });
+  }
+
   function handleEditSubmit(payload: MemberEditPayload) {
     if (!editing) return;
     roleMutation.mutate(
@@ -204,9 +219,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
         onOpenChange={setAdding}
         allocationId={allocation.id}
         defaultEndTime={allocation.end_time}
-        onSubmit={(payload: CreateMembershipPayload) =>
-          addMutation.mutate(payload, { onSuccess: () => setAdding(false) })
-        }
+        onSubmit={handleAddSubmit}
         isPending={addMutation.isPending}
       />
     </div>
