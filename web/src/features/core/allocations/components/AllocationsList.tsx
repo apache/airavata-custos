@@ -85,6 +85,7 @@ export function AllocationsList({
       header: "Allocation",
       sortable: true,
       sortValue: (row) => row.name,
+      width: "14rem",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <Link
@@ -93,7 +94,7 @@ export function AllocationsList({
           >
             {row.name}
           </Link>
-          <span className="font-mono text-xs text-muted-foreground">{row.id}</span>
+          <span className="hidden font-mono text-xs text-muted-foreground">{row.id}</span>
         </div>
       ),
     },
@@ -102,10 +103,11 @@ export function AllocationsList({
       header: "Project",
       sortable: true,
       sortValue: (row) => row.project_id,
+      width: "12rem",
       cell: (row) => (
         <Link
           href={`/projects/${row.project_id}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="break-all text-sm text-muted-foreground hover:underline"
         >
           {row.project_id}
         </Link>
@@ -116,7 +118,8 @@ export function AllocationsList({
       header: "Cluster",
       sortable: true,
       sortValue: (row) => row.compute_cluster_id,
-      cell: (row) => <span className="text-sm">{row.compute_cluster_id}</span>,
+      width: "12rem",
+      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
     },
     {
       key: "initial",

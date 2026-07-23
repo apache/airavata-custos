@@ -58,12 +58,19 @@ export function AllocationDetailHeader({ allocation, memberCount }: AllocationDe
       <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
         {allocation.name}
       </h1>
-      <MetaRow>
-        <MetaItem variant="status" tone={tone} value={label} />
-        <MetaItem icon={Server} label="Cluster" value={allocation.compute_cluster_id} />
-        <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
-        <MetaItem icon={UserSquare} label="Members" value={memberCount} />
-      </MetaRow>
+      <MetaItem
+        className="hidden"
+        icon={Server}
+        label="Cluster"
+        value={allocation.compute_cluster_id}
+      />
+      <div className="flex flex-wrap items-center gap-3">
+        <MetaItem variant="status" tone={tone} value={label} className="py-1.5" />
+        <MetaRow>
+          <MetaItem icon={Calendar} label="End date" value={formatDate(allocation.end_time)} />
+          <MetaItem icon={UserSquare} label="Members" value={memberCount} />
+        </MetaRow>
+      </div>
     </header>
   );
 }
