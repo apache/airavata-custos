@@ -18,6 +18,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { ApiError } from "@/shared/api/client";
 
@@ -30,6 +31,7 @@ function readCode(body: unknown): string | null {
 }
 
 export function useAuthErrorHandler() {
+  const router = useRouter();
   return useCallback(
     (error: unknown) => {
       if (!(error instanceof ApiError)) return;
@@ -41,13 +43,15 @@ export function useAuthErrorHandler() {
         void signOut({ callbackUrl: "/sign-in?error=session_expired" });
         return;
       }
+      // A signed-in user whose identity is not linked keeps their session and
+      // goes to the request-access page, not signed out.
       if (error.status === 401 && code === "identity_not_linked") {
-        void signOut({ callbackUrl: "/sign-in?error=identity_not_linked" });
+        router.push("/no-access?reason=identity_not_linked");
         return;
       }
       // 403 insufficient_privilege and other codes fall through to the
       // query's local ErrorState — no global takeover.
     },
-    [],
+    [router],
   );
 }
