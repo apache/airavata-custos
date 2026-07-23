@@ -15,15 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Suspense } from "react";
-import { NoAccessBody } from "./NoAccessBody";
-
-export const metadata = { title: "No access · Custos Portal" };
-
-export default function NoAccessPage() {
-  return (
-    <Suspense fallback={null}>
-      <NoAccessBody />
-    </Suspense>
-  );
-}
+// Deployment branding. An operator rebrands the portal by dropping their asset
+// under public/brand/ and pointing the matching NEXT_PUBLIC_PORTAL_* build var
+// at it; unset falls back to the default Custos brand. The signed-out landing
+// page is branded separately (replace public/landing/index.html).
+export const brand = {
+  name: process.env.NEXT_PUBLIC_PORTAL_NAME || "Custos",
+  logo: process.env.NEXT_PUBLIC_PORTAL_LOGO || "/brand/logo/custos-logo.svg",
+  favicon: process.env.NEXT_PUBLIC_PORTAL_FAVICON || "/brand/logo/custos-mark.svg",
+} as const;

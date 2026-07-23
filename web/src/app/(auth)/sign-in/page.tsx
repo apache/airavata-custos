@@ -16,21 +16,16 @@
 // under the License.
 
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
-import { SignInForm } from "./SignInForm";
-
-export const metadata = {
-  title: "Sign in · Custos Portal",
-};
 
 type SearchParams = Promise<{ error?: string; callbackUrl?: string }>;
 
-// Rendered only on auth errors; otherwise the user goes straight to the IdP.
+// There is no custom sign-in screen: the landing page is the single entry
+// point. On an auth error we send the signed-out user back to the landing,
+// which shows the reason as a banner; otherwise straight to the IdP.
 export default async function SignInPage(props: { searchParams: SearchParams }) {
   const { error, callbackUrl } = await props.searchParams;
-  if (!error) {
-    const suffix = callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : "";
-    redirect(`/api/auth/federated-sign-in${suffix}`);
+  if (error) {
+    redirect(`/?authError=${encodeURIComponent(error)}`);
   }
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted px-6 py-12">

@@ -17,11 +17,14 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/shared/auth/auth";
+import { NoAccessNotice } from "@/shared/layout/NoAccessNotice";
 import { PortalLayout } from "@/shared/layout/PortalLayout";
 
 export default async function PortalRoutesLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
-  if ((session.privileges ?? []).length === 0) redirect("/no-access");
-  return <PortalLayout>{children}</PortalLayout>;
+  // A signed-in user with no privileges stays in the shell and sees the notice,
+  // not a redirect: sending them to a gated home route would loop.
+  const hasAccess = (session.privileges ?? []).length > 0;
+  return <PortalLayout>{hasAccess ? children : <NoAccessNotice />}</PortalLayout>;
 }

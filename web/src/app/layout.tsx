@@ -16,6 +16,7 @@
 // under the License.
 
 import { cn } from "@/lib/utils";
+import { brand } from "@/shared/brand";
 import { Providers } from "@/shared/providers/Providers";
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
@@ -36,6 +37,7 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Custos Portal",
   description: "Apache Custos operator and researcher portal",
+  icons: { icon: brand.favicon },
 };
 
 export default function RootLayout({
