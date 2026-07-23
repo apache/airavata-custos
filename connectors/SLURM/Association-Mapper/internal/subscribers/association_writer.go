@@ -22,10 +22,21 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
 	"github.com/apache/airavata-custos/pkg/models"
 )
+
+// tresFor builds a SLURM TRES from a stored resource type and count. A GRES
+// resource is stored joined as "gres/gpu" but SLURM wants it split into type
+// and name; a plain resource like "cpu" has no name.
+func tresFor(resourceType string, count int64) client.TRES {
+	if typ, name, ok := strings.Cut(resourceType, "/"); ok {
+		return client.TRES{Type: typ, Name: name, Count: count}
+	}
+	return client.TRES{Type: resourceType, Count: count}
+}
 
 // errNotProvisioned means the account does not exist on the cluster yet, so
 // writing the association now would make slurmctld cache a failed uid lookup
@@ -147,16 +158,10 @@ func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Contex
 func limitsFor(resource models.ComputeAllocationResource, override models.ComputeAllocationMembershipResourceOverride) client.AssocLimits {
 	var limits client.AssocLimits
 	if override.OverrideResourceAmount > 0 {
-		limits.GrpTRES = []client.TRES{{
-			Type:  resource.ResourceType,
-			Count: override.OverrideResourceAmount,
-		}}
+		limits.GrpTRES = []client.TRES{tresFor(resource.ResourceType, override.OverrideResourceAmount)}
 	}
 	if override.OverrideResourceTime > 0 {
-		limits.GrpTRESMins = []client.TRES{{
-			Type:  resource.ResourceType,
-			Count: override.OverrideResourceTime,
-		}}
+		limits.GrpTRESMins = []client.TRES{tresFor(resource.ResourceType, override.OverrideResourceTime)}
 	}
 	return limits
 }
