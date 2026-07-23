@@ -43,7 +43,13 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return fmt.Errorf("get custos user: %w", err)
 	}
 
-	personID, composite, created, err := o.lookupOrCreateCoPerson(ctx, user)
+	sub, err := o.findOIDCSub(ctx, cu.UserID)
+	if err != nil {
+		o.dlq(ctx, cu, "find_oidc_sub", err)
+		return err
+	}
+
+	personID, composite, created, err := o.lookupOrCreateCoPerson(ctx, user, sub)
 	if err != nil {
 		o.dlq(ctx, cu, "lookup_or_create_coperson", err)
 		return err
@@ -88,6 +94,10 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 		return fmt.Errorf("extract CoPerson.meta.id: %w", err)
 	}
 
+	if err := o.ensureOIDCLinkage(ctx, cu, coPersonID, composite, sub); err != nil {
+		return err
+	}
+
 	coGroupID, err := o.findOrCreateCoGroup(ctx, cu.LocalUsername)
 	if err != nil {
 		return err
@@ -124,6 +134,11 @@ func (o *Orchestrator) ensurePOSIXAccountImpl(ctx context.Context, cu *models.Co
 	putBody, err := mergeUnixClusterAccount(fresh, block)
 	if err != nil {
 		o.dlq(ctx, cu, "merge_composite", err)
+		return err
+	}
+	putBody, err = mergeLoginIdentifier(putBody, cu.LocalUsername)
+	if err != nil {
+		o.dlq(ctx, cu, "merge_login_identifier", err)
 		return err
 	}
 	if err := o.updatePerson(ctx, personID, putBody); err != nil {
@@ -169,6 +184,64 @@ func (o *Orchestrator) findOrCreateCoGroup(ctx context.Context, name string) (in
 	}
 	span.SetAttributes(attribute.Int("comanage.co_group_id", id))
 	return id, nil
+}
+
+// ensureOIDCLinkage attaches an org identity carrying the user's OIDC sub to
+// the person. The directory exports the sub for login mapping, and the
+// registry only accepts login-identity types through the org identity path.
+func (o *Orchestrator) ensureOIDCLinkage(ctx context.Context, cu *models.ComputeClusterUser, coPersonID int, composite json.RawMessage, sub string) error {
+	ctx, span := tracing.Start(ctx, "comanage.ensure_oidc_linkage")
+	defer span.End()
+
+	if sub == "" {
+		return nil
+	}
+	if existing, err := extractOrgIdentifierValues(composite, "oidcsub"); err == nil {
+		for _, v := range existing {
+			if v == sub {
+				return nil
+			}
+		}
+	}
+
+	orgID, err := o.c.CreateOrgIdentity()
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		o.dlq(ctx, cu, "create_org_identity", err)
+		return err
+	}
+	if _, err := o.c.CreateIdentifierOnOrgIdentity(sub, "oidcsub", orgID, true); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		o.dlq(ctx, cu, "create_org_identity_identifier", err)
+		return err
+	}
+	if _, err := o.c.CreateCoOrgIdentityLink(coPersonID, orgID); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		o.dlq(ctx, cu, "link_org_identity", err)
+		return err
+	}
+	o.audit(ctx, cu, "ComanageOIDCLinkageCreated", fmt.Sprintf("co_person_id=%d org_identity_id=%d", coPersonID, orgID))
+	return nil
+}
+
+// findOIDCSub returns the user's OIDC subject from core identities, or "".
+func (o *Orchestrator) findOIDCSub(ctx context.Context, userID string) (string, error) {
+	idents, err := o.core.ListUserIdentitiesForUser(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("list user identities: %w", err)
+	}
+	for _, id := range idents {
+		if id.Source == "oidc" {
+			if id.OIDCSub != "" {
+				return id.OIDCSub, nil
+			}
+			return id.ExternalID, nil
+		}
+	}
+	return "", nil
 }
 
 func (o *Orchestrator) findOrCreateIdentifier(ctx context.Context, cu *models.ComputeClusterUser, coGroupID int, value, identifierType string) error {
@@ -273,7 +346,7 @@ func (o *Orchestrator) updatePerson(ctx context.Context, personID string, body [
 // lookupOrCreateCoPerson resolves the user's CoPerson, returning the COmanage
 // person identifier, the composite (if the GET path was used), and whether a
 // new CoPerson was created.
-func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.User) (string, json.RawMessage, bool, error) {
+func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.User, sub string) (string, json.RawMessage, bool, error) {
 	ctx, span := tracing.Start(ctx, "comanage.lookup_or_create_co_person")
 	defer span.End()
 	personIDType := o.c.Config().PersonIDType
@@ -330,7 +403,7 @@ func (o *Orchestrator) lookupOrCreateCoPerson(ctx context.Context, user *models.
 		}
 	}
 
-	body, err := buildCreatePersonBody(o.c.Config().COID, user)
+	body, err := buildCreatePersonBody(o.c.Config().COID, user, sub)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -393,7 +466,10 @@ func (o *Orchestrator) waitForCreatedPersonID(email, personIDType string) (strin
 	return "", nil, false
 }
 
-func buildCreatePersonBody(coID int, user *models.User) ([]byte, error) {
+// buildCreatePersonBody composes the person-create payload. Login-identity
+// types and the verified flag are only writable at creation; updates of
+// existing people reject them, so everything identity-bearing goes in here.
+func buildCreatePersonBody(coID int, user *models.User, sub string) ([]byte, error) {
 	body := map[string]interface{}{
 		"CoPerson": map[string]interface{}{
 			"co_id":  coID,
@@ -406,11 +482,20 @@ func buildCreatePersonBody(coID int, user *models.User) ([]byte, error) {
 			"primary_name": true,
 			"language":     "en",
 		}},
+		// The address arrived on a verified token from the IdP.
 		"EmailAddress": []map[string]interface{}{{
 			"mail":     user.Email,
 			"type":     "official",
-			"verified": false,
+			"verified": true,
 		}},
+	}
+	if sub != "" {
+		body["Identifier"] = []map[string]interface{}{{
+			"identifier": sub,
+			"type":       "oidcsub",
+			"login":      true,
+			"status":     "A",
+		}}
 	}
 	return json.Marshal(body)
 }
