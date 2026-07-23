@@ -85,9 +85,9 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 	return a.syncAssociationsForMembership(ctx, membership, nil)
 }
 
-// syncAssociationsForMembership builds the association for each of the
-// allocation's resources and writes the ones that differ from existing, the
-// state already on the cluster. A nil existing writes all of them.
+// syncAssociationsForMembership writes the associations this membership should
+// have, skipping any that already match existing, the state already on the
+// cluster. Pass nil to skip that comparison and write every record.
 //
 // Every caller goes through here on purpose. Slurm keys an association by
 // (cluster, account, user, partition) and its upsert is last-write-wins, so a
@@ -95,61 +95,78 @@ func (a *AssociationSubscriber) upsertAssociationsForMembership(ctx context.Cont
 // had set. Folding the per-member overrides in here keeps all writers
 // producing the same record for the same key.
 func (a *AssociationSubscriber) syncAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership, existing map[assocKey]client.Association) error {
+	desired, err := a.desiredAssociationsForMembership(ctx, membership)
+	if err != nil {
+		return err
+	}
+	for _, association := range desired {
+		if got, ok := existing[keyOf(association)]; ok && sameLimits(association, got) {
+			continue
+		}
+		if err := a.slurmClient.UpsertAssociation(association); err != nil {
+			return fmt.Errorf("upsert association for partition %s: %w", association.Partition, err)
+		}
+		slog.Info("Upserted association", "association", association)
+	}
+	return nil
+}
+
+// desiredAssociationsForMembership builds the associations this membership
+// should have on the cluster, without writing anything. An inactive allocation
+// grants nothing, so it yields an empty set rather than an error.
+func (a *AssociationSubscriber) desiredAssociationsForMembership(ctx context.Context, membership models.ComputeAllocationMembership) ([]client.Association, error) {
 	allocation, err := a.coreService.GetComputeAllocation(ctx, membership.ComputeAllocationID)
 	if err != nil {
-		return fmt.Errorf("get compute allocation: %w", err)
+		return nil, fmt.Errorf("get compute allocation: %w", err)
+	}
+	if !activeAllocation(*allocation) {
+		return nil, nil
 	}
 	cluster, err := a.coreService.GetComputeCluster(ctx, allocation.ComputeClusterID)
 	if err != nil {
-		return fmt.Errorf("get compute cluster: %w", err)
+		return nil, fmt.Errorf("get compute cluster: %w", err)
 	}
 	csu, err := a.coreService.GetComputeClusterUserByPair(ctx, cluster.ID, membership.UserID)
 	if err != nil {
-		return fmt.Errorf("get compute cluster user: %w", err)
+		return nil, fmt.Errorf("get compute cluster user: %w", err)
 	}
 	if csu.ProvisionedAt == nil {
-		return errNotProvisioned
+		return nil, errNotProvisioned
 	}
 
 	resources, err := a.coreService.ListResourcesForAllocation(ctx, allocation.ID)
 	if err != nil {
-		return fmt.Errorf("list resources for allocation: %w", err)
+		return nil, fmt.Errorf("list resources for allocation: %w", err)
 	}
 	if len(resources) == 0 {
 		// Nothing to map onto a partition. Skipping beats guessing a
 		// partition name the cluster may not have.
 		slog.Warn("Allocation has no resources, no association written",
 			"allocation_id", allocation.ID, "user_id", membership.UserID)
-		return nil
+		return nil, nil
 	}
 
 	overrides, err := a.coreService.ListOverridesForMembership(ctx, membership.ID)
 	if err != nil {
-		return fmt.Errorf("list overrides for membership: %w", err)
+		return nil, fmt.Errorf("list overrides for membership: %w", err)
 	}
 	overrideByResource := make(map[string]models.ComputeAllocationMembershipResourceOverride, len(overrides))
 	for _, o := range overrides {
 		overrideByResource[o.ComputeAllocationResourceID] = o
 	}
 
+	out := make([]client.Association, 0, len(resources))
 	for _, resource := range resources {
-		association := client.Association{
+		out = append(out, client.Association{
 			Account:   allocation.Name,
 			Cluster:   cluster.Name,
 			User:      csu.LocalUsername,
 			Partition: resource.Name,
 			QoS:       []string{"normal"},
 			Limits:    limitsFor(resource, overrideByResource[resource.ID]),
-		}
-		if got, ok := existing[keyOf(association)]; ok && sameLimits(association, got) {
-			continue
-		}
-		if err := a.slurmClient.UpsertAssociation(association); err != nil {
-			return fmt.Errorf("upsert association for partition %s: %w", resource.Name, err)
-		}
-		slog.Info("Upserted association", "association", association)
+		})
 	}
-	return nil
+	return out, nil
 }
 
 // limitsFor turns a per-member override into association limits. A zero

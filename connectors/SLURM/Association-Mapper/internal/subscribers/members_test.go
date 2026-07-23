@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/apache/airavata-custos/connectors/SLURM/Rest-Client/pkg/client"
+	"github.com/apache/airavata-custos/internal/store"
 	"github.com/apache/airavata-custos/pkg/models"
 	"github.com/apache/airavata-custos/pkg/service"
 )
@@ -31,7 +32,21 @@ import (
 type fakeSlurmClient struct {
 	mu       sync.Mutex
 	upserts  []client.Association
+	deletes  []client.AssocFilter
 	existing []client.Association
+}
+
+func (f *fakeSlurmClient) DeleteAssociation(filter client.AssocFilter) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.deletes = append(f.deletes, filter)
+	return nil
+}
+
+func (f *fakeSlurmClient) allDeletes() []client.AssocFilter {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]client.AssocFilter(nil), f.deletes...)
 }
 
 func (f *fakeSlurmClient) ListAssociations(client.AssocFilter) ([]client.Association, error) {
@@ -54,20 +69,26 @@ func (f *fakeSlurmClient) all() []client.Association {
 }
 
 type mockOpts struct {
-	provisionedAt *time.Time
-	resources     []models.ComputeAllocationResource
-	overrides     []models.ComputeAllocationMembershipResourceOverride
-	memberships   []models.ComputeAllocationMembership
+	allocationStatus  models.AllocationStatus
+	unmanagedAccounts bool
+	provisionedAt     *time.Time
+	resources         []models.ComputeAllocationResource
+	overrides         []models.ComputeAllocationMembershipResourceOverride
+	memberships       []models.ComputeAllocationMembership
 }
 
 func coreMock(o mockOpts) *service.CoreServiceMock {
+	allocStatus := o.allocationStatus
+	if allocStatus == "" {
+		allocStatus = models.ACTIVE
+	}
 	resources := o.resources
 	if resources == nil {
 		resources = []models.ComputeAllocationResource{{ID: "res-1", Name: "compute", ResourceType: "cpu"}}
 	}
 	return &service.CoreServiceMock{
 		GetComputeAllocationFunc: func(ctx context.Context, id string) (*models.ComputeAllocation, error) {
-			return &models.ComputeAllocation{ID: id, Name: "test-alloc", ComputeClusterID: "cluster-1"}, nil
+			return &models.ComputeAllocation{ID: id, Name: "test-alloc", ComputeClusterID: "cluster-1", Status: allocStatus}, nil
 		},
 		GetComputeClusterFunc: func(ctx context.Context, id string) (*models.ComputeCluster, error) {
 			return &models.ComputeCluster{ID: id, Name: "testcluster"}, nil
@@ -87,6 +108,14 @@ func coreMock(o mockOpts) *service.CoreServiceMock {
 				LocalUsername: "testuser", ProvisionedAt: o.provisionedAt,
 			}, nil
 		},
+		ListComputeAllocationsByClusterFunc: func(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error) {
+			if o.unmanagedAccounts {
+				return nil, nil
+			}
+			return []models.ComputeAllocation{
+				{ID: "alloc-1", Name: "test-alloc", ComputeClusterID: clusterID, Status: allocStatus},
+			}, nil
+		},
 		ListComputeClustersFunc: func(ctx context.Context) ([]models.ComputeCluster, error) {
 			return []models.ComputeCluster{{ID: "cluster-1", Name: "testcluster"}}, nil
 		},
@@ -98,6 +127,13 @@ func coreMock(o mockOpts) *service.CoreServiceMock {
 		},
 		ListAllocationsForUserFunc: func(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 			return o.memberships, nil
+		},
+		ListMembersForAllocationFunc: func(ctx context.Context, allocationID string) ([]store.MembershipWithUser, error) {
+			out := make([]store.MembershipWithUser, 0, len(o.memberships))
+			for _, m := range o.memberships {
+				out = append(out, store.MembershipWithUser{ComputeAllocationMembership: m})
+			}
+			return out, nil
 		},
 		CreateAuditEventFunc: func(ctx context.Context, event *models.AuditEvent) (*models.AuditEvent, error) {
 			return event, nil
