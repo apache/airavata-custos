@@ -44,7 +44,7 @@ export function ProjectOverviewTab({ project }: ProjectOverviewTabProps) {
           <>
             {project.project_pi_display_name}
             {project.project_pi_email ? (
-              <span className="ml-2 text-xs text-muted-foreground">{project.project_pi_email}</span>
+              <span className="ml-2 text-xs text-muted-foreground">({project.project_pi_email})</span>
             ) : null}
           </>
         ) : (
