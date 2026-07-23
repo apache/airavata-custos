@@ -137,8 +137,8 @@
   --muted: var(--custos-gray-100);
   /* Pinned to gray-600 — gray-500 on bg-muted is 4.28:1 and fails WCAG AA. */
   --muted-foreground: var(--custos-gray-600);
-  --accent: var(--custos-blue-50);
-  --accent-foreground: var(--custos-blue-700);
+  --accent: var(--custos-gray-100);
+  --accent-foreground: var(--custos-gray-900);
   --destructive: var(--custos-red-600);
   --destructive-foreground: var(--custos-white);
   --border: var(--custos-gray-200);
@@ -184,8 +184,8 @@
   --secondary-foreground: var(--custos-gray-50);
   --muted: var(--custos-gray-800);
   --muted-foreground: var(--custos-gray-300);
-  --accent: var(--custos-blue-800);
-  --accent-foreground: var(--custos-blue-100);
+  --accent: var(--custos-gray-700);
+  --accent-foreground: var(--custos-gray-50);
   --destructive: var(--custos-red-500);
   --destructive-foreground: var(--custos-white);
   --border: var(--custos-gray-700);
