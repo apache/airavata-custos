@@ -45,7 +45,7 @@ func init() {
 // LoadConnector wires the subscriber to the event bus. Reads YAML config first
 // and falls back to environment variables. If neither yields a complete
 // config, it logs and returns nil without registering.
-func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, _ *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
+func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreService *service.Service, wg *sync.WaitGroup, _ *identity.Router, connectorConfig *config.ConnectorConfig) error {
 	cfg, ok := loadConfigFromConnectorConfig(connectorConfig)
 	if !ok {
 		cfg, ok = loadConfigFromEnv()
@@ -58,6 +58,23 @@ func LoadConnector(_ context.Context, _ *sqlx.DB, eventBus *events.Bus, coreServ
 	subscribers.NewClusterUserSubscriber(httpClient, eventBus, coreService, cfg.CustosClusterID).RegisterSubscribers()
 	slog.Info("comanage provisioner: subscriber registered",
 		"registry", cfg.RegistryURL, "co_id", cfg.COID, "cluster_id", cfg.CustosClusterID)
+
+	var signInCheckInterval time.Duration
+	if connectorConfig != nil {
+		if si, ok := connectorConfig.Config["signin_check_interval"].(string); ok && si != "" {
+			if d, err := time.ParseDuration(si); err == nil {
+				signInCheckInterval = d
+			} else {
+				slog.Warn("invalid signin_check_interval, using default", "value", si, "error", err)
+			}
+		}
+	}
+	probe := subscribers.NewSignInProbe(httpClient, coreService, cfg.CustosClusterID)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		probe.Start(ctx, signInCheckInterval)
+	}()
 	// Custos is the source of truth: CoPerson and UnixClusterAccount records
 	// for users provisioned via this connector must not be edited directly in
 	// COmanage. There is no drift reconciliation; out-of-band edits will be
