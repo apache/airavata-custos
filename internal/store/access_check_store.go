@@ -27,7 +27,7 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-const accessCheckColumns = "id, compute_allocation_id, user_id, check_type, status, COALESCE(detail, '') AS detail, last_checked_at, last_ok_at, failing_since"
+const accessCheckColumns = "id, compute_allocation_id, user_id, check_type, status, COALESCE(detail, '') AS detail, infrastructure, last_checked_at, last_ok_at, failing_since"
 
 type mysqlAccessCheckStore struct {
 	db *sqlx.DB
@@ -80,18 +80,18 @@ func (s *mysqlAccessCheckStore) FindByAllocation(ctx context.Context, allocation
 func (s *mysqlAccessCheckStore) Create(ctx context.Context, tx *sql.Tx, c *models.AccessCheck) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO access_checks
-		     (id, compute_allocation_id, user_id, check_type, status, detail, last_checked_at, last_ok_at, failing_since)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.ID, c.ComputeAllocationID, c.UserID, c.CheckType, c.Status, c.Detail, c.LastCheckedAt, c.LastOKAt, c.FailingSince)
+		     (id, compute_allocation_id, user_id, check_type, status, detail, infrastructure, last_checked_at, last_ok_at, failing_since)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.ID, c.ComputeAllocationID, c.UserID, c.CheckType, c.Status, c.Detail, c.Infrastructure, c.LastCheckedAt, c.LastOKAt, c.FailingSince)
 	return err
 }
 
 func (s *mysqlAccessCheckStore) Update(ctx context.Context, tx *sql.Tx, c *models.AccessCheck) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE access_checks
-		 SET status = ?, detail = ?, last_checked_at = ?, last_ok_at = ?, failing_since = ?
+		 SET status = ?, detail = ?, infrastructure = ?, last_checked_at = ?, last_ok_at = ?, failing_since = ?
 		 WHERE id = ?`,
-		c.Status, c.Detail, c.LastCheckedAt, c.LastOKAt, c.FailingSince, c.ID)
+		c.Status, c.Detail, c.Infrastructure, c.LastCheckedAt, c.LastOKAt, c.FailingSince, c.ID)
 	return err
 }
 

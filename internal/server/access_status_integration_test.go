@@ -101,7 +101,7 @@ func TestAccessStatus_AuthAndScope(t *testing.T) {
 
 func TestAccessStatus_SelfViewWithDerivedAndRealChecks(t *testing.T) {
 	fx := setupAccessStatusFixture(t)
-	if err := fx.svc.RecordAccessCheckResult(t.Context(), fx.allocID, fx.member, models.AccessCheckJobSubmission, true, ""); err != nil {
+	if err := fx.svc.RecordAccessCheckResult(t.Context(), fx.allocID, fx.member, models.AccessCheckJobSubmission, true, "", false); err != nil {
 		t.Fatalf("record: %v", err)
 	}
 
@@ -147,7 +147,7 @@ func TestAccessStatus_StuckDerivation(t *testing.T) {
 	fx := setupAccessStatusFixture(t)
 	rec := func(ok bool) {
 		t.Helper()
-		if err := fx.svc.RecordAccessCheckResult(t.Context(), fx.allocID, fx.member, models.AccessCheckJobSubmission, ok, "x"); err != nil {
+		if err := fx.svc.RecordAccessCheckResult(t.Context(), fx.allocID, fx.member, models.AccessCheckJobSubmission, ok, "x", false); err != nil {
 			t.Fatalf("record: %v", err)
 		}
 	}
@@ -170,6 +170,18 @@ func TestAccessStatus_StuckDerivation(t *testing.T) {
 	body = rr.Body.String()
 	if !jsonHasUIState(t, body, "JOB_SUBMISSION", "stuck") {
 		t.Fatalf("old failure: want stuck, got %s", body)
+	}
+
+	// The same aged episode marked infrastructure stays a calm retry.
+	if _, err := fx.db.Exec(
+		`UPDATE access_checks SET infrastructure = TRUE WHERE compute_allocation_id = ? AND user_id = ?`,
+		fx.allocID, fx.member); err != nil {
+		t.Fatalf("mark infrastructure: %v", err)
+	}
+	rr = fx.get(t, "/compute-allocations/"+fx.allocID+"/access-status", fx.member)
+	body = rr.Body.String()
+	if !jsonHasUIState(t, body, "JOB_SUBMISSION", "retrying") {
+		t.Fatalf("infrastructure outage: want retrying, got %s", body)
 	}
 }
 

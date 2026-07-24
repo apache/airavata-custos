@@ -63,8 +63,11 @@ func (s *Service) AccessCheckStuckAfter() time.Duration {
 // RecordAccessCheckResult upserts one probe result and writes milestone
 // events on state changes only. A check that has never passed stays PENDING
 // (still setting up); failures only start counting once the check has been
-// OK at least once.
-func (s *Service) RecordAccessCheckResult(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
+// OK at least once. infrastructure marks a failure as the probe's inability
+// to reach the external system: it shows as a calm retry but never
+// escalates to stuck, and it never creates a member's first row (the
+// synthesized state is a better answer than "we could not look").
+func (s *Service) RecordAccessCheckResult(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error {
 	existing, err := s.accessChecks.FindByTarget(ctx, allocationID, userID, checkType)
 	if err != nil {
 		return fmt.Errorf("find access check: %w", err)
@@ -73,6 +76,9 @@ func (s *Service) RecordAccessCheckResult(ctx context.Context, allocationID, use
 
 	return s.inTx(ctx, func(tx *sql.Tx) error {
 		if existing == nil {
+			if !ok && infrastructure {
+				return nil
+			}
 			c := &models.AccessCheck{
 				ID:                  newID(),
 				ComputeAllocationID: allocationID,
@@ -102,6 +108,7 @@ func (s *Service) RecordAccessCheckResult(ctx context.Context, allocationID, use
 		prev := existing.Status
 		existing.Detail = detail
 		existing.LastCheckedAt = now
+		existing.Infrastructure = !ok && infrastructure
 		switch {
 		case ok:
 			existing.LastOKAt = &now
@@ -141,9 +148,10 @@ func (s *Service) writeCheckEvent(ctx context.Context, tx *sql.Tx, checkID, even
 
 // maybeWriteStuckEvent marks the failure episode stuck once it outlives the
 // threshold. One STUCK per episode: events after failing_since are checked so
-// probe restarts and repeated failures do not repeat it.
+// probe restarts and repeated failures do not repeat it. Infrastructure
+// failures never earn a STUCK: the outage is systemic, not the member's.
 func (s *Service) maybeWriteStuckEvent(ctx context.Context, tx *sql.Tx, c *models.AccessCheck, now time.Time) error {
-	if c.FailingSince == nil || now.Sub(*c.FailingSince) < s.AccessCheckStuckAfter() {
+	if c.Infrastructure || c.FailingSince == nil || now.Sub(*c.FailingSince) < s.AccessCheckStuckAfter() {
 		return nil
 	}
 	events, err := s.accessChecks.FindEventsByChecks(ctx, []string{c.ID})

@@ -65,11 +65,12 @@ func (f *probeFakeClient) DeleteAssociation(client.AssocFilter) error {
 }
 
 type recordedCheck struct {
-	allocationID string
-	userID       string
-	checkType    models.AccessCheckType
-	ok           bool
-	detail       string
+	allocationID   string
+	userID         string
+	checkType      models.AccessCheckType
+	ok             bool
+	detail         string
+	infrastructure bool
 }
 
 // probeMock builds a core mock for one cluster user with one ACTIVE
@@ -90,8 +91,8 @@ func probeMock(o mockOpts, results *[]recordedCheck) *service.CoreServiceMock {
 	m.ListAllocationsForUserFunc = func(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 		return memberships, nil
 	}
-	m.RecordAccessCheckResultFunc = func(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
-		*results = append(*results, recordedCheck{allocationID, userID, checkType, ok, detail})
+	m.RecordAccessCheckResultFunc = func(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error {
+		*results = append(*results, recordedCheck{allocationID, userID, checkType, ok, detail, infrastructure})
 		return nil
 	}
 	return m
@@ -150,8 +151,8 @@ func TestStatusProbe_ClusterAPIDownRecordsFailure(t *testing.T) {
 	fake := &probeFakeClient{listErr: errors.New("connection refused")}
 	runProbe(t, fake, probeMock(mockOpts{provisionedAt: provisionedLongAgo()}, &results))
 
-	if len(results) != 1 || results[0].ok || results[0].detail != "cluster API unreachable" {
-		t.Fatalf("recorded: %+v, want one failure 'cluster API unreachable'", results)
+	if len(results) != 1 || results[0].ok || results[0].detail != "cluster API unreachable" || !results[0].infrastructure {
+		t.Fatalf("recorded: %+v, want one infrastructure failure with detail cluster API unreachable", results)
 	}
 	assertReadOnly(t, fake)
 }

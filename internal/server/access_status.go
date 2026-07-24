@@ -158,7 +158,9 @@ func (s *Server) accessUIState(c models.AccessCheck, now time.Time) string {
 	case models.AccessCheckOK:
 		return accessUIStateOK
 	case models.AccessCheckFailing:
-		if c.FailingSince != nil && now.Sub(*c.FailingSince) >= s.svc.AccessCheckStuckAfter() {
+		// A systemic outage of the monitoring path stays a calm retry; red
+		// is reserved for member-specific failures.
+		if !c.Infrastructure && c.FailingSince != nil && now.Sub(*c.FailingSince) >= s.svc.AccessCheckStuckAfter() {
 			return accessUIStateStuck
 		}
 		return accessUIStateRetrying

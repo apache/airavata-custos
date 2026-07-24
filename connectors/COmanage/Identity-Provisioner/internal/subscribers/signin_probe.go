@@ -35,7 +35,10 @@ import (
 // slower than the cluster-side probe.
 const DefaultSignInCheckInterval = 10 * time.Minute
 
-const signInProbeTimeout = 2 * time.Minute
+// Pass-wide budget. Each registry call is separately bounded by the client's
+// own HTTP timeout, so a slow registry degrades one user at a time instead
+// of starving the tail of the list.
+const signInProbeTimeout = 5 * time.Minute
 
 // Matches the source the provisioner stores person ids under.
 const registryIdentitySource = "comanage"
@@ -100,8 +103,9 @@ func (p *SignInProbe) probeOnce(ctx context.Context) {
 
 	// One registry lookup per user per pass, shared across their memberships.
 	type verdict struct {
-		ok     bool
-		detail string
+		ok             bool
+		detail         string
+		infrastructure bool
 	}
 	verdicts := make(map[string]verdict, len(clusterUsers))
 
@@ -127,13 +131,13 @@ func (p *SignInProbe) probeOnce(ctx context.Context) {
 			v, seen := verdicts[csu.UserID]
 			if !seen {
 				var skip bool
-				v.ok, v.detail, skip = p.verify(probeCtx, csu)
+				v.ok, v.detail, v.infrastructure, skip = p.verify(probeCtx, csu)
 				if skip {
 					continue
 				}
 				verdicts[csu.UserID] = v
 			}
-			err = p.core.RecordAccessCheckResult(probeCtx, membership.ComputeAllocationID, csu.UserID, models.AccessCheckSignIn, v.ok, v.detail)
+			err = p.core.RecordAccessCheckResult(probeCtx, membership.ComputeAllocationID, csu.UserID, models.AccessCheckSignIn, v.ok, v.detail, v.infrastructure)
 			if err != nil {
 				slog.Error("Sign-in probe: failed to record result",
 					"membership_id", membership.ID, "error", err)
@@ -144,15 +148,16 @@ func (p *SignInProbe) probeOnce(ctx context.Context) {
 
 // verify decides one user's sign-in health without writing anything. skip
 // means the truth is unknowable right now (a core lookup failed), which must
-// not be recorded as unhealthy.
-func (p *SignInProbe) verify(ctx context.Context, csu models.ComputeClusterUser) (ok bool, detail string, skip bool) {
+// not be recorded as unhealthy. infrastructure marks a registry outage:
+// recorded for freshness, shown as a calm retry, never escalated.
+func (p *SignInProbe) verify(ctx context.Context, csu models.ComputeClusterUser) (ok bool, detail string, infrastructure bool, skip bool) {
 	if csu.ProvisionedAt == nil {
-		return false, "account not provisioned yet", false
+		return false, "account not provisioned yet", false, false
 	}
 	idents, err := p.core.ListUserIdentitiesForUser(ctx, csu.UserID)
 	if err != nil {
 		slog.Warn("Sign-in probe: could not list identities", "user_id", csu.UserID, "error", err)
-		return false, "", true
+		return false, "", false, true
 	}
 	personID := ""
 	for _, id := range idents {
@@ -162,13 +167,13 @@ func (p *SignInProbe) verify(ctx context.Context, csu models.ComputeClusterUser)
 		}
 	}
 	if personID == "" {
-		return false, "registry record not linked", false
+		return false, "registry record not linked", false, false
 	}
 	if _, err := p.registry.GetPersonComposite(personID); err != nil {
 		if errors.Is(err, client.ErrNotFound) {
-			return false, "registry record missing", false
+			return false, "registry record missing", false, false
 		}
-		return false, "registry unreachable", false
+		return false, "registry unreachable", true, false
 	}
-	return true, "", false
+	return true, "", false, false
 }

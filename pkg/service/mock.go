@@ -390,7 +390,7 @@ var _ CoreService = &CoreServiceMock{}
 //			ProjectRoleForUserFunc: func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error) {
 //				panic("mock out the ProjectRoleForUser method")
 //			},
-//			RecordAccessCheckResultFunc: func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
+//			RecordAccessCheckResultFunc: func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error {
 //				panic("mock out the RecordAccessCheckResult method")
 //			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
@@ -830,7 +830,7 @@ type CoreServiceMock struct {
 	ProjectRoleForUserFunc func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error)
 
 	// RecordAccessCheckResultFunc mocks the RecordAccessCheckResult method.
-	RecordAccessCheckResultFunc func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error
+	RecordAccessCheckResultFunc func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error
 
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
@@ -1825,6 +1825,8 @@ type CoreServiceMock struct {
 			Ok bool
 			// Detail is the detail argument value.
 			Detail string
+			// Infrastructure is the infrastructure argument value.
+			Infrastructure bool
 		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
@@ -6687,29 +6689,31 @@ func (mock *CoreServiceMock) ProjectRoleForUserCalls() []struct {
 }
 
 // RecordAccessCheckResult calls RecordAccessCheckResultFunc.
-func (mock *CoreServiceMock) RecordAccessCheckResult(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
+func (mock *CoreServiceMock) RecordAccessCheckResult(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error {
 	if mock.RecordAccessCheckResultFunc == nil {
 		panic("CoreServiceMock.RecordAccessCheckResultFunc: method is nil but CoreService.RecordAccessCheckResult was just called")
 	}
 	callInfo := struct {
-		Ctx          context.Context
-		AllocationID string
-		UserID       string
-		CheckType    models.AccessCheckType
-		Ok           bool
-		Detail       string
+		Ctx            context.Context
+		AllocationID   string
+		UserID         string
+		CheckType      models.AccessCheckType
+		Ok             bool
+		Detail         string
+		Infrastructure bool
 	}{
-		Ctx:          ctx,
-		AllocationID: allocationID,
-		UserID:       userID,
-		CheckType:    checkType,
-		Ok:           ok,
-		Detail:       detail,
+		Ctx:            ctx,
+		AllocationID:   allocationID,
+		UserID:         userID,
+		CheckType:      checkType,
+		Ok:             ok,
+		Detail:         detail,
+		Infrastructure: infrastructure,
 	}
 	mock.lockRecordAccessCheckResult.Lock()
 	mock.calls.RecordAccessCheckResult = append(mock.calls.RecordAccessCheckResult, callInfo)
 	mock.lockRecordAccessCheckResult.Unlock()
-	return mock.RecordAccessCheckResultFunc(ctx, allocationID, userID, checkType, ok, detail)
+	return mock.RecordAccessCheckResultFunc(ctx, allocationID, userID, checkType, ok, detail, infrastructure)
 }
 
 // RecordAccessCheckResultCalls gets all the calls that were made to RecordAccessCheckResult.
@@ -6717,20 +6721,22 @@ func (mock *CoreServiceMock) RecordAccessCheckResult(ctx context.Context, alloca
 //
 //	len(mockedCoreService.RecordAccessCheckResultCalls())
 func (mock *CoreServiceMock) RecordAccessCheckResultCalls() []struct {
-	Ctx          context.Context
-	AllocationID string
-	UserID       string
-	CheckType    models.AccessCheckType
-	Ok           bool
-	Detail       string
+	Ctx            context.Context
+	AllocationID   string
+	UserID         string
+	CheckType      models.AccessCheckType
+	Ok             bool
+	Detail         string
+	Infrastructure bool
 } {
 	var calls []struct {
-		Ctx          context.Context
-		AllocationID string
-		UserID       string
-		CheckType    models.AccessCheckType
-		Ok           bool
-		Detail       string
+		Ctx            context.Context
+		AllocationID   string
+		UserID         string
+		CheckType      models.AccessCheckType
+		Ok             bool
+		Detail         string
+		Infrastructure bool
 	}
 	mock.lockRecordAccessCheckResult.RLock()
 	calls = mock.calls.RecordAccessCheckResult

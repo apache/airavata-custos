@@ -79,7 +79,7 @@ func findCheck(t *testing.T, env *accessTestEnv, allocID, userID string, checkTy
 
 func TestRecordAccessCheck_FirstOKWritesStartedAndOnline(t *testing.T) {
 	env, member := setupAccessStatusEnv(t)
-	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, ""); err != nil {
+	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, "", false); err != nil {
 		t.Fatalf("record: %v", err)
 	}
 	got := checkEventTypes(t, env, env.allocID, member, models.AccessCheckJobSubmission)
@@ -95,7 +95,7 @@ func TestRecordAccessCheck_FirstOKWritesStartedAndOnline(t *testing.T) {
 
 func TestRecordAccessCheck_FirstFailureStaysPending(t *testing.T) {
 	env, member := setupAccessStatusEnv(t)
-	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, false, "association missing"); err != nil {
+	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, false, "association missing", false); err != nil {
 		t.Fatalf("record: %v", err)
 	}
 	got := checkEventTypes(t, env, env.allocID, member, models.AccessCheckJobSubmission)
@@ -108,10 +108,10 @@ func TestRecordAccessCheck_FirstFailureStaysPending(t *testing.T) {
 	}
 
 	// Coming online later writes ONLINE exactly once.
-	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, ""); err != nil {
+	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, "", false); err != nil {
 		t.Fatalf("record ok: %v", err)
 	}
-	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, ""); err != nil {
+	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, "", false); err != nil {
 		t.Fatalf("record ok again: %v", err)
 	}
 	got = checkEventTypes(t, env, env.allocID, member, models.AccessCheckJobSubmission)
@@ -124,7 +124,7 @@ func TestRecordAccessCheck_FailAndRecover(t *testing.T) {
 	env, member := setupAccessStatusEnv(t)
 	rec := func(ok bool, detail string) {
 		t.Helper()
-		if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckSignIn, ok, detail); err != nil {
+		if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckSignIn, ok, detail, false); err != nil {
 			t.Fatalf("record: %v", err)
 		}
 	}
@@ -160,7 +160,7 @@ func TestRecordAccessCheck_StuckWrittenOncePerEpisode(t *testing.T) {
 	env.svc.SetAccessCheckStuckAfter(time.Nanosecond)
 	rec := func(ok bool) {
 		t.Helper()
-		if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, ok, "x"); err != nil {
+		if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, ok, "x", false); err != nil {
 			t.Fatalf("record: %v", err)
 		}
 	}
@@ -192,6 +192,51 @@ func TestRecordAccessCheck_StuckWrittenOncePerEpisode(t *testing.T) {
 	}
 	if stuck != 2 {
 		t.Fatalf("STUCK per episode: got %d in %v, want 2", stuck, got)
+	}
+}
+
+func TestRecordAccessCheck_InfrastructureStaysCalm(t *testing.T) {
+	env, member := setupAccessStatusEnv(t)
+	env.svc.SetAccessCheckStuckAfter(time.Nanosecond)
+	rec := func(ok, infra bool, detail string) {
+		t.Helper()
+		if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, ok, detail, infra); err != nil {
+			t.Fatalf("record: %v", err)
+		}
+	}
+	// An infrastructure failure on a member with no row must not create one:
+	// the synthesized state is the better answer.
+	rec(false, true, "cluster API unreachable")
+	status, err := env.svc.AccessStatusForUser(ctx(), env.allocID, member)
+	if err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	for _, c := range status.Checks {
+		if c.ID != "" {
+			t.Fatalf("infrastructure first result created a row: %+v", c)
+		}
+	}
+
+	// Past the threshold an infrastructure episode never earns a STUCK.
+	rec(true, false, "")
+	rec(false, true, "cluster API unreachable")
+	rec(false, true, "cluster API unreachable")
+	for _, e := range checkEventTypes(t, env, env.allocID, member, models.AccessCheckJobSubmission) {
+		if e == models.AccessCheckEventStuck {
+			t.Fatalf("infrastructure episode wrote STUCK")
+		}
+	}
+
+	// A member-specific failure resuming the episode escalates normally.
+	rec(false, false, "association missing")
+	stuck := 0
+	for _, e := range checkEventTypes(t, env, env.allocID, member, models.AccessCheckJobSubmission) {
+		if e == models.AccessCheckEventStuck {
+			stuck++
+		}
+	}
+	if stuck != 1 {
+		t.Fatalf("member-specific failure after infra episode: stuck=%d, want 1", stuck)
 	}
 }
 
@@ -257,7 +302,7 @@ func TestAccessStatusForAllocation_ActiveMembersOnly(t *testing.T) {
 	mustMembership(member, models.ACTIVE)
 	mustMembership(former.ID, models.INACTIVE)
 
-	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, ""); err != nil {
+	if err := env.svc.RecordAccessCheckResult(ctx(), env.allocID, member, models.AccessCheckJobSubmission, true, "", false); err != nil {
 		t.Fatalf("record: %v", err)
 	}
 

@@ -104,7 +104,7 @@ func (a *AssociationSubscriber) probeCluster(ctx context.Context, cluster models
 				if aerr != nil || alloc.ComputeClusterID != cluster.ID {
 					continue
 				}
-				a.recordJobCheck(ctx, membership, csu.UserID, false, "waiting for the cluster account")
+				a.recordJobCheck(ctx, membership, csu.UserID, false, "waiting for the cluster account", false)
 				continue
 			case err != nil:
 				// A failed core lookup says nothing about the cluster; skip
@@ -131,18 +131,20 @@ func (a *AssociationSubscriber) probeCluster(ctx context.Context, cluster models
 			}
 			switch {
 			case listErr != nil:
-				a.recordJobCheck(ctx, membership, csu.UserID, false, "cluster API unreachable")
+				a.recordJobCheck(ctx, membership, csu.UserID, false, "cluster API unreachable", true)
 			case missing:
-				a.recordJobCheck(ctx, membership, csu.UserID, false, "association missing")
+				// A partial listing during an accounting daemon restart can
+				// briefly read as missing; the calm retry state absorbs it.
+				a.recordJobCheck(ctx, membership, csu.UserID, false, "association missing", false)
 			default:
-				a.recordJobCheck(ctx, membership, csu.UserID, true, "")
+				a.recordJobCheck(ctx, membership, csu.UserID, true, "", false)
 			}
 		}
 	}
 }
 
-func (a *AssociationSubscriber) recordJobCheck(ctx context.Context, membership models.ComputeAllocationMembership, userID string, ok bool, detail string) {
-	err := a.coreService.RecordAccessCheckResult(ctx, membership.ComputeAllocationID, userID, models.AccessCheckJobSubmission, ok, detail)
+func (a *AssociationSubscriber) recordJobCheck(ctx context.Context, membership models.ComputeAllocationMembership, userID string, ok bool, detail string, infrastructure bool) {
+	err := a.coreService.RecordAccessCheckResult(ctx, membership.ComputeAllocationID, userID, models.AccessCheckJobSubmission, ok, detail, infrastructure)
 	if err != nil {
 		slog.Error("Access status probe: failed to record result",
 			"membership_id", membership.ID, "error", err)

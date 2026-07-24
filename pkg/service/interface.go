@@ -214,7 +214,7 @@ type ComputeAllocationMembershipResourceOverrideService interface {
 
 // AccessCheckService exposes probe result recording and access status reads.
 type AccessCheckService interface {
-	RecordAccessCheckResult(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string) error
+	RecordAccessCheckResult(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error
 	AccessStatusForUser(ctx context.Context, allocationID, userID string) (*AccessStatus, error)
 	AccessStatusForAllocation(ctx context.Context, allocationID string) ([]MemberAccessStatus, error)
 }

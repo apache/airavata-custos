@@ -56,6 +56,9 @@ type AccessCheck struct {
 	CheckType           AccessCheckType   `json:"check_type"            db:"check_type"`
 	Status              AccessCheckStatus `json:"status"                db:"status"`
 	Detail              string            `json:"detail,omitempty"      db:"detail"`
+	// A failing check with this set means the probe could not reach the
+	// external system; it is systemic, not member breakage, and never stuck.
+	Infrastructure bool `json:"infrastructure" db:"infrastructure"`
 	LastCheckedAt       time.Time         `json:"last_checked_at"       db:"last_checked_at"`
 	LastOKAt            *time.Time        `json:"last_ok_at"            db:"last_ok_at"`
 	FailingSince        *time.Time        `json:"failing_since"         db:"failing_since"`

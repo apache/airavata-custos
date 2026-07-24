@@ -43,11 +43,12 @@ func (f *fakeRegistry) GetPersonComposite(string) (json.RawMessage, error) {
 }
 
 type signInRecorded struct {
-	allocationID string
-	userID       string
-	checkType    models.AccessCheckType
-	ok           bool
-	detail       string
+	allocationID   string
+	userID         string
+	checkType      models.AccessCheckType
+	ok             bool
+	detail         string
+	infrastructure bool
 }
 
 type signInMockOpts struct {
@@ -91,8 +92,8 @@ func signInCoreMock(o signInMockOpts, results *[]signInRecorded) *service.CoreSe
 			}
 			return []models.UserIdentity{{UserID: userID, Source: "comanage", ExternalID: "person-9"}}, nil
 		},
-		RecordAccessCheckResultFunc: func(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
-			*results = append(*results, signInRecorded{allocationID, userID, checkType, ok, detail})
+		RecordAccessCheckResultFunc: func(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string, infrastructure bool) error {
+			*results = append(*results, signInRecorded{allocationID, userID, checkType, ok, detail, infrastructure})
 			return nil
 		},
 	}
@@ -127,20 +128,21 @@ func TestSignInProbe_UnprovisionedRecordsNotProvisioned(t *testing.T) {
 
 func TestSignInProbe_RegistryOutcomes(t *testing.T) {
 	cases := []struct {
-		name   string
-		err    error
-		detail string
+		name           string
+		err            error
+		detail         string
+		infrastructure bool
 	}{
-		{"missing person", client.ErrNotFound, "registry record missing"},
-		{"registry down", errors.New("http 503"), "registry unreachable"},
+		{"missing person", client.ErrNotFound, "registry record missing", false},
+		{"registry down", errors.New("http 503"), "registry unreachable", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var results []signInRecorded
 			reg := &fakeRegistry{err: tc.err}
 			NewSignInProbe(reg, signInCoreMock(signInMockOpts{provisioned: true, linked: true}, &results), "cluster-1").probeOnce(context.Background())
-			if len(results) != 1 || results[0].ok || results[0].detail != tc.detail {
-				t.Fatalf("recorded: %+v, want failure %q", results, tc.detail)
+			if len(results) != 1 || results[0].ok || results[0].detail != tc.detail || results[0].infrastructure != tc.infrastructure {
+				t.Fatalf("recorded: %+v, want failure %q infrastructure=%v", results, tc.detail, tc.infrastructure)
 			}
 		})
 	}
