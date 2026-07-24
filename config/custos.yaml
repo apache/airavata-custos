@@ -27,6 +27,10 @@ core:
       audience: "${OIDC_AUDIENCE}"
     cache_ttl: "30s"
 
+  # How long an access check may keep failing before the portal stops calling
+  # it a transient retry and reports it as stuck.
+  access_check_stuck_after: "1h"
+
   # Notification mail; sending stays disabled while any value is unset.
   email:
     smtp_host: "smtp.gmail.com"
@@ -56,6 +60,9 @@ connectors:
     # which Custos cannot observe. Raise it if users hit "Invalid account"
     # right after being added.
     association_provision_grace: "30s"
+    # How often the read-only probe verifies each member's association and
+    # reports job-submission health.
+    job_check_interval: "30s"
 
   slurm-usage-monitor:
     type: "slurm-usage-monitor"
@@ -86,6 +93,9 @@ connectors:
       default_shell: "/bin/bash"
       homedir_prefix: "/home/"
       http_timeout: "30s"
+    # How often the read-only probe verifies each member's registry record
+    # and reports sign-in health. Kept slow: the registry is external.
+    signin_check_interval: "10m"
 
   amie-processor:
     type: "amie-processor"
