@@ -163,6 +163,11 @@ func run() error {
 	}
 	svc.SetMailer(mailer)
 
+	if raw := strings.TrimSpace(os.Getenv("AUTO_APPROVE_EMAILS")); raw != "" {
+		svc.SetAutoApprove(strings.Split(raw, ","), os.Getenv("CUSTOS_BOOTSTRAP_ADMIN_EMAIL"))
+		slog.Info("access-request auto-approve enabled", "count", len(strings.Split(raw, ",")))
+	}
+
 	// identity.Middleware sits in front of the router-backed server, so every
 	// gated route sees a verified caller + privilege set on ctx.
 	authed := identity.Middleware(verifier, svc, router.PublicPaths(), router.TokenPathMatcher(), srv)

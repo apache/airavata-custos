@@ -20,6 +20,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,6 +65,8 @@ type Service struct {
 	auditTraces         store.AuditTraceStore
 	identityCache       *identityCache
 	mailer              email.Mailer
+	autoApproveEmails   map[string]bool
+	autoApproveApprover string
 }
 
 // SetMailer configures notification mail; unset means messages are dropped.
@@ -71,6 +74,20 @@ func (s *Service) SetMailer(m email.Mailer) {
 	if m != nil {
 		s.mailer = m
 	}
+}
+
+// SetAutoApprove enables auto-approval of access requests whose email is in the
+// list, recorded as approved by approverEmail. An empty list disables it. Used
+// to fast-track known team members through the trial-account flow.
+func (s *Service) SetAutoApprove(emails []string, approverEmail string) {
+	m := make(map[string]bool, len(emails))
+	for _, e := range emails {
+		if e = strings.TrimSpace(strings.ToLower(e)); e != "" {
+			m[e] = true
+		}
+	}
+	s.autoApproveEmails = m
+	s.autoApproveApprover = strings.TrimSpace(strings.ToLower(approverEmail))
 }
 
 // New constructs a Service backed by the supplied database handle.

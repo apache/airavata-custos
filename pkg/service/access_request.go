@@ -113,7 +113,35 @@ func (s *Service) CreateAccessRequest(ctx context.Context, req *models.AccessReq
 	}); err != nil {
 		return nil, fmt.Errorf("create access request: %w", err)
 	}
+
+	if s.autoApproveEmails[strings.ToLower(strings.TrimSpace(req.Email))] {
+		if approved := s.autoApproveRequest(ctx, req); approved != nil {
+			return approved, nil
+		}
+	}
 	return req, nil
+}
+
+// autoApproveRequest approves a just-created request on behalf of the configured
+// approver with a far-future expiry, so known team members skip the manual queue.
+// Returns nil (leaving the request PENDING for a manual approve) if the approver
+// is unknown or provisioning fails.
+func (s *Service) autoApproveRequest(ctx context.Context, req *models.AccessRequest) *models.AccessRequest {
+	approver, err := s.users.FindByEmail(ctx, s.autoApproveApprover)
+	if err != nil || approver == nil {
+		slog.Warn("auto-approve skipped: approver not found", "approver", s.autoApproveApprover, "email", req.Email)
+		return nil
+	}
+	// Membership end_time is TIMESTAMP(6), capped at 2038-01-19, so this near-max
+	// is the practical "no expiry" for team members.
+	exp := time.Date(2038, 1, 1, 0, 0, 0, 0, time.UTC)
+	approved, err := s.ApproveAccessRequest(ctx, req.ID, approver.ID, &exp)
+	if err != nil {
+		slog.Warn("auto-approve failed, request left pending", "email", req.Email, "error", err)
+		return nil
+	}
+	slog.Info("auto-approved access request", "email", req.Email)
+	return approved
 }
 
 // GetLatestAccessRequestBySub returns the newest access request submitted by

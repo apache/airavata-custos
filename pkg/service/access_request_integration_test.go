@@ -253,6 +253,34 @@ func TestApproveAccessRequest_HappyPath(t *testing.T) {
 	}
 }
 
+// An allowlisted email is approved on creation, not left PENDING, and provisioning
+// runs (created_user_id is set). Uppercase entry proves the match is case-insensitive.
+func TestCreateAccessRequest_AutoApprovesAllowlistedEmail(t *testing.T) {
+	env := setupAccessEnv(t)
+	admin, err := env.svc.GetUser(ctx(), env.adminID)
+	if err != nil {
+		t.Fatalf("get admin: %v", err)
+	}
+	sub := "sub-" + uuid.NewString()[:8]
+	req := newAccessRequestFor(env, sub)
+	env.svc.SetAutoApprove([]string{strings.ToUpper(req.Email)}, admin.Email)
+	defer env.svc.SetAutoApprove(nil, "")
+
+	created, err := env.svc.CreateAccessRequest(ctx(), req)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if created.Status != models.AccessRequestApproved {
+		t.Fatalf("status = %s, want APPROVED (auto-approved on create)", created.Status)
+	}
+	if created.ApproverID != env.adminID {
+		t.Errorf("approver = %q, want admin %q", created.ApproverID, env.adminID)
+	}
+	if created.CreatedUserID == "" {
+		t.Error("created_user_id empty; provisioning did not run on auto-approve")
+	}
+}
+
 func TestApproveAccessRequest_ReusesExistingUser(t *testing.T) {
 	env := setupAccessEnv(t)
 	sub := "sub-" + uuid.NewString()[:8]
