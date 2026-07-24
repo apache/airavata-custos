@@ -22,5 +22,10 @@
 export const brand = {
   name: process.env.NEXT_PUBLIC_PORTAL_NAME || "Custos",
   logo: process.env.NEXT_PUBLIC_PORTAL_LOGO || "/brand/logo/custos-logo.svg",
+  // Dark-mode logo; falls back to the light logo when a deployment sets only one.
+  logoDark:
+    process.env.NEXT_PUBLIC_PORTAL_LOGO_DARK ||
+    process.env.NEXT_PUBLIC_PORTAL_LOGO ||
+    "/brand/logo/custos-logo.svg",
   favicon: process.env.NEXT_PUBLIC_PORTAL_FAVICON || "/brand/logo/custos-mark.svg",
 } as const;

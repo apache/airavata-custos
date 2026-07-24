@@ -44,9 +44,11 @@ export function Sidebar() {
     <aside className="flex w-[240px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       <div className="px-6 pt-4 pb-6">
         <Link href="/" aria-label={brand.name} className="inline-flex items-center">
-          {/* Deployment brand logo; set NEXT_PUBLIC_PORTAL_LOGO to override. */}
+          {/* Light/dark brand logos; set NEXT_PUBLIC_PORTAL_LOGO[_DARK] to override. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={brand.logo} alt={brand.name} className="h-8 w-auto" />
+          <img src={brand.logo} alt={brand.name} className="h-8 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={brand.logoDark} alt={brand.name} className="hidden h-8 w-auto dark:block" />
         </Link>
       </div>
 
