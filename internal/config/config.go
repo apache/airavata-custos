@@ -46,6 +46,8 @@ type CoreConfig struct {
 	LogLevel string         `yaml:"log_level"`
 	Auth     AuthConfig     `yaml:"auth"`
 	Email    EmailConfig    `yaml:"email"`
+	// How long an access check may keep failing before it reports as stuck.
+	AccessCheckStuckAfter time.Duration `yaml:"access_check_stuck_after"`
 }
 
 // EmailConfig carries the SMTP relay and the deployment identity rendered

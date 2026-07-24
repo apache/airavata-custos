@@ -63,10 +63,13 @@ type Service struct {
 	roles               store.RoleStore
 	userRoles           store.UserRoleStore
 	auditTraces         store.AuditTraceStore
+	accessChecks        store.AccessCheckStore
 	identityCache       *identityCache
 	mailer              email.Mailer
 	autoApproveEmails   map[string]bool
 	autoApproveApprover string
+
+	accessCheckStuckAfter time.Duration
 }
 
 // SetMailer configures notification mail; unset means messages are dropped.
@@ -121,6 +124,7 @@ func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 		roles:               store.NewRoleStore(database),
 		userRoles:           store.NewUserRoleStore(database),
 		auditTraces:         store.NewAuditTraceStore(database),
+		accessChecks:        store.NewAccessCheckStore(database),
 		identityCache:       newIdentityCache(),
 		mailer:              email.Noop{},
 	}
@@ -182,6 +186,7 @@ func NewWithStores(
 		roles:               roles,
 		userRoles:           userRoles,
 		auditTraces:         store.NewAuditTraceStore(database),
+		accessChecks:        store.NewAccessCheckStore(database),
 		identityCache:       newIdentityCache(),
 		mailer:              email.Noop{},
 	}

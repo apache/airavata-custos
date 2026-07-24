@@ -147,6 +147,7 @@ func run() error {
 		return err
 	}
 	svc.SetIdentityCacheTTL(cfg.Core.Auth.CacheTTL)
+	svc.SetAccessCheckStuckAfter(cfg.Core.AccessCheckStuckAfter)
 
 	mailer := email.New(email.Config{
 		Host:        cfg.Core.Email.SMTPHost,
