@@ -30,14 +30,14 @@ export type StatusBadgeVariant =
 
 // Flat fill + tinted text; bg-muted for neutral pills so they follow the theme.
 const variantStyles: Record<StatusBadgeVariant, string> = {
-  active: "bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]",
+  active: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
   inactive: "bg-muted text-muted-foreground",
-  deleted: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
-  pending: "bg-[color:var(--custos-blue-50)] text-[color:var(--custos-blue-700)]",
-  approved: "bg-[color:var(--custos-green-50)] text-[color:var(--custos-green-700)]",
-  rejected: "bg-[color:var(--custos-red-50)] text-[color:var(--custos-red-700)]",
+  deleted: "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)]",
+  pending: "bg-[color:var(--tone-info-bg)] text-[color:var(--tone-info-fg)]",
+  approved: "bg-[color:var(--tone-ok-bg)] text-[color:var(--tone-ok-fg)]",
+  rejected: "bg-[color:var(--tone-error-bg)] text-[color:var(--tone-error-fg)]",
   expired: "bg-muted text-muted-foreground",
-  warning: "bg-[color:var(--custos-amber-50)] text-[color:var(--custos-amber-700)]",
+  warning: "bg-[color:var(--tone-warn-bg)] text-[color:var(--tone-warn-fg)]",
 };
 
 const labels: Record<StatusBadgeVariant, string> = {

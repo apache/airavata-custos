@@ -113,8 +113,8 @@ export function AccessCard({ access }: { access: MyAccess }) {
                         className={cn(
                           "rounded-full px-2.5 py-0.5 text-[11px] whitespace-nowrap",
                           row.provenance === "direct"
-                            ? "border border-[color:var(--brand)] bg-[color:var(--brand-tint)] font-semibold text-[color:var(--accent-foreground)]"
-                            : "bg-[color:var(--brand-tint)] text-[color:var(--accent-foreground)]",
+                            ? "border border-[color:var(--brand)] bg-[color:var(--brand-tint)] font-semibold text-[color:var(--brand)]"
+                            : "bg-[color:var(--brand-tint)] text-[color:var(--brand)]",
                         )}
                       >
                         {row.provenanceLabel}
@@ -164,7 +164,7 @@ function RolesColumn({
             <div className="mb-0.5 flex items-center gap-2">
               <span className="font-semibold">{rwp.role.name}</span>
               {rwp.role.is_system ? (
-                <Badge className="bg-[color:var(--brand-tint)] text-[color:var(--accent-foreground)]">
+                <Badge className="bg-[color:var(--brand-tint)] text-[color:var(--brand)]">
                   SYSTEM
                 </Badge>
               ) : null}

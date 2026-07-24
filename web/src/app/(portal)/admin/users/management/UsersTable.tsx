@@ -26,13 +26,14 @@ import {
 } from "@/shared/hooks/useShallowSearchParams";
 import { DataTable, type DataTableColumn } from "@/shared/ui/DataTable";
 import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 import { IdentitiesCell } from "./IdentitiesCell";
 import { PermissionsDrawer } from "./PermissionsDrawer";
 import { RolesCell } from "./RolesCell";
-import { IDENTITY_SOURCE_LABELS } from "./identities";
+import { IDENTITY_SOURCE_LABELS, identitySourceLabel } from "./identities";
 
 function fullNameFor(user: UserManagementRow): string {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
@@ -93,6 +94,15 @@ export function UsersTable({
   const filtersActive =
     Boolean(search.trim()) || (canManageRoles && roleFilter !== "all") || identityFilter !== "all";
   const selectedUser = users.find((user) => user.id === selectedId) ?? null;
+
+  function roleLabelFor(value: string): string {
+    if (value === "all") return "All roles";
+    return rolesCatalog.find((role) => role.id === value)?.name ?? value;
+  }
+
+  function identityLabelFor(value: string): string {
+    return value === "all" ? "All external identities" : identitySourceLabel(value);
+  }
 
   function resetSelection() {
     setSelectedId(null);
@@ -224,33 +234,36 @@ export function UsersTable({
           className="sm:w-72"
         />
         {canManageRoles ? (
-          <select
-            value={roleFilter}
-            onChange={(event) => updateFilterParam("role", event.target.value)}
-            aria-label="Filter this page by role"
-            className="h-9 rounded-md border bg-background px-3 text-sm"
-          >
-            <option value="all">All roles</option>
-            {rolesCatalog.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
+          <Select value={roleFilter} onValueChange={(value) => updateFilterParam("role", value)}>
+            <SelectTrigger aria-label="Filter this page by role" className="h-9 w-36 px-3">
+              <SelectValue>{(value: string) => roleLabelFor(value)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              {rolesCatalog.map((role) => (
+                <SelectItem key={role.id} value={role.id}>
+                  {role.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : null}
-        <select
+        <Select
           value={identityFilter}
-          onChange={(event) => updateFilterParam("identity", event.target.value)}
-          aria-label="Filter this page by external identity"
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          onValueChange={(value) => updateFilterParam("identity", value)}
         >
-          <option value="all">All external identities</option>
-          {Object.entries(IDENTITY_SOURCE_LABELS).map(([source, label]) => (
-            <option key={source} value={source}>
-              {label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Filter this page by external identity" className="h-9 w-56 px-3">
+            <SelectValue>{(value: string) => identityLabelFor(value)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All external identities</SelectItem>
+            {Object.entries(IDENTITY_SOURCE_LABELS).map(([source, label]) => (
+              <SelectItem key={source} value={source}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {filtersActive ? (
@@ -270,7 +283,7 @@ export function UsersTable({
         }}
         rowClassName={(row) =>
           isCurrentUser(row)
-            ? "bg-[color:var(--custos-blue-50)]/40 hover:bg-[color:var(--custos-blue-50)]/60"
+            ? "bg-[color:var(--brand-tint)]/40 hover:bg-[color:var(--brand-tint)]/60"
             : undefined
         }
         empty={
