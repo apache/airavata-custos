@@ -247,7 +247,7 @@ func (s *mysqlStore) Jobs(ctx context.Context, allocationID string, userID *stri
 	var rows []JobRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT u.id, u.job_id, u.calculated_time, u.user_id,
-		        TRIM(CONCAT(COALESCE(usr.first_name, ''), ' ', COALESCE(usr.last_name, ''))) AS user_name,
+		        COALESCE(NULLIF(TRIM(CONCAT(COALESCE(usr.first_name, ''), ' ', COALESCE(usr.last_name, ''))), ''), usr.email) AS user_name,
 		        u.compute_allocation_resource_id AS resource_id,
 		        COALESCE(r.name, '') AS resource_name,
 		        COALESCE(r.resource_type, '') AS resource_type,
