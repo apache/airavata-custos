@@ -279,6 +279,15 @@ func TestCreateAccessRequest_AutoApprovesAllowlistedEmail(t *testing.T) {
 	if created.CreatedUserID == "" {
 		t.Error("created_user_id empty; provisioning did not run on auto-approve")
 	}
+
+	alloc, err := env.svc.GetComputeAllocation(ctx(), env.allocID)
+	if err != nil {
+		t.Fatalf("get allocation: %v", err)
+	}
+	role, err := env.svc.ProjectRoleForUser(ctx(), alloc.ProjectID, created.CreatedUserID)
+	if err != nil || role != models.ProjectRoleAllocationManager {
+		t.Errorf("provisioned user role = %q (err %v), want ALLOCATION_MANAGER", role, err)
+	}
 }
 
 func TestApproveAccessRequest_ReusesExistingUser(t *testing.T) {

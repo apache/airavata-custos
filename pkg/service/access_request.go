@@ -341,6 +341,12 @@ func (s *Service) provisionAccessRequest(ctx context.Context, req *models.Access
 	}); err != nil && !errors.Is(err, ErrAlreadyExists) {
 		return nil, "", fmt.Errorf("create compute allocation membership: %w", err)
 	}
+
+	// Trial users manage their own tutorial allocation, so grant the governance
+	// role, not just a bare membership.
+	if err := s.EnsureProjectMembership(ctx, alloc.ProjectID, user.ID, string(models.ProjectRoleAllocationManager)); err != nil {
+		return nil, "", fmt.Errorf("grant allocation-manager role: %w", err)
+	}
 	return user, username, nil
 }
 
