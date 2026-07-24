@@ -48,6 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-brand={process.env.NEXT_PUBLIC_PORTAL_BRAND}
       className={cn(
         "light h-full antialiased",
         inter.variable,

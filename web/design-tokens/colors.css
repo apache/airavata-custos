@@ -243,3 +243,22 @@
 
   --drawer-scrim: rgba(0, 0, 0, 0.6);
 }
+
+/* Nexus (staging) portal keeps the pre-rebrand blue accent. Enabled by
+   data-brand="nexus" on <html> (set from NEXT_PUBLIC_PORTAL_BRAND); dev has no
+   data-brand and keeps the orange brand. */
+:root[data-brand="nexus"] {
+  --custos-primary: var(--custos-blue-500);
+  --custos-action: var(--custos-blue-500);
+  --brand: var(--custos-blue-500);
+  --brand-tint: var(--custos-blue-50);
+  --accent: var(--custos-blue-50);
+  --accent-foreground: var(--custos-blue-700);
+}
+.dark[data-brand="nexus"] {
+  --primary: var(--custos-blue-400);
+  --accent: var(--custos-blue-800);
+  --accent-foreground: var(--custos-blue-100);
+  --brand: var(--custos-blue-400);
+  --brand-tint: rgba(35, 97, 184, 0.22);
+}
