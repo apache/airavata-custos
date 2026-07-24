@@ -521,6 +521,41 @@ func TestAllocationJobs_MemberSeesOnlyOwn(t *testing.T) {
 	}
 }
 
+func TestAllocationJobs_UnresolvedUserFallsBackWithoutError(t *testing.T) {
+	database, _, srv := setupTestStack(t)
+	pi := seedUser(t, database, "pi-orphan@example.edu")
+	cluster := seedCluster(t, database)
+	project := seedProject(t, database, pi)
+	seedProjectRole(t, database, project, pi, models.ProjectRolePI)
+	alloc := seedAllocation(t, database, project, cluster, 1000,
+		time.Now().UTC().AddDate(0, 0, -3), time.Now().UTC().AddDate(0, 0, 27))
+	res := seedResource(t, database, cluster, "cpu-01", "CPU_HOURS")
+	// A usage row whose user_id has no users row (orphaned by a reset). user_name
+	// must resolve to empty, not NULL, or the whole jobs query fails to scan.
+	orphan := uuid.NewString()
+	seedUsage(t, database, alloc, res, orphan, 100, 10, time.Now().UTC().AddDate(0, 0, -1))
+
+	rr := httptest.NewRecorder()
+	req := withTestCaller(httptest.NewRequest(http.MethodGet, "/connectors/analytics/allocations/"+alloc+"/jobs", nil), pi)
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rr.Code, rr.Body.String())
+	}
+	var got AllocationJobs
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.Jobs) != 1 {
+		t.Fatalf("jobs: got %d, want 1", len(got.Jobs))
+	}
+	if got.Jobs[0].UserName != "" {
+		t.Errorf("user_name for an unresolved user: got %q, want empty", got.Jobs[0].UserName)
+	}
+	if got.Jobs[0].UserID != orphan {
+		t.Errorf("user_id: got %s, want the orphan id", got.Jobs[0].UserID)
+	}
+}
+
 func TestAllocationJobs_ManagerSeesAllAndCanFilterMine(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	pi := seedUser(t, database, "pij3@example.edu")
