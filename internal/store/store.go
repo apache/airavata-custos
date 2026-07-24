@@ -388,6 +388,25 @@ type AccessRequestEventStore interface {
 	Create(ctx context.Context, tx *sql.Tx, e *models.AccessRequestEvent) error
 }
 
+// AccessCheckStore defines persistence operations for per-member access
+// health checks and their milestone history.
+type AccessCheckStore interface {
+	// FindByTarget returns the check for (allocation, user, check type), or nil if absent.
+	FindByTarget(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType) (*models.AccessCheck, error)
+	// FindByUserAndAllocation returns the user's checks on the allocation, ordered by check_type.
+	FindByUserAndAllocation(ctx context.Context, allocationID, userID string) ([]models.AccessCheck, error)
+	// FindByAllocation returns every check recorded against the allocation.
+	FindByAllocation(ctx context.Context, allocationID string) ([]models.AccessCheck, error)
+	// Create inserts a new check within the provided transaction.
+	Create(ctx context.Context, tx *sql.Tx, c *models.AccessCheck) error
+	// Update replaces mutable fields of an existing check within the provided transaction.
+	Update(ctx context.Context, tx *sql.Tx, c *models.AccessCheck) error
+	// CreateEvent inserts a milestone event within the provided transaction.
+	CreateEvent(ctx context.Context, tx *sql.Tx, e *models.AccessCheckEvent) error
+	// FindEventsByChecks returns the events for the given check ids, newest first.
+	FindEventsByChecks(ctx context.Context, checkIDs []string) ([]models.AccessCheckEvent, error)
+}
+
 // ProjectMembershipStore defines persistence operations for project-level
 // governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER is derived from
 // compute_allocation_memberships and not stored here.
