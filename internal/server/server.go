@@ -141,6 +141,7 @@ func (s *Server) routes() {
 	s.router.RequirePrivilege("PUT /compute-allocation-memberships/{id}/status", models.AllocationsWrite, s.updateMembershipStatus)
 	s.router.RequirePrivilege("DELETE /compute-allocation-memberships/{id}", models.AllocationsWrite, s.deleteComputeAllocationMembership)
 	s.router.RequireScoped("GET /compute-allocations/{id}/memberships", s.canReadAllocation, s.listMembersForAllocation)
+	s.router.RequireScoped("GET /compute-allocations/{id}/access-status", s.canReadAllocation, s.getAllocationAccessStatus)
 	s.router.RequirePrivilege("GET /users/{id}/compute-allocation-memberships", models.AllocationsRead, s.listAllocationsForUser)
 	s.router.RequirePrivilege("GET /compute-allocation-memberships/{id}/resource-overrides", models.AllocationsRead, s.listOverridesForMembership)
 
