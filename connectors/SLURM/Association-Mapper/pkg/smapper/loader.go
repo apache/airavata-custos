@@ -38,7 +38,7 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 
 	// Read url, username, and password from config or environment variables
 	var apiUrl, user, token, apiVersion string
-	var reconcileInterval, provisionGrace time.Duration
+	var reconcileInterval, provisionGrace, jobCheckInterval time.Duration
 
 	if connectorConfig != nil {
 		slurmAPI, err := connectorConfig.GetNestedConfig("slurm_api")
@@ -68,6 +68,13 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 				provisionGrace = d
 			} else {
 				slog.Warn("invalid association_provision_grace, using default", "value", pg, "error", err)
+			}
+		}
+		if jc, ok := connectorConfig.Config["job_check_interval"].(string); ok && jc != "" {
+			if d, err := time.ParseDuration(jc); err == nil {
+				jobCheckInterval = d
+			} else {
+				slog.Warn("invalid job_check_interval, using default", "value", jc, "error", err)
 			}
 		}
 	}
@@ -101,6 +108,12 @@ func LoadConnector(ctx context.Context, _ *sqlx.DB, eventBus *events.Bus, coreSe
 	go func() {
 		defer wg.Done()
 		subscriber.StartReconciler(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		subscriber.StartStatusProbe(ctx, jobCheckInterval)
 	}()
 	return nil
 }

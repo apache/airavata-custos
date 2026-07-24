@@ -212,6 +212,13 @@ type ComputeAllocationMembershipResourceOverrideService interface {
 	DeleteComputeAllocationMembershipResourceOverride(ctx context.Context, id string) error
 }
 
+// AccessCheckService exposes probe result recording and access status reads.
+type AccessCheckService interface {
+	RecordAccessCheckResult(ctx context.Context, allocationID, userID string, checkType models.AccessCheckType, ok bool, detail string) error
+	AccessStatusForUser(ctx context.Context, allocationID, userID string) (*AccessStatus, error)
+	AccessStatusForAllocation(ctx context.Context, allocationID string) ([]MemberAccessStatus, error)
+}
+
 // ComputeAllocationUsageService exposes usage accounting.
 type ComputeAllocationUsageService interface {
 	CreateComputeAllocationUsage(ctx context.Context, u *models.ComputeAllocationUsage) (*models.ComputeAllocationUsage, error)
@@ -290,6 +297,7 @@ type CoreService interface {
 	ProjectMembershipService
 	ComputeAllocationMembershipResourceOverrideService
 	ComputeAllocationUsageService
+	AccessCheckService
 	AuditEventService
 	UserPrivilegeService
 	RoleService

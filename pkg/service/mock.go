@@ -21,6 +21,12 @@ var _ CoreService = &CoreServiceMock{}
 //
 //		// make and configure a mocked CoreService
 //		mockedCoreService := &CoreServiceMock{
+//			AccessStatusForAllocationFunc: func(ctx context.Context, allocationID string) ([]MemberAccessStatus, error) {
+//				panic("mock out the AccessStatusForAllocation method")
+//			},
+//			AccessStatusForUserFunc: func(ctx context.Context, allocationID string, userID string) (*AccessStatus, error) {
+//				panic("mock out the AccessStatusForUser method")
+//			},
 //			AddPrivilegeToRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the AddPrivilegeToRole method")
 //			},
@@ -384,6 +390,9 @@ var _ CoreService = &CoreServiceMock{}
 //			ProjectRoleForUserFunc: func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error) {
 //				panic("mock out the ProjectRoleForUser method")
 //			},
+//			RecordAccessCheckResultFunc: func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
+//				panic("mock out the RecordAccessCheckResult method")
+//			},
 //			RemovePrivilegeFromRoleFunc: func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error {
 //				panic("mock out the RemovePrivilegeFromRole method")
 //			},
@@ -451,6 +460,12 @@ var _ CoreService = &CoreServiceMock{}
 //
 //	}
 type CoreServiceMock struct {
+	// AccessStatusForAllocationFunc mocks the AccessStatusForAllocation method.
+	AccessStatusForAllocationFunc func(ctx context.Context, allocationID string) ([]MemberAccessStatus, error)
+
+	// AccessStatusForUserFunc mocks the AccessStatusForUser method.
+	AccessStatusForUserFunc func(ctx context.Context, allocationID string, userID string) (*AccessStatus, error)
+
 	// AddPrivilegeToRoleFunc mocks the AddPrivilegeToRole method.
 	AddPrivilegeToRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 
@@ -814,6 +829,9 @@ type CoreServiceMock struct {
 	// ProjectRoleForUserFunc mocks the ProjectRoleForUser method.
 	ProjectRoleForUserFunc func(ctx context.Context, projectID string, userID string) (models.ProjectRole, error)
 
+	// RecordAccessCheckResultFunc mocks the RecordAccessCheckResult method.
+	RecordAccessCheckResultFunc func(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error
+
 	// RemovePrivilegeFromRoleFunc mocks the RemovePrivilegeFromRole method.
 	RemovePrivilegeFromRoleFunc func(ctx context.Context, roleID string, privilege models.PrivilegeKey, actorID string) error
 
@@ -876,6 +894,22 @@ type CoreServiceMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// AccessStatusForAllocation holds details about calls to the AccessStatusForAllocation method.
+		AccessStatusForAllocation []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+		}
+		// AccessStatusForUser holds details about calls to the AccessStatusForUser method.
+		AccessStatusForUser []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// AddPrivilegeToRole holds details about calls to the AddPrivilegeToRole method.
 		AddPrivilegeToRole []struct {
 			// Ctx is the ctx argument value.
@@ -1777,6 +1811,21 @@ type CoreServiceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// RecordAccessCheckResult holds details about calls to the RecordAccessCheckResult method.
+		RecordAccessCheckResult []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// AllocationID is the allocationID argument value.
+			AllocationID string
+			// UserID is the userID argument value.
+			UserID string
+			// CheckType is the checkType argument value.
+			CheckType models.AccessCheckType
+			// Ok is the ok argument value.
+			Ok bool
+			// Detail is the detail argument value.
+			Detail string
+		}
 		// RemovePrivilegeFromRole holds details about calls to the RemovePrivilegeFromRole method.
 		RemovePrivilegeFromRole []struct {
 			// Ctx is the ctx argument value.
@@ -1952,6 +2001,8 @@ type CoreServiceMock struct {
 			Status models.UserStatus
 		}
 	}
+	lockAccessStatusForAllocation                              sync.RWMutex
+	lockAccessStatusForUser                                    sync.RWMutex
 	lockAddPrivilegeToRole                                     sync.RWMutex
 	lockAllocateComputeClusterUser                             sync.RWMutex
 	lockAttachResourceToAllocation                             sync.RWMutex
@@ -2073,6 +2124,7 @@ type CoreServiceMock struct {
 	lockMergeUsers                                             sync.RWMutex
 	lockPrivilegeCatalog                                       sync.RWMutex
 	lockProjectRoleForUser                                     sync.RWMutex
+	lockRecordAccessCheckResult                                sync.RWMutex
 	lockRemovePrivilegeFromRole                                sync.RWMutex
 	lockRevokePrivilege                                        sync.RWMutex
 	lockRevokeRoleFromUser                                     sync.RWMutex
@@ -2093,6 +2145,82 @@ type CoreServiceMock struct {
 	lockUpdateUser                                             sync.RWMutex
 	lockUpdateUserIdentity                                     sync.RWMutex
 	lockUpdateUserStatus                                       sync.RWMutex
+}
+
+// AccessStatusForAllocation calls AccessStatusForAllocationFunc.
+func (mock *CoreServiceMock) AccessStatusForAllocation(ctx context.Context, allocationID string) ([]MemberAccessStatus, error) {
+	if mock.AccessStatusForAllocationFunc == nil {
+		panic("CoreServiceMock.AccessStatusForAllocationFunc: method is nil but CoreService.AccessStatusForAllocation was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+	}
+	mock.lockAccessStatusForAllocation.Lock()
+	mock.calls.AccessStatusForAllocation = append(mock.calls.AccessStatusForAllocation, callInfo)
+	mock.lockAccessStatusForAllocation.Unlock()
+	return mock.AccessStatusForAllocationFunc(ctx, allocationID)
+}
+
+// AccessStatusForAllocationCalls gets all the calls that were made to AccessStatusForAllocation.
+// Check the length with:
+//
+//	len(mockedCoreService.AccessStatusForAllocationCalls())
+func (mock *CoreServiceMock) AccessStatusForAllocationCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+	}
+	mock.lockAccessStatusForAllocation.RLock()
+	calls = mock.calls.AccessStatusForAllocation
+	mock.lockAccessStatusForAllocation.RUnlock()
+	return calls
+}
+
+// AccessStatusForUser calls AccessStatusForUserFunc.
+func (mock *CoreServiceMock) AccessStatusForUser(ctx context.Context, allocationID string, userID string) (*AccessStatus, error) {
+	if mock.AccessStatusForUserFunc == nil {
+		panic("CoreServiceMock.AccessStatusForUserFunc: method is nil but CoreService.AccessStatusForUser was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		UserID:       userID,
+	}
+	mock.lockAccessStatusForUser.Lock()
+	mock.calls.AccessStatusForUser = append(mock.calls.AccessStatusForUser, callInfo)
+	mock.lockAccessStatusForUser.Unlock()
+	return mock.AccessStatusForUserFunc(ctx, allocationID, userID)
+}
+
+// AccessStatusForUserCalls gets all the calls that were made to AccessStatusForUser.
+// Check the length with:
+//
+//	len(mockedCoreService.AccessStatusForUserCalls())
+func (mock *CoreServiceMock) AccessStatusForUserCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	UserID       string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+	}
+	mock.lockAccessStatusForUser.RLock()
+	calls = mock.calls.AccessStatusForUser
+	mock.lockAccessStatusForUser.RUnlock()
+	return calls
 }
 
 // AddPrivilegeToRole calls AddPrivilegeToRoleFunc.
@@ -6555,6 +6683,58 @@ func (mock *CoreServiceMock) ProjectRoleForUserCalls() []struct {
 	mock.lockProjectRoleForUser.RLock()
 	calls = mock.calls.ProjectRoleForUser
 	mock.lockProjectRoleForUser.RUnlock()
+	return calls
+}
+
+// RecordAccessCheckResult calls RecordAccessCheckResultFunc.
+func (mock *CoreServiceMock) RecordAccessCheckResult(ctx context.Context, allocationID string, userID string, checkType models.AccessCheckType, ok bool, detail string) error {
+	if mock.RecordAccessCheckResultFunc == nil {
+		panic("CoreServiceMock.RecordAccessCheckResultFunc: method is nil but CoreService.RecordAccessCheckResult was just called")
+	}
+	callInfo := struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+		CheckType    models.AccessCheckType
+		Ok           bool
+		Detail       string
+	}{
+		Ctx:          ctx,
+		AllocationID: allocationID,
+		UserID:       userID,
+		CheckType:    checkType,
+		Ok:           ok,
+		Detail:       detail,
+	}
+	mock.lockRecordAccessCheckResult.Lock()
+	mock.calls.RecordAccessCheckResult = append(mock.calls.RecordAccessCheckResult, callInfo)
+	mock.lockRecordAccessCheckResult.Unlock()
+	return mock.RecordAccessCheckResultFunc(ctx, allocationID, userID, checkType, ok, detail)
+}
+
+// RecordAccessCheckResultCalls gets all the calls that were made to RecordAccessCheckResult.
+// Check the length with:
+//
+//	len(mockedCoreService.RecordAccessCheckResultCalls())
+func (mock *CoreServiceMock) RecordAccessCheckResultCalls() []struct {
+	Ctx          context.Context
+	AllocationID string
+	UserID       string
+	CheckType    models.AccessCheckType
+	Ok           bool
+	Detail       string
+} {
+	var calls []struct {
+		Ctx          context.Context
+		AllocationID string
+		UserID       string
+		CheckType    models.AccessCheckType
+		Ok           bool
+		Detail       string
+	}
+	mock.lockRecordAccessCheckResult.RLock()
+	calls = mock.calls.RecordAccessCheckResult
+	mock.lockRecordAccessCheckResult.RUnlock()
 	return calls
 }
 
