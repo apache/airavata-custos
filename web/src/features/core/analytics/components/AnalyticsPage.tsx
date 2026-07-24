@@ -19,6 +19,7 @@
 
 import * as React from "react";
 import { ChartColumn } from "lucide-react";
+import { AllocationAccessBand } from "@/features/core/access-status/components/AllocationAccessBand";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -87,6 +88,7 @@ export function AnalyticsPage() {
             selectedAllocationId={allocation.id}
             onSelect={select}
           />
+          <AllocationAccessBand allocationId={allocation.id} allocationName={allocation.name} />
           <AnalyticsBody
             project={project}
             allocation={allocation}

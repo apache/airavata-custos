@@ -57,6 +57,9 @@ vi.mock("../queries", () => ({
   useSetMemberProjectRole: () => roleMutation,
   useRemoveMember: () => mutation,
 }));
+vi.mock("@/features/core/access-status/queries", () => ({
+  useAllocationAccessMembers: () => ({ data: undefined, isLoading: false, error: null }),
+}));
 
 import { AllocationMembersTab } from "../components/AllocationMembersTab";
 

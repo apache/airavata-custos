@@ -25,6 +25,9 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
 import { StatusBadge } from "@/shared/ui/StatusBadge";
+import { CHECK_CHIP } from "@/features/core/access-status/components/AllocationAccessBand";
+import { useAllocationAccessMembers } from "@/features/core/access-status/queries";
+import type { AccessCheckType } from "@/features/core/access-status/schemas";
 import {
   useAddMember,
   useAllocationMembers,
@@ -57,8 +60,26 @@ function initialsFrom(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+// Manager-only columns showing each member's access health, fed by the same
+// checks that drive the analytics access band.
+function accessColumns(
+  members: Array<{ user_id: string; checks: Array<{ type: AccessCheckType; ui_state: keyof typeof CHECK_CHIP }> }> | undefined,
+): Array<DataTableColumn<AllocationMembership>> {
+  const byUser = new Map(members?.map((m) => [m.user_id, m.checks]) ?? []);
+  const cellFor = (row: AllocationMembership, type: AccessCheckType) => {
+    const check = byUser.get(row.user_id)?.find((c) => c.type === type);
+    if (!check) return <span className="text-xs text-muted-foreground">—</span>;
+    return <StatusBadge {...CHECK_CHIP[check.ui_state]} />;
+  };
+  return [
+    { key: "signin", header: "Sign-in", cell: (row) => cellFor(row, "SIGN_IN") },
+    { key: "jobs", header: "Jobs", cell: (row) => cellFor(row, "JOB_SUBMISSION") },
+  ];
+}
+
 export function AllocationMembersTab({ allocation, canManage }: AllocationMembersTabProps) {
   const query = useAllocationMembers(allocation.id);
+  const accessQuery = useAllocationAccessMembers(allocation.id, canManage);
   const addMutation = useAddMember(allocation.id);
   const roleMutation = useSetMemberProjectRole(allocation.id);
   const removeMutation = useRemoveMember(allocation.id);
@@ -143,6 +164,7 @@ export function AllocationMembersTab({ allocation, canManage }: AllocationMember
         />
       ),
     },
+    ...(canManage ? accessColumns(accessQuery.data?.members) : []),
     {
       key: "actions",
       header: "",
