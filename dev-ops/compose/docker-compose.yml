@@ -111,7 +111,7 @@ services:
       - IPC_LOCK
     volumes:
       - ./openbao/config:/openbao/config:ro
-      - ./openbao/data:/openbao/data
+      - openbao-data:/openbao/file
     healthcheck:
       # sealed/uninitialized also count as up; the init job handles both
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8200/v1/sys/health?sealedcode=204&uninitcode=204&standbyok=true"]
@@ -192,3 +192,6 @@ services:
     depends_on:
       signer-seed:
         condition: service_completed_successfully
+
+volumes:
+  openbao-data:
