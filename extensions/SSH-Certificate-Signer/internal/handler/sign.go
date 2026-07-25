@@ -48,16 +48,17 @@ type SignRequest struct {
 }
 
 type SignResponse struct {
-	Certificate       string   `json:"certificate"`
-	SerialNumber      int64    `json:"serial_number"`
-	ValidAfter        int64    `json:"valid_after"`
-	ValidBefore       int64    `json:"valid_before"`
-	CAFingerprint     string   `json:"ca_fingerprint"`
-	TargetHost        string   `json:"target_host"`
-	TargetPort        int      `json:"target_port"`
-	TargetUsername    string   `json:"target_username"`
-	ForceCommand      string   `json:"force_command,omitempty"`
-	GrantedExtensions []string `json:"granted_extensions"`
+	Certificate       string           `json:"certificate"`
+	SerialNumber      int64            `json:"serial_number"`
+	ValidAfter        int64            `json:"valid_after"`
+	ValidBefore       int64            `json:"valid_before"`
+	CAFingerprint     string           `json:"ca_fingerprint"`
+	TargetHost        string           `json:"target_host"`
+	TargetPort        int              `json:"target_port"`
+	TargetUsername    string           `json:"target_username"`
+	ForceCommand      string           `json:"force_command,omitempty"`
+	GrantedExtensions []string         `json:"granted_extensions"`
+	TimingMicros      map[string]int64 `json:"timing_micros,omitempty"`
 }
 
 type SignHandler struct {
@@ -89,6 +90,15 @@ func NewSignHandler(
 
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
+	// Per-component timing for the response. Accumulating lets the
+	// duplicate-serial retry path add into the same stages.
+	timings := map[string]int64{}
+	stageStart := startTime
+	mark := func(stage string) {
+		now := time.Now()
+		timings[stage] += now.Sub(stageStart).Microseconds()
+		stageStart = now
+	}
 	clientCfg := httputil.ClientConfigFromContext(r.Context())
 	if clientCfg == nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Missing client config")
@@ -138,6 +148,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid SSH public key format")
 		return
 	}
+	mark("parse_request_us")
 
 	identity, err := h.oidcValidator.ValidateAccessToken(r.Context(), req.UserAccessToken)
 	if err != nil {
@@ -149,6 +160,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Token validation error")
 		return
 	}
+	mark("oidc_validation_us")
 
 	sourceIP := httputil.SourceIPFromContext(r.Context())
 	if err := h.policyEnforcer.Enforce(req.TTLSeconds, sshPubKey.Type(), sourceIP, clientCfg); err != nil {
@@ -160,6 +172,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Policy enforcement error")
 		return
 	}
+	mark("policy_enforcement_us")
 
 	// Resolve extensions: all standard - client denied - request excluded
 	grantedExts, err := cert.ResolveExtensions(clientCfg.DeniedExtensions, req.ExcludeExtensions)
@@ -183,6 +196,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Principal validation error")
 		return
 	}
+	mark("principal_validation_us")
 
 	validatedPrincipal := valResult.ValidatedPrincipal
 
@@ -195,6 +209,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metrics.VaultOperationsTotal.WithLabelValues("get_ca_key", "success").Inc()
+	mark("vault_key_fetch_us")
 
 	serial, err := h.vaultClient.IncrementSerialCounter(r.Context(), tenantID, clientID)
 	if err != nil {
@@ -205,6 +220,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
+	mark("vault_serial_us")
 
 	criticalOpts := policy.BuildCriticalOptions(clientCfg.SourceAddressRestriction, req.ForceCommand)
 
@@ -226,6 +242,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 		return
 	}
+	mark("cert_signing_us")
 
 	tokenHash := cert.HashToken(req.UserAccessToken)
 	pubKeyFP := cert.SSHPublicKeyFingerprint(sshPubKey)
@@ -247,7 +264,9 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ForceCommand:         stringPtrIfNonEmpty(req.ForceCommand),
 	}
 
-	if err := h.auditLogger.LogIssuance(r.Context(), auditEntry); err != nil {
+	auditErr := h.auditLogger.LogIssuance(r.Context(), auditEntry)
+	mark("audit_log_us")
+	if err := auditErr; err != nil {
 		if !isDuplicateKeyError(err) {
 			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
 			h.logger.Error("failed to write audit log", "error", err)
@@ -267,6 +286,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "success").Inc()
+		mark("vault_serial_us")
 
 		signReq.Serial = uint64(retrySerial)
 		retryResult, err := cert.SignCertificate(signReq)
@@ -276,6 +296,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to sign certificate")
 			return
 		}
+		mark("cert_signing_us")
 
 		serial = retrySerial
 		signResult = retryResult
@@ -291,9 +312,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to record issuance")
 			return
 		}
+		mark("audit_log_us")
 	}
 
 	metrics.SignRequestsTotal.WithLabelValues(tenantID, "success").Inc()
+	timings["total_us"] = time.Since(startTime).Microseconds()
 
 	resp := SignResponse{
 		Certificate:       base64.StdEncoding.EncodeToString(signResult.CertBytes),
@@ -306,6 +329,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		TargetUsername:    validatedPrincipal,
 		ForceCommand:      req.ForceCommand,
 		GrantedExtensions: grantedExtNames,
+		TimingMicros:      timings,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

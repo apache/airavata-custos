@@ -37,6 +37,18 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "signer-cli",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true"
+      }
     }
   ],
   "users": [
@@ -116,6 +128,22 @@
         {
           "type": "password",
           "value": "researcher",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "f1c8d3a5-2e7b-4c9d-8a6f-4b9e1d7c3a52",
+      "username": "testuser",
+      "email": "testuser@custos.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testuser",
           "temporary": false
         }
       ]
