@@ -1,0 +1,19 @@
+# Test account for the compose stack. voPersonExternalID matches the
+# pinned id of the "testuser" account in the IdP realm import.
+dn: ou=people,dc=custos,dc=example
+objectClass: organizationalUnit
+ou: people
+
+dn: uid=testuser,ou=people,dc=custos,dc=example
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: voPerson
+uid: testuser
+cn: Test User
+sn: User
+mail: testuser@custos.local
+uidNumber: 10001
+gidNumber: 10001
+homeDirectory: /home/testuser
+loginShell: /bin/bash
+voPersonExternalID: f1c8d3a5-2e7b-4c9d-8a6f-4b9e1d7c3a52

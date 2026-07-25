@@ -17,13 +17,16 @@
 # under the License.
 
 storage "raft" {
-  path = "./vault/data"
+  path    = "/openbao/data"
   node_id = "node1"
 }
 
 listener "tcp" {
-  address = "0.0.0.0:8200"
+  address     = "0.0.0.0:8200"
   tls_disable = 1
 }
 
+cluster_addr = "http://127.0.0.1:8201"
+api_addr     = "http://127.0.0.1:8200"
+disable_mlock = true
 ui = true
