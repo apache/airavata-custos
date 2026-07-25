@@ -119,6 +119,7 @@ func TestAccessStatus_SelfViewWithDerivedAndRealChecks(t *testing.T) {
 			CheckType string `json:"check_type"`
 			EventType string `json:"event_type"`
 		} `json:"events"`
+		LocalUsername string `json:"local_username"`
 	}
 	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -139,6 +140,43 @@ func TestAccessStatus_SelfViewWithDerivedAndRealChecks(t *testing.T) {
 	for _, e := range got.Events {
 		if e.CheckType != "JOB_SUBMISSION" {
 			t.Errorf("event check type: got %+v", e)
+		}
+	}
+}
+
+func TestAccessStatus_CarriesLocalUsername(t *testing.T) {
+	fx := setupAccessStatusFixture(t)
+	var clusterID string
+	if err := fx.db.Get(&clusterID,
+		`SELECT compute_cluster_id FROM compute_allocations WHERE id = ?`, fx.allocID); err != nil {
+		t.Fatalf("cluster id: %v", err)
+	}
+	if _, err := fx.db.Exec(
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username, provisioned_at)
+		 VALUES (?, ?, ?, 'memberlocal', NOW(6))`, uuid.NewString(), clusterID, fx.member); err != nil {
+		t.Fatalf("seed cluster user: %v", err)
+	}
+
+	rr := fx.get(t, "/compute-allocations/"+fx.allocID+"/access-status", fx.member)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rr.Code)
+	}
+	var got struct {
+		LocalUsername string `json:"local_username"`
+		Checks        []struct {
+			Type    string `json:"type"`
+			UIState string `json:"ui_state"`
+		} `json:"checks"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.LocalUsername != "memberlocal" {
+		t.Errorf("local_username: got %q, want memberlocal", got.LocalUsername)
+	}
+	for _, c := range got.Checks {
+		if c.Type == "SIGN_IN" && c.UIState != "ok" {
+			t.Errorf("provisioned account should derive sign-in ok, got %q", c.UIState)
 		}
 	}
 }

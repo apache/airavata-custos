@@ -43,6 +43,7 @@ export type AccessCheckEvent = z.infer<typeof accessCheckEventSchema>;
 export const accessStatusSchema = z.object({
   checks: z.array(accessCheckSchema),
   events: z.array(accessCheckEventSchema),
+  local_username: z.string().nullish(),
 });
 export type AccessStatus = z.infer<typeof accessStatusSchema>;
 
@@ -50,6 +51,7 @@ export const memberAccessStatusSchema = z.object({
   user_id: z.string(),
   display_name: z.string(),
   email: z.string(),
+  local_username: z.string().nullish(),
   checks: z.array(accessCheckSchema),
 });
 export type MemberAccessStatus = z.infer<typeof memberAccessStatusSchema>;

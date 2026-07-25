@@ -105,7 +105,7 @@ export function AllocationAccessBand({
           <p className="text-sm text-muted-foreground">{verdictBody(overall, checks)}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {checks.map((c) => (
-              <CheckRow key={c.type} check={c} />
+              <CheckRow key={c.type} check={c} localUsername={query.data?.local_username} />
             ))}
           </div>
           {events.length > 0 ? <Timeline events={events} /> : null}
@@ -115,13 +115,22 @@ export function AllocationAccessBand({
   );
 }
 
-function CheckRow({ check }: { check: AccessCheck }) {
+function CheckRow({ check, localUsername }: { check: AccessCheck; localUsername?: string | null }) {
   const chip = CHECK_CHIP[check.ui_state];
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg border border-border p-3">
       <div className="space-y-0.5">
         <div className="text-sm font-medium">{CHECK_NAME[check.type]}</div>
-        <div className="text-xs text-muted-foreground">{CHECK_DESCRIPTION[check.type]}</div>
+        <div className="text-xs text-muted-foreground">
+          {check.type === "SIGN_IN" && localUsername ? (
+            <>
+              Signing in over SSH as{" "}
+              <code className="rounded bg-muted px-1 font-mono text-[11px]">{localUsername}</code>.
+            </>
+          ) : (
+            CHECK_DESCRIPTION[check.type]
+          )}
+        </div>
         {check.ui_state === "retrying" ? (
           <div className="text-xs text-[color:var(--tone-warn-fg)]">
             Retrying automatically. Usually clears within a few minutes.
