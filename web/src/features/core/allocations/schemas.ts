@@ -32,7 +32,8 @@ export const computeClusterSchema = z.object({
 });
 export type ComputeCluster = z.infer<typeof computeClusterSchema>;
 
-// Mirrors pkg/models/allocation.go#ComputeAllocation 1:1.
+// Mirrors pkg/models/allocation.go#ComputeAllocation, plus the list
+// endpoint's local_username join (the caller's account on the cluster).
 export const computeAllocationSchema = z.object({
   id: z.string(),
   project_id: z.string(),
@@ -42,6 +43,7 @@ export const computeAllocationSchema = z.object({
   initial_su_amount: z.number().int(),
   start_time: z.string(),
   end_time: z.string(),
+  local_username: z.string().nullish(),
 });
 export type ComputeAllocation = z.infer<typeof computeAllocationSchema>;
 

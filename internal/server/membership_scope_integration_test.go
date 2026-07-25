@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/apache/airavata-custos/pkg/models"
@@ -131,6 +132,22 @@ func TestListComputeAllocations_MemberSeesOnlyOwn(t *testing.T) {
 	}
 	if body.Items[0].ID != fx.allocA.ID {
 		t.Errorf("allocation id: got %s, want %s", body.Items[0].ID, fx.allocA.ID)
+	}
+}
+
+func TestListComputeAllocations_CarriesCallerUsername(t *testing.T) {
+	database, svc, srv := setupTestStack(t)
+	fx := seedScopedFixtures(t, database, svc)
+
+	if _, err := database.Exec(
+		`INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username)
+		 VALUES (?, ?, ?, 'memberlocal')`, uuid.NewString(), fx.allocA.ComputeClusterID, fx.memberID); err != nil {
+		t.Fatalf("seed cluster user: %v", err)
+	}
+
+	body := decodeAllocationList(t, doGet(t, srv, "/compute-allocations", fx.memberID))
+	if len(body.Items) != 1 || body.Items[0].LocalUsername != "memberlocal" {
+		t.Fatalf("local_username: got %+v, want memberlocal on the row", body.Items)
 	}
 }
 

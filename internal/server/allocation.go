@@ -18,6 +18,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/apache/airavata-custos/internal/store"
@@ -183,10 +184,8 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 			common.WriteServiceError(w, err)
 			return
 		}
-		if rows == nil {
-			rows = []models.ComputeAllocation{}
-		}
-		common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: rows, Total: len(rows)})
+		items := s.allocationListItems(r.Context(), caller.UserID, rows)
+		common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: items, Total: len(items)})
 		return
 	}
 	q := r.URL.Query()
@@ -202,8 +201,24 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 		common.WriteServiceError(w, err)
 		return
 	}
-	if rows == nil {
-		rows = []models.ComputeAllocation{}
+	common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: s.allocationListItems(r.Context(), caller.UserID, rows), Total: total})
+}
+
+// allocationListItems joins each allocation with the caller's own account on
+// its cluster, when one exists.
+func (s *Server) allocationListItems(ctx context.Context, userID string, rows []models.ComputeAllocation) []AllocationListItem {
+	items := make([]AllocationListItem, 0, len(rows))
+	usernameByCluster := map[string]string{}
+	if accounts, err := s.svc.ListComputeClusterUsersByUser(ctx, userID); err == nil {
+		for _, a := range accounts {
+			usernameByCluster[a.ComputeClusterID] = a.LocalUsername
+		}
 	}
-	common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: rows, Total: total})
+	for _, row := range rows {
+		items = append(items, AllocationListItem{
+			ComputeAllocation: row,
+			LocalUsername:     usernameByCluster[row.ComputeClusterID],
+		})
+	}
+	return items
 }

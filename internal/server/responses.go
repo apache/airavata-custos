@@ -94,11 +94,18 @@ type AccessRequestListItem struct {
 	AllocationID string     `json:"allocation_id,omitempty"`
 }
 
+// AllocationListItem is an allocation plus the caller's account name on its
+// cluster, so the list can show where and as whom the caller signs in.
+type AllocationListItem struct {
+	models.ComputeAllocation
+	LocalUsername string `json:"local_username,omitempty"`
+}
+
 // ComputeAllocationListResponse is the paginated list envelope for compute
 // allocations.
 type ComputeAllocationListResponse struct {
-	Items []models.ComputeAllocation `json:"items"`
-	Total int                        `json:"total"`
+	Items []AllocationListItem `json:"items"`
+	Total int                  `json:"total"`
 }
 
 // AllocationSUTotalResponse is the response for total SUs consumed on an

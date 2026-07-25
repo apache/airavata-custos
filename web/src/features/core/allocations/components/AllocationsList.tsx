@@ -136,6 +136,20 @@ export function AllocationsList({
       cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
     },
     {
+      key: "username",
+      header: "Username",
+      sortable: true,
+      sortValue: (row) => row.local_username ?? "",
+      cell: (row) =>
+        row.local_username ? (
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+            {row.local_username}
+          </code>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        ),
+    },
+    {
       key: "initial",
       header: "Initial SUs",
       sortable: true,
