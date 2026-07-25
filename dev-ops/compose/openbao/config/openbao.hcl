@@ -16,8 +16,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# /openbao/file is owned by the openbao user in the image, so a named
+# volume mounted there works on Linux hosts without ownership fixes.
 storage "raft" {
-  path    = "/openbao/data"
+  path    = "/openbao/file"
   node_id = "node1"
 }
 

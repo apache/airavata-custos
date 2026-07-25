@@ -60,7 +60,6 @@ venv/
 # Vault
 vault.db
 raft.db
-dev-ops/compose/openbao/data/
 dev-ops/compose/openbao/keys/
 
 # Configurations
