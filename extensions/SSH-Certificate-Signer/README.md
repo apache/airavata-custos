@@ -54,6 +54,19 @@ Each tenant and client pair has its own Ed25519 CA, generated in Vault by the fi
 
 ## Setup
 
+### Compose stack
+
+The dev compose stack runs the signer with everything it needs: PostgreSQL, OpenBao, Keycloak, OpenLDAP and a test
+login node. From the repository root:
+
+```bash
+cd dev-ops/compose
+docker compose up -d db keycloak openldap openbao openbao-init signer signer-seed sshd-login
+./signer-e2e.sh    # token, sign, SSH login, and the negative checks
+```
+
+The rest of this section is the manual setup.
+
 ### Database
 
 ```sql
@@ -178,6 +191,25 @@ Production:
 ```
 
 The service listens on the port specified in configuration (default: 8084).
+
+### Docker
+
+```bash
+docker build -t custos-signer .
+
+# Apply migrations first
+docker run --rm -v $(pwd)/config.yaml:/config/config.yaml \
+  custos-signer migrate --config /config/config.yaml
+
+# Then start the server
+docker run -p 8084:8084 \
+  -v $(pwd)/config.yaml:/config/config.yaml \
+  -e DB_PASSWORD=secret \
+  -e VAULT_TOKEN=hvs.xxx \
+  custos-signer
+```
+
+The image is a multi-stage build on an Alpine base, ships the migrations, and runs as a non-root user (UID 65534).
 
 The service handles SIGTERM and SIGINT for graceful shutdown:
 1. Stops accepting new connections.
