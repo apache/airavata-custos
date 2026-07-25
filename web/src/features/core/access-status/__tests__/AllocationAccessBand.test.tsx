@@ -57,7 +57,6 @@ describe("<AllocationAccessBand />", () => {
     renderBand({
       checks: [check("SIGN_IN", "ok"), check("JOB_SUBMISSION", "ok")],
       events: [{ check_type: "SIGN_IN", event_type: "ONLINE", occurred_at: now }],
-      local_username: "lahirujay",
     });
     expect(screen.getByText("Your access is live")).toBeInTheDocument();
     expect(screen.queryByText("Cluster sign-in")).not.toBeInTheDocument();
@@ -65,8 +64,6 @@ describe("<AllocationAccessBand />", () => {
     fireEvent.click(screen.getByRole("button", { name: "View checks" }));
     expect(screen.getByText("Cluster sign-in")).toBeInTheDocument();
     expect(screen.getByText("Job submission")).toBeInTheDocument();
-    expect(screen.getByText("lahirujay")).toBeInTheDocument();
-    expect(screen.getByText(/Signing in over SSH as/)).toBeInTheDocument();
     expect(screen.getByText("Cluster sign-in came online")).toBeInTheDocument();
   });
 

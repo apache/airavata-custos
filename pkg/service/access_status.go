@@ -31,21 +31,18 @@ import (
 const DefaultAccessCheckStuckAfter = time.Hour
 
 // AccessStatus is a user's checks on one allocation plus their milestone
-// history, newest first. LocalUsername is the account the user signs in
-// with on the allocation's cluster, empty until one is assigned.
+// history, newest first.
 type AccessStatus struct {
-	Checks        []models.AccessCheck
-	Events        []models.AccessCheckEvent
-	LocalUsername string
+	Checks []models.AccessCheck
+	Events []models.AccessCheckEvent
 }
 
 // MemberAccessStatus is one allocation member's checks, for the manager view.
 type MemberAccessStatus struct {
-	UserID        string
-	DisplayName   string
-	Email         string
-	LocalUsername string
-	Checks        []models.AccessCheck
+	UserID      string
+	DisplayName string
+	Email       string
+	Checks      []models.AccessCheck
 }
 
 // SetAccessCheckStuckAfter overrides the failing-to-stuck threshold.
@@ -185,17 +182,12 @@ func (s *Service) AccessStatusForUser(ctx context.Context, allocationID, userID 
 	if err != nil {
 		return nil, err
 	}
-	cu := s.clusterUserFor(ctx, alloc, userID)
-	checks, realIDs := fillDefaultChecks(allocationID, userID, cu, checks)
+	checks, realIDs := s.fillDefaultChecks(ctx, alloc, allocationID, userID, checks)
 	events, err := s.accessChecks.FindEventsByChecks(ctx, realIDs)
 	if err != nil {
 		return nil, err
 	}
-	status := &AccessStatus{Checks: checks, Events: events}
-	if cu != nil {
-		status.LocalUsername = cu.LocalUsername
-	}
-	return status, nil
+	return &AccessStatus{Checks: checks, Events: events}, nil
 }
 
 // AccessStatusForAllocation returns every ACTIVE member's checks, for the
@@ -225,35 +217,20 @@ func (s *Service) AccessStatusForAllocation(ctx context.Context, allocationID st
 		if m.MembershipStatus != models.ACTIVE {
 			continue
 		}
-		cu := s.clusterUserFor(ctx, alloc, m.UserID)
-		mc, _ := fillDefaultChecks(allocationID, m.UserID, cu, byUser[m.UserID])
-		row := MemberAccessStatus{
+		mc, _ := s.fillDefaultChecks(ctx, alloc, allocationID, m.UserID, byUser[m.UserID])
+		out = append(out, MemberAccessStatus{
 			UserID:      m.UserID,
 			DisplayName: m.DisplayName,
 			Email:       m.Email,
 			Checks:      mc,
-		}
-		if cu != nil {
-			row.LocalUsername = cu.LocalUsername
-		}
-		out = append(out, row)
+		})
 	}
 	return out, nil
 }
 
-// clusterUserFor returns the user's account on the allocation's cluster, or
-// nil when none is assigned yet (or the lookup fails, which reads the same).
-func (s *Service) clusterUserFor(ctx context.Context, alloc *models.ComputeAllocation, userID string) *models.ComputeClusterUser {
-	cu, err := s.clusterUsers.FindByPair(ctx, alloc.ComputeClusterID, userID)
-	if err != nil {
-		return nil
-	}
-	return cu
-}
-
 // fillDefaultChecks appends synthetic checks (empty ID, no history) for the
 // types no probe has reported yet, and returns the real check ids.
-func fillDefaultChecks(allocationID, userID string, cu *models.ComputeClusterUser, checks []models.AccessCheck) ([]models.AccessCheck, []string) {
+func (s *Service) fillDefaultChecks(ctx context.Context, alloc *models.ComputeAllocation, allocationID, userID string, checks []models.AccessCheck) ([]models.AccessCheck, []string) {
 	have := make(map[models.AccessCheckType]bool, len(checks))
 	realIDs := make([]string, 0, len(checks))
 	for _, c := range checks {
@@ -267,7 +244,7 @@ func fillDefaultChecks(allocationID, userID string, cu *models.ComputeClusterUse
 			CheckType: models.AccessCheckSignIn, Status: models.AccessCheckPending,
 			LastCheckedAt: now,
 		}
-		if cu != nil && cu.ProvisionedAt != nil {
+		if cu, err := s.clusterUsers.FindByPair(ctx, alloc.ComputeClusterID, userID); err == nil && cu != nil && cu.ProvisionedAt != nil {
 			c.Status = models.AccessCheckOK
 			c.LastCheckedAt = *cu.ProvisionedAt
 			c.LastOKAt = cu.ProvisionedAt

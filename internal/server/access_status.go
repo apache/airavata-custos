@@ -51,17 +51,15 @@ type accessCheckEventResponse struct {
 }
 
 type accessStatusResponse struct {
-	Checks        []accessCheckResponse      `json:"checks"`
-	Events        []accessCheckEventResponse `json:"events"`
-	LocalUsername string                     `json:"local_username,omitempty"`
+	Checks []accessCheckResponse      `json:"checks"`
+	Events []accessCheckEventResponse `json:"events"`
 }
 
 type memberAccessStatusResponse struct {
-	UserID        string                `json:"user_id"`
-	DisplayName   string                `json:"display_name"`
-	Email         string                `json:"email"`
-	LocalUsername string                `json:"local_username,omitempty"`
-	Checks        []accessCheckResponse `json:"checks"`
+	UserID      string                `json:"user_id"`
+	DisplayName string                `json:"display_name"`
+	Email       string                `json:"email"`
+	Checks      []accessCheckResponse `json:"checks"`
 }
 
 type allocationAccessMembersResponse struct {
@@ -89,11 +87,10 @@ func (s *Server) getAllocationAccessStatus(w http.ResponseWriter, r *http.Reques
 		now := time.Now().UTC()
 		for _, m := range rows {
 			resp.Members = append(resp.Members, memberAccessStatusResponse{
-				UserID:        m.UserID,
-				DisplayName:   m.DisplayName,
-				Email:         m.Email,
-				LocalUsername: m.LocalUsername,
-				Checks:        s.checkResponses(m.Checks, now),
+				UserID:      m.UserID,
+				DisplayName: m.DisplayName,
+				Email:       m.Email,
+				Checks:      s.checkResponses(m.Checks, now),
 			})
 		}
 		common.WriteJSON(w, http.StatusOK, resp)
@@ -107,9 +104,8 @@ func (s *Server) getAllocationAccessStatus(w http.ResponseWriter, r *http.Reques
 	}
 	now := time.Now().UTC()
 	resp := accessStatusResponse{
-		Checks:        s.checkResponses(status.Checks, now),
-		Events:        make([]accessCheckEventResponse, 0, len(status.Events)),
-		LocalUsername: status.LocalUsername,
+		Checks: s.checkResponses(status.Checks, now),
+		Events: make([]accessCheckEventResponse, 0, len(status.Events)),
 	}
 	typeByCheckID := make(map[string]models.AccessCheckType, len(status.Checks))
 	for _, c := range status.Checks {
