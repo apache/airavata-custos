@@ -35,8 +35,19 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 
 ## Quick Start
 
+Containerized, with all dependencies (MariaDB, OpenBao, Keycloak, OpenLDAP,
+a test login node) — from the repository root:
+
 ```bash
-cd signer
+cd dev-ops/compose
+docker compose up -d db keycloak openldap openbao openbao-init signer signer-seed sshd-login
+./signer-e2e.sh    # full-loop check: token -> sign -> SSH
+```
+
+From source:
+
+```bash
+cd extensions/SSH-Certificate-Signer
 go build -o custos-signer .
 cp config.example.yaml config.yaml          # edit with your settings
 ./custos-signer migrate --config config.yaml # apply database schema
@@ -89,7 +100,7 @@ Environment variables take precedence over YAML values.
 CREATE DATABASE custos_signer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-If using the project's Docker Compose, the `custos_signer` database is created automatically by `compose/dbinit/init-db.sh`.
+If using the project's Docker Compose, the `custos_signer` database is created automatically by `dev-ops/compose/dbinit/init-db.sh`.
 
 ### Migrations
 
@@ -195,7 +206,8 @@ docker run -p 8084:8084 \
   custos-signer
 ```
 
-The Docker image uses a `scratch` base and runs as non-root user (UID 65534).
+The Docker image is a multi-stage build on an Alpine base, ships the
+migrations, and runs as a non-root user (UID 65534).
 
 ### Shutdown Behavior
 

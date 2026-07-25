@@ -16,7 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-version: "3.8"
 services:
   db:
     container_name: custos_db
@@ -101,29 +100,95 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
 
-  vault:
-    image: vault:1.11.0
-    container_name: vault
+  openbao:
+    image: openbao/openbao:2.5.0
+    container_name: openbao
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8201:8201"
       - "127.0.0.1:8200:8200"
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8201
-      VAULT_API_ADDR: http://127.0.0.1:8200
-      VAULT_CLUSTER_ADDR: http://127.0.0.1:8201
-      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}'
+    command: server -config=/openbao/config/openbao.hcl
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./vault/data:/vault/data
-      - ./vault/config:/vault/config
-    entrypoint: vault server
-    command: -config=/vault/config/vault-config.hcl
+      - ./openbao/config:/openbao/config:ro
+      - ./openbao/data:/openbao/data
     healthcheck:
-      test: "vault login 00000000-0000-0000-0000-000000000000 &&
-                   vault kv get secret &&
-                   vault secrets disable secret &&
-                   vault secrets enable -version=1 -path=secret kv &&
-                   vault secrets enable -version=1 -path=resourcesecret kv"
+      # sealed/uninitialized also count as up; the init job handles both
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8200/v1/sys/health?sealedcode=204&uninitcode=204&standbyok=true"]
       interval: 5s
+      timeout: 3s
+      retries: 30
+
+  openbao-init:
+    image: openbao/openbao:2.5.0
+    container_name: openbao_init
+    restart: "no"
+    depends_on:
+      openbao:
+        condition: service_healthy
+    environment:
+      BAO_ADDR: http://openbao:8200
+    entrypoint: ["/bin/sh", "/init/openbao-init.sh"]
+    volumes:
+      - ./openbao/init:/init:ro
+      - ./openbao/keys:/keys
+
+  openldap:
+    build: ./openldap
+    container_name: custos_ldap
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://127.0.0.1", "-b", "dc=custos,dc=example", "-s", "base"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  signer:
+    build: ../../extensions/SSH-Certificate-Signer
+    container_name: custos_signer
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8084:8084"
+    volumes:
+      - ./signer/config.yaml:/app/config.yaml:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      openbao-init:
+        condition: service_completed_successfully
+      openldap:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8084/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  signer-seed:
+    image: mariadb:11.2
+    container_name: custos_signer_seed
+    restart: "no"
+    depends_on:
+      signer:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "mariadb -h db -u admin -p\"$${MARIADB_PASSWORD}\" custos_signer < /seed/seed-client.sql && echo 'signer client seeded'"]
+    environment:
+      MARIADB_PASSWORD: ${CUSTOS_DB_PASSWORD:-admin}
+    volumes:
+      - ./signer/seed-client.sql:/seed/seed-client.sql:ro
+
+  sshd-login:
+    build: ./sshd-login
+    container_name: custos_sshd_login
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2222:22"
+    environment:
+      SIGNER_URL: http://signer:8084
+      CLIENT_ID: custos:bench
+      CLIENT_SECRET: bench-secret
+    depends_on:
+      signer-seed:
+        condition: service_completed_successfully
