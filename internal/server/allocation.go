@@ -66,7 +66,12 @@ func (s *Server) getComputeAllocation(w http.ResponseWriter, r *http.Request) {
 		common.WriteServiceError(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, a)
+	caller := requireCaller(w, r)
+	if caller == nil {
+		return
+	}
+	items := s.allocationListItems(r.Context(), caller.UserID, []models.ComputeAllocation{*a})
+	common.WriteJSON(w, http.StatusOK, items[0])
 }
 
 // @Summary	Create a compute allocation diff
@@ -204,8 +209,8 @@ func (s *Server) listComputeAllocations(w http.ResponseWriter, r *http.Request) 
 	common.WriteJSON(w, http.StatusOK, ComputeAllocationListResponse{Items: s.allocationListItems(r.Context(), caller.UserID, rows), Total: total})
 }
 
-// allocationListItems joins each allocation with the caller's own account on
-// its cluster, when one exists.
+// allocationListItems joins each allocation with its cluster's display
+// fields and the caller's own account on that cluster, when one exists.
 func (s *Server) allocationListItems(ctx context.Context, userID string, rows []models.ComputeAllocation) []AllocationListItem {
 	items := make([]AllocationListItem, 0, len(rows))
 	usernameByCluster := map[string]string{}
@@ -214,10 +219,19 @@ func (s *Server) allocationListItems(ctx context.Context, userID string, rows []
 			usernameByCluster[a.ComputeClusterID] = a.LocalUsername
 		}
 	}
+	clusterByID := map[string]models.ComputeCluster{}
+	if clusters, err := s.svc.ListComputeClusters(ctx); err == nil {
+		for _, c := range clusters {
+			clusterByID[c.ID] = c
+		}
+	}
 	for _, row := range rows {
+		cluster := clusterByID[row.ComputeClusterID]
 		items = append(items, AllocationListItem{
 			ComputeAllocation: row,
 			LocalUsername:     usernameByCluster[row.ComputeClusterID],
+			ClusterName:       cluster.Name,
+			LoginHost:         cluster.LoginHost,
 		})
 	}
 	return items

@@ -149,6 +149,9 @@ func TestListComputeAllocations_CarriesCallerUsername(t *testing.T) {
 	if len(body.Items) != 1 || body.Items[0].LocalUsername != "memberlocal" {
 		t.Fatalf("local_username: got %+v, want memberlocal on the row", body.Items)
 	}
+	if body.Items[0].ClusterName == "" {
+		t.Errorf("cluster_name missing from list item")
+	}
 }
 
 func TestListComputeAllocations_GovernanceRoleSeesProjectAllocations(t *testing.T) {

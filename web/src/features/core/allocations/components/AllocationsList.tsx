@@ -131,9 +131,11 @@ export function AllocationsList({
       key: "cluster",
       header: "Cluster",
       sortable: true,
-      sortValue: (row) => row.compute_cluster_id,
+      sortValue: (row) => row.cluster_name ?? row.compute_cluster_id,
       width: "12rem",
-      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
+      cell: (row) => (
+        <span className="break-all text-sm">{row.cluster_name || row.compute_cluster_id}</span>
+      ),
     },
     {
       key: "username",

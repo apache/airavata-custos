@@ -30,6 +30,8 @@ const (
 type ComputeCluster struct {
 	ID   string `json:"id"   db:"id"`
 	Name string `json:"name" db:"name"` // A human-readable name for the compute cluster, e.g., "Cluster A", "Cluster B", etc.
+	// Where users SSH in; empty hides connection help in the portal.
+	LoginHost string `json:"login_host" db:"login_host"`
 }
 
 type ComputeClusterUser struct {

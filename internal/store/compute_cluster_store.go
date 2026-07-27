@@ -39,7 +39,7 @@ func NewComputeClusterStore(db *sqlx.DB) ComputeClusterStore {
 func (s *mysqlComputeClusterStore) FindByID(ctx context.Context, id string) (*models.ComputeCluster, error) {
 	var c models.ComputeCluster
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, name FROM compute_clusters WHERE id = ?`, id)
+		`SELECT id, name, login_host FROM compute_clusters WHERE id = ?`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,7 +52,7 @@ func (s *mysqlComputeClusterStore) FindByID(ctx context.Context, id string) (*mo
 func (s *mysqlComputeClusterStore) FindByName(ctx context.Context, name string) (*models.ComputeCluster, error) {
 	var c models.ComputeCluster
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, name FROM compute_clusters WHERE name = ?`, name)
+		`SELECT id, name, login_host FROM compute_clusters WHERE name = ?`, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -65,7 +65,7 @@ func (s *mysqlComputeClusterStore) FindByName(ctx context.Context, name string) 
 func (s *mysqlComputeClusterStore) List(ctx context.Context) ([]models.ComputeCluster, error) {
 	var clusters []models.ComputeCluster
 	err := s.db.SelectContext(ctx, &clusters,
-		`SELECT id, name FROM compute_clusters ORDER BY name`)
+		`SELECT id, name, login_host FROM compute_clusters ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -74,15 +74,15 @@ func (s *mysqlComputeClusterStore) List(ctx context.Context) ([]models.ComputeCl
 
 func (s *mysqlComputeClusterStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_clusters (id, name) VALUES (?, ?)`,
-		c.ID, c.Name)
+		`INSERT INTO compute_clusters (id, name, login_host) VALUES (?, ?, ?)`,
+		c.ID, c.Name, c.LoginHost)
 	return err
 }
 
 func (s *mysqlComputeClusterStore) Update(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_clusters SET name = ? WHERE id = ?`,
-		c.Name, c.ID)
+		`UPDATE compute_clusters SET name = ?, login_host = ? WHERE id = ?`,
+		c.Name, c.LoginHost, c.ID)
 	return err
 }
 

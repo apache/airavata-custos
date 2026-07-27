@@ -70,7 +70,9 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
         <dd className="text-foreground before:content-[':_']">{allocation.status}</dd>
 
         <dt className="text-muted-foreground">Cluster</dt>
-        <dd className="font-mono text-foreground before:font-sans before:content-[':_']">{allocation.compute_cluster_id}</dd>
+        <dd className="text-foreground before:content-[':_']">
+          {allocation.cluster_name || allocation.compute_cluster_id}
+        </dd>
 
         <dt className="text-muted-foreground">Initial SUs</dt>
         <dd className="tabular-nums text-foreground before:content-[':_']">{formatNumber(allocation.initial_su_amount)}</dd>
@@ -81,6 +83,30 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
         <dt className="text-muted-foreground">End</dt>
         <dd className="text-foreground before:content-[':_']">{allocation.end_time}</dd>
       </dl>
+
+      {allocation.local_username ? (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-foreground">Your access</h2>
+          <div className="rounded-lg border border-border bg-card p-4 text-sm">
+            <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+              <div>
+                <span className="text-muted-foreground">Username: </span>
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  {allocation.local_username}
+                </code>
+              </div>
+              {allocation.login_host ? (
+                <div>
+                  <span className="text-muted-foreground">Sign in: </span>
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                    ssh {allocation.local_username}@{allocation.login_host}
+                  </code>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-foreground">Resources</h2>

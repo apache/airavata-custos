@@ -44,6 +44,8 @@ export const computeAllocationSchema = z.object({
   start_time: z.string(),
   end_time: z.string(),
   local_username: z.string().nullish(),
+  cluster_name: z.string().nullish(),
+  login_host: z.string().nullish(),
 });
 export type ComputeAllocation = z.infer<typeof computeAllocationSchema>;
 

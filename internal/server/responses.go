@@ -94,11 +94,14 @@ type AccessRequestListItem struct {
 	AllocationID string     `json:"allocation_id,omitempty"`
 }
 
-// AllocationListItem is an allocation plus the caller's account name on its
-// cluster, so the list can show where and as whom the caller signs in.
+// AllocationListItem is an allocation plus its cluster's display fields and
+// the caller's account name, so views can show where and as whom the caller
+// signs in.
 type AllocationListItem struct {
 	models.ComputeAllocation
 	LocalUsername string `json:"local_username,omitempty"`
+	ClusterName   string `json:"cluster_name,omitempty"`
+	LoginHost     string `json:"login_host,omitempty"`
 }
 
 // ComputeAllocationListResponse is the paginated list envelope for compute
