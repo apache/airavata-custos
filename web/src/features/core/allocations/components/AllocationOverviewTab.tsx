@@ -17,6 +17,7 @@
 
 "use client";
 
+import { CopyValue } from "@/features/core/audit/components/primitives/CopyValue";
 import { useEffectiveRate } from "@/features/core/resources/queries";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { TableSkeleton } from "@/shared/ui/Loading";
@@ -87,20 +88,26 @@ export function AllocationOverviewTab({ allocation }: AllocationOverviewTabProps
       {allocation.local_username ? (
         <section className="space-y-2">
           <h2 className="text-sm font-semibold text-foreground">Your access</h2>
-          <div className="rounded-lg border border-border bg-card p-4 text-sm">
-            <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
-              <div>
-                <span className="text-muted-foreground">Username: </span>
-                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+              <div className="space-y-1">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Username
+                </div>
+                <code className="inline-block rounded-md bg-[color:var(--tone-info-bg)] px-2 py-1 font-mono text-sm font-medium text-[color:var(--tone-info-fg)]">
                   {allocation.local_username}
                 </code>
               </div>
               {allocation.login_host ? (
-                <div>
-                  <span className="text-muted-foreground">Sign in: </span>
-                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                    ssh {allocation.local_username}@{allocation.login_host}
-                  </code>
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Sign in
+                  </div>
+                  <CopyValue
+                    value={`ssh ${allocation.local_username}@${allocation.login_host}`}
+                    label="sign-in command"
+                    className="rounded-md bg-[color:var(--tone-info-bg)] px-2 py-1 text-sm font-medium text-[color:var(--tone-info-fg)]"
+                  />
                 </div>
               ) : null}
             </div>
