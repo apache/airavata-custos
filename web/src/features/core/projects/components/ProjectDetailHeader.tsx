@@ -45,12 +45,14 @@ export function ProjectDetailHeader({ project }: ProjectDetailHeaderProps) {
       <h1 className="font-display text-[28px] font-bold leading-tight text-foreground">
         {project.title}
       </h1>
-      <MetaRow>
-        <MetaItem variant="status" tone={tone} value={project.status} />
-        <MetaItem icon={UserSquare} label="PI" value={project.project_pi_display_name ?? project.project_pi_id} />
-        <MetaItem icon={Building2} label="Origination" value={project.origination} />
-        <MetaItem icon={Calendar} label="Created" value={formatDate(project.created_time)} />
-      </MetaRow>
+      <div className="flex flex-wrap items-center gap-3">
+        <MetaItem variant="status" tone={tone} value={project.status} className="py-1.5" />
+        <MetaRow>
+          <MetaItem icon={UserSquare} label="PI" value={project.project_pi_display_name ?? project.project_pi_id} />
+          <MetaItem icon={Building2} label="Origination" value={project.origination} />
+          <MetaItem icon={Calendar} label="Created" value={formatDate(project.created_time)} />
+        </MetaRow>
+      </div>
     </header>
   );
 }

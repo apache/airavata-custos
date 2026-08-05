@@ -30,6 +30,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SideDrawer } from "@/shared/ui/SideDrawer";
 import { useSubmitChangeRequest } from "../queries";
 
+const CHANGE_TYPE_LABELS: Record<string, string> = {
+  INCREASE_CREDITS: "Increase credits (SUs)",
+  EXTEND_END_DATE: "Extend end date",
+  OTHER: "Other",
+};
+
 const REASON_MIN = 20;
 const reasonField = z.string().min(REASON_MIN, `Reason must be at least ${REASON_MIN} characters`);
 
@@ -142,7 +148,7 @@ export function ChangeRequestSubmitDrawer({
           <Label htmlFor="cr-type">Change type</Label>
           <Select value={changeType} onValueChange={(v) => onChangeTypeChange(v as ChangeType)}>
             <SelectTrigger id="cr-type" aria-label="Change type">
-              <SelectValue />
+              <SelectValue>{(value: string) => CHANGE_TYPE_LABELS[value] ?? value}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="INCREASE_CREDITS">Increase credits (SUs)</SelectItem>

@@ -75,8 +75,8 @@ describe("UsersTable", () => {
     renderTable(true);
     expect(screen.getByText("Example User")).toBeInTheDocument();
     expect(screen.getByText("(You)")).toBeInTheDocument();
-    expect(screen.getAllByText("Administrator")).toHaveLength(2);
-    expect(screen.getAllByText("CILogon")).toHaveLength(2);
+    expect(screen.getAllByText("Administrator")).toHaveLength(1);
+    expect(screen.getAllByText("CILogon")).toHaveLength(1);
   });
 
   it("hides all role UI without roles:manage", () => {

@@ -24,6 +24,7 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { Input } from "@/shared/ui/input";
 import { TableSkeleton } from "@/shared/ui/Loading";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import {
   StatusBadge,
   statusBadgeVariantFromAllocationStatus,
@@ -39,6 +40,19 @@ function formatDate(iso: string): string {
     });
   } catch {
     return iso;
+  }
+}
+
+function statusLabelFor(value: string): string {
+  switch (value) {
+    case "ACTIVE":
+      return "Active";
+    case "INACTIVE":
+      return "Inactive";
+    case "DELETED":
+      return "Deleted";
+    default:
+      return "All statuses";
   }
 }
 
@@ -85,6 +99,7 @@ export function AllocationsList({
       header: "Allocation",
       sortable: true,
       sortValue: (row) => row.name,
+      width: "14rem",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <Link
@@ -93,7 +108,7 @@ export function AllocationsList({
           >
             {row.name}
           </Link>
-          <span className="font-mono text-xs text-muted-foreground">{row.id}</span>
+          <span className="hidden font-mono text-xs text-muted-foreground">{row.id}</span>
         </div>
       ),
     },
@@ -102,10 +117,11 @@ export function AllocationsList({
       header: "Project",
       sortable: true,
       sortValue: (row) => row.project_id,
+      width: "12rem",
       cell: (row) => (
         <Link
           href={`/projects/${row.project_id}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="break-all text-sm text-muted-foreground hover:underline"
         >
           {row.project_id}
         </Link>
@@ -116,7 +132,8 @@ export function AllocationsList({
       header: "Cluster",
       sortable: true,
       sortValue: (row) => row.compute_cluster_id,
-      cell: (row) => <span className="text-sm">{row.compute_cluster_id}</span>,
+      width: "12rem",
+      cell: (row) => <span className="break-all text-sm">{row.compute_cluster_id}</span>,
     },
     {
       key: "initial",
@@ -166,17 +183,20 @@ export function AllocationsList({
           aria-label="Search allocations"
           className="sm:w-72"
         />
-        <select
+        <Select
           value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value as AllocationStatus | "all")}
-          aria-label="Filter by status"
-          className="h-9 rounded-md border bg-background px-3 text-sm"
+          onValueChange={(value) => onStatusFilterChange(value as AllocationStatus | "all")}
         >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="DELETED">Deleted</option>
-        </select>
+          <SelectTrigger aria-label="Filter by status" className="h-9 w-36 px-3">
+            <SelectValue>{(value: string) => statusLabelFor(value)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="INACTIVE">Inactive</SelectItem>
+            <SelectItem value="DELETED">Deleted</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (

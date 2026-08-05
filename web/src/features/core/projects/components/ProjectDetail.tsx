@@ -17,10 +17,11 @@
 
 "use client";
 
+import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
-import { useAbility } from "@/shared/casl/AbilityProvider";
 import { useProject } from "../queries";
 import { ProjectAllocationsTab } from "./ProjectAllocationsTab";
 import { ProjectDetailHeader } from "./ProjectDetailHeader";
@@ -34,6 +35,7 @@ export type ProjectDetailProps = {
 export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const ability = useAbility();
   const projectQuery = useProject(projectId);
+  useBreadcrumbLabel(projectId, projectQuery.data?.title);
 
   if (projectQuery.isLoading) return <CardSkeleton />;
   if (projectQuery.error) {

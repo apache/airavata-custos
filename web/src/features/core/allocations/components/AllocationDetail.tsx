@@ -19,6 +19,7 @@
 
 import { useSession } from "next-auth/react";
 import { useAbility } from "@/shared/casl/AbilityProvider";
+import { useBreadcrumbLabel } from "@/shared/layout/BreadcrumbLabelsProvider";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { CardSkeleton } from "@/shared/ui/Loading";
 import { TabsRouter } from "@/shared/ui/TabsRouter";
@@ -39,6 +40,7 @@ export function AllocationDetail({ allocationId }: AllocationDetailProps) {
   const { data: session } = useSession();
   const allocationQuery = useAllocation(allocationId);
   const membersQuery = useAllocationMembers(allocationId);
+  useBreadcrumbLabel(allocationId, allocationQuery.data?.name);
 
   if (allocationQuery.isLoading) return <CardSkeleton />;
   if (allocationQuery.error) {

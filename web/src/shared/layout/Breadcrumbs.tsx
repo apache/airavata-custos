@@ -19,6 +19,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useBreadcrumbLabels } from "./BreadcrumbLabelsProvider";
 
 type Segment = { label: string; href?: string };
 
@@ -38,13 +39,14 @@ function collapseSegments(segments: Segment[]): Array<Segment | { ellipsis: true
 
 export function Breadcrumbs() {
   const pathname = usePathname() ?? "/";
+  const labels = useBreadcrumbLabels();
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return null;
 
   const segments: Segment[] = parts.map((part, i) => {
     const href = `/${parts.slice(0, i + 1).join("/")}`;
     const isLast = i === parts.length - 1;
-    return { label: titleCase(part), href: isLast ? undefined : href };
+    return { label: labels[part] ?? titleCase(part), href: isLast ? undefined : href };
   });
 
   const visible = collapseSegments(segments);
