@@ -33,10 +33,12 @@ type ErrorResponse struct {
 	} `json:"warnings"`
 }
 
+// Billing weights scale a count down to the share of a node the job held, so
+// a count arrives fractional and an integer field fails the whole decode.
 type TRES struct {
-	Type  string `json:"type"`
-	Name  string `json:"name,omitempty"`
-	Count int64  `json:"count"`
+	Type  string  `json:"type"`
+	Name  string  `json:"name,omitempty"`
+	Count float64 `json:"count"`
 }
 
 type Account struct {

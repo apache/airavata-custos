@@ -41,3 +41,18 @@ func TestJobInfoDecodes(t *testing.T) {
 		t.Fatalf("core fields: %+v", j)
 	}
 }
+
+// An integer count field fails the whole decode, dropping every job in the
+// response, not just this one.
+func TestJobInfoDecodesFractionalTresCount(t *testing.T) {
+	raw := `{"account":"proj-a","user":"user-a","partition":"gpu","job_id":8,
+        "time":{"start":1000,"end":4600},
+        "tres":{"allocated":[{"type":"cpu","count":90},{"type":"billing","count":2.8125}]}}`
+	var j JobInfo
+	if err := json.Unmarshal([]byte(raw), &j); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got := j.Tres.Allocated[1].Count; got != 2.8125 {
+		t.Fatalf("billing count: want 2.8125, got %v", got)
+	}
+}

@@ -38,9 +38,9 @@ func ParseTRES(s string) ([]TRES, error) {
 		if len(kv) != 2 {
 			return nil, fmt.Errorf("malformed TRES entry %q (want key=value)", p)
 		}
-		n, err := strconv.ParseInt(strings.TrimSpace(kv[1]), 10, 64)
+		n, err := strconv.ParseFloat(strings.TrimSpace(kv[1]), 64)
 		if err != nil {
-			return nil, fmt.Errorf("TRES count %q not an integer", kv[1])
+			return nil, fmt.Errorf("TRES count %q not a number", kv[1])
 		}
 		t := TRES{Count: n}
 		key := strings.TrimSpace(kv[0])

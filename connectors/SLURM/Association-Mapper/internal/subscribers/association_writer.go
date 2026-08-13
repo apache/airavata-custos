@@ -33,9 +33,9 @@ import (
 // and name; a plain resource like "cpu" has no name.
 func tresFor(resourceType string, count int64) client.TRES {
 	if typ, name, ok := strings.Cut(resourceType, "/"); ok {
-		return client.TRES{Type: typ, Name: name, Count: count}
+		return client.TRES{Type: typ, Name: name, Count: float64(count)}
 	}
-	return client.TRES{Type: resourceType, Count: count}
+	return client.TRES{Type: resourceType, Count: float64(count)}
 }
 
 // errNotProvisioned means the account does not exist on the cluster yet, so
@@ -66,7 +66,7 @@ func sameTRES(want, got []client.TRES) bool {
 	if len(want) != len(got) {
 		return false
 	}
-	counts := make(map[string]int64, len(want))
+	counts := make(map[string]float64, len(want))
 	for _, t := range want {
 		counts[t.Type] = t.Count
 	}
