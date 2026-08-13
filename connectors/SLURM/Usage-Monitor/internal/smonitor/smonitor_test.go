@@ -44,8 +44,11 @@ func fixtureJob(jobID int64, user, partition string) client.JobInfo {
 		Time:      client.JobTime{Start: 1000, End: 4600}, // exactly 3600 seconds
 		Tres: client.JobTresInfo{
 			Allocated: []client.TRES{
+				// billing differs from every other count so a wrong read
+				// cannot pass by coincidence.
 				{Type: "cpu", Count: 2},
 				{Type: "node", Count: 1},
+				{Type: "billing", Count: 5},
 			},
 		},
 	}
@@ -105,11 +108,11 @@ func TestPollRecordsRawAndSUExactly(t *testing.T) {
 		t.Fatalf("expected 1 usage row, got %d", len(calls))
 	}
 	u := calls[0].U
-	if u.UsedRawAmount != 2.0 {
-		t.Errorf("expected used_raw == 2.0 (2 cpu x 3600s / 3600), got %v", u.UsedRawAmount)
+	if u.UsedRawAmount != 5.0 {
+		t.Errorf("expected used_raw == 5.0 (5 billing x 3600s / 3600), got %v", u.UsedRawAmount)
 	}
-	if u.UsedSUAmount != 16.0 {
-		t.Errorf("expected used_su == 16.0 (2.0 raw x 8.0 rate), got %v", u.UsedSUAmount)
+	if u.UsedSUAmount != 40.0 {
+		t.Errorf("expected used_su == 40.0 (5.0 raw x 8.0 rate), got %v", u.UsedSUAmount)
 	}
 	if u.JobID != "42" || u.ComputeAllocationID != "alloc-1" || u.ComputeAllocationResourceID != "res-debug" {
 		t.Errorf("unexpected usage row identity: %+v", u)
@@ -120,8 +123,6 @@ func TestPollRecordsRawAndSUExactly(t *testing.T) {
 	}
 }
 
-// A multi-node job must not multiply by the node count: allocated TRES is
-// already the whole-job total.
 func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
 	core := newMockCore(map[string]float64{"res-debug": 1.0}, map[string]bool{"alice": true})
 	job := client.JobInfo{
@@ -132,8 +133,9 @@ func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
 		Time:      client.JobTime{Start: 1000, End: 4600}, // 3600 seconds
 		Tres: client.JobTresInfo{
 			Allocated: []client.TRES{
-				{Type: "cpu", Count: 8}, // 8 cpus total across 2 nodes
+				{Type: "cpu", Count: 8},
 				{Type: "node", Count: 2},
+				{Type: "billing", Count: 12}, // total across both nodes
 			},
 		},
 	}
@@ -143,14 +145,14 @@ func TestPollMultiNodeDoesNotOvercount(t *testing.T) {
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 usage row, got %d", len(calls))
 	}
-	if got := calls[0].U.UsedRawAmount; got != 8.0 {
-		t.Errorf("expected used_raw == 8.0 (8 cpu x 3600s / 3600, NOT x 2 nodes), got %v", got)
+	if got := calls[0].U.UsedRawAmount; got != 12.0 {
+		t.Errorf("expected used_raw == 12.0 (12 billing x 3600s / 3600, NOT x 2 nodes), got %v", got)
 	}
 }
 
-// A GPU resource is stored as "gres/gpu" but its TRES is {type:gres, name:gpu}.
-// Matching must join type and name, or GPU jobs record zero usage.
-func TestPollMatchesGpuTres(t *testing.T) {
+// Charging the resource the partition is named for would bill 1 here, but the
+// job holds a whole node worth 4.
+func TestPollUsesBillingTresNotThePartitionResourceType(t *testing.T) {
 	core := newMockCore(map[string]float64{"res-gpu": 2.0}, map[string]bool{"alice": true})
 	core.GetComputeAllocationResourceByNameAndClusterFunc = func(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
 		return &models.ComputeAllocationResource{ID: "res-gpu", Name: name, ResourceType: "gres/gpu"}, nil
@@ -163,9 +165,10 @@ func TestPollMatchesGpuTres(t *testing.T) {
 		Time:      client.JobTime{Start: 1000, End: 4600}, // 3600 seconds
 		Tres: client.JobTresInfo{
 			Allocated: []client.TRES{
-				{Type: "cpu", Count: 4},
-				{Type: "gres", Name: "gpu", Count: 2},
+				{Type: "cpu", Count: 128}, // every core on the node
+				{Type: "gres", Name: "gpu", Count: 1},
 				{Type: "node", Count: 1},
+				{Type: "billing", Count: 4},
 			},
 		},
 	}
@@ -175,8 +178,29 @@ func TestPollMatchesGpuTres(t *testing.T) {
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 usage row, got %d", len(calls))
 	}
-	if got := calls[0].U.UsedRawAmount; got != 2.0 {
-		t.Errorf("expected used_raw == 2.0 (2 gpu x 3600s / 3600), got %v", got)
+	if got := calls[0].U.UsedRawAmount; got != 4.0 {
+		t.Errorf("expected used_raw == 4.0 (4 billing x 3600s / 3600), got %v", got)
+	}
+	if got := calls[0].U.UsedSUAmount; got != 8.0 {
+		t.Errorf("expected used_su == 8.0 (4.0 raw x 2.0 rate), got %v", got)
+	}
+}
+
+func TestPollSkipsJobWithoutBillingTres(t *testing.T) {
+	core := newMockCore(map[string]float64{"res-debug": 8.0}, map[string]bool{"alice": true})
+	job := fixtureJob(45, "alice", "debug")
+	job.Tres.Allocated = []client.TRES{
+		{Type: "cpu", Count: 2},
+		{Type: "node", Count: 1},
+	}
+	newTestMonitor(core, job, fixtureJob(46, "alice", "debug")).poll()
+
+	calls := core.CreateComputeAllocationUsageCalls()
+	if len(calls) != 1 {
+		t.Fatalf("expected exactly 1 usage row (job without billing skipped), got %d", len(calls))
+	}
+	if calls[0].U.JobID != "46" {
+		t.Errorf("expected job 46 to be recorded after skipping job 45, got job %s", calls[0].U.JobID)
 	}
 }
 

@@ -167,24 +167,21 @@ func (m *SlurmMonitor) recordJob(ctx context.Context, job client.JobInfo, cluste
 			return
 		}
 
-		// A TRES is keyed by (type, name). Plain resources have an empty name and
-		// key on type alone (cpu); a GPU is {type:gres, name:gpu}, stored as the
-		// joined "gres/gpu". Matching on type alone never finds a GPU.
-		resourceAmount := int64(0)
+		// Without TRESBillingWeights and PriorityFlags=MAX_TRES on the
+		// partition, billing is just the cpu count and this charge is wrong.
+		billingAmount := float64(0)
 		for _, tres := range job.Tres.Allocated {
-			// Example tres entry Allocated:[{Type:cpu Name: Count:1} {Type:mem Name: Count:8000} {Type:energy Name: Count:-2} {Type:node Name: Count:1} {Type:gres Name:gpu Count:1} {Type:billing Name: Count:1}]
-			key := tres.Type
-			if tres.Name != "" {
-				key = tres.Type + "/" + tres.Name
-			}
-			if key == resource.ResourceType {
-				resourceAmount = tres.Count
+			if tres.Type == "billing" {
+				billingAmount = tres.Count
 			}
 		}
+		if billingAmount <= 0 {
+			slog.Warn("SLURM job has no billing charge, skipping usage recording", "job_id", job.JobID, "billing", billingAmount)
+			return
+		}
 
-		// tres.Count already is per-node amount x node count (the whole-job total),
-		// so raw = tres.Count x hours.
-		calculatedRawAmount := float64(resourceAmount) * float64(jobDurationSec) / 3600
+		// billing is already the whole-job total, so no node multiplier.
+		calculatedRawAmount := billingAmount * float64(jobDurationSec) / 3600
 
 		rate, err := m.coreService.GetEffectiveRateForResource(ctx, resource.ID, time.Unix(job.Time.End, 0))
 		if err != nil {
