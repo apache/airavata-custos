@@ -135,7 +135,7 @@ func DefaultConfig() *Config {
 		},
 		Database: DatabaseConfig{
 			Host:                   "localhost",
-			Port:                   3306,
+			Port:                   5432,
 			Name:                   "custos_signer",
 			Username:               "admin",
 			Password:               "admin",

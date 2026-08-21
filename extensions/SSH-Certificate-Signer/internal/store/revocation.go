@@ -48,7 +48,7 @@ func (d *DB) InsertRevocationEvent(ctx context.Context, ev *RevocationEvent) err
 	_, err := d.ExecContext(ctx,
 		`INSERT INTO revocation_events
 		 (tenant_id, client_id, serial_number, key_id, ca_fingerprint, reason, revoked_by)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		ev.TenantID, ev.ClientID, serialNumber, keyID, caFingerprint, ev.Reason, ev.RevokedBy,
 	)
 	if err != nil {

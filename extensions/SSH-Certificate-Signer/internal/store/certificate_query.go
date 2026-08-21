@@ -65,7 +65,7 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 	// Count total matching certificates
 	var total int
 	err := d.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM certificate_issuance_logs WHERE user_email = ?`,
+		`SELECT COUNT(*) FROM certificate_issuance_logs WHERE user_email = $1`,
 		email,
 	).Scan(&total)
 	if err != nil {
@@ -84,9 +84,9 @@ func (d *DB) ListCertificatesByEmail(ctx context.Context, email string, limit, o
 			COALESCE(r.reason, '') AS revocation_reason
 		 FROM certificate_issuance_logs c
 		 LEFT JOIN revocation_events r ON r.serial_number = c.serial_number
-		 WHERE c.user_email = ?
+		 WHERE c.user_email = $1
 		 ORDER BY c.issued_at DESC
-		 LIMIT ? OFFSET ?`,
+		 LIMIT $2 OFFSET $3`,
 		email, limit, offset,
 	)
 	if err != nil {
@@ -150,7 +150,7 @@ func (d *DB) GetCertificateBySerial(ctx context.Context, serial int64) (*Certifi
 			COALESCE(r.reason, '') AS revocation_reason
 		 FROM certificate_issuance_logs c
 		 LEFT JOIN revocation_events r ON r.serial_number = c.serial_number
-		 WHERE c.serial_number = ?`,
+		 WHERE c.serial_number = $1`,
 		serial,
 	).Scan(
 		&cert.ID, &cert.TenantID, &cert.ClientID, &cert.SerialNumber, &cert.KeyID,

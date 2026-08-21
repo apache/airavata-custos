@@ -23,7 +23,7 @@ server:
 
 database:
   host: localhost                      # env: DB_HOST
-  port: 3306                           # env: DB_PORT
+  port: 5432                           # env: DB_PORT
   name: custos_signer                  # env: DB_NAME
   username: admin                      # env: DB_USERNAME
   password: admin                      # env: DB_PASSWORD

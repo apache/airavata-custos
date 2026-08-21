@@ -49,7 +49,7 @@ func (d *DB) GetClientConfig(ctx context.Context, tenantID, clientID string) (*C
 		        max_ttl_seconds, allowed_key_types, source_address_restriction,
 		        denied_extensions, principal_source, enabled
 		 FROM client_ssh_configs
-		 WHERE tenant_id = ? AND client_id = ?`,
+		 WHERE tenant_id = $1 AND client_id = $2`,
 		tenantID, clientID,
 	).Scan(
 		&cc.TenantID, &cc.ClientID, &cc.ClientSecret, &cc.TargetHost, &cc.TargetPort,

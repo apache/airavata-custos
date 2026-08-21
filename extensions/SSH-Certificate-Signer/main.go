@@ -33,7 +33,7 @@ import (
 	"github.com/apache/airavata-custos/signer/internal/validation"
 	"github.com/apache/airavata-custos/signer/internal/vault"
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
@@ -107,10 +107,10 @@ func main() {
 // Applies pending migrations and exits.
 // Invoked by the "migrate" subcommand and also reused by --auto-migrate in serve mode.
 func runMigrate(cfg *config.Config, logger *slog.Logger) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+	dsn := fmt.Sprintf("pgx5://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.Database.Username, cfg.Database.Password,
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
-	m, err := migrate.New("file://migrations", "mysql://"+dsn)
+	m, err := migrate.New("file://migrations", dsn)
 	if err != nil {
 		logger.Error("failed to create migrate instance", "error", err)
 		os.Exit(1)

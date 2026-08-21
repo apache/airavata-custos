@@ -28,7 +28,7 @@ Part of [Apache Airavata Custos](https://airavata.apache.org/custos/), a securit
 ## Prerequisites
 
 - Go 1.22+
-- MariaDB 10.6+
+- PostgreSQL 17+
 - Vault / OpenBao with KV v2 secrets engine enabled
 
 ---
@@ -86,7 +86,7 @@ Environment variables take precedence over YAML values.
 ### Create the database
 
 ```sql
-CREATE DATABASE custos_signer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE custos_signer;
 ```
 
 If using the project's Docker Compose, the `custos_signer` database is created automatically by `compose/dbinit/init-db.sh`.
@@ -104,7 +104,7 @@ This applies any pending migrations and exits. It's idempotent — safe to run r
 You can also apply SQL directly:
 
 ```bash
-mysql -u admin -p custos_signer < migrations/001_initial_schema.up.sql
+psql -U admin -d custos_signer < migrations/001_initial_schema.up.sql
 ```
 
 The initial migration creates three tables:
@@ -280,7 +280,7 @@ curl -s -X POST http://localhost:8084/api/v1/admin/rotate-ca \
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| "failed to connect to database" | MariaDB unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
+| "failed to connect to database" | PostgreSQL unreachable or wrong credentials | Check host/port, verify DB user permissions, ensure database exists |
 | "failed to create vault client" | Vault unreachable or bad token | Check `VAULT_ADDRESS`, ensure token is valid, verify KV v2 enabled |
 | HTTP 401 on authenticated requests | Bad client credentials | Verify `X-Client-Id` is `tenant_id:client_id` format, check bcrypt hash matches |
 | HTTP 403 "Client is disabled" | Client row has `enabled=false` | Set `enabled=true` in `client_ssh_configs` |
