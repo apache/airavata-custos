@@ -38,18 +38,18 @@ type UserRoleDetail struct {
 
 const userRoleColumns = "user_id, role_id, granted_by, granted_at, reason"
 
-type mysqlUserRoleStore struct {
+type pgUserRoleStore struct {
 	db *sqlx.DB
 }
 
 func NewUserRoleStore(db *sqlx.DB) UserRoleStore {
-	return &mysqlUserRoleStore{db: db}
+	return &pgUserRoleStore{db: db}
 }
 
-func (s *mysqlUserRoleStore) Find(ctx context.Context, userID, roleID string) (*models.UserRole, error) {
+func (s *pgUserRoleStore) Find(ctx context.Context, userID, roleID string) (*models.UserRole, error) {
 	var r models.UserRole
 	err := s.db.GetContext(ctx, &r,
-		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = ? AND role_id = ?`,
+		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = $1 AND role_id = $2`,
 		userID, roleID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -60,9 +60,9 @@ func (s *mysqlUserRoleStore) Find(ctx context.Context, userID, roleID string) (*
 	return &r, nil
 }
 
-func (s *mysqlUserRoleStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error) {
+func (s *pgUserRoleStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID, roleID string) (*models.UserRole, error) {
 	row := tx.QueryRowContext(ctx,
-		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = ? AND role_id = ? FOR UPDATE`,
+		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = $1 AND role_id = $2 FOR UPDATE`,
 		userID, roleID)
 	var r models.UserRole
 	if err := row.Scan(&r.UserID, &r.RoleID, &r.GrantedBy, &r.GrantedAt, &r.Reason); err != nil {
@@ -74,10 +74,10 @@ func (s *mysqlUserRoleStore) FindForUpdate(ctx context.Context, tx *sql.Tx, user
 	return &r, nil
 }
 
-func (s *mysqlUserRoleStore) ListByUser(ctx context.Context, userID string) ([]models.UserRole, error) {
+func (s *pgUserRoleStore) ListByUser(ctx context.Context, userID string) ([]models.UserRole, error) {
 	var rows []models.UserRole
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = ? ORDER BY granted_at`,
+		`SELECT `+userRoleColumns+` FROM user_roles WHERE user_id = $1 ORDER BY granted_at`,
 		userID)
 	if err != nil {
 		return nil, err
@@ -85,10 +85,10 @@ func (s *mysqlUserRoleStore) ListByUser(ctx context.Context, userID string) ([]m
 	return rows, nil
 }
 
-func (s *mysqlUserRoleStore) ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error) {
+func (s *pgUserRoleStore) ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error) {
 	var rows []models.UserRole
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userRoleColumns+` FROM user_roles WHERE role_id = ? ORDER BY granted_at`,
+		`SELECT `+userRoleColumns+` FROM user_roles WHERE role_id = $1 ORDER BY granted_at`,
 		roleID)
 	if err != nil {
 		return nil, err
@@ -96,10 +96,10 @@ func (s *mysqlUserRoleStore) ListByRole(ctx context.Context, roleID string) ([]m
 	return rows, nil
 }
 
-func (s *mysqlUserRoleStore) ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error) {
+func (s *pgUserRoleStore) ListUserIDsByRole(ctx context.Context, roleID string) ([]string, error) {
 	var ids []string
 	err := s.db.SelectContext(ctx, &ids,
-		`SELECT user_id FROM user_roles WHERE role_id = ?`,
+		`SELECT user_id FROM user_roles WHERE role_id = $1`,
 		roleID)
 	if err != nil {
 		return nil, err
@@ -107,24 +107,24 @@ func (s *mysqlUserRoleStore) ListUserIDsByRole(ctx context.Context, roleID strin
 	return ids, nil
 }
 
-func (s *mysqlUserRoleStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error {
+func (s *pgUserRoleStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserRole) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO user_roles (user_id, role_id, granted_by, granted_at, reason)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		r.UserID, r.RoleID, r.GrantedBy, r.GrantedAt, r.Reason)
 	return err
 }
 
-func (s *mysqlUserRoleStore) Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error {
+func (s *pgUserRoleStore) Delete(ctx context.Context, tx *sql.Tx, userID, roleID string) error {
 	_, err := tx.ExecContext(ctx,
-		`DELETE FROM user_roles WHERE user_id = ? AND role_id = ?`,
+		`DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`,
 		userID, roleID)
 	return err
 }
 
 // ListDetailedByUser returns the user's roles with their privileges and
 // grant dates in one query.
-func (s *mysqlUserRoleStore) ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error) {
+func (s *pgUserRoleStore) ListDetailedByUser(ctx context.Context, userID string) ([]UserRoleDetail, error) {
 	var rows []struct {
 		models.Role
 		UserGrantedAt time.Time      `db:"user_granted_at"`
@@ -136,7 +136,7 @@ func (s *mysqlUserRoleStore) ListDetailedByUser(ctx context.Context, userID stri
 		 		FROM user_roles ur
 		 JOIN roles r ON r.id = ur.role_id
 		 LEFT JOIN role_privileges rp ON rp.role_id = r.id
-		 WHERE ur.user_id = ?
+		 WHERE ur.user_id = $1
 		 ORDER BY r.name, rp.privilege`, userID)
 	if err != nil {
 		return nil, err
@@ -163,13 +163,13 @@ func (s *mysqlUserRoleStore) ListDetailedByUser(ctx context.Context, userID stri
 
 // PrivilegesForUser returns the union of privileges from every role the
 // user holds.
-func (s *mysqlUserRoleStore) PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error) {
+func (s *pgUserRoleStore) PrivilegesForUser(ctx context.Context, userID string) ([]models.PrivilegeKey, error) {
 	var keys []models.PrivilegeKey
 	err := s.db.SelectContext(ctx, &keys,
 		`SELECT DISTINCT rp.privilege
 		 FROM user_roles ur
 		 JOIN role_privileges rp ON rp.role_id = ur.role_id
-		 WHERE ur.user_id = ?`, userID)
+		 WHERE ur.user_id = $1`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -178,13 +178,13 @@ func (s *mysqlUserRoleStore) PrivilegesForUser(ctx context.Context, userID strin
 
 // UsersHoldingPrivilege returns user IDs that get this privilege via any
 // role.
-func (s *mysqlUserRoleStore) UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error) {
+func (s *pgUserRoleStore) UsersHoldingPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]string, error) {
 	var ids []string
 	err := s.db.SelectContext(ctx, &ids,
 		`SELECT DISTINCT ur.user_id
 		 FROM user_roles ur
 		 JOIN role_privileges rp ON rp.role_id = ur.role_id
-		 WHERE rp.privilege = ?`, privilege)
+		 WHERE rp.privilege = $1`, privilege)
 	if err != nil {
 		return nil, err
 	}

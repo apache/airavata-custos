@@ -48,13 +48,13 @@ The `core` section contains essential server settings:
 ```yaml
 core:
   database:
-    url: "admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
+    url: "postgres://admin:admin@localhost:5432/custos?sslmode=disable"
   api:
     port: 8080
   log_level: "info"
 ```
 
-- **database.url**: MariaDB / MySQL DSN (the server uses the `go-sql-driver/mysql` driver). Required.
+- **database.url**: PostgreSQL DSN (the server uses the `pgx` driver). Required.
 - **api.port**: HTTP API port (default: 8080)
 - **log_level**: Logging level (info, debug, warn, error)
 
@@ -171,7 +171,7 @@ core:
 
 In your shell:
 ```bash
-export DATABASE_URL="admin:admin@tcp(localhost:3306)/custos?parseTime=true&charset=utf8mb4"
+export DATABASE_URL="postgres://admin:admin@localhost:5432/custos?sslmode=disable"
 ./custos
 ```
 

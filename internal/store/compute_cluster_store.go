@@ -27,19 +27,19 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlComputeClusterStore struct {
+type pgComputeClusterStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeClusterStore returns a MySQL-backed ComputeClusterStore.
+// NewComputeClusterStore returns a PostgreSQL-backed ComputeClusterStore.
 func NewComputeClusterStore(db *sqlx.DB) ComputeClusterStore {
-	return &mysqlComputeClusterStore{db: db}
+	return &pgComputeClusterStore{db: db}
 }
 
-func (s *mysqlComputeClusterStore) FindByID(ctx context.Context, id string) (*models.ComputeCluster, error) {
+func (s *pgComputeClusterStore) FindByID(ctx context.Context, id string) (*models.ComputeCluster, error) {
 	var c models.ComputeCluster
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, name FROM compute_clusters WHERE id = ?`, id)
+		`SELECT id, name FROM compute_clusters WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -49,10 +49,10 @@ func (s *mysqlComputeClusterStore) FindByID(ctx context.Context, id string) (*mo
 	return &c, nil
 }
 
-func (s *mysqlComputeClusterStore) FindByName(ctx context.Context, name string) (*models.ComputeCluster, error) {
+func (s *pgComputeClusterStore) FindByName(ctx context.Context, name string) (*models.ComputeCluster, error) {
 	var c models.ComputeCluster
 	err := s.db.GetContext(ctx, &c,
-		`SELECT id, name FROM compute_clusters WHERE name = ?`, name)
+		`SELECT id, name FROM compute_clusters WHERE name = $1`, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -62,7 +62,7 @@ func (s *mysqlComputeClusterStore) FindByName(ctx context.Context, name string) 
 	return &c, nil
 }
 
-func (s *mysqlComputeClusterStore) List(ctx context.Context) ([]models.ComputeCluster, error) {
+func (s *pgComputeClusterStore) List(ctx context.Context) ([]models.ComputeCluster, error) {
 	var clusters []models.ComputeCluster
 	err := s.db.SelectContext(ctx, &clusters,
 		`SELECT id, name FROM compute_clusters ORDER BY name`)
@@ -72,21 +72,21 @@ func (s *mysqlComputeClusterStore) List(ctx context.Context) ([]models.ComputeCl
 	return clusters, nil
 }
 
-func (s *mysqlComputeClusterStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
+func (s *pgComputeClusterStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO compute_clusters (id, name) VALUES (?, ?)`,
+		`INSERT INTO compute_clusters (id, name) VALUES ($1, $2)`,
 		c.ID, c.Name)
 	return err
 }
 
-func (s *mysqlComputeClusterStore) Update(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
+func (s *pgComputeClusterStore) Update(ctx context.Context, tx *sql.Tx, c *models.ComputeCluster) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_clusters SET name = ? WHERE id = ?`,
+		`UPDATE compute_clusters SET name = $1 WHERE id = $2`,
 		c.Name, c.ID)
 	return err
 }
 
-func (s *mysqlComputeClusterStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_clusters WHERE id = ?`, id)
+func (s *pgComputeClusterStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_clusters WHERE id = $1`, id)
 	return err
 }

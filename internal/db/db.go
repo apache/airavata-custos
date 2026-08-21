@@ -20,7 +20,7 @@ package db
 import (
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -31,9 +31,9 @@ type Config struct {
 	MaxIdleConns int
 }
 
-// Open opens and validates a MySQL/MariaDB connection using the supplied config.
+// Open opens and validates a PostgreSQL connection using the supplied config.
 func Open(cfg Config) (*sqlx.DB, error) {
-	db, err := sqlx.Open("mysql", cfg.DSN)
+	db, err := sqlx.Open("pgx", cfg.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}

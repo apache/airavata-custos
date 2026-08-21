@@ -15,18 +15,15 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-SET NAMES utf8mb4;
-SET time_zone = '+00:00';
-
 CREATE TABLE IF NOT EXISTS compute_clusters
 (
     id         VARCHAR(255) NOT NULL,
     name       VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uq_compute_clusters_name (name)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+    CONSTRAINT uq_compute_clusters_name UNIQUE (name)
+);
 
 CREATE TABLE IF NOT EXISTS compute_cluster_users
 (
@@ -34,13 +31,21 @@ CREATE TABLE IF NOT EXISTS compute_cluster_users
     compute_cluster_id VARCHAR(255) NOT NULL,
     user_id            VARCHAR(255) NOT NULL,
     local_username     VARCHAR(255) NOT NULL,
-    provisioned_at     TIMESTAMP(6) NULL,
-    created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    updated_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    provisioned_at     TIMESTAMPTZ(6) NULL,
+    created_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at         TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uq_compute_cluster_users_pair (compute_cluster_id, user_id),
-    UNIQUE KEY uq_compute_cluster_users_local_username (compute_cluster_id, local_username),
-    KEY idx_compute_cluster_users_user (user_id),
+    CONSTRAINT uq_compute_cluster_users_pair UNIQUE (compute_cluster_id, user_id),
+    CONSTRAINT uq_compute_cluster_users_local_username UNIQUE (compute_cluster_id, local_username),
     CONSTRAINT fk_compute_cluster_users_cluster FOREIGN KEY (compute_cluster_id) REFERENCES compute_clusters (id) ON DELETE CASCADE,
     CONSTRAINT fk_compute_cluster_users_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+);
+CREATE INDEX IF NOT EXISTS idx_compute_cluster_users_user ON compute_cluster_users (user_id);
+
+CREATE OR REPLACE TRIGGER trg_compute_clusters_updated_at
+    BEFORE UPDATE ON compute_clusters
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE TRIGGER trg_compute_cluster_users_updated_at
+    BEFORE UPDATE ON compute_cluster_users
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();

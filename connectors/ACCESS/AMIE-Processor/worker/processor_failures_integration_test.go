@@ -46,7 +46,7 @@ func TestProcessor_RouterWriteRolledBackOnError(t *testing.T) {
 		work: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx,
 				`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source)
-				 VALUES (?, ?, UTC_TIMESTAMP(6), ?, ?, ?, ?)`,
+				 VALUES ($1, $2, NOW(), $3, $4, $5, $6)`,
 				probeID, "CREATE_PROJECT", packetID, "probe", auditProbe, "amie",
 			)
 			return err
@@ -60,7 +60,7 @@ func TestProcessor_RouterWriteRolledBackOnError(t *testing.T) {
 	// The audit write must NOT be visible, tx rolled back.
 	var hits int
 	if err := database.Get(&hits,
-		"SELECT COUNT(*) FROM audit_events WHERE details = ?", auditProbe,
+		"SELECT COUNT(*) FROM audit_events WHERE details = $1", auditProbe,
 	); err != nil {
 		t.Fatalf("query audit probe: %v", err)
 	}

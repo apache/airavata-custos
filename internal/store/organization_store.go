@@ -27,19 +27,19 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlOrganizationStore struct {
+type pgOrganizationStore struct {
 	db *sqlx.DB
 }
 
-// NewOrganizationStore returns a MySQL-backed OrganizationStore.
+// NewOrganizationStore returns a PostgreSQL-backed OrganizationStore.
 func NewOrganizationStore(db *sqlx.DB) OrganizationStore {
-	return &mysqlOrganizationStore{db: db}
+	return &pgOrganizationStore{db: db}
 }
 
-func (s *mysqlOrganizationStore) FindByID(ctx context.Context, id string) (*models.Organization, error) {
+func (s *pgOrganizationStore) FindByID(ctx context.Context, id string) (*models.Organization, error) {
 	var o models.Organization
 	err := s.db.GetContext(ctx, &o,
-		`SELECT id, originated_id, name FROM organizations WHERE id = ?`, id)
+		`SELECT id, originated_id, name FROM organizations WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -49,10 +49,10 @@ func (s *mysqlOrganizationStore) FindByID(ctx context.Context, id string) (*mode
 	return &o, nil
 }
 
-func (s *mysqlOrganizationStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error) {
+func (s *pgOrganizationStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Organization, error) {
 	var o models.Organization
 	err := s.db.GetContext(ctx, &o,
-		`SELECT id, originated_id, name FROM organizations WHERE originated_id = ?`, originatedID)
+		`SELECT id, originated_id, name FROM organizations WHERE originated_id = $1`, originatedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -62,7 +62,7 @@ func (s *mysqlOrganizationStore) FindByOriginatedID(ctx context.Context, origina
 	return &o, nil
 }
 
-func (s *mysqlOrganizationStore) List(ctx context.Context, limit, offset int) ([]models.Organization, int, error) {
+func (s *pgOrganizationStore) List(ctx context.Context, limit, offset int) ([]models.Organization, int, error) {
 	var total int
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM organizations`); err != nil {
 		return nil, 0, err
@@ -78,27 +78,27 @@ func (s *mysqlOrganizationStore) List(ctx context.Context, limit, offset int) ([
 	}
 	var rows []models.Organization
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT id, originated_id, name FROM organizations ORDER BY name LIMIT ? OFFSET ?`, limit, offset); err != nil {
+		`SELECT id, originated_id, name FROM organizations ORDER BY name LIMIT $1 OFFSET $2`, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
 }
 
-func (s *mysqlOrganizationStore) Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
+func (s *pgOrganizationStore) Create(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)`,
+		`INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)`,
 		o.ID, o.OriginatedID, o.Name)
 	return err
 }
 
-func (s *mysqlOrganizationStore) Update(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
+func (s *pgOrganizationStore) Update(ctx context.Context, tx *sql.Tx, o *models.Organization) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE organizations SET originated_id = ?, name = ? WHERE id = ?`,
+		`UPDATE organizations SET originated_id = $1, name = $2 WHERE id = $3`,
 		o.OriginatedID, o.Name, o.ID)
 	return err
 }
 
-func (s *mysqlOrganizationStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM organizations WHERE id = ?`, id)
+func (s *pgOrganizationStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM organizations WHERE id = $1`, id)
 	return err
 }

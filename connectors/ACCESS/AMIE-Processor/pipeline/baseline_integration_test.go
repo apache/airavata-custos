@@ -95,7 +95,7 @@ func TestPipeline_BaselineDeterminism(t *testing.T) {
 	for _, ac := range actionCounts {
 		var n int
 		if err := pipe.db.Get(&n,
-			"SELECT COUNT(*) FROM audit_events WHERE source = 'amie' AND event_type = ?", ac.action,
+			"SELECT COUNT(*) FROM audit_events WHERE source = 'amie' AND event_type = $1", ac.action,
 		); err != nil {
 			t.Fatalf("count audit action %s: %v", ac.action, err)
 		}

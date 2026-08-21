@@ -26,7 +26,7 @@ ports so it coexists with the main dev stack in `dev-ops/compose/`.
 
 | Service     | Container               | Host port |
 |-------------|-------------------------|-----------|
-| MariaDB     | `custos_amie_test_db`   | `3307`    |
+| PostgreSQL  | `custos_amie_test_db`   | `5433`    |
 | mock-amie   | `custos_amie_test_mock` | `8181`    |
 
 ## Usage

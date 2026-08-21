@@ -28,7 +28,7 @@ import (
 )
 
 type UserDNStore interface {
-	// Add inserts a DN row. Uses INSERT IGNORE so a duplicate DN is a silent
+	// Add inserts a DN row. ON CONFLICT DO NOTHING keeps a duplicate DN a silent
 	// no-op rather than an error.
 	Add(ctx context.Context, tx *sql.Tx, d *model.UserDN) error
 	// ListByUser returns every DN bound to userID, oldest first.
@@ -40,30 +40,30 @@ type UserDNStore interface {
 	ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error
 }
 
-type mariaDBUserDNStore struct {
+type pgUserDNStore struct {
 	db *sqlx.DB
 }
 
 func NewUserDNStore(db *sqlx.DB) UserDNStore {
-	return &mariaDBUserDNStore{db: db}
+	return &pgUserDNStore{db: db}
 }
 
-func (s *mariaDBUserDNStore) Add(ctx context.Context, tx *sql.Tx, d *model.UserDN) error {
+func (s *pgUserDNStore) Add(ctx context.Context, tx *sql.Tx, d *model.UserDN) error {
 	if d.ID == "" {
 		d.ID = uuid.NewString()
 	}
 	_, err := tx.ExecContext(ctx,
-		`INSERT IGNORE INTO amie_user_dns (id, user_id, dn) VALUES (?, ?, ?)`,
+		`INSERT INTO amie_user_dns (id, user_id, dn) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
 		d.ID, d.UserID, d.DN)
 	return err
 }
 
-func (s *mariaDBUserDNStore) ListByUser(ctx context.Context, userID string) ([]model.UserDN, error) {
+func (s *pgUserDNStore) ListByUser(ctx context.Context, userID string) ([]model.UserDN, error) {
 	var out []model.UserDN
 	err := s.db.SelectContext(ctx, &out,
 		`SELECT id, user_id, dn, created_at
            FROM amie_user_dns
-          WHERE user_id = ?
+          WHERE user_id = $1
           ORDER BY created_at ASC`, userID)
 	if err != nil {
 		return nil, err
@@ -71,24 +71,24 @@ func (s *mariaDBUserDNStore) ListByUser(ctx context.Context, userID string) ([]m
 	return out, nil
 }
 
-func (s *mariaDBUserDNStore) DeleteByID(ctx context.Context, tx *sql.Tx, id string) error {
+func (s *pgUserDNStore) DeleteByID(ctx context.Context, tx *sql.Tx, id string) error {
 	_, err := tx.ExecContext(ctx,
-		`DELETE FROM amie_user_dns WHERE id = ?`, id)
+		`DELETE FROM amie_user_dns WHERE id = $1`, id)
 	return err
 }
 
-func (s *mariaDBUserDNStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+func (s *pgUserDNStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	// Drop fromUserID's rows whose DN is already held by toUserID; UNIQUE(dn)
 	// would otherwise reject the UPDATE.
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM amie_user_dns
-		  WHERE user_id = ?
-		    AND dn IN (SELECT dn FROM (SELECT dn FROM amie_user_dns WHERE user_id = ?) AS s)`,
+		  WHERE user_id = $1
+		    AND dn IN (SELECT dn FROM (SELECT dn FROM amie_user_dns WHERE user_id = $2) AS s)`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE amie_user_dns SET user_id = ? WHERE user_id = ?`,
+		`UPDATE amie_user_dns SET user_id = $1 WHERE user_id = $2`,
 		toUserID, fromUserID)
 	return err
 }

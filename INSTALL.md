@@ -50,7 +50,7 @@ From `dev-ops/compose/`:
 docker compose up -d db
 ```
 
-This starts MariaDB on `localhost:3306` and runs `dbinit/init-db.sh`, which
+This starts PostgreSQL on `localhost:5432` and runs `dbinit/init-db.sh`, which
 creates the `custos` database and the `admin` user (password `admin`).
 
 **Bundled Keycloak only:** also bring up Keycloak. On first start it imports
@@ -114,7 +114,7 @@ The migrations create the schema; the cluster seed inserts the default
 Apply it once, in a second terminal, after the server has come up:
 
 ```bash
-docker exec -i custos_db mariadb -uadmin -padmin custos < dev-ops/compose/seeds/default_cluster.sql
+docker exec -i custos_db psql -U admin -d custos < dev-ops/compose/seeds/default_cluster.sql
 ```
 
 The seed uses `INSERT IGNORE`, so re-running is safe.
@@ -125,7 +125,7 @@ For the bundled Keycloak path there is also a sample identity seed (org,
 users, roles, role assignments) matched to the users in the imported realm:
 
 ```bash
-docker exec -i custos_db mariadb -uadmin -padmin custos < dev-ops/compose/seeds/dev_users_and_roles.sql
+docker exec -i custos_db psql -U admin -d custos < dev-ops/compose/seeds/dev_users_and_roles.sql
 ```
 
 Skip this for external OIDC. You don't need it, and the emails would collide

@@ -28,21 +28,21 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlUserStore struct {
+type pgUserStore struct {
 	db *sqlx.DB
 }
 
-// NewUserStore returns a MySQL-backed UserStore.
+// NewUserStore returns a PostgreSQL-backed UserStore.
 func NewUserStore(db *sqlx.DB) UserStore {
-	return &mysqlUserStore{db: db}
+	return &pgUserStore{db: db}
 }
 
 const userColumns = `id, organization_id, first_name, last_name, middle_name, email, status, type`
 
-func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
+func (s *pgUserStore) FindByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+userColumns+` FROM users WHERE id = ?`, id)
+		`SELECT `+userColumns+` FROM users WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,7 +52,7 @@ func (s *mysqlUserStore) FindByID(ctx context.Context, id string) (*models.User,
 	return &u, nil
 }
 
-func (s *mysqlUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
+func (s *pgUserStore) List(ctx context.Context, limit, offset int) ([]models.User, int, error) {
 	var total int
 	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM users`); err != nil {
 		return nil, 0, err
@@ -68,16 +68,16 @@ func (s *mysqlUserStore) List(ctx context.Context, limit, offset int) ([]models.
 	}
 	var rows []models.User
 	if err := s.db.SelectContext(ctx, &rows,
-		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT ? OFFSET ?`, limit, offset); err != nil {
+		`SELECT `+userColumns+` FROM users ORDER BY email LIMIT $1 OFFSET $2`, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
 }
 
-func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+func (s *pgUserStore) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var u models.User
 	err := s.db.GetContext(ctx, &u,
-		`SELECT `+userColumns+` FROM users WHERE email = ?`, email)
+		`SELECT `+userColumns+` FROM users WHERE email = $1`, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -90,7 +90,7 @@ func (s *mysqlUserStore) FindByEmail(ctx context.Context, email string) (*models
 // GetUserByOIDCSub returns the user owning the user_identities row whose
 // oidc_sub matches. Returns nil when the OIDC subject is empty or no row
 // links it to a Custos user.
-func (s *mysqlUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error) {
+func (s *pgUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (*models.User, error) {
 	if oidcSub == "" {
 		return nil, nil
 	}
@@ -99,7 +99,7 @@ func (s *mysqlUserStore) GetUserByOIDCSub(ctx context.Context, oidcSub string) (
 		`SELECT `+prefixed("u", userColumns)+`
 		 FROM users u
 		 JOIN user_identities ui ON ui.user_id = u.id
-		 WHERE ui.oidc_sub = ?`, oidcSub)
+		 WHERE ui.oidc_sub = $1`, oidcSub)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -119,40 +119,40 @@ func prefixed(alias, columns string) string {
 	return strings.Join(parts, ", ")
 }
 
-func (s *mysqlUserStore) FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
+func (s *pgUserStore) FindByOrganization(ctx context.Context, organizationID string) ([]models.User, error) {
 	var users []models.User
 	err := s.db.SelectContext(ctx, &users,
-		`SELECT `+userColumns+` FROM users WHERE organization_id = ?`, organizationID)
+		`SELECT `+userColumns+` FROM users WHERE organization_id = $1`, organizationID)
 	if err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
-func (s *mysqlUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
+func (s *pgUserStore) Create(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		u.ID, u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type)
 	return err
 }
 
-func (s *mysqlUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {
+func (s *pgUserStore) Update(ctx context.Context, tx *sql.Tx, u *models.User) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE users SET organization_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, status = ?, type = ?
-		 WHERE id = ?`,
+		`UPDATE users SET organization_id = $1, first_name = $2, last_name = $3, middle_name = $4, email = $5, status = $6, type = $7
+		 WHERE id = $8`,
 		u.OrganizationID, u.FirstName, u.LastName, u.MiddleName, u.Email, u.Status, u.Type, u.ID)
 	return err
 }
 
-func (s *mysqlUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error {
+func (s *pgUserStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.UserStatus) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE users SET status = ? WHERE id = ?`,
+		`UPDATE users SET status = $1 WHERE id = $2`,
 		status, id)
 	return err
 }
 
-func (s *mysqlUserStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
+func (s *pgUserStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	return err
 }

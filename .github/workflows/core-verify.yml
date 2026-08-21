@@ -41,17 +41,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      mariadb:
-        image: mariadb:11.2
+      postgres:
+        image: postgres:17
         env:
-          MARIADB_ROOT_PASSWORD: root
-          MARIADB_DATABASE: custos
-          MARIADB_USER: admin
-          MARIADB_PASSWORD: admin
+          POSTGRES_DB: custos
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-cmd="pg_isready -U admin -d custos"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -87,5 +86,5 @@ jobs:
       # this covers the core suite only.
       - name: Core integration tests
         env:
-          CORE_TEST_DATABASE_DSN: "admin:admin@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4&multiStatements=true"
+          CORE_TEST_DATABASE_DSN: "postgres://admin:admin@127.0.0.1:5432/custos?sslmode=disable"
         run: go test -tags integration ./internal/...

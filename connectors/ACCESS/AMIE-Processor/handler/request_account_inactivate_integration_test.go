@@ -140,7 +140,7 @@ func getMembershipStatus(t *testing.T, database *sqlx.DB, membershipID string) s
 	t.Helper()
 	var status string
 	if err := database.Get(&status,
-		"SELECT membership_status FROM compute_allocation_memberships WHERE id = ?", membershipID,
+		"SELECT membership_status FROM compute_allocation_memberships WHERE id = $1", membershipID,
 	); err != nil {
 		t.Fatalf("read membership %s: %v", membershipID, err)
 	}
@@ -150,7 +150,7 @@ func getMembershipStatus(t *testing.T, database *sqlx.DB, membershipID string) s
 func getUserStatus(t *testing.T, database *sqlx.DB, userID string) string {
 	t.Helper()
 	var status string
-	if err := database.Get(&status, "SELECT status FROM users WHERE id = ?", userID); err != nil {
+	if err := database.Get(&status, "SELECT status FROM users WHERE id = $1", userID); err != nil {
 		t.Fatalf("read user %s: %v", userID, err)
 	}
 	return status

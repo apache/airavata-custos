@@ -47,7 +47,7 @@ export AMIE_API_KEY="your-api-key"
 ```
 
 AMIE reads its config from the `connectors.amie-processor` block in `config/custos.yaml`. The defaults work against the
-Docker Compose MariaDB.
+Docker Compose PostgreSQL.
 
 For local dev without a real ACCESS endpoint, point the service at the local mock AMIE server in [
 `mock-server/`](./mock-server/README.md)
@@ -88,7 +88,7 @@ vars set:
 
 - `DATABASE_DSN`, `AMIE_BASE_URL`, `AMIE_SITE_CODE`, `AMIE_API_KEY`, `AMIE_CLUSTER_ID`
 
-The canonical runner brings up an isolated DB on `:3307` + mock AMIE on `:8181`, applies all migrations, fires every
+The canonical runner brings up an isolated DB on `:5433` + mock AMIE on `:8181`, applies all migrations, fires every
 integration test, then tears down:
 
 ```bash

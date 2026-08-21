@@ -29,20 +29,20 @@ import (
 
 const computeAllocationChangeRequestColumns = "id, compute_allocation_id, requested_su_amount, requested_status, reason, change_status, requester_id, approver_id, timestamp"
 
-type mysqlComputeAllocationChangeRequestStore struct {
+type pgComputeAllocationChangeRequestStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationChangeRequestStore returns a MySQL-backed
+// NewComputeAllocationChangeRequestStore returns a PostgreSQL-backed
 // ComputeAllocationChangeRequestStore.
 func NewComputeAllocationChangeRequestStore(db *sqlx.DB) ComputeAllocationChangeRequestStore {
-	return &mysqlComputeAllocationChangeRequestStore{db: db}
+	return &pgComputeAllocationChangeRequestStore{db: db}
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequest, error) {
+func (s *pgComputeAllocationChangeRequestStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationChangeRequest, error) {
 	var c models.ComputeAllocationChangeRequest
 	err := s.db.GetContext(ctx, &c,
-		`SELECT `+computeAllocationChangeRequestColumns+` FROM compute_allocation_change_requests WHERE id = ?`, id)
+		`SELECT `+computeAllocationChangeRequestColumns+` FROM compute_allocation_change_requests WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,12 +52,12 @@ func (s *mysqlComputeAllocationChangeRequestStore) FindByID(ctx context.Context,
 	return &c, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error) {
+func (s *pgComputeAllocationChangeRequestStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationChangeRequest, error) {
 	var rows []models.ComputeAllocationChangeRequest
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationChangeRequestColumns+`
 		 FROM compute_allocation_change_requests
-		 WHERE compute_allocation_id = ?
+		 WHERE compute_allocation_id = $1
 		 ORDER BY timestamp`, allocationID)
 	if err != nil {
 		return nil, err
@@ -65,12 +65,12 @@ func (s *mysqlComputeAllocationChangeRequestStore) FindByAllocation(ctx context.
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) FindByRequester(ctx context.Context, requesterID string) ([]models.ComputeAllocationChangeRequest, error) {
+func (s *pgComputeAllocationChangeRequestStore) FindByRequester(ctx context.Context, requesterID string) ([]models.ComputeAllocationChangeRequest, error) {
 	var rows []models.ComputeAllocationChangeRequest
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationChangeRequestColumns+`
 		 FROM compute_allocation_change_requests
-		 WHERE requester_id = ?
+		 WHERE requester_id = $1
 		 ORDER BY timestamp`, requesterID)
 	if err != nil {
 		return nil, err
@@ -78,37 +78,37 @@ func (s *mysqlComputeAllocationChangeRequestStore) FindByRequester(ctx context.C
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error {
+func (s *pgComputeAllocationChangeRequestStore) Create(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_change_requests
 		     (id, compute_allocation_id, requested_su_amount, requested_status, reason, change_status, requester_id, approver_id, timestamp)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		c.ID, c.ComputeAllocationID, c.RequestedSUAmount, string(c.RequestedStatus), c.Reason, c.ChangeStatus, c.RequesterID, c.ApproverID, c.Timestamp)
 	return err
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) Update(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error {
+func (s *pgComputeAllocationChangeRequestStore) Update(ctx context.Context, tx *sql.Tx, c *models.ComputeAllocationChangeRequest) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_change_requests
-		    SET compute_allocation_id = ?,
-		        requested_su_amount   = ?,
-		        requested_status      = ?,
-		        reason                = ?,
-		        change_status         = ?,
-		        requester_id          = ?,
-		        approver_id           = ?,
-		        timestamp             = ?
-		  WHERE id = ?`,
+		    SET compute_allocation_id = $1,
+		        requested_su_amount   = $2,
+		        requested_status      = $3,
+		        reason                = $4,
+		        change_status         = $5,
+		        requester_id          = $6,
+		        approver_id           = $7,
+		        timestamp             = $8
+		  WHERE id = $9`,
 		c.ComputeAllocationID, c.RequestedSUAmount, string(c.RequestedStatus), c.Reason, c.ChangeStatus, c.RequesterID, c.ApproverID, c.Timestamp, c.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_change_requests WHERE id = ?`, id)
+func (s *pgComputeAllocationChangeRequestStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_change_requests WHERE id = $1`, id)
 	return err
 }
 
-func (s *mysqlComputeAllocationChangeRequestStore) List(ctx context.Context, f ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error) {
+func (s *pgComputeAllocationChangeRequestStore) List(ctx context.Context, f ChangeRequestListFilter) ([]models.ComputeAllocationChangeRequest, error) {
 	limit := f.Limit
 	if limit <= 0 {
 		limit = 50
@@ -120,14 +120,14 @@ func (s *mysqlComputeAllocationChangeRequestStore) List(ctx context.Context, f C
 		var rows []models.ComputeAllocationChangeRequest
 		err := s.db.SelectContext(ctx, &rows,
 			`SELECT `+computeAllocationChangeRequestColumns+
-				` FROM compute_allocation_change_requests WHERE change_status = ?`+
-				` ORDER BY timestamp DESC LIMIT ?`, f.Status, limit)
+				` FROM compute_allocation_change_requests WHERE change_status = $1`+
+				` ORDER BY timestamp DESC LIMIT $2`, f.Status, limit)
 		return rows, err
 	}
 	var rows []models.ComputeAllocationChangeRequest
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationChangeRequestColumns+
 			` FROM compute_allocation_change_requests`+
-			` ORDER BY timestamp DESC LIMIT ?`, limit)
+			` ORDER BY timestamp DESC LIMIT $1`, limit)
 	return rows, err
 }

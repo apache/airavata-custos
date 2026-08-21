@@ -62,7 +62,7 @@ type Service struct {
 }
 
 // New constructs a Service backed by the supplied database handle.
-// Stores are instantiated internally using the default MySQL implementations.
+// Stores are instantiated internally using the default PostgreSQL implementations.
 func New(database *sqlx.DB, eventBus *events.Bus) *Service {
 	return &Service{
 		db:                  database,

@@ -41,20 +41,20 @@ type MembershipWithUser struct {
 	AllocationName string
 }
 
-type mysqlComputeAllocationMembershipStore struct {
+type pgComputeAllocationMembershipStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationMembershipStore returns a MySQL-backed
+// NewComputeAllocationMembershipStore returns a PostgreSQL-backed
 // ComputeAllocationMembershipStore.
 func NewComputeAllocationMembershipStore(db *sqlx.DB) ComputeAllocationMembershipStore {
-	return &mysqlComputeAllocationMembershipStore{db: db}
+	return &pgComputeAllocationMembershipStore{db: db}
 }
 
-func (s *mysqlComputeAllocationMembershipStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error) {
+func (s *pgComputeAllocationMembershipStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationMembership, error) {
 	var m models.ComputeAllocationMembership
 	err := s.db.GetContext(ctx, &m,
-		`SELECT `+computeAllocationMembershipColumns+` FROM compute_allocation_memberships WHERE id = ?`, id)
+		`SELECT `+computeAllocationMembershipColumns+` FROM compute_allocation_memberships WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -64,12 +64,12 @@ func (s *mysqlComputeAllocationMembershipStore) FindByID(ctx context.Context, id
 	return &m, nil
 }
 
-func (s *mysqlComputeAllocationMembershipStore) FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
+func (s *pgComputeAllocationMembershipStore) FindByPair(ctx context.Context, allocationID, userID string) (*models.ComputeAllocationMembership, error) {
 	var m models.ComputeAllocationMembership
 	err := s.db.GetContext(ctx, &m,
 		`SELECT `+computeAllocationMembershipColumns+`
 		 FROM compute_allocation_memberships
-		 WHERE compute_allocation_id = ? AND user_id = ?`, allocationID, userID)
+		 WHERE compute_allocation_id = $1 AND user_id = $2`, allocationID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -79,12 +79,12 @@ func (s *mysqlComputeAllocationMembershipStore) FindByPair(ctx context.Context, 
 	return &m, nil
 }
 
-func (s *mysqlComputeAllocationMembershipStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
+func (s *pgComputeAllocationMembershipStore) FindByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationMembership, error) {
 	var rows []models.ComputeAllocationMembership
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationMembershipColumns+`
 		 FROM compute_allocation_memberships
-		 WHERE compute_allocation_id = ?
+		 WHERE compute_allocation_id = $1
 		 ORDER BY start_time`, allocationID)
 	if err != nil {
 		return nil, err
@@ -92,12 +92,12 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocation(ctx context.Con
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationMembershipStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
+func (s *pgComputeAllocationMembershipStore) FindByUser(ctx context.Context, userID string) ([]models.ComputeAllocationMembership, error) {
 	var rows []models.ComputeAllocationMembership
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+computeAllocationMembershipColumns+`
 		 FROM compute_allocation_memberships
-		 WHERE user_id = ?
+		 WHERE user_id = $1
 		 ORDER BY start_time`, userID)
 	if err != nil {
 		return nil, err
@@ -105,48 +105,48 @@ func (s *mysqlComputeAllocationMembershipStore) FindByUser(ctx context.Context, 
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
+func (s *pgComputeAllocationMembershipStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_memberships
 		     (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		m.ID, m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus))
 	return err
 }
 
-func (s *mysqlComputeAllocationMembershipStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
+func (s *pgComputeAllocationMembershipStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationMembership) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_memberships
-		    SET compute_allocation_id = ?,
-		        user_id               = ?,
-		        start_time            = ?,
-		        end_time              = ?,
-		        membership_status     = ?
-		  WHERE id = ?`,
+		    SET compute_allocation_id = $1,
+		        user_id               = $2,
+		        start_time            = $3,
+		        end_time              = $4,
+		        membership_status     = $5
+		  WHERE id = $6`,
 		m.ComputeAllocationID, m.UserID, m.StartTime, m.EndTime, string(m.MembershipStatus), m.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+func (s *pgComputeAllocationMembershipStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_allocation_memberships
-		 WHERE user_id = ?
+		 WHERE user_id = $1
 		   AND compute_allocation_id IN (
 		       SELECT compute_allocation_id FROM (
-		           SELECT compute_allocation_id FROM compute_allocation_memberships WHERE user_id = ?
+		           SELECT compute_allocation_id FROM compute_allocation_memberships WHERE user_id = $2
 		       ) AS s
 		   )`,
 		fromUserID, toUserID); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx,
-		`UPDATE compute_allocation_memberships SET user_id = ? WHERE user_id = ?`,
+		`UPDATE compute_allocation_memberships SET user_id = $1 WHERE user_id = $2`,
 		toUserID, fromUserID)
 	return err
 }
 
-func (s *mysqlComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_memberships WHERE id = ?`, id)
+func (s *pgComputeAllocationMembershipStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_memberships WHERE id = $1`, id)
 	return err
 }
 
@@ -154,7 +154,7 @@ func (s *mysqlComputeAllocationMembershipStore) Delete(ctx context.Context, tx *
 // users + project_memberships so each row carries display_name, email, and
 // the project-level role (defaulted to MEMBER when no project_memberships
 // row exists).
-func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
+func (s *pgComputeAllocationMembershipStore) FindByAllocationWithUser(ctx context.Context, allocationID string) ([]MembershipWithUser, error) {
 	type row struct {
 		models.ComputeAllocationMembership
 		Role      string `db:"role"`
@@ -173,7 +173,7 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx con
 		   JOIN users u                  ON u.id = m.user_id
 		   LEFT JOIN project_memberships pm
 		         ON pm.project_id = a.project_id AND pm.user_id = m.user_id
-		  WHERE m.compute_allocation_id = ?
+		  WHERE m.compute_allocation_id = $1
 		  ORDER BY m.start_time`, allocationID)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func (s *mysqlComputeAllocationMembershipStore) FindByAllocationWithUser(ctx con
 // the project, joined with the user, the owning allocation name, and the
 // project-level role. Returned rows are ordered by user; callers aggregate it
 // per-user (collapsing into the response's allocation list).
-func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error) {
+func (s *pgComputeAllocationMembershipStore) FindByProjectWithUser(ctx context.Context, projectID string) ([]MembershipWithUser, error) {
 	type row struct {
 		models.ComputeAllocationMembership
 		Role           string `db:"role"`
@@ -215,7 +215,7 @@ func (s *mysqlComputeAllocationMembershipStore) FindByProjectWithUser(ctx contex
 		   JOIN users u                  ON u.id = m.user_id
 		   LEFT JOIN project_memberships pm
 		         ON pm.project_id = ca.project_id AND pm.user_id = m.user_id
-		  WHERE ca.project_id = ?
+		  WHERE ca.project_id = $1
 		  ORDER BY u.email, ca.name`, projectID)
 	if err != nil {
 		return nil, err

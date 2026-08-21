@@ -17,17 +17,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-echo "Creating databases and users..."
+# Runs once on first container start (empty data dir). The custos database
+# and the admin superuser come from POSTGRES_DB / POSTGRES_USER.
+set -e
 
-mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" <<-EOSQL
-    CREATE DATABASE IF NOT EXISTS custos;
-    CREATE DATABASE IF NOT EXISTS keycloak;
-    CREATE DATABASE IF NOT EXISTS custos_signer;
-    CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY 'admin';
-    GRANT ALL PRIVILEGES ON custos.* TO 'admin'@'%';
-    GRANT ALL PRIVILEGES ON keycloak.* TO 'admin'@'%';
-    GRANT ALL PRIVILEGES ON custos_signer.* TO 'admin'@'%';
-    FLUSH PRIVILEGES;
+echo "Creating databases..."
+
+psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d postgres <<-EOSQL
+    CREATE DATABASE keycloak;
+    CREATE DATABASE custos_signer;
+    CREATE DATABASE custos_test;
+    ALTER DATABASE custos SET timezone = 'UTC';
+    ALTER DATABASE keycloak SET timezone = 'UTC';
+    ALTER DATABASE custos_signer SET timezone = 'UTC';
+    ALTER DATABASE custos_test SET timezone = 'UTC';
 EOSQL
 
-echo "Databases and users created"
+echo "Databases created"

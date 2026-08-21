@@ -550,17 +550,17 @@ Mark the file with `//go:build integration` on the first line. Then provide
 the database DSN via env var and run with the tag:
 
 ```bash
-export CORE_TEST_DATABASE_DSN='admin:admin@tcp(localhost:3306)/custos?...&multiStatements=true'
+export CORE_TEST_DATABASE_DSN='postgres://admin:admin@localhost:5432/custos_test?sslmode=disable'
 go test -tags integration ./connectors/Lustre/Sync/...
 ```
 
-The dev compose stack on `:3306` is sufficient. If your tests need destructive
+The dev compose stack on `:5432` is sufficient. If your tests need destructive
 fixtures (truncate tables, seed deterministic rows), spin up your own
 isolated stack under `dev-ops/local-<connector>/` so the dev DB stays
 untouched. AMIE is the existing example.
 
 [CONTRIBUTING.md](../../CONTRIBUTING.md) covers the full test pyramid,
-including the AMIE-specific isolated stack on `:3307`.
+including the AMIE-specific isolated stack on `:5433`.
 
 ---
 

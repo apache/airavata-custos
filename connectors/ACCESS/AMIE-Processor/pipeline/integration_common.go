@@ -25,6 +25,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -143,23 +144,15 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
 func seedCluster(t *testing.T, database *sqlx.DB) {
 	t.Helper()
 	if _, err := database.Exec(
-		"INSERT INTO compute_clusters (id, name) VALUES (?, ?)",
+		"INSERT INTO compute_clusters (id, name) VALUES ($1, $2)",
 		testClusterID, "default-cluster",
 	); err != nil {
 		t.Fatalf("seed cluster: %v", err)
@@ -167,7 +160,7 @@ func seedCluster(t *testing.T, database *sqlx.DB) {
 	// Catalog entry matching the mock packets' ResourceList, so
 	// request_project_create exercises the resource-mapping path.
 	if _, err := database.Exec(
-		"INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id) VALUES ($1, $2, $3, $4, $5)",
 		"baseline-resource", "baseline-cluster.example.edu", "CPU_HOURS", 0, testClusterID,
 	); err != nil {
 		t.Fatalf("seed catalog resource: %v", err)

@@ -343,11 +343,11 @@ func (s *Service) countUsersHoldingPrivilegeTx(ctx context.Context, tx *sql.Tx, 
 	var n int
 	err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(DISTINCT user_id) FROM (
-		   SELECT user_id FROM user_privileges WHERE privilege = ?
+		   SELECT user_id FROM user_privileges WHERE privilege = $1
 		   UNION
 		   SELECT ur.user_id FROM user_roles ur
 		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE rp.privilege = ?
+		     WHERE rp.privilege = $2
 		 ) AS holders`, key, key).Scan(&n)
 	return n, err
 }
@@ -358,11 +358,11 @@ func (s *Service) userHasPrivilegeOutsideTx(ctx context.Context, tx *sql.Tx, use
 	var n int
 	err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM (
-		   SELECT 1 FROM user_privileges WHERE user_id = ? AND privilege = ?
+		   SELECT 1 FROM user_privileges WHERE user_id = $1 AND privilege = $2
 		   UNION ALL
 		   SELECT 1 FROM user_roles ur
 		     JOIN role_privileges rp ON rp.role_id = ur.role_id
-		     WHERE ur.user_id = ? AND ur.role_id <> ? AND rp.privilege = ?
+		     WHERE ur.user_id = $3 AND ur.role_id <> $4 AND rp.privilege = $5
 		 ) AS sources`, userID, key, userID, excludeRoleID, key).Scan(&n)
 	if err != nil {
 		return false, err

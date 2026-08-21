@@ -67,7 +67,7 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 
 	if _, err := database.Exec(
 		`INSERT INTO amie_packets (id, amie_id, type, status, raw_json, received_at, retries)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		packetID, time.Now().UnixNano(), "request_project_create", string(model.PacketStatusNew),
 		`{"type":"request_project_create","body":{}}`, now, 0,
 	); err != nil {
@@ -76,7 +76,7 @@ func seedNewEvent(t *testing.T, database *sqlx.DB) (packetID, eventID string) {
 
 	if _, err := database.Exec(
 		`INSERT INTO amie_processing_events (id, packet_id, type, status, attempts, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		eventID, packetID, string(model.EventTypeDecodePacket), string(model.ProcessingStatusNew), 0, now,
 	); err != nil {
 		t.Fatalf("seed event: %v", err)
@@ -103,7 +103,7 @@ func readEvent(t *testing.T, database *sqlx.DB, id string) *model.ProcessingEven
 	var e model.ProcessingEvent
 	if err := database.Get(&e,
 		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
-		 FROM amie_processing_events WHERE id = ?`, id,
+		 FROM amie_processing_events WHERE id = $1`, id,
 	); err != nil {
 		t.Fatalf("read event %s: %v", id, err)
 	}
@@ -115,7 +115,7 @@ func readPacket(t *testing.T, database *sqlx.DB, id string) *model.Packet {
 	var p model.Packet
 	if err := database.Get(&p,
 		`SELECT id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error
-		 FROM amie_packets WHERE id = ?`, id,
+		 FROM amie_packets WHERE id = $1`, id,
 	); err != nil {
 		t.Fatalf("read packet %s: %v", id, err)
 	}
@@ -128,7 +128,7 @@ func readPacket(t *testing.T, database *sqlx.DB, id string) *model.Packet {
 func forceRetryNow(t *testing.T, database *sqlx.DB, eventID string) {
 	t.Helper()
 	if _, err := database.Exec(
-		"UPDATE amie_processing_events SET next_retry_at = NULL WHERE id = ?", eventID,
+		"UPDATE amie_processing_events SET next_retry_at = NULL WHERE id = $1", eventID,
 	); err != nil {
 		t.Fatalf("force retry: %v", err)
 	}

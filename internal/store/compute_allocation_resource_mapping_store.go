@@ -27,22 +27,22 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlComputeAllocationResourceMappingStore struct {
+type pgComputeAllocationResourceMappingStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationResourceMappingStore returns a MySQL-backed
+// NewComputeAllocationResourceMappingStore returns a PostgreSQL-backed
 // ComputeAllocationResourceMappingStore.
 func NewComputeAllocationResourceMappingStore(db *sqlx.DB) ComputeAllocationResourceMappingStore {
-	return &mysqlComputeAllocationResourceMappingStore{db: db}
+	return &pgComputeAllocationResourceMappingStore{db: db}
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
+func (s *pgComputeAllocationResourceMappingStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
 		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
 		 FROM compute_allocation_resource_mappings
-		 WHERE id = ?`, id)
+		 WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,12 +52,12 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindByID(ctx context.Contex
 	return &m, nil
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
+func (s *pgComputeAllocationResourceMappingStore) FindByPair(ctx context.Context, allocationID, resourceID string) (*models.ComputeAllocationResourceMapping, error) {
 	var m models.ComputeAllocationResourceMapping
 	err := s.db.GetContext(ctx, &m,
 		`SELECT id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time
 		 FROM compute_allocation_resource_mappings
-		 WHERE compute_allocation_id = ? AND compute_allocation_resource_id = ?`,
+		 WHERE compute_allocation_id = $1 AND compute_allocation_resource_id = $2`,
 		allocationID, resourceID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -68,14 +68,14 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindByPair(ctx context.Cont
 	return &m, nil
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
+func (s *pgComputeAllocationResourceMappingStore) FindResourcesByAllocation(ctx context.Context, allocationID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
 		`SELECT r.id, r.name, r.resource_type, r.resource_amount, r.compute_cluster_id
 		 FROM compute_allocation_resources r
 		 JOIN compute_allocation_resource_mappings m
 		     ON m.compute_allocation_resource_id = r.id
-		 WHERE m.compute_allocation_id = ?
+		 WHERE m.compute_allocation_id = $1
 		 ORDER BY r.name`, allocationID)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindResourcesByAllocation(c
 	return resources, nil
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
+func (s *pgComputeAllocationResourceMappingStore) FindAllocationsByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocation, error) {
 	var allocs []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &allocs,
 		`SELECT a.id, a.project_id, a.name, a.status, a.compute_cluster_id,
@@ -91,7 +91,7 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindAllocationsByResource(c
 		 FROM compute_allocations a
 		 JOIN compute_allocation_resource_mappings m
 		     ON m.compute_allocation_id = a.id
-		 WHERE m.compute_allocation_resource_id = ?
+		 WHERE m.compute_allocation_resource_id = $1
 		 ORDER BY a.name`, resourceID)
 	if err != nil {
 		return nil, err
@@ -99,29 +99,29 @@ func (s *mysqlComputeAllocationResourceMappingStore) FindAllocationsByResource(c
 	return allocs, nil
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
+func (s *pgComputeAllocationResourceMappingStore) Create(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_resource_mappings
 		     (id, compute_allocation_id, compute_allocation_resource_id, resource_amount, resource_time)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		m.ID, m.ComputeAllocationID, m.ComputeAllocationResourceID, m.ResourceAmount, m.ResourceTime)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
+func (s *pgComputeAllocationResourceMappingStore) Update(ctx context.Context, tx *sql.Tx, m *models.ComputeAllocationResourceMapping) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_resource_mappings
-		    SET resource_amount = ?,
-		        resource_time   = ?
-		  WHERE id = ?`,
+		    SET resource_amount = $1,
+		        resource_time   = $2
+		  WHERE id = $3`,
 		m.ResourceAmount, m.ResourceTime, m.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceMappingStore) DeleteByPair(ctx context.Context, tx *sql.Tx, allocationID, resourceID string) error {
+func (s *pgComputeAllocationResourceMappingStore) DeleteByPair(ctx context.Context, tx *sql.Tx, allocationID, resourceID string) error {
 	_, err := tx.ExecContext(ctx,
 		`DELETE FROM compute_allocation_resource_mappings
-		 WHERE compute_allocation_id = ? AND compute_allocation_resource_id = ?`,
+		 WHERE compute_allocation_id = $1 AND compute_allocation_resource_id = $2`,
 		allocationID, resourceID)
 	return err
 }

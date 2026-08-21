@@ -34,12 +34,12 @@ type PacketAuditStore interface {
 	ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error)
 }
 
-type mysqlPacketAuditStore struct {
+type pgPacketAuditStore struct {
 	db *sqlx.DB
 }
 
 func NewPacketAuditStore(db *sqlx.DB) PacketAuditStore {
-	return &mysqlPacketAuditStore{db: db}
+	return &pgPacketAuditStore{db: db}
 }
 
 const packetAuditSelect = `
@@ -54,11 +54,11 @@ SELECT
     ae.event_time AS created_at
 FROM audit_events ae
 JOIN amie_audit_extras x ON x.audit_event_id = ae.id
-WHERE x.packet_id = ?
+WHERE x.packet_id = $1
 ORDER BY ae.event_time ASC, ae.span_id ASC
 `
 
-func (s *mysqlPacketAuditStore) ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error) {
+func (s *pgPacketAuditStore) ListAuditsForPacket(ctx context.Context, packetID string) ([]models.TraceEvent, error) {
 	type row struct {
 		SpanID       string    `db:"span_id"`
 		ParentSpanID string    `db:"parent_span_id"`

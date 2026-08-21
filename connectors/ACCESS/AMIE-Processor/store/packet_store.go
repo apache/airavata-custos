@@ -62,20 +62,20 @@ type PacketStore interface {
 	GetStats(ctx context.Context, window time.Duration) ([]StatBucket, error)
 }
 
-type mariaDBPacketStore struct {
+type pgPacketStore struct {
 	db *sqlx.DB
 }
 
 func NewPacketStore(db *sqlx.DB) PacketStore {
-	return &mariaDBPacketStore{db: db}
+	return &pgPacketStore{db: db}
 }
 
 const packetColumns = `id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error`
 
-func (s *mariaDBPacketStore) FindByAmieID(ctx context.Context, amieID int64) (*model.Packet, error) {
+func (s *pgPacketStore) FindByAmieID(ctx context.Context, amieID int64) (*model.Packet, error) {
 	var p model.Packet
 	err := s.db.GetContext(ctx, &p,
-		`SELECT `+packetColumns+` FROM amie_packets WHERE amie_id = ?`, amieID)
+		`SELECT `+packetColumns+` FROM amie_packets WHERE amie_id = $1`, amieID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -85,10 +85,10 @@ func (s *mariaDBPacketStore) FindByAmieID(ctx context.Context, amieID int64) (*m
 	return &p, nil
 }
 
-func (s *mariaDBPacketStore) FindByID(ctx context.Context, id string) (*model.Packet, error) {
+func (s *pgPacketStore) FindByID(ctx context.Context, id string) (*model.Packet, error) {
 	var p model.Packet
 	err := s.db.GetContext(ctx, &p,
-		`SELECT `+packetColumns+` FROM amie_packets WHERE id = ?`, id)
+		`SELECT `+packetColumns+` FROM amie_packets WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -98,30 +98,30 @@ func (s *mariaDBPacketStore) FindByID(ctx context.Context, id string) (*model.Pa
 	return &p, nil
 }
 
-func (s *mariaDBPacketStore) Save(ctx context.Context, tx *sql.Tx, p *model.Packet) error {
+func (s *pgPacketStore) Save(ctx context.Context, tx *sql.Tx, p *model.Packet) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO amie_packets (id, amie_id, type, status, raw_json, received_at, decoded_at, processed_at, retries, last_error)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		p.ID, p.AmieID, p.Type, p.Status, p.RawJSON,
 		p.ReceivedAt, p.DecodedAt, p.ProcessedAt,
 		p.Retries, p.LastError)
 	return err
 }
 
-func (s *mariaDBPacketStore) Update(ctx context.Context, tx *sql.Tx, p *model.Packet) error {
+func (s *pgPacketStore) Update(ctx context.Context, tx *sql.Tx, p *model.Packet) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE amie_packets SET type = ?, status = ?, raw_json = ?, decoded_at = ?, processed_at = ?, retries = ?, last_error = ?
-		 WHERE id = ?`,
+		`UPDATE amie_packets SET type = $1, status = $2, raw_json = $3, decoded_at = $4, processed_at = $5, retries = $6, last_error = $7
+		 WHERE id = $8`,
 		p.Type, p.Status, p.RawJSON, p.DecodedAt, p.ProcessedAt,
 		p.Retries, p.LastError, p.ID)
 	return err
 }
 
-func (s *mariaDBPacketStore) ListPackets(ctx context.Context, f PacketListFilter) ([]model.Packet, int, error) {
+func (s *pgPacketStore) ListPackets(ctx context.Context, f PacketListFilter) ([]model.Packet, int, error) {
 	where, args := buildPacketFilter(f)
 
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM amie_packets`+where, args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM amie_packets`+where), args...); err != nil {
 		return nil, 0, err
 	}
 
@@ -137,7 +137,7 @@ func (s *mariaDBPacketStore) ListPackets(ctx context.Context, f PacketListFilter
 		packetColumns, where, limit, offset)
 
 	var rows []model.Packet
-	if err := s.db.SelectContext(ctx, &rows, q, args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
@@ -155,7 +155,7 @@ func buildPacketFilter(f PacketListFilter) (string, []any) {
 		args = append(args, f.Type)
 	}
 	if f.Query != "" {
-		clauses = append(clauses, "(id LIKE ? OR CAST(amie_id AS CHAR) LIKE ?)")
+		clauses = append(clauses, "(id ILIKE ? OR CAST(amie_id AS TEXT) ILIKE ?)")
 		like := "%" + f.Query + "%"
 		args = append(args, like, like)
 	}
@@ -173,28 +173,28 @@ func buildPacketFilter(f PacketListFilter) (string, []any) {
 	return " WHERE " + strings.Join(clauses, " AND "), args
 }
 
-func (s *mariaDBPacketStore) ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error) {
+func (s *pgPacketStore) ListPacketEvents(ctx context.Context, packetID string) ([]model.ProcessingEvent, error) {
 	var rows []model.ProcessingEvent
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT id, packet_id, type, status, attempts, created_at, started_at, finished_at, last_error, next_retry_at
-		 FROM amie_processing_events WHERE packet_id = ? ORDER BY created_at ASC`, packetID)
+		 FROM amie_processing_events WHERE packet_id = $1 ORDER BY created_at ASC`, packetID)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (s *mariaDBPacketStore) GetStats(ctx context.Context, window time.Duration) ([]StatBucket, error) {
+func (s *pgPacketStore) GetStats(ctx context.Context, window time.Duration) ([]StatBucket, error) {
 	if window <= 0 {
 		window = 30 * 24 * time.Hour
 	}
 	since := time.Now().UTC().Add(-window)
 	var rows []StatBucket
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT DATE(received_at) AS date, status, type, COUNT(*) AS count
+		`SELECT TO_CHAR(received_at, 'YYYY-MM-DD') AS date, status, type, COUNT(*) AS count
 		 FROM amie_packets
-		 WHERE received_at >= ?
-		 GROUP BY DATE(received_at), status, type
+		 WHERE received_at >= $1
+		 GROUP BY TO_CHAR(received_at, 'YYYY-MM-DD'), status, type
 		 ORDER BY date ASC`, since)
 	if err != nil {
 		return nil, err

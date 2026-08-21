@@ -69,12 +69,12 @@ FROM audit_events
 WHERE trace_id <> ''
 `
 
-type mysqlAuditTraceStore struct {
+type pgAuditTraceStore struct {
 	db *sqlx.DB
 }
 
 func NewAuditTraceStore(db *sqlx.DB) AuditTraceStore {
-	return &mysqlAuditTraceStore{db: db}
+	return &pgAuditTraceStore{db: db}
 }
 
 type rowEvent struct {
@@ -105,7 +105,7 @@ func (r rowEvent) toTraceEvent() models.TraceEvent {
 
 // ListTraces aggregates by trace_id then runs one summary probe per row.
 // Acceptable while page sizes stay <= 200.
-func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([]models.TraceSummary, int, error) {
+func (s *pgAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([]models.TraceSummary, int, error) {
 	whereSQL, args := buildTraceWhere(f)
 
 	limit := f.Limit
@@ -118,7 +118,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 		GROUP BY trace_id
 	) g`
 	var total int
-	if err := s.db.GetContext(ctx, &total, countQuery, args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(countQuery), args...); err != nil {
 		return nil, 0, fmt.Errorf("audit_trace_store: count: %w", err)
 	}
 
@@ -140,7 +140,7 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 		EventCount int       `db:"event_count"`
 	}
 	var raw []listRow
-	if err := s.db.SelectContext(ctx, &raw, listQuery, listArgs...); err != nil {
+	if err := s.db.SelectContext(ctx, &raw, s.db.Rebind(listQuery), listArgs...); err != nil {
 		return nil, 0, fmt.Errorf("audit_trace_store: list: %w", err)
 	}
 
@@ -166,13 +166,13 @@ func (s *mysqlAuditTraceStore) ListTraces(ctx context.Context, f TraceFilter) ([
 	return out, total, nil
 }
 
-func (s *mysqlAuditTraceStore) summariseTrace(ctx context.Context, traceID string) (string, string, string, error) {
+func (s *pgAuditTraceStore) summariseTrace(ctx context.Context, traceID string) (string, string, string, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
 	  ORDER BY created_at ASC, span_id ASC`
 	var rows []rowEvent
-	if err := s.db.SelectContext(ctx, &rows, q, traceID); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), traceID); err != nil {
 		return "", "", "", fmt.Errorf("audit_trace_store: summarise: %w", err)
 	}
 	if len(rows) == 0 {
@@ -207,14 +207,14 @@ func dominantSource(rows []rowEvent) string {
 	return rows[0].Source
 }
 
-func (s *mysqlAuditTraceStore) GetTraceTree(ctx context.Context, traceID string) (*models.TraceNode, bool, error) {
+func (s *pgAuditTraceStore) GetTraceTree(ctx context.Context, traceID string) (*models.TraceNode, bool, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?
 	  ORDER BY created_at ASC, span_id ASC
 	  LIMIT ?`
 	var rows []rowEvent
-	if err := s.db.SelectContext(ctx, &rows, q, traceID, TreeRowLimit+1); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), traceID, TreeRowLimit+1); err != nil {
 		return nil, false, fmt.Errorf("audit_trace_store: tree: %w", err)
 	}
 	if len(rows) == 0 {
@@ -249,7 +249,7 @@ func buildTree(rows []rowEvent) *models.TraceNode {
 	return root
 }
 
-func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
+func (s *pgAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID string) ([]models.TraceEvent, error) {
 	q := `SELECT trace_id, span_id, parent_span_id, source, event_type, entity_type, entity_id, description, created_at
 	  FROM (` + auditTraceSelect + `) u
 	  WHERE trace_id = ?`
@@ -261,7 +261,7 @@ func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID s
 	q += ` ORDER BY created_at ASC, span_id ASC`
 
 	var rows []rowEvent
-	if err := s.db.SelectContext(ctx, &rows, q, args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(q), args...); err != nil {
 		return nil, fmt.Errorf("audit_trace_store: events: %w", err)
 	}
 	out := make([]models.TraceEvent, len(rows))
@@ -271,7 +271,7 @@ func (s *mysqlAuditTraceStore) ListEvents(ctx context.Context, traceID, spanID s
 	return out, nil
 }
 
-func (s *mysqlAuditTraceStore) ListSources(_ context.Context) ([]string, error) {
+func (s *pgAuditTraceStore) ListSources(_ context.Context) ([]string, error) {
 	return []string{"amie", "comanage", "core", "slurm"}, nil
 }
 
@@ -296,7 +296,7 @@ func buildTraceWhere(f TraceFilter) (string, []any) {
 		args = append(args, f.To)
 	}
 	if f.Q != "" {
-		clauses = append(clauses, "(u.trace_id LIKE ? OR u.event_type LIKE ?)")
+		clauses = append(clauses, "(u.trace_id ILIKE ? OR u.event_type ILIKE ?)")
 		args = append(args, strings.ToLower(f.Q)+"%", "%"+f.Q+"%")
 	}
 

@@ -41,7 +41,7 @@ module and are not importable from outside the repository.
 ## Requirements
 
 - Go 1.24+
-- MySQL 8+ or MariaDB 10.5+
+- PostgreSQL 17+
 
 ---
 
@@ -135,8 +135,8 @@ users          (FK → organizations.id)
 projects       (FK → users.id  via project_pi_id)
 ```
 
-`parseTime=true` must be set in the DSN so MySQL `TIMESTAMP` columns scan into
-`time.Time` correctly.
+The DSN is a PostgreSQL URL, e.g.
+`postgres://user:pass@localhost:5432/custos?sslmode=disable`.
 
 ## Testing with a mock service
 

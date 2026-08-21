@@ -18,16 +18,17 @@
 apiVersion: 1
 
 datasources:
-  - name: MariaDB-AMIE
-    uid: mariadb-amie
-    type: mysql
+  - name: Postgres-AMIE
+    uid: postgres-amie
+    type: postgres
     access: proxy
-    url: custos_db:3306
+    url: custos_db:5432
     database: access_ci
     user: admin
     secureJsonData:
       password: admin
     jsonData:
+      sslmode: disable
       maxOpenConns: 5
       maxIdleConns: 2
       connMaxLifetime: 14400

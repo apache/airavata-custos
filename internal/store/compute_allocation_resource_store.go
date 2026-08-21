@@ -27,20 +27,20 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlComputeAllocationResourceStore struct {
+type pgComputeAllocationResourceStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationResourceStore returns a MySQL-backed
+// NewComputeAllocationResourceStore returns a PostgreSQL-backed
 // ComputeAllocationResourceStore.
 func NewComputeAllocationResourceStore(db *sqlx.DB) ComputeAllocationResourceStore {
-	return &mysqlComputeAllocationResourceStore{db: db}
+	return &pgComputeAllocationResourceStore{db: db}
 }
 
-func (s *mysqlComputeAllocationResourceStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
+func (s *pgComputeAllocationResourceStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResource, error) {
 	var r models.ComputeAllocationResource
 	err := s.db.GetContext(ctx, &r,
-		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources WHERE id = ?`, id)
+		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -50,12 +50,12 @@ func (s *mysqlComputeAllocationResourceStore) FindByID(ctx context.Context, id s
 	return &r, nil
 }
 
-func (s *mysqlComputeAllocationResourceStore) FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
+func (s *pgComputeAllocationResourceStore) FindByNameAndCluster(ctx context.Context, name, clusterID string) (*models.ComputeAllocationResource, error) {
 	var r models.ComputeAllocationResource
 	err := s.db.GetContext(ctx, &r,
 		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
 		 FROM compute_allocation_resources
-		 WHERE name = ? AND compute_cluster_id = ?`, name, clusterID)
+		 WHERE name = $1 AND compute_cluster_id = $2`, name, clusterID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -65,12 +65,12 @@ func (s *mysqlComputeAllocationResourceStore) FindByNameAndCluster(ctx context.C
 	return &r, nil
 }
 
-func (s *mysqlComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
+func (s *pgComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.Context, resourceType, clusterID string) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
 		`SELECT id, name, resource_type, resource_amount, compute_cluster_id
 		 FROM compute_allocation_resources
-		 WHERE resource_type = ? AND compute_cluster_id = ?
+		 WHERE resource_type = $1 AND compute_cluster_id = $2
 		 ORDER BY name`, resourceType, clusterID)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (s *mysqlComputeAllocationResourceStore) FindByTypeAndCluster(ctx context.C
 	return resources, nil
 }
 
-func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]models.ComputeAllocationResource, error) {
+func (s *pgComputeAllocationResourceStore) List(ctx context.Context) ([]models.ComputeAllocationResource, error) {
 	var resources []models.ComputeAllocationResource
 	err := s.db.SelectContext(ctx, &resources,
 		`SELECT id, name, resource_type, resource_amount, compute_cluster_id FROM compute_allocation_resources ORDER BY name`)
@@ -88,7 +88,7 @@ func (s *mysqlComputeAllocationResourceStore) List(ctx context.Context) ([]model
 	return resources, nil
 }
 
-func (s *mysqlComputeAllocationResourceStore) ListSummaries(ctx context.Context) ([]ComputeAllocationResourceSummary, error) {
+func (s *pgComputeAllocationResourceStore) ListSummaries(ctx context.Context) ([]ComputeAllocationResourceSummary, error) {
 	var rows []ComputeAllocationResourceSummary
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT r.id, r.name, r.resource_type, r.resource_amount, r.compute_cluster_id,
@@ -113,24 +113,24 @@ func (s *mysqlComputeAllocationResourceStore) ListSummaries(ctx context.Context)
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationResourceStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
+func (s *pgComputeAllocationResourceStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_resources (id, name, resource_type, resource_amount, compute_cluster_id)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		r.ID, r.Name, r.ResourceType, r.ResourceAmount, r.ComputeClusterID)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceStore) Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
+func (s *pgComputeAllocationResourceStore) Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResource) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_resources
-		 SET name = ?, resource_type = ?, resource_amount = ?, compute_cluster_id = ?
-		 WHERE id = ?`,
+		 SET name = $1, resource_type = $2, resource_amount = $3, compute_cluster_id = $4
+		 WHERE id = $5`,
 		r.Name, r.ResourceType, r.ResourceAmount, r.ComputeClusterID, r.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_resources WHERE id = ?`, id)
+func (s *pgComputeAllocationResourceStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_resources WHERE id = $1`, id)
 	return err
 }

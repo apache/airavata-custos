@@ -16,7 +16,7 @@
       }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "stat",
@@ -29,7 +29,7 @@
       }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "stat",
@@ -42,7 +42,7 @@
       }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "stat",
@@ -55,7 +55,7 @@
       }],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } } },
       "options": { "colorMode": "background", "textMode": "value_and_name" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "timeseries",
@@ -68,7 +68,7 @@
       }],
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "showPoints": "auto" } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] } },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "timeseries",
@@ -88,7 +88,7 @@
       ],
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15 }, "color": { "mode": "palette-classic" } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] } },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "piechart",
@@ -103,7 +103,7 @@
         { "id": "rowsToFields", "options": {} }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "piechart",
@@ -123,7 +123,7 @@
         { "matcher": { "id": "byName", "options": "retry_scheduled" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
       ] },
       "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "bargauge",
@@ -139,7 +139,7 @@
       ],
       "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
       "options": { "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     },
     {
       "type": "timeseries",
@@ -179,7 +179,7 @@
       "fieldConfig": { "overrides": [
         { "matcher": { "id": "byName", "options": "Outcome" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "succeeded": { "color": "green", "text": "Succeeded" }, "permanently_failed": { "color": "red", "text": "Failed" }, "retry_scheduled": { "color": "orange", "text": "Retried" } } }] }] }
       ] },
-      "datasource": { "type": "mysql", "uid": "mariadb-amie" }
+      "datasource": { "type": "postgres", "uid": "postgres-amie" }
     }
   ],
   "refresh": "10s",

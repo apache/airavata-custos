@@ -29,18 +29,18 @@ type ProcessingErrorStore interface {
 	Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingError) error
 }
 
-type mariaDBProcessingErrorStore struct {
+type pgProcessingErrorStore struct {
 	db *sqlx.DB
 }
 
 func NewProcessingErrorStore(db *sqlx.DB) ProcessingErrorStore {
-	return &mariaDBProcessingErrorStore{db: db}
+	return &pgProcessingErrorStore{db: db}
 }
 
-func (s *mariaDBProcessingErrorStore) Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingError) error {
+func (s *pgProcessingErrorStore) Save(ctx context.Context, tx *sql.Tx, e *model.ProcessingError) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO amie_processing_errors (packet_id, event_id, occurred_at, summary, detail)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		e.PacketID, e.EventID, e.OccurredAt, e.Summary, e.Detail)
 	return err
 }

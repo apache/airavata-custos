@@ -29,21 +29,21 @@ import (
 
 const userPrivilegeColumns = "id, user_id, privilege, granted_by, granted_at, reason"
 
-type mysqlUserPrivilegeStore struct {
+type pgUserPrivilegeStore struct {
 	db *sqlx.DB
 }
 
-// NewUserPrivilegeStore returns a MySQL-backed UserPrivilegeStore.
+// NewUserPrivilegeStore returns a PostgreSQL-backed UserPrivilegeStore.
 func NewUserPrivilegeStore(db *sqlx.DB) UserPrivilegeStore {
-	return &mysqlUserPrivilegeStore{db: db}
+	return &pgUserPrivilegeStore{db: db}
 }
 
-func (s *mysqlUserPrivilegeStore) Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
+func (s *pgUserPrivilegeStore) Find(ctx context.Context, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
 	var r models.UserPrivilege
 	err := s.db.GetContext(ctx, &r,
 		`SELECT `+userPrivilegeColumns+`
 		 FROM user_privileges
-		 WHERE user_id = ? AND privilege = ?`,
+		 WHERE user_id = $1 AND privilege = $2`,
 		userID, privilege)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -54,11 +54,11 @@ func (s *mysqlUserPrivilegeStore) Find(ctx context.Context, userID string, privi
 	return &r, nil
 }
 
-func (s *mysqlUserPrivilegeStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
+func (s *pgUserPrivilegeStore) FindForUpdate(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) (*models.UserPrivilege, error) {
 	row := tx.QueryRowContext(ctx,
 		`SELECT `+userPrivilegeColumns+`
 		 FROM user_privileges
-		 WHERE user_id = ? AND privilege = ?
+		 WHERE user_id = $1 AND privilege = $2
 		 FOR UPDATE`,
 		userID, privilege)
 	var r models.UserPrivilege
@@ -74,12 +74,12 @@ func (s *mysqlUserPrivilegeStore) FindForUpdate(ctx context.Context, tx *sql.Tx,
 	return &r, nil
 }
 
-func (s *mysqlUserPrivilegeStore) ListByUser(ctx context.Context, userID string) ([]models.UserPrivilege, error) {
+func (s *pgUserPrivilegeStore) ListByUser(ctx context.Context, userID string) ([]models.UserPrivilege, error) {
 	var rows []models.UserPrivilege
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+userPrivilegeColumns+`
 		 FROM user_privileges
-		 WHERE user_id = ?
+		 WHERE user_id = $1
 		 ORDER BY granted_at`, userID)
 	if err != nil {
 		return nil, err
@@ -87,12 +87,12 @@ func (s *mysqlUserPrivilegeStore) ListByUser(ctx context.Context, userID string)
 	return rows, nil
 }
 
-func (s *mysqlUserPrivilegeStore) ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
+func (s *pgUserPrivilegeStore) ListByPrivilege(ctx context.Context, privilege models.PrivilegeKey) ([]models.UserPrivilege, error) {
 	var rows []models.UserPrivilege
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+userPrivilegeColumns+`
 		 FROM user_privileges
-		 WHERE privilege = ?
+		 WHERE privilege = $1
 		 ORDER BY granted_at`, privilege)
 	if err != nil {
 		return nil, err
@@ -100,28 +100,28 @@ func (s *mysqlUserPrivilegeStore) ListByPrivilege(ctx context.Context, privilege
 	return rows, nil
 }
 
-func (s *mysqlUserPrivilegeStore) CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error) {
+func (s *pgUserPrivilegeStore) CountByPrivilege(ctx context.Context, tx *sql.Tx, privilege models.PrivilegeKey) (int, error) {
 	var n int
 	err := tx.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM user_privileges WHERE privilege = ?`, privilege).Scan(&n)
+		`SELECT COUNT(*) FROM user_privileges WHERE privilege = $1`, privilege).Scan(&n)
 	if err != nil {
 		return 0, err
 	}
 	return n, nil
 }
 
-func (s *mysqlUserPrivilegeStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error {
+func (s *pgUserPrivilegeStore) Create(ctx context.Context, tx *sql.Tx, r *models.UserPrivilege) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO user_privileges
 		  (id, user_id, privilege, granted_by, granted_at, reason)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		r.ID, r.UserID, r.Privilege, r.GrantedBy, r.GrantedAt, r.Reason)
 	return err
 }
 
-func (s *mysqlUserPrivilegeStore) Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error {
+func (s *pgUserPrivilegeStore) Delete(ctx context.Context, tx *sql.Tx, userID string, privilege models.PrivilegeKey) error {
 	_, err := tx.ExecContext(ctx,
-		`DELETE FROM user_privileges WHERE user_id = ? AND privilege = ?`,
+		`DELETE FROM user_privileges WHERE user_id = $1 AND privilege = $2`,
 		userID, privilege)
 	return err
 }

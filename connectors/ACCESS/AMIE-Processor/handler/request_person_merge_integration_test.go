@@ -94,37 +94,37 @@ func seedMergeUsers(t *testing.T, database *sqlx.DB) mergeTestUsers {
 		}
 	}
 
-	exec("INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+	exec("INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		survivingOrg, "SURV", "Surviving Org")
-	exec("INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+	exec("INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		retiringOrg, "RETR", "Retiring Org")
 
-	exec("INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	exec("INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		out.survivingID, survivingOrg, "Pat", "Survivor", "", "pat.survivor@example.edu", string(models.UserActive))
-	exec("INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	exec("INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		out.retiringID, retiringOrg, "Pat", "Retiring", "", "pat.retiring@example.edu", string(models.UserActive))
 
-	exec("INSERT INTO user_identities (id, user_id, source, external_id) VALUES (?, ?, ?, ?)",
+	exec("INSERT INTO user_identities (id, user_id, source, external_id) VALUES ($1, $2, $3, $4)",
 		survivingIdentity, out.survivingID, amieIdentitySource, out.survivingGlobal)
-	exec("INSERT INTO user_identities (id, user_id, source, external_id) VALUES (?, ?, ?, ?)",
+	exec("INSERT INTO user_identities (id, user_id, source, external_id) VALUES ($1, $2, $3, $4)",
 		retiringIdentity, out.retiringID, amieIdentitySource, out.retiringGlobal)
 
-	exec("INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username) VALUES (?, ?, ?, ?)",
+	exec("INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username) VALUES ($1, $2, $3, $4)",
 		survivingClusterUser, testClusterID, out.survivingID, "psurvivor")
-	exec("INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username) VALUES (?, ?, ?, ?)",
+	exec("INSERT INTO compute_cluster_users (id, compute_cluster_id, user_id, local_username) VALUES ($1, $2, $3, $4)",
 		retiringClusterUser, testClusterID, out.retiringID, "pretiring")
 
-	exec("INSERT INTO amie_user_dns (id, user_id, dn) VALUES (?, ?, ?)",
+	exec("INSERT INTO amie_user_dns (id, user_id, dn) VALUES ($1, $2, $3)",
 		uuid.NewString(), out.survivingID, out.survivingDN)
-	exec("INSERT INTO amie_user_dns (id, user_id, dn) VALUES (?, ?, ?)",
+	exec("INSERT INTO amie_user_dns (id, user_id, dn) VALUES ($1, $2, $3)",
 		uuid.NewString(), out.retiringID, out.retiringDN)
 
 	// Two projects: one PI'd by each user. The retiring user's project should
 	// be reassigned to the surviving user after the merge per the
 	// service.MergeUsers contract (projs.ReassignPI).
-	exec("INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status) VALUES (?, ?, ?, ?, ?, ?)",
+	exec("INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status) VALUES ($1, $2, $3, $4, $5, $6)",
 		out.survivingProject, "TG-SURV-001", "Surviving Project", "ACCESS", out.survivingID, string(models.ProjectActive))
-	exec("INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status) VALUES (?, ?, ?, ?, ?, ?)",
+	exec("INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status) VALUES ($1, $2, $3, $4, $5, $6)",
 		out.retiringProject, "TG-RETR-001", "Retiring Project", "ACCESS", out.retiringID, string(models.ProjectActive))
 
 	// One allocation under the surviving project, with both users as members.
@@ -134,17 +134,17 @@ func seedMergeUsers(t *testing.T, database *sqlx.DB) mergeTestUsers {
 	endTime := startTime.Add(365 * 24 * time.Hour)
 	exec(`INSERT INTO compute_allocations
 	          (id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time)
-	      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		out.allocationID, out.survivingProject, "TG-SURV-001-alloc",
 		string(models.ACTIVE), testClusterID, int64(1000), startTime, endTime)
 
 	exec(`INSERT INTO compute_allocation_memberships
 	          (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-	      VALUES (?, ?, ?, ?, ?, ?)`,
+	      VALUES ($1, $2, $3, $4, $5, $6)`,
 		survivingMembership, out.allocationID, out.survivingID, startTime, endTime, string(models.ACTIVE))
 	exec(`INSERT INTO compute_allocation_memberships
 	          (id, compute_allocation_id, user_id, start_time, end_time, membership_status)
-	      VALUES (?, ?, ?, ?, ?, ?)`,
+	      VALUES ($1, $2, $3, $4, $5, $6)`,
 		retiringMembership, out.allocationID, out.retiringID, startTime, endTime, string(models.ACTIVE))
 
 	if err := tx.Commit(); err != nil {
@@ -199,14 +199,14 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	// Retiring user's status must be MERGED (soft-delete). The surviving user
 	// stays ACTIVE.
 	var retiringStatus string
-	if err := database.Get(&retiringStatus, "SELECT status FROM users WHERE id = ?", seed.retiringID); err != nil {
+	if err := database.Get(&retiringStatus, "SELECT status FROM users WHERE id = $1", seed.retiringID); err != nil {
 		t.Fatalf("read retiring user status: %v", err)
 	}
 	if retiringStatus != string(models.UserMerged) {
 		t.Errorf("retiring user.status: got %q, want %q", retiringStatus, string(models.UserMerged))
 	}
 	var survivingStatus string
-	if err := database.Get(&survivingStatus, "SELECT status FROM users WHERE id = ?", seed.survivingID); err != nil {
+	if err := database.Get(&survivingStatus, "SELECT status FROM users WHERE id = $1", seed.survivingID); err != nil {
 		t.Fatalf("read surviving user status: %v", err)
 	}
 	if survivingStatus != string(models.UserActive) {
@@ -217,7 +217,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	// at the surviving user.
 	var identitiesOnRetiring int
 	if err := database.Get(&identitiesOnRetiring,
-		"SELECT COUNT(*) FROM user_identities WHERE user_id = ?", seed.retiringID); err != nil {
+		"SELECT COUNT(*) FROM user_identities WHERE user_id = $1", seed.retiringID); err != nil {
 		t.Fatalf("count identities on retiring: %v", err)
 	}
 	if identitiesOnRetiring != 0 {
@@ -225,7 +225,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	}
 	var identitiesOnSurviving int
 	if err := database.Get(&identitiesOnSurviving,
-		"SELECT COUNT(*) FROM user_identities WHERE user_id = ?", seed.survivingID); err != nil {
+		"SELECT COUNT(*) FROM user_identities WHERE user_id = $1", seed.survivingID); err != nil {
 		t.Fatalf("count identities on surviving: %v", err)
 	}
 	// Survivor had 1 (KeepGlobalID), retiring had 1 (DeleteGlobalID) → 2 after.
@@ -238,7 +238,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	// must still be present).
 	var dnsOnRetiring int
 	if err := database.Get(&dnsOnRetiring,
-		"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = ?", seed.retiringID); err != nil {
+		"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = $1", seed.retiringID); err != nil {
 		t.Fatalf("count dns on retiring: %v", err)
 	}
 	if dnsOnRetiring != 0 {
@@ -246,7 +246,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	}
 	var dnsOnSurviving int
 	if err := database.Get(&dnsOnSurviving,
-		"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = ?", seed.survivingID); err != nil {
+		"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = $1", seed.survivingID); err != nil {
 		t.Fatalf("count dns on surviving: %v", err)
 	}
 	if dnsOnSurviving != 2 {
@@ -259,7 +259,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	// ends with exactly one membership on that allocation.
 	var membershipsOnRetiring int
 	if err := database.Get(&membershipsOnRetiring,
-		"SELECT COUNT(*) FROM compute_allocation_memberships WHERE user_id = ?", seed.retiringID); err != nil {
+		"SELECT COUNT(*) FROM compute_allocation_memberships WHERE user_id = $1", seed.retiringID); err != nil {
 		t.Fatalf("count memberships on retiring: %v", err)
 	}
 	if membershipsOnRetiring != 0 {
@@ -267,7 +267,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	}
 	var membershipsOnSurviving int
 	if err := database.Get(&membershipsOnSurviving,
-		"SELECT COUNT(*) FROM compute_allocation_memberships WHERE user_id = ?", seed.survivingID); err != nil {
+		"SELECT COUNT(*) FROM compute_allocation_memberships WHERE user_id = $1", seed.survivingID); err != nil {
 		t.Fatalf("count memberships on surviving: %v", err)
 	}
 	if membershipsOnSurviving < 1 {
@@ -280,7 +280,7 @@ func TestRequestPersonMerge_HappyPath(t *testing.T) {
 	// implements that via projs.ReassignPI.)
 	var retiringProjectPI string
 	if err := database.Get(&retiringProjectPI,
-		"SELECT project_pi_id FROM projects WHERE id = ?", seed.retiringProject); err != nil {
+		"SELECT project_pi_id FROM projects WHERE id = $1", seed.retiringProject); err != nil {
 		t.Fatalf("read retiring project PI: %v", err)
 	}
 	if retiringProjectPI != seed.survivingID {
@@ -343,7 +343,7 @@ func TestRequestPersonMerge_ReplaySafeAfterMerge(t *testing.T) {
 	identitiesOnSurviving := func() int {
 		var n int
 		if err := database.Get(&n,
-			"SELECT COUNT(*) FROM user_identities WHERE user_id = ?", seed.survivingID); err != nil {
+			"SELECT COUNT(*) FROM user_identities WHERE user_id = $1", seed.survivingID); err != nil {
 			t.Fatalf("count identities: %v", err)
 		}
 		return n
@@ -351,7 +351,7 @@ func TestRequestPersonMerge_ReplaySafeAfterMerge(t *testing.T) {
 	dnsOnSurviving := func() int {
 		var n int
 		if err := database.Get(&n,
-			"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = ?", seed.survivingID); err != nil {
+			"SELECT COUNT(*) FROM amie_user_dns WHERE user_id = $1", seed.survivingID); err != nil {
 			t.Fatalf("count dns: %v", err)
 		}
 		return n
@@ -432,7 +432,7 @@ func TestRequestPersonMerge_SameKeepAndDelete(t *testing.T) {
 	// No state change: surviving user keeps every identity/DN row, status
 	// untouched, audit log empty for this packet.
 	var survivingStatus string
-	if err := database.Get(&survivingStatus, "SELECT status FROM users WHERE id = ?", seed.survivingID); err != nil {
+	if err := database.Get(&survivingStatus, "SELECT status FROM users WHERE id = $1", seed.survivingID); err != nil {
 		t.Fatalf("read surviving user status: %v", err)
 	}
 	if survivingStatus != string(models.UserActive) {
@@ -487,7 +487,7 @@ func TestRequestPersonMerge_UnknownRetiringOrSurviving(t *testing.T) {
 
 	// State unchanged.
 	var retiringStatus string
-	if err := database.Get(&retiringStatus, "SELECT status FROM users WHERE id = ?", seed.retiringID); err != nil {
+	if err := database.Get(&retiringStatus, "SELECT status FROM users WHERE id = $1", seed.retiringID); err != nil {
 		t.Fatalf("read retiring user status: %v", err)
 	}
 	if retiringStatus != string(models.UserActive) {

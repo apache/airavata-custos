@@ -22,6 +22,7 @@ package service
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -87,16 +88,8 @@ func truncateAll(t *testing.T, database *sqlx.DB) {
 		"users",
 		"organizations",
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range tables {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
-	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 
@@ -108,7 +101,7 @@ func seedOrg(t *testing.T, database *sqlx.DB) string {
 	t.Helper()
 	orgID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO organizations (id, originated_id, name) VALUES (?, ?, ?)",
+		"INSERT INTO organizations (id, originated_id, name) VALUES ($1, $2, $3)",
 		orgID, "TEST-ORG-"+orgID[:8], "Test Org",
 	); err != nil {
 		t.Fatalf("seed org: %v", err)
@@ -121,7 +114,7 @@ func seedUser(t *testing.T, database *sqlx.DB, email string) string {
 	orgID := seedOrg(t, database)
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		userID, orgID, "Test", "User", "", email, string(models.UserActive), string(models.UserTypeClusterLocal),
 	); err != nil {
 		t.Fatalf("seed user %s: %v", email, err)
@@ -136,7 +129,7 @@ func seedPrivilegesGrant(t *testing.T, database *sqlx.DB, userID string) {
 	t.Helper()
 	if _, err := database.Exec(
 		`INSERT INTO user_privileges (id, user_id, privilege, granted_at, reason)
-		 VALUES (?, ?, ?, NOW(6), 'seed')`,
+		 VALUES ($1, $2, $3, NOW(), 'seed')`,
 		uuid.NewString(), userID, string(models.PrivilegesGrant),
 	); err != nil {
 		t.Fatalf("seed privileges:grant for %s: %v", userID, err)
@@ -147,7 +140,7 @@ func countAuditEventsOfType(t *testing.T, database *sqlx.DB, eventType, entityID
 	t.Helper()
 	var n int
 	if err := database.Get(&n,
-		"SELECT COUNT(*) FROM audit_events WHERE event_type = ? AND entity_id = ?",
+		"SELECT COUNT(*) FROM audit_events WHERE event_type = $1 AND entity_id = $2",
 		eventType, entityID,
 	); err != nil {
 		t.Fatalf("count audit_events: %v", err)

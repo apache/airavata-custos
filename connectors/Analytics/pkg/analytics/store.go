@@ -117,29 +117,29 @@ type Store interface {
 	IsActiveMember(ctx context.Context, allocationID, userID string) (bool, error)
 }
 
-type mysqlStore struct {
+type pgStore struct {
 	db *sqlx.DB
 }
 
-// NewStore returns a MySQL-backed analytics Store.
+// NewStore returns a PostgreSQL-backed analytics Store.
 func NewStore(db *sqlx.DB) Store {
-	return &mysqlStore{db: db}
+	return &pgStore{db: db}
 }
 
-func (s *mysqlStore) ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error) {
+func (s *pgStore) ProjectsForUser(ctx context.Context, userID string) ([]ProjectRow, error) {
 	var rows []ProjectRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT p.id, p.title, pm.role
 		   FROM projects p
 		   LEFT JOIN project_memberships pm
-		     ON pm.project_id = p.id AND pm.user_id = ?
+		     ON pm.project_id = p.id AND pm.user_id = $1
 		  WHERE p.id IN (
-		        SELECT project_id FROM project_memberships WHERE user_id = ?
+		        SELECT project_id FROM project_memberships WHERE user_id = $2
 		        UNION
 		        SELECT ca.project_id
 		          FROM compute_allocation_memberships cam
 		          JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-		         WHERE cam.user_id = ? AND cam.membership_status = 'ACTIVE'
+		         WHERE cam.user_id = $3 AND cam.membership_status = 'ACTIVE'
 		  )
 		  ORDER BY p.title`, userID, userID, userID)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *mysqlStore) ProjectsForUser(ctx context.Context, userID string) ([]Proj
 	return rows, nil
 }
 
-func (s *mysqlStore) AllocationsForProjects(ctx context.Context, projectIDs []string, userID string) ([]AllocationRow, error) {
+func (s *pgStore) AllocationsForProjects(ctx context.Context, projectIDs []string, userID string) ([]AllocationRow, error) {
 	if len(projectIDs) == 0 {
 		return nil, nil
 	}
@@ -183,26 +183,26 @@ func (s *mysqlStore) AllocationsForProjects(ctx context.Context, projectIDs []st
 	return rows, nil
 }
 
-func (s *mysqlStore) TotalUsed(ctx context.Context, allocationID string) (float64, error) {
+func (s *pgStore) TotalUsed(ctx context.Context, allocationID string) (float64, error) {
 	var total float64
 	err := s.db.GetContext(ctx, &total,
 		`SELECT COALESCE(SUM(used_su_amount), 0)
 		   FROM compute_allocation_usages
-		  WHERE compute_allocation_id = ?`, allocationID)
+		  WHERE compute_allocation_id = $1`, allocationID)
 	if err != nil {
 		return 0, err
 	}
 	return total, nil
 }
 
-func (s *mysqlStore) DailyUsage(ctx context.Context, allocationID string) ([]DailyRow, error) {
+func (s *pgStore) DailyUsage(ctx context.Context, allocationID string) ([]DailyRow, error) {
 	var rows []DailyRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT DATE(u.calculated_time) AS day,
 		        u.compute_allocation_resource_id AS resource_id,
 		        SUM(u.used_su_amount) AS credits
 		   FROM compute_allocation_usages u
-		  WHERE u.compute_allocation_id = ?
+		  WHERE u.compute_allocation_id = $1
 		  GROUP BY day, resource_id
 		  ORDER BY day`, allocationID)
 	if err != nil {
@@ -211,17 +211,17 @@ func (s *mysqlStore) DailyUsage(ctx context.Context, allocationID string) ([]Dai
 	return rows, nil
 }
 
-func (s *mysqlStore) ResourceUsage(ctx context.Context, allocationID, callerID string) ([]ResourceRow, error) {
+func (s *pgStore) ResourceUsage(ctx context.Context, allocationID, callerID string) ([]ResourceRow, error) {
 	var rows []ResourceRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT r.id, r.name, r.resource_type,
 		        SUM(u.used_su_amount) AS used,
 		        COALESCE(SUM(u.used_raw_amount), 0) AS used_native,
-		        SUM(CASE WHEN u.user_id = ? THEN u.used_su_amount ELSE 0 END) AS used_by_caller
+		        SUM(CASE WHEN u.user_id = $1 THEN u.used_su_amount ELSE 0 END) AS used_by_caller
 		   FROM compute_allocation_usages u
 		   JOIN compute_allocation_resources r
 		     ON r.id = u.compute_allocation_resource_id
-		  WHERE u.compute_allocation_id = ?
+		  WHERE u.compute_allocation_id = $2
 		  GROUP BY r.id, r.name, r.resource_type
 		  ORDER BY r.name`, callerID, allocationID)
 	if err != nil {
@@ -230,7 +230,7 @@ func (s *mysqlStore) ResourceUsage(ctx context.Context, allocationID, callerID s
 	return rows, nil
 }
 
-func (s *mysqlStore) Jobs(ctx context.Context, allocationID string, userID *string, limit, offset int) ([]JobRow, int, error) {
+func (s *pgStore) Jobs(ctx context.Context, allocationID string, userID *string, limit, offset int) ([]JobRow, int, error) {
 	where := "u.compute_allocation_id = ?"
 	args := []any{allocationID}
 	if userID != nil {
@@ -240,13 +240,13 @@ func (s *mysqlStore) Jobs(ctx context.Context, allocationID string, userID *stri
 
 	var total int
 	if err := s.db.GetContext(ctx, &total,
-		"SELECT COUNT(*) FROM compute_allocation_usages u WHERE "+where, args...); err != nil {
+		s.db.Rebind("SELECT COUNT(*) FROM compute_allocation_usages u WHERE "+where), args...); err != nil {
 		return nil, 0, err
 	}
 
 	var rows []JobRow
 	err := s.db.SelectContext(ctx, &rows,
-		`SELECT u.id, u.job_id, u.calculated_time, u.user_id,
+		s.db.Rebind(`SELECT u.id, u.job_id, u.calculated_time, u.user_id,
 		        TRIM(CONCAT(COALESCE(usr.first_name, ''), ' ', COALESCE(usr.last_name, ''))) AS user_name,
 		        u.compute_allocation_resource_id AS resource_id,
 		        COALESCE(r.name, '') AS resource_name,
@@ -258,14 +258,14 @@ func (s *mysqlStore) Jobs(ctx context.Context, allocationID string, userID *stri
 		   LEFT JOIN compute_allocation_resources r ON r.id = u.compute_allocation_resource_id
 		  WHERE `+where+`
 		  ORDER BY u.calculated_time DESC, u.id
-		  LIMIT ? OFFSET ?`, append(args, limit, offset)...)
+		  LIMIT ? OFFSET ?`), append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
 }
 
-func (s *mysqlStore) MemberUsage(ctx context.Context, allocationID string) ([]MemberRow, error) {
+func (s *pgStore) MemberUsage(ctx context.Context, allocationID string) ([]MemberRow, error) {
 	var rows []MemberRow
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT u.user_id,
@@ -273,7 +273,7 @@ func (s *mysqlStore) MemberUsage(ctx context.Context, allocationID string) ([]Me
 		        SUM(u.used_su_amount) AS used
 		   FROM compute_allocation_usages u
 		   JOIN users usr ON usr.id = u.user_id
-		  WHERE u.compute_allocation_id = ?
+		  WHERE u.compute_allocation_id = $1
 		  GROUP BY u.user_id, name
 		  ORDER BY used DESC`, allocationID)
 	if err != nil {
@@ -282,10 +282,10 @@ func (s *mysqlStore) MemberUsage(ctx context.Context, allocationID string) ([]Me
 	return rows, nil
 }
 
-func (s *mysqlStore) ProjectRole(ctx context.Context, projectID, userID string) (string, error) {
+func (s *pgStore) ProjectRole(ctx context.Context, projectID, userID string) (string, error) {
 	var role string
 	err := s.db.GetContext(ctx, &role,
-		`SELECT role FROM project_memberships WHERE project_id = ? AND user_id = ?`,
+		`SELECT role FROM project_memberships WHERE project_id = $1 AND user_id = $2`,
 		projectID, userID)
 	if err == sql.ErrNoRows {
 		return "", nil
@@ -296,12 +296,12 @@ func (s *mysqlStore) ProjectRole(ctx context.Context, projectID, userID string) 
 	return role, nil
 }
 
-func (s *mysqlStore) IsActiveMember(ctx context.Context, allocationID, userID string) (bool, error) {
+func (s *pgStore) IsActiveMember(ctx context.Context, allocationID, userID string) (bool, error) {
 	var exists bool
 	err := s.db.GetContext(ctx, &exists,
 		`SELECT EXISTS(
 		    SELECT 1 FROM compute_allocation_memberships
-		     WHERE compute_allocation_id = ? AND user_id = ?
+		     WHERE compute_allocation_id = $1 AND user_id = $2
 		       AND membership_status = 'ACTIVE')`,
 		allocationID, userID)
 	if err != nil {

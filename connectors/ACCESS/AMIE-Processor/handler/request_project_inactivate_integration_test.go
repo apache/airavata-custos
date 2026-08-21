@@ -170,7 +170,7 @@ func membershipStatus(t *testing.T, database *sqlx.DB, id string) models.Allocat
 	t.Helper()
 	var status string
 	if err := database.Get(&status,
-		"SELECT membership_status FROM compute_allocation_memberships WHERE id = ?", id,
+		"SELECT membership_status FROM compute_allocation_memberships WHERE id = $1", id,
 	); err != nil {
 		t.Fatalf("read membership %s: %v", id, err)
 	}

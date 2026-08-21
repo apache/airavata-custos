@@ -27,20 +27,20 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlUserIdentityStore struct {
+type pgUserIdentityStore struct {
 	db *sqlx.DB
 }
 
-// NewUserIdentityStore returns a MySQL-backed UserIdentityStore.
+// NewUserIdentityStore returns a PostgreSQL-backed UserIdentityStore.
 func NewUserIdentityStore(db *sqlx.DB) UserIdentityStore {
-	return &mysqlUserIdentityStore{db: db}
+	return &pgUserIdentityStore{db: db}
 }
 
 // email, oidc_sub and metadata are nullable; project NULL to "" for the model.
 const userIdentityColumns = `id, user_id, source, external_id, COALESCE(email, '') AS email, COALESCE(oidc_sub, '') AS oidc_sub, COALESCE(metadata, '') AS metadata, created_at`
 
 // nullableString returns nil when s is empty so the column stores SQL NULL
-// rather than "". NULL is the only value MySQL UNIQUE allows to repeat.
+// rather than "". NULL is the only value the UNIQUE index allows to repeat.
 func nullableString(s string) any {
 	if s == "" {
 		return nil
@@ -48,10 +48,10 @@ func nullableString(s string) any {
 	return s
 }
 
-func (s *mysqlUserIdentityStore) FindByID(ctx context.Context, id string) (*models.UserIdentity, error) {
+func (s *pgUserIdentityStore) FindByID(ctx context.Context, id string) (*models.UserIdentity, error) {
 	var e models.UserIdentity
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+userIdentityColumns+` FROM user_identities WHERE id = ?`, id)
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -61,10 +61,10 @@ func (s *mysqlUserIdentityStore) FindByID(ctx context.Context, id string) (*mode
 	return &e, nil
 }
 
-func (s *mysqlUserIdentityStore) FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.UserIdentity, error) {
+func (s *pgUserIdentityStore) FindBySourceAndExternalID(ctx context.Context, source, externalID string) (*models.UserIdentity, error) {
 	var e models.UserIdentity
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+userIdentityColumns+` FROM user_identities WHERE source = ? AND external_id = ?`,
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE source = $1 AND external_id = $2`,
 		source, externalID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -75,13 +75,13 @@ func (s *mysqlUserIdentityStore) FindBySourceAndExternalID(ctx context.Context, 
 	return &e, nil
 }
 
-func (s *mysqlUserIdentityStore) FindByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error) {
+func (s *pgUserIdentityStore) FindByOIDCSub(ctx context.Context, oidcSub string) (*models.UserIdentity, error) {
 	if oidcSub == "" {
 		return nil, nil
 	}
 	var e models.UserIdentity
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+userIdentityColumns+` FROM user_identities WHERE oidc_sub = ?`, oidcSub)
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE oidc_sub = $1`, oidcSub)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -91,10 +91,10 @@ func (s *mysqlUserIdentityStore) FindByOIDCSub(ctx context.Context, oidcSub stri
 	return &e, nil
 }
 
-func (s *mysqlUserIdentityStore) FindByUser(ctx context.Context, userID string) ([]models.UserIdentity, error) {
+func (s *pgUserIdentityStore) FindByUser(ctx context.Context, userID string) ([]models.UserIdentity, error) {
 	var out []models.UserIdentity
 	err := s.db.SelectContext(ctx, &out,
-		`SELECT `+userIdentityColumns+` FROM user_identities WHERE user_id = ? ORDER BY created_at ASC`,
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE user_id = $1 ORDER BY created_at ASC`,
 		userID)
 	if err != nil {
 		return nil, err
@@ -102,10 +102,10 @@ func (s *mysqlUserIdentityStore) FindByUser(ctx context.Context, userID string) 
 	return out, nil
 }
 
-func (s *mysqlUserIdentityStore) FindByUserAndSource(ctx context.Context, userID, source string) (*models.UserIdentity, error) {
+func (s *pgUserIdentityStore) FindByUserAndSource(ctx context.Context, userID, source string) (*models.UserIdentity, error) {
 	var e models.UserIdentity
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+userIdentityColumns+` FROM user_identities WHERE user_id = ? AND source = ? LIMIT 1`, userID, source)
+		`SELECT `+userIdentityColumns+` FROM user_identities WHERE user_id = $1 AND source = $2 LIMIT 1`, userID, source)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -115,31 +115,31 @@ func (s *mysqlUserIdentityStore) FindByUserAndSource(ctx context.Context, userID
 	return &e, nil
 }
 
-func (s *mysqlUserIdentityStore) Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error {
+func (s *pgUserIdentityStore) Create(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO user_identities (id, user_id, source, external_id, email, oidc_sub, metadata)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		e.ID, e.UserID, e.Source, e.ExternalID, nullableString(e.Email), nullableString(e.OIDCSub), nullableString(e.Metadata))
 	return err
 }
 
-func (s *mysqlUserIdentityStore) Update(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error {
+func (s *pgUserIdentityStore) Update(ctx context.Context, tx *sql.Tx, e *models.UserIdentity) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE user_identities
-		    SET user_id = ?, source = ?, external_id = ?, email = ?, oidc_sub = ?, metadata = ?
-		  WHERE id = ?`,
+		    SET user_id = $1, source = $2, external_id = $3, email = $4, oidc_sub = $5, metadata = $6
+		  WHERE id = $7`,
 		e.UserID, e.Source, e.ExternalID, nullableString(e.Email), nullableString(e.OIDCSub), nullableString(e.Metadata), e.ID)
 	return err
 }
 
-func (s *mysqlUserIdentityStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+func (s *pgUserIdentityStore) ReassignUser(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE user_identities SET user_id = ? WHERE user_id = ?`,
+		`UPDATE user_identities SET user_id = $1 WHERE user_id = $2`,
 		toUserID, fromUserID)
 	return err
 }
 
-func (s *mysqlUserIdentityStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM user_identities WHERE id = ?`, id)
+func (s *pgUserIdentityStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM user_identities WHERE id = $1`, id)
 	return err
 }

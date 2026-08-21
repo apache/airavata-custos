@@ -22,6 +22,7 @@ package worker
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -88,23 +89,16 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 // core domain tables.
 func truncateAMIETables(t *testing.T, database *sqlx.DB) {
 	t.Helper()
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		t.Fatalf("disable FK: %v", err)
-	}
-	for _, tbl := range []string{
+	tables := []string{
 		"amie_audit_extras",
 		"audit_events",
 		"amie_processing_errors",
 		"amie_processing_events",
 		"amie_packets",
 		"amie_user_dns",
-	} {
-		if _, err := database.Exec("TRUNCATE TABLE " + tbl); err != nil {
-			t.Fatalf("truncate %s: %v", tbl, err)
-		}
 	}
-	if _, err := database.Exec("SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		t.Fatalf("re-enable FK: %v", err)
+	if _, err := database.Exec("TRUNCATE TABLE " + strings.Join(tables, ", ") + " CASCADE"); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 }
 

@@ -18,3 +18,4 @@
 DROP TABLE IF EXISTS user_identities;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
+DROP FUNCTION IF EXISTS set_updated_at();

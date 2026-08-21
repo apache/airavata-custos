@@ -25,7 +25,7 @@ import (
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/mysql"
+	pgxmigrate "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 )
@@ -34,7 +34,7 @@ import (
 // migrations/ directory against the supplied database.
 // Returns nil when there is nothing to apply.
 func MigrateEmbedded(database *sqlx.DB) error {
-	driver, err := mysql.WithInstance(database.DB, &mysql.Config{})
+	driver, err := pgxmigrate.WithInstance(database.DB, &pgxmigrate.Config{})
 	if err != nil {
 		return fmt.Errorf("create migration driver: %w", err)
 	}
@@ -44,7 +44,7 @@ func MigrateEmbedded(database *sqlx.DB) error {
 		return fmt.Errorf("create migration source: %w", err)
 	}
 
-	m, err := migrate.NewWithInstance("iofs", source, "mysql", driver)
+	m, err := migrate.NewWithInstance("iofs", source, "pgx", driver)
 	if err != nil {
 		return fmt.Errorf("create migrator: %w", err)
 	}
@@ -78,7 +78,7 @@ func MigrateConnectorFS(database *sqlx.DB, src fs.FS, dir, name string) error {
 		return fmt.Errorf("connector name %q is invalid; must match %s", name, connectorNamePattern)
 	}
 
-	driver, err := mysql.WithInstance(database.DB, &mysql.Config{
+	driver, err := pgxmigrate.WithInstance(database.DB, &pgxmigrate.Config{
 		MigrationsTable: "schema_migrations_" + name,
 	})
 	if err != nil {
@@ -90,7 +90,7 @@ func MigrateConnectorFS(database *sqlx.DB, src fs.FS, dir, name string) error {
 		return fmt.Errorf("create migration source for %s: %w", name, err)
 	}
 
-	m, err := migrate.NewWithInstance("iofs", source, "mysql", driver)
+	m, err := migrate.NewWithInstance("iofs", source, "pgx", driver)
 	if err != nil {
 		return fmt.Errorf("create migrator for %s: %w", name, err)
 	}

@@ -1446,7 +1446,7 @@ A minimal `config/custos.yaml`:
 ```yaml
 core:
   database:
-    url: "custos:secret@tcp(127.0.0.1:3306)/custos?parseTime=true&charset=utf8mb4"
+    url: "postgres://custos:secret@127.0.0.1:5432/custos?sslmode=disable"
   api:
     port: 8080
   log_level: "info"
@@ -1459,7 +1459,7 @@ Secrets can stay out of the file via `${VAR}` substitution — e.g.
 
 | Setting | Source | Default | Purpose |
 |---------|--------|---------|---------|
-| `core.database.url` | YAML | *(required)* | MariaDB / MySQL DSN. `parseTime=true` is mandatory. |
+| `core.database.url` | YAML | *(required)* | PostgreSQL DSN. |
 | `core.api.port` | YAML | `8080` | HTTP API port. |
 | `core.log_level` | YAML | `info` | One of `debug`, `info`, `warn`, `error`. |
 | `DB_MAX_OPEN_CONNS` | env | `25` | Maximum open database connections. |

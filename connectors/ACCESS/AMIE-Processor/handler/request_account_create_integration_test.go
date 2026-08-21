@@ -154,7 +154,7 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		`SELECT u.id, u.first_name, u.last_name, u.email, u.status
 		   FROM users u
 		   JOIN user_identities ui ON ui.user_id = u.id
-		  WHERE ui.source = ? AND ui.external_id = ?`,
+		  WHERE ui.source = $1 AND ui.external_id = $2`,
 		"access", "bl-user-001",
 	); err != nil {
 		t.Fatalf("read account user: %v", err)
@@ -177,7 +177,7 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		LocalUsername    string `db:"local_username"`
 	}
 	if err := database.Get(&cu,
-		"SELECT user_id, compute_cluster_id, local_username FROM compute_cluster_users WHERE user_id = ?",
+		"SELECT user_id, compute_cluster_id, local_username FROM compute_cluster_users WHERE user_id = $1",
 		user.ID,
 	); err != nil {
 		t.Fatalf("read compute_cluster_user: %v", err)
@@ -196,14 +196,14 @@ func TestRequestAccountCreate_HappyPath(t *testing.T) {
 		ComputeAllocationID string `db:"compute_allocation_id"`
 	}
 	if err := database.Get(&mem,
-		"SELECT user_id, compute_allocation_id FROM compute_allocation_memberships WHERE user_id = ?",
+		"SELECT user_id, compute_allocation_id FROM compute_allocation_memberships WHERE user_id = $1",
 		user.ID,
 	); err != nil {
 		t.Fatalf("read membership: %v", err)
 	}
 	var allocID string
 	if err := database.Get(&allocID,
-		"SELECT id FROM compute_allocations WHERE project_id = ? LIMIT 1", projectID,
+		"SELECT id FROM compute_allocations WHERE project_id = $1 LIMIT 1", projectID,
 	); err != nil {
 		t.Fatalf("read allocation id: %v", err)
 	}

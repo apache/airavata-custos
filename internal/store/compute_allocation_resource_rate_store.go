@@ -30,21 +30,21 @@ import (
 
 const computeAllocationResourceRateColumns = "id, compute_allocation_resource_id, rate, start_time, end_time"
 
-type mysqlComputeAllocationResourceRateStore struct {
+type pgComputeAllocationResourceRateStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationResourceRateStore returns a MySQL-backed
+// NewComputeAllocationResourceRateStore returns a PostgreSQL-backed
 // ComputeAllocationResourceRateStore.
 func NewComputeAllocationResourceRateStore(db *sqlx.DB) ComputeAllocationResourceRateStore {
-	return &mysqlComputeAllocationResourceRateStore{db: db}
+	return &pgComputeAllocationResourceRateStore{db: db}
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceRate, error) {
+func (s *pgComputeAllocationResourceRateStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocationResourceRate, error) {
 	var r models.ComputeAllocationResourceRate
 	err := s.db.GetContext(ctx, &r,
 		`SELECT `+computeAllocationResourceRateColumns+`
-		 FROM compute_allocation_resource_rates WHERE id = ?`, id)
+		 FROM compute_allocation_resource_rates WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -54,12 +54,12 @@ func (s *mysqlComputeAllocationResourceRateStore) FindByID(ctx context.Context, 
 	return &r, nil
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) FindByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error) {
+func (s *pgComputeAllocationResourceRateStore) FindByResource(ctx context.Context, resourceID string) ([]models.ComputeAllocationResourceRate, error) {
 	var rates []models.ComputeAllocationResourceRate
 	err := s.db.SelectContext(ctx, &rates,
 		`SELECT `+computeAllocationResourceRateColumns+`
 		 FROM compute_allocation_resource_rates
-		 WHERE compute_allocation_resource_id = ?
+		 WHERE compute_allocation_resource_id = $1
 		 ORDER BY start_time`, resourceID)
 	if err != nil {
 		return nil, err
@@ -67,14 +67,14 @@ func (s *mysqlComputeAllocationResourceRateStore) FindByResource(ctx context.Con
 	return rates, nil
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) FindEffective(ctx context.Context, resourceID string, at time.Time) (*models.ComputeAllocationResourceRate, error) {
+func (s *pgComputeAllocationResourceRateStore) FindEffective(ctx context.Context, resourceID string, at time.Time) (*models.ComputeAllocationResourceRate, error) {
 	var r models.ComputeAllocationResourceRate
 	err := s.db.GetContext(ctx, &r,
 		`SELECT `+computeAllocationResourceRateColumns+`
 		 FROM compute_allocation_resource_rates
-		 WHERE compute_allocation_resource_id = ?
-		   AND start_time <= ?
-		   AND end_time   >  ?
+		 WHERE compute_allocation_resource_id = $1
+		   AND start_time <= $2
+		   AND end_time   >  $3
 		 ORDER BY start_time DESC
 		 LIMIT 1`, resourceID, at, at)
 	if err != nil {
@@ -86,25 +86,25 @@ func (s *mysqlComputeAllocationResourceRateStore) FindEffective(ctx context.Cont
 	return &r, nil
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error {
+func (s *pgComputeAllocationResourceRateStore) Create(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocation_resource_rates
 		     (id, compute_allocation_resource_id, rate, start_time, end_time)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		r.ID, r.ComputeAllocationResourceID, r.Rate, r.StartTime, r.EndTime)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error {
+func (s *pgComputeAllocationResourceRateStore) Update(ctx context.Context, tx *sql.Tx, r *models.ComputeAllocationResourceRate) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocation_resource_rates
-		 SET rate = ?, start_time = ?, end_time = ?
-		 WHERE id = ?`,
+		 SET rate = $1, start_time = $2, end_time = $3
+		 WHERE id = $4`,
 		r.Rate, r.StartTime, r.EndTime, r.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationResourceRateStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_resource_rates WHERE id = ?`, id)
+func (s *pgComputeAllocationResourceRateStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocation_resource_rates WHERE id = $1`, id)
 	return err
 }

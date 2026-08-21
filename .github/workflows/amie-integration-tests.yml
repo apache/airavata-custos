@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "--- mock-amie logs ---"
           docker logs custos_amie_test_mock 2>&1 || true
-          echo "--- mariadb logs ---"
+          echo "--- postgres logs ---"
           docker logs custos_amie_test_db 2>&1 || true
 
       - name: Tear down stack

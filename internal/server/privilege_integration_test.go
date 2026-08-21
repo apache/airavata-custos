@@ -124,19 +124,19 @@ func TestGetCallerProfile_IncludesOwnRoles(t *testing.T) {
 	database, _, srv := setupTestStack(t)
 	user := seedUser(t, database, "roleholder@example.edu")
 	if _, err := database.Exec(
-		"INSERT INTO roles (id, name, description, is_system) VALUES (?, ?, ?, ?)",
+		"INSERT INTO roles (id, name, description, is_system) VALUES ($1, $2, $3, $4)",
 		"role-me-test", "Reviewer", "Reads reports", false,
 	); err != nil {
 		t.Fatalf("seed role: %v", err)
 	}
 	if _, err := database.Exec(
-		"INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
+		"INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)",
 		user, "role-me-test",
 	); err != nil {
 		t.Fatalf("seed grant: %v", err)
 	}
 	if _, err := database.Exec(
-		"INSERT INTO role_privileges (role_id, privilege) VALUES (?, ?)",
+		"INSERT INTO role_privileges (role_id, privilege) VALUES ($1, $2)",
 		"role-me-test", "core:traces:read",
 	); err != nil {
 		t.Fatalf("seed role privilege: %v", err)

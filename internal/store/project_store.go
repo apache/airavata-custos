@@ -28,13 +28,13 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlProjectStore struct {
+type pgProjectStore struct {
 	db *sqlx.DB
 }
 
-// NewProjectStore returns a MySQL-backed ProjectStore.
+// NewProjectStore returns a PostgreSQL-backed ProjectStore.
 func NewProjectStore(db *sqlx.DB) ProjectStore {
-	return &mysqlProjectStore{db: db}
+	return &pgProjectStore{db: db}
 }
 
 const projectColumns = `id, originated_id, title, origination, project_pi_id, status, created_time`
@@ -61,9 +61,9 @@ const projectWithPISelect = `SELECT p.id, p.originated_id, p.title, p.originatio
 
 // FindByIDWithPI returns the project joined with its PI's display fields, or
 // nil if no project matches.
-func (s *mysqlProjectStore) FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error) {
+func (s *pgProjectStore) FindByIDWithPI(ctx context.Context, id string) (*ProjectWithPI, error) {
 	var p ProjectWithPI
-	err := s.db.GetContext(ctx, &p, projectWithPISelect+` WHERE p.id = ?`, id)
+	err := s.db.GetContext(ctx, &p, projectWithPISelect+` WHERE p.id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -73,10 +73,10 @@ func (s *mysqlProjectStore) FindByIDWithPI(ctx context.Context, id string) (*Pro
 	return &p, nil
 }
 
-func (s *mysqlProjectStore) FindByID(ctx context.Context, id string) (*models.Project, error) {
+func (s *pgProjectStore) FindByID(ctx context.Context, id string) (*models.Project, error) {
 	var p models.Project
 	err := s.db.GetContext(ctx, &p,
-		`SELECT `+projectColumns+` FROM projects WHERE id = ?`, id)
+		`SELECT `+projectColumns+` FROM projects WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -86,10 +86,10 @@ func (s *mysqlProjectStore) FindByID(ctx context.Context, id string) (*models.Pr
 	return &p, nil
 }
 
-func (s *mysqlProjectStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error) {
+func (s *pgProjectStore) FindByOriginatedID(ctx context.Context, originatedID string) (*models.Project, error) {
 	var p models.Project
 	err := s.db.GetContext(ctx, &p,
-		`SELECT `+projectColumns+` FROM projects WHERE originated_id = ?`, originatedID)
+		`SELECT `+projectColumns+` FROM projects WHERE originated_id = $1`, originatedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -99,52 +99,52 @@ func (s *mysqlProjectStore) FindByOriginatedID(ctx context.Context, originatedID
 	return &p, nil
 }
 
-func (s *mysqlProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
+func (s *pgProjectStore) FindByPI(ctx context.Context, piUserID string) ([]models.Project, error) {
 	var projects []models.Project
 	err := s.db.SelectContext(ctx, &projects,
-		`SELECT `+projectColumns+` FROM projects WHERE project_pi_id = ?`, piUserID)
+		`SELECT `+projectColumns+` FROM projects WHERE project_pi_id = $1`, piUserID)
 	if err != nil {
 		return nil, err
 	}
 	return projects, nil
 }
 
-func (s *mysqlProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
+func (s *pgProjectStore) Create(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO projects (id, originated_id, title, origination, project_pi_id, status, created_time)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		p.ID, p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.Status, p.CreatedTime)
 	return err
 }
 
-func (s *mysqlProjectStore) Update(ctx context.Context, tx *sql.Tx, p *models.Project) error {
+func (s *pgProjectStore) Update(ctx context.Context, tx *sql.Tx, p *models.Project) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE projects SET originated_id = ?, title = ?, origination = ?, project_pi_id = ?, status = ?
-		 WHERE id = ?`,
+		`UPDATE projects SET originated_id = $1, title = $2, origination = $3, project_pi_id = $4, status = $5
+		 WHERE id = $6`,
 		p.OriginatedID, p.Title, p.Origination, p.ProjectPIID, p.Status, p.ID)
 	return err
 }
 
-func (s *mysqlProjectStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) error {
+func (s *pgProjectStore) UpdateStatus(ctx context.Context, tx *sql.Tx, id string, status models.ProjectStatus) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE projects SET status = ? WHERE id = ?`,
+		`UPDATE projects SET status = $1 WHERE id = $2`,
 		status, id)
 	return err
 }
 
-func (s *mysqlProjectStore) ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
+func (s *pgProjectStore) ReassignPI(ctx context.Context, tx *sql.Tx, fromUserID, toUserID string) error {
 	_, err := tx.ExecContext(ctx,
-		`UPDATE projects SET project_pi_id = ? WHERE project_pi_id = ?`,
+		`UPDATE projects SET project_pi_id = $1 WHERE project_pi_id = $2`,
 		toUserID, fromUserID)
 	return err
 }
 
-func (s *mysqlProjectStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM projects WHERE id = ?`, id)
+func (s *pgProjectStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM projects WHERE id = $1`, id)
 	return err
 }
 
-func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error) {
+func (s *pgProjectStore) List(ctx context.Context, f ProjectListFilter) ([]models.Project, int, error) {
 	where := []string{}
 	args := []any{}
 	if f.PIID != "" {
@@ -156,7 +156,7 @@ func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]mo
 		args = append(args, f.Status)
 	}
 	if f.Query != "" {
-		where = append(where, `(title LIKE ? OR originated_id LIKE ?)`)
+		where = append(where, `(title ILIKE ? OR originated_id ILIKE ?)`)
 		q := "%" + f.Query + "%"
 		args = append(args, q, q)
 	}
@@ -165,7 +165,7 @@ func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]mo
 		clause = " WHERE " + strings.Join(where, " AND ")
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM projects`+clause, args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects`+clause), args...); err != nil {
 		return nil, 0, err
 	}
 	limit := f.Limit
@@ -183,7 +183,7 @@ func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]mo
 		` ORDER BY created_time DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
 	var rows []models.Project
-	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
@@ -192,14 +192,14 @@ func (s *mysqlProjectStore) List(ctx context.Context, f ProjectListFilter) ([]mo
 // ListWithPIForParticipant returns the projects where the user holds a
 // project membership or an active allocation membership, with the PI joined,
 // newest first.
-func (s *mysqlProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
+func (s *pgProjectStore) ListWithPIForParticipant(ctx context.Context, userID string) ([]ProjectWithPI, error) {
 	var rows []ProjectWithPI
 	err := s.db.SelectContext(ctx, &rows, projectWithPISelect+`
 	  WHERE EXISTS (SELECT 1 FROM project_memberships pm
-	                 WHERE pm.project_id = p.id AND pm.user_id = ?)
+	                 WHERE pm.project_id = p.id AND pm.user_id = $1)
 	     OR EXISTS (SELECT 1 FROM compute_allocation_memberships cam
 	                  JOIN compute_allocations ca ON ca.id = cam.compute_allocation_id
-	                 WHERE ca.project_id = p.id AND cam.user_id = ?
+	                 WHERE ca.project_id = p.id AND cam.user_id = $2
 	                   AND cam.membership_status = 'ACTIVE')
 	  ORDER BY p.created_time DESC`, userID, userID)
 	if err != nil {
@@ -210,7 +210,7 @@ func (s *mysqlProjectStore) ListWithPIForParticipant(ctx context.Context, userID
 
 // ListWithPI is List joined with the PI user. Replaces per-row GetUser calls
 // the handler used to fan out across the result set.
-func (s *mysqlProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error) {
+func (s *pgProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter) ([]ProjectWithPI, int, error) {
 	where := []string{}
 	args := []any{}
 	if f.PIID != "" {
@@ -222,7 +222,7 @@ func (s *mysqlProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter)
 		args = append(args, f.Status)
 	}
 	if f.Query != "" {
-		where = append(where, `(p.title LIKE ? OR p.originated_id LIKE ?)`)
+		where = append(where, `(p.title ILIKE ? OR p.originated_id ILIKE ?)`)
 		q := "%" + f.Query + "%"
 		args = append(args, q, q)
 	}
@@ -231,7 +231,7 @@ func (s *mysqlProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter)
 		clause = " WHERE " + strings.Join(where, " AND ")
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM projects p`+clause, args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM projects p`+clause), args...); err != nil {
 		return nil, 0, err
 	}
 	limit := f.Limit
@@ -248,7 +248,7 @@ func (s *mysqlProjectStore) ListWithPI(ctx context.Context, f ProjectListFilter)
 	query := projectWithPISelect + clause + ` ORDER BY p.created_time DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
 	var rows []ProjectWithPI
-	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil

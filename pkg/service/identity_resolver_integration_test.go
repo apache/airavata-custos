@@ -34,7 +34,7 @@ func seedPendingUserWithEmail(t *testing.T, database *sqlx.DB, email string) str
 	orgID := seedOrg(t, database)
 	userID := uuid.NewString()
 	if _, err := database.Exec(
-		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO users (id, organization_id, first_name, last_name, middle_name, email, status, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		userID, orgID, "Test", "Pending", "", email, string(models.UserPending), string(models.UserTypeClusterLocal),
 	); err != nil {
 		t.Fatalf("seed pending user %s: %v", email, err)
@@ -45,7 +45,7 @@ func seedPendingUserWithEmail(t *testing.T, database *sqlx.DB, email string) str
 func seedAMIEIdentity(t *testing.T, database *sqlx.DB, userID, email string) {
 	t.Helper()
 	if _, err := database.Exec(
-		"INSERT INTO user_identities (id, user_id, source, external_id, email) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO user_identities (id, user_id, source, external_id, email) VALUES ($1, $2, $3, $4, $5)",
 		uuid.NewString(), userID, "amie", "amie-"+userID[:8], email,
 	); err != nil {
 		t.Fatalf("seed AMIE identity: %v", err)
@@ -55,7 +55,7 @@ func seedAMIEIdentity(t *testing.T, database *sqlx.DB, userID, email string) {
 func seedOIDCIdentity(t *testing.T, database *sqlx.DB, userID, sub, email string) {
 	t.Helper()
 	if _, err := database.Exec(
-		"INSERT INTO user_identities (id, user_id, source, external_id, email, oidc_sub) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO user_identities (id, user_id, source, external_id, email, oidc_sub) VALUES ($1, $2, $3, $4, $5, $6)",
 		uuid.NewString(), userID, "oidc", sub, email, sub,
 	); err != nil {
 		t.Fatalf("seed OIDC identity: %v", err)
@@ -104,7 +104,7 @@ func TestResolveCaller_EmailFallback_HappyPath_LinksAndActivates(t *testing.T) {
 	}
 	// User should now be ACTIVE.
 	var status string
-	if err := database.Get(&status, "SELECT status FROM users WHERE id = ?", user); err != nil {
+	if err := database.Get(&status, "SELECT status FROM users WHERE id = $1", user); err != nil {
 		t.Fatalf("read status: %v", err)
 	}
 	if status != string(models.UserActive) {
@@ -117,7 +117,7 @@ func TestResolveCaller_EmailFallback_HappyPath_LinksAndActivates(t *testing.T) {
 	// oidc_sub binding now in place.
 	var sub string
 	if err := database.Get(&sub,
-		"SELECT oidc_sub FROM user_identities WHERE user_id = ? AND source = 'oidc'", user,
+		"SELECT oidc_sub FROM user_identities WHERE user_id = $1 AND source = 'oidc'", user,
 	); err != nil {
 		t.Fatalf("read binding: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestResolveCaller_EmailFallback_LinksAMIEProvisioned(t *testing.T) {
 	}
 	// Both identities now coexist for this user: amie + oidc.
 	var count int
-	if err := database.Get(&count, "SELECT COUNT(*) FROM user_identities WHERE user_id = ?", user); err != nil {
+	if err := database.Get(&count, "SELECT COUNT(*) FROM user_identities WHERE user_id = $1", user); err != nil {
 		t.Fatalf("count identities: %v", err)
 	}
 	if count != 2 {
@@ -228,7 +228,7 @@ func TestBootstrapSuperAdmin_CreatesPendingUserWhenMissing(t *testing.T) {
 		userID, status, userType, orgID string
 	)
 	if err := database.QueryRow(
-		"SELECT id, status, type, organization_id FROM users WHERE email = ?", email,
+		"SELECT id, status, type, organization_id FROM users WHERE email = $1", email,
 	).Scan(&userID, &status, &userType, &orgID); err != nil {
 		t.Fatalf("read user: %v", err)
 	}

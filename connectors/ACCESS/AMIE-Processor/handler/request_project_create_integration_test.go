@@ -206,7 +206,7 @@ func TestRequestProjectCreate_HappyPath(t *testing.T) {
 		LocalUsername string `db:"local_username"`
 	}
 	if err := database.Get(&piCU,
-		"SELECT local_username FROM compute_cluster_users WHERE user_id = ? AND compute_cluster_id = ?",
+		"SELECT local_username FROM compute_cluster_users WHERE user_id = $1 AND compute_cluster_id = $2",
 		user.ID, testClusterID,
 	); err != nil {
 		t.Fatalf("read PI compute_cluster_user: %v", err)

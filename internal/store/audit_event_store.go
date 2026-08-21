@@ -29,19 +29,19 @@ import (
 
 const auditEventColumns = "id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id"
 
-type mysqlAuditEventStore struct {
+type pgAuditEventStore struct {
 	db *sqlx.DB
 }
 
-// NewAuditEventStore returns a MySQL-backed AuditEventStore.
+// NewAuditEventStore returns a PostgreSQL-backed AuditEventStore.
 func NewAuditEventStore(db *sqlx.DB) AuditEventStore {
-	return &mysqlAuditEventStore{db: db}
+	return &pgAuditEventStore{db: db}
 }
 
-func (s *mysqlAuditEventStore) FindByID(ctx context.Context, id string) (*models.AuditEvent, error) {
+func (s *pgAuditEventStore) FindByID(ctx context.Context, id string) (*models.AuditEvent, error) {
 	var e models.AuditEvent
 	err := s.db.GetContext(ctx, &e,
-		`SELECT `+auditEventColumns+` FROM audit_events WHERE id = ?`, id)
+		`SELECT `+auditEventColumns+` FROM audit_events WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -51,12 +51,12 @@ func (s *mysqlAuditEventStore) FindByID(ctx context.Context, id string) (*models
 	return &e, nil
 }
 
-func (s *mysqlAuditEventStore) FindByEntity(ctx context.Context, entityID string) ([]models.AuditEvent, error) {
+func (s *pgAuditEventStore) FindByEntity(ctx context.Context, entityID string) ([]models.AuditEvent, error) {
 	var rows []models.AuditEvent
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+auditEventColumns+`
 		 FROM audit_events
-		 WHERE entity_id = ?
+		 WHERE entity_id = $1
 		 ORDER BY event_time`, entityID)
 	if err != nil {
 		return nil, err
@@ -64,12 +64,12 @@ func (s *mysqlAuditEventStore) FindByEntity(ctx context.Context, entityID string
 	return rows, nil
 }
 
-func (s *mysqlAuditEventStore) FindByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error) {
+func (s *pgAuditEventStore) FindByEventType(ctx context.Context, eventType string) ([]models.AuditEvent, error) {
 	var rows []models.AuditEvent
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+auditEventColumns+`
 		 FROM audit_events
-		 WHERE event_type = ?
+		 WHERE event_type = $1
 		 ORDER BY event_time`, eventType)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (s *mysqlAuditEventStore) FindByEventType(ctx context.Context, eventType st
 	return rows, nil
 }
 
-func (s *mysqlAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEvent, error) {
+func (s *pgAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEvent, error) {
 	var rows []*models.AuditEvent
 	err := s.db.SelectContext(ctx, &rows,
 		`SELECT `+auditEventColumns+`
@@ -89,15 +89,15 @@ func (s *mysqlAuditEventStore) ListAll(ctx context.Context) ([]*models.AuditEven
 	return rows, nil
 }
 
-func (s *mysqlAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
+func (s *pgAuditEventStore) Create(ctx context.Context, tx *sql.Tx, e *models.AuditEvent) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO audit_events (id, event_type, event_time, entity_id, entity_type, details, source, trace_id, span_id, parent_span_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		e.ID, e.EventType, e.EventTime, e.EntityID, e.EntityType, e.Details, e.Source, e.TraceID, e.SpanID, e.ParentSpanID)
 	return err
 }
 
-func (s *mysqlAuditEventStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM audit_events WHERE id = ?`, id)
+func (s *pgAuditEventStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM audit_events WHERE id = $1`, id)
 	return err
 }

@@ -15,9 +15,6 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-SET NAMES utf8mb4;
-SET time_zone = '+00:00';
-
 CREATE TABLE IF NOT EXISTS projects
 (
     id            VARCHAR(255) NOT NULL,
@@ -26,13 +23,13 @@ CREATE TABLE IF NOT EXISTS projects
     origination   VARCHAR(255) NOT NULL,
     project_pi_id VARCHAR(255) NOT NULL,
     status        VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
-    created_time  TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    created_time  TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
-    KEY idx_projects_originated_id (originated_id),
-    KEY idx_projects_pi (project_pi_id),
-    KEY idx_projects_status (status),
     CONSTRAINT fk_projects_pi FOREIGN KEY (project_pi_id) REFERENCES users (id) ON DELETE RESTRICT
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+);
+CREATE INDEX IF NOT EXISTS idx_projects_originated_id ON projects (originated_id);
+CREATE INDEX IF NOT EXISTS idx_projects_pi ON projects (project_pi_id);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects (status);
 
 -- Project-level governance roles (PI / CO_PI / ALLOCATION_MANAGER). MEMBER
 -- status is derived from compute_allocation_memberships, so it is not stored
@@ -42,10 +39,10 @@ CREATE TABLE IF NOT EXISTS project_memberships
     project_id VARCHAR(255) NOT NULL,
     user_id    VARCHAR(255) NOT NULL,
     role       VARCHAR(32)  NOT NULL,
-    added_time TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    added_time TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (project_id, user_id),
-    KEY idx_project_memberships_role (role),
     CONSTRAINT fk_project_memberships_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
     CONSTRAINT fk_project_memberships_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT chk_project_memberships_role CHECK (role IN ('PI', 'CO_PI', 'ALLOCATION_MANAGER'))
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+);
+CREATE INDEX IF NOT EXISTS idx_project_memberships_role ON project_memberships (role);

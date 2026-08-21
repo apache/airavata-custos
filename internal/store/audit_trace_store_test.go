@@ -110,8 +110,8 @@ func TestBuildTraceWhereTimeAndQ(t *testing.T) {
 	if !strings.Contains(w, "u.created_at >= ?") || !strings.Contains(w, "u.created_at <= ?") {
 		t.Errorf("where missing time clauses: %q", w)
 	}
-	if !strings.Contains(w, "u.trace_id LIKE ?") {
-		t.Errorf("where missing trace_id LIKE: %q", w)
+	if !strings.Contains(w, "u.trace_id ILIKE ?") {
+		t.Errorf("where missing trace_id ILIKE: %q", w)
 	}
 	// 2 timestamps + 2 LIKE values
 	if len(args) != 4 {

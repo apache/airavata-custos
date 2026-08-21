@@ -31,12 +31,12 @@ the repo the workflow validates:
 Current workflows:
 
 - `core-verify.yml` — formatting, build, vet, unit tests for all Go packages,
-  and the `./internal/...` integration suite against a MariaDB service
+  and the `./internal/...` integration suite against a PostgreSQL service
   container. Runs on Go changes.
 - `web-verify.yml` — frozen-lockfile install, typecheck, lint, unit tests,
   and a production build. Runs on `web/` changes.
 - `amie-integration-tests.yml` — the AMIE integration suite with its own
-  compose stack (mock AMIE server + MariaDB). Runs on connector changes.
+  compose stack (mock AMIE server + PostgreSQL). Runs on connector changes.
   Not duplicated by `core-verify.yml`.
 
 When adding a workflow, keep the area prefix, add path filters so unrelated

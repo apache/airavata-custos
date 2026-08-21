@@ -28,21 +28,21 @@ import (
 	"github.com/apache/airavata-custos/pkg/models"
 )
 
-type mysqlComputeAllocationStore struct {
+type pgComputeAllocationStore struct {
 	db *sqlx.DB
 }
 
-// NewComputeAllocationStore returns a MySQL-backed ComputeAllocationStore.
+// NewComputeAllocationStore returns a PostgreSQL-backed ComputeAllocationStore.
 func NewComputeAllocationStore(db *sqlx.DB) ComputeAllocationStore {
-	return &mysqlComputeAllocationStore{db: db}
+	return &pgComputeAllocationStore{db: db}
 }
 
 const computeAllocationColumns = `id, project_id, name, status, compute_cluster_id, initial_su_amount, start_time, end_time`
 
-func (s *mysqlComputeAllocationStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByID(ctx context.Context, id string) (*models.ComputeAllocation, error) {
 	var a models.ComputeAllocation
 	err := s.db.GetContext(ctx, &a,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = ?`, id)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE id = $1`, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -52,54 +52,54 @@ func (s *mysqlComputeAllocationStore) FindByID(ctx context.Context, id string) (
 	return &a, nil
 }
 
-func (s *mysqlComputeAllocationStore) FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByProject(ctx context.Context, projectID string) ([]models.ComputeAllocation, error) {
 	var allocs []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &allocs,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE project_id = ?`, projectID)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE project_id = $1`, projectID)
 	if err != nil {
 		return nil, err
 	}
 	return allocs, nil
 }
 
-func (s *mysqlComputeAllocationStore) FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByCluster(ctx context.Context, clusterID string) ([]models.ComputeAllocation, error) {
 	var allocs []models.ComputeAllocation
 	err := s.db.SelectContext(ctx, &allocs,
-		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE compute_cluster_id = ?`, clusterID)
+		`SELECT `+computeAllocationColumns+` FROM compute_allocations WHERE compute_cluster_id = $1`, clusterID)
 	if err != nil {
 		return nil, err
 	}
 	return allocs, nil
 }
 
-func (s *mysqlComputeAllocationStore) Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
+func (s *pgComputeAllocationStore) Create(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
 	_, err := tx.ExecContext(ctx,
 		`INSERT INTO compute_allocations (`+computeAllocationColumns+`)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		a.ID, a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID, a.InitialSUAmount, a.StartTime, a.EndTime)
 	return err
 }
 
-func (s *mysqlComputeAllocationStore) Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
+func (s *pgComputeAllocationStore) Update(ctx context.Context, tx *sql.Tx, a *models.ComputeAllocation) error {
 	_, err := tx.ExecContext(ctx,
 		`UPDATE compute_allocations
-		 SET project_id = ?, name = ?, status = ?, compute_cluster_id = ?,
-		     initial_su_amount = ?, start_time = ?, end_time = ?
-		 WHERE id = ?`,
+		 SET project_id = $1, name = $2, status = $3, compute_cluster_id = $4,
+		     initial_su_amount = $5, start_time = $6, end_time = $7
+		 WHERE id = $8`,
 		a.ProjectID, a.Name, string(a.Status), a.ComputeClusterID,
 		a.InitialSUAmount, a.StartTime, a.EndTime, a.ID)
 	return err
 }
 
-func (s *mysqlComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
-	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocations WHERE id = ?`, id)
+func (s *pgComputeAllocationStore) Delete(ctx context.Context, tx *sql.Tx, id string) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM compute_allocations WHERE id = $1`, id)
 	return err
 }
 
 // FindByParticipant returns the allocations where the user holds an active
 // membership, or a governance role on the parent project. Ordered like List
 // (start_time descending).
-func (s *mysqlComputeAllocationStore) FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
+func (s *pgComputeAllocationStore) FindByParticipant(ctx context.Context, userID string) ([]models.ComputeAllocation, error) {
 	var rows []models.ComputeAllocation
 	query, args, err := sqlx.In(
 		`SELECT `+computeAllocationColumns+` FROM compute_allocations a
@@ -120,7 +120,7 @@ func (s *mysqlComputeAllocationStore) FindByParticipant(ctx context.Context, use
 	return rows, nil
 }
 
-func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {
+func (s *pgComputeAllocationStore) List(ctx context.Context, f AllocationListFilter) ([]models.ComputeAllocation, int, error) {
 	where := []string{}
 	args := []any{}
 	if f.ProjectID != "" {
@@ -132,7 +132,7 @@ func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationList
 		args = append(args, f.Status)
 	}
 	if f.Query != "" {
-		where = append(where, `name LIKE ?`)
+		where = append(where, `name ILIKE ?`)
 		args = append(args, "%"+f.Query+"%")
 	}
 	clause := ""
@@ -140,7 +140,7 @@ func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationList
 		clause = " WHERE " + strings.Join(where, " AND ")
 	}
 	var total int
-	if err := s.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM compute_allocations`+clause, args...); err != nil {
+	if err := s.db.GetContext(ctx, &total, s.db.Rebind(`SELECT COUNT(*) FROM compute_allocations`+clause), args...); err != nil {
 		return nil, 0, err
 	}
 	limit := f.Limit
@@ -158,7 +158,7 @@ func (s *mysqlComputeAllocationStore) List(ctx context.Context, f AllocationList
 		` ORDER BY start_time DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
 	var rows []models.ComputeAllocation
-	if err := s.db.SelectContext(ctx, &rows, query, args...); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, s.db.Rebind(query), args...); err != nil {
 		return nil, 0, err
 	}
 	return rows, total, nil
