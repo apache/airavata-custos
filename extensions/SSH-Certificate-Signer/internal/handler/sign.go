@@ -18,6 +18,7 @@ package handler
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -213,6 +214,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
 		metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
+		if errors.Is(err, vaultpkg.ErrSerialConflict) {
+			h.logger.Warn("serial counter conflict", "error", err, "tenant_id", tenantID, "client_id", clientID)
+			writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
+			return
+		}
 		h.logger.Error("failed to increment serial counter", "error", err, "tenant_id", tenantID, "client_id", clientID)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 		return
@@ -280,6 +286,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			metrics.SignRequestsTotal.WithLabelValues(tenantID, "error").Inc()
 			metrics.VaultOperationsTotal.WithLabelValues("increment_serial", "error").Inc()
+			if errors.Is(err, vaultpkg.ErrSerialConflict) {
+				h.logger.Warn("serial counter conflict", "error", err, "tenant_id", tenantID, "client_id", clientID)
+				writeError(w, http.StatusConflict, "serial_conflict", "Serial number allocation conflict, retry the request")
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to allocate serial number")
 			return
 		}

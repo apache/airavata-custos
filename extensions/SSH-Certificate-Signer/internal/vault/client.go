@@ -23,14 +23,32 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	vaultapi "github.com/openbao/openbao/api/v2"
 
 	"github.com/apache/airavata-custos/signer/internal/config"
 )
+
+// ErrSerialConflict marks a lost CAS race on the serial counter, not a store failure.
+var ErrSerialConflict = errors.New("serial counter conflict")
+
+func isCASMismatch(err error) bool {
+	var respErr *vaultapi.ResponseError
+	if !errors.As(err, &respErr) {
+		return false
+	}
+	for _, msg := range respErr.Errors {
+		if strings.Contains(msg, "check-and-set parameter did not match") {
+			return true
+		}
+	}
+	return false
+}
 
 type CAKeyPair struct {
 	PrivateKey []byte // PEM-encoded private key
@@ -346,6 +364,9 @@ func (c *Client) writeMetadataCAS(ctx context.Context, tenantID, clientID string
 	}
 	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
 	if err != nil {
+		if isCASMismatch(err) {
+			return fmt.Errorf("%w (CAS=%d): %v", ErrSerialConflict, cas, err)
+		}
 		return fmt.Errorf("writing vault metadata (CAS=%d): %w", cas, err)
 	}
 	return nil

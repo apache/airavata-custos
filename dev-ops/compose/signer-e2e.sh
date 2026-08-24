@@ -130,6 +130,21 @@ else
 fi
 docker compose exec -T sshd-login ssh-keygen -kf /etc/ssh/revoked_keys.krl
 
+# --- serial races: the signer detects them by matching OpenBao's CAS
+# message, so pin the mapping here; a reword upstream would surface as a
+# 500 instead of a 409. Passes when no race occurs.
+codes=$(for _ in $(seq 1 20); do
+  curl -s -o /dev/null -w "%{http_code}\n" "$SIGNER_URL/api/v1/sign" \
+    -H "X-Client-Id: $CLIENT_ID" -H "X-Client-Secret: $CLIENT_SECRET" \
+    -H "Content-Type: application/json" \
+    -d "{\"principal\":\"$PRINCIPAL\",\"ttl_seconds\":300,\"public_key\":\"$PUBKEY\",\"user_access_token\":\"$TOKEN\"}" &
+done | sort -u | tr '\n' ' ')
+if echo "$codes" | grep -qw 500; then
+  check "concurrent serial conflicts return 409, not 500 (saw: $codes)" 1
+else
+  check "concurrent serial conflicts return 409, not 500 (saw: $codes)" 0
+fi
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" = "0" ]
