@@ -148,7 +148,7 @@ services:
     container_name: custos_signer
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8084:8084"
+      - "8084:8084"
     volumes:
       - ./signer/config.yaml:/app/config.yaml:ro
     depends_on:
